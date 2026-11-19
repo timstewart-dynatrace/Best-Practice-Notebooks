@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPMIG-03: OpenPipeline Migration Guide: Part 3</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPMIG — OpenPipeline Migration</a><span class="sep">/</span><span aria-current="page">OPMIG-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPMIG-03: OpenPipeline Migration Guide: Part 3</h1>
+<blockquote>
+<p><strong>Series:</strong> OPMIG — OpenPipeline Migration | <strong>Notebook:</strong> 3 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/30/2026</p>
+</blockquote>
+<h2>Migration Assessment &amp; Planning</h2>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#discovery-current-data-landscape">Discovery: Current Data Landscape</a></li>
+<li><a href="#using-davis-copilot-for-discovery">Using Dynatrace Assist for Discovery</a></li>
+<li><a href="#volume-analysis">Volume Analysis</a></li>
+<li><a href="#source-inventory">Source Inventory</a></li>
+<li><a href="#parsing-requirements-analysis">Parsing Requirements Analysis</a></li>
+<li><a href="#cost-optimization-opportunities">Cost Optimization Opportunities</a></li>
+<li><a href="#migration-priority-scoring-matrix">Migration Priority Scoring Matrix</a></li>
+<li><a href="#defining-migration-waves">Defining Migration Waves</a></li>
+<li><a href="#security-compliance-assessment">Security &amp; Compliance Assessment</a></li>
+<li><a href="#migration-priority-matrix">Migration Priority Matrix</a></li>
+<li><a href="#planning-your-migration">Planning Your Migration</a></li>
+<li><a href="#assessment-summary-export">Assessment Summary Export</a></li>
+</ol>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>✅ Discover and analyze your current data landscape</li>
+<li>✅ <strong>Use Dynatrace Assist for intelligent discovery</strong></li>
+<li>✅ Assess parsing requirements and coverage</li>
+<li>✅ Identify cost optimization opportunities</li>
+<li>✅ Detect sensitive data requiring masking</li>
+<li>✅ <strong>Prioritize sources using scoring matrix</strong></li>
+<li>✅ <strong>Create data-driven migration waves</strong></li>
+<li>✅ Generate comprehensive source inventory</li>
+</ul>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail and existing log ingestion — OpenPipeline runs in the SaaS environment; Managed is not covered by this series</td>
+</tr>
+<tr>
+<td><strong>API Access</strong></td>
+<td><code>logs.read</code> token scope</td>
+</tr>
+<tr>
+<td><strong>Existing Logs</strong></td>
+<td>At least 7 days of classic log data for assessment queries</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OPMIG-01 and OPMIG-02 concepts</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="discovery-current-data-landscape"></a></p>
+<h2>Discovery: Current Data Landscape</h2>
+<p>Start by understanding what data you're currently ingesting and how it's being processed.</p>
+<hr />
+<p><a id="using-davis-copilot-for-discovery"></a></p>
+<h2>Using Dynatrace Assist for Discovery</h2>
+<p>If you have access to the Dynatrace MCP Server, you can use Dynatrace Assist to assist with migration discovery.</p>
+<h3>Dynatrace Assist Capabilities</h3>
+<p>Tool names differ between Dynatrace MCP server versions. The names below are the ones the tenant-hosted Dynatrace MCP server exposed on 09/28/2026 — check your own server's tool list.</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Purpose</th>
+<th>Example Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ask-dynatrace-docs</strong></td>
+<td>Ask a Dynatrace documentation question</td>
+<td>&quot;How does OpenPipeline dynamic routing work?&quot;</td>
+</tr>
+<tr>
+<td><strong>create-dql</strong></td>
+<td>Natural language → DQL</td>
+<td>&quot;Show me error logs from the last week&quot;</td>
+</tr>
+<tr>
+<td><strong>explain-dql</strong></td>
+<td>Explain complex queries</td>
+<td>Understand existing queries</td>
+</tr>
+<tr>
+<td><strong>execute-dql</strong></td>
+<td>Run queries against tenant (a syntax error is reported in the response)</td>
+<td>Get real data</td>
+</tr>
+</tbody>
+</table>
+<h3>Example: Discovery with Dynatrace Assist</h3>
+<p><strong>Question to Dynatrace Intelligence:</strong></p>
+<pre><code>&quot;What are the top 10 log sources by volume in the last 7 days?&quot;
+</code></pre>
+<p><strong>Dynatrace Intelligence generates DQL:</strong></p>
+<pre><code class="language-dql">fetch logs, from: now() - 7d
+| summarize {log_count = count()}, by: {log.source}
+| sort log_count desc
+| limit 10
+</code></pre>
+<p><strong>Question to Dynatrace Intelligence:</strong></p>
+<pre><code>&quot;Show me logs that might contain credit card numbers&quot;
+</code></pre>
+<p><strong>Dynatrace Intelligence generates DQL:</strong></p>
+<pre><code class="language-dql">// Security pattern detection - look for potential credit card or payment data
+fetch logs, from: now() - 1h
+| filter contains(toString(content), &quot;card&quot;) OR contains(toString(content), &quot;payment&quot;) OR contains(toString(content), &quot;credit&quot;)
+| summarize {count = count()}, by: {log.source}
+| sort count desc
+</code></pre>
+<h3>Benefits of MCP-Assisted Discovery</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Natural Language</strong></td>
+<td>No need to know DQL syntax</td>
+</tr>
+<tr>
+<td><strong>Real Data</strong></td>
+<td>Execute against live tenant — a syntax error comes back in the response, so read it before reading the row count</td>
+</tr>
+<tr>
+<td><strong>Explanation</strong></td>
+<td>Understand complex patterns</td>
+</tr>
+<tr>
+<td><strong>Faster Discovery</strong></td>
+<td>Iterate quickly on queries</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>Tip:</strong> Use Dynatrace Assist iteratively. Ask initial questions, review results, then refine your questions based on what you discover.</p>
+</blockquote>
+<h3>Discovery Workflow with MCP</h3>
+<ol>
+<li><strong>Ask</strong> in natural language — <em>&quot;What log sources exist?&quot;</em></li>
+<li><strong>Generate DQL</strong> with <code>create-dql</code> — e.g. <code>fetch logs | summarize …</code></li>
+<li><strong>Execute</strong> with <code>execute-dql</code> — read the whole response: a syntax error comes back as an error, not as zero rows</li>
+<li><strong>Analyze results</strong> — identify patterns and volumes</li>
+<li><strong>Refine</strong> — ask follow-up questions and repeat</li>
+</ol>
+<hr />
+<pre><code class="language-dql">// Overall data volume summary by data type
+// Understand the scale of your migration
+fetch logs, from: now() - 7d
+| summarize {log_count = count()}
+| fieldsAdd data_type = &quot;logs&quot;, daily_avg = log_count / 7
+</code></pre>
+<pre><code class="language-dql">// Compare logs still processed by the classic pipeline vs OpenPipeline
+// Identifies migration progress. Classic records carry the pipeline id &quot;logs:default&quot;;
+// dt.openpipeline.source and dt.openpipeline.pipelines are populated for BOTH paths,
+// so isNotNull() on either field cannot tell them apart.
+fetch logs, from: now() - 7d
+| fieldsAdd processing_type = if(in(dt.openpipeline.pipelines, &quot;logs:default&quot;), &quot;Classic pipeline&quot;, else: &quot;OpenPipeline&quot;)
+| summarize {record_count = count()}, by: {processing_type}
+| fieldsAdd daily_avg = record_count / 7
+| sort record_count desc
+</code></pre>
+<pre><code class="language-dql">// Breakdown by OpenPipeline source type
+// Shows which ingestion methods are being used
+fetch logs, from: now() - 7d
+| summarize {record_count = count()}, by: {dt.openpipeline.source}
+| fieldsAdd daily_avg = round(record_count / 7, decimals: 0)
+| sort record_count desc
+</code></pre>
+<pre><code class="language-dql">// Check span ingestion landscape (OpenPipeline handles spans too!)
+fetch spans, from: now() - 7d
+| summarize {span_count = count()}, by: {dt.openpipeline.source}
+| fieldsAdd daily_avg = round(span_count / 7, decimals: 0)
+| sort span_count desc
+</code></pre>
+<hr />
+<p><a id="volume-analysis"></a></p>
+<h2>Volume Analysis</h2>
+<p>Understanding volume patterns helps you prioritize migration and plan for cost optimization.</p>
+<pre><code class="language-dql">// Daily log volume trend
+// Identify growth patterns and peak days
+fetch logs, from: now() - 30d
+| makeTimeseries {daily_count = count()}, interval: 24h
+</code></pre>
+<pre><code class="language-dql">// Hourly volume pattern (typical day)
+// Understand when peak ingestion occurs.
+// getHour() uses the query timezone (UTC when run through the API) unless you pass one —
+// set timezone: to the zone your operations team works in.
+fetch logs, from: now() - 7d
+| fieldsAdd hour_of_day = getHour(timestamp, timezone: &quot;UTC&quot;)
+| summarize {avg_hourly = count() / 7}, by: {hour_of_day}
+| sort hour_of_day asc
+</code></pre>
+<pre><code class="language-dql">// Volume by log source - TOP 25
+// Identify highest volume sources for prioritization
+fetch logs, from: now() - 7d
+| summarize {record_count = count()}, by: {log.source}
+| sort record_count desc
+| limit 25
+| fieldsAdd daily_avg = round(record_count / 7, decimals: 0)
+</code></pre>
+<pre><code class="language-dql">// Volume by host entity
+// Identify which hosts generate the most logs
+fetch logs, from: now() - 7d
+| filter isNotNull(dt.entity.host)
+| summarize {record_count = count()}, by: {dt.entity.host}
+| sort record_count desc
+| limit 20
+| fieldsAdd daily_avg = round(record_count / 7, decimals: 0)
+</code></pre>
+<pre><code class="language-dql">// Volume by Kubernetes namespace (if applicable)
+fetch logs, from: now() - 7d
+| filter isNotNull(k8s.namespace.name)
+| summarize {record_count = count()}, by: {k8s.namespace.name}
+| sort record_count desc
+| limit 20
+| fieldsAdd daily_avg = round(record_count / 7, decimals: 0)
+</code></pre>
+<hr />
+<p><a id="source-inventory"></a></p>
+<h2>Source Inventory</h2>
+<p>Create a comprehensive inventory of log sources for migration planning.</p>
+<pre><code class="language-dql">// Complete log source inventory with characteristics
+fetch logs, from: now() - 7d
+| summarize {
+    total_records = count(),
+    unique_hosts = countDistinct(dt.entity.host),
+    has_loglevel = countIf(loglevel != &quot;NONE&quot;),
+    error_count = countIf(loglevel == &quot;ERROR&quot; OR status == &quot;ERROR&quot;)
+  }, by: {log.source}
+| fieldsAdd parsing_coverage = round((toDouble(has_loglevel) / toDouble(total_records)) * 100, decimals: 1)
+| fieldsAdd error_rate = round((toDouble(error_count) / toDouble(total_records)) * 100, decimals: 2)
+| sort total_records desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Log sources by ingestion method
+// Map sources to their OpenPipeline ingestion type
+fetch logs, from: now() - 7d
+| summarize {record_count = count()}, by: {log.source, dt.openpipeline.source}
+| sort record_count desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Log sources by current pipeline assignment
+// Identify which sources already have custom pipelines
+fetch logs, from: now() - 7d
+| summarize {record_count = count()}, by: {log.source, dt.openpipeline.pipelines}
+| sort record_count desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Log sources by bucket
+// Shows current storage distribution
+fetch logs, from: now() - 7d
+| summarize {record_count = count()}, by: {log.source, dt.system.bucket}
+| sort record_count desc
+| limit 50
+</code></pre>
+<hr />
+<p><a id="parsing-requirements-analysis"></a></p>
+<h2>Parsing Requirements Analysis</h2>
+<p>Identify which log sources need parsing pipelines to extract structured data.</p>
+<pre><code class="language-dql">// Overall parsing coverage assessment
+// What percentage of logs have a detected log level?
+// loglevel and status are never null: a record with no detected level reads NONE
+fetch logs, from: now() - 24h
+| summarize {
+    total = count(),
+    with_loglevel = countIf(loglevel != &quot;NONE&quot;)
+  }
+| fieldsAdd loglevel_coverage = round((toDouble(with_loglevel) / toDouble(total)) * 100, decimals: 1)
+</code></pre>
+<pre><code class="language-dql">// Sources with low parsing coverage (need custom parsing)
+// These sources should be prioritized for parsing pipelines
+fetch logs, from: now() - 7d
+| summarize {
+    total_records = count(),
+    parsed = countIf(loglevel != &quot;NONE&quot;)
+  }, by: {log.source}
+| filter total_records &gt; 1000
+| fieldsAdd parsing_pct = round((toDouble(parsed) / toDouble(total_records)) * 100, decimals: 1)
+| filter parsing_pct &lt; 50
+| sort total_records desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Sample unparsed log content for pattern analysis
+// Review these to design parsing rules
+fetch logs, from: now() - 1h
+| filter loglevel == &quot;NONE&quot;
+| fields timestamp, log.source, content
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Identify JSON logs that could benefit from JSON parsing
+// JSON logs can be automatically parsed in OpenPipeline
+fetch logs, from: now() - 1h
+| filter startsWith(toString(content), &quot;{&quot;)
+| summarize {json_logs = count()}, by: {log.source}
+| sort json_logs desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Sample JSON logs for structure analysis
+fetch logs, from: now() - 1h
+| filter startsWith(toString(content), &quot;{&quot;)
+| fields timestamp, log.source, content
+| limit 20
+</code></pre>
+<hr />
+<p><a id="cost-optimization-opportunities"></a></p>
+<h2>Cost Optimization Opportunities</h2>
+<p>Identify logs that can be dropped or routed to shorter retention buckets to reduce costs.</p>
+<pre><code class="language-dql">// Debug log volume - prime candidates for dropping
+fetch logs, from: now() - 7d
+| summarize {
+    total = count(),
+    debug_logs = countIf(loglevel == &quot;DEBUG&quot;),
+    trace_logs = countIf(loglevel == &quot;TRACE&quot;)
+  }
+| fieldsAdd debug_pct = round((toDouble(debug_logs) / toDouble(total)) * 100, decimals: 2)
+| fieldsAdd trace_pct = round((toDouble(trace_logs) / toDouble(total)) * 100, decimals: 2)
+| fieldsAdd droppable_pct = round((toDouble(debug_logs + trace_logs) / toDouble(total)) * 100, decimals: 2)
+</code></pre>
+<pre><code class="language-dql">// Health check and metrics endpoint logs - often droppable
+fetch logs, from: now() - 7d
+| summarize {
+    total = count(),
+    health_checks = countIf(contains(toString(content), &quot;health&quot;) OR contains(toString(content), &quot;healthz&quot;)),
+    readiness = countIf(contains(toString(content), &quot;ready&quot;) OR contains(toString(content), &quot;readiness&quot;)),
+    liveness = countIf(contains(toString(content), &quot;alive&quot;) OR contains(toString(content), &quot;liveness&quot;)),
+    metrics = countIf(contains(toString(content), &quot;/metrics&quot;) OR contains(toString(content), &quot;/prometheus&quot;)),
+    // one countIf, so a record matching two conditions is counted once
+    droppable = countIf(contains(toString(content), &quot;health&quot;) OR contains(toString(content), &quot;ready&quot;) OR contains(toString(content), &quot;readiness&quot;) OR contains(toString(content), &quot;alive&quot;) OR contains(toString(content), &quot;liveness&quot;) OR contains(toString(content), &quot;/metrics&quot;) OR contains(toString(content), &quot;/prometheus&quot;))
+  }
+| fieldsAdd savings_pct = round((toDouble(droppable) / toDouble(total)) * 100, decimals: 2)
+</code></pre>
+<pre><code class="language-dql">// Log level distribution by source
+// Identify sources with high debug/trace output
+fetch logs, from: now() - 7d
+| filter loglevel != &quot;NONE&quot;
+| summarize {record_count = count()}, by: {log.source, loglevel}
+| sort log.source asc, record_count desc
+</code></pre>
+<pre><code class="language-dql">// Highly repetitive log patterns (noise candidates)
+// Find logs with same content appearing many times
+fetch logs, from: now() - 1h
+| summarize {occurrences = count()}, by: {content}
+| filter occurrences &gt; 100
+| sort occurrences desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Estimate potential cost savings from dropping debug/noise
+fetch logs, from: now() - 7d
+| summarize {
+    total = count(),
+    droppable_debug = countIf(loglevel == &quot;DEBUG&quot; OR loglevel == &quot;TRACE&quot;),
+    droppable_health = countIf(contains(toString(content), &quot;health&quot;) OR contains(toString(content), &quot;/metrics&quot;)),
+    info_logs = countIf(loglevel == &quot;INFO&quot;),
+    // one countIf, so a record matching two conditions is counted once
+    potential_drops = countIf(loglevel == &quot;DEBUG&quot; OR loglevel == &quot;TRACE&quot; OR contains(toString(content), &quot;health&quot;) OR contains(toString(content), &quot;/metrics&quot;))
+  }, by: {log.source}
+| fieldsAdd drop_pct = round((toDouble(potential_drops) / toDouble(total)) * 100, decimals: 1)
+| filter potential_drops &gt; 100
+| sort potential_drops desc
+| limit 25
+</code></pre>
+<p><a id="migration-priority-scoring-matrix"></a></p>
+<h2>Migration Priority Scoring Matrix</h2>
+<p>Use this data-driven approach to prioritize which log sources to migrate first.</p>
+<h3>Scoring Factors</h3>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Weight</th>
+<th>High Score (5)</th>
+<th>Low Score (1)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Volume</strong></td>
+<td>25%</td>
+<td>&gt;1M logs/day</td>
+<td>&lt;10K logs/day</td>
+</tr>
+<tr>
+<td><strong>Cost Savings Potential</strong></td>
+<td>25%</td>
+<td>&gt;50% droppable</td>
+<td>&lt;5% droppable</td>
+</tr>
+<tr>
+<td><strong>Security Risk</strong></td>
+<td>25%</td>
+<td>Contains PII/PHI</td>
+<td>No sensitive data</td>
+</tr>
+<tr>
+<td><strong>Parsing Complexity</strong></td>
+<td>10%</td>
+<td>JSON/simple format</td>
+<td>Complex multi-format</td>
+</tr>
+<tr>
+<td><strong>Business Criticality</strong></td>
+<td>15%</td>
+<td>Production core services</td>
+<td>Dev/test environments</td>
+</tr>
+</tbody>
+</table>
+<h3>Calculating Priority Score</h3>
+<pre><code>Priority Score = 
+  (Volume Score × 0.25) +
+  (Cost Savings Score × 0.25) +
+  (Security Risk Score × 0.25) +
+  (Parsing Complexity Score × 0.10) +
+  (Business Criticality Score × 0.15)
+  
+Range: 1.0 (lowest) to 5.0 (highest)
+</code></pre>
+<h3>Priority Tiers</h3>
+<table>
+<thead>
+<tr>
+<th>Score Range</th>
+<th>Tier</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>4.0 - 5.0</strong></td>
+<td>🔴 Critical</td>
+<td>Wave 1 - Migrate immediately</td>
+</tr>
+<tr>
+<td><strong>3.0 - 3.9</strong></td>
+<td>🟠 High</td>
+<td>Wave 2 - Migrate within 2 weeks</td>
+</tr>
+<tr>
+<td><strong>2.0 - 2.9</strong></td>
+<td>🟡 Medium</td>
+<td>Wave 3 - Migrate within 1 month</td>
+</tr>
+<tr>
+<td><strong>1.0 - 1.9</strong></td>
+<td>🟢 Low</td>
+<td>Wave 4 - Migrate when convenient</td>
+</tr>
+</tbody>
+</table>
+<h3>Example: E-Commerce Logs</h3>
+<p><strong>Source:</strong> <code>payment-service</code></p>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Score</th>
+<th>Justification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Volume</td>
+<td>5</td>
+<td>2M logs/day</td>
+</tr>
+<tr>
+<td>Cost Savings</td>
+<td>4</td>
+<td>60% debug logs droppable</td>
+</tr>
+<tr>
+<td>Security Risk</td>
+<td>5</td>
+<td>Contains credit card numbers</td>
+</tr>
+<tr>
+<td>Parsing</td>
+<td>4</td>
+<td>JSON format (easy)</td>
+</tr>
+<tr>
+<td>Criticality</td>
+<td>5</td>
+<td>Core payment processing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Priority Score:</strong></p>
+<pre><code>(5 × 0.25) + (4 × 0.25) + (5 × 0.25) + (4 × 0.10) + (5 × 0.15) = 4.65
+</code></pre>
+<p><strong>Result:</strong> 🔴 <strong>Wave 1 - Critical Priority</strong></p>
+<h3>Example: Development Logs</h3>
+<p><strong>Source:</strong> <code>dev-test-service</code></p>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Score</th>
+<th>Justification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Volume</td>
+<td>2</td>
+<td>50K logs/day</td>
+</tr>
+<tr>
+<td>Cost Savings</td>
+<td>3</td>
+<td>30% debug logs</td>
+</tr>
+<tr>
+<td>Security Risk</td>
+<td>1</td>
+<td>No sensitive data</td>
+</tr>
+<tr>
+<td>Parsing</td>
+<td>3</td>
+<td>Moderate complexity</td>
+</tr>
+<tr>
+<td>Criticality</td>
+<td>1</td>
+<td>Non-production</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Priority Score:</strong></p>
+<pre><code>(2 × 0.25) + (3 × 0.25) + (1 × 0.25) + (3 × 0.10) + (1 × 0.15) = 1.95
+</code></pre>
+<p><strong>Result:</strong> 🟢 <strong>Wave 4 - Low Priority</strong></p>
+<hr />
+<p><a id="defining-migration-waves"></a></p>
+<h2>Defining Migration Waves</h2>
+<p>Organize your migration into manageable waves based on priority scores.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icGhhc2UxR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InBoYXNlMkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwaGFzZTNHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icGhhc2U0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYzQ4OTk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2RiMjc3NztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InBoYXNlNUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjJjNTVlO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNmEzNGE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ibXBTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9Im1wQXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzY0NzQ4YiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9wZW5QaXBlbGluZSBNaWdyYXRpb24gUGhhc2VzPC90ZXh0PgoKICA8IS0tIFRpbWVsaW5lIC0tPgogIDxsaW5lIHgxPSI1MCIgeTE9IjgwIiB4Mj0iNzUwIiB5Mj0iODAiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIzIi8+CgogIDwhLS0gUGhhc2UgY2lyY2xlcyBhbmQgbWFya2VycyAtLT4KICA8Y2lyY2xlIGN4PSI5MCIgY3k9IjgwIiByPSIxMCIgZmlsbD0iIzNiODJmNiIvPgogIDxjaXJjbGUgY3g9IjIzMCIgY3k9IjgwIiByPSIxMCIgZmlsbD0iIzhiNWNmNiIvPgogIDxjaXJjbGUgY3g9IjM3MCIgY3k9IjgwIiByPSIxMCIgZmlsbD0iI2Y1OWUwYiIvPgogIDxjaXJjbGUgY3g9IjUxMCIgY3k9IjgwIiByPSIxMCIgZmlsbD0iI2VjNDg5OSIvPgogIDxjaXJjbGUgY3g9IjY1MCIgY3k9IjgwIiByPSIxMCIgZmlsbD0iIzIyYzU1ZSIvPgoKICA8IS0tIFBoYXNlIDEgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjEwMCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMjAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3BoYXNlMUdyYWQpIiBmaWx0ZXI9InVybCgjbXBTaGFkb3cpIi8+CiAgPHRleHQgeD0iOTAiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBoYXNlIDE8L3RleHQ+CiAgPHRleHQgeD0iOTAiIHk9IjE0MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFzc2Vzc21lbnQ8L3RleHQ+CiAgPHRleHQgeD0iOTAiIHk9IjE2NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKAoiBBdWRpdCBsb2cgc291cmNlczwvdGV4dD4KICA8dGV4dCB4PSI5MCIgeT0iMTgwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4oCiIElkZW50aWZ5IFBJSS9QSEk8L3RleHQ+CiAgPHRleHQgeD0iOTAiIHk9IjE5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKAoiBNYXAgcmVxdWlyZW1lbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSIyMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7igKIgRGVmaW5lIGJ1Y2tldHM8L3RleHQ+CgogIDwhLS0gQXJyb3cgLS0+CiAgPHBhdGggZD0iTTE1MCwxNjAgTDE3MCwxNjAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI21wQXJyb3cpIi8+CgogIDwhLS0gUGhhc2UgMiAtLT4KICA8cmVjdCB4PSIxNzAiIHk9IjEwMCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMjAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3BoYXNlMkdyYWQpIiBmaWx0ZXI9InVybCgjbXBTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjMwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QaGFzZSAyPC90ZXh0PgogIDx0ZXh0IHg9IjIzMCIgeT0iMTQyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGVzaWduPC90ZXh0PgogIDx0ZXh0IHg9IjIzMCIgeT0iMTY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4oCiIFBpcGVsaW5lIHN0cnVjdHVyZTwvdGV4dD4KICA8dGV4dCB4PSIyMzAiIHk9IjE4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKAoiBSb3V0aW5nIHJ1bGVzPC90ZXh0PgogIDx0ZXh0IHg9IjIzMCIgeT0iMTk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4oCiIE1hc2tpbmcgcGF0dGVybnM8L3RleHQ+CiAgPHRleHQgeD0iMjMwIiB5PSIyMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7igKIgRFBMIHBhdHRlcm5zPC90ZXh0PgoKICA8cGF0aCBkPSJNMjkwLDE2MCBMMzEwLDE2MCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjbXBBcnJvdykiLz4KCiAgPCEtLSBQaGFzZSAzIC0tPgogIDxyZWN0IHg9IjMxMCIgeT0iMTAwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgcng9IjgiIGZpbGw9InVybCgjcGhhc2UzR3JhZCkiIGZpbHRlcj0idXJsKCNtcFNoYWRvdykiLz4KICA8dGV4dCB4PSIzNzAiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBoYXNlIDM8L3RleHQ+CiAgPHRleHQgeD0iMzcwIiB5PSIxNDIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CdWlsZDwvdGV4dD4KICA8dGV4dCB4PSIzNzAiIHk9IjE2NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKAoiBDcmVhdGUgcGlwZWxpbmVzPC90ZXh0PgogIDx0ZXh0IHg9IjM3MCIgeT0iMTgwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4oCiIEFkZCBwcm9jZXNzb3JzPC90ZXh0PgogIDx0ZXh0IHg9IjM3MCIgeT0iMTk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4oCiIENvbmZpZ3VyZSBidWNrZXRzPC90ZXh0PgogIDx0ZXh0IHg9IjM3MCIgeT0iMjEwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4oCiIFNldCB1cCBleHRyYWN0aW9uPC90ZXh0PgoKICA8cGF0aCBkPSJNNDMwLDE2MCBMNDUwLDE2MCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjbXBBcnJvdykiLz4KCiAgPCEtLSBQaGFzZSA0IC0tPgogIDxyZWN0IHg9IjQ1MCIgeT0iMTAwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgcng9IjgiIGZpbGw9InVybCgjcGhhc2U0R3JhZCkiIGZpbHRlcj0idXJsKCNtcFNoYWRvdykiLz4KICA8dGV4dCB4PSI1MTAiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBoYXNlIDQ8L3RleHQ+CiAgPHRleHQgeD0iNTEwIiB5PSIxNDIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5WYWxpZGF0ZTwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjE2NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKAoiBUZXN0IHBhcnNpbmc8L3RleHQ+CiAgPHRleHQgeD0iNTEwIiB5PSIxODAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7igKIgVmVyaWZ5IG1hc2tpbmc8L3RleHQ+CiAgPHRleHQgeD0iNTEwIiB5PSIxOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7igKIgQ2hlY2sgcm91dGluZzwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjIxMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKAoiBWYWxpZGF0ZSBtZXRyaWNzPC90ZXh0PgoKICA8cGF0aCBkPSJNNTcwLDE2MCBMNTkwLDE2MCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjbXBBcnJvdykiLz4KCiAgPCEtLSBQaGFzZSA1IC0tPgogIDxyZWN0IHg9IjU5MCIgeT0iMTAwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgcng9IjgiIGZpbGw9InVybCgjcGhhc2U1R3JhZCkiIGZpbHRlcj0idXJsKCNtcFNoYWRvdykiLz4KICA8dGV4dCB4PSI2NTAiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBoYXNlIDU8L3RleHQ+CiAgPHRleHQgeD0iNjUwIiB5PSIxNDIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PcGVyYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjY1MCIgeT0iMTY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4oCiIE1vbml0b3IgaGVhbHRoPC90ZXh0PgogIDx0ZXh0IHg9IjY1MCIgeT0iMTgwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4oCiIE9wdGltaXplIGNvc3RzPC90ZXh0PgogIDx0ZXh0IHg9IjY1MCIgeT0iMTk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+4oCiIEFkZCBuZXcgc291cmNlczwvdGV4dD4KICA8dGV4dCB4PSI2NTAiIHk9IjIxMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOCkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKAoiBDb250aW51b3VzIHR1bmU8L3RleHQ+CgogIDwhLS0gUHJvZ3Jlc3MgYmFyIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIyNDAiIHdpZHRoPSI3NDAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5UaGlzIE5vdGVib29rIFNlcmllcyBDb3ZlcnMgQWxsIDUgUGhhc2VzPC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iMjc3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9QTUlHLTAxIOKGkiAwMzogQXNzZXNzbWVudC9EZXNpZ24gfCBPUE1JRy0wNCDihpIgMDg6IEJ1aWxkIHwgT1BNSUctMDk6IFZhbGlkYXRlL09wZXJhdGU8L3RleHQ+Cjwvc3ZnPgo=" alt="OpenPipeline Migration Phases" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Focus | Notebooks |
+|-------|-------|-----------|
+| Phase 1 | Assessment | Audit sources, identify PII, map requirements |
+| Phase 2 | Design | Pipeline structure, routing, masking patterns |
+| Phase 3 | Build | Create pipelines, add processors, configure buckets |
+| Phase 4 | Validate | Test parsing, verify masking, check routing |
+| Phase 5 | Operate | Monitor health, optimize costs, continuous tuning |
+-->
+<h3>Wave 1: Critical (Weeks 1-2)</h3>
+<p><strong>Criteria:</strong></p>
+<ul>
+<li>Priority score ≥ 4.0</li>
+<li>High security risk OR high business criticality</li>
+<li>Quick wins with significant impact</li>
+</ul>
+<p><strong>Typical Sources:</strong></p>
+<ul>
+<li>Payment/financial transaction logs</li>
+<li>Authentication/authorization logs</li>
+<li>Production API gateways</li>
+<li>Customer-facing services</li>
+</ul>
+<p><strong>Migration Activities:</strong></p>
+<ol>
+<li>Configure masking for sensitive data</li>
+<li>Set up high-retention buckets (90+ days)</li>
+<li>Extract critical business metrics</li>
+<li>Implement drop rules for noise</li>
+<li>Validate thoroughly before cutover</li>
+</ol>
+<h3>Wave 2: High Priority (Weeks 3-4)</h3>
+<p><strong>Criteria:</strong></p>
+<ul>
+<li>Priority score 3.0 - 3.9</li>
+<li>High volume sources</li>
+<li>Significant cost savings potential</li>
+</ul>
+<p><strong>Typical Sources:</strong></p>
+<ul>
+<li>High-volume application logs</li>
+<li>Microservices with debug logs</li>
+<li>Infrastructure logs (K8s, cloud)</li>
+<li>Database audit logs</li>
+</ul>
+<p><strong>Migration Activities:</strong></p>
+<ol>
+<li>Implement tiered bucket strategy</li>
+<li>Configure aggressive drop rules</li>
+<li>Extract SLI/SLO metrics</li>
+<li>Parse for standard fields</li>
+</ol>
+<h3>Wave 3: Medium Priority (Weeks 5-6)</h3>
+<p><strong>Criteria:</strong></p>
+<ul>
+<li>Priority score 2.0 - 2.9</li>
+<li>Moderate volume</li>
+<li>Standard processing requirements</li>
+</ul>
+<p><strong>Typical Sources:</strong></p>
+<ul>
+<li>Supporting microservices</li>
+<li>Batch processing logs</li>
+<li>Background workers</li>
+<li>Scheduled jobs</li>
+</ul>
+<p><strong>Migration Activities:</strong></p>
+<ol>
+<li>Use default bucket with standard retention</li>
+<li>Basic parsing and enrichment</li>
+<li>Standard drop rules</li>
+</ol>
+<h3>Wave 4: Low Priority (Weeks 7+)</h3>
+<p><strong>Criteria:</strong></p>
+<ul>
+<li>Priority score &lt; 2.0</li>
+<li>Low volume or non-critical</li>
+<li>Development/test environments</li>
+</ul>
+<p><strong>Typical Sources:</strong></p>
+<ul>
+<li>Development environment logs</li>
+<li>Test automation logs</li>
+<li>Experimental services</li>
+<li>Legacy systems (soon to be retired)</li>
+</ul>
+<p><strong>Migration Activities:</strong></p>
+<ol>
+<li>Short retention buckets (7 days)</li>
+<li>Minimal processing</li>
+<li>May consider NOT migrating if retiring soon</li>
+</ol>
+<h3>Wave Planning Template</h3>
+<p>The timelines and source counts below are an illustrative starting point, not a benchmark — size each wave from your own scoring results.</p>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Timeline</th>
+<th>Sources</th>
+<th>Expected Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Wave 1</strong></td>
+<td>Week 1-2</td>
+<td>5-10 critical sources</td>
+<td>Security compliance, audit logs</td>
+</tr>
+<tr>
+<td><strong>Wave 2</strong></td>
+<td>Week 3-4</td>
+<td>10-20 high-volume sources</td>
+<td>Largest volume reductions (size them with the cost queries above)</td>
+</tr>
+<tr>
+<td><strong>Wave 3</strong></td>
+<td>Week 5-6</td>
+<td>20-30 standard sources</td>
+<td>Complete production migration</td>
+</tr>
+<tr>
+<td><strong>Wave 4</strong></td>
+<td>Week 7+</td>
+<td>Remaining sources</td>
+<td>100% migration complete</td>
+</tr>
+</tbody>
+</table>
+<h3>Risk Mitigation Per Wave</h3>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Mitigation Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Wave 1</strong></td>
+<td>Extra validation, staged rollout, 24/7 monitoring</td>
+</tr>
+<tr>
+<td><strong>Wave 2</strong></td>
+<td>Standard validation, rollout groups, business hours monitoring</td>
+</tr>
+<tr>
+<td><strong>Wave 3</strong></td>
+<td>Standard process, batch rollout</td>
+</tr>
+<tr>
+<td><strong>Wave 4</strong></td>
+<td>Minimal ceremony, quick rollout</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<pre><code class="language-dql">// Generate priority scoring data for your log sources
+// Use this data to calculate priority scores manually
+
+fetch logs, from: now() - 7d
+| summarize {
+    // VOLUME FACTOR
+    total_records = count(),
+    daily_avg = count() / 7,
+    
+    // COST SAVINGS FACTOR
+    debug_count = countIf(loglevel == &quot;DEBUG&quot;),
+    trace_count = countIf(loglevel == &quot;TRACE&quot;),
+    health_checks = countIf(contains(toString(content), &quot;health&quot;) or contains(toString(content), &quot;/ready&quot;)),
+    // one countIf, so a record matching two conditions is counted once
+    droppable = countIf(loglevel == &quot;DEBUG&quot; or loglevel == &quot;TRACE&quot; or contains(toString(content), &quot;health&quot;) or contains(toString(content), &quot;/ready&quot;)),
+    
+    // SECURITY FACTOR (indicators)
+    potential_pii = countIf(
+        contains(toString(content), &quot;@&quot;) OR
+        contains(toString(content), &quot;card&quot;) OR
+        contains(toString(content), &quot;ssn&quot;) OR
+        contains(toString(content), &quot;password&quot;)
+    ),
+    
+    // PARSING FACTOR
+    parsed_records = countIf(loglevel != &quot;NONE&quot;),
+    
+    // ERROR RATE (criticality indicator)
+    error_count = countIf(loglevel == &quot;ERROR&quot; or status == &quot;ERROR&quot;),
+    
+    unique_hosts = countDistinct(dt.entity.host)
+  }, by: {log.source}
+| filter total_records &gt; 1000  // Only sources with meaningful volume
+| fieldsAdd drop_pct = round((toDouble(droppable) / toDouble(total_records)) * 100, decimals: 1)
+| fieldsAdd parsing_pct = round((toDouble(parsed_records) / toDouble(total_records)) * 100, decimals: 1)
+| fieldsAdd error_rate = round((toDouble(error_count) / toDouble(total_records)) * 100, decimals: 2)
+| fieldsAdd pii_pct = round((toDouble(potential_pii) / toDouble(total_records)) * 100, decimals: 2)
+| sort total_records desc
+| limit 50
+</code></pre>
+<hr />
+<p><a id="security-compliance-assessment"></a></p>
+<h2>Security &amp; Compliance Assessment</h2>
+<p>Identify logs containing sensitive data that needs masking before storage.</p>
+<pre><code class="language-dql">// Search for potential PII patterns
+// CAUTION: Review results carefully for actual sensitive data
+fetch logs, from: now() - 1h
+| filter contains(toString(content), &quot;email&quot;)
+    OR contains(toString(content), &quot;password&quot;)
+    OR contains(toString(content), &quot;credit&quot;)
+    OR contains(toString(content), &quot;ssn&quot;)
+    OR contains(toString(content), &quot;social security&quot;)
+| summarize {potential_pii = count()}, by: {log.source}
+| sort potential_pii desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Look for email patterns in logs
+fetch logs, from: now() - 1h
+| filter contains(toString(content), &quot;@&quot;)
+| summarize {email_patterns = count()}, by: {log.source}
+| sort email_patterns desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Sample logs with potential sensitive data for review
+// Review these to design masking rules
+fetch logs, from: now() - 1h
+| filter contains(toString(content), &quot;email&quot;) OR contains(toString(content), &quot;password&quot;)
+| fields timestamp, log.source, content
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Look for IP addresses in logs (may need masking for GDPR)
+// DPL IPADDR matches IPv4 and IPv6 addresses anywhere in the content
+fetch logs, from: now() - 1h
+| filter matchesPattern(content, &quot;LD IPADDR LD&quot;)
+| summarize {logs_with_ip = count()}, by: {log.source}
+| sort logs_with_ip desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Audit log sources - may need longer retention
+fetch logs, from: now() - 7d
+| filter contains(toString(log.source), &quot;audit&quot;)
+    OR contains(toString(content), &quot;audit&quot;)
+    OR contains(toString(content), &quot;login&quot;)
+    OR contains(toString(content), &quot;authentication&quot;)
+| summarize {audit_logs = count()}, by: {log.source}
+| sort audit_logs desc
+| limit 20
+</code></pre>
+<hr />
+<p><a id="migration-priority-matrix"></a></p>
+<h2>Migration Priority Matrix</h2>
+<p>Based on your assessment, prioritize sources for migration using this framework:</p>
+<p>Score each source with the weights and tiers in <a href="#migration-priority-scoring-matrix">Migration Priority Scoring Matrix</a> (Volume 25%, Cost Savings 25%, Security Risk 25%, Parsing Complexity 10%, Business Criticality 15%), then place it in a wave:</p>
+<h3>Recommended Migration Waves</h3>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Priority</th>
+<th>Criteria</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Wave 1</strong></td>
+<td>🔴 Critical</td>
+<td>High volume + security risk</td>
+<td>Payment logs, auth logs</td>
+</tr>
+<tr>
+<td><strong>Wave 2</strong></td>
+<td>🟠 High</td>
+<td>High volume + cost savings</td>
+<td>Debug-heavy apps, health checks</td>
+</tr>
+<tr>
+<td><strong>Wave 3</strong></td>
+<td>🟡 Medium</td>
+<td>Medium volume, standard processing</td>
+<td>Application logs</td>
+</tr>
+<tr>
+<td><strong>Wave 4</strong></td>
+<td>🟢 Low</td>
+<td>Low volume, minimal processing</td>
+<td>Development, test environments</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Generate migration priority assessment by source
+fetch logs, from: now() - 7d
+| summarize {
+    total_records = count(),
+    debug_count = countIf(loglevel == &quot;DEBUG&quot;),
+    error_count = countIf(loglevel == &quot;ERROR&quot; OR status == &quot;ERROR&quot;),
+    has_parsing = countIf(loglevel != &quot;NONE&quot;),
+    unique_hosts = countDistinct(dt.entity.host)
+  }, by: {log.source}
+| filter total_records &gt; 1000
+| fieldsAdd daily_avg = round(total_records / 7, decimals: 0)
+| fieldsAdd drop_opportunity = round((toDouble(debug_count) / toDouble(total_records)) * 100, decimals: 1)
+| fieldsAdd parsing_coverage = round((toDouble(has_parsing) / toDouble(total_records)) * 100, decimals: 1)
+| fieldsAdd error_rate = round((toDouble(error_count) / toDouble(total_records)) * 100, decimals: 2)
+| sort total_records desc
+| limit 30
+</code></pre>
+<hr />
+<p><a id="planning-your-migration"></a></p>
+<h2>Planning Your Migration</h2>
+<h3>Migration Checklist</h3>
+<p>Use this checklist to track your migration planning:</p>
+<h4>Discovery Phase ✓</h4>
+<ul>
+<li>[ ] Inventoried all log sources</li>
+<li>[ ] Documented volume by source</li>
+<li>[ ] Identified OpenPipeline sources vs classic</li>
+<li>[ ] Analyzed current bucket distribution</li>
+</ul>
+<h4>Assessment Phase ✓</h4>
+<ul>
+<li>[ ] Identified parsing requirements</li>
+<li>[ ] Calculated cost savings opportunities</li>
+<li>[ ] Found sources with sensitive data</li>
+<li>[ ] Assigned migration priorities</li>
+</ul>
+<h4>Planning Phase</h4>
+<ul>
+<li>[ ] Defined migration waves</li>
+<li>[ ] Designed pipeline structure</li>
+<li>[ ] Planned routing rules</li>
+<li>[ ] Documented parsing patterns (DPL)</li>
+<li>[ ] Defined masking requirements</li>
+<li>[ ] Planned bucket strategy</li>
+</ul>
+<h4>Pre-Migration Testing</h4>
+<ul>
+<li>[ ] Tested parsing patterns in DPL Architect</li>
+<li>[ ] Validated masking rules</li>
+<li>[ ] Tested routing conditions</li>
+<li>[ ] Verified metric extraction</li>
+</ul>
+<h3>Pipeline Design Template</h3>
+<p>For each source being migrated, document:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Source Name</strong></td>
+<td>(e.g., <code>nginx-access</code>)</td>
+</tr>
+<tr>
+<td><strong>Volume</strong></td>
+<td>(e.g., <code>500K/day</code>)</td>
+</tr>
+<tr>
+<td><strong>Pipeline Name</strong></td>
+<td>(e.g., <code>nginx-logs</code>)</td>
+</tr>
+<tr>
+<td><strong>Routing Condition</strong></td>
+<td>(e.g., <code>log.source == &quot;nginx&quot;</code>)</td>
+</tr>
+<tr>
+<td><strong>Parsing Required?</strong></td>
+<td>Yes/No</td>
+</tr>
+<tr>
+<td><strong>Parse Pattern</strong></td>
+<td>(DPL pattern)</td>
+</tr>
+<tr>
+<td><strong>Masking Required?</strong></td>
+<td>Yes/No</td>
+</tr>
+<tr>
+<td><strong>Masking Rules</strong></td>
+<td>(fields to mask)</td>
+</tr>
+<tr>
+<td><strong>Drop Rules</strong></td>
+<td>(conditions to drop)</td>
+</tr>
+<tr>
+<td><strong>Metric Extraction</strong></td>
+<td>(metrics to create)</td>
+</tr>
+<tr>
+<td><strong>Target Bucket</strong></td>
+<td>(bucket name)</td>
+</tr>
+<tr>
+<td><strong>Retention</strong></td>
+<td>(days)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="assessment-summary-export"></a></p>
+<h2>Assessment Summary Export</h2>
+<p>Run these queries to create a summary you can export and share with your team.</p>
+<pre><code class="language-dql">// Complete source inventory with all metrics
+// Export this for migration planning documentation
+fetch logs, from: now() - 7d
+| summarize {
+    total_records = count(),
+    daily_avg = count() / 7,
+    unique_hosts = countDistinct(dt.entity.host),
+    debug_count = countIf(loglevel == &quot;DEBUG&quot;),
+    error_count = countIf(loglevel == &quot;ERROR&quot; OR status == &quot;ERROR&quot;),
+    parsed_count = countIf(loglevel != &quot;NONE&quot;)
+  }, by: {log.source, dt.openpipeline.source, dt.system.bucket}
+| fieldsAdd parsing_pct = round((toDouble(parsed_count) / toDouble(total_records)) * 100, decimals: 1)
+| fieldsAdd drop_opportunity_pct = round((toDouble(debug_count) / toDouble(total_records)) * 100, decimals: 1)
+| fieldsAdd error_rate_pct = round((toDouble(error_count) / toDouble(total_records)) * 100, decimals: 2)
+| sort total_records desc
+| limit 100
+</code></pre>
+<hr />
+<h2>Next Steps</h2>
+<p>With your assessment complete, continue with:</p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Focus Area</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OPMIG-04</strong></td>
+<td>Pipeline Configuration Fundamentals</td>
+</tr>
+<tr>
+<td><strong>OPMIG-05</strong></td>
+<td>Routing &amp; Bucket Management</td>
+</tr>
+<tr>
+<td><strong>OPMIG-06</strong></td>
+<td>Processing, Parsing &amp; Transformation</td>
+</tr>
+<tr>
+<td><strong>OPMIG-07</strong></td>
+<td>Metric &amp; Event Extraction</td>
+</tr>
+<tr>
+<td><strong>OPMIG-08</strong></td>
+<td>Security, Masking &amp; Compliance</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/get-started/tutorial-configure-processing">OpenPipeline Configuration Tutorial</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-limits">Log Management Limits</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">organize-data (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

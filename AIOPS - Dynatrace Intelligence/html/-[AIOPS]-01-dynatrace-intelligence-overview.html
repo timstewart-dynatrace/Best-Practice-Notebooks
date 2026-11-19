@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIOPS-01: Dynatrace Intelligence Overview</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AIOPS — Dynatrace Intelligence</a><span class="sep">/</span><span aria-current="page">AIOPS-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AIOPS-01: Dynatrace Intelligence Overview</h1>
+<blockquote>
+<p><strong>Series:</strong> AIOPS — Dynatrace Intelligence | <strong>Notebook:</strong> 1 of 8 | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Dynatrace Intelligence</strong> is the umbrella over the platform's AI capabilities. Three categories work together — Causal AI grounds every analysis in topology, Predictive AI projects metrics forward, Generative AI translates between natural language and DQL.</p>
+<p>This notebook orients you to the surface area: what the categories are, where they appear in the product, what data each one operates on, and where to dive in next.</p>
+<p><strong>Audience:</strong> Platform admin, SRE, observability lead.</p>
+<p><strong>Outcome:</strong> A mental map of Dynatrace Intelligence — and a starting place for any AIOps initiative.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlIEludGVsbGlnZW5jZSBBcmNoaXRlY3R1cmU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+VGhyZWUgQUkgY2F0ZWdvcmllcyBvdmVyIFNtYXJ0c2NhcGUgdG9wb2xvZ3kgYW5kIHRoZSBHcmFpbCBkYXRhIGxha2Vob3VzZTwvdGV4dD4KCiAgPCEtLSBVc2VyIHN1cmZhY2Ugcm93IC0tPgogIDxyZWN0IHg9IjQwIiB5PSI5MCIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjAiIHk9IjExNSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+VXNlciBTdXJmYWNlczwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjEzMCIgd2lkdGg9IjE1NSIgaGVpZ2h0PSI0OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjEzNyIgeT0iMTUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5Qcm9ibGVtcyBhcHA8L3RleHQ+CiAgPHRleHQgeD0iMTM3IiB5PSIxNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmdyb3VwZWQgcHJvYmxlbXM8L3RleHQ+CgogIDxyZWN0IHg9IjIyNSIgeT0iMTMwIiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzAyIiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPkFub21hbHkgRGV0ZWN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjMwMiIgeT0iMTY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5kZXRlY3RvciBjb25maWdzICZhbXA7IHJlc3VsdHM8L3RleHQ+CgogIDxyZWN0IHg9IjM5MCIgeT0iMTMwIiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY3IiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPkR5bmF0cmFjZSBBc3Npc3Q8L3RleHQ+CiAgPHRleHQgeD0iNDY3IiB5PSIxNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmNoYXQgJmFtcDsgRFFMMk5MPC90ZXh0PgoKICA8cmVjdCB4PSI1NTUiIHk9IjEzMCIgd2lkdGg9IjE1NSIgaGVpZ2h0PSI0OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjYzMiIgeT0iMTUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5Xb3JrZmxvd3M8L3RleHQ+CiAgPHRleHQgeD0iNjMyIiB5PSIxNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnNjaGVkdWxlZCBBSSB0YXNrczwvdGV4dD4KCiAgPHJlY3QgeD0iNzIwIiB5PSIxMzAiIHdpZHRoPSIxNTUiIGhlaWdodD0iNDgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICA8dGV4dCB4PSI3OTciIHk9IjE1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+TUNQIFNlcnZlcjwvdGV4dD4KICA8dGV4dCB4PSI3OTciIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+SURFIC8gYWdlbnQgaW50ZWdyYXRpb248L3RleHQ+CgogIDwhLS0gQUkgY2F0ZWdvcmllcyByb3cgLS0+CiAgPHRleHQgeD0iNjAiIHk9IjIxOCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QUkgQ2F0ZWdvcmllczwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjIzMiIgd2lkdGg9IjI2NSIgaGVpZ2h0PSIxMTUiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTkyIiB5PSIyNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPkNhdXNhbCBBSTwvdGV4dD4KICA8dGV4dCB4PSIxOTIiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2h5IGRpZCB0aGlzIGhhcHBlbj88L3RleHQ+CiAgPHRleHQgeD0iMTkyIiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBUb3BvbG9neS1ncm91bmRlZCBSQ0E8L3RleHQ+CiAgPHRleHQgeD0iMTkyIiB5PSIzMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBFdmVudCBjb3JyZWxhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIxOTIiIHk9IjMzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIFByb2JsZW0gZ3JvdXBpbmc8L3RleHQ+CgogIDxyZWN0IHg9IjMzMyIgeT0iMjMyIiB3aWR0aD0iMjY1IiBoZWlnaHQ9IjExNSIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+UHJlZGljdGl2ZSBBSTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2hhdCB3aWxsIGhhcHBlbiAvIHdoYXQncyBvdXRzaWRlIG5vcm1hbD88L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBBdXRvLWFkYXB0aXZlIGJhc2VsaW5lczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjMxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIFNlYXNvbmFsIGJhc2VsaW5lczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjMzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIEZvcmVjYXN0IC8gbm92ZWx0eTwvdGV4dD4KCiAgPHJlY3QgeD0iNjA2IiB5PSIyMzIiIHdpZHRoPSIyNjUiIGhlaWdodD0iMTE1IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjczOCIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5HZW5lcmF0aXZlIEFJPC90ZXh0PgogIDx0ZXh0IHg9IjczOCIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UcmFuc2xhdGUsIGV4cGxhaW4sIHN1bW1hcml6ZTwvdGV4dD4KICA8dGV4dCB4PSI3MzgiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIERRTCDihpQgbmF0dXJhbCBsYW5ndWFnZTwvdGV4dD4KICA8dGV4dCB4PSI3MzgiIHk9IjMxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIFByb2JsZW0gc3VtbWFyaWVzPC90ZXh0PgogIDx0ZXh0IHg9IjczOCIgeT0iMzM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgRG9jdW1lbnRhdGlvbiByZXRyaWV2YWw8L3RleHQ+CgogIDwhLS0gRm91bmRhdGlvbiByb3cgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjM3NSIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjAiIHk9IjQwMCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Rm91bmRhdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjQxNSIgd2lkdGg9IjM5NSIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9IjI1NyIgeT0iNDM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNjAwIj5TbWFydHNjYXBlIFRvcG9sb2d5PC90ZXh0PgogIDx0ZXh0IHg9IjI1NyIgeT0iNDU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SZWFsLXRpbWUgZGVwZW5kZW5jeSBncmFwaCAoZW50aXRpZXMgKyByZWxhdGlvbnNoaXBzKTwvdGV4dD4KCiAgPHJlY3QgeD0iNDc1IiB5PSI0MTUiIHdpZHRoPSIzOTUiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI2NzIiIHk9IjQzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjYwMCI+R3JhaWwgRGF0YSBMYWtlaG91c2U8L3RleHQ+CiAgPHRleHQgeD0iNjcyIiB5PSI0NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmxvZ3MgwrcgZXZlbnRzIMK3IHNwYW5zIMK3IGJpemV2ZW50cyDCtyBwcm9ibGVtczwvdGV4dD4KPC9zdmc+Cg==" alt="Dynatrace Intelligence Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | Components |
+|-------|-----------|
+| User Surface | Problems app, Anomaly Detection app, Dynatrace Assist (chat), Workflows |
+| AI Categories | Causal AI (RCA), Predictive AI (forecasts), Generative AI (DQL2NL) |
+| Foundation | Smartscape topology, Grail data lakehouse |
+For environments where SVG doesn't render
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#three-categories">The Three AI Categories</a></li>
+<li><a href="#surfaces">Where AI Surfaces in the Product</a></li>
+<li><a href="#foundation">The Data Foundation: Smartscape + Grail</a></li>
+<li><a href="#reality-check">Quick Reality Check: What Davis Is Doing Right Now</a></li>
+<li><a href="#series-map">The Series Map</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail (Dynatrace Platform / Gen3)</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:events:read</code> for problem queries; <code>davis:analyzers:execute</code> for analyzer notebooks (introduced later in series)</td>
+</tr>
+<tr>
+<td><strong>Apps</strong></td>
+<td>Problems app, Anomaly Detection app (custom alerts are created in <strong>Settings</strong> from SaaS 1.344 — § 2), Notebooks app</td>
+</tr>
+<tr>
+<td><strong>Optional</strong></td>
+<td>Dynatrace Assist enabled (most modern tenants); MCP server for AIOPS-06</td>
+</tr>
+</tbody>
+</table>
+<p><a id="three-categories"></a></p>
+<h2>1. The Three AI Categories</h2>
+<p>Dynatrace Intelligence does not pile every AI buzzword into one model. It separates by <strong>what kind of question you're asking</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Question it answers</th>
+<th>Examples in product</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Causal AI</strong></td>
+<td><em>Why did this happen?</em></td>
+<td>Davis Problems, automatic root cause analysis, dependency-aware event correlation</td>
+</tr>
+<tr>
+<td><strong>Predictive AI</strong></td>
+<td><em>What will happen, or what's outside normal?</em></td>
+<td>Auto-adaptive baselines, seasonal baselines, forecasts, novelty detection</td>
+</tr>
+<tr>
+<td><strong>Generative AI</strong></td>
+<td><em>Translate between English and DQL — explain, summarize, generate</em></td>
+<td>Dynatrace Assist (chat), DQL2NL skill, Problems app summaries</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Causal ≠ Correlation.</strong> Causal AI reasons over the Smartscape topology graph: it knows that service A depends on service B which runs on host C, so when an anomaly fires on C it can attribute the symptom on A. Generic ML correlation engines see the symptoms but can't reliably point to the cause.</p>
+<p><strong>Predictive ≠ Generative.</strong> A seasonal baseline is a statistical model — it has nothing in common with an LLM. Both are AI; they sit in different boxes for different jobs.</p>
+<p><a id="surfaces"></a></p>
+<h2>2. Where AI Surfaces in the Product</h2>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Powered by</th>
+<th>What you see</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Problems app</strong></td>
+<td>Causal AI + Generative summaries</td>
+<td>Grouped problems, ranked root cause, narrative summary</td>
+</tr>
+<tr>
+<td><strong>Anomaly Detection app</strong></td>
+<td>Predictive AI (analyzers)</td>
+<td>Detector configurations, custom alerts, baseline reviews</td>
+</tr>
+<tr>
+<td><strong>Smartscape Davis</strong></td>
+<td>Causal AI</td>
+<td>Dependency-aware problem grouping happens implicitly</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Assist (chat)</strong></td>
+<td>Generative AI</td>
+<td>Natural-language DQL, query explanation, conversation starters</td>
+</tr>
+<tr>
+<td><strong>Kubernetes app</strong></td>
+<td>Generative AI</td>
+<td>Warning-signal explanations</td>
+</tr>
+<tr>
+<td><strong>Databases app</strong></td>
+<td>Generative AI</td>
+<td>Execution plan clarification</td>
+</tr>
+<tr>
+<td><strong>Workflow tasks</strong></td>
+<td>All three categories</td>
+<td>Schedule analyzer runs; summarize problems; notify</td>
+</tr>
+<tr>
+<td><strong>Notebooks (DQL cells)</strong></td>
+<td>All three categories</td>
+<td>Davis CoPilot side panel; DQL2NL on selected query</td>
+</tr>
+<tr>
+<td><strong>AI Observability</strong></td>
+<td><em>Your</em> GenAI app, not Dynatrace's AI</td>
+<td>GenAI / LLM span analysis, token cost — plus a dedicated Smartscape view (SaaS 1.344). Evaluations now run in Arize AX; the Evaluations screen is being retired</td>
+</tr>
+</tbody>
+</table>
+<p>Most surfaces compose categories. The Problems app is the clearest example — Causal AI groups the events into a problem, and a Generative AI summary explains it in English.</p>
+<p><strong>The last row is the inverse of the other eight.</strong> Rows 1–8 are Dynatrace applying AI to <em>your</em> data. AI Observability is <em>your team observing your own GenAI applications</em> — Dynatrace is the observability tool, not the intelligence. It earns a place in this table only because readers asking &quot;where does AI show up in the product?&quot; land here first and would otherwise miss it entirely. For ingest mechanics, the <code>gen_ai.*</code> attribute namespace, and the conversation-tracking pattern, see <strong>AIOPS-06 § 1</strong>.</p>
+<blockquote>
+<p><strong>SaaS 1.344 (rollout from 07/29/2026)</strong> added the dedicated Smartscape view and the standalone Evaluations screen. On a tenant still below 1.344, prompt evaluations surface inside the general app views.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>dt-evals</code> and the Evaluations tab are being retired (AI Observability docs, updated 10/30/2026).</strong> <em>&quot;dt-evals and the Evaluations tab in the AI Observability app are being retired.&quot;</em> Evaluation results already written to Dynatrace remain available as business events (<code>event.type == &quot;gen_ai.evaluation.result&quot;</code>) for as long as your bucket retention keeps them. To run and analyze new evaluations, the page points to <strong>Arize AX</strong>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Custom alerts move to Settings (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created, and the <em>Anomaly Detection app</em> row above describes that path.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability">AI Observability (DT docs)</a> — <em>&quot;dt-evals and the Evaluations tab in the AI Observability app are being retired.&quot;</em>; <em>&quot;To run and analyze evaluations of your LLM applications and agents, use Arize AX&quot;</em> (read 11/11/2026)</sub></p>
+</blockquote>
+<p><a id="foundation"></a></p>
+<h2>3. The Data Foundation: Smartscape + Grail</h2>
+<p>Dynatrace Intelligence sits on two distinct foundations:</p>
+<p><strong>Smartscape</strong> is the real-time dependency graph — every entity (host, process, service, K8s object, AWS resource) and every observed relationship between them. Causal AI walks this graph to localize root cause.</p>
+<p><strong>Grail</strong> is the data lakehouse — logs, events, spans, business events, problems, all in one queryable store. Predictive analyzers run over Grail timeseries; the Problems app reads from <code>dt.davis.problems</code>; Dynatrace Assist generates DQL that targets Grail.</p>
+<p>Without Smartscape, Dynatrace would have correlation. With Smartscape, it has causation. Without Grail, the AI has no consistent corpus to reason over. Both are prerequisites — neither is replaceable.</p>
+<p><a id="reality-check"></a></p>
+<h2>4. Quick Reality Check: What Davis Is Doing Right Now</h2>
+<p>Before we go deeper, let's see Davis at work in your tenant. The next two queries answer:</p>
+<ol>
+<li><em>What problems is Causal AI surfacing right now?</em></li>
+<li><em>How busy is the underlying signal stream that gets grouped into those problems?</em></li>
+</ol>
+<p>If problem counts are low, that's a healthy environment — not a quiet one. If raw signal counts are very high but problem counts are low, Causal AI is doing the right thing: collapsing noise into a small number of actionable problems.</p>
+<pre><code class="language-dql">// Active problems right now, by category
+fetch dt.davis.problems, from:-2h
+| filter event.status == &quot;ACTIVE&quot;
+| summarize active_problems = count(), by:{event.category}
+| sort active_problems desc
+</code></pre>
+<pre><code class="language-dql">// Raw Davis signal volume in the last hour
+// (all Davis events — including INFO/WARNING observations that never open a problem)
+fetch dt.davis.events, from:-1h
+| summarize signal_count = count(), by:{event.category}
+| sort signal_count desc
+</code></pre>
+<p><strong>Reading the result:</strong> Compare the two queries. The signal-to-problem ratio is the Causal AI compression factor — the higher the ratio, the more noise the platform is keeping off your alerting plate. Compute the compression factor from the non-INFO/WARNING categories only; the full stream on a tenant with observation-mode detectors is dominated by events that never become problems.</p>
+<blockquote>
+<p><strong>Note on data objects:</strong> <code>dt.davis.problems</code> carries grouped problems (<code>event.kind == &quot;DAVIS_PROBLEM&quot;</code>). <code>dt.davis.events</code> carries raw signals (<code>event.kind == &quot;DAVIS_EVENT&quot;</code>). They are sibling streams. <code>fetch dt.davis.events | filter event.kind == &quot;DAVIS_PROBLEM&quot;</code> returns zero rows — <strong>not because the form was deprecated, but because it filters the wrong table</strong>: <code>dt.davis.events</code> has only ever carried <code>DAVIS_EVENT</code>. It is a category error, so there is no migration to look for; use <code>fetch dt.davis.problems</code> for problem-shaped queries. Verified 08/27/2026: over 7 days <code>dt.davis.events</code> returned 206,023 rows, all <code>DAVIS_EVENT</code>, and 0 when filtered to <code>DAVIS_PROBLEM</code>, while <code>dt.davis.problems</code> returned 2,774.</p>
+</blockquote>
+<p><a id="series-map"></a></p>
+<h2>5. The Series Map</h2>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Topic</th>
+<th>When to read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AIOPS-01</td>
+<td>Overview <em>(you are here)</em></td>
+<td>Orientation</td>
+</tr>
+<tr>
+<td>AIOPS-02</td>
+<td>Anomaly Detection</td>
+<td>When tuning detectors or reasoning about baseline strategy</td>
+</tr>
+<tr>
+<td>AIOPS-03</td>
+<td>Davis AI — Problems &amp; RCA</td>
+<td>When investigating a specific incident or designing problem-driven workflows</td>
+</tr>
+<tr>
+<td>AIOPS-04</td>
+<td>Davis CoPilot — Dynatrace Assist</td>
+<td>When integrating natural-language interaction into your team's workflow</td>
+</tr>
+<tr>
+<td>AIOPS-05</td>
+<td>AI Models</td>
+<td>When you need to understand which model is doing what under the hood</td>
+</tr>
+<tr>
+<td>AIOPS-06</td>
+<td>AI Integrations &amp; Agentic Workflows</td>
+<td>When extending AI into automation, MCP servers, or external IDEs</td>
+</tr>
+<tr>
+<td>AIOPS-07</td>
+<td>Putting It Together</td>
+<td>End-to-end Detect → Investigate → Remediate patterns</td>
+</tr>
+<tr>
+<td>AIOPS-99</td>
+<td>Series Summary</td>
+<td>Cross-reference index, next steps, where AIOPS sits in the broader maturity model</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Cross-references to other series</strong> (because AIOPS does not stand alone):</p>
+<ul>
+<li><strong>WFLOW</strong> (Workflows &amp; Alert Notifications) — once you have problems detected here, route them through WFLOW</li>
+<li><strong>AUTOM</strong> (Configuration Automation) — anomaly detection settings as code via Monaco / Terraform</li>
+<li><strong>ADOPT</strong> (Adoption &amp; Maturity) — observability maturity model (ADOPT-01); the AIOps stages are in AIOPS-07 §6</li>
+<li><strong>DASH</strong> (Dashboards) — problem-driven SLO and executive reporting</li>
+</ul>
+<p><a id="next-steps"></a></p>
+<h2>6. Next Steps</h2>
+<ol>
+<li><strong>Open the Problems app</strong> and scan the last 24 hours. Are problems grouped by Causal AI in a way that matches your operational mental model?</li>
+<li><strong>Open Anomaly Detection app</strong> to see what detectors are active — on SaaS 1.344 and later, custom alerts are in <strong>Settings</strong> instead (§ 2). (We go deep in AIOPS-02.)</li>
+<li><strong>Open a notebook and try Dynatrace Assist</strong> — ask in plain English: <em>&quot;show me the slowest services in the last hour.&quot;</em> (We go deep in AIOPS-04.)</li>
+<li><strong>Read AIOPS-02</strong> if you want to start tuning detectors. <strong>Read AIOPS-03</strong> if a problem in production has your attention right now.</li>
+</ol>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

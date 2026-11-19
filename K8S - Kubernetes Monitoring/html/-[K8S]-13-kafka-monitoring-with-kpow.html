@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8S-13: Kafka Monitoring with Kpow</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">K8S — Kubernetes Monitoring</a><span class="sep">/</span><span aria-current="page">K8S-13</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>K8S-13: Kafka Monitoring with Kpow</h1>
+<blockquote>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 13 of 14 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Kpow (by Factor House) is an all-in-one toolkit for managing, monitoring, and learning about Apache Kafka clusters. When deployed on Kubernetes alongside Dynatrace, you get deep Kafka observability by combining Kpow's calculated telemetry with Dynatrace's infrastructure monitoring and alerting capabilities.</p>
+<p>This notebook covers deploying Kpow on Kubernetes, scraping its Prometheus metrics into Dynatrace, writing DQL queries against Kafka health data, and building alerts for consumer lag and broker issues.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#kpow-architecture-and-metrics">Kpow Architecture and Metrics</a></li>
+<li><a href="#deploying-kpow-on-kubernetes">Deploying Kpow on Kubernetes</a></li>
+<li><a href="#configuring-dynatrace-prometheus-scraping">Configuring Dynatrace Prometheus Scraping</a></li>
+<li><a href="#querying-kpow-metrics-with-dql">Querying Kpow Metrics with DQL</a></li>
+<li><a href="#monitoring-kpow-as-a-kubernetes-workload">Monitoring Kpow as a Kubernetes Workload</a></li>
+<li><a href="#alerting-on-kafka-health">Alerting on Kafka Health</a></li>
+<li><a href="#combining-with-native-kafka-monitoring">Combining with Native Kafka Monitoring</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Kubernetes monitoring enabled</td>
+</tr>
+<tr>
+<td><strong>Kubernetes Cluster</strong></td>
+<td>Dynatrace Operator v1.0+ with ActiveGate</td>
+</tr>
+<tr>
+<td><strong>Apache Kafka</strong></td>
+<td>Running Kafka cluster accessible from K8s</td>
+</tr>
+<tr>
+<td><strong>Kpow License</strong></td>
+<td>Community or Enterprise license from Factor House</td>
+</tr>
+<tr>
+<td><strong>Helm</strong></td>
+<td>v3+ for Kpow deployment</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completed K8S-01, K8S-05 (Workload Monitoring)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="kpow-architecture-and-metrics"></a></p>
+<h2>1. Kpow Architecture and Metrics</h2>
+<h3>What Kpow Provides</h3>
+<p>Kpow calculates its own telemetry about your Kafka cluster independently of Kafka's built-in JMX metrics. This means:</p>
+<ul>
+<li><strong>No JMX dependency</strong> — frictionless installation, no broker-side configuration</li>
+<li><strong>Calculated metrics</strong> — consumer group lag, topic throughput, offset deltas</li>
+<li><strong>Multi-resource support</strong> — brokers, topics, consumer groups, Kafka Connect, Schema Registry, ksqlDB</li>
+</ul>
+<h3>Prometheus Metric Endpoints</h3>
+<p>Kpow exposes OpenMetrics-compatible endpoints when <code>PROMETHEUS_EGRESS=true</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /metrics/v1</code></td>
+<td>All metrics across the system</td>
+</tr>
+<tr>
+<td><code>GET /metrics/v1/cluster/:cluster-id</code></td>
+<td>Cluster-specific metrics</td>
+</tr>
+<tr>
+<td><code>GET /metrics/v1/connect/:connect-id</code></td>
+<td>Kafka Connect metrics</td>
+</tr>
+<tr>
+<td><code>GET /metrics/v1/schema/:schema-id</code></td>
+<td>Schema Registry metrics</td>
+</tr>
+<tr>
+<td><code>GET /metrics/v1/ksqldb/:ksqldb-id</code></td>
+<td>ksqlDB metrics</td>
+</tr>
+<tr>
+<td><code>GET /offsets/v1</code></td>
+<td>Topic offset data</td>
+</tr>
+<tr>
+<td><code>GET /group-offsets/v1</code></td>
+<td>Consumer group offset data</td>
+</tr>
+<tr>
+<td><code>GET /streams/v1</code></td>
+<td>Kafka Streams metrics</td>
+</tr>
+</tbody>
+</table>
+<h3>Key Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>broker_count</code></td>
+<td>Gauge</td>
+<td>Number of brokers in the Kafka cluster</td>
+</tr>
+<tr>
+<td><code>topic_count</code></td>
+<td>Gauge</td>
+<td>Number of topics in the cluster</td>
+</tr>
+<tr>
+<td><code>group_count</code></td>
+<td>Gauge</td>
+<td>Number of consumer groups</td>
+</tr>
+<tr>
+<td><code>group_offset_lag</code></td>
+<td>Histogram</td>
+<td>Consumer group lag across assignments</td>
+</tr>
+<tr>
+<td><code>group_state</code></td>
+<td>Gauge</td>
+<td>Consumer group state — the ordinal of Kafka's <code>ConsumerGroupState</code> (0=UNKNOWN, 1=PREPARING_REBALANCE, 2=COMPLETING_REBALANCE, 3=STABLE, 4=DEAD, 5=EMPTY)</td>
+</tr>
+<tr>
+<td><code>broker_end_delta</code></td>
+<td>Histogram</td>
+<td>Delta of end offsets per broker (produced msgs/s)</td>
+</tr>
+<tr>
+<td><code>topic_urp_total</code></td>
+<td>Meter</td>
+<td>Under-replicated partitions across all topics in the cluster</td>
+</tr>
+<tr>
+<td><code>acl_count</code></td>
+<td>Gauge</td>
+<td>Number of ACLs in the cluster</td>
+</tr>
+<tr>
+<td><code>connect_connector_task_state</code></td>
+<td>Gauge</td>
+<td>Connector task state</td>
+</tr>
+<tr>
+<td><code>connect_connector_running_total</code></td>
+<td>Gauge</td>
+<td>Number of active connectors</td>
+</tr>
+<tr>
+<td><code>partition_end</code></td>
+<td>Gauge</td>
+<td>Topic partition end offset (from <code>/offsets/v1</code>)</td>
+</tr>
+<tr>
+<td><code>group_assignment_offset</code></td>
+<td>Gauge</td>
+<td>Current consumer position (from <code>/group-offsets/v1</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3>Metric Label Structure</h3>
+<p>All Kpow metrics use consistent labels:</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>domain</code></td>
+<td>Category of metric</td>
+<td><code>cluster</code>, <code>connect</code>, <code>streams</code></td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>Unique identifier</td>
+<td>Kafka Cluster ID</td>
+</tr>
+<tr>
+<td><code>target</code></td>
+<td>Resource identifier</td>
+<td>Consumer group name, topic name</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td>Environment name</td>
+<td><code>Production</code>, <code>Staging</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Non-compliant characters in Kafka resource names (topics, groups) are converted to underscores to meet Prometheus naming standards.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>group_state</code> ordinals come from Kafka, not Kpow.</strong> Kpow's glossary defines the value as <em>&quot;the ordinal of org.apache.kafka.common.ConsumerGroupState&quot;</em>, and that enum is declared in the order UNKNOWN, PREPARING_REBALANCE, COMPLETING_REBALANCE, STABLE, DEAD, EMPTY (then ASSIGNING, RECONCILING). A dead group is <strong>4</strong>; 0 means unknown.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.factorhouse.io/kpow/integration/prometheus/metrics-glossary">Kpow metrics glossary (Factor House)</a> — <em>&quot;The state of the consumer group, where the value is the ordinal of org.apache.kafka.common.ConsumerGroupState&quot;</em>, <a href="https://github.com/apache/kafka/blob/3.9/clients/src/main/java/org/apache/kafka/common/ConsumerGroupState.java">ConsumerGroupState.java (Apache Kafka GitHub)</a>.</sub></p>
+</blockquote>
+<p><a id="deploying-kpow-on-kubernetes"></a></p>
+<h2>2. Deploying Kpow on Kubernetes</h2>
+<h3>Helm Chart Installation</h3>
+<p>Factor House provides an official Helm chart for Kubernetes deployment.</p>
+<p><strong>Step 1: Add the Helm repository</strong></p>
+<pre><code class="language-bash">helm repo add factorhouse https://charts.factorhouse.io
+helm repo update
+</code></pre>
+<p><strong>Step 2: Create the namespace and license secret</strong></p>
+<pre><code class="language-bash">kubectl create namespace kpow
+
+# Create a secret for your Kpow license
+kubectl create secret generic kpow-license \
+  --namespace kpow \
+  --from-literal=LICENSE_ID=your-license-id \
+  --from-literal=LICENSE_CODE=your-license-code
+</code></pre>
+<p><strong>Step 3: Create a <code>values.yaml</code> with Prometheus enabled and Dynatrace annotations</strong></p>
+<pre><code class="language-yaml"># kpow-values.yaml
+replicaCount: 1
+
+env:
+  # Kafka cluster connection
+  BOOTSTRAP: &quot;kafka-broker-0.kafka:9092,kafka-broker-1.kafka:9092&quot;
+  
+  # Enable Prometheus metrics export
+  PROMETHEUS_EGRESS: &quot;true&quot;
+  
+  # Optional: Basic auth for metrics endpoints
+  # PROMETHEUS_USERNAME: &quot;metrics&quot;
+  # PROMETHEUS_PASSWORD: &quot;&lt;from-secret&gt;&quot;
+
+# Kpow serves on port 3000 by default
+service:
+  port: 3000
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+# Dynatrace Prometheus scrape annotations
+podAnnotations:
+  metrics.dynatrace.com/scrape: &quot;true&quot;
+  metrics.dynatrace.com/port: &quot;3000&quot;
+  metrics.dynatrace.com/path: &quot;/metrics/v1&quot;
+</code></pre>
+<p><strong>Step 4: Install Kpow</strong></p>
+<pre><code class="language-bash">helm install kpow factorhouse/kpow \
+  --namespace kpow \
+  --values kpow-values.yaml
+</code></pre>
+<p><strong>Step 5: Verify deployment</strong></p>
+<pre><code class="language-bash"># Check pods are running
+kubectl get pods -n kpow
+
+# Verify Prometheus endpoints are accessible
+kubectl port-forward svc/kpow 3000:3000 -n kpow
+curl http://localhost:3000/metrics/v1
+</code></pre>
+<h3>Resource Sizing Guidelines</h3>
+<table>
+<thead>
+<tr>
+<th>Kafka Cluster Size</th>
+<th>Kpow CPU</th>
+<th>Kpow Memory</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Small (&lt; 10 topics)</td>
+<td>500m</td>
+<td>1Gi</td>
+<td>Dev/test environments</td>
+</tr>
+<tr>
+<td>Medium (10-100 topics)</td>
+<td>1000m</td>
+<td>2Gi</td>
+<td>Standard production</td>
+</tr>
+<tr>
+<td>Large (100+ topics)</td>
+<td>2000m</td>
+<td>4Gi</td>
+<td>High-throughput clusters</td>
+</tr>
+<tr>
+<td>Multi-cluster</td>
+<td>2000m</td>
+<td>4Gi</td>
+<td>Monitoring multiple clusters</td>
+</tr>
+</tbody>
+</table>
+<p><a id="configuring-dynatrace-prometheus-scraping"></a></p>
+<h2>3. Configuring Dynatrace Prometheus Scraping</h2>
+<h3>How Dynatrace Scrapes Prometheus Metrics</h3>
+<p>Dynatrace collects metrics from any Kubernetes pod annotated with <code>metrics.dynatrace.com/scrape: &quot;true&quot;</code>. The Dynatrace Operator's ActiveGate connects directly to annotated pods and scrapes their Prometheus endpoints, enriching the metrics with Kubernetes topology information.</p>
+<blockquote>
+<p><strong>Important:</strong> Dynatrace recommends an ActiveGate running <strong>inside</strong> the monitored cluster. One running outside <em>&quot;won't be able to scrape any Prometheus endpoints on pods which require authentication (such as RBAC or client authentication)&quot;</em>.</p>
+</blockquote>
+<blockquote>
+<p><strong>ActiveGate scraping has hard limits — consider the OpenTelemetry Collector for new setups.</strong> The docs: <em>&quot;This page describes the ActiveGate Kubernetes module's Prometheus integration, which has hard limits of 1,000 exporter pods, 1,000 metrics per pod, and 500,000 metric data points per pod. For new deployments, and for any setup approaching these limits, we recommend scraping Prometheus with the OpenTelemetry Collector instead.&quot;</em> A single Kpow pod is far below these limits, so the annotation route below works, but on a cluster that already scrapes many exporters, add Kpow to an OpenTelemetry Collector scrape instead — it can reuse the same <code>metrics.dynatrace.com/scrape</code> annotations.</p>
+</blockquote>
+<h3>Required Pod Annotations</h3>
+<table>
+<thead>
+<tr>
+<th>Annotation</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>metrics.dynatrace.com/scrape</code></td>
+<td>Yes</td>
+<td>-</td>
+<td>Set to <code>&quot;true&quot;</code> to enable scraping</td>
+</tr>
+<tr>
+<td><code>metrics.dynatrace.com/port</code></td>
+<td>No</td>
+<td>First TCP port</td>
+<td>Port where metrics are exposed</td>
+</tr>
+<tr>
+<td><code>metrics.dynatrace.com/path</code></td>
+<td>No</td>
+<td><code>/metrics</code></td>
+<td>Path to the metrics endpoint</td>
+</tr>
+<tr>
+<td><code>metrics.dynatrace.com/secure</code></td>
+<td>No</td>
+<td><code>&quot;false&quot;</code></td>
+<td>Use HTTPS for scraping</td>
+</tr>
+<tr>
+<td><code>metrics.dynatrace.com/insecure_skip_verify</code></td>
+<td>No</td>
+<td><code>&quot;false&quot;</code></td>
+<td>Skip TLS certificate verification (self-signed certs); honoured only by an in-cluster ActiveGate</td>
+</tr>
+<tr>
+<td><code>metrics.dynatrace.com/filter</code></td>
+<td>No</td>
+<td>-</td>
+<td>JSON filter, for example <code>{&quot;mode&quot;: &quot;include&quot;, &quot;names&quot;: [&quot;broker_*&quot;, &quot;group_*&quot;]}</code>; <code>*</code> wildcards allowed</td>
+</tr>
+</tbody>
+</table>
+<h3>Applying Annotations to Kpow</h3>
+<p>If you deployed Kpow via Helm with <code>podAnnotations</code> (as shown above), the annotations are already applied. To verify:</p>
+<pre><code class="language-bash">kubectl get pods -n kpow -o jsonpath='{.items[0].metadata.annotations}' | python3 -m json.tool
+</code></pre>
+<p>To add annotations to an existing Kpow deployment:</p>
+<pre><code class="language-bash">kubectl annotate pods -n kpow -l app=kpow \
+  metrics.dynatrace.com/scrape=&quot;true&quot; \
+  metrics.dynatrace.com/port=&quot;3000&quot; \
+  metrics.dynatrace.com/path=&quot;/metrics/v1&quot;
+</code></pre>
+<h3>Scraping Multiple Endpoints</h3>
+<p>Kpow exposes several metric endpoints. The primary <code>/metrics/v1</code> endpoint includes all cluster metrics. For offset-specific data, you can deploy a sidecar or use additional scrape targets.</p>
+<p>Topic offsets (<code>partition_start</code>, <code>partition_end</code>, <code>topic_end_sum</code>) come from <code>/offsets/v1</code>, and group-assignment offsets (<code>group_assignment_offset</code> and related) from <code>/group-offsets/v1</code>. Each annotation set names one path. To scrape the offsets endpoint separately, add a second annotated service, and a third for <code>/group-offsets/v1</code> if you need it:</p>
+<pre><code class="language-yaml"># Additional Service for offset metrics
+apiVersion: v1
+kind: Service
+metadata:
+  name: kpow-offsets
+  namespace: kpow
+  annotations:
+    metrics.dynatrace.com/scrape: &quot;true&quot;
+    metrics.dynatrace.com/port: &quot;3000&quot;
+    metrics.dynatrace.com/path: &quot;/offsets/v1&quot;
+spec:
+  selector:
+    app: kpow
+  ports:
+    - port: 3000
+      targetPort: 3000
+</code></pre>
+<h3>Enabling Prometheus Monitoring in Dynatrace</h3>
+<p>Ensure Prometheus scraping is enabled in the cluster's Kubernetes monitoring settings:</p>
+<ol>
+<li>Open the cluster's monitoring settings</li>
+<li>Enable <strong>Monitor Kubernetes namespaces, services, workloads, and pods</strong></li>
+<li>Enable <strong>Monitor annotated Prometheus exporters</strong> — the settings schema notes <em>&quot;Prometheus metrics in kubernetes environments are subject to licensing.&quot;</em></li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> Dynatrace ingests Prometheus Counter, Gauge, Histogram and Summary types. Kpow's glossary also lists <em>meter</em> types (for example <code>topic_urp_total</code>); check those arrive before building on them.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability-classic/container-platform-monitoring-classic/kubernetes-monitoring/monitor-prometheus-metrics">Monitor Prometheus metrics on Kubernetes (DT docs)</a> — <em>&quot;For new deployments, and for any setup approaching these limits, we recommend scraping Prometheus with the OpenTelemetry Collector instead.&quot;</em>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-cloud-kubernetes-monitoring">Kubernetes monitoring settings schema (DT docs)</a> — <em>&quot;Prometheus metrics in kubernetes environments are subject to licensing.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Verify Kpow metrics are being ingested
+timeseries brokerCount = avg(broker_count), from:-1h
+| fieldsAdd avgBrokers = arrayAvg(brokerCount)
+</code></pre>
+<p><a id="querying-kpow-metrics-with-dql"></a></p>
+<h2>4. Querying Kpow Metrics with DQL</h2>
+<p>Once Dynatrace scrapes Kpow's Prometheus endpoints, the metrics are available in Grail for DQL queries. Prometheus metrics are queryable using the <code>timeseries</code> command.</p>
+<h3>Cluster Health Overview</h3>
+<pre><code class="language-dql">// Kafka cluster overview: brokers, topics, consumer groups
+timeseries brokers = avg(broker_count), from:-1h
+| append [
+    timeseries topics = avg(topic_count), from:-1h
+  ]
+| append [
+    timeseries groups = avg(group_count), from:-1h
+  ]
+</code></pre>
+<h3>Consumer Group Lag</h3>
+<pre><code class="language-dql">// Consumer group lag over time
+timeseries lag = avg(group_offset_lag), from:-1h, by:{target}
+| fieldsAdd avgLag = arrayAvg(lag)
+| sort avgLag desc
+| limit 10
+</code></pre>
+<h3>Consumer Group State</h3>
+<pre><code class="language-dql">// Consumer group state — the value is the ordinal of Kafka's ConsumerGroupState:
+// 0=UNKNOWN, 1=PREPARING_REBALANCE, 2=COMPLETING_REBALANCE, 3=STABLE, 4=DEAD, 5=EMPTY
+timeseries state = max(group_state), from:-1h, by:{target}
+| fieldsAdd currentState = arrayLast(arrayRemoveNulls(state))
+| fieldsAdd stateLabel = if(currentState == 3, then: &quot;STABLE&quot;,
+    else: if(currentState == 4, then: &quot;DEAD&quot;,
+    else: if(currentState == 5, then: &quot;EMPTY&quot;,
+    else: if(currentState == 1 or currentState == 2, then: &quot;REBALANCING&quot;,
+    else: if(currentState == 0, then: &quot;UNKNOWN&quot;, else: &quot;OTHER&quot;)))))
+| fields target, currentState, stateLabel
+| sort stateLabel asc
+</code></pre>
+<h3>Under-Replicated Partitions</h3>
+<pre><code class="language-dql">// Under-replicated partitions trend (critical health indicator)
+timeseries urp = avg(topic_urp_total), from:-6h
+| fieldsAdd avgUrp = arrayAvg(urp)
+| filter avgUrp &gt; 0
+</code></pre>
+<h3>Broker Production Rate</h3>
+<pre><code class="language-dql">// Broker production rate (messages produced per broker)
+timeseries delta = avg(broker_end_delta), from:-1h, by:{target}
+| fieldsAdd avgDelta = arrayAvg(delta)
+| sort avgDelta desc
+| limit 10
+</code></pre>
+<h3>Kafka Connect Health</h3>
+<pre><code class="language-dql">// Kafka Connect: tasks per connector that are not running
+// Kpow's glossary does not publish the value mapping for connect_connector_task_state, so use
+// the explicit counters instead.
+timeseries {
+    running = max(connect_connector_task_running_total),
+    total = max(connect_connector_task_total)
+  }, from:-1h, by:{target}
+| fieldsAdd runningNow = arrayLast(arrayRemoveNulls(running)), totalNow = arrayLast(arrayRemoveNulls(total))
+| fieldsAdd notRunning = totalNow - runningNow
+| fields target, totalNow, runningNow, notRunning
+| sort notRunning desc
+</code></pre>
+<p><a id="monitoring-kpow-as-a-kubernetes-workload"></a></p>
+<h2>5. Monitoring Kpow as a Kubernetes Workload</h2>
+<p>Beyond the Kafka metrics Kpow exposes, you should also monitor Kpow itself as a Kubernetes workload. Kpow runs as a JVM process, so Dynatrace OneAgent provides:</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>What It Shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pod health</strong></td>
+<td>Restarts, OOMKilled events, scheduling issues</td>
+</tr>
+<tr>
+<td><strong>CPU/Memory</strong></td>
+<td>Resource consumption of the Kpow process</td>
+</tr>
+<tr>
+<td><strong>JVM metrics</strong></td>
+<td>Heap usage, garbage collection, threads</td>
+</tr>
+<tr>
+<td><strong>Logs</strong></td>
+<td>Kpow application logs for troubleshooting</td>
+</tr>
+</tbody>
+</table>
+<h3>Kpow Pod Resource Usage</h3>
+<pre><code class="language-dql">// Kpow pod CPU usage — the pod is the sum of its containers
+timeseries cpuUsage = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h,
+  by:{k8s.namespace.name, k8s.pod.name},
+  filter:{k8s.namespace.name == &quot;kpow&quot;}
+| fieldsAdd avgCpuMillicores = round(arrayAvg(cpuUsage), decimals: 0)
+| fields k8s.namespace.name, k8s.pod.name, avgCpuMillicores
+| sort avgCpuMillicores desc
+</code></pre>
+<pre><code class="language-dql">// Kpow pod memory working set — the pod is the sum of its containers
+timeseries memUsage = sum(dt.kubernetes.container.memory_working_set, rollup: avg), from:-1h,
+  by:{k8s.namespace.name, k8s.pod.name},
+  filter:{k8s.namespace.name == &quot;kpow&quot;}
+| fieldsAdd avgMemMiB = round(arrayAvg(memUsage) / 1048576, decimals: 0)
+| fields k8s.namespace.name, k8s.pod.name, avgMemMiB
+| sort avgMemMiB desc
+</code></pre>
+<h3>Kpow Application Logs</h3>
+<pre><code class="language-dql">// Kpow error logs
+fetch logs, from:-1h
+| filter k8s.namespace.name == &quot;kpow&quot;
+| filter loglevel == &quot;ERROR&quot; or loglevel == &quot;WARN&quot;
+| fields timestamp, loglevel, content, k8s.pod.name
+| sort timestamp desc
+| limit 50
+</code></pre>
+<h3>Kpow Pod Restart History</h3>
+<pre><code class="language-dql">// Kpow pod restarts and events
+fetch events, from:-24h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter k8s.namespace.name == &quot;kpow&quot;
+| fields timestamp, dt.kubernetes.event.reason, dt.kubernetes.event.involved_object.name, dt.kubernetes.event.message
+| sort timestamp desc
+| limit 20
+</code></pre>
+<p><a id="alerting-on-kafka-health"></a></p>
+<h2>6. Alerting on Kafka Health</h2>
+<p>Kpow does not provide its own alerting — it delegates to external tools. With Dynatrace ingesting Kpow metrics, you can alert with custom alerts on DQL queries and route the resulting problems with Workflows.</p>
+<h3>Recommended Alert Thresholds</h3>
+<table>
+<thead>
+<tr>
+<th>Alert</th>
+<th>Metric</th>
+<th>Condition</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Consumer lag spike</strong></td>
+<td><code>group_offset_lag</code></td>
+<td>Lag &gt; 10,000 for 5 min</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td><strong>Consumer lag critical</strong></td>
+<td><code>group_offset_lag</code></td>
+<td>Lag &gt; 100,000 for 5 min</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td><strong>Consumer group dead</strong></td>
+<td><code>group_state</code></td>
+<td>State == 4 (DEAD)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td><strong>Under-replicated partitions</strong></td>
+<td><code>topic_urp_total</code></td>
+<td>URP &gt; 0 for 5 min</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td><strong>Broker count drop</strong></td>
+<td><code>broker_count</code></td>
+<td>Count &lt; expected</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td><strong>Connector task failure</strong></td>
+<td><code>connect_connector_task_failed_total</code></td>
+<td>&gt; 0</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td><strong>Kpow pod unhealthy</strong></td>
+<td><code>dt.kubernetes.container.restarts</code></td>
+<td>&gt; 3 in an hour</td>
+<td>Warning</td>
+</tr>
+</tbody>
+</table>
+<p>The lag thresholds are community starting points; set them from your consumers' normal lag.</p>
+<h3>Setting Up Custom Alerts</h3>
+<p>Build each alert as a custom alert on a DQL <code>timeseries</code> query over the Kpow metric — for example <code>timeseries lag = max(group_offset_lag), by:{target}</code> with a static threshold of 100,000 for the critical lag alert. From SaaS 1.344 custom alerts are created in <strong>Settings</strong>; on earlier versions, in the Anomaly Detection app (K8S-07 § 7 has the detail and source).</p>
+<h3>Workflow Integration</h3>
+<p>Connect metric events to Dynatrace Workflows for automated response:</p>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Consumer lag &gt; threshold</td>
+<td>Notify Slack channel, create Jira ticket</td>
+</tr>
+<tr>
+<td>Broker count drops</td>
+<td>Page on-call, trigger runbook</td>
+</tr>
+<tr>
+<td>URP &gt; 0 sustained</td>
+<td>Alert Kafka admin team</td>
+</tr>
+<tr>
+<td>Connector task fails</td>
+<td>Auto-restart connector via API</td>
+</tr>
+</tbody>
+</table>
+<h3>Agentic triage</h3>
+<p>For AI-assisted triage on top of these problems, see the AIOPS series.</p>
+<blockquote>
+<p><strong>Tip:</strong> See <strong>WFLOW-01</strong> through <strong>WFLOW-09</strong> for comprehensive Dynatrace Workflow configuration patterns.</p>
+</blockquote>
+<p><a id="combining-with-native-kafka-monitoring"></a></p>
+<h2>7. Combining with Native Kafka Monitoring</h2>
+<h3>Dynatrace's Built-in Kafka Support</h3>
+<p>Dynatrace provides native Kafka monitoring through OneAgent, which automatically detects Kafka broker processes and collects JMX-based metrics.</p>
+<blockquote>
+<p><strong>The JMX Kafka metrics come from an Extension Framework 1.0 extension that is reaching end of support.</strong> The JMX monitoring toggle for Kafka under <strong>Settings Classic &gt; Monitored technologies &gt; Supported technologies</strong> is the EF1 extension <code>dynatrace.jmx.kafka</code>. Dynatrace: <em>&quot;As of July 1, 2027, all Extension Framework 1.0 JMX and PMI extensions will be out of support for SaaS Environments.&quot;</em> Its EF2 replacement is <strong>Apache Kafka</strong> (<code>com.dynatrace.extension.jmx-kafka</code>) — the Hub extension below. The migration guide: deploy the EF2 extension, then <em>&quot;disable JMX monitoring for the technology with Monitor the environment toggle.&quot;</em></p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/end-of-support/jmx-pmi-ef1-deprecation">EF1 JMX and PMI extensions end of support (DT docs)</a> — <em>&quot;As of July 1, 2027, all Extension Framework 1.0 JMX and PMI extensions will be out of support for SaaS Environments.&quot;</em>; mapping row <code>dynatrace.jmx.kafka</code> → <em>&quot;Apache Kafka ( com.dynatrace.extension.jmx-kafka )&quot;</em></sub></p>
+</blockquote>
+<p>The split below is community practice, not a Dynatrace comparison — check the Kafka extension's Hub page and your OneAgent version for what each covers today.</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>OneAgent (Native)</th>
+<th>Kpow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Broker process metrics</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>JMX metrics</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Consumer group lag</td>
+<td>Limited</td>
+<td>Yes (detailed)</td>
+</tr>
+<tr>
+<td>Topic offset tracking</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Kafka Connect monitoring</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Schema Registry monitoring</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>ksqlDB monitoring</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Distributed traces</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Code-level visibility</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h3>Recommended Combination Strategy</h3>
+<p>Use both together for comprehensive Kafka observability:</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Tool</th>
+<th>What It Provides</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Infrastructure</strong></td>
+<td>Dynatrace OneAgent</td>
+<td>Broker process health, JVM metrics, host metrics</td>
+</tr>
+<tr>
+<td><strong>Application</strong></td>
+<td>Dynatrace OneAgent</td>
+<td>Distributed traces through Kafka producers/consumers</td>
+</tr>
+<tr>
+<td><strong>Kafka Platform</strong></td>
+<td>Kpow → Dynatrace</td>
+<td>Consumer lag, topic throughput, Connect/Schema/ksqlDB</td>
+</tr>
+<tr>
+<td><strong>Kubernetes</strong></td>
+<td>Dynatrace Operator</td>
+<td>Pod health, resource usage, events for all components</td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Apache Kafka Extension</h3>
+<p>For environments where Kpow is not available, Dynatrace also offers the <strong>Apache Kafka extension</strong> (<code>com.dynatrace.extension.jmx-kafka</code>, Extension Framework 2.0) on Dynatrace Hub. This extension provides:</p>
+<ul>
+<li>Broker-level metrics via JMX</li>
+<li>Topic and partition statistics</li>
+<li>Consumer group metrics</li>
+<li>Pre-built dashboards</li>
+</ul>
+<p>Install from: <strong>Dynatrace Hub &gt; Apache Kafka</strong>. Check the Hub listing for its current feature set and requirements.</p>
+<pre><code class="language-dql">// Combine: Kpow consumer lag with OneAgent service traces
+// Step 1: Check service-level error rates for Kafka consumers
+//
+// Field notes — all three fail silently if you get them wrong:
+//   span.status_code is the real field (otel.status_code does not exist),
+//   its values are lowercase (&quot;error&quot;, never &quot;ERROR&quot;),
+//   and it is null on successful spans, so derive successes as total - errors.
+// Group by dt.service.name: service.name exists only on OpenTelemetry spans.
+//
+// If this returns nothing, check span.kind before assuming a healthy fleet:
+//   fetch spans, from:-1h | summarize c = count(), by:{span.kind}
+// A cluster whose Kafka clients are not instrumented emits no &quot;consumer&quot; spans at
+// all — which is a coverage gap, not a clean bill of health.
+fetch spans, from:-1h
+| filter span.kind == &quot;consumer&quot;
+| summarize {
+    total = count(),
+    errors = countIf(span.status_code == &quot;error&quot;)
+  }, by:{dt.service.name}
+| fieldsAdd successes = total - errors
+| fieldsAdd errorRate = round(100.0 * errors / total, decimals: 2)
+| sort errorRate desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Check Kafka broker processes detected by OneAgent
+fetch dt.entity.process_group_instance
+| filter contains(entity.name, &quot;kafka&quot;) or contains(entity.name, &quot;Kafka&quot;)
+| fields entity.name, tags
+| sort entity.name asc
+| limit 20
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;PROCESS&quot;
+//   | filter contains(name, &quot;kafka&quot;) or contains(name, &quot;Kafka&quot;)
+//   | fields name, tags
+//   | sort name asc
+//   | limit 20
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: on Smartscape, `tags` is a record of tag key -&gt; value (dictionary: &quot;Note that rule-based
+// tags do not exist in the new model.&quot;). Classic rule-based tags such as dt.owner:... do not appear
+// there, so the legacy query and the Smartscape query above do not return the same tags.
+</code></pre>
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li><strong>Kpow architecture</strong> and the Prometheus metrics it exposes for Kafka clusters</li>
+<li><strong>Kubernetes deployment</strong> of Kpow using the official Helm chart</li>
+<li><strong>Dynatrace Prometheus scraping</strong> via pod annotations for automatic metric ingestion</li>
+<li><strong>DQL queries</strong> for consumer lag, group state, under-replicated partitions, and broker production rates</li>
+<li><strong>Workload monitoring</strong> of the Kpow pod itself (CPU, memory, logs, restarts)</li>
+<li><strong>Alerting patterns</strong> using custom alerts on DQL queries and Workflows</li>
+<li><strong>Combining Kpow with native Kafka monitoring</strong> for comprehensive observability</li>
+</ul>
+<hr />
+<h2>Next Steps</h2>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>K8S-11: Multi-Tool Coexistence</strong></td>
+<td>Running Dynatrace alongside other monitoring tools</td>
+</tr>
+<tr>
+<td><strong>K8S-05: Workload Monitoring</strong></td>
+<td>Deep dive into Kubernetes workload observability</td>
+</tr>
+<tr>
+<td><strong>WFLOW-01: Workflow Fundamentals</strong></td>
+<td>Setting up automated alerting workflows</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.factorhouse.io">Kpow documentation (Factor House)</a></li>
+<li><a href="https://docs.factorhouse.io/kpow/integration/prometheus/overview">Kpow Prometheus integration (Factor House)</a></li>
+<li><a href="https://docs.factorhouse.io/kpow/integration/prometheus/metrics-glossary">Kpow metrics glossary (Factor House)</a></li>
+<li><a href="https://charts.factorhouse.io">Kpow Helm charts (Factor House)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability-classic/container-platform-monitoring-classic/kubernetes-monitoring/monitor-prometheus-metrics">Monitor Prometheus metrics on K8s (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/confluent-cloud-kafka">Confluent Cloud (Kafka) extension (DT docs)</a></li>
+<li><a href="https://github.com/apache/kafka/blob/3.9/clients/src/main/java/org/apache/kafka/common/ConsumerGroupState.java">ConsumerGroupState.java (Apache Kafka GitHub)</a></li>
+<li><a href="https://www.dynatrace.com/hub/detail/apache-kafka/">Apache Kafka extension (Dynatrace Hub)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Set up Dynatrace on Kubernetes (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

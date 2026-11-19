@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WEBRUM-08: Dashboards and Alerting</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WEBRUM — Web Real User Monitoring</a><span class="sep">/</span><span aria-current="page">WEBRUM-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WEBRUM-08: Dashboards and Alerting</h1>
+<blockquote>
+<p><strong>Series:</strong> WEBRUM — Web Real User Monitoring | <strong>Notebook:</strong> 8 of 10 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>An effective RUM monitoring strategy requires both visibility (dashboards) and proactive detection (alerting). Dashboards provide at-a-glance health views for different audiences — executives care about business impact and Apdex trends, while operations teams need real-time error rates and performance breakdowns.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#executive-kpis">Executive RUM Dashboard KPIs</a></li>
+<li><a href="#apdex">Apdex Score Calculation</a></li>
+<li><a href="#operational-dashboard">Operational RUM Dashboard</a></li>
+<li><a href="#alerting-strategies">RUM Alerting Strategies</a></li>
+<li><a href="#error-alerts">Error Rate Alerts</a></li>
+<li><a href="#performance-alerts">Performance Degradation Alerts</a></li>
+<li><a href="#rum-synthetic">RUM + Synthetic Combined View</a></li>
+<li><a href="#summary">Summary and Series Recap</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>RUM Enabled</strong></td>
+<td>Web applications with at least 7 days of data</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:user.sessions:read</code>, <code>storage:metrics:read</code>, dashboard create permissions</td>
+</tr>
+<tr>
+<td><strong>Previous Notebooks</strong></td>
+<td>All prior WEBRUM notebooks (01-07)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="executive-kpis"></a></p>
+<h2>1. Executive RUM Dashboard KPIs</h2>
+<p>Executive dashboards should be simple, business-focused, and actionable. Key metrics:</p>
+<table>
+<thead>
+<tr>
+<th>KPI</th>
+<th>What It Tells Executives</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Apdex score</strong></td>
+<td>Overall user satisfaction (0-1)</td>
+<td>&gt; 0.85</td>
+</tr>
+<tr>
+<td><strong>Session count</strong></td>
+<td>Traffic volume and trends</td>
+<td>Depends on business</td>
+</tr>
+<tr>
+<td><strong>Error rate %</strong></td>
+<td>Percentage of sessions with errors</td>
+<td>&lt; 2%</td>
+</tr>
+<tr>
+<td><strong>Bounce rate %</strong></td>
+<td>Users leaving after one page</td>
+<td>&lt; 40%</td>
+</tr>
+<tr>
+<td><strong>CWV pass rate</strong></td>
+<td>% of page loads meeting all 3 CWV</td>
+<td>&gt; 75%</td>
+</tr>
+<tr>
+<td><strong>Avg session duration</strong></td>
+<td>User engagement level</td>
+<td>Varies by app type</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -&gt; dt.rum.user_type      userActionCount -&gt; user_action_count
+//   totalErrorCount -&gt; error.count    sessionId -&gt; dt.rum.session.id
+//   hasSessionReplay -&gt; characteristics.has_replay
+//   browserFamily -&gt; browser.name     osFamily -&gt; os.name
+//   application -&gt; frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
+//   country/city/continent -&gt; geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -&gt; browser.window.width|height
+//   dom.interactive.time -&gt; performance.dom_interactive
+//   load.event.time -&gt; performance.load_event_end
+//   server.time -&gt; ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == &quot;synthetic&quot;, so a real-user filter matches nothing —
+//     the documented values are &quot;real_user&quot; / &quot;robot&quot; / &quot;synthetic&quot; (lowercase);
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
+// Executive KPI summary — single-query dashboard tile
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
+| summarize
+    {total_sessions = count(),
+    error_sessions = countIf(error.count &gt; 0),
+    bounce_sessions = countIf(user_action_count == 1),
+    avg_actions = avg(user_action_count),
+    avg_duration_min = avg(duration / 1m)},
+    by:{frontend.name}
+| fieldsAdd error_rate_pct = round(toDouble(error_sessions) / toDouble(total_sessions) * 100.0, decimals: 1),
+    bounce_rate_pct = round(toDouble(bounce_sessions) / toDouble(total_sessions) * 100.0, decimals: 1),
+    avg_duration_min = round(avg_duration_min, decimals: 1)
+| sort total_sessions desc
+</code></pre>
+<pre><code class="language-dql">// Session volume trend — 7-day daily session counts
+fetch user.sessions, from:-7d
+| filter dt.rum.user_type == &quot;real_user&quot;
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
+| makeTimeseries session_count = count(), interval:24h, by:{frontend.name}
+</code></pre>
+<p><a id="apdex"></a></p>
+<h2>2. Apdex Score Calculation</h2>
+<p>The <strong>Application Performance Index (Apdex)</strong> is an open standard for measuring user satisfaction. It classifies every user action into three buckets based on a threshold T:</p>
+<table>
+<thead>
+<tr>
+<th>Classification</th>
+<th>Duration</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Satisfied</strong></td>
+<td>≤ T</td>
+<td>Action completed within acceptable time</td>
+</tr>
+<tr>
+<td><strong>Tolerating</strong></td>
+<td>T &lt; duration ≤ 4T</td>
+<td>Action was slow but user waited</td>
+</tr>
+<tr>
+<td><strong>Frustrated</strong></td>
+<td>&gt; 4T</td>
+<td>Action was too slow or failed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Apdex formula:</strong></p>
+<pre><code>Apdex = (Satisfied + (Tolerating / 2)) / Total
+</code></pre>
+<p>The threshold T is configurable per application. Common defaults:</p>
+<table>
+<thead>
+<tr>
+<th>Action Type</th>
+<th>Default T</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Page load</td>
+<td>3 seconds</td>
+</tr>
+<tr>
+<td>XHR action</td>
+<td>2.5 seconds</td>
+</tr>
+<tr>
+<td>Route change</td>
+<td>2.5 seconds</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Experience score on the latest Dynatrace (SaaS 1.348, rollout from 10/12/2026, staged).</strong> SaaS 1.348 adds an Apdex-based score on Grail. Each scored <code>user.events</code> record gets an <code>experience.level</code> (satisfied, tolerating or frustrated) and an <code>experience.weight</code>. These combine into <code>experience.score</code>, from 0 to 1, per frontend and per session. By default the classification uses user-action duration, and you can change it in OpenPipeline. On the validation tenant (24 h, 11/11/2026) none of 3,271 synthetic sessions carried a score, and the semantic dictionary has no row for the field yet. Until the score reaches your tenant, the DQL Apdex below is the working path. WEBRUM-09 maps the classic <code>userExperienceScore</code> to it.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in SaaS 1.348 (DT docs)</a> — <em>&quot;Experience Score is a new 0-1 score that reflects how good the users' experience with your frontend and session was.&quot;</em>, <em>&quot;By default, this classification applies to user actions based on their duration, but it can be changed, extended, or replaced through OpenPipeline.&quot;</em>; re-read 11/11/2026. <strong>Dictionary:</strong> no row for <code>experience.score</code> / <code>experience.level</code>, read 11/11/2026 (control: <code>characteristics.has_user_action</code> returned <code>stable</code>).</sub></p>
+</blockquote>
+<p><strong>Classify page loads on navigation events.</strong> The Apdex, SLA and page-load alert queries below read <code>performance.load_event_end</code> on events with <code>characteristics.has_w3c_navigation_timings == true</code> — the field and filter Dynatrace's own page-load query uses. A page summary's <code>duration</code> is how long the page was open, not how long it took to load: a page summary covers the page instance until <em>&quot;the next document request starts or when the tab is closed&quot;</em>. Apdex built on it scores reading time. On the synthetic-only validation tenant (24 h, 10/05/2026) the same T = 3 s Apdex read 0.99 on load time and 0.32 on page-summary duration.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/analyze-and-alert/rum-dql-web-performance">Monitor web performance with DQL (DT docs)</a> — <em>&quot;Load event end measures the time from navigation start to the completion of the browser's load event.&quot;</em>; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/navigation-related">Navigation-related events — semantic dictionary (DT docs)</a> — <em>&quot;A page instance begins with each hard navigation and ends when the next document request starts or when the tab is closed.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Apdex calculation with T = 3 seconds for page loads
+fetch user.events, from:-24h
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_sec = performance.load_event_end / 1s
+| summarize {total = count(),
+    satisfied = countIf(load_sec &lt;= 3),
+    tolerating = countIf(load_sec &gt; 3 and load_sec &lt;= 12),
+    frustrated = countIf(load_sec &gt; 12)},
+    by:{frontend.name}
+| fieldsAdd apdex = round((toDouble(satisfied) + toDouble(tolerating) / 2.0) / toDouble(total), decimals: 3)
+| sort apdex asc
+</code></pre>
+<pre><code class="language-dql">// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Apdex trend over 7 days — daily Apdex score (tolerating is pre-halved in is_tolerating)
+fetch user.events, from:-7d
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_sec = performance.load_event_end / 1s
+| fieldsAdd is_satisfied = if(load_sec &lt;= 3, 1.0, else: 0.0),
+    is_tolerating = if(load_sec &gt; 3 and load_sec &lt;= 12, 0.5, else: 0.0)
+| makeTimeseries {
+    total_actions = count(),
+    satisfied_score = sum(is_satisfied),
+    tolerating_score = sum(is_tolerating)},
+    interval:24h
+| fieldsAdd apdex = (satisfied_score[] + tolerating_score[]) / total_actions[]
+</code></pre>
+<pre><code class="language-dql">// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Apdex by page — which pages have the worst user satisfaction?
+fetch user.events, from:-24h
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_sec = performance.load_event_end / 1s
+| summarize {total = count(),
+    satisfied = countIf(load_sec &lt;= 3),
+    tolerating = countIf(load_sec &gt; 3 and load_sec &lt;= 12)},
+    by:{page.detected_name}
+| filter total &gt; 20
+| fieldsAdd apdex = round((toDouble(satisfied) + toDouble(tolerating) / 2.0) / toDouble(total), decimals: 3)
+| sort apdex asc
+| limit 10
+</code></pre>
+<h3>Interpreting Apdex Scores</h3>
+<table>
+<thead>
+<tr>
+<th>Apdex Range</th>
+<th>Rating</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.94 - 1.00</td>
+<td>Excellent</td>
+<td>No action needed</td>
+</tr>
+<tr>
+<td>0.85 - 0.93</td>
+<td>Good</td>
+<td>Monitor for changes</td>
+</tr>
+<tr>
+<td>0.70 - 0.84</td>
+<td>Fair</td>
+<td>Investigate slow pages</td>
+</tr>
+<tr>
+<td>0.50 - 0.69</td>
+<td>Poor</td>
+<td>Prioritize optimization</td>
+</tr>
+<tr>
+<td>&lt; 0.50</td>
+<td>Unacceptable</td>
+<td>Immediate attention required</td>
+</tr>
+</tbody>
+</table>
+<p><a id="operational-dashboard"></a></p>
+<h2>3. Operational RUM Dashboard</h2>
+<p>Operations teams need real-time visibility into errors, performance anomalies, and traffic patterns.</p>
+<pre><code class="language-dql">// Error / navigation vocabulary corrected 08/12/2026 (New RUM):
+//   filter type == &quot;Error&quot;  -&gt; filter characteristics.has_error == true  (11,909 events; identical
+//                              population to isNotNull(error.type), whose values are request/csp/exception)
+//   error.message           -&gt; error.reason
+//   user_action.type: &quot;Load&quot; -&gt; &quot;hard_navigation&quot;, &quot;RouteChange&quot; -&gt; &quot;soft_navigation&quot;,
+//                     &quot;Xhr&quot; -&gt; &quot;same_view&quot;, &quot;Custom&quot; -&gt; &quot;api&quot; (documented values, corrected 10/05/2026)
+//   connection.type         -&gt; no web RUM equivalent (network.connection.type is OneAgent for Mobile
+//                              only; network.protocol.name is the OSI protocol, e.g. &quot;http&quot;)
+// THE EVENT CHARACTERISTIC MATTERS AS MUCH AS THE FIELD: navigation-timing fields
+// (performance.dom_interactive, performance.load_event_end) live on navigation events
+// (characteristics.has_navigation) and are unpopulated on page summaries
+// (characteristics.has_page_summary), so a page-summary filter silently empties them.
+// ttfb.* is the opposite — it lives on page summaries. Select with the stable has_* flags, not
+// characteristics.classifier (corrected 09/28/2026): the docs call classifier &quot;not intended for
+// query usage&quot; and Semantic Dictionary 1.349 removes it from the user-event models (re-listed in SD 1.350, still not for query use).
+// Real-time error rate — errors per 15 minutes over the last 6 hours
+fetch user.events, from:-6h
+| filter characteristics.has_error == true
+| makeTimeseries error_count = count(), interval:15m, by:{error.type}
+</code></pre>
+<pre><code class="language-dql">// Active error summary — current top errors in the last hour
+fetch user.events, from:-1h
+| filter characteristics.has_error == true
+| summarize {error_count = count(),
+    affected_sessions = countDistinct(dt.rum.session.id)},
+    by:{error.reason, error.type, frontend.name}
+| sort affected_sessions desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Performance SLA — percentage of page loads under 3 seconds
+fetch user.events, from:-1h
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_sec = performance.load_event_end / 1s
+| summarize {total = count(),
+    under_3s = countIf(load_sec &lt;= 3)},
+    by:{frontend.name}
+| fieldsAdd sla_pct = round(toDouble(under_3s) / toDouble(total) * 100.0, decimals: 1)
+| sort sla_pct asc
+</code></pre>
+<p><a id="alerting-strategies"></a></p>
+<h2>4. RUM Alerting Strategies</h2>
+<p>Effective RUM alerting requires the right balance — too sensitive triggers alert fatigue, too loose misses real issues.</p>
+<h3>Recommended Alert Categories</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>What to Alert On</th>
+<th>Threshold Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Error rate spike</strong></td>
+<td>Sudden increase in JS error rate</td>
+<td>&gt; 5% of sessions with errors</td>
+</tr>
+<tr>
+<td><strong>Apdex drop</strong></td>
+<td>User satisfaction below threshold</td>
+<td>Apdex &lt; 0.7 for 15 minutes</td>
+</tr>
+<tr>
+<td><strong>Performance degradation</strong></td>
+<td>p75 page load exceeds baseline</td>
+<td>p75 &gt; 5s for 15 minutes</td>
+</tr>
+<tr>
+<td><strong>Traffic anomaly</strong></td>
+<td>Unexpected drop in session volume</td>
+<td>&lt; 50% of previous day's hourly average</td>
+</tr>
+<tr>
+<td><strong>CWV regression</strong></td>
+<td>Core Web Vitals crossing into Poor</td>
+<td>LCP p75 &gt; 4s for 30 minutes</td>
+</tr>
+</tbody>
+</table>
+<h3>Alert Configuration</h3>
+<p><strong>Modern path (recommended for new alerting):</strong> build these conditions as <strong>Davis anomaly detectors</strong> (<code>builtin:davis.anomaly-detectors</code>), driven by DQL — configured in Settings from SaaS 1.344, or in the Anomaly Detection app on earlier versions (see the callout below). Detectors read Grail, so they work against the New RUM field vocabulary the rest of this series uses, and they carry forward past the upgrade.</p>
+<blockquote>
+<p><strong>Where detectors are created (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created, and the modern path above is built there.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em></sub></p>
+</blockquote>
+<p><strong>Legacy path — metric events:</strong> the classic surface below still works and is what most existing RUM alerting uses, but <code>builtin:anomaly-detection.metric-events</code> is flagged <strong>Blocked at upgrade</strong>, and the <code>builtin:apps.web.*</code> metric keys it alerts on are Metrics Classic keys that <strong>DQL cannot query</strong> (FAQ entry 11 §3.1). Both facts point the same way: do not author new RUM alerting here.</p>
+<p>Configure the legacy path via:</p>
+<p><strong>Settings &gt; Anomaly detection &gt; Metric events &gt; Add metric event</strong></p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Recommended Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Metric</strong></td>
+<td>RUM metric (e.g., <code>builtin:apps.web.action.apdex</code>)</td>
+</tr>
+<tr>
+<td><strong>Evaluation window</strong></td>
+<td>15 minutes (balances speed and noise)</td>
+</tr>
+<tr>
+<td><strong>Sliding window</strong></td>
+<td>5-minute intervals</td>
+</tr>
+<tr>
+<td><strong>Threshold type</strong></td>
+<td>Static or auto-adaptive baseline</td>
+</tr>
+</tbody>
+</table>
+<p><a id="error-alerts"></a></p>
+<h2>5. Error Rate Alerts</h2>
+<p>The following queries provide the data foundation for error rate alerting. Use these patterns to detect when error rates exceed acceptable thresholds.</p>
+<pre><code class="language-dql">// Error rate per 15-minute window — alert threshold data
+fetch user.sessions, from:-6h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
+| fieldsAdd has_error = if(error.count &gt; 0, 1.0, else: 0.0)
+| makeTimeseries
+    {total_sessions = count(),
+    error_sessions = sum(has_error)},
+    interval:15m,
+    by:{frontend.name}
+</code></pre>
+<pre><code class="language-dql">// New errors — error groups first seen in the last hour (potential deployment issue).
+// Corrected 10/05/2026: user.events has no populated timestamp (use start_time), and &quot;first seen&quot;
+// must be measured over a longer lookback than the window it is compared against — with
+// from:-1h every recurring error looked new.
+fetch user.events, from:-7d
+| filter characteristics.has_error == true
+| summarize {first_seen = min(start_time), error_count = count(),
+    affected_sessions = countDistinct(dt.rum.session.id)},
+    by:{error.reason, error.type}
+| filter first_seen &gt; now() - 1h
+| sort first_seen desc
+| limit 10
+</code></pre>
+<p><a id="performance-alerts"></a></p>
+<h2>6. Performance Degradation Alerts</h2>
+<p>Detect when page load performance degrades beyond acceptable thresholds.</p>
+<pre><code class="language-dql">// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// p75 page load time per 15-minute window — performance alert data
+fetch user.events, from:-6h
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_ms = performance.load_event_end / 1ms
+| makeTimeseries p75_load_ms = percentile(load_ms, 75), interval:15m, by:{frontend.name}
+</code></pre>
+<pre><code class="language-dql">// Page-load time corrected 10/05/2026: performance.load_event_end on navigation events
+// (has_w3c_navigation_timings). A page summary's `duration` is how long the page was OPEN.
+// Apdex per 15-minute window — satisfaction alert data
+fetch user.events, from:-6h
+| filter characteristics.has_w3c_navigation_timings == true
+| fieldsAdd load_sec = performance.load_event_end / 1s
+| fieldsAdd apdex_score = if(load_sec &lt;= 3, 1.0,
+    else: if(load_sec &lt;= 12, 0.5,
+    else: 0.0))
+| makeTimeseries avg_apdex = avg(apdex_score), interval:15m, by:{frontend.name}
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> For production alerting, use Dynatrace Intelligence anomaly detection rather than static thresholds. Dynatrace Intelligence automatically baselines normal behavior and detects deviations, reducing false positives from seasonal traffic patterns.</p>
+</blockquote>
+<p><a id="rum-synthetic"></a></p>
+<h2>7. RUM + Synthetic Combined View</h2>
+<p>RUM and synthetic monitoring complement each other. Combining them provides a complete UX monitoring picture:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>RUM Covers</th>
+<th>Synthetic Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Availability</strong></td>
+<td>Only when users visit</td>
+<td>24/7 scheduled monitoring</td>
+</tr>
+<tr>
+<td><strong>Baseline</strong></td>
+<td>Real-world conditions (variable)</td>
+<td>Clean-room conditions (stable)</td>
+</tr>
+<tr>
+<td><strong>Coverage</strong></td>
+<td>Pages users visit</td>
+<td>All critical paths (scripted)</td>
+</tr>
+<tr>
+<td><strong>Error detection</strong></td>
+<td>Errors users hit</td>
+<td>Errors in scripted flows</td>
+</tr>
+<tr>
+<td><strong>Geographic</strong></td>
+<td>Where users are</td>
+<td>From configured locations</td>
+</tr>
+</tbody>
+</table>
+<h3>Side-by-Side Comparison</h3>
+<p>Compare the two queries below to see RUM and synthetic performance for the same application:</p>
+<pre><code class="language-dql">// RUM session summary — real user experience
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
+| summarize {rum_sessions = count(),
+    rum_error_sessions = countIf(error.count &gt; 0),
+    rum_avg_actions = avg(user_action_count)},
+    by:{frontend.name}
+| fieldsAdd monitoring_type = &quot;RUM&quot;,
+    error_rate_pct = round(toDouble(rum_error_sessions) / toDouble(rum_sessions) * 100.0, decimals: 1)
+</code></pre>
+<pre><code class="language-dql">// Synthetic vs RUM — compare session types for the same app (user-type values are lowercase:
+// &quot;real_user&quot;, &quot;robot&quot;, &quot;synthetic&quot;; &quot;SYNTHETIC&quot; matched nothing — corrected 10/05/2026)
+fetch user.sessions, from:-24h
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
+| summarize {session_count = count(),
+    avg_duration_sec = avg(duration / 1s),
+    error_sessions = countIf(error.count &gt; 0)},
+    by:{frontend.name, dt.rum.user_type}
+| filter dt.rum.user_type == &quot;real_user&quot; or dt.rum.user_type == &quot;synthetic&quot;
+| fieldsAdd error_rate_pct = round(toDouble(error_sessions) / toDouble(session_count) * 100.0, decimals: 1)
+| sort frontend.name asc, dt.rum.user_type asc
+</code></pre>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Series Recap</h2>
+<p>In this notebook, we covered:</p>
+<ul>
+<li><strong>Executive KPIs</strong> — Session count, error rate, bounce rate, Apdex</li>
+<li><strong>Apdex calculation</strong> — Satisfied/tolerating/frustrated classification via DQL</li>
+<li><strong>Operational dashboard</strong> — Real-time error rates, SLA tracking, active errors</li>
+<li><strong>Alerting strategies</strong> — Error rate spikes, Apdex drops, performance degradation</li>
+<li><strong>RUM + Synthetic</strong> — Combining both monitoring types for complete coverage</li>
+</ul>
+<h3>WEBRUM Series Recap</h3>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Topic</th>
+<th>Key Takeaway</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>01</strong></td>
+<td>RUM Fundamentals</td>
+<td>JavaScript agent, data model, basic queries</td>
+</tr>
+<tr>
+<td><strong>02</strong></td>
+<td>SPA Instrumentation</td>
+<td>Route changes, framework tips, XHR monitoring</td>
+</tr>
+<tr>
+<td><strong>03</strong></td>
+<td>Core Web Vitals</td>
+<td>LCP, INP, CLS measurement and scoring</td>
+</tr>
+<tr>
+<td><strong>04</strong></td>
+<td>Session Analysis</td>
+<td>Segmentation, journeys, conversions, bounce rates</td>
+</tr>
+<tr>
+<td><strong>05</strong></td>
+<td>Error Analysis</td>
+<td>Error impact, XHR errors, error-session correlation</td>
+</tr>
+<tr>
+<td><strong>06</strong></td>
+<td>Performance Analysis</td>
+<td>Waterfall, TTFB, slow pages, geographic performance</td>
+</tr>
+<tr>
+<td><strong>07</strong></td>
+<td>Session Replay</td>
+<td>Privacy, masking, finding and correlating replays</td>
+</tr>
+<tr>
+<td><strong>08</strong></td>
+<td>Dashboards &amp; Alerting</td>
+<td>Apdex, KPI dashboards, alerting strategies</td>
+</tr>
+</tbody>
+</table>
+<h3>References</h3>
+<ul>
+<li><a href="https://www.apdex.org/">Apdex Standard</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/analyze-and-use">Dynatrace RUM Dashboards</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events">Metric Events for Alerting</a></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events — semantic dictionary (DT docs)</a> — <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349">Semantic Dictionary changelog 1.349 (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

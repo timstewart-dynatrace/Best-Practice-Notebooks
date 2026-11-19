@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOBL-04: Cross-Platform Frameworks</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MOBL — Mobile Monitoring</a><span class="sep">/</span><span aria-current="page">MOBL-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MOBL-04: Cross-Platform Frameworks</h1>
+<blockquote>
+<p><strong>Series:</strong> MOBL — Mobile Monitoring | <strong>Notebook:</strong> 4 of 12 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Cross-platform frameworks like Flutter and React Native let teams ship to iOS and Android from a single codebase. Dynatrace provides dedicated plugins for these frameworks that bridge into the native mobile SDKs, giving you auto-instrumentation, crash reporting, and custom action tracking without writing platform-specific monitoring code. (Session Replay is not available for cross-platform frameworks -- see MOBL-08.)</p>
+<p>This notebook walks through instrumenting <strong>Flutter</strong>, <strong>React Native</strong>, <strong>Cordova</strong>, <strong>Xamarin</strong>, and <strong>.NET MAUI</strong> apps with Dynatrace. You will learn how each plugin integrates, how configuration bridging works under the hood, and how to choose the right approach for your stack.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#sdk-comparison">SDK Comparison</a></li>
+<li><a href="#flutter-setup">Flutter Setup</a></li>
+<li><a href="#react-native-setup">React Native Setup</a></li>
+<li><a href="#config-bridging">Configuration Bridging</a></li>
+<li><a href="#rn-symbolication">React Native Symbolication</a></li>
+<li><a href="#other-frameworks">Other Frameworks</a></li>
+<li><a href="#choosing-approach">Choosing the Right Approach</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail, with each mobile frontend created in Experience Vitals (RUM Classic frontends: RUM turned on, MOBL-02 §1) — the <code>user.events</code> queries here return nothing without it</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>Mobile app settings</code> write access; <code>storage:user.events:read</code>, <code>storage:user.sessions:read</code>, <code>storage:smartscape:read</code> for the queries</td>
+</tr>
+<tr>
+<td><strong>Flutter</strong></td>
+<td>Flutter 3.24.0+ with Dart 3.0.0+ (for Flutter sections)</td>
+</tr>
+<tr>
+<td><strong>React Native</strong></td>
+<td>React Native 0.72+ with Node.js 18+ (for RN sections)</td>
+</tr>
+<tr>
+<td><strong>Mobile App</strong></td>
+<td>At least one mobile application configured in Dynatrace</td>
+</tr>
+<tr>
+<td><strong>Previous Notebooks</strong></td>
+<td>MOBL-01 through MOBL-03 recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="sdk-comparison"></a></p>
+<h2>1. SDK Comparison</h2>
+<p>Dynatrace offers dedicated plugins for the most popular cross-platform frameworks. Each plugin wraps the native iOS and Android mobile SDKs, exposing framework-specific APIs and auto-instrumentation hooks.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNDIwIj4KICA8ZGVmcz4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyIgeD0iLTIlIiB5PSItMiUiIHdpZHRoPSIxMDQlIiBoZWlnaHQ9IjEwNCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmx1ZUdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzE0OTZmZiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMwYTY0YmMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InB1cnBsZUdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzYzNjZmMSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM0ZjQ2ZTUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im9yYW5nZUdyYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2Y5NzMxNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlYTU4MGMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdyZWVuR3JhZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMjJjNTVlIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzE2YTM0YSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjQyMCIgcng9IjEyIiByeT0iMTIiIGZpbGw9IiNmOGY5ZmEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWUyOTNiIj5Dcm9zcy1QbGF0Zm9ybSBTREsgQ29tcGFyaXNvbjwvdGV4dD4KCiAgPCEtLSBDZW50ZXIgc3VidGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSI2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmaWxsPSIjNDc1NTY5Ij5BbGwgYnJpZGdlIHRvIG5hdGl2ZSBpT1MvQW5kcm9pZCBTREtzPC90ZXh0PgoKICA8IS0tIFJvdyAxIC0tPgogIDwhLS0gRmx1dHRlciAodG9wLWxlZnQpIC0tPgogIDxyZWN0IHg9IjgwIiB5PSI5NSIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIxMTAiIHJ4PSIxMCIgcnk9IjEwIiBmaWxsPSJ1cmwoI2JsdWVHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIyMjUiIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZmZmZiI+Rmx1dHRlcjwvdGV4dD4KICA8dGV4dCB4PSIyMjUiIHk9IjE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjZGJlYWZlIj5EYXJ0PC90ZXh0PgogIDx0ZXh0IHg9IjIyNSIgeT0iMTc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNkYmVhZmUiPk5hdmlnYXRpb24gYXV0by1kZXRlY3Q8L3RleHQ+CgogIDwhLS0gUmVhY3QgTmF0aXZlICh0b3AtcmlnaHQpIC0tPgogIDxyZWN0IHg9IjQzMCIgeT0iOTUiIHdpZHRoPSIyOTAiIGhlaWdodD0iMTEwIiByeD0iMTAiIHJ5PSIxMCIgZmlsbD0idXJsKCNwdXJwbGVHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1NzUiIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZmZmZiI+UmVhY3QgTmF0aXZlPC90ZXh0PgogIDx0ZXh0IHg9IjU3NSIgeT0iMTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiNlMGU3ZmYiPkpTIC8gVFM8L3RleHQ+CiAgPHRleHQgeD0iNTc1IiB5PSIxNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iI2UwZTdmZiI+RmV0Y2gvWEhSIGF1dG8tZGV0ZWN0PC90ZXh0PgoKICA8IS0tIFJvdyAyIC0tPgogIDwhLS0gQ29yZG92YSAoYm90dG9tLWxlZnQpIC0tPgogIDxyZWN0IHg9IjgwIiB5PSIyMzAiIHdpZHRoPSIyOTAiIGhlaWdodD0iMTEwIiByeD0iMTAiIHJ5PSIxMCIgZmlsbD0idXJsKCNvcmFuZ2VHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIyMjUiIHk9IjI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZmZmZiI+Q29yZG92YTwvdGV4dD4KICA8dGV4dCB4PSIyMjUiIHk9IjI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjZmZmN2VkIj5XZWJWaWV3LWJhc2VkPC90ZXh0PgogIDx0ZXh0IHg9IjIyNSIgeT0iMzEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNmZmY3ZWQiPkxpbWl0ZWQgaW5zdHJ1bWVudGF0aW9uPC90ZXh0PgoKICA8IS0tIFhhbWFyaW4vLk5FVCBNQVVJIChib3R0b20tcmlnaHQpIC0tPgogIDxyZWN0IHg9IjQzMCIgeT0iMjMwIiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjExMCIgcng9IjEwIiByeT0iMTAiIGZpbGw9InVybCgjZ3JlZW5HcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1NzUiIHk9IjI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZmZmZiI+WGFtYXJpbiAvIC5ORVQgTUFVSTwvdGV4dD4KICA8dGV4dCB4PSI1NzUiIHk9IjI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjZGNmY2U3Ij5DIzwvdGV4dD4KICA8dGV4dCB4PSI1NzUiIHk9IjMxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjZGNmY2U3Ij5QbGF0Zm9ybSB2aWV3czwvdGV4dD4KCiAgPCEtLSBMZWdlbmQgYmFyIC0tPgogIDxyZWN0IHg9IjAiIHk9IjM3MCIgd2lkdGg9IjgwMCIgaGVpZ2h0PSI1MCIgcng9IjAiIHJ5PSIwIiBmaWxsPSIjZTJlOGYwIi8+CiAgPHJlY3QgeD0iMCIgeT0iNDEwIiB3aWR0aD0iODAwIiBoZWlnaHQ9IjEwIiByeD0iMCIgcnk9IjEyIiBmaWxsPSIjZTJlOGYwIi8+CiAgPHRleHQgeD0iNDAwIiB5PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzQ3NTU2OSI+Q3Jvc3MtcGxhdGZvcm0gZnJhbWV3b3JrcyB1c2UgcGxhdGZvcm0tc3BlY2lmaWMgYnJpZGdlcyB0byB0aGUgbmF0aXZlIER5bmF0cmFjZSBTREsuPC90ZXh0Pgo8L3N2Zz4=" alt="Cross-Platform SDK Comparison" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Framework | Auto-Instrumentation | Crash Reporting | Session Replay | Custom Actions | Maturity |
+|-----------|---------------------|-----------------|----------------|----------------|----------|
+| Flutter | Navigation, HTTP | Yes | Not available | Yes | High |
+| React Native | Navigation, Fetch/XHR | Yes | Not available | Yes | High |
+| Cordova | WebView | Yes | Not available | Yes | Moderate |
+| Xamarin | Platform views | Yes | Not available | Yes | End of support (May 2025) |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Flutter</th>
+<th>React Native</th>
+<th>Cordova</th>
+<th>Xamarin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Auto-instrumentation</td>
+<td>Navigation, HTTP</td>
+<td>Navigation, Fetch/XHR</td>
+<td>WebView</td>
+<td>Platform views</td>
+</tr>
+<tr>
+<td>Crash reporting</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Session replay</td>
+<td>Not available</td>
+<td>Not available</td>
+<td>Not available</td>
+<td>Not available</td>
+</tr>
+<tr>
+<td>Custom actions</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Maturity</td>
+<td>High</td>
+<td>High</td>
+<td>Moderate</td>
+<td>End of support (May 2025); migrate to .NET MAUI</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Flutter and React Native are the most actively developed plugins with the broadest feature coverage. Cordova remains supported. <strong>Xamarin is past end of support</strong>: Dynatrace deprecated its Xamarin NuGet package in May 2024 and ended support in May 2025, and recommends the <strong>.NET MAUI</strong> NuGet package instead (§6).</p>
+</blockquote>
+<p><a id="flutter-setup"></a></p>
+<h2>2. Flutter Setup</h2>
+<p>The Dynatrace Flutter plugin (<code>dynatrace_flutter_plugin</code>) integrates into your Flutter project via <code>pubspec.yaml</code> and auto-starts based on a configuration file at the project root.</p>
+<h3>Step 1: Add the Dependency</h3>
+<p>In <code>pubspec.yaml</code>:</p>
+<pre><code class="language-yaml">dependencies:
+  dynatrace_flutter_plugin: ^3.349.1   # current release on pub.dev, 10/29/2026
+</code></pre>
+<p>Run <code>flutter pub get</code> to install the plugin.</p>
+<h3>Step 2: Get and Apply the Configuration File</h3>
+<p>Download <code>dynatrace.config.yaml</code> from your mobile app's settings in Dynatrace (<strong>Flutter configuration</strong>, or the Frontend creation wizard in the New RUM Experience) and save it in the project root. Then run:</p>
+<pre><code class="language-bash">dart run dynatrace_flutter_plugin
+</code></pre>
+<p>This configures both the Android and iOS projects from <code>dynatrace.config.yaml</code>. The file carries each platform's native configuration as a string -- a Gradle <code>dynatrace { configurations { ... } }</code> block for Android and Info.plist keys for iOS -- for example (manual-startup variant from the plugin docs):</p>
+<pre><code class="language-yaml">android:
+  config: &quot;dynatrace { configurations { defaultConfig { autoStart.enabled false } } }&quot;
+ios:
+  config: &quot;&lt;key&gt;DTXAutoStart&lt;/key&gt; &lt;false/&gt;&quot;
+</code></pre>
+<h3>Step 3: Start the Plugin in <code>main.dart</code></h3>
+<p>Replace <code>runApp(MyApp())</code> with <code>Dynatrace().start(...)</code>, and add the navigation observer for automatic view tracking:</p>
+<pre><code class="language-dart">// main.dart
+import 'package:dynatrace_flutter_plugin/dynatrace_flutter_plugin.dart';
+
+void main() =&gt; Dynatrace().start(MyApp());
+
+// in MyApp's build():
+MaterialApp(
+  home: HomePage(),
+  navigatorObservers: [
+    DynatraceNavigationObserver(),
+  ],
+);
+</code></pre>
+<p><code>Dynatrace().startWithoutWidget(); runApp(MyApp());</code> is the documented alternative when you cannot wrap the root widget.</p>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions kept a plain <code>runApp()</code> (&quot;SDK auto-starts based on dynatrace.config file&quot;) and showed a <code>dynatrace: configurations: android: applicationId:</code> YAML layout. Neither matches the plugin: the app must call <code>Dynatrace().start(...)</code>, and the config file holds per-platform <code>config:</code> strings.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://pub.dev/packages/dynatrace_flutter_plugin">dynatrace_flutter_plugin (pub.dev)</a> — <em>&quot;void main() =&gt; Dynatrace().start(MyApp());&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> The instrumentation wizard of your frontend shows the Application ID and Beacon URL for each platform. Use exactly what it gives you for the Android and iOS sections.</p>
+</blockquote>
+<p><a id="react-native-setup"></a></p>
+<h2>3. React Native Setup</h2>
+<p>The Dynatrace React Native plugin (<code>@dynatrace/react-native-plugin</code>) provides auto-instrumentation for navigation transitions, Fetch/XHR network calls, and crash reporting.</p>
+<h3>Step 1: Install and Instrument</h3>
+<pre><code class="language-bash">npm install @dynatrace/react-native-plugin
+npx instrumentDynatrace
+</code></pre>
+<p>The <code>instrumentDynatrace</code> command modifies your native project files (Gradle for Android, Podfile for iOS) to integrate the Dynatrace mobile agent.</p>
+<h3>Step 2: Configuration File</h3>
+<p>Create <code>dynatrace.config.js</code> at the project root (the instrumentation wizard of your mobile app generates it). The <code>android.config</code> string is a Dynatrace Android Gradle plugin block, so the IDs sit inside <code>autoStart { }</code> exactly as in MOBL-03 §3:</p>
+<pre><code class="language-javascript">// dynatrace.config.js
+module.exports = {
+  react: {
+    autoStart: true,
+    debug: false,
+  },
+  android: {
+    config: `
+      dynatrace {
+        configurations {
+          defaultConfig {
+            autoStart {
+              applicationId(&quot;YOUR_ANDROID_APP_ID&quot;)
+              beaconUrl(&quot;YOUR_BEACON_URL&quot;)
+            }
+          }
+        }
+      }
+    `,
+  },
+  ios: {
+    config: `
+      &lt;key&gt;DTXApplicationID&lt;/key&gt;
+      &lt;string&gt;YOUR_IOS_APP_ID&lt;/string&gt;
+      &lt;key&gt;DTXBeaconURL&lt;/key&gt;
+      &lt;string&gt;YOUR_BEACON_URL&lt;/string&gt;
+    `,
+  },
+};
+</code></pre>
+<h3>Key Configuration Options</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>autoStart</code></td>
+<td>Start monitoring automatically on app launch</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>debug</code></td>
+<td>Enable verbose logging for troubleshooting</td>
+<td><code>false</code></td>
+</tr>
+<tr>
+<td><code>lifecycleUpdate</code></td>
+<td>Also report update cycles on lifecycle actions (creates many more actions)</td>
+<td><code>false</code></td>
+</tr>
+<tr>
+<td><code>userOptIn</code></td>
+<td>Privacy mode: user consent must be queried and set before data is collected</td>
+<td><code>false</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://www.npmjs.com/package/@dynatrace/react-native-plugin">@dynatrace/react-native-plugin README (npm)</a> — <em>&quot;lifecycleUpdate boolean false Decide if you want to see update cycles on lifecycle actions as well.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Important:</strong> After changing <code>dynatrace.config.js</code>, re-run <code>npx instrumentDynatrace</code> to apply the updated configuration to native project files.</p>
+</blockquote>
+<p><a id="config-bridging"></a></p>
+<h2>4. Configuration Bridging</h2>
+<p>Cross-platform Dynatrace plugins do not implement their own monitoring logic. Instead, they act as <strong>bridges</strong> to the native iOS and Android mobile SDKs.</p>
+<h3>How Bridging Works</h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Component</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Your cross-platform code (Dart / JavaScript)</td>
+<td>Calls the plugin API; framework-level events (navigation, fetch/XHR, Dart/JS errors)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Dynatrace plugin (Flutter / React Native / Cordova / .NET MAUI)</td>
+<td>Bridges calls and configuration to the native agents</td>
+</tr>
+<tr>
+<td>3</td>
+<td>OneAgent for iOS / OneAgent for Android</td>
+<td>Native instrumentation, crash handling, beacon batching</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Dynatrace beacon endpoint</td>
+<td>Receives beacons; data lands in Grail <code>user.events</code> / <code>user.sessions</code></td>
+</tr>
+</tbody>
+</table>
+<h3>What This Means in Practice</h3>
+<ul>
+<li><strong>Per-platform configuration</strong>: the Android and iOS sections of the config file are applied to different native agents, each with its Application ID and Beacon URL from the instrumentation wizard. Whether both platforms report under one frontend or two depends on how you set them up — the inventory query below shows what you have.</li>
+<li><strong>Platform-specific behavior</strong>: Some features (like WebView monitoring or specific crash formats) differ between iOS and Android because the underlying native SDK handles them.</li>
+<li><strong>Native crashes</strong>: Native crashes (Objective-C/Swift on iOS, Java/Kotlin on Android) are captured by the native SDK, not the cross-platform plugin.</li>
+<li><strong>Dart/JS crashes</strong>: Unhandled exceptions in Dart (Flutter) or JavaScript (React Native) are caught by the plugin and forwarded to the native SDK for reporting.</li>
+</ul>
+<blockquote>
+<p><strong>Tip:</strong> Always verify that both platform configurations (Android and iOS) are correct and that both Application IDs appear as active in the Dynatrace UI. A common mistake is configuring only one platform.</p>
+</blockquote>
+<h3>Verify Your Mobile App Inventory</h3>
+<p>Query all configured mobile applications to confirm both Android and iOS entries exist for your cross-platform app:</p>
+<pre><code class="language-dql">// Full mobile app inventory
+// PREFERRED -- Smartscape. Lists every mobile FRONTEND node; a cross-platform app
+// appears once per frontend you created for it.
+smartscapeNodes &quot;FRONTEND&quot;
+| filter frontend.type == &quot;mobile&quot;
+| fields name, id, id_classic, tags
+| sort name asc
+| limit 50
+
+// CORRECTION (07/30/2026): a previous revision claimed dt.entity.mobile_application had no
+// Grail Smartscape equivalent. It does -- FRONTEND filtered on frontend.type == &quot;mobile&quot;
+// (dt.smartscape.frontend). SaaS 1.344 (07/27/2026, staged tenant rollout from 07/29/2026)
+// makes Smartscape the primary surface for the Digital Experience apps; verify it has
+// reached your tenant. The classic table below still works and remains a real fallback.
+// FALLBACK (classic surface -- still functional):
+// fetch dt.entity.mobile_application
+// | fields entity.name, id, tags
+// | sort entity.name asc
+// | limit 50
+</code></pre>
+<p>You should see the frontend (or frontends) your cross-platform app reports to. To confirm <strong>both</strong> platforms are sending data, use the <code>os.name</code> breakdown in <em>Platform Distribution</em> (§6) — if one platform is missing there, revisit that platform's section of the config file.</p>
+<p><a id="rn-symbolication"></a></p>
+<h2>5. React Native Symbolication</h2>
+<p>React Native apps ship with minified JavaScript bundles. When a crash or error occurs, the stack trace references obfuscated line and column numbers. <strong>Source map upload</strong> translates these back to your original source code.</p>
+<h3>How It Works</h3>
+<ol>
+<li>Generate the source map with a <strong>release</strong> build (Hermes and JavaScriptCore are both supported) — see the React Native <em>debugging release builds</em> guide.</li>
+<li>Upload it to Dynatrace: <strong>Settings &gt; Web and mobile monitoring &gt; Source maps and symbol files</strong> → <strong>React Native</strong> → <strong>Upload files</strong>. Select the application and platform, enter the JavaScript bundle's file name (Android default <code>index.android.bundle</code>, iOS default <code>main.jsbundle</code>), and the bundle name and version.</li>
+<li>When a crash is reported, Dynatrace uses the uploaded source map to symbolicate the JavaScript stack trace.</li>
+</ol>
+<p>Upload one source map per platform for every release you ship — a release without one stays minified. Source maps and symbol files share a <strong>1 GiB</strong> storage quota per SaaS environment; older files are deleted automatically when it fills, unless you <strong>pin</strong> the ones you need to keep.</p>
+<blockquote>
+<p><strong>Correction (10/02/2026).</strong> Earlier revisions showed a <code>sourceMap: { android: true, ios: true }</code> option in <code>dynatrace.config.js</code> and a <code>POST /api/v2/rum/sourcemap</code> upload endpoint. Neither exists — the plugin README has no such option and points to the symbol-file upload instead.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Flutter crashes are symbolicated with the native artifacts — dSYM symbol extract files (iOS) and R8/ProGuard mapping files (Android), see MOBL-03 §6.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/analyze-and-use/upload-and-manage-symbol-files">Upload and manage symbol files (DT docs)</a> — <em>&quot;The Dynatrace platform lets you manage Android mapping files, iOS or tvOS symbol extract files and React Native source maps&quot;</em>, <em>&quot;For Dynatrace SaaS, the maximum storage size for source maps and symbol files is 1 GiB.&quot;</em>; <a href="https://www.npmjs.com/package/@dynatrace/react-native-plugin">@dynatrace/react-native-plugin README (npm)</a> — <em>&quot;Once generated, upload your sourcemaps to Dynatrace.&quot;</em></sub></p>
+</blockquote>
+<h3>Event Volume by Application</h3>
+<p>Check the volume of mobile events flowing into Dynatrace, grouped by application (<code>frontend.name</code>) in the Grail <code>user.events</code> store, with one count per event type taken from the <code>characteristics.has_*</code> flags. This helps confirm that your cross-platform instrumentation is actively reporting data. The flags can overlap (a failed request is both a request and an error), so the columns need not add up to the total.</p>
+<blockquote>
+<p><strong>Correction (11/11/2026).</strong> Earlier revisions grouped by <code>characteristics.classifier</code>, which the User events dictionary page describes as <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em> <strong>Semantic Dictionary 1.349</strong> removes it from the user-event models; a tenant that has not reached the change still returns it, so a classifier query works until the change arrives and then silently matches nothing.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events (DT docs)</a> — <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em>; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349">Semantic Dictionary changelog 1.349 (DT docs)</a>. <strong>Dictionary:</strong> <code>characteristics.classifier</code> (<code>experimental</code>), <code>characteristics.has_*</code> (<code>stable</code>), read 11/11/2026.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Event volume by application, one count per event characteristic
+// (has_* flags, not characteristics.classifier -- corrected 11/11/2026)
+fetch user.events, from:-1h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;})
+| summarize {total_events = count(),
+    user_actions = countIf(characteristics.has_user_action == true),
+    requests = countIf(characteristics.has_request == true),
+    errors = countIf(characteristics.has_error == true),
+    crashes = countIf(characteristics.has_crash == true),
+    app_starts = countIf(characteristics.has_app_start == true)},
+    by:{frontend.name}
+| sort total_events desc
+| limit 20
+</code></pre>
+<p><a id="other-frameworks"></a></p>
+<h2>6. Other Frameworks</h2>
+<h3>Cordova / Ionic</h3>
+<p>Cordova and Ionic apps run inside a WebView, and the Dynatrace Cordova plugin instruments both the WebView layer and native platform calls.</p>
+<pre><code class="language-bash">cordova plugin add @dynatrace/cordova-plugin --save
+</code></pre>
+<p>Configuration is managed through a <code>dynatrace.config.js</code> file similar to the React Native approach. The plugin instruments <code>XMLHttpRequest</code>, <code>fetch</code>, and page transitions within the WebView.</p>
+<h3>Xamarin (end of support)</h3>
+<p>Dynatrace <strong>deprecated</strong> its Xamarin NuGet package (<code>Dynatrace.OneAgent.Xamarin</code>) in May 2024, following Microsoft's end of support for the Xamarin SDKs, and <strong>ended support in May 2025</strong>. Existing Xamarin apps should be migrated to .NET and the Dynatrace .NET MAUI package.</p>
+<h3>.NET MAUI</h3>
+<p>.NET MAUI is the successor to Xamarin.Forms and is supported:</p>
+<ol>
+<li>Create a mobile app in Dynatrace, open <strong>Instrumentation wizard &gt; .NET MAUI</strong>, and download <code>dynatrace.config.json</code>.</li>
+<li>Add the <code>Dynatrace.OneAgent.MAUI</code> NuGet package (from nuget.org) to the native projects of your app.</li>
+<li>Add <code>dynatrace.config.json</code> to your project as described on the MAUI page.</li>
+<li>Start OneAgent: add <code>using Dynatrace.MAUI;</code> and call <code>Agent.Instance.Start();</code> on Android and iOS — <em>&quot;The start method is required for OneAgent to start.&quot;</em> To instrument web requests, pass <code>Agent.Instance.GetHttpMessageHandler()</code> to your <code>HttpClient</code>.</li>
+</ol>
+<pre><code class="language-bash">dotnet add package Dynatrace.OneAgent.MAUI
+</code></pre>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions named the package <code>Dynatrace.Xamarin</code> (not a published package; nuget.org returns 404) and described Xamarin as supported and .NET MAUI as &quot;preview&quot;. Both statuses were inverted.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/cross-platform-frameworks/xamarin-nuget">Xamarin NuGet package (DT docs)</a> — <em>&quot;we will end support for the Dynatrace Xamarin NuGet package in May 2025.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/cross-platform-frameworks/maui">.NET MAUI (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Platform Distribution</h3>
+<p>Understand which operating systems your mobile users are on. <code>user.sessions</code> holds one record per session, so <code>count()</code> is a session count. This is especially useful for cross-platform apps to see the iOS-to-Android ratio:</p>
+<pre><code class="language-dql">// Platform distribution across mobile apps -- one user.sessions record per session
+fetch user.sessions, from:-24h
+| filter dt.rum.application.type == &quot;mobile&quot;
+| summarize session_count = count(), by:{os.name}
+| sort session_count desc
+</code></pre>
+<p><a id="choosing-approach"></a></p>
+<h2>7. Choosing the Right Approach</h2>
+<p>Use the following decision matrix to determine the best instrumentation path for your cross-platform project:</p>
+<table>
+<thead>
+<tr>
+<th>Criteria</th>
+<th>Flutter</th>
+<th>React Native</th>
+<th>Cordova</th>
+<th>Xamarin / MAUI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>New project (2025+)</strong></td>
+<td>Recommended</td>
+<td>Recommended</td>
+<td>Not recommended</td>
+<td>.NET MAUI only</td>
+</tr>
+<tr>
+<td><strong>Existing project</strong></td>
+<td>If already Flutter</td>
+<td>If already RN</td>
+<td>If already Cordova</td>
+<td>Xamarin: migrate to .NET MAUI</td>
+</tr>
+<tr>
+<td><strong>Session replay needed</strong></td>
+<td>Not available</td>
+<td>Not available</td>
+<td>Not available</td>
+<td>Not available -- Session Replay is native iOS/Android only (MOBL-08)</td>
+</tr>
+<tr>
+<td><strong>Team expertise</strong></td>
+<td>Dart</td>
+<td>JavaScript/TypeScript</td>
+<td>Web technologies</td>
+<td>C# / .NET</td>
+</tr>
+<tr>
+<td><strong>Plugin maturity</strong></td>
+<td>Stable, active</td>
+<td>Stable, active</td>
+<td>Stable, less active</td>
+<td>.NET MAUI supported; Xamarin end of support (May 2025)</td>
+</tr>
+<tr>
+<td><strong>Auto-instrumentation depth</strong></td>
+<td>Deep</td>
+<td>Deep</td>
+<td>WebView only</td>
+<td>Moderate</td>
+</tr>
+</tbody>
+</table>
+<h3>Recommendations</h3>
+<ul>
+<li><strong>Starting a new cross-platform project?</strong> Choose Flutter or React Native. Both have first-class Dynatrace support with the broadest feature coverage.</li>
+<li><strong>Migrating from Cordova?</strong> Move to React Native for a smoother transition since both use JavaScript. The Dynatrace plugin API is similar.</li>
+<li><strong>Migrating from Xamarin?</strong> Move to .NET MAUI and the <code>Dynatrace.OneAgent.MAUI</code> package; the Xamarin package is past end of support.</li>
+<li><strong>Need the deepest auto-instrumentation?</strong> Flutter and React Native offer the most comprehensive out-of-the-box instrumentation, including navigation tracking, HTTP call monitoring, and crash reporting without manual code changes.</li>
+</ul>
+<h2>Summary</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li><strong>SDK landscape</strong>: Flutter and React Native plugins are the most mature; Cordova remains supported; Xamarin is past end of support (migrate to .NET MAUI).</li>
+<li><strong>Flutter integration</strong>: Add the <code>dynatrace_flutter_plugin</code> dependency, apply <code>dynatrace.config.yaml</code> with <code>dart run dynatrace_flutter_plugin</code>, and start with <code>Dynatrace().start(MyApp())</code>.</li>
+<li><strong>React Native integration</strong>: Install <code>@dynatrace/react-native-plugin</code>, run <code>npx instrumentDynatrace</code>, and configure via <code>dynatrace.config.js</code>.</li>
+<li><strong>Configuration bridging</strong>: Cross-platform plugins delegate to native iOS/Android SDKs. Each platform needs its own Application ID.</li>
+<li><strong>Symbolication</strong>: React Native requires source map upload for readable crash stack traces.</li>
+<li><strong>Other frameworks</strong>: Cordova and .NET MAUI are supported; Xamarin reached end of support in May 2025.</li>
+<li><strong>Decision matrix</strong>: Choose your framework based on project status, team expertise, and required monitoring depth.</li>
+</ul>
+<h2>Next Steps</h2>
+<p>Continue to <strong>MOBL-05</strong> to explore custom user actions, manual instrumentation APIs, and advanced tagging strategies for cross-platform mobile apps.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

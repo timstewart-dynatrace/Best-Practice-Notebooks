@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-13: How Do Dynatrace Injection and OpenShift SCCs Interact? (seccomp, anyuid, and the Operator 1.9.0 Change)</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-13</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-13: How Do Dynatrace Injection and OpenShift SCCs Interact? (seccomp, anyuid, and the Operator 1.9.0 Change)</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 13 — Dynatrace Injection and OpenShift SCCs: seccomp, anyuid, and the Operator 1.9.0 Change | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A recurring incident pattern on OpenShift: after upgrading Dynatrace Operator to <strong>v1.9.0+</strong>, pods that previously ran fine under the <strong><code>anyuid</code></strong> SCC are rejected at admission with <code>Forbidden: seccomp may not be set</code> — before they are even scheduled. Nothing crashed and no Dynatrace component errored; the pods simply stopped being admitted, which is why the break often surfaces first in production restarts.</p>
+<p>The <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/seccomp">seccomp profiles page (DT docs)</a> documents that Operator 1.9.0 changed the <code>feature.dynatrace.com/init-container-seccomp-profile</code> default, and now carries a <strong>Using seccomp on OpenShift</strong> section that names the SCC conflict; the <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-feature-flags">DynaKube feature-flags reference (DT docs)</a> lists the flag's default as <code>&quot;true&quot;</code>. The <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/openshift-configuration">Additional OpenShift configurations page (DT docs)</a>, which documents which SCCs Dynatrace components use, still says nothing about seccomp. This entry covers the intersection in depth: why the combination fails, a compatibility matrix, the recommended long-term fix (a custom SCC), how to find affected workloads <strong>before</strong> upgrading, and the operator change-management practices that keep the next default-flip from being a surprise.</p>
+<p><strong>Updated 08/28/2026 — Dynatrace now documents the interaction.</strong> The <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2">Operator 1.10.2 release notes (DT docs)</a> (published 07/30/2026) carry it as a <strong>Known Issue</strong>, and the seccomp page now documents it too (read 09/28/2026) — only the OpenShift configuration page is still silent. The official text also describes a <strong>second failure mode</strong> this entry originally did not: not only admission rejection, but <em>fallback to a different SCC</em>. See §3.</p>
+<blockquote>
+<p><strong>Scope:</strong> Dynatrace Operator ≥1.9.0 on OpenShift 4.11+ (incl. ARO/ROSA) with <code>applicationMonitoring</code> or <code>cloudNativeFullStack</code> injection. Claims about OpenShift built-in SCC behavior are cited to Red Hat documentation and knowledge base — verify against your exact OCP version, since SCC semantics have changed across 4.x.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#what-changed">What Changed in Operator 1.9.0</a></li>
+<li><a href="#why-it-fails">Why anyuid + RuntimeDefault Fails at Admission</a></li>
+<li><a href="#scc-matrix">SCC Compatibility Matrix for Injected Workloads</a></li>
+<li><a href="#custom-scc">The Long-Term Fix — a Custom SCC</a></li>
+<li><a href="#pre-upgrade">Assessing Impact Before You Upgrade</a></li>
+<li><a href="#change-management">Operator Change Management: Scope, Uninstall Residue, and Failure Isolation</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#gotchas">Common Gotchas</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Platform</strong></td>
+<td>OpenShift 4.11+ (SCC v2 family present); Dynatrace Operator with <code>applicationMonitoring</code> or <code>cloudNativeFullStack</code></td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Cluster-admin (or SCC-management rights) to inspect/create SCCs; ability to edit DynaKube resources</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>OpenShift platform/SRE teams; Dynatrace platform owners; account teams preparing an operator upgrade</td>
+</tr>
+<tr>
+<td><strong>Related series</strong></td>
+<td>K8S (DynaKube deployment modes, troubleshooting), ONBRD (deployment), FAQ-04/05 (update change-management on the agent side)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p>Since Operator <strong>1.9.0</strong>, the injected Dynatrace init container carries <code>seccompProfile: RuntimeDefault</code> <strong>by default</strong> (the <code>feature.dynatrace.com/init-container-seccomp-profile</code> flag flipped from <code>false</code> to <code>true</code>). OpenShift validates every pod's security context against the SCC that admits it, and the built-in SCCs differ on whether the <code>seccompProfile</code> field is permitted at all. Read from the shipped SCC manifests (re-verified 10/02/2026): <strong><code>restricted-v2</code> declares <code>seccompProfiles: [runtime/default]</code></strong> — its own <code>description</code> field states it <em>&quot;will also default the seccomp profile to runtime/default if unset, otherwise this seccomp profile is required&quot;</em> — check it in your cluster with <code>oc get scc restricted-v2 -o jsonpath='{.metadata.annotations.kubernetes\.io/description}'</code>. Red Hat's SCC documentation states the same for <code>restricted-v2</code>, <code>nonroot-v2</code> and <code>hostnetwork-v2</code>: <em>&quot;<code>seccompProfile</code> is set to <code>runtime/default</code> by default&quot;</em> — while <strong><code>anyuid</code> declares no <code>seccompProfiles</code> key at all</strong>, so the field is not allowed under it. A pod admitted under <strong><code>anyuid</code></strong> therefore fails SCC validation the moment the webhook adds the seccomp profile: <code>Forbidden: seccomp may not be set</code> — a documented Red Hat failure mode, not a Dynatrace bug or an OpenShift bug. The interaction itself is documented on the Dynatrace seccomp page and in the Operator Known Issues; only the Dynatrace OpenShift configuration page is silent on seccomp.</p>
+<table>
+<thead>
+<tr>
+<th>Your situation</th>
+<th>Your path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Injected workloads run under <code>restricted-v2</code> or <code>nonroot-v2</code></td>
+<td>No action — seccomp is allowed there; this is the happy path</td>
+</tr>
+<tr>
+<td>Injected workloads need root (<code>anyuid</code> today)</td>
+<td><strong>Long-term:</strong> custom SCC allowing both <code>RunAsAny</code> and <code>runtime/default</code> seccomp (§5). <strong>Immediate:</strong> set the flag to <code>false</code> on the DynaKube (§2) — a rollback of the security improvement, not a destination</td>
+</tr>
+<tr>
+<td>Not yet on 1.9.0</td>
+<td>Run the §6 assessment first; upgrade with the affected-workload list in hand</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/seccomp">Seccomp profiles (DT docs)</a> — the 1.9.0 default change; <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/openshift-configuration">Additional OpenShift configurations (DT docs)</a> — the restricted-v2 / SCC-per-component table (the quoted SCC description is read from the cluster, not this page); <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/seccomp">Using seccomp on OpenShift (DT docs)</a> — <em>&quot;On OpenShift, this can interfere with SecurityContextConstraints (SCCs)&quot;</em>; <a href="https://access.redhat.com/solutions/7064000">Pod not admitted due to seccomp with anyuid SCC (Red Hat KB, solution 7064000)</a> — the exact <code>Forbidden: seccomp may not be set</code> failure mode; <a href="https://raw.githubusercontent.com/openshift/openshift-docs/enterprise-4.18/modules/security-context-constraints-about.adoc">SCC reference, OCP 4.18 source (openshift-docs GitHub)</a> — <em>&quot;<code>seccompProfile</code> is set to <code>runtime/default</code> by default&quot;</em> for <code>restricted-v2</code>, <code>nonroot-v2</code> and <code>hostnetwork-v2</code>.</sub></p>
+</blockquote>
+<p><a id="what-changed"></a></p>
+<h2>2. What Changed in Operator 1.9.0</h2>
+<p>The <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0">Operator 1.9.0 release notes (DT docs)</a> state the change in one line: the <code>feature.dynatrace.com/init-container-seccomp-profile</code> feature flag is now <strong>enabled by default</strong>, with the remediation <em>&quot;If you relied on the unspecified seccomp profile on injected init containers, set the flag to <code>false</code>.&quot;</em> The 1.9.0 notes originally carried no OpenShift implications; the page now lists the SCC interaction under <strong>Known issues</strong> (page updated 09/08/2026).</p>
+<p><strong>The intended benefit</strong> (from the seccomp page): with the flag on, the init container gets the <code>RuntimeDefault</code> seccomp profile, which restricts the system calls it can make and helps <em>&quot;meet the requirements of the <strong>restricted</strong> Pod Security Standard&quot;</em> — a genuine hardening improvement, and on vanilla Kubernetes (Pod Security admission) it is a pure win. The breakage is OpenShift-specific, because OpenShift layers <strong>SCC validation</strong> on top (§3).</p>
+<p><strong>The immediate workaround</strong> — on the DynaKube:</p>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+  annotations:
+    feature.dynatrace.com/init-container-seccomp-profile: &quot;false&quot;
+</code></pre>
+<p><strong>Is the flag a long-term answer?</strong> No — and this is now a documented fact rather than an inference. In the operator source the flag carries an explicit removal notice:</p>
+<pre><code class="language-go">// pkg/api/exp/injection.go — identical at v1.9.0, v1.10.0, v1.10.1, v1.10.2 and v1.11.0
+// Deprecated: This field will be removed in a future release.
+InjectionSeccompKey = FFPrefix + &quot;init-container-seccomp-profile&quot;
+
+func (ff *FeatureFlags) HasInitSeccomp() bool {
+	return ff.getBoolWithDefault(InjectionSeccompKey, true)   // default: true
+}
+</code></pre>
+<p>So the escape hatch is on a removal path: (1) it rolls back a security improvement rather than solving the SCC conflict; (2) it is <strong>marked deprecated for removal in the source</strong>, in the operator's experimental API package (<code>pkg/api/exp/</code>), so an estate that sets it to <code>&quot;false&quot;</code> permanently is scheduled to break when the flag goes; (3) the custom-SCC fix (§5) solves the actual conflict, keeps the hardening, and survives the flag's removal. Use the flag to buy time for §5, not instead of it.</p>
+<blockquote>
+<p><strong>Still current at Operator 1.11.1.</strong> The latest Operator release is <strong>1.11.1 (10/22/2026)</strong>, a patch on 1.11.0 whose release notes list one resolved issue: <em>&quot;Fixed a security vulnerability (CVE-2026-111943) by updating the Go version used to build Dynatrace Operator to 1.27.3.&quot;</em> The seccomp default has been <code>true</code> continuously since 1.9.0, and the 1.11.0 release notes still list the OpenShift interaction under <strong>Known issues</strong> rather than reversing it, so everything in this entry applies unchanged on the current version. Verified against the operator source at each tag through v1.10.2 on 08/27/2026, at v1.11.0 on 10/02/2026, and across the v1.11.0 → v1.11.1 source diff (no seccomp change) on 10/27/2026.</p>
+</blockquote>
+<p><strong>Also in 1.9.0</strong> — relevant to any upgrade assessment (§6): the DynaKube <strong><code>v1beta3</code> API version is removed from the CRD</strong> (<em>&quot;Applying DynaKube resources using this version will fail&quot;</em> — migrate to <code>v1beta6</code> first), <code>v1beta4</code> is deprecated (it stopped being served in 1.10.0 and was removed from the CRD in 1.11.0), pods injected via <code>applicationMonitoring</code>/<code>cloudNativeFullStack</code> now receive <strong>automatic metadata enrichment</strong>, legacy <code>dt.kubernetes.*</code> attributes are deprecated for <code>k8s.*</code>, and the <code>dynatrace/helm-charts</code> repository is <em>&quot;archived and no longer receives updates&quot;</em> — install from the OCI registry instead.</p>
+<blockquote>
+<p><strong>Now a documented Known Issue (Operator 1.10.2, published 07/30/2026; still listed in 1.11.0).</strong> Verbatim: <em>&quot;Since Dynatrace Operator 1.9.0, a <code>RuntimeDefault</code> seccomp profile is applied to the Dynatrace init container by default. On OpenShift, this can interfere with SecurityContextConstraints (SCCs) — such as <code>anyuid</code>, <code>restricted</code>, or <code>nonroot</code> — that prevent seccomp profile usage, causing the system to fall back to a different SCC (for example <code>restricted-v2</code>). This may render application pods unschedulable or cause workload degradation.&quot;</em> Dynatrace's own remediation is to disable the seccomp profile for Dynatrace init containers — the same workaround given above. Three things this confirms and one it adds:</p>
+<ul>
+<li><strong>The default is still <code>true</code> through 1.11.0.</strong> The Known Issue documents the behavior rather than reverting it, which is consistent with the source read at each tag. Nothing here is fixed by upgrading.</li>
+<li><strong>The blast radius is wider than <code>anyuid</code>.</strong> Dynatrace names <code>restricted</code> and <code>nonroot</code> alongside it. The matrix in §4 remains the per-SCC authority, and the in-cluster <code>oc</code> check there is still how you settle your own cluster.</li>
+<li><strong>Dynatrace endorses the flag as the remediation</strong> — but the flag is marked for removal (below), so it is still a bridge with an exit date, not a destination. The custom SCC in §5 remains the durable fix.</li>
+<li><strong>New: a second failure mode.</strong> <em>Fallback</em> to a different SCC, ending in unschedulable pods or degraded workloads — not the clean <code>Forbidden: seccomp may not be set</code> rejection. See §3.</li>
+</ul>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0">Operator 1.9.0 release notes (DT docs)</a> — quoted remediation + breaking changes, the Known issues entry, and <em>&quot;The Helm repository located in dynatrace/helm-charts is archived and no longer receives updates.&quot;</em> (read 10/02/2026); <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/seccomp">Seccomp profiles (DT docs)</a> — quoted PSS rationale; <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-feature-flags">DynaKube feature flags (DT docs)</a> — lists the default as <em>&quot;true&quot;</em> (read 09/28/2026; it showed <code>&quot;false&quot;</code> in July 2026); flag location verified in the operator source 07/08/2026. <a href="https://github.com/Dynatrace/dynatrace-operator/blob/v1.10.2/pkg/api/exp/injection.go">operator source <code>pkg/api/exp/injection.go</code> (Dynatrace GitHub)</a> — <em>&quot;Deprecated: This field will be removed in a future release&quot;</em> on <code>InjectionSeccompKey</code>, and <code>getBoolWithDefault(…, true)</code>; read at tags v1.9.0/v1.10.0/v1.10.1/v1.10.2 on 08/27/2026 and v1.11.0 on 10/02/2026; <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2">Operator 1.10.2 release notes (DT docs)</a> — the Known Issue quoted above, read 08/28/2026; <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a> — the same Known Issue, still listed, read 10/02/2026; <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1">Operator 1.11.1 release notes (DT docs)</a> — the one resolved issue quoted above, read 10/27/2026.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Corrected 08/27/2026.</strong> This section previously read <em>&quot;no deprecation is published for this flag today&quot;</em> and softened the bridge-not-destination advice to a <strong>Derived</strong> inference from the flag's package location. The source has carried an explicit removal notice since 1.9.0 — the original check confirmed where the flag lives without reading the two lines above it. The advice was right; its basis is now a citation rather than a pattern argument.</sub></p>
+</blockquote>
+<p><a id="why-it-fails"></a></p>
+<h2>3. Why anyuid + RuntimeDefault Fails at Admission</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5PcGVuU2hpZnQgU0NDIEFkbWlzc2lvbiBmb3IgRHluYXRyYWNlLUluamVjdGVkIFBvZHMgKE9wZXJhdG9yIDEuOS4wKyk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+VGhlIHdlYmhvb2sgbXV0YXRlcyBmaXJzdDsgU0NDIGFkbWlzc2lvbiB2YWxpZGF0ZXMgdGhlIG11dGF0ZWQgcG9kIOKAlCBpbmNsdWRpbmcgdGhlIGluamVjdGVkIGluaXQgY29udGFpbmVyPC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImZsMTMiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gU3RlcCAxOiBwb2QgY3JlYXRlICsgd2ViaG9vayAtLT4KICA8cmVjdCB4PSI0MCIgeT0iOTAiIHdpZHRoPSIyNjAiIGhlaWdodD0iOTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTcwIiB5PSIxMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjEgwrcgUG9kIGNyZWF0ZWQ8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIxMzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkR5bmF0cmFjZSB3ZWJob29rIGluamVjdHMgaW5pdCBjb250YWluZXI8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPisgc2VjY29tcFByb2ZpbGU6IFJ1bnRpbWVEZWZhdWx0PC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMTY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj4oZGVmYXVsdCBzaW5jZSBPcGVyYXRvciAxLjkuMCk8L3RleHQ+CgogIDwhLS0gU3RlcCAyOiBTQ0MgYWRtaXNzaW9uIC0tPgogIDxyZWN0IHg9IjM2MCIgeT0iOTAiIHdpZHRoPSIyMzAiIGhlaWdodD0iOTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDc1IiB5PSIxMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjIgwrcgU0NDIGFkbWlzc2lvbjwvdGV4dD4KICA8dGV4dCB4PSI0NzUiIHk9IjEzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2hvbGUgcG9kIHNwZWMgdmFsaWRhdGVkIGFnYWluc3Q8L3RleHQ+CiAgPHRleHQgeD0iNDc1IiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRoZSBhZG1pdHRpbmcgU0NDIChzZXJ2aWNlLWFjY291bnQ8L3RleHQ+CiAgPHRleHQgeD0iNDc1IiB5PSIxNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnBlcm1zOyByZXF1aXJlZC1zY2MgY2FuIHBpbik8L3RleHQ+CgogIDxsaW5lIHgxPSIzMDAiIHkxPSIxMzUiIHgyPSIzNTYiIHkyPSIxMzUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmwxMykiLz4KCiAgPCEtLSBPdXRjb21lcyAtLT4KICA8bGluZSB4MT0iNDc1IiB5MT0iMTgwIiB4Mj0iMTcwIiB5Mj0iMjM2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2ZsMTMpIi8+CiAgPGxpbmUgeDE9IjQ3NSIgeTE9IjE4MCIgeDI9IjQ3NSIgeTI9IjIzNiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmbDEzKSIvPgogIDxsaW5lIHgxPSI0NzUiIHkxPSIxODAiIHgyPSI3ODAiIHkyPSIyMzYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmwxMykiLz4KCiAgPHJlY3QgeD0iNDAiIHk9IjI0MCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSIxMTAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxNzAiIHk9IjI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+cmVzdHJpY3RlZC12MiAvIG5vbnJvb3QtdjI8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIyODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkJvdGggYWxsb3cgcnVudGltZS9kZWZhdWx0IHNlY2NvbXA8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIzMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPihhcyBkb2VzIGhvc3RuZXR3b3JrLXYyKSDigJQgbm9uLXJvb3Qgb25seTwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjMyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+QURNSVRURUQgKG5vbi1yb290IHdvcmtsb2Fkcyk8L3RleHQ+CgogIDxyZWN0IHg9IjM0NSIgeT0iMjQwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjExMCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+YW55dWlkPC90ZXh0PgogIDx0ZXh0IHg9IjQ3NSIgeT0iMjg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Sb290IGFsbG93ZWQg4oCUIGJ1dCB0aGUgc2VjY29tcCBmaWVsZDwvdGV4dD4KICA8dGV4dCB4PSI0NzUiIHk9IjMwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+aXMgbm90IHBlcm1pdHRlZCBieSB0aGlzIFNDQzwvdGV4dD4KICA8dGV4dCB4PSI0NzUiIHk9IjMyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Rm9yYmlkZGVuOiBzZWNjb21wIG1heSBub3QgYmUgc2V0PC90ZXh0PgoKICA8cmVjdCB4PSI2NTAiIHk9IjI0MCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSIxMTAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3ODAiIHk9IjI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Q3VzdG9tIFNDQyAodGhlIGZpeCk8L3RleHQ+CiAgPHRleHQgeD0iNzgwIiB5PSIyODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnJ1bkFzVXNlcjogUnVuQXNBbnkgKzwvdGV4dD4KICA8dGV4dCB4PSI3ODAiIHk9IjMwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+c2VjY29tcFByb2ZpbGVzOiBbcnVudGltZS9kZWZhdWx0XTwvdGV4dD4KICA8dGV4dCB4PSI3ODAiIHk9IjMyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+QURNSVRURUQgKHJvb3Qgd29ya2xvYWRzKTwvdGV4dD4KCiAgPCEtLSBCb3R0b20gc3RyaXBzIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIzODAiIHdpZHRoPSI0MjUiIGhlaWdodD0iODIiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMjUyIiB5PSI0MDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkJyaWRnZTogZmVhdHVyZS5keW5hdHJhY2UuY29tL2luaXQtY29udGFpbmVyLXNlY2NvbXAtcHJvZmlsZTogImZhbHNlIjwvdGV4dD4KICA8dGV4dCB4PSIyNTIiIHk9IjQyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UmVzdG9yZXMgYWRtaXNzaW9uIGJ5IHJvbGxpbmcgYmFjayB0aGUgaGFyZGVuaW5nIOKAlCBhbiBleGl0LWRhdGVkPC90ZXh0PgogIDx0ZXh0IHg9IjI1MiIgeT0iNDQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj53b3JrYXJvdW5kLCBub3QgdGhlIGRlc3RpbmF0aW9uIChmbGFnIGxpdmVzIGluIHRoZSBleHBlcmltZW50YWwgQVBJKTwvdGV4dD4KCiAgPHJlY3QgeD0iNDg1IiB5PSIzODAiIHdpZHRoPSI0MjUiIGhlaWdodD0iODIiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMDYiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjk3IiB5PSI0MDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkdvdGNoYTogY3VzdG9tIFNDQ3MgZ2V0IE5PIGF1dG8tZ2VuZXJhdGVkIENsdXN0ZXJSb2xlPC90ZXh0PgogIDx0ZXh0IHg9IjY5NyIgeT0iNDI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5CdWlsdC1pbnMgc2hpcCBzeXN0ZW06b3BlbnNoaWZ0OnNjYzombHQ7bmFtZSZndDsgcm9sZXMgKE9DUCA0LjUrKSDigJQgYSBjdXN0b208L3RleHQ+CiAgPHRleHQgeD0iNjk3IiB5PSI0NDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNDQyBuZWVkcyBhbiBleHBsaWNpdCByb2xlIHdpdGggdmVyYiAidXNlIiArIGJpbmRpbmcsIG9yIG5vdGhpbmcgY2FuIHVzZSBpdDwvdGV4dD4KPC9zdmc+Cg==" alt="SCC Admission Flow for Injected Pods" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | What happens |
+|------|--------------|
+| 1 | Workload pod is created; Dynatrace webhook injects the init container (with seccompProfile RuntimeDefault since 1.9.0) |
+| 2 | OpenShift SCC admission matches the pod to an SCC (service-account permissions decide; required-scc annotation can pin) |
+| 3a | restricted-v2 / nonroot-v2 (and hostnetwork-v2) admit: seccomp runtime/default allowed -> pod runs (if workload is non-root) |
+| 3b | anyuid admits root workload BUT does not allow the seccomp field -> Forbidden: seccomp may not be set |
+| 3c | custom SCC (RunAsAny + runtime/default) -> root workload AND seccomp both allowed -> pod runs |
+For environments where SVG doesn't render
+-->
+<p>Three facts collide:</p>
+<ol>
+<li><strong>The webhook mutates every injected pod.</strong> Since 1.9.0 the injected init container carries <code>seccompProfile: RuntimeDefault</code> — the workload team changed nothing; the pod spec changed anyway.</li>
+<li><strong>SCC admission validates the whole pod</strong> — init containers included — against the SCC the pod is admitted under. A field the SCC doesn't allow means rejection at admission, before scheduling: the <em>&quot;Forbidden: seccomp may not be set&quot;</em> error documented in <a href="https://access.redhat.com/solutions/7064000">Red Hat KB solution 7064000</a> for exactly the anyuid case.</li>
+<li><strong>No non-privileged built-in SCC satisfies both needs.</strong> Workloads that must run as root sit on <code>anyuid</code> — which does not allow the seccomp field. Seccomp is allowed on <code>restricted-v2</code>, <code>nonroot-v2</code> and <code>hostnetwork-v2</code> — none of which admits UID 0 (<code>nonroot-v2</code> does cover a fixed non-root UID). The SCC manifests themselves agree with Red Hat's documentation: those three carry <code>seccompProfiles: [runtime/default]</code>, <code>anyuid</code> carries no <code>seccompProfiles</code> key. Dynatrace's <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/security">Operator security page (DT docs)</a> makes a related but <strong>different</strong> statement — <em>&quot;This SCC is the only built-in OpenShift SCC that allows usage of seccomp, which our components have set by default, and also the usage of CSI volumes&quot;</em> — where <em>&quot;This SCC&quot;</em> refers to <strong><code>privileged</code></strong>, not <code>restricted-v2</code>, and the point being made is about the CSI driver and OneAgent. Do not read that sentence as a claim about <code>restricted-v2</code>; earlier revisions of this entry did, and it is corrected here (08/24/2026). <strong>The intersection your root workload needs — <code>RunAsAny</code> UID + <code>runtime/default</code> seccomp — exists in no built-in SCC</strong>, which is why the durable answer is a custom one (§5).</li>
+</ol>
+<h3>Two failure modes, not one</h3>
+<p>The rejection above is the <em>loud</em> outcome. Dynatrace's own Known Issue (Operator 1.10.2, §2) describes a <strong>quieter</strong> one: an SCC that forbids the seccomp field may simply stop matching, <em>&quot;causing the system to fall back to a different SCC (for example <code>restricted-v2</code>). This may render application pods unschedulable or cause workload degradation.&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Loud mode</th>
+<th>Quiet mode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>What happens</strong></td>
+<td>Pod fails SCC validation outright</td>
+<td>Pod is admitted under a <em>different</em>, more restrictive SCC</td>
+</tr>
+<tr>
+<td><strong>What you see</strong></td>
+<td><code>Forbidden: seccomp may not be set</code> at admission</td>
+<td>Pods unschedulable, or running degraded — no seccomp error anywhere</td>
+</tr>
+<tr>
+<td><strong>How it's found</strong></td>
+<td>Admission events; the workload obviously stops</td>
+<td>The <code>openshift.io/scc</code> annotation is not the SCC you expected</td>
+</tr>
+<tr>
+<td><strong>Why it misleads</strong></td>
+<td>It doesn't — the message names the cause</td>
+<td>A root workload silently loses the UID latitude <code>anyuid</code> gave it, and fails for reasons that look unrelated</td>
+</tr>
+</tbody>
+</table>
+<p>The quiet mode matters more for diagnosis, because nothing in the symptom points at seccomp or at Dynatrace. <strong>When investigating a post-upgrade OpenShift problem, compare the <code>openshift.io/scc</code> annotation on a failing pod against the SCC you expect</strong> — the §6 query prints exactly that. A changed SCC is the tell; the error message will not be.</p>
+<p>Why it was <em>silent</em>, in community experience: the failure fires only when a pod is (re)created — steady-state pods keep running after the operator upgrade, and the rejections begin with the next rollout, node drain, or crash-restart. That gap between upgrade and symptom is what makes pre-upgrade assessment (§6) the load-bearing practice.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://access.redhat.com/solutions/7064000">Red Hat KB solution 7064000</a> — the anyuid + seccomp admission failure; <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/openshift-configuration">Additional OpenShift configurations (DT docs)</a> — the SCC-per-component table (<em>&quot;Operator nonroot-v2 Webhook nonroot-v2&quot;</em>); <a href="https://raw.githubusercontent.com/openshift/openshift-docs/enterprise-4.18/modules/security-context-constraints-about.adoc">SCC reference, OCP 4.18 source (openshift-docs GitHub)</a> — <em>&quot;<code>seccompProfile</code> is set to <code>runtime/default</code> by default&quot;</em> for the three v2 SCCs; <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/seccomp">Seccomp profiles (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2">Operator 1.10.2 release notes (DT docs)</a> — the SCC-fallback failure mode quoted in the two-modes table. <strong>Derived:</strong> the loud/quiet contrast pairs the Red Hat admission failure with the Operator 1.10.2 fallback description.</sub></p>
+</blockquote>
+<p><a id="scc-matrix"></a></p>
+<h2>4. SCC Compatibility Matrix for Injected Workloads</h2>
+<p>For workloads receiving Dynatrace injection on Operator ≥1.9.0 (flag at its default <code>true</code>):</p>
+<table>
+<thead>
+<tr>
+<th>SCC</th>
+<th>UID policy</th>
+<th>Allows <code>runtime/default</code> seccomp?</th>
+<th>Injected pod outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>restricted-v2</code></td>
+<td><code>MustRunAsRange</code> (non-root)</td>
+<td><strong>Yes</strong> — <code>seccompProfiles: [runtime/default]</code> in the shipped manifest (verify in-cluster)</td>
+<td>✅ Admitted — the designed happy path for non-root workloads</td>
+</tr>
+<tr>
+<td><code>restricted</code> (v1)</td>
+<td><code>MustRunAsRange</code> (non-root)</td>
+<td>The Operator Known Issue lists it among SCCs that prevent seccomp — verify: <code>oc get scc restricted -o jsonpath='{.seccompProfiles}'</code></td>
+<td>⚠️ Rejected, or falls back to another SCC (§3)</td>
+</tr>
+<tr>
+<td><code>nonroot</code> (v1)</td>
+<td><code>MustRunAsNonRoot</code></td>
+<td>The Operator Known Issue lists it among SCCs that prevent seccomp — verify: <code>oc get scc nonroot -o jsonpath='{.seccompProfiles}'</code></td>
+<td>⚠️ Rejected, or falls back to another SCC (§3)</td>
+</tr>
+<tr>
+<td><code>anyuid</code></td>
+<td><code>RunAsAny</code> (root allowed)</td>
+<td><strong>No</strong></td>
+<td>❌ <code>Forbidden: seccomp may not be set</code> at admission (<a href="https://access.redhat.com/solutions/7064000">RH KB 7064000</a>)</td>
+</tr>
+<tr>
+<td><code>nonroot-v2</code></td>
+<td><code>MustRunAsNonRoot</code></td>
+<td><strong>Yes</strong> — Red Hat: <em>&quot;<code>seccompProfile</code> is set to <code>runtime/default</code> by default&quot;</em></td>
+<td>✅ Admitted — the happy path for fixed-UID non-root workloads. Dynatrace runs its own operator, webhook and ActiveGate under it</td>
+</tr>
+<tr>
+<td><code>hostnetwork-v2</code></td>
+<td><code>MustRunAsRange</code> (non-root)</td>
+<td><strong>Yes</strong> — same Red Hat wording</td>
+<td>✅ Admitted — but grants host networking; only for workloads that already need it</td>
+</tr>
+<tr>
+<td><code>privileged</code></td>
+<td><code>RunAsAny</code></td>
+<td>Yes (allows everything)</td>
+<td>✅ Admitted — but grossly over-grants; not a remediation, a liability</td>
+</tr>
+<tr>
+<td><strong>Custom SCC (§5)</strong></td>
+<td><code>RunAsAny</code></td>
+<td><strong>Yes</strong> (explicitly listed)</td>
+<td>✅ Admitted — the recommended long-term path for root workloads</td>
+</tr>
+</tbody>
+</table>
+<p><strong>How the SCC is chosen — and how <code>openshift.io/required-scc</code> interacts with injection.</strong> Among the SCCs the pod's creator/service account has <code>use</code> permission for, OpenShift orders candidates by <strong>priority first</strong>, then most-restrictive first (<code>anyuid</code> ships with priority 10, which is why it wins wherever it is granted); the webhook's mutation happens <em>before</em> SCC admission, so the injected fields participate in that selection/validation. To remove ambiguity you can pin the SCC: per the <a href="https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/authentication_and_authorization/managing-pod-security-policies">Red Hat 4.18 SCC documentation</a>, set the <code>openshift.io/required-scc</code> annotation on the workload's <strong>pod template</strong> — the SCC <em>&quot;must exist in the cluster and must be applicable to the workload, otherwise pod admission fails,&quot;</em> and <em>&quot;do not change the <code>openshift.io/required-scc</code> annotation in the live pod's manifest&quot;</em> (update the template so pods are re-created). Pinning is double-edged with injection: it makes admission deterministic, and it also means a pinned-to-<code>anyuid</code> workload fails hard the moment the webhook adds seccomp — which is arguably better than failing unpredictably.</p>
+<p><em>The built-in SCC field values have shifted across OpenShift 4.x releases, so confirm any row on your own cluster with <code>oc get scc &lt;name&gt; -o jsonpath='{.seccompProfiles}'</code>.</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/openshift-configuration">Additional OpenShift configurations (DT docs)</a>, <a href="https://access.redhat.com/solutions/7064000">Red Hat KB 7064000</a>, <a href="https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/authentication_and_authorization/managing-pod-security-policies">Managing security context constraints, OCP 4.18 (Red Hat docs)</a> — required-scc rules quoted; <a href="https://raw.githubusercontent.com/openshift/openshift-docs/enterprise-4.18/modules/security-context-constraints-about.adoc">SCC reference, OCP 4.18 source (openshift-docs GitHub)</a> — the v2 seccomp defaults, <em>&quot;The highest priority SCCs are ordered first.&quot;</em> and <em>&quot;If the priorities are equal, the SCCs are sorted from most restrictive to least restrictive.&quot;</em>; <a href="https://raw.githubusercontent.com/openshift/cluster-kube-apiserver-operator/master/bindata/bootkube/scc-manifests/0000_20_kube-apiserver-operator_00_scc-anyuid.yaml">anyuid SCC manifest (OpenShift GitHub)</a> — <code>priority: 10</code>. <a href="https://raw.githubusercontent.com/openshift/openshift-docs/enterprise-4.18/modules/security-context-constraints-requiring.adoc">Requiring an SCC, OCP 4.18 source (openshift-docs GitHub)</a> — <em>&quot;must exist in the cluster and must be applicable to the workload, otherwise pod admission fails&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="custom-scc"></a></p>
+<h2>5. The Long-Term Fix — a Custom SCC</h2>
+<p>For root-requiring workloads with Dynatrace injection, create a custom SCC that allows exactly the missing intersection — arbitrary UID <strong>plus</strong> <code>runtime/default</code> seccomp. Start from <code>anyuid</code>'s posture and add the seccomp allowance. The surest way is to copy your cluster's own definition — <code>oc get scc anyuid -o yaml</code>, rename it, strip the cluster-generated <code>metadata</code> fields (<code>uid</code>, <code>resourceVersion</code>, <code>creationTimestamp</code>, annotations), drop <code>priority</code> and the <code>groups</code> / <code>users</code> grants, and add <code>seccompProfiles: [runtime/default]</code> (never modify the built-in SCCs themselves — Red Hat's guidance is that default SCCs should not be edited, both for supportability and upgrade safety). The example below mirrors the shipped <code>anyuid</code> manifest at the time of writing, minus the newer <code>image</code> volume type (next paragraph):</p>
+<pre><code class="language-yaml">apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: anyuid-seccomp
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowPrivilegedContainer: false
+allowPrivilegeEscalation: true
+requiredDropCapabilities:
+  - MKNOD                    # as anyuid
+runAsUser:
+  type: RunAsAny            # the anyuid property your root workloads need
+seLinuxContext:
+  type: MustRunAs
+seccompProfiles:
+  - runtime/default          # the allowance anyuid lacks
+fsGroup:
+  type: RunAsAny
+supplementalGroups:
+  type: RunAsAny
+volumes:
+  - configMap
+  - csi                      # required when the Dynatrace CSI driver provides the agent binaries
+  - downwardAPI
+  - emptyDir
+  - ephemeral                # generic ephemeral volumes, as anyuid
+  - persistentVolumeClaim
+  - projected
+  - secret
+# no priority: leave it unset and pin with openshift.io/required-scc (§4).
+# anyuid ships with priority 10, and higher priority sorts first, so a custom SCC
+# only outranks anyuid with priority &gt; 10 — Red Hat warns against raising priority
+# on the default SCCs.
+</code></pre>
+<p><strong>If you move to image volumes (Operator 1.11.0+).</strong> Image-volume injection mounts the code modules as a volume of type <code>Image</code>, not <code>csi</code> — the Dynatrace verification step looks for exactly that in <code>kubectl describe pod</code>. Before switching workloads that run under a custom SCC, check in-cluster whether the SCC's <code>volumes</code> list admits it (<code>oc get scc anyuid-seccomp -o jsonpath='{.volumes}'</code>) and re-create one canary pod (§6). The upstream built-in SCC manifests gained an <code>image</code> volume type in November 2025 — which OpenShift release ships it is version-dependent — so a copy of your cluster's <code>anyuid</code> may already carry it; the example above does not. Image volumes also need Kubernetes 1.35+, so whether this applies yet depends on your OpenShift release. Until then the CSI driver, and the <code>csi</code> entry above, remain the working path.</p>
+<p><strong>The RBAC step everyone misses:</strong> since OpenShift 4.5, the <em>built-in</em> SCCs ship with auto-generated <code>system:openshift:scc:&lt;name&gt;</code> ClusterRoles — <strong>a custom SCC gets no such role automatically</strong>. Grant access explicitly, either per-namespace:</p>
+<pre><code class="language-bash">oc create role use-anyuid-seccomp --verb=use \
+  --resource=securitycontextconstraints --resource-name=anyuid-seccomp -n &lt;namespace&gt;
+oc create rolebinding use-anyuid-seccomp --role=use-anyuid-seccomp \
+  --serviceaccount=&lt;namespace&gt;:&lt;serviceaccount&gt; -n &lt;namespace&gt;
+</code></pre>
+<p>or with <code>oc adm policy add-scc-to-user anyuid-seccomp -z &lt;serviceaccount&gt; -n &lt;namespace&gt;</code> (which, since 4.5, manages this via role bindings rather than editing the SCC's user list). Then either remove the workload's <code>anyuid</code> grant (so the custom SCC is selected — while <code>anyuid</code> is granted, its priority 10 puts it ahead of an unprioritized custom SCC) or pin it with <code>openshift.io/required-scc: anyuid-seccomp</code> on the pod template (§4).</p>
+<p><strong>Verify before rollout:</strong> re-create one affected pod and confirm its admitting SCC with <code>oc get pod &lt;pod&gt; -o jsonpath='{.metadata.annotations.openshift\.io/scc}'</code> — the pod-level <code>openshift.io/scc</code> annotation records what actually admitted it. Once workloads run under the custom SCC, set the DynaKube flag back to its secure default (remove the <code>&quot;false&quot;</code> override).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/authentication_and_authorization/managing-pod-security-policies">Managing security context constraints, OCP 4.18 (Red Hat docs)</a> — custom-SCC + RBAC <code>use</code>-verb model, don't-modify-defaults guidance; <a href="https://access.redhat.com/solutions/5529581"><code>oc adm policy add-scc-to-user</code> behavior change in 4.x (Red Hat KB, solution 5529581)</a> — role-binding-based since 4.5; <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/networking-security-compliance/security-configurations/openshift-configuration">Additional OpenShift configurations (DT docs)</a> — CSI volume requirement for CSI-driver deployments; <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/use-image-volumes">Use image volumes for code modules injection (DT docs)</a> — the <code>Image</code> volume type in its verification step, and the Kubernetes 1.35+ requirement. <a href="https://raw.githubusercontent.com/openshift/cluster-kube-apiserver-operator/master/bindata/bootkube/scc-manifests/0000_20_kube-apiserver-operator_00_scc-anyuid.yaml">anyuid SCC manifest (OpenShift GitHub)</a> — <code>priority: 10</code>, <code>requiredDropCapabilities: [MKNOD]</code>, and the volume list incl. <code>ephemeral</code> and <code>image</code>; <a href="https://raw.githubusercontent.com/openshift/openshift-docs/enterprise-4.18/modules/security-context-constraints-about.adoc">SCC reference, OCP 4.18 source (openshift-docs GitHub)</a> — <em>&quot;Higher priority SCCs are moved to the front of the set when sorting.&quot;</em> <strong>Derived:</strong> the <code>anyuid-seccomp</code> YAML is a worked synthesis of the anyuid posture plus the seccomp allowance — review every field against your security baseline before applying</sub></p>
+</blockquote>
+<p><a id="pre-upgrade"></a></p>
+<h2>6. Assessing Impact Before You Upgrade</h2>
+<p>The 1.9.0 incident pattern generalizes: <strong>operator upgrades change injected pod specs, and injected pod specs are validated by platform admission</strong> — so the pre-upgrade question is <em>&quot;which of my injected workloads are admitted under an SCC that won't accept the new spec?&quot;</em> For the seccomp change specifically:</p>
+<pre><code class="language-bash"># 1a. How many running pods each SCC admits (the openshift.io/scc annotation records it)
+oc get pods -A -o jsonpath='{range .items[*]}{.metadata.annotations.openshift\.io/scc}{&quot;\n&quot;}{end}' | sort | uniq -c | sort -rn
+
+# 1b. Which SCC admits each pod, grouped by SCC
+oc get pods -A -o jsonpath='{range .items[*]}{.metadata.namespace}{&quot;\t&quot;}{.metadata.name}{&quot;\t&quot;}{.metadata.annotations.openshift\.io/scc}{&quot;\n&quot;}{end}' | sort -t $'\t' -k3,3
+
+# 2. Narrow to Dynatrace-injected pods (init container name) admitted under anyuid
+oc get pods -A -o json | jq -r '.items[]
+  | select(.metadata.annotations.&quot;openshift.io/scc&quot; == &quot;anyuid&quot;)
+  # init-container name per operator source InstallContainerName, v1.9.0–v1.11.0
+  | select([.spec.initContainers[]?.name] | index(&quot;dynatrace-operator&quot;))
+  | &quot;\(.metadata.namespace)\t\(.metadata.name)&quot;'
+</code></pre>
+<p>Every hit on query 2 is a pod that will be rejected on its next re-creation after the upgrade (unless the flag is <code>false</code> or a custom SCC lands first). Run the same <em>annotation-vs-new-spec</em> thinking against each release's notes: the general checklist —</p>
+<ol>
+<li><strong>Read the release notes for the versions you're crossing</strong> — Dynatrace publishes per-version operator notes; 1.9.0 alone carried the seccomp default, a CRD API-version <strong>removal</strong> (<code>v1beta3</code>), and behavioral changes (automatic metadata enrichment); 1.11.0 removed another (<code>v1beta4</code>). Multi-version jumps compound.</li>
+<li><strong>Diff the rendered manifests</strong> — <code>helm template</code> old vs. new (or <code>oc diff</code>) shows exactly what the upgrade changes cluster-side before anything applies.</li>
+<li><strong>Canary one non-production DynaKube first</strong> and re-create (not just observe) injected pods there — admission failures only fire on creation (§3).</li>
+<li><strong>Check API-version currency</strong> — <code>oc get dynakube -o jsonpath='{.items[*].apiVersion}'</code> before any upgrade that removes CRD versions.</li>
+<li><strong>Watch the injection webhook's events after upgrade</strong> — <code>oc get events -A --field-selector reason=FailedCreate</code> catches admission rejections centrally (they surface on the ReplicaSet, not the pod).</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> the pod-level <code>openshift.io/scc</code> annotation and admission behavior per <a href="https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/authentication_and_authorization/managing-pod-security-policies">Red Hat SCC documentation</a>; <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-0">Operator 1.9.0 release notes (DT docs)</a>. <a href="https://github.com/Dynatrace/dynatrace-operator/blob/v1.10.2/pkg/webhook/mutation/pod/mutator/config.go">operator source <code>pkg/webhook/mutation/pod/mutator/config.go</code> (Dynatrace GitHub)</a> — <code>InstallContainerName = &quot;dynatrace-operator&quot;</code> at v1.9.0 and v1.10.2, read 09/28/2026, and at v1.11.0, read 10/02/2026. <strong>Derived:</strong> the assessment commands and five-step checklist are worked examples — verify the injected init-container name against your operator version first</sub></p>
+</blockquote>
+<p><a id="change-management"></a></p>
+<h2>7. Operator Change Management: Scope, Uninstall Residue, and Failure Isolation</h2>
+<p><strong>What is cluster-scoped vs. namespace-scoped.</strong> Cluster-scoped: the DynaKube <strong>CRD</strong> (and its stored API versions), the mutating/validating <strong>webhook configurations</strong>, the <strong>CSI driver</strong> (DaemonSet machinery + node-local state), and SCCs/RBAC. Namespace-scoped: the operator deployment and DynaKube resources (in the Dynatrace namespace) and the <strong>injection secrets the operator places into each monitored application namespace</strong>. The practical consequence: a &quot;small&quot; operator change can have cluster-wide blast radius via the webhook and CRD — which is exactly how a default-flip reaches every injected namespace at once.</p>
+<p><strong>What persists after uninstall.</strong> Per the <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/updates-and-maintenance/update-uninstall-operator">update/uninstall documentation (DT docs)</a>: delete DynaKubes first and wait for cleanup, because <strong>Kubernetes OwnerReferences don't cross namespaces</strong> — the operator must delete the secrets it created in application namespaces itself; applications using the <strong>CSI driver must be shut down/restarted</strong> before the driver is removed; and <strong>node-level data can remain</strong> depending on monitoring mode — Dynatrace ships a <strong>cleanup DaemonSet script</strong> to purge OneAgent/CSI residue from Linux nodes (run only after all DynaKubes are gone and monitored pods restarted).</p>
+<p><strong>Isolating Dynatrace vs. platform when injection fails.</strong> In community practice, the error's <em>location</em> tells you the layer — the table is a troubleshooting heuristic, not a documented procedure:</p>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Layer</th>
+<th>First check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pod never created; <code>Forbidden</code> in ReplicaSet events</td>
+<td><strong>Platform admission (SCC/PSS)</strong> — the pod spec (post-mutation) violates the admitting SCC</td>
+<td><code>oc get events</code> on the ReplicaSet; the pod's would-be SCC vs. its spec (§4/§6)</td>
+</tr>
+<tr>
+<td>Pod created; Dynatrace init container fails/CrashLoops</td>
+<td><strong>Injection layer</strong></td>
+<td>Init container logs; CSI driver pod logs on that node</td>
+</tr>
+<tr>
+<td>Pod runs; no Dynatrace data</td>
+<td><strong>Agent/connectivity layer</strong></td>
+<td>OneAgent pod logs, DynaKube status, network egress</td>
+</tr>
+<tr>
+<td>Only <em>new</em> pods affected after a change</td>
+<td><strong>Webhook/config layer</strong></td>
+<td>What changed in the DynaKube/operator; existing pods carry the old spec</td>
+</tr>
+<tr>
+<td>Operator pod itself stuck <code>Init:0/1</code>; webhook <code>0/1</code> waiting for its cert secret (fresh install, or upgrade where the operator was deleted first)</td>
+<td><strong>Operator bootstrap — not injection</strong> — the 1.10.1 OpenShift manifest omitted the webhook cert-generator</td>
+<td>Re-download the corrected v1.10.1 OpenShift manifests; see K8S-09 → <em>Known Issues by Operator Version</em></td>
+</tr>
+</tbody>
+</table>
+<p>The first row is the 1.9.0 case — no Dynatrace log anywhere shows an error, because Dynatrace never got to run; the evidence lives in OpenShift admission events. That asymmetry is worth internalizing: <strong>webhook-injected fields fail as platform errors, not vendor errors.</strong></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/updates-and-maintenance/update-uninstall-operator">Update or uninstall Dynatrace Operator (DT docs)</a> — cross-namespace secrets, CSI shutdown ordering, node cleanup DaemonSet; <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/how-it-works/components/dynatrace-operator">Dynatrace Operator components (DT docs)</a> — <em>&quot;Dynatrace Operator reconciles its own custom resources only within its deployment namespace.&quot;</em> <strong>Derived:</strong> the cluster-scoped half of the scope split applies standard Kubernetes resource scoping (CRDs and webhook configurations are cluster-scoped objects) to the components that page lists.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>8. Recommended Approach</h2>
+<ol>
+<li><strong>If you're mid-incident:</strong> set <code>feature.dynatrace.com/init-container-seccomp-profile: &quot;false&quot;</code> on the DynaKube to restore admission for anyuid workloads — then treat it as a bridge with an exit date, not a fix.</li>
+<li><strong>Build the custom SCC</strong> (§5) for root-requiring injected workloads: <code>RunAsAny</code> + <code>runtime/default</code> seccomp + the CSI volume, granted via an explicit <code>use</code> role (custom SCCs get no auto-generated ClusterRole), pinned with <code>openshift.io/required-scc</code> where determinism matters.</li>
+<li><strong>Restore the secure default</strong> once workloads admit under the custom SCC — the seccomp profile is a real hardening gain; the goal is keeping it <em>and</em> admission.</li>
+<li><strong>Institutionalize the pre-upgrade assessment</strong> (§6): release notes for every version crossed, manifest diff, canary DynaKube with pod re-creation, API-version check, admission-event watch. The seccomp flip won't be the last injected-spec change.</li>
+<li><strong>For non-root workloads</strong>, move them to <code>restricted-v2</code> (or <code>nonroot-v2</code> where the image needs a fixed non-root UID) rather than widening anything — both are designed non-root paths where the seccomp default is admitted.</li>
+<li><strong>For the customer conversation:</strong> acknowledge that the documentation caught up late — the seccomp page's OpenShift section and the Operator Known Issue came after the 1.9.0 change shipped — walk this entry's §3 mechanics live with their platform team, and leave the §6 checklist as the artifact that prevents recurrence. Trust rebuilds on the demonstrated ability to predict the next break, not on relitigating the last one.</li>
+</ol>
+<p><a id="gotchas"></a></p>
+<h2>9. Common Gotchas</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gotcha</th>
+<th>Consequence</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Expecting the break at upgrade time</td>
+<td>Rejections start at the next pod re-creation, days later</td>
+<td>Canary with forced pod re-creation (§6)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Looking for the error in Dynatrace logs</td>
+<td>Admission failures never reach any Dynatrace component</td>
+<td>ReplicaSet events (<code>FailedCreate</code>) hold the evidence (§7)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Fixing it with the <code>privileged</code> SCC</td>
+<td>Admission works; security posture collapses</td>
+<td>Custom SCC with exactly the two needed allowances (§5)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Editing <code>anyuid</code> to allow seccomp</td>
+<td>Modifying default SCCs is unsupported practice and upgrade-fragile</td>
+<td>Custom SCC; never edit built-ins (§5)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Custom SCC created, pods still rejected</td>
+<td>No auto-generated ClusterRole for custom SCCs — nothing may <code>use</code> it</td>
+<td>Explicit <code>use</code>-verb role + binding (§5)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Changing <code>required-scc</code> on live pods</td>
+<td>Admission fails — the annotation is validated against the live manifest</td>
+<td>Change it on the pod template; pods re-create (§4)</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Leaving the flag at <code>&quot;false&quot;</code> permanently</td>
+<td>Hardening rolled back estate-wide for one workload class's problem — and the flag is <strong>marked deprecated for removal</strong> in the operator source, so this breaks by itself eventually (§2)</td>
+<td>Scope the fix to the workloads (custom SCC), restore the default (§8)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Skipping DynaKube API-version checks on upgrade</td>
+<td>1.9.0 removed <code>v1beta3</code> and 1.11.0 removed <code>v1beta4</code> — applies fail outright</td>
+<td><code>oc get dynakube -o jsonpath='{.items[*].apiVersion}'</code> first (§6)</td>
+</tr>
+</tbody>
+</table>
+<h2>Summary</h2>
+<p>Operator 1.9.0's seccomp default is a sound hardening change that collides with OpenShift's SCC model for workloads admitted under <code>anyuid</code> and the other SCCs the Known Issue names (<code>restricted</code>, <code>nonroot</code>). The collision is documented on both the Red Hat and the Dynatrace side, and silent until pods re-create. The durable fix is a custom SCC granting the intersection no built-in provides (<code>RunAsAny</code> + <code>runtime/default</code> seccomp) with its easily-missed RBAC step; the flag is the bridge. The generalizable lesson is operational: webhook-injected fields fail as <em>platform</em> errors, so operator change management on OpenShift means reading release notes as admission-impact questions and canarying with pod re-creation — §6 is the checklist to leave with the platform team.</p>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>K8S series</strong> — DynaKube deployment modes, CSI driver architecture, and troubleshooting foundations this entry builds on.</li>
+<li><strong><a href="https://community.dynatrace.com/t/kubernetes-openshift-troubleshooting-map/49142">Kubernetes/OpenShift troubleshooting map (Dynatrace community)</a></strong> — the maintained symptom-to-article index for injection and deployment failures beyond the SCC collision covered here (image pulls, tokens, TLS, Istio/Calico, CSI driver, Prometheus scraping), including a known-issues-by-Operator-version table.</li>
+<li><strong>FAQ-04 / FAQ-05</strong> — the same staged, assessed change-management discipline applied to OneAgent and ActiveGate updates.</li>
+<li><strong>ONBRD-05 / K8S-02</strong> — OneAgent and DynaKube deployment planning, where the SCC strategy should be decided, not discovered.</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

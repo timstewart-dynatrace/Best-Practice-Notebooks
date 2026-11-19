@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WFLOW-94 LAB: Static Egress IP for Workflow Connectors — EdgeConnect on AWS ECS (Snowflake)</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WFLOW — Workflows and Alert Notifications</a><span class="sep">/</span><span aria-current="page">WFLOW-94 LAB</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WFLOW-94 LAB: Static Egress IP for Workflow Connectors — EdgeConnect on AWS ECS (Snowflake)</h1>
+<blockquote>
+<p><strong>Series:</strong> WFLOW — Workflows and Alert Notifications | <strong>Reference:</strong> 94 — EdgeConnect Static Egress LAB | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Many SaaS and internal targets a Dynatrace Workflow needs to call are <strong>IP-allow-listed</strong>: the target rejects any client whose source address isn't on a short approved list. Workflow actions run in the Dynatrace AppEngine runtime and egress from Dynatrace's <strong>shared SaaS IP ranges</strong> — addresses you don't control and wouldn't want to allow-list wholesale.</p>
+<p>This hands-on LAB solves that with <strong>EdgeConnect</strong>: a small stateless container you run in your own network that registers with your Dynatrace environment over an <em>outbound</em> WebSocket and transparently executes matching HTTP(S) requests on the runtime's behalf. Deployed on <strong>AWS ECS Fargate in a private subnet behind a NAT Gateway with an Elastic IP</strong>, every request the connector makes egresses from <strong>one static, dedicated IP</strong> — the only address the target needs to admit.</p>
+<p>The worked example is the <strong>Snowflake for Workflows</strong> connector against a Snowflake account enforcing a network policy, but the pattern applies unchanged to any IP-allow-listed target (§12). It is a companion to <strong>WFLOW-08 (JavaScript &amp; HTTP Actions)</strong> — EdgeConnect routes those <code>fetch()</code> calls too.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#the-problem">The Problem: Shared Egress vs IP Allow-Lists</a></li>
+<li><a href="#architecture">Architecture</a></li>
+<li><a href="#design-decisions">Key Design Decisions</a></li>
+<li><a href="#step-edgeconnect">Step 1 — Dynatrace: EdgeConnect Configuration</a></li>
+<li><a href="#step-network">Step 2 — AWS: Static-Egress Network (Terraform)</a></li>
+<li><a href="#step-ecs">Step 3 — AWS: ECS Task Definition and Service</a></li>
+<li><a href="#step-snowflake">Step 4 — Snowflake: Service User, Network Rule, Network Policy</a></li>
+<li><a href="#step-workflow">Step 5 — Dynatrace: Connection and Workflow</a></li>
+<li><a href="#validation">Validation Checklist</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#adapting">Adapting the Pattern to Other Targets</a></li>
+<li><a href="#next-steps">Next Steps and References</a></li>
+</ol>
+<hr />
+<p><a id="prerequisites"></a></p>
+<h2>1. Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS (Gen3) with the Workflows app; permission to create EdgeConnect configurations (<code>Settings</code> &gt; <code>General</code> &gt; <code>External Requests</code> &gt; <code>EdgeConnect</code>): <code>app-engine:edge-connects:write</code> plus <code>oauth2:clients:manage WHERE oauth2:scopes = &quot;app-engine:edge-connects:connect&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Snowflake for Workflows</strong></td>
+<td>Installed from Dynatrace Hub (<code>app-engine:apps:install</code>); connection settings need <code>settings:objects:read</code>, <code>settings:objects:write</code>, <code>settings:schemas:read</code> WHERE <code>settings:schemaId = &quot;app:dynatrace.snowflake.connector:connection&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Workflow actor</strong></td>
+<td>For <em>Store Statement Result</em> (§9): <code>storage:buckets:read</code> + <code>storage:events:write</code> to store bizevents, or <code>storage:files:write</code> to store a lookup table</td>
+</tr>
+<tr>
+<td><strong>AWS Account</strong></td>
+<td>Ability to create a VPC, NAT Gateway + Elastic IP, ECS Fargate cluster/service, Secrets Manager secrets, CloudWatch log group</td>
+</tr>
+<tr>
+<td><strong>Snowflake Account</strong></td>
+<td><code>SECURITYADMIN</code>/<code>ACCOUNTADMIN</code> (or delegated roles) to create a service user, network rule, and network policy</td>
+</tr>
+<tr>
+<td><strong>Tooling</strong></td>
+<td>Terraform ≥ 1.5 for the AWS samples; SnowSQL (or a worksheet) for the Snowflake SQL</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note on EdgeConnect version:</strong> run the latest EdgeConnect release — <strong>1.811.4</strong> (10/22/2026) at the time of writing — and never older than <strong>1.724.3</strong>. The June 2026 release fixed a vulnerability where <em>&quot;secrets could be leaked in HTTP error messages&quot;</em> — relevant here because EdgeConnect carries authenticated Snowflake traffic. 1.811.4 updates the CA root certificates EdgeConnect trusts. Each release is supported for 12 months, so a pinned version also has an end date.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/edgeconnect/edgeconnect-release-notes-1-811-4">EdgeConnect 1.811.4 release notes (DT docs)</a> — <em>&quot;EdgeConnect now includes updated CA root certificates to address the eMudhra certificate private key issue.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/edgeconnect">EdgeConnect release notes (DT docs)</a> — <em>&quot;Support for each version of EdgeConnect ends 12 months after its release.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/edgeconnect/edgeconnect-release-notes-1-724-3">EdgeConnect 1.724.3 release notes (DT docs)</a> — <em>&quot;Fixed an issue where secrets could be leaked in HTTP error messages.&quot;</em>; <a href="https://docs.dynatrace.com/docs/ingest-from/edgeconnect">EdgeConnect (DT docs)</a> — <em>&quot;We recommend that you always run (and regularly upgrade to) the latest available version of EdgeConnect.&quot;</em> and <em>&quot;ALLOW app-engine:edge-connects:write, oauth2:clients:manage WHERE oauth2:scopes = &quot;app-engine:edge-connects:connect&quot;;&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/snowflake/snowflake-workflows-setup">Set up Snowflake (DT docs)</a> — <em>&quot;To store bizevents, ensure that the actor has the storage:buckets:read and storage:events:write permissions.&quot;</em></sub></p>
+</blockquote>
+<p><a id="the-problem"></a></p>
+<h2>2. The Problem: Shared Egress vs IP Allow-Lists</h2>
+<p>A Dynatrace Workflow using the <strong>Snowflake for Workflows</strong> connector executes SQL statements against a Snowflake SaaS endpoint (<code>xy12345.eu-central-1.snowflakecomputing.com</code>). The Snowflake account enforces a <strong>network policy</strong>: any client whose source IP is not on the allow-list is rejected (the classic <em>&quot;IP xx.xx.xx.xx is not allowed to access Snowflake&quot;</em> login failure).</p>
+<p>By default the connector's HTTPS calls originate from Dynatrace's shared SaaS IP ranges. Allow-listing those wholesale would admit every tenant of that Dynatrace region — a non-starter for most security teams.</p>
+<p><strong>EdgeConnect changes where the request executes.</strong> Per the Dynatrace EdgeConnect documentation, once a configuration with matching host patterns exists:</p>
+<blockquote>
+<p><em>&quot;any HTTP request that occurs as part of an app function, ad hoc function, or workflow action matching a host pattern, will be transparently run by EdgeConnect instead of directly by the Dynatrace runtime.&quot;</em></p>
+</blockquote>
+<p>The docs list workflow actions as a covered surface generally; they do not name the Snowflake connector specifically — treat connector coverage as expected-but-verify, and make the <strong>URL verification</strong> check in §10 a mandatory gate before you allow-list anything.</p>
+<p>Because the EdgeConnect tasks live in a private subnet whose only route to the internet is a NAT Gateway with an Elastic IP, every call to Snowflake originates from <strong>one static, dedicated IP</strong> — the only address the Snowflake network policy needs to admit.</p>
+<p><a id="architecture"></a></p>
+<h2>3. Architecture</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZFdGOTQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMEYxNzJBIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFFMjkzQiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZHRHcmFkOTQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNCODJGNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzRUIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImVjR3JhZDk0IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNBNzhCRkEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN0MzQUVEIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJuYXRHcmFkOTQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0ZCQkYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNEOTc3MDYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNmR3JhZDk0IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3M0JFMjgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93V0Y5NCIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTQwJSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd1dGOTQiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzk0QTNCOCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0FtYmVyOTQiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iI0ZDRDM0RCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9InVybCgjYmdHcmFkV0Y5NCkiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5TdGF0aWMgRWdyZXNzIElQIGZvciBXb3JrZmxvdyBDb25uZWN0b3JzIHZpYSBFZGdlQ29ubmVjdDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5Db25uZWN0b3IgSFRUUFMgY2FsbHMgcm91dGVkIHRocm91Z2ggRWRnZUNvbm5lY3Qgb24gRUNTICYjODU5NDsgTkFUIEdhdGV3YXkgRWxhc3RpYyBJUCAmIzg1OTQ7IHRoZSBvbmUgYWRkcmVzcyB0aGUgdGFyZ2V0IGFsbG93LWxpc3RzPC90ZXh0PgoKICA8IS0tIFpvbmU6IER5bmF0cmFjZSBTYWFTIC0tPgogIDxyZWN0IHg9IjIyIiB5PSI4MCIgd2lkdGg9IjI1MiIgaGVpZ2h0PSIzMTAiIHJ4PSIxMiIgZmlsbD0iIzFFM0E4QSIgZmlsbC1vcGFjaXR5PSIwLjI1IiBzdHJva2U9IiMzQjgyRjYiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iMTQ4IiB5PSIxMDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5M0M1RkQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkRZTkFUUkFDRSBTQUFTPC90ZXh0PgoKICA8cmVjdCB4PSI0MCIgeT0iMTE4IiB3aWR0aD0iMjE2IiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0idXJsKCNkdEdyYWQ5NCkiIGZpbHRlcj0idXJsKCNzaGFkb3dXRjk0KSIvPgogIDx0ZXh0IHg9IjE0OCIgeT0iMTQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Xb3JrZmxvdzwvdGV4dD4KICA8dGV4dCB4PSIxNDgiIHk9IjE1OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RCRUFGRSIgZm9udC1zaXplPSIxMCI+U25vd2ZsYWtlIGNvbm5lY3RvciBhY3Rpb248L3RleHQ+CiAgPHRleHQgeD0iMTQ4IiB5PSIxNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEQkVBRkUiIGZvbnQtc2l6ZT0iMTAiPmV4ZWN1dGVzIFNRTCBzdGF0ZW1lbnQ8L3RleHQ+CgogIDxyZWN0IHg9IjQwIiB5PSIyMDIiIHdpZHRoPSIyMTYiIGhlaWdodD0iODIiIHJ4PSI4IiBmaWxsPSJ1cmwoI2R0R3JhZDk0KSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1dGOTQpIi8+CiAgPHRleHQgeD0iMTQ4IiB5PSIyMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkFwcEVuZ2luZSBydW50aW1lPC90ZXh0PgogIDx0ZXh0IHg9IjE0OCIgeT0iMjQzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjREJFQUZFIiBmb250LXNpemU9IjEwIj5tYXRjaGVzIGhvc3QgcGF0dGVybjwvdGV4dD4KICA8dGV4dCB4PSIxNDgiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZERTY4QSIgZm9udC1zaXplPSIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+Ki5zbm93Zmxha2Vjb21wdXRpbmcuY29tPC90ZXh0PgogIDx0ZXh0IHg9IjE0OCIgeT0iMjczIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjREJFQUZFIiBmb250LXNpemU9IjEwIj4mIzg1OTQ7IGhhbmRzIHJlcXVlc3QgdG8gRWRnZUNvbm5lY3Q8L3RleHQ+CgogIDxyZWN0IHg9IjQwIiB5PSIyOTgiIHdpZHRoPSIyMTYiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjE0OCIgeT0iMzIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5HcmFpbCAob3B0aW9uYWwpPC90ZXh0PgogIDx0ZXh0IHg9IjE0OCIgeT0iMzM3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5TdG9yZSBTdGF0ZW1lbnQgUmVzdWx0ICYjODU5NDsgYml6ZXZlbnRzPC90ZXh0PgoKICA8IS0tIFpvbmU6IEFXUyBWUEMgLS0+CiAgPHJlY3QgeD0iMzA2IiB5PSI4MCIgd2lkdGg9IjMzMCIgaGVpZ2h0PSIzMTAiIHJ4PSIxMiIgZmlsbD0iIzc4MzUwRiIgZmlsbC1vcGFjaXR5PSIwLjIyIiBzdHJva2U9IiNGNTlFMEIiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNDcxIiB5PSIxMDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkFXUyBBQ0NPVU5UICYjMTgzOyBWUEM8L3RleHQ+CgogIDwhLS0gUHJpdmF0ZSBzdWJuZXRzIC0tPgogIDxyZWN0IHg9IjMyMiIgeT0iMTE2IiB3aWR0aD0iMjk4IiBoZWlnaHQ9IjEyNiIgcng9IjgiIGZpbGw9IiMwRjE3MkEiIGZpbGwtb3BhY2l0eT0iMC41IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iNSw0Ii8+CiAgPHRleHQgeD0iMzM2IiB5PSIxMzYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPlBSSVZBVEUgU1VCTkVUUyAoMiBBWnMpPC90ZXh0PgogIDxyZWN0IHg9IjMzOCIgeT0iMTQ2IiB3aWR0aD0iMjY2IiBoZWlnaHQ9IjgyIiByeD0iOCIgZmlsbD0idXJsKCNlY0dyYWQ5NCkiIGZpbHRlcj0idXJsKCNzaGFkb3dXRjk0KSIvPgogIDx0ZXh0IHg9IjQ3MSIgeT0iMTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5FQ1MgRmFyZ2F0ZSAmIzgyMTI7IEVkZ2VDb25uZWN0ICYjMjE1OyAyPC90ZXh0PgogIDx0ZXh0IHg9IjQ3MSIgeT0iMTg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRURFOUZFIiBmb250LXNpemU9IjEwIj5ubyBpbmJvdW5kIHBvcnRzICYjMTgzOyBvdXRib3VuZCBXU1MgNDQzIG9ubHk8L3RleHQ+CiAgPHRleHQgeD0iNDcxIiB5PSIyMDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNFREU5RkUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPnJlc3RyaWN0X2hvc3RzX3RvOiBhY2NvdW50IGhvc3Q8L3RleHQ+CiAgPHRleHQgeD0iNDcxIiB5PSIyMTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGREU2OEEiIGZvbnQtc2l6ZT0iMTAiPnNlY3JldHMgZnJvbSBBV1MgU2VjcmV0cyBNYW5hZ2VyPC90ZXh0PgoKICA8IS0tIFB1YmxpYyBzdWJuZXQgLyBOQVQgLS0+CiAgPHJlY3QgeD0iMzIyIiB5PSIyNTQiIHdpZHRoPSIyOTgiIGhlaWdodD0iOTQiIHJ4PSI4IiBmaWxsPSIjMEYxNzJBIiBmaWxsLW9wYWNpdHk9IjAuNSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjUsNCIvPgogIDx0ZXh0IHg9IjMzNiIgeT0iMjc0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5QVUJMSUMgU1VCTkVUPC90ZXh0PgogIDxyZWN0IHg9IjMzOCIgeT0iMjg0IiB3aWR0aD0iMjY2IiBoZWlnaHQ9IjUyIiByeD0iOCIgZmlsbD0idXJsKCNuYXRHcmFkOTQpIiBmaWx0ZXI9InVybCgjc2hhZG93V0Y5NCkiLz4KICA8dGV4dCB4PSI0NzEiIHk9IjMwNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzFDMTkxNyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+TkFUIEdhdGV3YXkgKyBFbGFzdGljIElQPC90ZXh0PgogIDx0ZXh0IHg9IjQ3MSIgeT0iMzI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMUMxOTE3IiBmb250LXNpemU9IjExIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXdlaWdodD0iNzAwIj4yMDMuMC4xMTMuMjUgJiM4MjEyOyB0aGUgb25lIGVncmVzcyBhZGRyZXNzPC90ZXh0PgoKICA8IS0tIEFycm93OiBFZGdlQ29ubmVjdCBkb3duIHRvIE5BVCAtLT4KICA8bGluZSB4MT0iNDcxIiB5MT0iMjI4IiB4Mj0iNDcxIiB5Mj0iMjgyIiBzdHJva2U9IiNGQ0QzNEQiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0FtYmVyOTQpIi8+CgogIDwhLS0gWm9uZTogU25vd2ZsYWtlIFNhYVMgLS0+CiAgPHJlY3QgeD0iNjY4IiB5PSI4MCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIzMTAiIHJ4PSIxMiIgZmlsbD0iIzE0NTMyRCIgZmlsbC1vcGFjaXR5PSIwLjI1IiBzdHJva2U9IiMyMkM1NUUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNzg4IiB5PSIxMDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlNOT1dGTEFLRSBTQUFTPC90ZXh0PgoKICA8cmVjdCB4PSI2ODQiIHk9IjExOCIgd2lkdGg9IjIwOCIgaGVpZ2h0PSI3NiIgcng9IjgiIGZpbGw9InVybCgjc2ZHcmFkOTQpIiBmaWx0ZXI9InVybCgjc2hhZG93V0Y5NCkiLz4KICA8dGV4dCB4PSI3ODgiIHk9IjE0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+TmV0d29yayBwb2xpY3k8L3RleHQ+CiAgPHRleHQgeD0iNzg4IiB5PSIxNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEQ0ZDRTciIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPjIwMy4wLjExMy4yNS8zMiBvbmx5PC90ZXh0PgogIDx0ZXh0IHg9Ijc4OCIgeT0iMTc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRENGQ0U3IiBmb250LXNpemU9IjEwIj5hbGwgb3RoZXIgc291cmNlcyByZWplY3RlZDwvdGV4dD4KCiAgPHJlY3QgeD0iNjg0IiB5PSIyMDgiIHdpZHRoPSIyMDgiIGhlaWdodD0iNzYiIHJ4PSI4IiBmaWxsPSJ1cmwoI3NmR3JhZDk0KSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1dGOTQpIi8+CiAgPHRleHQgeD0iNzg4IiB5PSIyMzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlcnZpY2UgdXNlcjwvdGV4dD4KICA8dGV4dCB4PSI3ODgiIHk9IjI0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RDRkNFNyIgZm9udC1zaXplPSIxMCI+VFlQRSA9IFNFUlZJQ0UgJiMxODM7IGtleS1wYWlyIEpXVDwvdGV4dD4KICA8dGV4dCB4PSI3ODgiIHk9IjI2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RDRkNFNyIgZm9udC1zaXplPSIxMCI+cG9saWN5IGJvdW5kIGF0IHVzZXIgbGV2ZWw8L3RleHQ+CgogIDxyZWN0IHg9IjY4NCIgeT0iMjk4IiB3aWR0aD0iMjA4IiBoZWlnaHQ9IjU2IiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI3ODgiIHk9IjMyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+U1FMIEFQSTwvdGV4dD4KICA8dGV4dCB4PSI3ODgiIHk9IjMzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj54eTEyMzQ1LmV1LWNlbnRyYWwtMTwvdGV4dD4KCiAgPCEtLSBBcnJvd3MgYmV0d2VlbiB6b25lcyAtLT4KICA8IS0tIEVkZ2VDb25uZWN0IC0+IER5bmF0cmFjZSAob3V0Ym91bmQgV1NTKSAtLT4KICA8bGluZSB4MT0iMzM4IiB5MT0iMTgwIiB4Mj0iMjYyIiB5Mj0iMTgwIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNiw0IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V0Y5NCkiLz4KICA8dGV4dCB4PSIyOTkiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5XU1MgNDQzIG91dDwvdGV4dD4KICA8IS0tIFJlcXVlc3QgaGFuZGVkIGRvd24gdGhlIHdlYnNvY2tldCAobG9naWNhbCkgLS0+CiAgPGxpbmUgeDE9IjI2MiIgeTE9IjI0MyIgeDI9IjMzOCIgeTI9IjIxMCIgc3Ryb2tlPSIjRkNEMzREIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dBbWJlcjk0KSIvPgogIDx0ZXh0IHg9IjI5NyIgeT0iMjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjkiPnJlcXVlc3Q8L3RleHQ+CiAgPCEtLSBOQVQgLT4gU25vd2ZsYWtlIC0tPgogIDxsaW5lIHgxPSI2MDQiIHkxPSIzMTAiIHgyPSI2ODIiIHkyPSIyNDAiIHN0cm9rZT0iI0ZDRDM0RCIgc3Ryb2tlLXdpZHRoPSIyLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dBbWJlcjk0KSIvPgogIDx0ZXh0IHg9IjY0NiIgeT0iMjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjkiPkhUVFBTIDQ0MzwvdGV4dD4KCiAgPCEtLSBDYWxsb3V0IHN0cmlwcyAtLT4KICA8cmVjdCB4PSIyMiIgeT0iNDA0IiB3aWR0aD0iNDQwIiBoZWlnaHQ9Ijc2IiByeD0iOCIgZmlsbD0iIzE0NTMyRCIgZmlsbC1vcGFjaXR5PSIwLjUiIHN0cm9rZT0iIzIyQzU1RSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzgiIHk9IjQyOCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Q29ubmVjdGlvbiBpbml0aWF0aW9uOiBldmVyeXRoaW5nIGRpYWxzIE9VVDwvdGV4dD4KICA8dGV4dCB4PSIzOCIgeT0iNDQ2IiBmaWxsPSIjRENGQ0U3IiBmb250LXNpemU9IjEwIj5FZGdlQ29ubmVjdCAmIzg1OTQ7IER5bmF0cmFjZSAoV1NTIDQ0MykgYW5kICYjODU5NDsgU25vd2ZsYWtlIChIVFRQUyA0NDMpLjwvdGV4dD4KICA8dGV4dCB4PSIzOCIgeT0iNDYyIiBmaWxsPSIjRENGQ0U3IiBmb250LXNpemU9IjEwIj5Ob3RoaW5nIGRpYWxzIGludG8gdGhlIFZQQy4gRHluYXRyYWNlIG5ldmVyIGNvbnRhY3RzIFNub3dmbGFrZSBkaXJlY3RseS48L3RleHQ+CgogIDxyZWN0IHg9IjQ3NCIgeT0iNDA0IiB3aWR0aD0iNDM0IiBoZWlnaHQ9Ijc2IiByeD0iOCIgZmlsbD0iIzc4MzUwRiIgZmlsbC1vcGFjaXR5PSIwLjUiIHN0cm9rZT0iI0Y1OUUwQiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDkwIiB5PSI0MjgiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkVkZ2VDb25uZWN0IGxpbWl0cyAocGVyIGNvbnRhaW5lcik8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSI0NDYiIGZpbGw9IiNGREU2OEEiIGZvbnQtc2l6ZT0iMTAiPjIwIGNvbmN1cnJlbnQgcmVxdWVzdHMgJiMxODM7IDEyMCBzIHBlci1yZXF1ZXN0IHRpbWVvdXQgJiMxODM7IDYgTUIgcGF5bG9hZCBjYXAuPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iNDYyIiBmaWxsPSIjRkRFNjhBIiBmb250LXNpemU9IjEwIj5TY2FsaW5nIHRhc2tzIG5ldmVyIGNoYW5nZXMgdGhlIGVncmVzcyBJUCAmIzgyMTI7IHRoZSBOQVQgRUlQIGlzIHNoYXJlZC48L3RleHQ+Cjwvc3ZnPgo=" alt="Static egress IP for workflow connectors via EdgeConnect" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Zone | Component | Role |
+|------|-----------|------|
+| Dynatrace SaaS | Workflow + Snowflake connector action | Issues the SQL-over-HTTPS request |
+| Dynatrace SaaS | AppEngine runtime | Matches the host against EdgeConnect host patterns; hands matching requests to EdgeConnect |
+| AWS VPC (private subnets) | ECS Fargate — EdgeConnect x2 | Holds an outbound WSS 443 to Dynatrace; executes the HTTPS request locally |
+| AWS VPC (public subnet) | NAT Gateway + Elastic IP | The one static egress address (203.0.113.25) all tasks share |
+| Snowflake SaaS | Network policy + service user | Admits 203.0.113.25/32 only; key-pair JWT auth, no MFA |
+For environments where SVG doesn't render
+-->
+<p><em>Fig. 1 — Connection initiation. EdgeConnect dials <strong>out</strong> to Dynatrace (WSS 443) and <strong>out</strong> to Snowflake (HTTPS 443); nothing dials into the VPC. Dynatrace never contacts Snowflake directly.</em></p>
+<h3>Request flow</h3>
+<ol>
+<li>EdgeConnect tasks start on ECS, authenticate against <code>sso.dynatrace.com</code> with their OAuth client, and hold a persistent outbound WebSocket to <code>abc12345.apps.dynatrace.com</code>.</li>
+<li>A workflow runs the Snowflake connector action. The connector issues an HTTPS request to your account host.</li>
+<li>The AppEngine runtime matches the host against EdgeConnect host patterns (<code>*.snowflakecomputing.com</code>) and routes the request down the WebSocket instead of executing it in Dynatrace's network.</li>
+<li>The EdgeConnect task executes the request. Egress from the private subnet traverses the NAT Gateway, so Snowflake sees source IP <strong>203.0.113.25</strong> (a documentation-only TEST-NET-3 address — substitute your real EIP throughout).</li>
+<li>Snowflake's network policy admits the address, the statement executes, and the response returns over the same WebSocket to the workflow.</li>
+</ol>
+<p><a id="design-decisions"></a></p>
+<h2>4. Key Design Decisions</h2>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Choice</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Static IP mechanism</strong></td>
+<td>NAT Gateway + Elastic IP; tasks in private subnets</td>
+<td>Fargate public IPs change on every task replacement and are unusable for an allow-list. A NAT Gateway's EIP is permanent and shared by all tasks, so scaling EdgeConnect never touches the Snowflake policy. (EC2 launch type + EIP on the instance works too, but re-binds on instance replacement.)</td>
+</tr>
+<tr>
+<td><strong>Launch type</strong></td>
+<td>ECS Fargate</td>
+<td>EdgeConnect is a single stateless container (~1 vCPU / 1 GB); no hosts to patch.</td>
+</tr>
+<tr>
+<td><strong>Configuration</strong></td>
+<td>Environment variables + Secrets Manager</td>
+<td>Every EdgeConnect setting used here has an env-var form (<code>EDGE_CONNECT_*</code>), avoiding file mounts on Fargate. The OAuth client secret stays in AWS Secrets Manager.</td>
+</tr>
+<tr>
+<td><strong>Scope of trust</strong></td>
+<td><code>restrict_hosts_to</code> pinned to the one Snowflake host</td>
+<td>EdgeConnect executes requests on behalf of anyone who can run a workflow in the tenant. Local host restriction caps the blast radius regardless of what patterns are configured tenant-side.</td>
+</tr>
+<tr>
+<td><strong>Snowflake policy level</strong></td>
+<td>Network policy bound to the service user</td>
+<td>Per Snowflake docs, <em>&quot;network policies applied to a user override network policies applied to the account&quot;</em> — locking down the Dynatrace service user doesn't disturb other clients, and an account-wide policy can't lock you out.</td>
+</tr>
+<tr>
+<td><strong>Snowflake auth</strong></td>
+<td>Key-pair JWT, dedicated <code>TYPE = SERVICE</code> user</td>
+<td>The connector supports Programmatic Access Tokens (PAT), key-pair JWT, and external OAuth <code>client_credentials</code> — all run unattended. Dynatrace requires that <em>&quot;the technical account does not use any form of multi-factor authentication (MFA)&quot;</em>; Snowflake service users <em>&quot;are not subject to authentication policy MFA enforcement&quot;</em> and cannot log in with a password.</td>
+</tr>
+<tr>
+<td><strong>Replicas</strong></td>
+<td>2 tasks (same config, both behind the same NAT)</td>
+<td>One EdgeConnect container handles at most <strong>20 concurrent requests</strong> with a <strong>120 s</strong> per-request timeout and a <strong>6 MB</strong> payload cap; two tasks give headroom and rolling-update safety.</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-edgeconnect"></a></p>
+<h2>5. Step 1 — Dynatrace: EdgeConnect Configuration</h2>
+<p>In <strong>Settings</strong> &gt; <strong>General</strong> &gt; <strong>External Requests</strong> &gt; <strong>EdgeConnect</strong> &gt; <strong>New EdgeConnect</strong>, create a configuration named <code>snowflake-egress</code> with host pattern <code>*.snowflakecomputing.com</code> (or, tighter, the exact account host). Download <code>edgeConnect.yaml</code> — the OAuth client secret is shown <strong>once</strong>; store it in AWS Secrets Manager immediately.</p>
+<p><strong>Rotating the secret.</strong> The EdgeConnect API can rotate this secret: <code>POST https://{your-environment-id}.apps.dynatrace.com/v1/edge-connects/{edgeConnectId}/oauthClient:rotate</code>, with the <code>oauth2:clients:manage</code> scope. It works only for the OAuth client that Dynatrace created with the EdgeConnect, as here; an OAuth client you created yourself returns <code>400</code>. The response carries the new <code>clientSecret</code>. Write it to the <code>ec-oauth</code> secret, then force a new deployment of the ECS service — ECS reads Secrets Manager only when a task starts. The page does not say whether the old secret stops working at once, so rotate in a change window.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-app-engine-edge-connect-v1/edge-connects-edge-connect-id-oauth-client-rotate-post">Rotate an EdgeConnect OAuth client secret (DT docs)</a> — <em>&quot;To execute this request, you need a platform token or OAuth access token with oauth2:clients:manage scope.&quot;</em> and <em>&quot;The configured OAuth client isn't supported to be rotated. (i.e. it wasn't autogenerated upon EdgeConnect creation)&quot;</em>; <a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/secrets-envvar-secrets-manager.html">Pass Secrets Manager secrets through Amazon ECS environment variables (AWS docs)</a> — <em>&quot;If the secret is subsequently updated or rotated, the container will not receive the updated value automatically.&quot;</em></sub></p>
+</blockquote>
+<p>Separately, add the Snowflake domain (<code>*.snowflakecomputing.com</code>) to the outbound allowlist — <strong>Settings &gt; General &gt; External requests</strong> &gt; <strong>New host pattern</strong>. The Snowflake connector setup page still names the classic location: <em>&quot;Open the Settings Classic and go to Preferences &gt; Limit Outbound Connections . Select Add item and add the domain of your publicly accessible Snowflake&quot;</em>. No page says whether requests that EdgeConnect executes still pass through this allowlist, so configure both and let URL verification (§10) confirm the routing.</p>
+<pre><code class="language-yaml"># edgeConnect.yaml — reference (values feed the ECS task in §7)
+name: snowflake-egress
+api_endpoint_host: abc12345.apps.dynatrace.com
+oauth:
+  endpoint: https://sso.dynatrace.com/sso/oauth2/token
+  client_id: dt0s10.XXXXXXXX          # from the downloaded file
+  client_secret: '*******'            # shown once — store in Secrets Manager
+  resource: urn:dtenvironment:abc12345
+# defense in depth: only Snowflake is reachable from this EdgeConnect
+restrict_hosts_to:
+  - &quot;xy12345.eu-central-1.snowflakecomputing.com&quot;
+</code></pre>
+<blockquote>
+<p><strong>Two independent restrictions.</strong> The tenant-side <strong>host pattern</strong> decides which requests are <em>routed</em> to this EdgeConnect; the container-side <strong><code>restrict_hosts_to</code></strong> decides which requests the container will <em>execute</em>. Keep the container-side list as tight as possible — it is your local control, unaffected by tenant-side configuration changes.</p>
+</blockquote>
+<p><a id="step-network"></a></p>
+<h2>6. Step 2 — AWS: Static-Egress Network (Terraform)</h2>
+<pre><code class="language-hcl"># network.tf
+resource &quot;aws_vpc&quot; &quot;edgeconnect&quot; {
+  cidr_block           = &quot;10.42.0.0/24&quot;
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+}
+
+resource &quot;aws_subnet&quot; &quot;public&quot; {
+  vpc_id                  = aws_vpc.edgeconnect.id
+  cidr_block              = &quot;10.42.0.0/26&quot;
+  availability_zone       = &quot;eu-central-1a&quot;
+  map_public_ip_on_launch = true
+}
+
+resource &quot;aws_subnet&quot; &quot;private_a&quot; {
+  vpc_id            = aws_vpc.edgeconnect.id
+  cidr_block        = &quot;10.42.0.64/26&quot;
+  availability_zone = &quot;eu-central-1a&quot;
+}
+
+resource &quot;aws_subnet&quot; &quot;private_b&quot; {
+  vpc_id            = aws_vpc.edgeconnect.id
+  cidr_block        = &quot;10.42.0.128/26&quot;
+  availability_zone = &quot;eu-central-1b&quot;
+}
+
+resource &quot;aws_internet_gateway&quot; &quot;igw&quot; {
+  vpc_id = aws_vpc.edgeconnect.id
+}
+
+# The one address Snowflake will allow-list. Protected from accidental destroy:
+# recreating it silently breaks the allow-list until Snowflake is updated.
+resource &quot;aws_eip&quot; &quot;egress&quot; {
+  domain = &quot;vpc&quot;
+  tags   = { Name = &quot;edgeconnect-snowflake-egress&quot; }
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource &quot;aws_nat_gateway&quot; &quot;egress&quot; {
+  allocation_id = aws_eip.egress.id
+  subnet_id     = aws_subnet.public.id
+}
+
+resource &quot;aws_route_table&quot; &quot;public&quot; {
+  vpc_id = aws_vpc.edgeconnect.id
+  route {
+    cidr_block = &quot;0.0.0.0/0&quot;
+    gateway_id = aws_internet_gateway.igw.id
+  }
+}
+
+resource &quot;aws_route_table&quot; &quot;private&quot; {
+  vpc_id = aws_vpc.edgeconnect.id
+  route {
+    cidr_block     = &quot;0.0.0.0/0&quot;
+    nat_gateway_id = aws_nat_gateway.egress.id
+  }
+}
+
+resource &quot;aws_route_table_association&quot; &quot;public&quot; {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource &quot;aws_route_table_association&quot; &quot;private_a&quot; {
+  subnet_id      = aws_subnet.private_a.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource &quot;aws_route_table_association&quot; &quot;private_b&quot; {
+  subnet_id      = aws_subnet.private_b.id
+  route_table_id = aws_route_table.private.id
+}
+
+# Egress-only security group: WSS/HTTPS out, nothing in.
+resource &quot;aws_security_group&quot; &quot;edgeconnect&quot; {
+  name   = &quot;edgeconnect-egress-only&quot;
+  vpc_id = aws_vpc.edgeconnect.id
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = &quot;tcp&quot;
+    cidr_blocks = [&quot;0.0.0.0/0&quot;]
+  }
+}
+
+output &quot;snowflake_allowlist_ip&quot; {
+  value = aws_eip.egress.public_ip   # -&gt; 203.0.113.25 (example)
+}
+</code></pre>
+<p>Notes:</p>
+<ul>
+<li>The <code>lifecycle { prevent_destroy = true }</code> block on the EIP is the same lifecycle-protection discipline covered in <strong>AUTOM-09</strong> — a <code>terraform destroy</code>/refactor that releases this address breaks the integration until the Snowflake network rule is updated.</li>
+<li>The 443-only egress security group is sufficient: name resolution goes to the VPC's built-in resolver, which AWS does not evaluate against security-group rules.</li>
+<li>Cost note: a NAT Gateway bills hourly plus per-GB processing. Connector result sets are small (≤ 6 MB per request through EdgeConnect anyway), so the hourly charge dominates.</li>
+</ul>
+<p><a id="step-ecs"></a></p>
+<h2>7. Step 3 — AWS: ECS Task Definition and Service</h2>
+<p>EdgeConnect is configured entirely through environment variables; the OAuth credentials are injected from Secrets Manager. <code>assign_public_ip</code> stays <strong>false</strong> — a public task IP would bypass the NAT and break the allow-list.</p>
+<p><strong>Pin the image version.</strong> <code>dynatrace/edgeconnect:latest</code> makes rollbacks and change control impossible and can silently change behavior under you; pin the latest released version (1.811.4 here; never below 1.724.3, the June 2026 security fix), check the EdgeConnect release notes regularly, and bump it deliberately.</p>
+<pre><code class="language-json">{
+  &quot;family&quot;: &quot;edgeconnect-snowflake&quot;,
+  &quot;requiresCompatibilities&quot;: [&quot;FARGATE&quot;],
+  &quot;networkMode&quot;: &quot;awsvpc&quot;,
+  &quot;cpu&quot;: &quot;1024&quot;,
+  &quot;memory&quot;: &quot;2048&quot;,
+  &quot;executionRoleArn&quot;: &quot;arn:aws:iam::123456789012:role/edgeconnect-exec&quot;,
+  &quot;containerDefinitions&quot;: [
+    {
+      &quot;name&quot;: &quot;edgeconnect&quot;,
+      &quot;image&quot;: &quot;dynatrace/edgeconnect:1.811.4&quot;,
+      &quot;essential&quot;: true,
+      &quot;environment&quot;: [
+        { &quot;name&quot;: &quot;EDGE_CONNECT_NAME&quot;,
+          &quot;value&quot;: &quot;snowflake-egress&quot; },
+        { &quot;name&quot;: &quot;EDGE_CONNECT_API_ENDPOINT_HOST&quot;,
+          &quot;value&quot;: &quot;abc12345.apps.dynatrace.com&quot; },
+        { &quot;name&quot;: &quot;EDGE_CONNECT_OAUTH__ENDPOINT&quot;,
+          &quot;value&quot;: &quot;https://sso.dynatrace.com/sso/oauth2/token&quot; },
+        { &quot;name&quot;: &quot;EDGE_CONNECT_OAUTH__RESOURCE&quot;,
+          &quot;value&quot;: &quot;urn:dtenvironment:abc12345&quot; },
+        { &quot;name&quot;: &quot;EDGE_CONNECT_RESTRICT_HOSTS_TO&quot;,
+          &quot;value&quot;: &quot;xy12345.eu-central-1.snowflakecomputing.com&quot; }
+      ],
+      &quot;secrets&quot;: [
+        { &quot;name&quot;: &quot;EDGE_CONNECT_OAUTH__CLIENT_ID&quot;,
+          &quot;valueFrom&quot;:
+  &quot;arn:aws:secretsmanager:eu-central-1:123456789012:secret:ec-oauth:client_id::&quot; },
+        { &quot;name&quot;: &quot;EDGE_CONNECT_OAUTH__CLIENT_SECRET&quot;,
+          &quot;valueFrom&quot;:
+  &quot;arn:aws:secretsmanager:eu-central-1:123456789012:secret:ec-oauth:client_secret::&quot; }
+      ],
+      &quot;logConfiguration&quot;: {
+        &quot;logDriver&quot;: &quot;awslogs&quot;,
+        &quot;options&quot;: {
+          &quot;awslogs-group&quot;: &quot;/ecs/edgeconnect&quot;,
+          &quot;awslogs-region&quot;: &quot;eu-central-1&quot;,
+          &quot;awslogs-stream-prefix&quot;: &quot;edgeconnect&quot;
+        }
+      }
+    }
+  ]
+}
+</code></pre>
+<p>The task definition is shown as registered JSON. It assumes an execution role that can pull the two secrets (<code>secretsmanager:GetSecretValue</code> on the <code>ec-oauth</code> secret, on top of the standard ECS task-execution policy) and an existing <code>/ecs/edgeconnect</code> CloudWatch log group. The service below is a <strong>fragment</strong>: it also needs an <code>aws_ecs_cluster.main</code> resource and an <code>aws_ecs_task_definition.edgeconnect</code> resource holding the task definition above (<code>container_definitions = jsonencode([...])</code>).</p>
+<pre><code class="language-hcl"># service.tf (fragment — add aws_ecs_cluster.main, aws_ecs_task_definition.edgeconnect,
+# the execution role and the log group)
+resource &quot;aws_ecs_service&quot; &quot;edgeconnect&quot; {
+  name            = &quot;edgeconnect-snowflake&quot;
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.edgeconnect.arn
+  desired_count   = 2
+  launch_type     = &quot;FARGATE&quot;
+
+  network_configuration {
+    subnets          = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_groups  = [aws_security_group.edgeconnect.id]
+    assign_public_ip = false   # egress must go through the NAT EIP
+  }
+}
+</code></pre>
+<p><a id="step-snowflake"></a></p>
+<h2>8. Step 4 — Snowflake: Service User, Network Rule, Network Policy</h2>
+<pre><code class="language-sql">-- snowflake-setup.sql (run as SECURITYADMIN / ACCOUNTADMIN)
+
+-- 1. Dedicated service user with key-pair (JWT) auth, no password, no MFA
+CREATE USER IF NOT EXISTS DYNATRACE_WF_SVC
+  DEFAULT_ROLE      = DYNATRACE_WF_ROLE
+  DEFAULT_WAREHOUSE = WH_AUTOMATION
+  RSA_PUBLIC_KEY    = 'MIIBIjANBgkqh...'   -- public half of the key pair
+  TYPE              = SERVICE;             -- no password login; exempt from MFA policies
+
+CREATE ROLE IF NOT EXISTS DYNATRACE_WF_ROLE;
+GRANT USAGE ON WAREHOUSE WH_AUTOMATION TO ROLE DYNATRACE_WF_ROLE;
+GRANT USAGE ON DATABASE ANALYTICS       TO ROLE DYNATRACE_WF_ROLE;
+GRANT USAGE ON SCHEMA ANALYTICS.PUBLIC  TO ROLE DYNATRACE_WF_ROLE;
+GRANT SELECT ON ALL TABLES IN SCHEMA ANALYTICS.PUBLIC
+  TO ROLE DYNATRACE_WF_ROLE;
+GRANT ROLE DYNATRACE_WF_ROLE TO USER DYNATRACE_WF_SVC;
+
+-- 2. Network rule: the NAT Gateway's Elastic IP, and nothing else.
+--    Network rules are schema-level objects: qualify the name with a database and schema
+--    your admin role can create in (e.g. SECURITYDB.NETWORK_RULES — create it first if needed).
+CREATE NETWORK RULE SECURITYDB.NETWORK_RULES.DYNATRACE_EDGECONNECT_RULE
+  MODE       = INGRESS
+  TYPE       = IPV4
+  VALUE_LIST = ('203.0.113.25/32');
+
+-- 3. Network policy referencing the rule (fully qualified)
+CREATE NETWORK POLICY DYNATRACE_EDGECONNECT_POLICY
+  ALLOWED_NETWORK_RULE_LIST = ('SECURITYDB.NETWORK_RULES.DYNATRACE_EDGECONNECT_RULE')
+  COMMENT = 'Dynatrace Workflows via EdgeConnect on AWS ECS';
+
+-- 4. Bind at USER level: overrides the account policy for this user only
+ALTER USER DYNATRACE_WF_SVC
+  SET NETWORK_POLICY = DYNATRACE_EDGECONNECT_POLICY;
+
+-- Verify
+SHOW PARAMETERS LIKE 'NETWORK_POLICY' FOR USER DYNATRACE_WF_SVC;
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.snowflake.com/en/user-guide/network-policies">Network policies (Snowflake docs)</a> — <em>&quot;network rules , which are schema-level objects&quot;</em>.</sub></p>
+</blockquote>
+<p>Grant only what the workflow needs (<code>SELECT</code> here). If the workflow will also write (e.g., status-table updates), add those grants explicitly rather than widening the role.</p>
+<p><a id="step-workflow"></a></p>
+<h2>9. Step 5 — Dynatrace: Connection and Workflow</h2>
+<p><strong>Install and connect.</strong> Install <strong>Snowflake for Workflows</strong> from Dynatrace Hub, then create a connection in <strong>Settings</strong> &gt; <strong>Connections</strong>: the account URL (<code>https://xy12345.eu-central-1.snowflakecomputing.com</code>) and <strong>Key-Pair JWT</strong> credentials for <code>DYNATRACE_WF_SVC</code> (the private key matching the public key registered in §8). The connector also supports <strong>Programmatic Access Tokens (PAT)</strong> and <strong>external OAuth <code>client_credentials</code></strong> — any of the three runs unattended; MFA is explicitly unsupported for this connection.</p>
+<p><strong>Build the workflow.</strong> The connector ships two actions — pick the shape that matches what you need:</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>What it does</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Execute Statement</strong></td>
+<td>Executes one SQL statement and returns the rows as the <em>action's output</em> (available downstream via <code>{{ result('task_name') }}</code>) — <strong>first partition only</strong>, so use it for small results</td>
+<td>You want to transform, route, or act on the rows in later tasks (e.g., a <em>Run JavaScript</em> task)</td>
+</tr>
+<tr>
+<td><strong>Store Statement Result</strong></td>
+<td>Executes the provided statement and <em>&quot;stores its result directly in Grail&quot;</em> — as business events by default, or as a lookup table — the rows never pass through the workflow</td>
+<td>You just want the data queryable in Grail</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/snowflake/snowflake-workflows-actions">Snowflake actions (DT docs)</a> — <em>&quot;The action will only return the first partition of the data returned by Snowflake&quot;</em> and <em>&quot;Store the whole result in Grail as lookup data .&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>These do not chain.</strong> <em>Store Statement Result</em> takes a <strong>statement</strong>, not data — you cannot feed <em>Execute Statement</em>'s output into it. To land rows in Grail, use <em>Store Statement Result</em> on its own with the same SQL.</p>
+</blockquote>
+<p>For the daily-sync use case, a single-task workflow does it:</p>
+<ol>
+<li>
+<p>Create a workflow <em>&quot;Snowflake daily order sync&quot;</em> with a <strong>cron schedule trigger</strong> (<code>0 6 * * *</code>, your timezone — see WFLOW-02 for trigger mechanics).</p>
+</li>
+<li>
+<p>Add a <strong>Store Statement Result</strong> action: select the connection, paste the statement, set the warehouse:</p>
+<pre><code class="language-sql">SELECT order_id, status, amount, updated_at
+FROM   ANALYTICS.PUBLIC.ORDERS
+WHERE  updated_at &gt;= DATEADD('day', -1, CURRENT_TIMESTAMP())
+</code></pre>
+</li>
+<li>
+<p>Keep <strong>Grail storage type</strong> at <em>Business events</em> and set <strong>Event type</strong> to <code>snowflake.orders.daily</code>. Every stored row becomes a bizevent with that <code>event.type</code> (the default is <code>snowflake_connector</code>); <code>event.provider</code> is set to <code>data_connector</code>.</p>
+</li>
+</ol>
+<blockquote>
+<p><strong>Workflow-as-code note.</strong> The exact machine-readable action identifiers for the Snowflake actions are not published in the Dynatrace docs. Build the workflow in the editor first, then <strong>export its YAML</strong> — the export is the authoritative form if you want to manage it via AUTOM-04/Monaco patterns. Don't hand-author the action IDs from guesswork.</p>
+</blockquote>
+<p><strong>Actor permissions and bucket routing.</strong> The workflow's actor needs <code>storage:buckets:read</code> and <code>storage:events:write</code> to store bizevents (Prerequisites). Stored bizevents land in the default business-events bucket unless you route them; if this feeds long-lived reporting, review the connector's <em>Grail bucket permissions</em> guidance and the bucket strategy in ORGNZ-02 before the data volume grows.</p>
+<p><a id="validation"></a></p>
+<h2>10. Validation Checklist</h2>
+<p>Work these in order — each gate isolates a different layer.</p>
+<ol>
+<li><strong>EdgeConnect online</strong> — <strong>Settings</strong> &gt; <strong>General</strong> &gt; <strong>External Requests</strong> &gt; <strong>EdgeConnect</strong> shows availability <em>online</em> for both tasks. If offline, check the ECS task logs in CloudWatch.</li>
+<li><strong>Routing verified (mandatory gate)</strong> — in the EdgeConnect settings use <strong>URL verification</strong>: on the <em>Find matching EdgeConnects</em> tab, your account URL <code>https://xy12345.eu-central-1.snowflakecomputing.com</code> must resolve to <code>snowflake-egress</code>; then <em>Test HTTP request</em> against the account host confirms end-to-end reachability. If no pattern matches, connector calls egress from Dynatrace's shared IPs and Snowflake will reject them — do not proceed until this resolves.</li>
+<li><strong>Egress IP confirmed</strong> — from a one-off task in the private subnet: <code>curl https://checkip.amazonaws.com</code> must print your EIP (203.0.113.25 in the samples).</li>
+<li><strong>Policy active</strong> — from any non-allow-listed machine, a login as <code>DYNATRACE_WF_SVC</code> must <strong>fail</strong> with <em>&quot;IP … is not allowed to access Snowflake&quot;</em>; the workflow run must <strong>succeed</strong>.</li>
+<li><strong>Workflow run and Grail landing</strong> — trigger the workflow manually; the run log shows the statement result, and the stored rows are queryable as bizevents:</li>
+</ol>
+<pre><code class="language-dql">// Confirm Snowflake connector results landed in Grail
+fetch bizevents, from:-24h
+| filter event.provider == &quot;data_connector&quot; and event.type == &quot;snowflake.orders.daily&quot;
+| sort timestamp desc
+| limit 10
+</code></pre>
+<p><a id="troubleshooting"></a></p>
+<h2>11. Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause / fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;IP x.x.x.x is not allowed to access Snowflake&quot;</em></td>
+<td>Request did not traverse EdgeConnect (host pattern mismatch — re-run URL verification), a task got a public IP (<code>assign_public_ip</code> must be false), or the EIP isn't in the network rule's <code>VALUE_LIST</code>.</td>
+</tr>
+<tr>
+<td>EdgeConnect offline in Dynatrace</td>
+<td>OAuth client_id/secret mismatch with the tenant configuration, or the security group / NACL blocks outbound 443 to <code>sso.dynatrace.com</code> and <code>abc12345.apps.dynatrace.com</code>.</td>
+</tr>
+<tr>
+<td>Requests rejected by EdgeConnect itself</td>
+<td><code>restrict_hosts_to</code> doesn't cover the account host. It must include every Snowflake host the connector calls.</td>
+</tr>
+<tr>
+<td>Connector action fails with <code>Blocked request to '…' (host not in allowlist)</code></td>
+<td>Snowflake domain missing from the outbound allowlist — <strong>Settings &gt; General &gt; External requests</strong> (<em>Limit Outbound Connections</em> in Settings Classic).</td>
+</tr>
+<tr>
+<td>Store Statement Result fails to write</td>
+<td>The workflow actor lacks <code>storage:buckets:read</code> + <code>storage:events:write</code> (bizevents) or <code>storage:files:write</code> (lookup table).</td>
+</tr>
+<tr>
+<td>Timeouts on long statements</td>
+<td>EdgeConnect enforces a 120 s per-request timeout and 6 MB payload cap; 20 concurrent requests per container. Split large queries, page results, set the action's timeout accordingly, or add tasks.</td>
+</tr>
+<tr>
+<td>JWT authentication fails</td>
+<td>Public key on the user doesn't match the private key in the connection, or the account identifier in the JWT issuer is wrong. Validate the pair with SnowSQL first.</td>
+</tr>
+<tr>
+<td>Rows missing from the bizevents query</td>
+<td>Wrong <code>event.type</code> filter (default is <code>snowflake_connector</code> unless you set it), or results were routed to a bucket the querying user can't read.</td>
+</tr>
+</tbody>
+</table>
+<p><a id="adapting"></a></p>
+<h2>12. Adapting the Pattern to Other Targets</h2>
+<p>Nothing in §§5–7 is Snowflake-specific. The same EdgeConnect deployment gives a static egress IP to <strong>any</strong> workflow action or <code>fetch()</code> call (WFLOW-08) whose target host matches a pattern:</p>
+<ul>
+<li><strong>IP-allow-listed SaaS APIs</strong> — ITSM, ticketing, or partner endpoints that gate by source IP (pair with the routing content in WFLOW-04/ALERT-03).</li>
+<li><strong>Internal/private APIs</strong> — EdgeConnect's primary documented use case: the target isn't even publicly reachable, and EdgeConnect executes the call from inside the network.</li>
+<li><strong>Multiple targets, one fleet</strong> — add host patterns tenant-side and extend <code>restrict_hosts_to</code> container-side. Both lists must include a host before traffic flows to it; keep them reviewed as a pair.</li>
+<li><strong>Per-domain isolation</strong> — for targets with different trust levels, prefer separate EdgeConnect configurations (and separate ECS services) over one wide pattern list, so each container's <code>restrict_hosts_to</code> stays tight.</li>
+</ul>
+<p>Capacity: the 20-concurrent/120 s/6 MB limits are <strong>per container</strong> — scale <code>desired_count</code>, not the pattern list, when throughput grows. All tasks share the same NAT EIP, so the target's allow-list never changes.</p>
+<p><a id="next-steps"></a></p>
+<h2>13. Next Steps and References</h2>
+<ul>
+<li><strong>WFLOW-02: Triggers</strong> — cron scheduling for the sync workflow.</li>
+<li><strong>WFLOW-08: JavaScript &amp; HTTP Actions</strong> — <code>fetch()</code> calls from <em>Run JavaScript</em> tasks route through EdgeConnect the same way; combine with this pattern for custom API integrations.</li>
+<li><strong>AUTOM-04 / AUTOM-09</strong> — managing the Terraform here (state, lifecycle protections like the EIP's <code>prevent_destroy</code>) and exporting the built workflow as code.</li>
+<li><strong>ORGNZ-02</strong> — bucket strategy if the stored bizevents feed long-lived reporting.</li>
+</ul>
+<blockquote>
+<p><strong>New (EdgeConnect 1.744.0, released 07/27/2026): Dynatrace domains are allowed in host patterns.</strong> Verbatim: <em>&quot;EdgeConnect now allows Dynatrace domains in host patterns. Requests to Dynatrace-owned domains are no longer rejected and can be routed through EdgeConnect. This feature requires Dynatrace version 1.345.&quot;</em></p>
+<p>Previously a host pattern matching a Dynatrace-owned domain was rejected outright, so any flow that needed to reach a Dynatrace domain <em>through</em> EdgeConnect — rather than directly — had no supported path. That restriction is lifted.</p>
+<p>Two conditions gate it: <strong>EdgeConnect 1.744.0 or later</strong> on the connector side, and <strong>Dynatrace 1.345 or later</strong> on the tenant side. Both must hold; the EdgeConnect upgrade alone is not enough. It does not change the static-egress-IP pattern this lab builds — that mechanism is unchanged — but it widens what you can put in a host pattern, which is worth knowing before concluding that a Dynatrace-domain target is out of scope for EdgeConnect.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/edgeconnect/edgeconnect-release-notes-1-744-0">EdgeConnect 1.744.0 release notes (DT docs)</a> — quoted above, read 08/28/2026.</sub></p>
+</blockquote>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/edgeconnect">EdgeConnect (DT docs)</a> — host patterns, env-var configuration, <code>restrict_hosts_to</code>, the 20-concurrent/120 s/6 MB limits, URL verification</li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/snowflake">Snowflake for Workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/snowflake/snowflake-workflows-setup">Set up Snowflake (DT docs)</a> — auth methods (PAT / key-pair JWT / external OAuth), the no-MFA requirement, Limit Outbound Connections</li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/snowflake/snowflake-workflows-actions">Snowflake actions (DT docs)</a> — Execute Statement vs Store Statement Result semantics</li>
+<li><a href="https://docs.snowflake.com/en/user-guide/network-policies">Network policies (Snowflake docs)</a> — network rules, user-level override behavior</li>
+<li><a href="https://docs.snowflake.com/en/user-guide/admin-user-management">User management (Snowflake docs)</a> — <code>TYPE = SERVICE</code> users: no password login, exempt from MFA enforcement</li>
+<li><a href="https://docs.snowflake.com/en/user-guide/key-pair-auth">Key-pair authentication (Snowflake docs)</a></li>
+<li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html">NAT gateways (AWS docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

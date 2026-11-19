@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NR2DT-01: Step 1 — Discover</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NR2DT — New Relic to Dynatrace Migration Steps</a><span class="sep">/</span><span aria-current="page">NR2DT-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NR2DT-01: Step 1 — Discover</h1>
+<blockquote>
+<p><strong>Series:</strong> NR2DT — New Relic to Dynatrace Migration Steps | <strong>Notebook:</strong> 1 of 10 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 11/03/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> produce a complete inventory of the source New Relic account, a translation-confidence report, and a defensible effort estimate. Nothing else moves until discovery is complete.</p>
+<p>This is procedural. For the <em>why</em> behind each artifact and the deeper translation theory, see <strong>NRLC-02</strong> (NRQL→DQL Translation) and the relevant NRLC component notebook for each entity class.</p>
+<h3>Sprint 1.337 (April 2026) Updates Affecting NR2DT</h3>
+<p>Sprint 1.337 introduces three changes worth surfacing during the discovery step:</p>
+<ol>
+<li><strong>OneAgent primary fields/tags at source</strong> — when designing the post-migration tag taxonomy (see NR2DT-03 Design), prefer OneAgent primary tags over OpenPipeline parsing where possible. From OneAgent 1.333, hosts set primary Grail tags with <code>--set-host-tag</code> / <code>oneagentctl --set-host-tag</code>; the key carries the <code>primary_tags.</code> prefix (<code>primary_tags.team</code>, <code>primary_tags.cost_center</code>, <code>primary_tags.env</code>).</li>
+<li><strong>OTel <code>service.name</code> for SDv1 service names</strong> — SaaS 1.337 lets the OTel <code>service.name</code> attribute name SDv1 services; Smartscape shows the name in the form <code>service.name (detected name)</code> (NRLC-01 § Sprint 1.337 covers the deeper detail).</li>
+<li><strong>Settings v2 + Platform tokens</strong> for new automation (NR2DT-04 Translate, NR2DT-09 Cutover scripts).</li>
+</ol>
+<p><strong>Engine impact:</strong> the Dynatrace-NewRelic conversion engine and lab-setup scripts in <code>topics/nr2dt/lab-setup/</code> were validated end-to-end on a live Gen3 sprint tenant 2026-04-20 — re-verify before each new engagement that the conversion engine handles sprint-337's API removals (Entity API <code>attributes</code>, Event API <code>metadata</code>).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent">Primary Grail tags on OneAgent (DT docs)</a> — <em>&quot;Primary Grail field and tag enrichment requires OneAgent version 1.333+.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">What's new in Dynatrace SaaS 1.337 (DT docs)</a> — <em>&quot;You can now use the OTel service.name attribute to customize the name of SDv1 services.&quot;</em>, read 11/03/2026.</sub></p>
+</blockquote>
+<hr />
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#outputs">What You'll Produce</a></li>
+<li><a href="#access">Prerequisites &amp; Access</a></li>
+<li><a href="#inventory">Run the Inventory</a></li>
+<li><a href="#translate">Translate the NRQL Surface</a></li>
+<li><a href="#estimate">Generate the Effort Estimate</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead + assigned engineer for this step</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Procedural step — use as a runbook; defer to NRLC for depth</td>
+</tr>
+<tr>
+<td><strong>NRLC deep dives</strong></td>
+<td>NRLC-01 (Platform Comparison) for orientation</td>
+</tr>
+</tbody>
+</table>
+<p><a id="outputs"></a></p>
+<h2>1. What You'll Produce</h2>
+<p>By the end of this step you will have these artifacts checked into your migration repo:</p>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Format</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>inventory/exports/newrelic_export.json</code></td>
+<td>JSON</td>
+<td>Export of the components named in <code>--components</code> (default: dashboards, alerts, synthetics, SLOs, workloads)</td>
+</tr>
+<tr>
+<td><code>nrql-conversion-report.csv</code></td>
+<td>CSV</td>
+<td>Every NRQL query with HIGH/MEDIUM/LOW confidence + DQL output</td>
+</tr>
+<tr>
+<td><code>effort-estimate.md</code></td>
+<td>Markdown</td>
+<td>Hours/days/weeks per component class</td>
+</tr>
+<tr>
+<td><code>gap-analysis.md</code></td>
+<td>Markdown</td>
+<td>Entities flagged for manual work (APM conditions, scripted browsers)</td>
+</tr>
+<tr>
+<td><code>risk-register.md</code></td>
+<td>Markdown</td>
+<td>Known risks with proposed mitigations</td>
+</tr>
+</tbody>
+</table>
+<p>These artifacts gate Step 2 (Strategize). Don't proceed without them.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5OUjJEVCDigJQgOS1TdGVwIE1pZ3JhdGlvbiBGcmFtZXdvcms8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+RWFjaCBzdGVwIGhhcyBleHBsaWNpdCBvdXRwdXRzLCBhIGdhdGUsIGFuZCBhIGhhbmQtb2ZmIHRvIHRoZSBuZXh0PC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9Im5yMmFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM3M0JFMjgiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSA5IHN0ZXAgYm94ZXMgaW4gYSAzeDMgZ3JpZCAtLT4KICA8ZyBmb250LXNpemU9IjExIj4KICAgIDwhLS0gUm93IDE6IFBsYW4gLS0+CiAgICA8cmVjdCB4PSI0MCIgeT0iMTAwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogICAgPHRleHQgeD0iMTc1IiB5PSIxMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0ZXAgMSDigJQgRGlzY292ZXI8L3RleHQ+CiAgICA8dGV4dCB4PSIxNzUiIHk9IjE0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+SW52ZW50b3J5IMK3IE5SUUwgY29udmVyc2lvbiByZXBvcnQ8L3RleHQ+CiAgICA8dGV4dCB4PSIxNzUiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RWZmb3J0IGVzdGltYXRlIMK3IGdhcCBhbmFseXNpczwvdGV4dD4KICAgIDx0ZXh0IHg9IjE3NSIgeT0iMTgzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPkdhdGUgUzE6IGRpc2NvdmVyeSBjb21wbGV0ZTwvdGV4dD4KCiAgICA8cmVjdCB4PSIzMzAiIHk9IjEwMCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICAgIDx0ZXh0IHg9IjQ2NSIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TdGVwIDIg4oCUIFN0cmF0ZWdpemU8L3RleHQ+CiAgICA8dGV4dCB4PSI0NjUiIHk9IjE0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+V2F2ZSBwbGFuIMK3IHNjb3BlIGRlY2lzaW9uczwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ2NSIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5HYXRlIGRlZmluaXRpb25zIMK3IHNpZ24tb2ZmPC90ZXh0PgogICAgPHRleHQgeD0iNDY1IiB5PSIxODMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+R2F0ZSBTMjogc3RyYXRlZ3kgYXBwcm92ZWQ8L3RleHQ+CgogICAgPHJlY3QgeD0iNjIwIiB5PSIxMDAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI2Ii8+CiAgICA8dGV4dCB4PSI3NTUiIHk9IjEyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U3RlcCAzIOKAlCBEZXNpZ248L3RleHQ+CiAgICA8dGV4dCB4PSI3NTUiIHk9IjE0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QnVja2V0cyDCtyBob3N0IGdyb3VwcyDCtyBJQU08L3RleHQ+CiAgICA8dGV4dCB4PSI3NTUiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+T3BlblBpcGVsaW5lIMK3IFRlcnJhZm9ybSBza2VsZXRvbjwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc1NSIgeT0iMTgzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPkdhdGUgUzM6IGFyY2hpdGVjdHVyZSBsb2NrZWQ8L3RleHQ+CgogICAgPCEtLSBSb3cgMjogQnVpbGQgLS0+CiAgICA8cmVjdCB4PSI0MCIgeT0iMjIwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiByeD0iNiIvPgogICAgPHRleHQgeD0iMTc1IiB5PSIyNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0ZXAgNCDigJQgVHJhbnNsYXRlPC90ZXh0PgogICAgPHRleHQgeD0iMTc1IiB5PSIyNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkF1dG8tdHJhbnNsYXRlIEhJR0ggwrcgcmV2aWV3IE1FRElVTTwvdGV4dD4KICAgIDx0ZXh0IHg9IjE3NSIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5IYW5kLXRyYW5zbGF0ZSBMT1cgwrcgc3ludGF4IHZhbGlkYXRlPC90ZXh0PgogICAgPHRleHQgeD0iMTc1IiB5PSIzMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+R2F0ZSBTNDogdHJhbnNsYXRpb24gY29tcGxldGU8L3RleHQ+CgogICAgPHJlY3QgeD0iMzMwIiB5PSIyMjAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICAgIDx0ZXh0IHg9IjQ2NSIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVDQUNBIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TdGVwIDUg4oCUIE1pZ3JhdGUgRGFzaCAmYW1wOyBBbGVydHM8L3RleHQ+CiAgICA8dGV4dCB4PSI0NjUiIHk9IjI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+V2F2ZSAwLzEvMyDCtyBkdWFsLWFsZXJ0IDHigJMyIHdrczwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ2NSIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5ISUdIIFJJU0sg4oCUIHNlcXVlbmNlZCBjdXRvdmVyPC90ZXh0PgogICAgPHRleHQgeD0iNDY1IiB5PSIzMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+R2F0ZSBTNTogZHVhbC1hbGVydCDCsTEwJSB2b2x1bWU8L3RleHQ+CgogICAgPHJlY3QgeD0iNjIwIiB5PSIyMjAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI2Ii8+CiAgICA8dGV4dCB4PSI3NTUiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U3RlcCA2IOKAlCBTeW50aCDCtyBTTE8gwrcgV29ya2xvYWQ8L3RleHQ+CiAgICA8dGV4dCB4PSI3NTUiIHk9IjI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+V2F2ZSAyLzQgwrcgU0xPIDctZGF5IGRlbHRhPC90ZXh0PgogICAgPHRleHQgeD0iNzU1IiB5PSIyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlNjcmlwdGVkIGJyb3dzZXJzIG1hbnVhbDwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc1NSIgeT0iMzAzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPkdhdGUgUzY6IHN5bnRoICsgU0xPIG1pZ3JhdGVkPC90ZXh0PgoKICAgIDwhLS0gUm93IDM6IFJ1biAtLT4KICAgIDxyZWN0IHg9IjQwIiB5PSIzNDAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI2Ii8+CiAgICA8dGV4dCB4PSIxNzUiIHk9IjM2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZFRjNDNyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U3RlcCA3IOKAlCBMb2dzIMK3IFRhZ3MgwrcgRHJvcHM8L3RleHQ+CiAgICA8dGV4dCB4PSIxNzUiIHk9IjM4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+V2F2ZSA1IMK3IE9wZW5QaXBlbGluZSBydWxlczwvdGV4dD4KICAgIDx0ZXh0IHg9IjE3NSIgeT0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5SZWNvbmZpZ3VyZSBsb2cgZm9yd2FyZGVyczwvdGV4dD4KICAgIDx0ZXh0IHg9IjE3NSIgeT0iNDIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPkdhdGUgUzc6IHZvbHVtZSBwYXJpdHkgwrE1JTwvdGV4dD4KCiAgICA8cmVjdCB4PSIzMzAiIHk9IjM0MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICAgIDx0ZXh0IHg9IjQ2NSIgeT0iMzY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDlGOTlEIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TdGVwIDgg4oCUIFZhbGlkYXRlPC90ZXh0PgogICAgPHRleHQgeD0iNDY1IiB5PSIzODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlRpZXIgMSBzeW50YXggwrcgVGllciAyIHRlbmFudDwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ2NSIgeT0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5UaWVyIDMgYmVoYXZpb3JhbCDCtyBkaWZmIMK3IHJlcG9ydDwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ2NSIgeT0iNDIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPkdhdGUgUzg6IGN1dG92ZXIgcmVhZHk8L3RleHQ+CgogICAgPHJlY3QgeD0iNjIwIiB5PSIzNDAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI2Ii8+CiAgICA8dGV4dCB4PSI3NTUiIHk9IjM2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Q5Rjk5RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U3RlcCA5IOKAlCBDdXRvdmVyICZhbXA7IERlY29tbWlzc2lvbjwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc1NSIgeT0iMzg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5TZXF1ZW5jZWQgY3V0b3ZlciDCtyByb2xsYmFjayByZWFkeTwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc1NSIgeT0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5IYWx0IE5SIMK3IGFyY2hpdmUgwrcgc2lnbi1vZmY8L3RleHQ+CiAgICA8dGV4dCB4PSI3NTUiIHk9IjQyMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5HYXRlIFM5OiBtaWdyYXRpb24gY29tcGxldGU8L3RleHQ+CiAgPC9nPgoKICA8IS0tIEFycm93cyAtLT4KICA8ZyBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSI+CiAgICA8bGluZSB4MT0iMzEwIiB5MT0iMTUwIiB4Mj0iMzMwIiB5Mj0iMTUwIiBtYXJrZXItZW5kPSJ1cmwoI25yMmFycikiLz4KICAgIDxsaW5lIHgxPSI2MDAiIHkxPSIxNTAiIHgyPSI2MjAiIHkyPSIxNTAiIG1hcmtlci1lbmQ9InVybCgjbnIyYXJyKSIvPgogICAgPGxpbmUgeDE9IjMxMCIgeTE9IjI3MCIgeDI9IjMzMCIgeTI9IjI3MCIgbWFya2VyLWVuZD0idXJsKCNucjJhcnIpIi8+CiAgICA8bGluZSB4MT0iNjAwIiB5MT0iMjcwIiB4Mj0iNjIwIiB5Mj0iMjcwIiBtYXJrZXItZW5kPSJ1cmwoI25yMmFycikiLz4KICAgIDxsaW5lIHgxPSIzMTAiIHkxPSIzOTAiIHgyPSIzMzAiIHkyPSIzOTAiIG1hcmtlci1lbmQ9InVybCgjbnIyYXJyKSIvPgogICAgPGxpbmUgeDE9IjYwMCIgeTE9IjM5MCIgeDI9IjYyMCIgeTI9IjM5MCIgbWFya2VyLWVuZD0idXJsKCNucjJhcnIpIi8+CiAgICA8IS0tIHJvdyB3cmFwcyAtLT4KICAgIDxwYXRoIGQ9Ik0gNzU1IDIwMCBRIDgwMCAyMTAgODAwIDIyMCIgLz4KICAgIDxsaW5lIHgxPSI3NTUiIHkxPSIyMDAiIHgyPSIxNzUiIHkyPSIyMjAiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLWRhc2hhcnJheT0iMywyIiBtYXJrZXItZW5kPSJ1cmwoI25yMmFycikiLz4KICAgIDxsaW5lIHgxPSI3NTUiIHkxPSIzMjAiIHgyPSIxNzUiIHkyPSIzNDAiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLWRhc2hhcnJheT0iMywyIiBtYXJrZXItZW5kPSJ1cmwoI25yMmFycikiLz4KICA8L2c+CgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5FYWNoIHN0ZXAgZ2F0ZXMgdGhlIG5leHQuIFNraXBwaW5nIGEgZ2F0ZSBpcyB0aGUgbW9zdCBjb21tb24gZmFpbHVyZSBtb2RlLjwvdGV4dD4KPC9zdmc+Cg==" alt="NR2DT 9-Step Framework" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Output |
+|------|--------|
+| 1 Discover | Inventory + translation report |
+| 2 Strategize | Wave plan + gates |
+| 3 Design | Buckets + IAM + OpenPipeline |
+| 4 Translate | All NRQL → DQL |
+| 5 Migrate Dash & Alerts | Wave 0/1/3 |
+| 6 Migrate Synth/SLO | Wave 2/4 |
+| 7 Migrate Logs/Tags | Wave 5 |
+| 8 Validate | 3-tier validation passed |
+| 9 Cutover & Decommission | NR archived |
+For environments where SVG doesn't render
+-->
+<p><a id="access"></a></p>
+<h2>2. Prerequisites &amp; Access</h2>
+<h3>NR API key</h3>
+<p>A New Relic <strong>User key</strong> (<code>NRAK-…</code>) belonging to a user who has read access to the account's dashboards, alerts, NRQL data, synthetics, SLOs, workloads and logs. User keys carry no per-capability scopes — the key acts with its user's access: <em>&quot;The user key allows you to make queries for any accounts you've been granted access to&quot;</em>.</p>
+<pre><code class="language-bash">export NEW_RELIC_API_KEY=&quot;NRAK-...&quot;
+export NEW_RELIC_ACCOUNT_ID=&quot;&lt;numeric&gt;&quot;
+export NEW_RELIC_REGION=&quot;US&quot;  # or EU
+</code></pre>
+<p>The tool reads exactly these names. <code>NR_API_KEY</code>, <code>NR_ACCOUNT_ID</code> and <code>NR_REGION</code> are not read, and every run then stops with <code>Configuration error</code>.</p>
+<h3>DT platform token</h3>
+<p>The tool validates <strong>all four</strong> variables at startup — the two <code>NEW_RELIC_*</code> values above and the two Dynatrace values below — on every <code>migrate</code> run, including the <code>--export-only</code> inventory in §3, and on <code>preflight</code> and <code>audit</code>. Set the Dynatrace values before the first run even though only §5 and Steps 5–8 actually connect to the tenant:</p>
+<pre><code class="language-bash">export DYNATRACE_API_TOKEN=&quot;dt0s16.XXXXX...&quot;  # Platform Token
+export DYNATRACE_ENVIRONMENT_URL=&quot;https://&lt;env-id&gt;.live.dynatrace.com&quot;
+</code></pre>
+<p><code>dt0s16</code> is the Platform Token prefix (<em>&quot;Platform token enabling programmatic access to Dynatrace platform services&quot;</em>); <code>dt0c01</code> is a classic access token.</p>
+<p>Store these in <code>.env</code> rather than the shell for long-running work. Verify with:</p>
+<pre><code class="language-bash">python3 migrate.py preflight
+</code></pre>
+<p><code>preflight</code> probes the tenant for Settings 2.0 / Document API / Automation API availability. Green here means Step 5+ will actually connect.</p>
+<h3>Tooling</h3>
+<p>Clone the migration framework:</p>
+<pre><code class="language-bash">git clone https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities
+cd NewRelic-to-Dynatrace-Migration-Utilities
+pip install -r requirements.txt
+cp .env.example .env  # populate NEW_RELIC_* and DYNATRACE_* vars
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.newrelic.com/docs/apis/intro-apis/new-relic-api-keys/">New Relic API keys (New Relic docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication">Tokens and authentication (DT docs)</a>, <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/config/settings.py">config/settings.py @ 78cbfce (tool repo, GitHub)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p><a id="inventory"></a></p>
+<h2>3. Run the Inventory</h2>
+<p><strong>Command:</strong></p>
+<pre><code class="language-bash">python3 migrate.py migrate --export-only --output ./inventory
+</code></pre>
+<p>This runs the NerdGraph enumeration for the five default components — dashboards, alerts (exported as <code>alert_policies</code>), synthetics, SLOs and workloads — and writes one consolidated file, <code>inventory/exports/newrelic_export.json</code>. Add <code>--components dashboards,alerts,synthetics,slos,workloads,notification_channels</code> to include notification channels. At tool v3.0.0 (commit <code>78cbfce</code>) the export has no branch for drop rules, log-parsing rules or tag rules; count those in New Relic directly and record them by hand.</p>
+<p><strong>Check the output:</strong></p>
+<pre><code class="language-bash">ls -lh inventory/
+cat inventory/exports/newrelic_export.json | jq '{dashboards: (.dashboards|length), alert_policies: (.alert_policies|length), synthetic_monitors: (.synthetic_monitors|length), slos: (.slos|length), workloads: (.workloads|length)}'
+</code></pre>
+<p><strong>Expected counts to capture</strong> (your numbers, for the wave plan in Step 2):</p>
+<ul>
+<li>Dashboards (and total widget count across all pages)</li>
+<li>Alert policies + NRQL conditions + APM conditions</li>
+<li>Synthetic monitors by type (Ping / Browser / API / Step)</li>
+<li>SLOs</li>
+<li>Workloads</li>
+<li>Notification channels by type</li>
+<li>Drop rules + log parsing rules + tag rules (not in the export — counted in New Relic by hand)</li>
+</ul>
+<h3>Extract NRQL for the translation pass</h3>
+<p><code>compile</code> and <code>batch</code> (Step 4) need a flat list of NRQL queries. The export JSON has the NRQL embedded inside dashboards, alert conditions, and SLO indicators — use the <code>extract-nrql</code> subcommand to pull them into a file:</p>
+<pre><code class="language-bash"># Plain text (one NRQL per line — feeds `compile --file`):
+python3 migrate.py extract-nrql \
+    --input ./inventory \
+    --output ./inventory/all-nrql.txt
+
+# Or CSV with an `nrql` column (feeds `batch --file`):
+python3 migrate.py extract-nrql \
+    --input ./inventory \
+    --output ./inventory/all-nrql.csv
+</code></pre>
+<p>The subcommand walks dashboards, alert conditions, and SLO indicators; dedupes; writes either format depending on the output extension (override with <code>--format txt|csv</code>). Capture the query count from the success line — that's the denominator for Step 4's confidence distribution.</p>
+<details><summary><b>Fallback for older tool versions</b> (without <code>extract-nrql</code>)</summary>
+<p>If your <code>NewRelic-to-Dynatrace-Migration-Utilities</code> checkout predates 2026-04-20, the <code>extract-nrql</code> subcommand isn't available. Run this <code>jq</code> one-liner instead (same logic, manual):</p>
+<pre><code class="language-bash">jq -r '
+  (.dashboards[]?.pages[]?.widgets[]?.rawConfiguration?.nrqlQueries[]?.query // empty),
+  (.alert_policies[]?.conditions[]? | .. | .query? // empty | select(type==&quot;string&quot;)),
+  (.slos[]? | (.indicator?.from // empty), (.indicator?.where // empty))
+' inventory/exports/newrelic_export.json \
+  | sed '/^$/d' \
+  | sort -u &gt; inventory/all-nrql.txt
+</code></pre>
+<p>Upgrade to a current tool version (<code>git pull origin main</code> in your <code>NewRelic-to-Dynatrace-Migration-Utilities</code> clone) when convenient; then switch to the subcommand.</p>
+</details>
+<p><a id="translate"></a></p>
+<h2>4. Translate the NRQL Surface</h2>
+<p>Every dashboard widget, alert condition, and SLO indicator contains a NRQL query that must compile to DQL. Run the compiler now to size the translation effort.</p>
+<p><strong>Command</strong> (uses the <code>inventory/all-nrql.txt</code> or <code>inventory/all-nrql.csv</code> produced by <code>extract-nrql</code> in §3):</p>
+<pre><code class="language-bash"># (a) compile — writes translated DQL, one per input query
+python3 migrate.py compile --file inventory/all-nrql.txt --output nrql-translated.dql
+
+# (b) batch — writes a CSV with nrql / dql / confidence / warnings columns.
+#     Feed the .csv you created in §3 directly (or convert a .txt with awk):
+python3 migrate.py batch --file inventory/all-nrql.csv --output nrql-conversion-report.csv
+</code></pre>
+<p>(If you extracted to <code>.txt</code> in §3 instead of <code>.csv</code>, convert with: <code>awk 'BEGIN{print &quot;nrql&quot;} {print &quot;\&quot;&quot; $0 &quot;\&quot;&quot;}' inventory/all-nrql.txt &gt; inventory/all-nrql.csv</code>)</p>
+<p><strong>Which artifact matters for the S1 gate?</strong> The CSV from <code>batch</code> — it has the confidence distribution you need to compare against the table below.</p>
+<p><strong>Output:</strong></p>
+<ul>
+<li><code>compile --output &lt;file&gt;</code> writes a plain DQL file (one translated query per input).</li>
+<li><code>batch --output &lt;file.csv&gt;</code> writes a CSV with one row per query and exactly four columns: <code>nrql</code>, <code>dql</code>, <code>confidence</code> (HIGH/MEDIUM/LOW, or <code>FAILED</code> when the query did not compile), <code>warnings</code>. <strong>This is the artifact to review for the Step 1 gate.</strong></li>
+</ul>
+<p><strong>Expected confidence distribution</strong> for a typical NR account:</p>
+<table>
+<thead>
+<tr>
+<th>Confidence</th>
+<th>Typical share</th>
+<th>Action in Step 4</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HIGH</td>
+<td>70–80%</td>
+<td>Auto-translate; sample-validate during dual-run</td>
+</tr>
+<tr>
+<td>MEDIUM</td>
+<td>15–25%</td>
+<td>100% review during dual-run</td>
+</tr>
+<tr>
+<td>LOW</td>
+<td>0–10%</td>
+<td>Hand-translate or reformulate</td>
+</tr>
+</tbody>
+</table>
+<p>If LOW is &gt; 15%, surface this to stakeholders early — it's the dominant cost driver.</p>
+<p><strong>Deep-dive reference:</strong> NRLC-02 explains the compiler architecture, the 292 patterns, and how confidence is scored.</p>
+<p><a id="estimate"></a></p>
+<h2>5. Generate the Effort Estimate</h2>
+<h3>5a. Run the report generator (connects to DT, imports nothing)</h3>
+<pre><code class="language-bash">python3 migrate.py migrate --dry-run --report --output ./discovery-run
+</code></pre>
+<blockquote>
+<p><strong><code>--dry-run</code> is what keeps this a preview.</strong> Without it, <code>migrate</code> exports, transforms <strong>and imports</strong> the default components (dashboards, alerts, synthetics, SLOs, workloads) into the tenant during Discovery — <code>--report</code> runs after the import, it does not replace it.</p>
+</blockquote>
+<p><code>--output</code> is a <strong>directory</strong>, and <code>--input</code> is not read on this path. The report lands in <code>./discovery-run/reports/conversion-report.json</code> and <code>.html</code>: an NRQL→DQL conversion report (confidence summary plus per-query detail) built from the run's transform warnings. It is an input to <code>effort-estimate.md</code>, not the estimate itself.</p>
+<blockquote>
+<p><strong>Requires DT credentials</strong> — <code>DYNATRACE_API_TOKEN</code> and <code>DYNATRACE_ENVIRONMENT_URL</code> from §2. Unset, the command stops with <code>Configuration error</code>; set but wrong, it stops with &quot;Failed to connect to Dynatrace&quot;.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py">migrate.py @ 78cbfce (tool repo, GitHub)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<h3>5b. Offline fallback (no DT connection required)</h3>
+<p>If your Step 1 run happens before DT access is provisioned — typical for the first discovery sprint — derive the estimate offline from the inventory + conversion CSV:</p>
+<pre><code class="language-bash">python3 - &lt;&lt; 'PY' &gt; effort-estimate.md
+import json, csv, pathlib
+
+inv = json.loads(pathlib.Path('inventory/exports/newrelic_export.json').read_text())
+rows = list(csv.DictReader(open('nrql-conversion-report.csv')))
+
+print('# NR→DT Migration — Discovery Artifact (Step 1)\n')
+print('## Inventory counts\n')
+for k in ('dashboards', 'alert_policies', 'synthetic_monitors', 'slos', 'workloads'):
+    print(f'- **{k}**: {len(inv.get(k, []))}')
+print('\n## Translation confidence distribution\n')
+conf = {}
+for r in rows: conf[r[&quot;confidence&quot;]] = conf.get(r[&quot;confidence&quot;], 0) + 1
+total = sum(conf.values())
+for k, v in sorted(conf.items()):
+    pct = 100 * v / total if total else 0
+    print(f'- **{k}**: {v} ({pct:.0f}%)')
+print(f'\n## Totals\n\n- NRQL queries: {total}')
+PY
+
+cat effort-estimate.md
+</code></pre>
+<p>5b writes <code>effort-estimate.md</code> directly; with 5a, summarize the report into <code>effort-estimate.md</code>. Either satisfies the S1 exit criterion. Use 5a when DT access is ready; use 5b during early discovery.</p>
+<p>Estimating heuristic per component class:</p>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Light (hrs)</th>
+<th>Moderate (days)</th>
+<th>Heavy (weeks)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboards</td>
+<td>&lt; 20</td>
+<td>20–80</td>
+<td>80+</td>
+</tr>
+<tr>
+<td>Alert conditions</td>
+<td>&lt; 50</td>
+<td>50–200</td>
+<td>200+</td>
+</tr>
+<tr>
+<td>Synthetics (incl. scripted)</td>
+<td>&lt; 10</td>
+<td>10–40</td>
+<td>40+</td>
+</tr>
+<tr>
+<td>SLOs</td>
+<td>&lt; 5</td>
+<td>5–20</td>
+<td>20+</td>
+</tr>
+<tr>
+<td>Notification channels (with secrets)</td>
+<td>&lt; 5</td>
+<td>5–20</td>
+<td>20+</td>
+</tr>
+</tbody>
+</table>
+<p><a id="gate"></a></p>
+<h2>6. Step Exit Criteria</h2>
+<p><strong>S1 — Discovery Complete</strong></p>
+<p>Pass criteria — all five must be true:</p>
+<ul>
+<li>[ ] <code>inventory/exports/newrelic_export.json</code> contains every component you exported, with no <code>✗ Failed to export</code> line in the run output (an empty array is acceptable when the NR account has none of that class); drop-, parsing- and tag-rule counts recorded by hand</li>
+<li>[ ] Per-component counts captured and documented</li>
+<li>[ ] <code>nrql-conversion-report.csv</code> generated; LOW count &lt;= 15% of total</li>
+<li>[ ] <code>effort-estimate.md</code> reviewed by lead</li>
+<li>[ ] <code>gap-analysis.md</code> reviewed; manual-work items have estimated owners</li>
+</ul>
+<p>If any check fails, do not proceed to Step 2. Fix the gap first.</p>
+<p><strong>Next step:</strong> <strong>NR2DT-02 — Strategize</strong> (wave planning, scope decisions, gate definitions for the rest of the migration).</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a>, and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

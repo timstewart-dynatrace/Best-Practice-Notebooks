@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WFLOW-04: Advanced Notification Routing</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WFLOW — Workflows and Alert Notifications</a><span class="sep">/</span><span aria-current="page">WFLOW-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WFLOW-04: Advanced Notification Routing</h1>
+<blockquote>
+<p><strong>Series:</strong> WFLOW — Workflows and Alert Notifications | <strong>Notebook:</strong> 4 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Intelligent Alert Routing</h2>
+<p>Not all alerts should go to everyone. This notebook covers conditional routing based on severity, team ownership, time of day, and escalation patterns.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#routing-strategies">Routing Strategies</a></li>
+<li><a href="#conditional-expressions">Conditional Expressions</a></li>
+<li><a href="#routing-by-severity">Routing by Severity</a></li>
+<li><a href="#routing-by-teamservice">Routing by Team/Service</a></li>
+<li><a href="#time-based-routing">Time-Based Routing</a></li>
+<li><a href="#escalation-patterns">Escalation Patterns</a></li>
+<li><a href="#multi-channel-strategy">Multi-Channel Strategy</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Platform subscription</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>automation:workflows:write</code>; the workflow actor also needs <code>storage:events:read</code> for the Problem trigger</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td><strong>WFLOW-01</strong> through <strong>WFLOW-03</strong></td>
+</tr>
+<tr>
+<td><strong>Connections</strong></td>
+<td>Slack and/or Teams connections configured</td>
+</tr>
+</tbody>
+</table>
+<h3>Sprint 1.337 (April 2026): Smartscape Ownership for Routing</h3>
+<p>SaaS 1.337 made ownership available on Smartscape nodes, for use from <strong>Workflows actions</strong>: <em>&quot;Ownership information is now available in Smartscape and for Smartscape nodes. This lets you use Workflows actions (such as get_owners) to send automated and targeted notifications to your teams&quot;</em> (<a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">What's new in SaaS 1.337 (DT docs)</a>). It is not a DQL field. An earlier revision of this notebook read <code>getNodeField(affected_entity_ids[0], &quot;ownership.team&quot;)</code>; that returns null on every problem, because no Smartscape node model has an <code>ownership.*</code> field and <code>getNodeField</code> does not resolve a classic entity ID.</p>
+<p>Two documented routes:</p>
+<ul>
+<li><strong>Route on ownership with the Ownership app's <em>Get owners</em> action.</strong> Add a <em>Get owners</em> task after the Problem trigger. Its <em>Entity ids</em> input takes <em>&quot;A Jinja expression, for example, <code>{{ event()[&quot;dt.entity.host&quot;] }}</code>&quot;</em>, but that field is rarely set on a problem (33 of 4,244 problems over 7 days on the validation tenant, 10/06/2026). Pass the problem's entities instead, <code>{{ event()[&quot;affected_entity_ids&quot;] | join(&quot;,&quot;) }}</code>; the input takes several: <em>&quot;Use a comma or semicolon to separate multiple IDs.&quot;</em> <code>affected_entity_ids</code> still works but is deprecated: <em>&quot;affected_entity_ids in favor of smartscape.affected_entities&quot;</em> (<a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a>). The action's documented example is a classic entity-ID field, and the page does not say whether it resolves Smartscape node IDs, so check the output of one run before passing <code>smartscape.affected_entities</code> IDs instead. Note also that the classic field names only <code>ENVIRONMENT-0000000000000001</code> on problems whose entity exists only in Smartscape (1,479 AWS EC2 problems over 7 days on the validation tenant, 11/11/2026), which no ownership lookup can resolve to a team. The output carries <code>slackChannels</code>, <code>msTeams</code>, <code>email</code> and <code>jira</code>, and each is a list per team (<em>&quot;A list of Slack contact details per team&quot;</em>), not a single channel (<a href="https://docs.dynatrace.com/docs/deliver/ownership/ownership-app/ownership-actions">Actions for Ownership (DT docs)</a>). Loop the Slack task over <code>result(&quot;get_owners&quot;).slackChannels</code> with the <strong>Loop task</strong> option and take the channel from each item; run the workflow once and read an item's shape in the Results tab before wiring it. That replaces hard-coded team names in the workflow.</li>
+<li><strong>Or route on <code>primary_tags.team</code></strong> in the trigger's custom filter or a task condition. <em>&quot;Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags.&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a>). The matcher is <code>primary_tags.team == &quot;payments&quot;</code>. Verify your entities carry the tag first: on the validation tenant <code>primary_tags.team</code> was null on every problem (09/24/2026).</li>
+</ul>
+<p><strong>FAQ-21 §5</strong> covers ownership coverage and the Problem fields mapping in depth.</p>
+<h3>Dynatrace API 1.337: <code>metadata</code> removed from the Environment API v1 events endpoints</h3>
+<p>The Dynatrace API 1.337 changelog lists, under <strong>Environment API v1</strong>, <code>GET /events</code> and <code>GET /events/{eventId}</code> with <em>&quot;Changed EventQueryResult schema (application/json) Changed property events Removed properties: metadata&quot;</em>. This affects only an HTTP task that calls the v1 endpoints <code>/api/v1/events</code> or <code>/api/v1/events/{eventId}</code> and parses <code>metadata</code>; drop that reference. Workflows started by a Problem or Davis event trigger read Grail records, which never had that property, so they are unaffected.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-337">Dynatrace API changelog 1.337 (DT docs)</a>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="routing-strategies"></a></p>
+<h2>1. Routing Strategies</h2>
+<blockquote>
+<p>⚠️ <strong>Migrating from alerting profiles? Duration suppression maps onto the trigger's Minimum duration option.</strong> An alerting profile can delay notification until a problem has been open longer than <em>N</em> minutes (<code>delayInMinutes</code>) — a common way to suppress transient blips. The problem trigger's <strong>Minimum duration</strong> option (renamed from <strong>Delay</strong> in 08/2026) postpones <em>&quot;the trigger until the problem has been open for at least the configured duration&quot;</em> — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on <code>dt.duration_marker</code> (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a>). Since its 09/07/2026 rewrite the <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">alert-notification upgrade guide (DT docs)</a> agrees: <em>&quot;The delay, update, and severity capabilities described in this guide exist only on the workflow trigger.&quot;</em> Earlier versions of that guide said there was no alternative; that line is gone.</p>
+<p>The values are fixed, so a delay that is not one of those nine has to be rounded — up suppresses a little more, down pages a little sooner. Treat a long delay as evidence the alert was the wrong <em>shape</em> rather than merely delayed: a profile suppressing 30 minutes of a firing condition is usually describing a burn-rate concern, which belongs in an SLO burn-rate alert (<strong>SLO-04</strong>) or a Davis anomaly detector (<strong>AIOPS-02</strong>). Inventory <code>delayInMinutes</code> across every profile and choose a Minimum duration for each; no special migration wave is needed. See <strong>MZ2POL-09</strong> §6.1.</p>
+</blockquote>
+<h3>Why Route Alerts?</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Impact</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alert fatigue</td>
+<td>Teams ignore alerts</td>
+<td>Route only relevant alerts</td>
+</tr>
+<tr>
+<td>Slow response</td>
+<td>Wrong team notified</td>
+<td>Route to owners</td>
+</tr>
+<tr>
+<td>Off-hours noise</td>
+<td>Sleep disruption</td>
+<td>Time-based routing</td>
+</tr>
+<tr>
+<td>Missed escalation</td>
+<td>Unacknowledged alerts</td>
+<td>Auto-escalation</td>
+</tr>
+</tbody>
+</table>
+<h3>Routing Dimensions</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Route Based On</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Severity</strong></td>
+<td><code>event.severity</code> (1–5)</td>
+<td>Critical (1) → PagerDuty, Minor (3) → Slack</td>
+</tr>
+<tr>
+<td><strong>Team</strong></td>
+<td><code>owner</code> / <code>dt.owner</code> tags, or Smartscape ownership</td>
+<td><code>owner:checkout</code> → #checkout-alerts</td>
+</tr>
+<tr>
+<td><strong>Service</strong></td>
+<td>Service name or entity ID</td>
+<td>Payment service → payments team</td>
+</tr>
+<tr>
+<td><strong>Time</strong></td>
+<td>Hour of day, day of week</td>
+<td>Weekends → on-call only</td>
+</tr>
+<tr>
+<td><strong>Environment</strong></td>
+<td>prod/staging/dev tags</td>
+<td>Prod → immediate, Dev → daily digest</td>
+</tr>
+</tbody>
+</table>
+<p><a id="conditional-expressions"></a></p>
+<h2>2. Conditional Expressions</h2>
+<p>A task condition decides whether a task runs. There is no workflow-level list of named conditions: each task carries <strong>one</strong> condition, written under the task itself. <em>&quot;You can express task conditions based on the final state of the predecessor task and as a custom condition to implement any custom logic.&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>YAML key</th>
+<th>What it holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>State condition</strong></td>
+<td><code>states</code></td>
+<td>One entry per predecessor task. The editor offers <em>success or skipped</em> (the default), <em>success</em>, <em>error or cancelled</em>, <em>error</em> and <em>any</em>; exported YAML uses <code>OK</code>, <code>SUCCESS</code>, <code>NOK</code>, <code>ERROR</code> and <code>ANY</code>, and Dynatrace's samples use <code>OK</code></td>
+</tr>
+<tr>
+<td><strong>Custom condition</strong></td>
+<td><code>custom</code></td>
+<td><strong>One</strong> Jinja expression; the task runs only when it is true. Combine checks with <code>and</code> / <code>or</code> / <code>not</code> inside it</td>
+</tr>
+<tr>
+<td><strong>Else</strong></td>
+<td><code>else</code></td>
+<td><code>STOP</code> or <code>SKIP</code>. The default is <em>stop here</em>: <em>&quot;if you want to skip this step and continue the workflow, you can change the else action from stop here (default) to skip&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>A task that follows the trigger directly has no predecessor: <em>&quot;It's not possible to add a Run this task if and Else condition to the first task.&quot;</em> It can still carry the custom condition: <em>&quot;Nevertheless, a custom condition can be configured to evaluate the properties of an event trigger context.&quot;</em> Dynatrace's own multi-channel sample nonetheless sets <code>else: SKIP</code> on its parallel first tasks in YAML, and the examples in this notebook follow it. In a routing workflow, set Else to <strong>Skip</strong> on every branch that may legitimately not run.</p>
+<p>Connection inputs take a connection <strong>ID</strong> (Slack: <em>&quot;Connection ID.&quot;</em>). In YAML, resolve a connection by its name with <code>connection()</code>: <em>&quot;Get a single connection by schema ID and connection name.&quot;</em> The connection picker in the editor fills the ID for you.</p>
+<h3>A Condition on a Task</h3>
+<pre><code class="language-yaml">tasks:
+  pagerduty_alert:
+    name: pagerduty_alert
+    action: dynatrace.pagerduty:send-event
+    predecessors: []
+    conditions:
+      states: {}
+      # One expression: AND, OR and NOT go inside it
+      custom: '{{ (event().get(&quot;event.severity&quot;) | int(5)) &lt;= 1 and &quot;env:prod&quot; in (event().get(&quot;entity_tags&quot;) or []) }}'
+      else: SKIP
+    input:
+      connectionId: &quot;{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-prod') }}&quot;
+      # ... event inputs as in §3
+</code></pre>
+<h3>Negating a Condition</h3>
+<pre><code class="language-yaml">tasks:
+  slack_only_for_non_critical:
+    name: slack_only_for_non_critical
+    action: dynatrace.slack:slack-send-message
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ not ((event().get(&quot;event.severity&quot;) | int(5)) &lt;= 1) }}'
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#alerts-production&quot;
+      message: &quot;{{ event()['event.name'] }}&quot;
+</code></pre>
+<h3>Conditioning on a Predecessor's State</h3>
+<pre><code class="language-yaml">tasks:
+  notify_on_failure:
+    name: notify_on_failure
+    action: dynatrace.slack:slack-send-message
+    predecessors:
+      - create_incident
+    conditions:
+      states:
+        create_incident: ERROR    # run only if create_incident failed
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#alerts-integration&quot;
+      message: &quot;Incident creation failed for {{ event()['display_id'] }}&quot;
+</code></pre>
+<h3>Expressions</h3>
+<pre><code class="language-jinja"># AND within one expression
+{{ (event().get(&quot;event.severity&quot;) | int(5)) &lt;= 1 and &quot;env:prod&quot; in (event().get(&quot;entity_tags&quot;) or []) }}
+
+# Critical or Major (1 or 2)
+{{ (event().get(&quot;event.severity&quot;) | int(5)) &lt;= 2 }}
+
+# Check if field exists (root_cause.smartscape_entity replaces the deprecated root_cause_entity_id)
+{{ event().get(&quot;root_cause.smartscape_entity&quot;) is not none }}
+</code></pre>
+<p>Read any field a problem may lack with <code>.get()</code> and a default. The reference documents that reading a missing attribute fails with an <em>&quot;Undefined variables&quot;</em> message (shown there for <code>input()</code> and <code>result()</code>), so the task errors rather than evaluating false. Problem records carry tags in <code>entity_tags</code>, an array of <code>key:value</code> strings, so <code>in</code> tests for an exact element. The field is deprecated (<em>&quot;<code>entity_tags</code> still exists but is deprecated (Dynatrace Classic)&quot;</em>): prefer the trigger's tag filter (§4) or <code>primary_tags.*</code>. An earlier <code>tags</code> string field stopped appearing on problem records on 10/08/2026 on the validation tenant, so a condition that reads <code>tags</code> is always false and its task skips.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Jinja expressions for Workflows (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — maps <code>{Tags}</code> to <em>&quot;primary_tags.</em> entity_tags still exists but is deprecated (Dynatrace Classic)&quot;*</sub></li>
+<li><sub><strong>Dictionary:</strong> model <code>davis.problem</code> (<code>dt.davis.problems</code>) lists <code>entity_tags</code> and no <code>tags</code> field, read 10/15/2026. Tenant: <code>countIf(isNotNull(tags))</code> 0 of 4,282 problems over 7 days, <code>entity_tags</code> (array) on 2,076.</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions">Slack Connector actions (DT docs)</a></sub></li>
+<li><sub><a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml">threat-detection-notification-sender.yaml (Dynatrace GitHub)</a> — parallel first tasks with <code>states: {}</code>, a <code>custom</code> condition and <code>else: SKIP</code></sub></li>
+</ul>
+</blockquote>
+<p><a id="routing-by-severity"></a></p>
+<h2>3. Routing by Severity</h2>
+<h3>Severity-Based Routing Pattern</h3>
+<p>The problem record carries severity as <code>event.severity</code>: <em>&quot;Severity is expressed as a numeric value from 1 (the most critical state) to 5 (purely informational event).&quot;</em> The levels are named 1 Critical, 2 Major, 3 Minor, 4 Warning and 5 Informational. There is no <code>CRITICAL</code>/<code>HIGH</code>/<code>MEDIUM</code>/<code>LOW</code> string on the record, so conditions comparing against those strings are false for every problem.</p>
+<p>Problems carry only the first three levels. <em>&quot;The problem inherits the highest (most critical) severity across all grouped events.&quot;</em> <em>&quot;Warning and Informational events appear in the event list and can be grouped into a problem by problem correlation, but they don't raise problems on their own.&quot;</em> On the validation tenant, 3,755 of 4,244 problems in the 7 days to 10/06/2026 carried <code>3</code> and the other 489 carried <code>1</code>; none carried <code>2</code>, <code>4</code> or <code>5</code>. Route on the tiers below:</p>
+<table>
+<thead>
+<tr>
+<th><code>event.severity</code></th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1 (Critical)</strong></td>
+<td>PagerDuty + Slack #alerts-urgent</td>
+</tr>
+<tr>
+<td><strong>2 (Major)</strong></td>
+<td>Slack #alerts-production + email to the team</td>
+</tr>
+<tr>
+<td><strong>3 (Minor)</strong>, or unset</td>
+<td>Slack #alerts-production</td>
+</tr>
+</tbody>
+</table>
+<p>To drop low tiers before any condition runs, set the Problem trigger's <strong>Severity</strong> filter: <em>&quot;Selecting a severity level triggers the workflow for that level and all higher (more critical) levels.&quot;</em></p>
+<blockquote>
+<p><strong>Breaking — SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout): severity is no longer defaulted.</strong> <em>&quot;Davis events and problems no longer default <code>event.severity</code> to <code>3</code>.&quot;</em> A severity filter that was matching the default stops matching once 1.348 reaches your tenant: <em>&quot;Workflows with a Davis event/problem trigger that filter on <code>event.severity=3</code> expecting it to be defaulted, might need to be changed to filter for <code>Any</code> severity to keep being triggered.&quot;</em> Before relying on severity tiers, check which event sources actually <strong>set</strong> a severity. For sources that do not, route on <code>event.category</code>, ownership or tags instead, or restore a default with a Davis event OpenPipeline processor. Until 1.348 reaches your tenant, the defaulting behavior still applies and the conditions below keep working. The <code>int(5)</code> in them treats a missing severity as the least severe tier, so an unset severity lands with Minor and never pages. <strong>FAQ-21 §6</strong> carries the same note.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity">Standardized event severity (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — GA, rollout start 10/12/2026; re-read 10/23/2026. <strong>Dictionary:</strong> <code>event.severity</code> (<code>stable</code>, type <code>long</code>), read 11/11/2026.</sub></p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZFdGNCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwRjE3MkEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMUUyOTNCIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0cmlnZ2VyR3JhZDQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0E3OEJGQSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3QzNBRUQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNyaXRpY2FsR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojREUzNTBCIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2I5MWMxYyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaGlnaEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0ZGQjgwMCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im1lZGl1bUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZGRiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTRhOWUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Imxvd0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzY0NzQ4QiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM0NzU1NjkiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3dXRjQiIHg9Ii0yMCUiIHk9Ii0yMCUiIHdpZHRoPSIxNDAlIiBoZWlnaHQ9IjE0MCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjMiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYXJyb3dXRjQiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjYiIHJlZlg9IjciIHJlZlk9IjMiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCA4IDMsIDAgNiIgZmlsbD0iIzk0QTNCOCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9InVybCgjYmdHcmFkV0Y0KSIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNldmVyaXR5LUJhc2VkIE5vdGlmaWNhdGlvbiBSb3V0aW5nPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPk9uZSB3b3JrZmxvdywgb25lIGN1c3RvbSBjb25kaXRpb24gcGVyIHRhc2sgb24gZXZlbnQuc2V2ZXJpdHkgKHNldik6IDQgc2V2ZXJpdHkgcGF0aHM8L3RleHQ+CgogIDwhLS0gVHJpZ2dlciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjI1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjEwMCIgcng9IjEwIiBmaWxsPSJ1cmwoI3RyaWdnZXJHcmFkNCkiIGZpbHRlcj0idXJsKCNzaGFkb3dXRjQpIi8+CiAgPHRleHQgeD0iMTI1IiB5PSIyNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkRhdmlzIFByb2JsZW08L3RleHQ+CiAgPHRleHQgeD0iMTI1IiB5PSIyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiPlRyaWdnZXIgZmlyZXM8L3RleHQ+CiAgPHRleHQgeD0iMTI1IiB5PSIzMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiPmV2ZW50LnNldmVyaXR5IDHigJM1PC90ZXh0PgoKICA8IS0tIERlY2lzaW9uIERpYW1vbmQgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIyOTAsMjc1IDM2MCwyMTAgNDMwLDI3NSAzNjAsMzQwIiBmaWxsPSIjMzM0MTU1IiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjM2MCIgeT0iMjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5TZXZlcml0eTwvdGV4dD4KICA8dGV4dCB4PSIzNjAiIHk9IjI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QnJhbmNoIG9uPC90ZXh0PgogIDx0ZXh0IHg9IjM2MCIgeT0iMzA2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jb25kaXRpb248L3RleHQ+CgogIDwhLS0gQXJyb3cgdHJpZ2dlciB0byBkZWNpc2lvbiAtLT4KICA8bGluZSB4MT0iMjE1IiB5MT0iMjc1IiB4Mj0iMjg1IiB5Mj0iMjc1IiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1dGNCkiLz4KCiAgPCEtLSBDUklUSUNBTCBQYXRoICh0b3ApIC0tPgogIDxsaW5lIHgxPSIzNjAiIHkxPSIyMTAiIHgyPSIzNjAiIHkyPSIxMTUiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjM2MCIgeTE9IjExNSIgeDI9IjU1NSIgeTI9IjExNSIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXRjQpIi8+CiAgPHRleHQgeD0iNDU1IiB5PSIxMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPjEgQ1JJVElDQUw8L3RleHQ+CgogIDwhLS0gSElHSCBQYXRoIChtaWQtdXApIC0tPgogIDxsaW5lIHgxPSI0MzAiIHkxPSIyNDUiIHgyPSI1NTUiIHkyPSIxOTAiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V0Y0KSIvPgogIDx0ZXh0IHg9IjQ5NSIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj4yIE1BSk9SPC90ZXh0PgoKICA8IS0tIE1FRElVTSBQYXRoIChtaWQtZG93bikgLS0+CiAgPGxpbmUgeDE9IjQzMCIgeTE9IjMwNSIgeDI9IjU1NSIgeTI9IjM1MCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXRjQpIi8+CiAgPHRleHQgeD0iNDk1IiB5PSIzNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPjMgTUlOT1I8L3RleHQ+CgogIDwhLS0gTE9XIFBhdGggKGJvdHRvbSkgLS0+CiAgPGxpbmUgeDE9IjM2MCIgeTE9IjM0MCIgeDI9IjM2MCIgeTI9IjQyNSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMzYwIiB5MT0iNDI1IiB4Mj0iNTU1IiB5Mj0iNDI1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1dGNCkiLz4KICA8dGV4dCB4PSI0NTUiIHk9IjQxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+NOKAkzUgV0FSTiAvIElORk88L3RleHQ+CgogIDwhLS0gQ1JJVElDQUwgQWN0aW9ucyAtLT4KICA8cmVjdCB4PSI1NjAiIHk9IjkwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0idXJsKCNjcml0aWNhbEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93V0Y0KSIvPgogIDx0ZXh0IHg9IjY2MCIgeT0iMTEzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5QYWdlckR1dHkgcGFnZTwvdGV4dD4KICA8dGV4dCB4PSI2NjAiIHk9IjEzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+KyBTbGFjayAjYWxlcnRzLXVyZ2VudDwvdGV4dD4KCiAgPCEtLSBISUdIIEFjdGlvbnMgLS0+CiAgPHJlY3QgeD0iNTYwIiB5PSIxNjUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIHJ4PSI2IiBmaWxsPSJ1cmwoI2hpZ2hHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1dGNCkiLz4KICA8dGV4dCB4PSI2NjAiIHk9IjE4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U2xhY2sgYWxlcnQgKyBlbWFpbDwvdGV4dD4KICA8dGV4dCB4PSI2NjAiIHk9IjIwNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+I2FsZXJ0cy1wcm9kdWN0aW9uIMK3IHRlYW0gaW5ib3g8L3RleHQ+CgogIDwhLS0gTUVESVVNIEFjdGlvbnMgLS0+CiAgPHJlY3QgeD0iNTYwIiB5PSIzMjUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIHJ4PSI2IiBmaWxsPSJ1cmwoI21lZGl1bUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93V0Y0KSIvPgogIDx0ZXh0IHg9IjY2MCIgeT0iMzQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TbGFjayBhbGVydDwvdGV4dD4KICA8dGV4dCB4PSI2NjAiIHk9IjM2NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSI+I2FsZXJ0cy1wcm9kdWN0aW9uIMK3IGFsc28gdW5zZXQ8L3RleHQ+CgogIDwhLS0gTE9XIEFjdGlvbnMgLS0+CiAgPHJlY3QgeD0iNTYwIiB5PSI0MDAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIHJ4PSI2IiBmaWxsPSJ1cmwoI2xvd0dyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93V0Y0KSIvPgogIDx0ZXh0IHg9IjY2MCIgeT0iNDIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5ObyBwcm9ibGVtIHJhaXNlZDwvdGV4dD4KICA8dGV4dCB4PSI2NjAiIHk9IjQ0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+V2FybmluZy9JbmZvIGV2ZW50cyBuZXZlciBvcGVuIG9uZTwvdGV4dD4KCiAgPCEtLSBDb25kaXRpb24gU3ludGF4IChyaWdodCBzaWRlKSAtLT4KICA8cmVjdCB4PSI3ODAiIHk9IjkwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjM3MCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iODM3IiB5PSIxMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkNvbmRpdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI4MzciIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+c3ludGF4PC90ZXh0PgoKICA8dGV4dCB4PSI3OTAiIHk9IjE2MCIgZmlsbD0iI0E3OEJGQSIgZm9udC1zaXplPSIxMSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+Y29uZGl0aW9uczo8L3RleHQ+CiAgPHRleHQgeD0iNzkwIiB5PSIxNzgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPnN0YXRlczoge308L3RleHQ+CiAgPHRleHQgeD0iNzkwIiB5PSIxOTQiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPmN1c3RvbTogJ3t7PC90ZXh0PgogIDx0ZXh0IHg9Ijc5MCIgeT0iMjEwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj4gIHNldiAmbHQ7PSAxIH19JzwvdGV4dD4KICA8dGV4dCB4PSI3OTAiIHk9IjIyNiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+ZWxzZTogU0tJUDwvdGV4dD4KCiAgPHRleHQgeD0iNzkwIiB5PSIyNjAiIGZpbGw9IiNBNzhCRkEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPnRhc2sgb3B0aW9uczo8L3RleHQ+CiAgPHRleHQgeD0iNzkwIiB5PSIyNzgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPnJldHJ5LmNvdW50OiAzPC90ZXh0PgogIDx0ZXh0IHg9Ijc5MCIgeT0iMjk0IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj53YWl0QmVmb3JlOiAxODAwPC90ZXh0PgoKICA8dGV4dCB4PSI3OTAiIHk9IjMyOCIgZmlsbD0iI0E3OEJGQSIgZm9udC1zaXplPSIxMSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+cHJlZGVjZXNzb3JzOjwvdGV4dD4KICA8dGV4dCB4PSI3OTAiIHk9IjM0NiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+LSBlbnJpY2hfdGFzazwvdGV4dD4KCiAgPHRleHQgeD0iNzkwIiB5PSIzODAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlNlZSBXRkxPVy0wNDwvdGV4dD4KICA8dGV4dCB4PSI3OTAiIHk9IjM5NSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+wqcyIGNvbmRpdGlvbnM8L3RleHQ+CiAgPHRleHQgeD0iNzkwIiB5PSI0MTAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPisgwqc2IGVzY2FsYXRpb248L3RleHQ+Cjwvc3ZnPgo=" alt="Severity-Based Notification Routing" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| `event.severity` | Path | Action |
+|------------------|------|--------|
+| 1 (Critical) | PagerDuty page + Slack #alerts-urgent | Page on-call |
+| 2 (Major) | Slack alert + email | #alerts-production and the team inbox |
+| 3 (Minor), or unset | Slack alert | #alerts-production; `int(5)` puts an unset severity here |
+| 4–5 (Warning, Informational) | No problem raised | These events never open a problem on their own |
+Condition syntax: each task has `conditions: {states: {}, custom: '{{ sev <= 1 }}', else: SKIP}`, where sev is `(event().get("event.severity") | int(5))`. Task options: `retry.count: 3`, `waitBefore: 1800` (seconds), `predecessors: [enrich_task]`. See WFLOW-04 §2 (conditions) and §6 (escalation).
+For environments where SVG doesn't render
+-->
+<h3>Workflow Configuration</h3>
+<pre><code class="language-yaml">tasks:
+  # 1 Critical: page on-call + Slack urgent
+  pagerduty_critical:
+    name: pagerduty_critical
+    action: dynatrace.pagerduty:send-event
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ (event().get(&quot;event.severity&quot;) | int(5)) &lt;= 1 }}'
+      else: SKIP
+    input:
+      connectionId: &quot;{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-prod') }}&quot;   # an Events connection (routing key)
+      eventAction: trigger
+      severity: critical
+      summary: &quot;{{ event()['event.name'] }}&quot;
+      source: dynatrace
+      dedupKey: &quot;dynatrace-{{ event()['display_id'] }}&quot;
+
+  slack_urgent:
+    name: slack_urgent
+    action: dynatrace.slack:slack-send-message
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ (event().get(&quot;event.severity&quot;) | int(5)) &lt;= 1 }}'
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#alerts-urgent&quot;
+      message: &quot;:rotating_light: *CRITICAL* {{ event()['event.name'] }}&quot;
+
+  # 2 Major: Slack alerts (add an email task with the same condition)
+  slack_major:
+    name: slack_major
+    action: dynatrace.slack:slack-send-message
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ (event().get(&quot;event.severity&quot;) | int(5)) == 2 }}'
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#alerts-production&quot;
+      message: &quot;:warning: *MAJOR* {{ event()['event.name'] }}&quot;
+
+  # 3 Minor, or unset: Slack only
+  slack_minor:
+    name: slack_minor
+    action: dynatrace.slack:slack-send-message
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ (event().get(&quot;event.severity&quot;) | int(5)) &gt;= 3 }}'
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#alerts-production&quot;
+      message: &quot;:information_source: *{{ event()['event.category'] }}* {{ event()['event.name'] }}&quot;
+</code></pre>
+<blockquote>
+<p><strong>Severity levels.</strong> <code>event.severity</code> is an integer from 1 to 5, with the names Dynatrace uses in the Problem trigger and the problems list:</p>
+<table>
+<thead>
+<tr>
+<th>Integer</th>
+<th>Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Major</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Minor</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Informational</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The conditions in this section key on this numeric field.</strong> Earlier revisions compared against <code>&quot;CRITICAL&quot;</code> / <code>&quot;HIGH&quot;</code> / <code>&quot;MEDIUM&quot;</code> / <code>&quot;LOW&quot;</code>; the problem record carries no such strings, so those conditions were false for every problem. <em>&quot;Grail stores severity as a numeric value.&quot;</em> The conditions still convert with <code>| int</code>, because the value in the <code>event()</code> payload may arrive as a string; Dynatrace's own PagerDuty template likewise normalizes it with <code>| string | trim</code> before mapping. The field is <code>stable</code> in the semantic dictionary (read 11/11/2026). In DQL (problem feed, reporting) it is queried directly as <code>event.severity</code>; see <strong>AIOPS-03 §5</strong> for the severity rollup pattern.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity">Standardized event severity (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-problem-notification-template">Send problem as event to PagerDuty template (DT docs)</a>. <strong>Dictionary:</strong> <code>event.severity</code> (<code>stable</code>, type <code>long</code>), read 11/11/2026.</sub></p>
+</blockquote>
+<p><a id="routing-by-teamservice"></a></p>
+<h2>4. Routing by Team/Service</h2>
+<h3>Route by Ownership Tags (recommended)</h3>
+<p>Dynatrace's ownership keys are built in: <em>&quot;By default, Dynatrace provides two keys: owner and dt.owner .&quot;</em> Tag entities with them, then give each team a workflow whose Problem trigger filters on its tag with the trigger's <em>&quot;Affected entities : Filter by entity tags&quot;</em> option. The routing decision is then made before any task runs, and no condition is needed. <strong>FAQ-21 §5</strong> walks through this pattern.</p>
+<h3>Tag Conditions in One Workflow (fallback)</h3>
+<p>When one workflow must fan out to several teams, test the problem's tags in each task's custom condition. <code>entity_tags</code> is an array, so these are exact matches (§2).</p>
+<pre><code class="language-yaml">tasks:
+  notify_checkout:
+    name: notify_checkout
+    action: dynatrace.slack:slack-send-message
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ &quot;owner:checkout&quot; in (event().get(&quot;entity_tags&quot;) or []) or &quot;owner:cart&quot; in (event().get(&quot;entity_tags&quot;) or []) }}'
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#checkout-alerts&quot;
+      message: &quot;{{ event()['event.name'] }}&quot;
+
+  notify_payments:
+    name: notify_payments
+    action: dynatrace.slack:slack-send-message
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ &quot;owner:payments&quot; in (event().get(&quot;entity_tags&quot;) or []) }}'
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#payments-alerts&quot;
+      message: &quot;{{ event()['event.name'] }}&quot;
+
+  notify_platform:
+    name: notify_platform
+    action: dynatrace.slack:slack-send-message
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ &quot;owner:platform&quot; in (event().get(&quot;entity_tags&quot;) or []) }}'
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#platform-alerts&quot;
+      message: &quot;{{ event()['event.name'] }}&quot;
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/ownership/assign-team-ownership">Assign team ownership (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Management Zone Routing (legacy — do not build new workflows on this)</h3>
+<blockquote>
+<p>⚠️ <strong>This pattern has nothing to match.</strong> <code>management_zones</code> is <strong>not present on problem records</strong>: on a live tenant (10/05/2026) 0 of 15,878 problems in <code>dt.davis.problems</code> over 30 days carried it, while 14 of 15 hosts belonged to a management zone. A condition that reads it has nothing to evaluate against, whether or not your zones still exist. There is no Management Zone filter on the problem trigger itself (WFLOW-02 §2).</p>
+<p>Use the ownership-tag pattern above instead. If a region is the routing dimension, tag the entities (<code>region:us-east</code>) or use Smartscape ownership rather than reading the MZ array. Teams actively migrating off MZs should read MZ2POL-01 §5.</p>
+</blockquote>
+<p>To confirm on your own tenant: <code>fetch dt.davis.problems, from:-30d | summarize n = countIf(isNotNull(management_zones))</code>.</p>
+<h3>Dynamic Channel Selection</h3>
+<p>Use JavaScript to determine the channel dynamically:</p>
+<pre><code class="language-javascript">import { execution } from '@dynatrace-sdk/automation-utils';
+
+export default async function () {
+  const ev = (await execution()).params.event;   // trigger payload
+  // entity_tags still works but is deprecated (Dynatrace Classic) - see the upgrade guide
+  const tags = ev.entity_tags || [];            // &quot;key:value&quot; strings
+
+  // Find the ownership tag
+  const ownerTag = tags.find(t =&gt; t.startsWith('owner:'));
+  const team = ownerTag ? ownerTag.split(':')[1] : 'platform';
+
+  return {
+    channel: `#${team}-alerts`,
+    team: team
+  };
+}
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alert notification (DT docs)</a> — <em>&quot;entity_tags still exists but is deprecated (Dynatrace Classic)&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="time-based-routing"></a></p>
+<h2>5. Time-Based Routing</h2>
+<h3>Business Hours vs Off-Hours</h3>
+<p><code>now()</code> is UTC unless you pass a time zone: <em>&quot;If no timezone is provided, UTC is used.&quot;</em> Without one, 09:00–17:00 below would mean 09:00–17:00 UTC, which is 05:00–13:00 in New York, and the weekday boundary would fall at midnight UTC. Pass the team's zone (a pytz name) to every time check:</p>
+<pre><code class="language-yaml">tasks:
+  # Business hours (New York): Slack channel
+  slack_business_hours:
+    name: slack_business_hours
+    action: dynatrace.slack:slack-send-message
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ now(&quot;America/New_York&quot;).weekday() &lt; 5 and now(&quot;America/New_York&quot;).hour &gt;= 9 and now(&quot;America/New_York&quot;).hour &lt; 17 }}'
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#alerts-production&quot;
+      message: &quot;{{ event()['event.name'] }}&quot;
+
+  # Off-hours: PagerDuty for Critical only
+  pagerduty_off_hours:
+    name: pagerduty_off_hours
+    action: dynatrace.pagerduty:send-event
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ (now(&quot;America/New_York&quot;).weekday() &gt;= 5 or now(&quot;America/New_York&quot;).hour &lt; 9 or now(&quot;America/New_York&quot;).hour &gt;= 17) and (event().get(&quot;event.severity&quot;) | int(5)) &lt;= 1 }}'
+      else: SKIP
+    input:
+      connectionId: &quot;{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-prod') }}&quot;
+      eventAction: trigger
+      severity: critical
+      summary: &quot;[Off-Hours] {{ event()['event.name'] }}&quot;
+      source: dynatrace
+      dedupKey: &quot;dynatrace-{{ event()['display_id'] }}&quot;
+
+  # Off-hours, not Critical: queue for morning
+  slack_queue:
+    name: slack_queue
+    action: dynatrace.slack:slack-send-message
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ (now(&quot;America/New_York&quot;).weekday() &gt;= 5 or now(&quot;America/New_York&quot;).hour &lt; 9 or now(&quot;America/New_York&quot;).hour &gt;= 17) and not ((event().get(&quot;event.severity&quot;) | int(5)) &lt;= 1) }}'
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#alerts-queue&quot;
+      message: &quot;:moon: *Queued for review* {{ event()['event.name'] }}&quot;
+</code></pre>
+<p>For holidays and irregular hours, the same reference documents business calendars, read with <code>calendars()</code>.</p>
+<h3>Weekend-Only Routing</h3>
+<pre><code class="language-yaml">tasks:
+  weekend_oncall:
+    name: weekend_oncall
+    action: dynatrace.pagerduty:send-event
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ now(&quot;America/New_York&quot;).weekday() &gt;= 5 and (event().get(&quot;event.severity&quot;) | int(5)) &lt;= 1 }}'
+      else: SKIP
+    input:
+      # Page the weekend on-call rotation: a connection that holds that rotation's
+      # routing key. Credentials live in connections, not in expressions.
+      connectionId: &quot;{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-weekend-oncall') }}&quot;
+      # ... event inputs as in §3
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Jinja expressions for Workflows (DT docs)</a> — <em>&quot;The current timestamp in UTC or time zone is provided as the input parameter.&quot;</em></sub></p>
+</blockquote>
+<p><a id="escalation-patterns"></a></p>
+<h2>6. Escalation Patterns</h2>
+<h3>Timed Escalation</h3>
+<p>Escalate if the problem is still active after a time window. This pattern checks the Dynatrace problem's <code>event.status</code>; it does not see whether anyone acknowledged the alert in Slack or PagerDuty. In community practice, acknowledgment-aware escalation is left to the paging tool's own escalation policy.</p>
+<pre><code class="language-yaml">tasks:
+  # Step 1: Initial notification
+  initial_slack:
+    name: initial_slack
+    action: dynatrace.slack:slack-send-message
+    predecessors: []
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#alerts-production&quot;
+      message: &quot;:warning: {{ event()['event.name'] }} - paging on-call if still active in 15 min&quot;
+
+  # Step 2: After 15 minutes, check if still open (event.status is ACTIVE or
+  # CLOSED — never OPEN). There is no &quot;wait&quot; action: the delay is this task's
+  # own Wait before option, in seconds (max 86400).
+  check_problem_status:
+    name: check_problem_status
+    action: dynatrace.automations:run-javascript
+    predecessors:
+      - initial_slack
+    waitBefore: 900
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { queryExecutionClient } from '@dynatrace-sdk/client-query';
+
+        export default async function () {
+          const ev = (await execution()).params.event;   // snapshot from trigger time
+          // Re-query: the trigger payload is 15 minutes old by now
+          const started = await queryExecutionClient.queryExecute({ body: { requestTimeoutMilliseconds: 30000, query:
+            `fetch dt.davis.problems, from:-2h | filter display_id == &quot;${ev['display_id']}&quot; | sort timestamp desc | limit 1 | fields event.status` } });
+          let q = started;   // no result yet if the query outlasted the timeout - poll (see WFLOW-08 §2)
+          while (q &amp;&amp; (q.state === 'NOT_STARTED' || q.state === 'RUNNING')) {
+            q = await queryExecutionClient.queryPoll({ requestToken: started.requestToken, requestTimeoutMilliseconds: 30000 });
+          }
+          if (!q || q.state !== 'SUCCEEDED') throw new Error(`DQL query did not succeed: ${q?.state ?? 'no response'}`);
+          return { escalate: q.result.records[0]?.['event.status'] === 'ACTIVE' };
+        }
+
+  # Step 3: Escalate to PagerDuty
+  escalate_pagerduty:
+    name: escalate_pagerduty
+    action: dynatrace.pagerduty:send-event
+    predecessors:
+      - check_problem_status
+    conditions:
+      states:
+        check_problem_status: OK
+      custom: '{{ result(&quot;check_problem_status&quot;).escalate }}'
+      else: SKIP
+    input:
+      connectionId: &quot;{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-prod') }}&quot;
+      eventAction: trigger
+      severity: error                  # Events API v2 accepts critical, error, warning, info
+      source: dynatrace
+      dedupKey: &quot;dynatrace-{{ event()['display_id'] }}&quot;
+      summary: &quot;[ESCALATED] {{ event()['event.name'] }} - still active after 15 min&quot;
+</code></pre>
+<p>Workflows has no separate wait action. <strong>Wait before</strong> is a task option: <em>&quot;The Wait before option controls how long a task stays in the waiting state before being run.&quot;</em> It takes seconds, up to 86,400, or a Jinja expression.</p>
+<p>The same effect needs no waiting task at all: create a second workflow whose Problem trigger has <strong>Minimum duration</strong> 15 minutes and holds only the PagerDuty task. <em>&quot;Minimum duration : Postpones the trigger until the problem has been open for at least the configured duration.&quot;</em> A problem that closes within 15 minutes never starts it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows — Task options (DT docs)</a> — <em>&quot;The default Wait is 0 second and max value is 86400 seconds.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-actions">PagerDuty Connector actions (DT docs)</a> — <em>&quot;Trigger, acknowledge, or resolve an alert in PagerDuty using the Events API v2&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Multi-Tier Escalation</h3>
+<pre><code>0 min  → Slack channel notification
+15 min → Email to team lead
+30 min → PagerDuty to on-call
+60 min → PagerDuty to manager
+</code></pre>
+<p><a id="multi-channel-strategy"></a></p>
+<h2>7. Multi-Channel Strategy</h2>
+<h3>Recommended Channel Matrix</h3>
+<table>
+<thead>
+<tr>
+<th><code>event.severity</code></th>
+<th>Environment</th>
+<th>Channel(s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 (Critical)</td>
+<td>Production</td>
+<td>PagerDuty + Slack urgent + Email</td>
+</tr>
+<tr>
+<td>1 (Critical)</td>
+<td>Staging</td>
+<td>Slack alerts</td>
+</tr>
+<tr>
+<td>2 (Major)</td>
+<td>Production</td>
+<td>Slack alerts + Email</td>
+</tr>
+<tr>
+<td>2 (Major)</td>
+<td>Staging</td>
+<td>Slack alerts</td>
+</tr>
+<tr>
+<td>3 (Minor)</td>
+<td>Production</td>
+<td>Slack alerts</td>
+</tr>
+<tr>
+<td>3 (Minor)</td>
+<td>Staging</td>
+<td>Slack (daily digest)</td>
+</tr>
+<tr>
+<td>unset (SaaS 1.348+)</td>
+<td>Any</td>
+<td>Slack (daily digest), until the source sets a severity</td>
+</tr>
+</tbody>
+</table>
+<p>Levels 4 (Warning) and 5 (Informational) do not raise problems on their own (§3), so a problem-triggered workflow needs no row for them.</p>
+<h3>Complete Multi-Channel Workflow</h3>
+<pre><code class="language-yaml">tasks:
+  # PagerDuty: Critical + Production
+  pagerduty:
+    name: pagerduty
+    action: dynatrace.pagerduty:send-event
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ (event().get(&quot;event.severity&quot;) | int(5)) &lt;= 1 and &quot;env:prod&quot; in (event().get(&quot;entity_tags&quot;) or []) }}'
+      else: SKIP
+    input:
+      connectionId: &quot;{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-prod') }}&quot;
+      # ... event inputs as in §3
+
+  # Slack Urgent: Critical + Production
+  slack_urgent:
+    name: slack_urgent
+    action: dynatrace.slack:slack-send-message
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ (event().get(&quot;event.severity&quot;) | int(5)) &lt;= 1 and &quot;env:prod&quot; in (event().get(&quot;entity_tags&quot;) or []) }}'
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#alerts-urgent&quot;
+      message: &quot;:rotating_light: {{ event()['event.name'] }}&quot;
+
+  # Slack Standard: Major or above + Production
+  slack_standard:
+    name: slack_standard
+    action: dynatrace.slack:slack-send-message
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ (event().get(&quot;event.severity&quot;) | int(5)) &lt;= 2 and &quot;env:prod&quot; in (event().get(&quot;entity_tags&quot;) or []) }}'
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-production') }}&quot;
+      channel: &quot;#alerts-production&quot;
+      message: &quot;{{ event()['event.name'] }}&quot;
+
+  # Email: Critical, or Major + Production
+  email_alert:
+    name: email_alert
+    action: dynatrace.email:send-email
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ (event().get(&quot;event.severity&quot;) | int(5)) &lt;= 1 or ((event().get(&quot;event.severity&quot;) | int(5)) == 2 and &quot;env:prod&quot; in (event().get(&quot;entity_tags&quot;) or [])) }}'
+      else: SKIP
+    # input: to, subject, content
+</code></pre>
+<h3>Query Workflow Routing Effectiveness</h3>
+<pre><code class="language-dql">// Workflow executions by outcome
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| summarize executions = count(), by:{dt.automation_engine.state}
+| sort executions desc
+</code></pre>
+<pre><code class="language-dql">// Task execution distribution by notification channel
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;ACTION_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| summarize executions = count(), by:{dt.automation_engine.action.app, dt.automation_engine.action.function}
+| sort executions desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Skipped tasks (conditions not met)
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;TASK_EXECUTION&quot;
+| filter in(dt.automation_engine.state, {&quot;SKIPPED&quot;, &quot;DISCARDED&quot;})
+| summarize skipped = count(), by:{dt.automation_engine.workflow.title, dt.automation_engine.task.name, dt.automation_engine.state}
+| sort skipped desc
+| limit 25
+</code></pre>
+<h2>Next Steps</h2>
+<p>With routing configured, integrate with incident management:</p>
+<h3>Recommended Path</h3>
+<ol>
+<li><strong>WFLOW-05: PagerDuty &amp; ServiceNow</strong> - Create incidents automatically</li>
+<li><strong>WFLOW-06: Custom Templates</strong> - Rich message formatting</li>
+<li><strong>WFLOW-07: Problem-Triggered Remediation</strong> - Auto-remediation</li>
+</ol>
+<h3>Key Takeaways</h3>
+<ul>
+<li><strong>Conditions</strong> live on each task: predecessor states, one custom Jinja expression, and an Else of Stop or Skip</li>
+<li><strong>Severity routing</strong> keys on <code>event.severity</code> 1 Critical / 2 Major / 3 Minor; problems never carry 4 or 5</li>
+<li><strong>Team routing</strong> uses <code>owner</code> / <code>dt.owner</code> tags (best in the trigger's tag filter) or Smartscape ownership — not management zones</li>
+<li><strong>Time-based routing</strong> reduces off-hours noise; pass a time zone to <code>now()</code>, which is UTC otherwise</li>
+<li><strong>Escalation patterns</strong> prevent missed alerts</li>
+<li>Test conditions with On-Demand trigger before production</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Why and when to route alerts conditionally</li>
+<li>Conditional expression syntax and operators</li>
+<li>Severity-based routing patterns</li>
+<li>Team routing by entity tag, and why management-zone routing is now legacy</li>
+<li>Time-based (business hours) routing</li>
+<li>Escalation with wait-and-check patterns, or a second workflow with a Minimum duration</li>
+<li>Multi-channel notification strategy</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Workflow reference / Jinja expressions + conditions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows — task conditions and options (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity">Standardized event severity (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions">Workflow actions umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions">Notification actions umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Davis Problems app (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications">Alerting and notifications umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

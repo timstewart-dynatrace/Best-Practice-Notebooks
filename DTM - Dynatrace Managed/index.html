@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM - Dynatrace Managed</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../">Best Practice Notebooks</a><span class="sep">/</span><span aria-current="page">DTM — Dynatrace Managed</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="dtm---dynatrace-managed">DTM - Dynatrace Managed</h1>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<p>Best practices specific to a self-hosted Dynatrace Managed cluster: designing and configuring it, and keeping it healthy — its nodes, data stores, capacity, connectivity to Mission Control, backups and upgrades.</p>
+<blockquote>
+<p><strong>Formerly MCH — Managed Cluster Health.</strong> DTM-10 to DTM-16 and DTM-99 were published as MCH-01 to MCH-07 and MCH-99 until October 2026. DTM-00 maps every old notebook to its new number.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> This series has no Dynatrace notebook JSON. Dynatrace Managed has no Grail, so there are no DQL queries to run — every check is a Cluster Management Console view, a cluster event, or a Cluster API call. Read it as Markdown or PDF.</p>
+</blockquote>
+<h2 id="structure">Structure</h2>
+<ul>
+<li>pdfs/ — Printable versions of each notebook</li>
+<li>markdown/ — Markdown exports of the notebooks</li>
+</ul>
+<h2 id="notebook-lineup">Notebook Lineup</h2>
+<ol start="0">
+<li><a href="html/-%5BDTM%5D-00-dynatrace-managed-journey.html">The Dynatrace Managed Journey</a> — Series map: what the series applies to, where to start by situation, the numbering bands, and where each former MCH notebook went</li>
+<li><a href="html/-%5BDTM%5D-01-cluster-design-best-practices.html">Cluster Design Best Practices</a> — Sizing for growth, node rules and placement, choosing single-cluster HA, rack awareness or Premium HA, storage layout, and host, operating system and cloud choices</li>
+<li><a href="html/-%5BDTM%5D-02-cluster-configuration-best-practices.html">Cluster Configuration Best Practices</a> — Custom properties that survive updates, reliable encrypted email, the Mission Control and remote-access trade-offs, internet proxy, sign-in and session security, privilege elevation, node traffic roles, and backups from day one</li>
+<li><a href="html/-%5BDTM%5D-03-environment-best-practices.html">Environment Best Practices</a> — Environment or management zone as the boundary, per-environment limits, choosing LDAP, SAML or OpenID Connect, the break-glass administrator account, keeping cluster, environment and zone permissions narrow, and additive IAM policies</li>
+<li><a href="html/-%5BDTM%5D-04-activegate-deployment-on-managed.html">ActiveGate Deployment on Managed</a> — ActiveGate roles and purposes, placement so OneAgents never fall back uncompressed, two per data center and sizing, network zones and load balancers, multi-environment limits and dedicated extension ActiveGates, and update modes</li>
+<li><a href="html/-%5BDTM%5D-05-oneagent-deployment-on-managed.html">OneAgent Deployment on Managed</a> — How OneAgent reaches the cluster, host groups and network zones decided before rollout, network-zone fallback modes, update policy with rings and restarts, and the x86-64-v2 CPU baseline</li>
+<li><a href="html/-%5BDTM%5D-10-managed-cluster-architecture-health-model.html">Managed Cluster Architecture and Health Model</a> — What runs on a cluster node, what a node failure costs, the five-layer health model, and where each health signal is surfaced</li>
+<li><a href="html/-%5BDTM%5D-11-server-nodes-and-processes.html">Server Nodes and Processes</a> — Node inventory and operation state, on-node process checks, the gated service start order, safe restarts, which node events email you, memory, time, inter-node network, and triage</li>
+<li><a href="html/-%5BDTM%5D-12-cassandra-metrics-store.html">Cassandra Metrics Store Health</a> — The metrics repository: replication, size ceilings and their events, 5-year retention by resolution, nodetool health checks, adding and removing nodes, repair, what the daily backup restores, rack awareness, and Cassandra versions</li>
+<li><a href="html/-%5BDTM%5D-13-elasticsearch-store.html">Elasticsearch Store Health</a> — User sessions (3 copies) and log events (2 copies), sizing, retention as the size lever, _cluster/health and events, log ingest pressure, storage location, the incremental backup, failover and versions</li>
+<li><a href="html/-%5BDTM%5D-14-activegates-mission-control-connectivity.html">Cluster ActiveGates and Mission Control Connectivity</a> — The agent traffic path and ActiveGate hierarchy, load balancers, endpoints and DNS, certificates, the Mission Control link and what breaks without it, offline clusters, remote access, and Cluster ActiveGate health</li>
+<li><a href="html/-%5BDTM%5D-15-capacity-and-scaling.html">Capacity and Scaling</a> — The sizing model (host units, peak user actions, Premium HA), scaling out, up and storage, one-third headroom, capacity signals and which email you, environment quotas and overload prevention, and adding or removing nodes</li>
+<li><a href="html/-%5BDTM%5D-16-backup-upgrade-disaster-recovery.html">Backup, Upgrade, and Disaster Recovery</a> — What a backup protects and what it doesn't, setting up backups (and the boot-time mount risk), restore preconditions and order, upgrade paths and their 24-hour rules, version support, Premium HA failover, and choosing a recovery path</li>
+<li><a href="html/-%5BDTM%5D-17-cluster-health-assessment.html">Running a Cluster Health Assessment</a> — A one-off, read-only review of a Managed cluster: assessment vs routine, a four-value rating scale (Pass, Pass with Risk, Gap, Not Assessed), evidence sources and what to request up front, a 59-check checklist in nine areas mapped to the five health layers, and how to roll up the findings</li>
+<li><a href="html/-%5BDTM%5D-99-best-practice-summary.html">Best Practice Summary and Health-Check Checklist</a> — The series on one page: a five-layer checklist, every signal that never emails you, a review cadence, the numbers worth knowing, anti-patterns, and the documentation's gaps and conflicts</li>
+</ol>
+<h2 id="usage">Usage</h2>
+<ol>
+<li>Choose a format: read markdown/ for browsing or pdfs/ for print.</li>
+<li>Start with DTM-00 for the series map, DTM-10 for the health model, then use the notebook for whichever layer is failing.</li>
+</ol>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

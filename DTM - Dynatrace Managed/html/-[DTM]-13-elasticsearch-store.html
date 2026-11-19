@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-13: Elasticsearch Store Health</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-13</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-13: Elasticsearch Store Health</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 13 — Elasticsearch Store Health | <strong>Created:</strong> September 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Every Managed node runs Elasticsearch, and together those nodes form the <strong>Elasticsearch store</strong>. It holds RUM Classic user sessions and Log Monitoring events. On paper it's a sibling of the Cassandra metrics store (DTM-12), but it behaves very differently. Its two main kinds of data are kept in different numbers of copies, have separate retention settings, and are treated differently by adaptive retention and by the backup.</p>
+<p>This notebook is layer 2 of the DTM-10 health model, for Elasticsearch. It covers what the store holds, how to size it, why retention is the main lever for keeping it in bounds, how to check its health, what log-ingest pressure looks like, and what its backup does and does not protect.</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>Why log events survive only one node failure while user sessions survive the same failure with a copy to spare</li>
+<li>How big the store should be, and why RUM can dominate it</li>
+<li>The retention settings that actually shrink it, which Cassandra doesn't have</li>
+<li>How to read <code>_cluster/health</code>, and which Elasticsearch events never email you</li>
+<li>What the two-hourly incremental backup contains, and why its files must never be deleted</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#what-it-holds">What the Store Holds</a></li>
+<li><a href="#sizing">Sizing</a></li>
+<li><a href="#retention">Retention Is the Size Lever</a></li>
+<li><a href="#health-checks">Health Checks</a></li>
+<li><a href="#log-pressure">Log Ingest Pressure</a></li>
+<li><a href="#disk">Disk and Storage Location</a></li>
+<li><a href="#backup">Backup — the Elasticsearch Part</a></li>
+<li><a href="#failover-versions">Failover and Versions</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A self-hosted <strong>Dynatrace Managed</strong> cluster. Nothing in this series applies to Dynatrace SaaS.</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Cluster Management Console (CMC) administrator access; root (or <code>sudo</code>) on the cluster nodes</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong>. Every check is a CMC view, a cluster event, or a node command</td>
+</tr>
+<tr>
+<td><strong>Read first</strong></td>
+<td>DTM-10 (health model), DTM-11 (the service start order), DTM-12 (the Cassandra store, for contrast)</td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 09/28/2026. The Elasticsearch version note is labeled with the Managed release that introduced it</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<ul>
+<li><strong>Two kinds of data, two replication factors.</strong> RUM Classic user sessions are kept in three copies. Log Monitoring events are kept in <strong>two</strong>, so <em>&quot;the failure of two nodes makes some log events unavailable.&quot;</em></li>
+<li><strong>RUM can dominate the store.</strong> In heavy-RUM clusters, user sessions <em>&quot;might take up to 99% of total Elasticsearch storage.&quot;</em></li>
+<li><strong>Retention is the size lever here.</strong> User-session retention (1–90 days, default 35) and log retention (up to 90 days) are set per environment. That is the opposite of Cassandra's fixed five years.</li>
+<li><strong>Healthy means <code>&quot;status&quot; : &quot;green&quot;</code></strong>, or <code>yellow</code> on a single-node cluster, in <code>_cluster/health</code>.</li>
+<li><strong>None of the Elasticsearch-specific events email you.</strong> Overload, log-queue and backup problems appear only in CMC Events and Mission Control.</li>
+<li><strong>The backup is incremental, every two hours.</strong> Never delete its files. Log events are backed up only if you opt in.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability">Single-cluster high availability (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size">Estimating cluster backup size (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="what-it-holds"></a></p>
+<h2>2. What the Store Holds</h2>
+<p>The retention docs name what lives in the store and how many copies each gets:</p>
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Where the docs put it</th>
+<th>Copies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RUM Classic user sessions</strong></td>
+<td><em>&quot;Data is stored in Elasticsearch store at DATASTORE_PATH/elasticsearch. Data is replicated across Managed Cluster nodes. Replication factor is set to three.&quot;</em></td>
+<td>3</td>
+</tr>
+<tr>
+<td><strong>Log Monitoring events</strong></td>
+<td><em>&quot;you already use Elasticsearch store at DATASTORE_PATH/elasticsearch to store log files on your Dynatrace Managed Cluster. Replication factor is set to two.&quot;</em></td>
+<td>2</td>
+</tr>
+<tr>
+<td><strong>RUM Classic mobile crashes</strong></td>
+<td><em>&quot;Crash data and stack traces of mobile and custom applications are stored for 35 days.&quot;</em> The section ends <em>&quot;Data is stored in Elasticsearch store&quot;</em> … <em>&quot;Replication factor is set to three.&quot;</em> Crash <em>counts</em> shown on some other pages come from elsewhere: <em>&quot;For these pages, it comes from different storage and has a different retention period.&quot;</em></td>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5XaGF0IExpdmVzIGluIHRoZSBFbGFzdGljc2VhcmNoIFN0b3JlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlR3byBraW5kcyBvZiBkYXRhIHNoYXJlIG9uZSBzdG9yZSDigJQgYW5kIHRoZXkgZGlmZmVyIGluIGV2ZXJ5IHdheSB0aGF0IG1hdHRlcnMgZm9yIGl0cyBoZWFsdGg8L3RleHQ+CgogIDxyZWN0IHg9IjIyMCIgeT0iODAiIHdpZHRoPSIzMzAiIGhlaWdodD0iNTIiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMzg1IiB5PSIxMDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPlJVTSBDbGFzc2ljIHVzZXIgc2Vzc2lvbnM8L3RleHQ+CiAgPHRleHQgeD0iMzg1IiB5PSIxMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmNhbiBiZSB1cCB0byA5OSUgb2YgdGhlIHN0b3JlIGluIGhlYXZ5LVJVTSBjbHVzdGVyczwvdGV4dD4KICA8cmVjdCB4PSI1NzAiIHk9IjgwIiB3aWR0aD0iMzMwIiBoZWlnaHQ9IjUyIiBmaWxsPSIjMjJEM0VFIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjczNSIgeT0iMTA0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5Mb2cgTW9uaXRvcmluZyBldmVudHM8L3RleHQ+CiAgPHRleHQgeD0iNzM1IiB5PSIxMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm5lZWRzIDY0IEdCIFJBTSBvbiBldmVyeSBub2RlPC90ZXh0PgoKICA8cmVjdCB4PSIzMCIgeT0iMTQ4IiB3aWR0aD0iMTc2IiBoZWlnaHQ9IjU4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTE4IiB5PSIxODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkNvcGllczwvdGV4dD4KICA8cmVjdCB4PSIyMjAiIHk9IjE0OCIgd2lkdGg9IjMzMCIgaGVpZ2h0PSI1OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjM4NSIgeT0iMTgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj4zIChyZXBsaWNhdGlvbiBmYWN0b3IgdGhyZWUpPC90ZXh0PgogIDxyZWN0IHg9IjU3MCIgeT0iMTQ4IiB3aWR0aD0iMzMwIiBoZWlnaHQ9IjU4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzM1IiB5PSIxODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPjIg4oCUIGxvc2luZyB0d28gbm9kZXMgbWFrZXMgc29tZSB1bmF2YWlsYWJsZTwvdGV4dD4KICA8cmVjdCB4PSIzMCIgeT0iMjE4IiB3aWR0aD0iMTc2IiBoZWlnaHQ9IjU4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTE4IiB5PSIyNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlJldGVudGlvbjwvdGV4dD4KICA8cmVjdCB4PSIyMjAiIHk9IjIxOCIgd2lkdGg9IjMzMCIgaGVpZ2h0PSI1OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjM4NSIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj4x4oCTOTAgZGF5cyBwZXIgZW52aXJvbm1lbnQsIGRlZmF1bHQgMzU8L3RleHQ+CiAgPHJlY3QgeD0iNTcwIiB5PSIyMTgiIHdpZHRoPSIzMzAiIGhlaWdodD0iNTgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MzUiIHk9IjI1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+dXAgdG8gOTAgZGF5czsgY3VzdG9tIHJldGVudGlvbiBsaW1pdGVkIGJ5IGNhcGFjaXR5PC90ZXh0PgogIDxyZWN0IHg9IjMwIiB5PSIyODgiIHdpZHRoPSIxNzYiIGhlaWdodD0iNTgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjYiLz4KICA8dGV4dCB4PSIxMTgiIHk9IjMyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+QWRhcHRpdmUgcmV0ZW50aW9uPC90ZXh0PgogIDxyZWN0IHg9IjIyMCIgeT0iMjg4IiB3aWR0aD0iMzMwIiBoZWlnaHQ9IjU4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzg1IiB5PSIzMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPm5vdCBjb3ZlcmVkPC90ZXh0PgogIDxyZWN0IHg9IjU3MCIgeT0iMjg4IiB3aWR0aD0iMzMwIiBoZWlnaHQ9IjU4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzM1IiB5PSIzMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPmNvdmVyZWQg4oCUIHRyaW1tZWQgb24gZnVsbCBkaXNrIG9yIHF1b3RhPC90ZXh0PgogIDxyZWN0IHg9IjMwIiB5PSIzNTgiIHdpZHRoPSIxNzYiIGhlaWdodD0iNTgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjYiLz4KICA8dGV4dCB4PSIxMTgiIHk9IjM5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+SW4gdGhlIGJhY2t1cDwvdGV4dD4KICA8cmVjdCB4PSIyMjAiIHk9IjM1OCIgd2lkdGg9IjMzMCIgaGVpZ2h0PSI1OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjM4NSIgeT0iMzkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj55ZXMsIHVubGVzcyB5b3UgZXhjbHVkZSB0aGVtIChHRFBSIG9wdGlvbik8L3RleHQ+CiAgPHJlY3QgeD0iNTcwIiB5PSIzNTgiIHdpZHRoPSIzMzAiIGhlaWdodD0iNTgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MzUiIHk9IjM5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+b25seSBpZiAiSW5jbHVkZSBiYWNrdXAgb2YgTG9nIE1vbml0b3JpbmcgZXZlbnRzIjwvdGV4dD4KICA8bGluZSB4MT0iNDAiIHkxPSI0MzgiIHgyPSI4OTAiIHkyPSI0MzgiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDY1IiB5PSI0NjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlVubGlrZSB0aGUgQ2Fzc2FuZHJhIG1ldHJpY3Mgc3RvcmUsIHJldGVudGlvbiBoZXJlIGlzIGEgcmVhbCBzaXplIGxldmVyPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5Tb3VyY2U6IERhdGEgcmV0ZW50aW9uIHBlcmlvZHM7IFNpbmdsZS1jbHVzdGVyIEhBOyBBZGFwdGl2ZSBkYXRhIHJldGVudGlvbjsgQmFja3VwIGFuZCByZXN0b3JlIGEgY2x1c3RlcjsgSGFyZHdhcmUgcmVxdWlyZW1lbnRzOyBFc3RpbWF0aW5nIGJhY2t1cCBzaXplIChEVCBkb2NzLCByZWFkIDA5LzI4LzIwMjYpPC90ZXh0Pgo8L3N2Zz4K" alt="What Lives in the Elasticsearch Store" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| | RUM Classic user sessions | Log Monitoring events |
+|---|---|---|
+| Share of the store | Up to 99% in heavy-RUM clusters | — |
+| Copies | 3 | 2 — losing two nodes makes some unavailable |
+| Retention | 1–90 days per environment, default 35; custom retention limited by capacity | 1–90 days per environment (Managed 1.340+), optional GiB cap; custom retention limited by capacity |
+| Adaptive retention | Not covered | Covered — trimmed when the disk is full or the environment exceeds its quota |
+| In the backup | Yes, unless excluded (GDPR option) | Only if "Include backup of Log Monitoring events" is selected |
+For environments where SVG doesn't render
+-->
+<p><strong>Why two copies matters for logs.</strong> <em>&quot;Dynatrace Managed replicates Log Monitoring event data across the Elasticsearch store to two copies. With two copies, if one node fails, another node still holds the data. However, the failure of two nodes makes some log events unavailable. If the nodes come back up, the data becomes available again.&quot;</em> A cluster that tolerates one node loss for metrics and sessions has <strong>no spare</strong> for logs. Once one node is down, the next failure makes some logs unavailable.</p>
+<p><strong>Not everything RUM goes here.</strong> Session Replay has its own store (<code>DATASTORE_PATH/server/replayData</code>), and waterfall and JavaScript-error data <em>&quot;is stored with distributed trace code-level insights and errors&quot;</em>, which is the transaction store.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability">Single-cluster high availability (DT docs)</a>. <strong>Derived:</strong> &quot;no spare for logs&quot; applies the two-copy rule to a cluster that has already lost one node.</sub></p>
+</blockquote>
+<p><a id="sizing"></a></p>
+<h2>3. Sizing</h2>
+<p>The hardware guide sizes the store per node for <strong>35 days of retention</strong>, which is the user-session default:</p>
+<table>
+<thead>
+<tr>
+<th>Node size</th>
+<th>Elasticsearch per node</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Micro</td>
+<td>50 GB</td>
+</tr>
+<tr>
+<td>Small</td>
+<td>500 GB</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>1.5 TB</td>
+</tr>
+<tr>
+<td>Large</td>
+<td>1.5 TB</td>
+</tr>
+<tr>
+<td>XLarge</td>
+<td>3 TB</td>
+</tr>
+</tbody>
+</table>
+<p>The table assumes that 35-day default. If you raise retention, size from your own measured growth instead (§5.2).</p>
+<p><strong>RUM volume drives it.</strong> <em>&quot;In highly intensive real user monitoring environments (50,000 user sessions per minute), user sessions might take up to 99 percent of total Elasticsearch storage.&quot;</em> In those clusters, user-session retention and user-session volume <em>are</em> the store's size.</p>
+<p><strong>Log Monitoring raises the bar:</strong></p>
+<ul>
+<li><em>&quot;All Cluster nodes must have at least 64 GB total RAM.&quot;</em></li>
+<li><em>&quot;Add more Cluster nodes rather than increasing hardware per node for a more resilient configuration.&quot;</em></li>
+<li><em>&quot;Distribute additional Elasticsearch storage equally across all Cluster nodes.&quot;</em></li>
+<li><em>&quot;Plan custom log retention for environments according to the available hardware.&quot;</em></li>
+</ul>
+<p><strong>Two storage types are ruled out.</strong> <em>&quot;High-latency remote volumes such as NFS or CIFS are not supported for primary storage&quot;</em>, and specifically for this store, <em>&quot;Amazon Elastic File System (EFS) is not supported as primary storage for Elasticsearch, because it might lead to index corruption.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size">Estimating cluster backup size (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="retention"></a></p>
+<h2>4. Retention Is the Size Lever</h2>
+<p>DTM-12 showed that Cassandra's five-year metric retention has no documented setting. The Elasticsearch store is the opposite: both of its main data types have retention you control.</p>
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Retention</th>
+<th>Where to set it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RUM Classic user sessions</td>
+<td><em>&quot;User session data retention is configurable 1–90 days, with a default of 35 days.&quot;</em></td>
+<td><em>&quot;Cluster Management Console &gt; Environments &gt; Storage settings&quot;</em>, per environment</td>
+</tr>
+<tr>
+<td>Log Monitoring</td>
+<td><em>&quot;Configurable, with maximum 90 days of retention time&quot;</em>. Since Managed 1.340 (every supported release): <em>&quot;Log retention can be set anywhere from 1 to 90 days&quot;</em>, and <em>&quot;storage can be capped at a specific GiB value or left unlimited&quot;</em></td>
+<td>Per environment in the CMC, within the cluster's capacity (below)</td>
+</tr>
+<tr>
+<td>RUM Classic mobile crashes</td>
+<td>35 days, fixed</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Custom log retention is rationed by capacity: <em>&quot;Depending on the number and size of Managed Cluster nodes and the selected log retention times, only a certain number of environments can use custom log retention. The system reports when no more custom log retention settings are possible based on the predicted current usage.&quot;</em> User sessions are rationed the same way: <em>&quot;only a certain number of environments can use custom User Session and Session Replay retention.&quot;</em></p>
+<p><strong>Managed 1.348 and Session Replay.</strong> The 1.348 release note puts both settings in one place: <em>&quot;You can now configure retention periods of up to 90 days for RUM user sessions and Session Replay directly in Cluster Management Console &gt; Environments.&quot;</em> <em>&quot;You can also manage these settings via the Cluster API v2 environments endpoints (api/cluster/v2/environments).&quot;</em> Two rules come with it: <em>&quot;Default retention periods remain unchanged.&quot;</em> and <em>&quot;Retention changes apply to new records going forward and do not affect existing data.&quot;</em> The note doesn't say what a cluster before 1.348 allows, so on an older cluster check the CMC rather than assuming 90 days. Session Replay recordings are not in this store — <em>&quot;The Session Replay data storage directory is a dedicated file store at DATASTORE_PATH/server/replayData&quot;</em> — but they still pull on it: <em>&quot;Cluster Management Console (CMC) enforces that user sessions are retained at least as long as Session Replay recordings.&quot;</em> Raising replay retention can therefore force user-session retention, and Elasticsearch disk on every node, up with it.</p>
+<p><strong>Adaptive retention treats the two differently.</strong> Adaptive data retention shortens retention automatically when <em>&quot;The disk is full&quot;</em> or <em>&quot;The environment uses more disk space than its quota allows&quot;</em>, and it covers <em>&quot;transaction storage, Session Replay storage, and Log Monitoring data&quot;</em>. Logs are covered; <strong>user sessions are not</strong>. When the disk fills or an environment outgrows its quota, log history is trimmed automatically, while user sessions only shrink if someone lowers their retention. The per-environment storage quotas in CMC <strong>Environments</strong> are therefore a second lever.</p>
+<p><strong>The practical rule.</strong> Every environment that raises user-session retention above 35 days, or sets custom log retention, is spending Elasticsearch disk on every node. Review those settings before adding hardware. Note that lowering log retention may not free space at once: <em>&quot;Retention changes apply to new log records going forward.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/adaptive-data-retention">Adaptive data retention (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-340">Managed 1.340 release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-348">Managed 1.348 release notes (DT docs)</a>. <strong>Derived:</strong> &quot;logs trimmed automatically, sessions only by hand&quot; combines the adaptive-retention scope with the per-environment session setting; &quot;can force user-session retention up&quot; combines the 1.348 enforcement rule with user sessions being held in this store.</sub></p>
+</blockquote>
+<p><a id="health-checks"></a></p>
+<h2>5. Health Checks</h2>
+<h3>5.1 Cluster health</h3>
+<p>On any node:</p>
+<pre><code class="language-bash">curl -s -N -XGET 'http://localhost:9200/_cluster/health?pretty' | grep status
+</code></pre>
+<p>The docs' expected answer is <em>&quot;status&quot; : &quot;green&quot;</em>, or <em>&quot;status&quot; : &quot;yellow&quot;</em> on a one-node setup. In community practice, <code>yellow</code> on a multi-node cluster is read as some replica copies not being allocated — the docs don't say what it means here, so treat anything but <code>green</code> as a question for Dynatrace support. During a cluster start (DTM-11 §4), the gate is stricter: <em>&quot;Verify that active_shards_percent_as_number is 100 percent and number_of_nodes equals the number of nodes in the Managed Cluster.&quot;</em></p>
+<h3>5.2 Size, per node</h3>
+<pre><code class="language-bash">du -sh /var/opt/dynatrace-managed/elasticsearch/
+</code></pre>
+<p>The backup-sizing guide expects <em>&quot;The size should vary only slightly between nodes.&quot;</em> In community practice, a node that is much larger than its peers is raised with support before it fills — verify against your own trend. Trend the numbers weekly against the size table in §3.</p>
+<p>A Dynatrace community KB article explains uneven sizes and gives the thresholds behind them: Elasticsearch does not rebalance data until its own disk watermarks are crossed, with the low, high and flood-stage watermarks at 85%, 90% and 95% (<a href="https://community.dynatrace.com/t/why-there-is-difference-in-elasticsearch-store-usage-between-managed-cluster-nodes/37719">Elasticsearch store usage differences (Dynatrace community)</a>, 2023). Those are Elasticsearch's upstream defaults; the article doesn't say whether Dynatrace changes them. In community practice, the 85% line is the one to alert on — verify against your own cluster.</p>
+<h3>5.3 Events</h3>
+<p>None of these email you. They appear only in CMC Events and Mission Control:</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;Elasticsearch storage service on your Dynatrace Managed cluster might be overloaded!&quot;</em></td>
+<td>INFO</td>
+</tr>
+<tr>
+<td><em>&quot;ElasticSearch update transient settings failed.&quot;</em></td>
+<td>WARNING</td>
+</tr>
+<tr>
+<td><em>&quot;ElasticSearch backup problem.&quot;</em></td>
+<td>WARNING / SEVERE</td>
+</tr>
+</tbody>
+</table>
+<p>The <strong>process</strong> itself is covered by DTM-11: <code>dynatrace-elasticsearch.service</code> in <code>dynatrace.sh status</code>, and ports <code>9200</code> and <code>9300</code> in <code>dynatrace.sh check</code> and between nodes.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-cluster">Start/stop/restart a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size">Estimating cluster backup size (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/cluster-node-ports">Cluster node ports (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="log-pressure"></a></p>
+<h2>6. Log Ingest Pressure</h2>
+<p>When Log Monitoring sends more than the store can take, four events report it. All are WARNING, and none email you:</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;Ingested log data is trimmed.&quot;</em></td>
+</tr>
+<tr>
+<td><em>&quot;Log ingest queue is full.&quot;</em></td>
+</tr>
+<tr>
+<td><em>&quot;Elasticsearch log queue is full.&quot;</em></td>
+</tr>
+<tr>
+<td><em>&quot;Elasticsearch log storing failed.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>The Log Monitoring troubleshooting index has an article for each of the first three messages; start there. The events page itself publishes no response procedure. In community practice, these events are read as log data being delayed or lost, and the responses fall into two groups — verify against the troubleshooting articles for your case. Capacity: more nodes, or more disk spread evenly across them, which the hardware guide recommends for Log Monitoring (§3). Demand: less ingested and retained, through log storage rules and custom retention (§4).</p>
+<p><strong>Measure it, not just the events.</strong> Two self-monitoring metrics cover the ingest side, and self-monitoring metrics <em>&quot;are available in every Dynatrace Managed and SaaS environment&quot;</em> (in each environment's Data Explorer, not in the CMC):</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>What the docs say it measures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dsfm:server.log_and_events_monitoring.events_incoming_count</code></td>
+<td><em>&quot;The count of incoming log events&quot;</em>, with <code>event.sender</code> and <code>event.type</code> dimensions</td>
+</tr>
+<tr>
+<td><code>dsfm:server.log_and_events_monitoring.events_rejected_count</code></td>
+<td><em>&quot;Count of log events that are rejected due to ingestion limit&quot;</em>. <em>&quot;If the metric is frequently above 0, then it may suggest that limits should be increased for that tenant.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>In community practice, a rising incoming count is watched as the early warning for the pressure events above. A non-zero rejected count points at an environment's ingest limit rather than at the store.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/analyze-explore-automate/log-monitoring-classic/lmc-troubleshooting">Log Monitoring troubleshooting (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics">Self-monitoring metrics (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="disk"></a></p>
+<h2>7. Disk and Storage Location</h2>
+<p><strong>Where it lives.</strong> <code>ELASTICSEARCH_DATASTORE_PATH</code> defaults to <code>DATASTORE_PATH/elasticsearch</code>, which is <code>/var/opt/dynatrace-managed/elasticsearch</code>. The storage-location table asks for <strong>3 GB</strong> free to install and <strong>1 GB</strong> to upgrade. Those are only install minimums; plan capacity from §3.</p>
+<p><strong>Layout rules</strong> (same as DTM-12 §6): give the store its own local volume, keep partition sizes equal on every node (<em>&quot;Use the same partition size on all Cluster nodes.&quot;</em>), don't nest it inside another store (<em>&quot;you cannot nest datastores within each other&quot;</em>), and never put it on NFS, CIFS or EFS.</p>
+<p><strong>Grow it in place first.</strong> The storage-location page documents <em>&quot;Extend the size of the storage volume&quot;</em>; that is less risky than moving the store.</p>
+<p><strong>Moving it</strong> follows the documented change-storage-location procedure, with the Elasticsearch directory and <code>ELASTICSEARCH_DATASTORE_PATH</code> in place of Cassandra's:</p>
+<ol start="0">
+<li>Back up first: <em>&quot;Back up your data. An error in this procedure can result in data loss.&quot;</em> The page advises copying all storage files to a safe location and rehearsing on a test deployment</li>
+<li>Stop the node: <code>sudo /opt/dynatrace-managed/launcher/dynatrace.sh stop</code></li>
+<li>Copy the data, keeping permissions: <code>cp -pR /old_location/elasticsearch/* /new_location/elasticsearch</code></li>
+<li>Fix ownership: <code>chown -R dynatrace:dynatrace /new_location</code></li>
+<li>Point <code>ELASTICSEARCH_DATASTORE_PATH</code> at the new location in <code>/etc/dynatrace.conf</code>. The new path <em>&quot;It must be a directory, and it cannot be a symlink.&quot;</em></li>
+<li>Apply it: <code>nohup &lt;PRODUCT_PATH&gt;/installer/reconfigure.sh --no-start &amp;</code></li>
+<li>Start the node: <code>sudo /opt/dynatrace-managed/launcher/dynatrace.sh start</code></li>
+<li><em>&quot;Check the logs to make sure all services started without issues.&quot;</em></li>
+</ol>
+<p>In community practice, the move is done one node at a time, with <code>_cluster/health</code> checked before each node — the storage-move page doesn't say either.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/change-storage-location">Change storage location (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>. <strong>Derived:</strong> the Elasticsearch-specific commands substitute the Elasticsearch directory into the documented procedure, whose worked example uses Cassandra.</sub></p>
+</blockquote>
+<p><a id="backup"></a></p>
+<h2>8. Backup — the Elasticsearch Part</h2>
+<p>DTM-16 covers backup and disaster recovery as a whole. This section covers what's specific to this store.</p>
+<p><strong>How it works.</strong> <em>&quot;The snapshot is performed, by default, every two hours, and it's incremental. Initially, Dynatrace copies the entire data set and then creates snapshots of the differences. Older snapshots are removed gradually once they're five days old.&quot;</em> Replicas are not duplicated: <em>&quot;the backup excludes the replicated data.&quot;</em></p>
+<p><strong>Never delete its files.</strong> <em>&quot;Elasticsearch backs up incrementally, so it needs to be able to append recent changes to the previous backup. Do not remove Elasticsearch backup files.&quot;</em> A cleanup job on the backup share that prunes old files will break the chain.</p>
+<p><strong>It grows on its own schedule.</strong> <em>&quot;Since Dynatrace keeps some of the older snapshots, backup size grows regardless of the current size on disk.&quot;</em> Also, <em>&quot;Elasticsearch merges data segments over time, which results in certain duplicates in the backup.&quot;</em> Lowering retention (§4) shrinks the store before it shrinks the backup.</p>
+<p><strong>What's included.</strong> The backup settings (CMC <strong>Settings &gt; Backup</strong>) offer three choices:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Effect on this store</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;Exclude user sessions from the backup to remain compliant with the General Data Protection Regulation.&quot;</em></td>
+<td>User sessions are backed up unless you tick this</td>
+</tr>
+<tr>
+<td><em>&quot;Include backup of Log Monitoring events.&quot;</em></td>
+<td>Log events are backed up <strong>only if</strong> you tick this</td>
+</tr>
+<tr>
+<td>Exclude timeseries metric data</td>
+<td>No effect here (Cassandra)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>How much space.</strong> <em>&quot;Although the Elasticsearch backup doesn't contain data replicas, you use the total storage for the estimation because of incremental snapshots.&quot;</em> Plan for the full on-disk size of the store across all nodes. In heavy-RUM clusters, excluding user sessions <em>&quot;might remove Elasticsearch backup estimation from the overall formula.&quot;</em></p>
+<p><strong>When it fails.</strong> <em>&quot;ElasticSearch backup problem.&quot;</em> is <strong>not emailed</strong> (§5.3). Check CMC <strong>Home</strong> (last backup) and CMC Events.</p>
+<p><strong>Restoring.</strong> Elasticsearch is restored once, on the seed node, before Cassandra:</p>
+<pre><code class="language-bash">sudo /opt/dynatrace-managed/utils/restore-elasticsearch-data.sh &lt;path-to-backup&gt;/&lt;UUID&gt;
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size">Estimating cluster backup size (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>. <strong>Derived:</strong> &quot;log events only if you opt in&quot; and &quot;user sessions unless excluded&quot; read the option wording; the page doesn't state the defaults separately.</sub></p>
+</blockquote>
+<p><a id="failover-versions"></a></p>
+<h2>9. Failover and Versions</h2>
+<p><strong>Multi-data-center clusters.</strong> Premium High Availability watches this store as closely as Cassandra: <em>&quot;If Mission Control (MC) detects that two or more Elasticsearch or Cassandra nodes in a data center (DC) are down for 15 minutes, MC automatically stops the server processes in that DC. MC then marks the DC as unhealthy.&quot;</em> Elasticsearch logs for that investigation are under <code>/var/opt/dynatrace-managed/log/elasticsearch/</code>. Two limits matter for health checks. A <em>red</em> <code>_cluster/health</code> does not trigger failover: <em>&quot;Does Elasticsearch in RED status trigger the PHA failover mechanism? No. Dynatrace reacts only to Elasticsearch down status.&quot;</em> — a red store needs manual action. And automatic recovery covers <em>&quot;outages longer than 15 minutes and shorter than 72 hours&quot;</em> (DTM-16 §7.3).</p>
+<p><strong>Which Elasticsearch you're running (Managed 1.340+).</strong> Elasticsearch is upgraded with Managed itself: <em>&quot;The Elasticsearch nodes are upgraded to version 8.19 to provide bug and security fixes and leverage performance improvements introduced by this update.&quot;</em> Managed 1.350 moves it again: <em>&quot;The Elasticsearch nodes are upgraded to version 8.19.18 to provide bug and security fixes and leverage performance improvements introduced by this update.&quot;</em> There's nothing to do by hand: <em>&quot;No manual user intervention or downtime is required&quot;</em>. As with Cassandra, staying within the supported Managed releases is how the store stays patched.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/failover">Multi-data center failover (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-340">Managed 1.340 release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-350">Managed 1.350 release notes (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="doc-gaps"></a></p>
+<h2>10. What the Documentation Does Not Say</h2>
+<p>Checked against the Managed documentation on 09/28/2026 and <strong>not found</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Working assumption in this notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Disk watermarks set by Dynatrace for the store</td>
+<td>A community KB article cites Elasticsearch's upstream 85/90/95% watermarks (§5.2); rely on the <em>Insufficient disk space</em> event and your own trend</td>
+</tr>
+<tr>
+<td>What <em>&quot;might be overloaded&quot;</em> means, or what to do about it</td>
+<td>Treat it like the log-pressure events (§6)</td>
+</tr>
+<tr>
+<td>Where Davis problems and events are stored</td>
+<td>Not in the docs. A Dynatrace product manager's 2019 forum answer puts <em>events</em> and <em>problems</em> in Elasticsearch (<a href="https://community.dynatrace.com/t/what-are-the-different-type-of-data/21768">what are the different type of data (Dynatrace community)</a>)</td>
+</tr>
+<tr>
+<td>A <code>dsfm:</code> self-monitoring metric for the store's own disk or health</td>
+<td>Measure on the node (§5). Only log-<em>ingest</em> metrics are documented (§6)</td>
+</tr>
+<tr>
+<td>Where an environment's log ingest limit is set, and its value</td>
+<td>Watch the rejected-events metric (§6). The Log Monitoring troubleshooting page answers <em>&quot;Who can increase the ingestion limit per tenant?&quot;</em> by referring readers to a Dynatrace product expert</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Two conflicts in the docs:</strong></p>
+<ul>
+<li><strong>Snapshot interval.</strong> <em>Backup and restore a cluster</em> says <em>&quot;every two hours&quot;</em>. The <em>Pre-upgrade information</em> page's Managed-vs-SaaS comparison table says <em>&quot;Elasticsearch snapshots every 2 days&quot;</em>. This notebook follows the operational backup page. Confirm the interval your cluster actually runs in CMC <strong>Settings &gt; Backup</strong>.</li>
+<li><strong>Copy counts.</strong> The backup page says <em>&quot;there are two replicas in addition to the primary shard&quot;</em>, which fits user sessions (three copies) but not log events (two). The retention and HA pages are the more specific source per data type (§2).</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/upgrade/up-information">Pre-upgrade information (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/analyze-explore-automate/log-monitoring-classic/lmc-troubleshooting">Log Monitoring troubleshooting (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments">Manage your monitoring environments (DT docs)</a>. <strong>Observed 10/29/2026:</strong> the environments page lists log quotas and Log Monitoring storage, but no per-minute ingest limit. <strong>Observed 09/28/2026:</strong> none of the four gaps is filled anywhere in the 2,681 pages under <code>/managed/</code> (crawled and searched for Elasticsearch disk thresholds and watermarks, the overload event, event-store statements, and <code>dsfm:</code> metric names — the only Elasticsearch-related <code>dsfm:</code> metrics found are the two log-ingest counters in §6).</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>11. Recommended Approach</h2>
+<ol>
+<li><strong>Check <code>_cluster/health</code> on every node check.</strong> <code>green</code> is the answer the docs give for a healthy multi-node cluster; raise anything else with support.</li>
+<li><strong>Trend <code>du -sh /var/opt/dynatrace-managed/elasticsearch/</code> weekly on every node</strong>, and watch for one node pulling away from the others.</li>
+<li><strong>Audit retention before buying hardware.</strong> List every environment with user-session retention above 35 days or with custom log retention, and confirm each one is worth its disk.</li>
+<li><strong>Remember logs have one spare, not two.</strong> When a node is down, treat the next failure as a log-availability incident, and bring the node back first.</li>
+<li><strong>Read CMC Events for log-pressure and overload events, and chart the two log-ingest metrics.</strong> None of the events email you.</li>
+<li><strong>Protect the backup chain.</strong> Size the target at the store's full on-disk size, exclude it from any file-pruning job, and decide deliberately whether log events are included.</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>12. Summary and Next Steps</h2>
+<p>The Elasticsearch store holds RUM Classic user sessions in three copies and Log Monitoring events in two. Heavy RUM can make user sessions almost the whole store. Unlike Cassandra, its size is governed by retention settings you control per environment, although adaptive retention trims logs and leaves user sessions alone. It's healthy when <code>_cluster/health</code> is <code>green</code>, sizes stay even across nodes, and no log-pressure events appear. Its incremental backup protects user sessions by default, protects log events only on request, and depends on every earlier file staying in place.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Layer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-14: Cluster ActiveGates and Mission Control Connectivity</td>
+<td>4 — Connectivity</td>
+</tr>
+<tr>
+<td>DTM-15: Capacity and Scaling</td>
+<td>3 — Capacity (node sizing and scale-out)</td>
+</tr>
+<tr>
+<td>DTM-16: Backup, Upgrade, and Disaster Recovery</td>
+<td>5 — Lifecycle (full backup and restore)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

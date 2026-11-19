@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPIPE-04: Cardinality Management</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPIPE — OpenPipeline Beyond Logs</a><span class="sep">/</span><span aria-current="page">OPIPE-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPIPE-04: Cardinality Management</h1>
+<blockquote>
+<p><strong>Series:</strong> OPIPE — OpenPipeline Beyond Logs | <strong>Notebook:</strong> 4 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/26/2026</p>
+</blockquote>
+<h2>Controlling Dimension Explosion Across All Scopes</h2>
+<p>Cardinality — the number of unique combinations of dimension values in your data — is the single biggest cost and performance driver in observability. High cardinality slows queries, inflates storage, and can cause metric data to be dropped entirely. OpenPipeline is the first line of defense: it lets you normalize, reduce, and manage cardinality <strong>before</strong> data reaches Grail.</p>
+<p>This notebook covers cardinality concepts and practical reduction strategies that apply across all OpenPipeline scopes.</p>
+<p>For bucket-level cost controls, see <strong>OPLOGS-04: Buckets &amp; Data Governance</strong>. For query optimization on stored data, see <strong>SPANS-08: Cost-Efficient DQL Queries</strong>.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-is-cardinality">What Is Cardinality and Why It Matters</a></li>
+<li><a href="#high-cardinality-fields">High-Cardinality Fields by Scope</a></li>
+<li><a href="#detecting-cardinality-problems">Detecting Cardinality Problems</a></li>
+<li><a href="#attribute-removal">Reduction Strategy 1: Attribute Removal</a></li>
+<li><a href="#value-normalization">Reduction Strategy 2: Value Normalization</a></li>
+<li><a href="#grouping-and-bucketing">Reduction Strategy 3: Grouping and Bucketing</a></li>
+<li><a href="#hashing-for-privacy">Reduction Strategy 4: Hashing for Privacy</a></li>
+<li><a href="#metric-dimension-guardrails">Metric Dimension Guardrails</a></li>
+<li><a href="#summary">Summary</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:spans:read</code>, <code>storage:metrics:read</code></td>
+</tr>
+<tr>
+<td><strong>Recommended</strong></td>
+<td><strong>OPIPE-01</strong> (multi-scope architecture) and <strong>OPIPE-03</strong> (metric extraction)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="what-is-cardinality"></a></p>
+<h2>1. What Is Cardinality and Why It Matters</h2>
+<p><strong>Cardinality</strong> is the number of unique combinations of values across the dimensions of your data.</p>
+<h3>A Simple Example</h3>
+<p>A metric with dimensions <code>dt.service.name</code> (50 services) and <code>http.route</code> (200 routes) produces:</p>
+<pre><code>50 x 200 = 10,000 unique time series
+</code></pre>
+<p>Add <code>http.response.status_code</code> (5 values) and <code>k8s.namespace.name</code> (10 namespaces):</p>
+<pre><code>50 x 200 x 5 x 10 = 500,000 unique time series
+</code></pre>
+<p>Now add <code>user.id</code> (100,000 unique users):</p>
+<pre><code>50 x 200 x 5 x 10 x 100,000 = 50,000,000,000
+</code></pre>
+<p>That is far past the 1 million per-metric dimension limit Metrics Classic enforces, and exactly the volatile-dimension configuration that Grail <em>&quot;may restrict or reject&quot;</em> (row below).</p>
+<h3>Impact of High Cardinality</h3>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Metric storage</strong></td>
+<td>Each unique dimension combination is a separate time series. Millions of series consume significant storage.</td>
+</tr>
+<tr>
+<td><strong>Query performance</strong></td>
+<td>Queries against high-cardinality data scan more rows, hit scan limits faster, and return slowly.</td>
+</tr>
+<tr>
+<td><strong>Metric ingestion</strong></td>
+<td>Metrics Classic enforces a 1 million per-metric dimension limit; on Grail, <em>&quot;Dynatrace therefore may restrict or reject metric configurations&quot;</em> built on volatile dimensions such as timestamps or unique IDs (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits">Metric limits (DT docs)</a>).</td>
+</tr>
+<tr>
+<td><strong>Cost</strong></td>
+<td>More stored data = higher DPS consumption. High-cardinality dimensions multiply cost multiplicatively, not additively.</td>
+</tr>
+</tbody>
+</table>
+<p><a id="high-cardinality-fields"></a></p>
+<h2>2. High-Cardinality Fields by Scope</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZXh0cmVtZUNhcmQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZGMyNjI2O3N0b3Atb3BhY2l0eToxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6Izk5MWIxYjtzdG9wLW9wYWNpdHk6MSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idmhpZ2hDYXJkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VmNDQ0NDtzdG9wLW9wYWNpdHk6MSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImhpZ2hDYXJkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDY7c3RvcC1vcGFjaXR5OjEiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im1lZENhcmQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWFiMzA4O3N0b3Atb3BhY2l0eToxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2NhOGEwNDtzdG9wLW9wYWNpdHk6MSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibG93Q2FyZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxMGI5ODE7c3RvcC1vcGFjaXR5OjEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDU5NjY5O3N0b3Atb3BhY2l0eToxIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0iY2FyZFNoZCI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTgiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KCiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8dGV4dCB4PSI0NjUiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMGYxNzJhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DYXJkaW5hbGl0eSBSaXNrIGJ5IEZpZWxkPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+V2hpY2ggc3BhbiBhbmQgbG9nIGZpZWxkcyBhcmUgc2FmZSB0byB1c2UgYXMgbWV0cmljIGRpbWVuc2lvbnMsIGFuZCB3aGljaCB3aWxsIGV4cGxvZGUgdGltZXNlcmllcyBjYXJkaW5hbGl0eTwvdGV4dD4KCiAgPCEtLSBGaXZlIHJpc2stdGllciByb3dzLiBXaWR0aCA4NzAgcmVzZXJ2ZWQgZm9yIGNvbnRlbnQ7IGxlZnQgYXhpcyBhdCB4PTIwIC0tPgogIDwhLS0gUmlzayBsZWdlbmQgY29sdW1uIGhlYWRlciAtLT4KICA8ZyBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPgogICAgPHRleHQgeD0iMTIwIiB5PSI4MyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzQxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJpc2sgdGllcjwvdGV4dD4KICAgIDx0ZXh0IHg9IjM3MCIgeT0iODMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzM0MTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TcGFuIGZpZWxkczwvdGV4dD4KICAgIDx0ZXh0IHg9IjYyMCIgeT0iODMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzM0MTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Mb2cgZmllbGRzPC90ZXh0PgogICAgPHRleHQgeD0iODQ1IiB5PSI4MyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzQxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlVzZSBhcyBkaW1lbnNpb24/PC90ZXh0PgogIDwvZz4KCiAgPCEtLSBSb3cgMTogRVhUUkVNRSAtLT4KICA8Zz4KICAgIDxyZWN0IHg9IjIwIiB5PSI5NSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI2MCIgcng9IjYiIGZpbGw9InVybCgjZXh0cmVtZUNhcmQpIiBmaWx0ZXI9InVybCgjY2FyZFNoZCkiLz4KICAgIDx0ZXh0IHg9IjEyMCIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RVhUUkVNRTwvdGV4dD4KICAgIDx0ZXh0IHg9IjEyMCIgeT0iMTM4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VW5pcXVlIHBlciByZWNvcmQ8L3RleHQ+CiAgICA8dGV4dCB4PSIxMjAiIHk9IjE1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPn4gaW5maW5pdGUgY2FyZGluYWxpdHk8L3RleHQ+CgogICAgPHJlY3QgeD0iMjMwIiB5PSI5NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI2MCIgcng9IjYiIGZpbGw9IiNmZWUyZTIiIHN0cm9rZT0iI2RjMjYyNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICA8dGV4dCB4PSIzNzAiIHk9IjExNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzdmMWQxZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dHJhY2UuaWQgICYjODIyNjsgIHNwYW4uaWQ8L3RleHQ+CiAgICA8dGV4dCB4PSIzNzAiIHk9IjEzNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5IiBmaWxsPSIjOTkxYjFiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hdHRyaWJ1dGUgdmFsdWVzIHRoYXQgYXJlIEdVSURzPC90ZXh0PgogICAgPHRleHQgeD0iMzcwIiB5PSIxNDgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzk5MWIxYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cmVxdWVzdF9pZCAgJiM4MjI2OyAgc2Vzc2lvbl9pZDwvdGV4dD4KCiAgICA8cmVjdCB4PSI1MjAiIHk9Ijk1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iI2ZlZTJlMiIgc3Ryb2tlPSIjZGMyNjI2IiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjYyMCIgeT0iMTE1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjN2YxZDFkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jb250ZW50IChyYXcgbG9nIG1lc3NhZ2UpPC90ZXh0PgogICAgPHRleHQgeD0iNjIwIiB5PSIxMzUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzk5MWIxYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dW5wYXJzZWQgSlNPTiBwYXlsb2FkczwvdGV4dD4KICAgIDx0ZXh0IHg9IjYyMCIgeT0iMTQ4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiIGZpbGw9IiM5OTFiMWIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnN0YWNrIHRyYWNlczwvdGV4dD4KCiAgICA8dGV4dCB4PSI4NDUiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzdmMWQxZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TkVWRVI8L3RleHQ+CiAgICA8dGV4dCB4PSI4NDUiIHk9IjE0MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM5OTFiMWIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnBhcnNlIC8gaGFzaCBmaXJzdDwvdGV4dD4KICA8L2c+CgogIDwhLS0gUm93IDI6IFZFUlkgSElHSCAtLT4KICA8Zz4KICAgIDxyZWN0IHg9IjIwIiB5PSIxNjUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIHJ4PSI2IiBmaWxsPSJ1cmwoI3ZoaWdoQ2FyZCkiIGZpbHRlcj0idXJsKCNjYXJkU2hkKSIvPgogICAgPHRleHQgeD0iMTIwIiB5PSIxOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5WRVJZIEhJR0g8L3RleHQ+CiAgICA8dGV4dCB4PSIxMjAiIHk9IjIwOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjEwSysgdW5pcXVlIHZhbHVlczwvdGV4dD4KICAgIDx0ZXh0IHg9IjEyMCIgeT0iMjIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VXNlciAvIFVSTCAvIElQIHNwYWNlPC90ZXh0PgoKICAgIDxyZWN0IHg9IjIzMCIgeT0iMTY1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iI2ZlZjNjNyIgc3Ryb2tlPSIjZDk3NzA2IiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjM3MCIgeT0iMTg1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNzgzNTBmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5odHRwLnVybCAgJiM4MjI2OyAgaHR0cC50YXJnZXQ8L3RleHQ+CiAgICA8dGV4dCB4PSIzNzAiIHk9IjIwNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5IiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj51c2VyX2lkICAmIzgyMjY7ICBjbGllbnQuYWRkcmVzczwvdGV4dD4KICAgIDx0ZXh0IHg9IjM3MCIgeT0iMjE4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmRiLnN0YXRlbWVudCAoZnVsbCBTUUwgdGV4dCk8L3RleHQ+CgogICAgPHJlY3QgeD0iNTIwIiB5PSIxNjUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIHJ4PSI2IiBmaWxsPSIjZmVmM2M3IiBzdHJva2U9IiNkOTc3MDYiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHRleHQgeD0iNjIwIiB5PSIxODUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ODM1MGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnVzZXJfaWQgICYjODIyNjsgIGNsaWVudF9pcDwvdGV4dD4KICAgIDx0ZXh0IHg9IjYyMCIgeT0iMjA1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlcXVlc3QgVVJMPC90ZXh0PgogICAgPHRleHQgeD0iNjIwIiB5PSIyMTgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+azhzLnBvZC51aWQ8L3RleHQ+CgogICAgPHRleHQgeD0iODQ1IiB5PSIxOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFWT0lEPC90ZXh0PgogICAgPHRleHQgeD0iODQ1IiB5PSIyMTMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNzgzNTBmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ub3JtYWxpemUgdG8gdGVtcGxhdGU8L3RleHQ+CiAgPC9nPgoKICA8IS0tIFJvdyAzOiBISUdIIC0tPgogIDxnPgogICAgPHJlY3QgeD0iMjAiIHk9IjIzNSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI2MCIgcng9IjYiIGZpbGw9InVybCgjaGlnaENhcmQpIiBmaWx0ZXI9InVybCgjY2FyZFNoZCkiLz4KICAgIDx0ZXh0IHg9IjEyMCIgeT0iMjYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SElHSDwvdGV4dD4KICAgIDx0ZXh0IHg9IjEyMCIgeT0iMjc4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NTAwIC0gMTBLIHVuaXF1ZSB2YWx1ZXM8L3RleHQ+CiAgICA8dGV4dCB4PSIxMjAiIHk9IjI5MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBvZCAvIGVuZHBvaW50IGxldmVsPC90ZXh0PgoKICAgIDxyZWN0IHg9IjIzMCIgeT0iMjM1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iI2ZlZjljMyIgc3Ryb2tlPSIjY2E4YTA0IiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjM3MCIgeT0iMjU1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNzEzZjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zcGFuLm5hbWUgKHdoZW4gbm90IHRlbXBsYXRlZCk8L3RleHQ+CiAgICA8dGV4dCB4PSIzNzAiIHk9IjI3NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5IiBmaWxsPSIjODU0ZDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kYi5jb2xsZWN0aW9uICAmIzgyMjY7ICBycGMubWV0aG9kPC90ZXh0PgogICAgPHRleHQgeD0iMzcwIiB5PSIyODgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzg1NGQwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+azhzLnBvZC5uYW1lPC90ZXh0PgoKICAgIDxyZWN0IHg9IjUyMCIgeT0iMjM1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iI2ZlZjljMyIgc3Ryb2tlPSIjY2E4YTA0IiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjYyMCIgeT0iMjU1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNzEzZjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5rOHMucG9kLm5hbWU8L3RleHQ+CiAgICA8dGV4dCB4PSI2MjAiIHk9IjI3NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5IiBmaWxsPSIjODU0ZDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jb250YWluZXJfaWQ8L3RleHQ+CiAgICA8dGV4dCB4PSI2MjAiIHk9IjI4OCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5IiBmaWxsPSIjODU0ZDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5sb2cuc291cmNlIChjdXN0b20gYXBwcyk8L3RleHQ+CgogICAgPHRleHQgeD0iODQ1IiB5PSIyNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM4NTRkMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNBVVRJT048L3RleHQ+CiAgICA8dGV4dCB4PSI4NDUiIHk9IjI4MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM3MTNmMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm1vbml0b3Igb3ZlciB0aW1lPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBSb3cgNDogTUVESVVNIC0tPgogIDxnPgogICAgPHJlY3QgeD0iMjAiIHk9IjMwNSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI2MCIgcng9IjYiIGZpbGw9InVybCgjbWVkQ2FyZCkiIGZpbHRlcj0idXJsKCNjYXJkU2hkKSIvPgogICAgPHRleHQgeD0iMTIwIiB5PSIzMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NRURJVU08L3RleHQ+CiAgICA8dGV4dCB4PSIxMjAiIHk9IjM0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjUwIC0gNTAwIHVuaXF1ZSB2YWx1ZXM8L3RleHQ+CiAgICA8dGV4dCB4PSIxMjAiIHk9IjM2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC44NSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJvdXRlIC8gc3RhdHVzIC8gbmFtZXNwYWNlPC90ZXh0PgoKICAgIDxyZWN0IHg9IjIzMCIgeT0iMzA1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iI2RjZmNlNyIgc3Ryb2tlPSIjMTZhMzRhIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjM3MCIgeT0iMzI1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTQ1MzJkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5odHRwLnJvdXRlICh0ZW1wbGF0ZWQgcGF0aCk8L3RleHQ+CiAgICA8dGV4dCB4PSIzNzAiIHk9IjM0NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5IiBmaWxsPSIjMTY2NTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5odHRwLnJlc3BvbnNlLnN0YXR1c19jb2RlPC90ZXh0PgogICAgPHRleHQgeD0iMzcwIiB5PSIzNTgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzE2NjUzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZGIuc3lzdGVtICAmIzgyMjY7ICBycGMuc3lzdGVtPC90ZXh0PgoKICAgIDxyZWN0IHg9IjUyMCIgeT0iMzA1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iI2RjZmNlNyIgc3Ryb2tlPSIjMTZhMzRhIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjYyMCIgeT0iMzI1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTQ1MzJkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kdC5lbnRpdHkuaG9zdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjYyMCIgeT0iMzQ1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiIGZpbGw9IiMxNjY1MzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPms4cy5kZXBsb3ltZW50Lm5hbWU8L3RleHQ+CiAgICA8dGV4dCB4PSI2MjAiIHk9IjM1OCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5IiBmaWxsPSIjMTY2NTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5sb2dfbGV2ZWwgKyBzZXJ2aWNlPC90ZXh0PgoKICAgIDx0ZXh0IHg9Ijg0NSIgeT0iMzM1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMTU4MDNkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PSzwvdGV4dD4KICAgIDx0ZXh0IHg9Ijg0NSIgeT0iMzUzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzE0NTMyZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Z29vZCBkaW1lbnNpb248L3RleHQ+CiAgPC9nPgoKICA8IS0tIFJvdyA1OiBMT1cgLS0+CiAgPGc+CiAgICA8cmVjdCB4PSIyMCIgeT0iMzc1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0idXJsKCNsb3dDYXJkKSIgZmlsdGVyPSJ1cmwoI2NhcmRTaGQpIi8+CiAgICA8dGV4dCB4PSIxMjAiIHk9IjQwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkxPVzwvdGV4dD4KICAgIDx0ZXh0IHg9IjEyMCIgeT0iNDE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Jmx0Oz0gNTAgdW5pcXVlIHZhbHVlczwvdGV4dD4KICAgIDx0ZXh0IHg9IjEyMCIgeT0iNDMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjg1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2VydmljZSAvIHJlZ2lvbiAvIGVudjwvdGV4dD4KCiAgICA8cmVjdCB4PSIyMzAiIHk9IjM3NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI2MCIgcng9IjYiIGZpbGw9IiNkMWZhZTUiIHN0cm9rZT0iIzA1OTY2OSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICA8dGV4dCB4PSIzNzAiIHk9IjM5NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA2NGUzYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZHQuc2VydmljZS5uYW1lICAmIzgyMjY7ICBzcGFuLmtpbmQ8L3RleHQ+CiAgICA8dGV4dCB4PSIzNzAiIHk9IjQxNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5IiBmaWxsPSIjMDY1ZjQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kZXBsb3ltZW50LmVudmlyb25tZW50PC90ZXh0PgogICAgPHRleHQgeD0iMzcwIiB5PSI0MjgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzA2NWY0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Y2xvdWQucmVnaW9uICAmIzgyMjY7ICBwcmltYXJ5X3RhZ3MudGVhbTwvdGV4dD4KCiAgICA8cmVjdCB4PSI1MjAiIHk9IjM3NSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI2MCIgcng9IjYiIGZpbGw9IiNkMWZhZTUiIHN0cm9rZT0iIzA1OTY2OSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICA8dGV4dCB4PSI2MjAiIHk9IjM5NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA2NGUzYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bG9nLnNvdXJjZSAobWFuYWdlZCk8L3RleHQ+CiAgICA8dGV4dCB4PSI2MjAiIHk9IjQxNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5IiBmaWxsPSIjMDY1ZjQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5rOHMubmFtZXNwYWNlLm5hbWU8L3RleHQ+CiAgICA8dGV4dCB4PSI2MjAiIHk9IjQyOCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5IiBmaWxsPSIjMDY1ZjQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wcmltYXJ5X3RhZ3MuZW52aXJvbm1lbnQ8L3RleHQ+CgogICAgPHRleHQgeD0iODQ1IiB5PSI0MDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNjVmNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPklERUFMPC90ZXh0PgogICAgPHRleHQgeD0iODQ1IiB5PSI0MjMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjMDY0ZTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hbHdheXMgc2FmZTwvdGV4dD4KICA8L2c+CgogIDwhLS0gRm9vdGVyIHJ1bGUgLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjQ1MCIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiNmZWY5YzMiIHN0cm9rZT0iI2NhOGEwNCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzUiIHk9IjQ3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzcxM2YxMiI+VGFyZ2V0ICZsdDsgMTAsMDAwIHVuaXF1ZSBjb21iaW5hdGlvbnMgYWNyb3NzIGFsbCBkaW1lbnNpb25zIHBlciBtZXRyaWMuPC90ZXh0PgogIDx0ZXh0IHg9IjM1IiB5PSI0ODQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzcxM2YxMiI+Rm9yIFZFUlkgSElHSCAvIEhJR0ggZmllbGRzLCBub3JtYWxpemUgYmVmb3JlIGV4dHJhY3Rpb24gKGUuZy4sIGh0dHAudXJsICYjODU5NDsgaHR0cC5yb3V0ZSB0ZW1wbGF0ZSkgb3IgaGFzaCB0byBhIGJ1Y2tldC4gTmV2ZXIgZXh0cmFjdCByYXcgR1VJRHMgYXMgZGltZW5zaW9ucy48L3RleHQ+Cjwvc3ZnPgo=" alt="Cardinality Risk by Field" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Risk Tier | Span Fields (examples) | Log Fields (examples) | Use as dimension? |
+|-----------|------------------------|-----------------------|-------------------|
+| EXTREME | trace.id, span.id, request_id (GUIDs) | content (raw), unparsed JSON, stack traces | NEVER — parse / hash first |
+| VERY HIGH | http.url, http.target, user_id, db.statement | user_id, client_ip, request URL | AVOID — normalize to template |
+| HIGH | span.name, db.collection, k8s.pod.name | k8s.pod.name, container_id, log.source (custom) | CAUTION — monitor over time |
+| MEDIUM | http.route, status_code, db.system | dt.entity.host, k8s.deployment.name | OK — good dimension |
+| LOW | dt.service.name, span.kind, deployment.environment | log.source (managed), k8s.namespace.name | IDEAL — always safe |
+-->
+<p>Different scopes have different cardinality offenders. Know which fields to watch:</p>
+<h3>Spans</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Typical Cardinality</th>
+<th>Risk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>trace.id</code></td>
+<td>Unique per trace</td>
+<td><strong>Extreme</strong> — never use as metric dimension</td>
+</tr>
+<tr>
+<td><code>span.id</code></td>
+<td>Unique per span</td>
+<td><strong>Extreme</strong></td>
+</tr>
+<tr>
+<td><code>http.url</code></td>
+<td>Unique per request (includes query params)</td>
+<td><strong>Very High</strong></td>
+</tr>
+<tr>
+<td><code>span.name</code></td>
+<td>Hundreds to thousands</td>
+<td><strong>High</strong> if operations include dynamic segments</td>
+</tr>
+<tr>
+<td><code>http.route</code></td>
+<td>Tens to hundreds</td>
+<td><strong>Medium</strong> — usually safe</td>
+</tr>
+<tr>
+<td><code>dt.service.name</code></td>
+<td>Tens</td>
+<td><strong>Low</strong> — always safe</td>
+</tr>
+</tbody>
+</table>
+<h3>Logs</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Typical Cardinality</th>
+<th>Risk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>content</code></td>
+<td>Unique per log line</td>
+<td><strong>Extreme</strong> — never use as dimension</td>
+</tr>
+<tr>
+<td><code>log.source</code></td>
+<td>Tens</td>
+<td><strong>Low</strong></td>
+</tr>
+<tr>
+<td><code>k8s.pod.name</code></td>
+<td>Hundreds (includes replica IDs)</td>
+<td><strong>High</strong> — pod names are ephemeral</td>
+</tr>
+<tr>
+<td><code>k8s.namespace.name</code></td>
+<td>Tens</td>
+<td><strong>Low</strong></td>
+</tr>
+<tr>
+<td><code>dt.entity.host</code></td>
+<td>Tens to hundreds</td>
+<td><strong>Medium</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>Metrics (Extension-Ingested)</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Typical Cardinality</th>
+<th>Risk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.entity.process_group_instance</code></td>
+<td>Hundreds</td>
+<td><strong>High</strong> — process instances are ephemeral</td>
+</tr>
+<tr>
+<td>Custom extension dimensions</td>
+<td>Varies</td>
+<td><strong>Depends</strong> — review each extension's schema</td>
+</tr>
+</tbody>
+</table>
+<p><a id="detecting-cardinality-problems"></a></p>
+<h2>3. Detecting Cardinality Problems</h2>
+<p>Run these queries to find high-cardinality dimensions in your environment.</p>
+<pre><code class="language-dql">// Detect high-cardinality log fields
+fetch logs, from:-1h
+| summarize total = count(),
+    unique_sources = countDistinct(log.source),
+    unique_buckets = countDistinct(dt.system.bucket),
+    unique_hosts = countDistinct(dt.entity.host),
+    unique_pods = countDistinct(k8s.pod.name),
+    unique_namespaces = countDistinct(k8s.namespace.name)
+</code></pre>
+<pre><code class="language-dql">// Detect high-cardinality span fields
+fetch spans, from:-1h
+| summarize total = count(),
+    unique_services = countDistinct(dt.service.name),
+    unique_operations = countDistinct(span.name),
+    unique_routes = countDistinct(http.route),
+    unique_traces = countDistinct(trace.id)
+</code></pre>
+<pre><code class="language-dql">// Find span.name values with dynamic segments (cardinality risk)
+// Look for names containing UUIDs, numeric IDs, or long paths
+fetch spans, from:-1h
+| summarize span_count = count(), by:{span.name}
+| filter span_count &lt; 10
+| sort span.name asc
+| limit 30
+</code></pre>
+<p><a id="attribute-removal"></a></p>
+<h2>4. Reduction Strategy 1: Attribute Removal</h2>
+<p>The simplest approach: remove fields you do not need before they reach storage or metric extraction.</p>
+<h3>When to Use</h3>
+<ul>
+<li>Fields that are unique per record and never queried (session tokens, request IDs used only for debugging)</li>
+<li>Redundant fields (both <code>http.url</code> and <code>http.route</code> exist — keep <code>http.route</code>, drop <code>http.url</code>)</li>
+<li>Verbose attributes from third-party instrumentation that add no value</li>
+</ul>
+<h3>OpenPipeline Configuration</h3>
+<p>In the <strong>Processing</strong> stage of your pipeline, add a <strong>Remove fields</strong> processor:</p>
+<table>
+<thead>
+<tr>
+<th>Fields to Remove</th>
+<th>Scope</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>http.url</code> (when <code>http.route</code> exists)</td>
+<td>Spans</td>
+<td>URL has query params; route is the pattern</td>
+</tr>
+<tr>
+<td>Captured header attributes (<code>http.request.header.&lt;name&gt;</code>)</td>
+<td>Spans</td>
+<td>Request headers are rarely needed post-ingestion — list each attribute by name</td>
+</tr>
+<tr>
+<td><code>thread.name</code>, <code>thread.id</code></td>
+<td>Logs</td>
+<td>Per-thread IDs are high-cardinality noise</td>
+</tr>
+</tbody>
+</table>
+<p><a id="value-normalization"></a></p>
+<h2>5. Reduction Strategy 2: Value Normalization</h2>
+<p>Replace high-cardinality values with lower-cardinality patterns at ingestion.</p>
+<h3>URL Path Normalization</h3>
+<table>
+<thead>
+<tr>
+<th>Before (high cardinality)</th>
+<th>After (low cardinality)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/users/12345/orders/67890</code></td>
+<td><code>/users/{id}/orders/{id}</code></td>
+</tr>
+<tr>
+<td><code>/api/v2/entities/HOST-ABC123</code></td>
+<td><code>/api/v2/entities/{entity_id}</code></td>
+</tr>
+<tr>
+<td><code>/search?q=dynatrace+monitoring</code></td>
+<td><code>/search</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Status Code Grouping</h3>
+<table>
+<thead>
+<tr>
+<th>Before</th>
+<th>After</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>200</code>, <code>201</code>, <code>204</code></td>
+<td><code>2xx</code></td>
+</tr>
+<tr>
+<td><code>301</code>, <code>302</code>, <code>304</code></td>
+<td><code>3xx</code></td>
+</tr>
+<tr>
+<td><code>400</code>, <code>401</code>, <code>403</code>, <code>404</code>, <code>422</code></td>
+<td><code>4xx</code></td>
+</tr>
+<tr>
+<td><code>500</code>, <code>502</code>, <code>503</code></td>
+<td><code>5xx</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Pod Name Normalization</h3>
+<p>Kubernetes pod names include replica identifiers that are ephemeral:</p>
+<table>
+<thead>
+<tr>
+<th>Before</th>
+<th>After</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>checkout-service-7b4f6d9c8-x2k4q</code></td>
+<td><code>checkout-service</code></td>
+</tr>
+<tr>
+<td><code>payment-worker-5d8f7a3b2-m9n1p</code></td>
+<td><code>payment-worker</code></td>
+</tr>
+</tbody>
+</table>
+<p>Don't rewrite <code>k8s.pod.name</code> itself — other views and entity links rely on it. Use the workload field Kubernetes monitoring already supplies (<code>k8s.deployment.name</code>, or <code>k8s.workload.name</code> where it is set) as the metric dimension. On the validation tenant, <code>k8s.deployment.name</code> was set on 767,490 of 913,405 pod log records in an hour (131 pods → 54 deployments). Where neither is present, derive one in a <strong>DQL</strong> processor in the Processing stage with <code>parse</code> and store it in a new field.</p>
+<pre><code class="language-dql">// Check: How many unique pod names vs. deployment names?
+fetch logs, from:-1h
+| filter isNotNull(k8s.pod.name)
+| summarize unique_pods = countDistinct(k8s.pod.name),
+    unique_deployments = countDistinct(k8s.deployment.name)
+| fieldsAdd cardinality_reduction = if(unique_deployments &gt; 0,
+    then: toString(round(toDouble(unique_pods) / toDouble(unique_deployments), decimals: 1)) ,
+    else: &quot;N/A&quot;)
+</code></pre>
+<p><a id="grouping-and-bucketing"></a></p>
+<h2>6. Reduction Strategy 3: Grouping and Bucketing</h2>
+<p>When values are continuous (durations, sizes, counts), convert them to categorical buckets.</p>
+<h3>Duration Bucketing</h3>
+<p>Instead of storing exact <code>duration</code> values as a dimension, classify into performance tiers:</p>
+<table>
+<thead>
+<tr>
+<th>Duration Range</th>
+<th>Bucket Label</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 100ms</td>
+<td><code>fast</code></td>
+</tr>
+<tr>
+<td>100ms - 500ms</td>
+<td><code>normal</code></td>
+</tr>
+<tr>
+<td>500ms - 2s</td>
+<td><code>slow</code></td>
+</tr>
+<tr>
+<td>&gt; 2s</td>
+<td><code>very_slow</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Size Bucketing</h3>
+<p>For response sizes or log message lengths:</p>
+<table>
+<thead>
+<tr>
+<th>Size Range</th>
+<th>Bucket Label</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 1 KB</td>
+<td><code>small</code></td>
+</tr>
+<tr>
+<td>1 KB - 100 KB</td>
+<td><code>medium</code></td>
+</tr>
+<tr>
+<td>100 KB - 1 MB</td>
+<td><code>large</code></td>
+</tr>
+<tr>
+<td>&gt; 1 MB</td>
+<td><code>very_large</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="hashing-for-privacy"></a></p>
+<h2>7. Reduction Strategy 4: Hashing for Privacy</h2>
+<p>When you need to track unique entities (users, sessions) without storing identifiable information, hash the value:</p>
+<table>
+<thead>
+<tr>
+<th>Original Field</th>
+<th>Hashed Field</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user.email</code></td>
+<td><code>hashSha256(user.email)</code></td>
+<td>Count unique users without storing the cleartext address</td>
+</tr>
+<tr>
+<td><code>client.ip</code></td>
+<td><code>hashSha256(client.ip)</code></td>
+<td>Track unique clients without storing the cleartext IP</td>
+</tr>
+</tbody>
+</table>
+<h3>Trade-offs</h3>
+<ul>
+<li><strong>Cardinality</strong>: Hashing does NOT reduce cardinality — 100,000 unique emails produce 100,000 unique hashes</li>
+<li><strong>Privacy</strong>: Hashing hides the cleartext, but it is <strong>pseudonymization, not anonymization</strong>. An unsalted hash of a low-entropy value can be reversed by hashing every candidate: there are only about 4.3 billion IPv4 addresses, and email addresses can be enumerated from known lists. Prefer a secret salt, or drop the field if you do not need it</li>
+<li><strong>Truncation</strong>: Keeping only the first 8 hex characters of the hash leaves about 4.3 billion possible values, so distinct inputs start to collide at scale and <code>countDistinct()</code> undercounts — keep the full hash if exact distinct counts matter</li>
+<li><strong>When to use</strong>: When the field is required for <code>countDistinct()</code> but must not be stored in cleartext</li>
+<li><strong>When NOT to use</strong>: When the goal is cardinality reduction — use grouping or removal instead</li>
+</ul>
+<p><a id="metric-dimension-guardrails"></a></p>
+<h2>8. Metric Dimension Guardrails</h2>
+<p>When configuring metric extraction in OpenPipeline (see <strong>OPIPE-03</strong>), apply these guardrails:</p>
+<h3>Dimension Selection Checklist</h3>
+<p>For each dimension you plan to include in an extracted metric, ask:</p>
+<ol>
+<li><strong>Is this dimension needed for the metric's use case?</strong> If the metric drives an SLO by service, you need the service field — you probably do not need <code>k8s.pod.name</code>.</li>
+<li><strong>How many unique values does this dimension have?</strong> Query <code>countDistinct()</code> on the field.</li>
+<li><strong>Will this dimension grow unbounded?</strong> Pod names, session IDs, and request IDs grow with traffic. Avoid these.</li>
+<li><strong>Can this dimension be normalized first?</strong> URL paths, pod names, and status codes can all be bucketed.</li>
+</ol>
+<h3>Cardinality Budget</h3>
+<p>Assign a cardinality budget to each extracted metric. These targets are community practice, not product limits — tune them to your tenant:</p>
+<table>
+<thead>
+<tr>
+<th>Metric Type</th>
+<th>Target Cardinality</th>
+<th>Max Dimensions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SLO metric (request count, error rate)</td>
+<td>&lt; 1,000</td>
+<td>2-3 (service, route)</td>
+</tr>
+<tr>
+<td>Operational metric (latency by service)</td>
+<td>&lt; 10,000</td>
+<td>3-4 (service, route, status code)</td>
+</tr>
+<tr>
+<td>Exploratory metric (for dashboards)</td>
+<td>&lt; 50,000</td>
+<td>4-5 (include namespace, environment)</td>
+</tr>
+</tbody>
+</table>
+<h3>Breaking (SaaS 1.346): a per-record size limit on sorting and grouping keys</h3>
+<p>Cardinality has always been about the <em>number</em> of distinct values. <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">SaaS 1.346</a> adds a constraint on their <em>size</em>. Verbatim: <em>&quot;We now enforce a per-record size limit on field values used as sorting or grouping keys in DQL queries (such as <code>sort</code>, <code>summarize</code>, and <code>makeTimeseries</code> with <code>by:</code>).&quot;</em> and <em>&quot;Queries where sorting/grouping key values exceed the limit on one or more records will return a client-side error. Queries with appropriately-sized keys are unaffected and benefit from improved performance.&quot;</em></p>
+<p>This is a <strong>query-time</strong> limit, distinct from every ingest-time guardrail above, and it fails in a way worth anticipating:</p>
+<ul>
+<li><strong>One oversized record fails the whole query.</strong> The limit is per record, so a single outlier — a full stack trace, a serialized payload, a giant URL — is enough to error a query that ran yesterday. The data is not rejected; the <em>query</em> is.</li>
+<li><strong>It is a client-side error, not a silent truncation.</strong> That is the good outcome: you get told. Contrast the cardinality traps above, which degrade quietly.</li>
+<li><strong>The fix is the normalization you should already be doing.</strong> Grouping by an unbounded free-text field was a cardinality problem before it was a size problem — §5 (value normalization), §6 (bucketing), and §7 (hashing) all produce compact keys as a side effect. Hashing in particular converts an arbitrarily long value into a fixed-width one.</li>
+<li><strong>Group by an extracted field, not the raw one.</strong> <code>summarize count(), by:{content}</code> is the shape at risk; <code>by:{status_code}</code> or a parsed, normalized field is not.</li>
+</ul>
+<p>The upside is real — Dynatrace notes conforming queries <em>&quot;benefit from improved performance&quot;</em> — but the migration cost lands on exactly the ad-hoc queries and saved tiles that group by raw text. SaaS 1.346 began its <strong>staged tenant rollout on 08/25/2026</strong>; until it reaches your tenant such queries keep working, which makes this a good window to find them deliberately rather than discover them through a broken dashboard.</p>
+<pre><code class="language-dql">// Estimate cardinality for a proposed metric extraction
+// Example: request count by dt.service.name x http.route x status_code
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot; and isNotNull(endpoint.name)
+| summarize unique_combos = count(), by:{dt.service.name, http.route, http.response.status_code}
+| summarize total_cardinality = count()
+| fieldsAdd assessment = if(total_cardinality &lt; 1000, then: &quot;OK: Low cardinality&quot;,
+    else: if(total_cardinality &lt; 10000, then: &quot;CAUTION: Medium cardinality&quot;,
+    else: &quot;WARNING: High cardinality — consider reducing dimensions&quot;))
+</code></pre>
+<hr />
+<p><a id="summary"></a></p>
+<h2>Summary</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li><strong>Cardinality</strong> is the product of unique values across all dimensions — it grows multiplicatively</li>
+<li><strong>High-cardinality fields</strong> differ by scope: <code>trace.id</code> and <code>http.url</code> for spans, <code>content</code> and <code>k8s.pod.name</code> for logs</li>
+<li><strong>Detection</strong> — Use <code>countDistinct()</code> queries to find cardinality hotspots before they cause problems</li>
+<li><strong>Four reduction strategies</strong>: attribute removal, value normalization, grouping/bucketing, and hashing</li>
+<li><strong>Metric guardrails</strong> — Assign cardinality budgets and limit dimensions to what each metric's use case requires</li>
+</ul>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>Next Steps</h2>
+<p>Continue to <strong>OPIPE-05: Business &amp; Security Event Pipelines</strong> to configure OpenPipeline for business transaction tracking, security event processing, and compliance-driven event routing.</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol">Metric ingestion protocol (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">OpenPipeline processing (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits">Metric limits (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a> — the sorting/grouping key size limit quoted in §8</li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail">Grail data model (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

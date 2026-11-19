@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOBL-10: DQL for Mobile Analytics</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MOBL — Mobile Monitoring</a><span class="sep">/</span><span aria-current="page">MOBL-10</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MOBL-10: DQL for Mobile Analytics</h1>
+<blockquote>
+<p><strong>Series:</strong> MOBL — Mobile Monitoring | <strong>Notebook:</strong> 10 of 12 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A comprehensive DQL reference for mobile analytics — querying the app inventory, user actions, crashes, app starts, device/OS segmentation, and geolocation from Grail <code>user.events</code> and <code>user.sessions</code>. This notebook is designed as a <strong>reusable query template library</strong> that SREs and platform engineers can copy, adapt, and integrate into dashboards, notebooks, and automation workflows.</p>
+<p>Every query in this notebook targets real mobile monitoring data in Grail and follows DQL best practices: explicit time ranges, early filtering, proper aliasing, and performance-conscious patterns.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#mobile-data-model">Mobile Data Model in Grail</a></li>
+<li><a href="#querying-entities">Querying Mobile Entities</a></li>
+<li><a href="#user-action-analytics">User Action Analytics</a></li>
+<li><a href="#crash-error-analytics">Crash &amp; Error Analytics</a></li>
+<li><a href="#performance-metrics">Performance Metrics</a></li>
+<li><a href="#device-os-segmentation">Device &amp; OS Segmentation</a></li>
+<li><a href="#geolocation-analysis">Geolocation Analysis</a></li>
+<li><a href="#reusable-templates">Reusable Query Templates</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:user.sessions:read</code>, <code>storage:smartscape:read</code> (or <code>storage:entities:read</code> for the classic table)</td>
+</tr>
+<tr>
+<td><strong>Mobile App Data</strong></td>
+<td>At least one mobile application (iOS or Android) instrumented with OneAgent Mobile SDK and sending data</td>
+</tr>
+<tr>
+<td><strong>DQL Knowledge</strong></td>
+<td>Familiarity with <code>fetch</code>, <code>filter</code>, <code>summarize</code>, and <code>makeTimeseries</code> commands</td>
+</tr>
+</tbody>
+</table>
+<p><a id="mobile-data-model"></a></p>
+<h2>1. Mobile Data Model in Grail</h2>
+<p>Understanding where mobile data lives in Grail is the foundation for writing effective DQL queries. Unlike traditional APM data that maps neatly to logs and spans, mobile monitoring data is distributed across multiple Grail data objects.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNDAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPgogIDxkZWZzPgogICAgPGZpbHRlciBpZD0ic2hhZG93IiB4PSItNSUiIHk9Ii01JSIgd2lkdGg9IjExNSUiIGhlaWdodD0iMTE1JSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJibHVlR3JhZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMTQ5NmZmIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzBhNjRiYyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icHVycGxlR3JhZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjNjM2NmYxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzRmNDZlNSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JlZW5HcmFkIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMyMmM1NWUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMTZhMzRhIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJvcmFuZ2VHcmFkIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmOTczMTYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZWE1ODBjIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJyZWRHcmFkIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNlZjQ0NDQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZGMyNjI2Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYXJyb3dHcmF5IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzk0YTNiOCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0MDAiIHJ4PSIxMiIgcnk9IjEyIiBmaWxsPSIjZjhmOWZhIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTI5M2IiPk1vYmlsZSBEYXRhIE1vZGVsIGluIEdyYWlsPC90ZXh0PgoKICA8IS0tIENlbnRyYWwgR3JhaWwgZGF0YWJhc2UgLS0+CiAgPGcgZmlsdGVyPSJ1cmwoI3NoYWRvdykiPgogICAgPHJlY3QgeD0iMzI1IiB5PSIxNDUiIHdpZHRoPSIxNTAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0idXJsKCNncmVlbkdyYWQpIi8+CiAgICA8IS0tIERhdGFiYXNlIGljb24gbGluZXMgLS0+CiAgICA8ZWxsaXBzZSBjeD0iNDAwIiBjeT0iMTY1IiByeD0iNDAiIHJ5PSIxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjEuNSIgb3BhY2l0eT0iMC42Ii8+CiAgICA8ZWxsaXBzZSBjeD0iNDAwIiBjeT0iMTgwIiByeD0iNDAiIHJ5PSIxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjEuNSIgb3BhY2l0eT0iMC40Ii8+CiAgICA8ZWxsaXBzZSBjeD0iNDAwIiBjeT0iMTk1IiByeD0iNDAiIHJ5PSIxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjEuNSIgb3BhY2l0eT0iMC4yNSIvPgogICAgPHRleHQgeD0iNDAwIiB5PSIyMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj5HcmFpbDwvdGV4dD4KICA8L2c+CgogIDwhLS0gQm94IDE6IFRvcC1sZWZ0IOKAlCBkdC5lbnRpdHkubW9iaWxlX2FwcGxpY2F0aW9uIChibHVlKSAtLT4KICA8ZyBmaWx0ZXI9InVybCgjc2hhZG93KSI+CiAgICA8cmVjdCB4PSI0MCIgeT0iNTUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2JsdWVHcmFkKSIvPgogICAgPHRleHQgeD0iMTQwIiB5PSI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiPlNtYXJ0c2NhcGUgRlJPTlRFTkQ8L3RleHQ+CiAgICA8dGV4dCB4PSIxNDAiIHk9IjEwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMSIgZmlsbD0iI2RiZWFmZSI+ZnJvbnRlbmQudHlwZSA9IG1vYmlsZTwvdGV4dD4KICA8L2c+CgogIDwhLS0gQm94IDI6IFRvcC1yaWdodCDigJQgYml6ZXZlbnRzIChVc2VyIEFjdGlvbnMpIChwdXJwbGUpIC0tPgogIDxnIGZpbHRlcj0idXJsKCNzaGFkb3cpIj4KICAgIDxyZWN0IHg9IjU2MCIgeT0iNTUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3B1cnBsZUdyYWQpIi8+CiAgICA8dGV4dCB4PSI2NjAiIHk9IjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiI+dXNlci5ldmVudHM6IGFjdGlvbnM8L3RleHQ+CiAgICA8dGV4dCB4PSI2NjAiIHk9IjEwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMSIgZmlsbD0iI2UwZTdmZiI+aGFzX3VzZXJfYWN0aW9uIMK3IGhhc19yZXF1ZXN0PC90ZXh0PgogIDwvZz4KCiAgPCEtLSBCb3ggMzogUmlnaHQg4oCUIGJpemV2ZW50cyAoU2Vzc2lvbnMpIChwdXJwbGUpIC0tPgogIDxnIGZpbHRlcj0idXJsKCNzaGFkb3cpIj4KICAgIDxyZWN0IHg9IjU5MCIgeT0iMTY1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjYwIiByeD0iOCIgZmlsbD0idXJsKCNwdXJwbGVHcmFkKSIvPgogICAgPHRleHQgeD0iNjgwIiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIj51c2VyLnNlc3Npb25zPC90ZXh0PgogICAgPHRleHQgeD0iNjgwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNlMGU3ZmYiPk9uZSByZWNvcmQgcGVyIHNlc3Npb248L3RleHQ+CiAgPC9nPgoKICA8IS0tIEJveCA0OiBCb3R0b20tcmlnaHQg4oCUIGJpemV2ZW50cyAoQ3Jhc2hlcykgKHJlZCkgLS0+CiAgPGcgZmlsdGVyPSJ1cmwoI3NoYWRvdykiPgogICAgPHJlY3QgeD0iNTYwIiB5PSIyNzAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3JlZEdyYWQpIi8+CiAgICA8dGV4dCB4PSI2NjAiIHk9IjI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiPnVzZXIuZXZlbnRzOiBjcmFzaGVzPC90ZXh0PgogICAgPHRleHQgeD0iNjYwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNmZWNhY2EiPmhhc19jcmFzaCDCtyBoYXNfYW5yPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBCb3ggNTogQm90dG9tLWxlZnQg4oCUIE1ldHJpY3MgKHRpbWVzZXJpZXMpIChvcmFuZ2UpIC0tPgogIDxnIGZpbHRlcj0idXJsKCNzaGFkb3cpIj4KICAgIDxyZWN0IHg9IjQwIiB5PSIyNzAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSJ1cmwoI29yYW5nZUdyYWQpIi8+CiAgICA8dGV4dCB4PSIxNDAiIHk9IjI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiPk1ldHJpY3MgKHRpbWVzZXJpZXMpPC90ZXh0PgogICAgPHRleHQgeD0iMTQwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNmZWQ3YWEiPlBlcmZvcm1hbmNlIG1ldHJpY3M8L3RleHQ+CiAgPC9nPgoKICA8IS0tIENvbm5lY3RpbmcgbGluZXMgLS0+CiAgPCEtLSBCb3ggMSAodG9wLWxlZnQpIHRvIEdyYWlsIC0tPgogIDxsaW5lIHgxPSIyNDAiIHkxPSIxMDAiIHgyPSIzMzAiIHkyPSIxNjUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93R3JheSkiLz4KICA8IS0tIEJveCAyICh0b3AtcmlnaHQpIHRvIEdyYWlsIC0tPgogIDxsaW5lIHgxPSI1NjAiIHkxPSIxMDAiIHgyPSI0NzAiIHkyPSIxNjUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93R3JheSkiLz4KICA8IS0tIEJveCAzIChyaWdodCkgdG8gR3JhaWwgLS0+CiAgPGxpbmUgeDE9IjU5MCIgeTE9IjE5NSIgeDI9IjQ3NSIgeTI9IjE5MCIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dHcmF5KSIvPgogIDwhLS0gQm94IDQgKGJvdHRvbS1yaWdodCkgdG8gR3JhaWwgLS0+CiAgPGxpbmUgeDE9IjU2MCIgeTE9IjI4NSIgeDI9IjQ3MCIgeTI9IjIyMCIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dHcmF5KSIvPgogIDwhLS0gQm94IDUgKGJvdHRvbS1sZWZ0KSB0byBHcmFpbCAtLT4KICA8bGluZSB4MT0iMjQwIiB5MT0iMjg1IiB4Mj0iMzMwIiB5Mj0iMjIwIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0dyYXkpIi8+CgogIDwhLS0gTGVnZW5kIGJhciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMzU4IiB3aWR0aD0iNzIwIiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0iI2UyZThmMCIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMzc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjExIiBmaWxsPSIjNDc1NTY5Ij5Nb2JpbGUgUlVNIGRhdGEgaXMgc3RvcmVkIGluIHVzZXIuZXZlbnRzIGFuZCB1c2VyLnNlc3Npb25zOyBhcHBzIGFyZSBTbWFydHNjYXBlIEZST05URU5EIG5vZGVzLjwvdGV4dD4KPC9zdmc+" alt="Mobile DQL Data Model" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Data Source | Description |
+|-------------|-------------|
+| Smartscape FRONTEND (frontend.type = mobile) | Mobile app inventory |
+| user.events -- actions, requests | characteristics.has_user_action, has_request |
+| user.sessions | One record per session |
+| user.events -- crashes, ANRs | characteristics.has_crash, has_anr |
+| Metrics (timeseries) | Aggregated performance counters |
+For environments where SVG doesn't render
+-->
+<p>The following table maps each mobile data type to its Grail location and the DQL used to query it:</p>
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Grail Location</th>
+<th>DQL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>App inventory</td>
+<td>Smartscape <code>FRONTEND</code> node</td>
+<td><code>smartscapeNodes &quot;FRONTEND&quot; | filter frontend.type == &quot;mobile&quot;</code></td>
+</tr>
+<tr>
+<td>User actions</td>
+<td><code>user.events</code></td>
+<td><code>filter characteristics.has_user_action</code> (control: <code>ui_element.detected_name</code>; kind: <code>interaction.type</code>)</td>
+</tr>
+<tr>
+<td>Sessions</td>
+<td><code>user.sessions</code></td>
+<td>one record per session; <code>count()</code> is a session count</td>
+</tr>
+<tr>
+<td>Crashes / ANRs</td>
+<td><code>user.events</code></td>
+<td><code>filter characteristics.has_crash</code> / <code>characteristics.has_anr</code></td>
+</tr>
+<tr>
+<td>Reported errors</td>
+<td><code>user.events</code></td>
+<td><code>filter characteristics.has_error and characteristics.is_api_reported</code></td>
+</tr>
+<tr>
+<td>App starts</td>
+<td><code>user.events</code></td>
+<td><code>filter characteristics.has_app_start</code></td>
+</tr>
+<tr>
+<td>Network requests</td>
+<td><code>user.events</code></td>
+<td><code>filter characteristics.has_request</code> (<code>url.full</code>, <code>http.request.method</code>, <code>http.response.status_code</code>)</td>
+</tr>
+<tr>
+<td>Custom business events (<code>sendBizEvent</code>)</td>
+<td><code>bizevents</code></td>
+<td><code>fetch bizevents | filter event.type == &quot;&lt;your type&gt;&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<p>On <code>user.events</code>, <code>in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;})</code> selects mobile events: <code>dt.rum.agent.type</code> names the agent that sent the event (<code>android</code> and <code>ios</code> for OneAgent for Mobile, <code>javascript</code> for RUM JavaScript). The crash, ANR and app-start characteristics are set only by OneAgent for Mobile. The <code>user.sessions</code> queries still filter on <code>dt.rum.application.type == &quot;mobile&quot;</code>, because the session model documents no agent-type field (note below).</p>
+<blockquote>
+<p><strong>The mobile filter (updated 11/11/2026).</strong> SaaS 1.344 recommends <em>&quot;to stop using legacy fields like dt.entity.application , dt.rum.application.entity , dt.rum.application.entities , and dt.rum.application.type in queries, dashboards, segments, and integrations&quot;</em>. The <code>user.events</code> queries in this series therefore filter on <code>dt.rum.agent.type</code>, the field the legacy one is derived from: the session model describes <code>dt.rum.application.type</code> as <em>&quot;The application type determined based on dt.rum.agent.type.&quot;</em> The user-event model allows only <code>android</code>, <code>ios</code> and <code>javascript</code> as agent types, so events from Flutter and React Native apps, which add <code>dt.rum.event.source.type</code>, also carry <code>android</code> or <code>ios</code>.</p>
+<p><code>user.sessions</code> has no replacement yet: its documented model lists <code>dt.rum.application.type</code> but no <code>dt.rum.agent.type</code> and no <code>frontend.*</code> field, so the session-level queries keep the legacy filter. On the validation tenant (11/11/2026) <code>dt.rum.agent.type</code> was set on every RUM JavaScript event, while <code>dt.rum.application.type</code> was empty on every <code>user.events</code> and <code>user.sessions</code> record. Before you rely on a session-level query, check that the field is populated in your environment: <code>fetch user.sessions, from:-24h | summarize n = count(), by:{dt.rum.application.type}</code>. If it is empty, count sessions from <code>user.events</code> with <code>countDistinct(dt.rum.session.id)</code> under the agent-type filter.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">What's new in Dynatrace SaaS 1.344 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events — semantic dictionary (DT docs)</a> — <em>&quot;dt.rum.agent.type MUST be one of the following:&quot;</em> (<code>android</code>, <code>ios</code>, <code>javascript</code>), <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-sessions">User sessions — semantic dictionary (DT docs)</a> — <em>&quot;The application type determined based on dt.rum.agent.type.&quot;</em>, re-read 11/11/2026. <strong>Dictionary:</strong> <code>dt.rum.agent.type</code> (<code>experimental</code>), <code>dt.rum.application.type</code> (<code>experimental</code>, on the <code>rum.user_session</code> model only), read 11/11/2026. <strong>Derived:</strong> that Flutter and React Native events carry <code>android</code> or <code>ios</code> follows from the closed list of agent values.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions of this notebook said mobile data is ingested as business events, identified by <code>event.provider == &quot;www.dynatrace.com/mobile&quot;</code>, with <code>useraction.*</code> fields and <code>event.type == &quot;com.dynatrace.crash&quot;</code>. None of that exists: every such query ran and returned zero rows, silently. The semantic dictionary (read 09/28/2026) places the mobile models -- <code>rum_mobile_user_action</code>, <code>rum_crash</code>, <code>rum_anr</code>, <code>rum_app_start</code>, <code>rum_request</code>, <code>rum_api_reported_error</code> -- in <code>user.events</code>, and the session model <code>rum.user_session</code> in <code>user.sessions</code>.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> models <code>rum_crash</code> (description: supported only for OneAgent for Mobile), <code>rum_mobile_user_action</code>, <code>rum_app_start</code>, <code>rum_request</code> with <code>data_object == &quot;user.events&quot;</code>; <code>rum.user_session</code> with <code>data_object == &quot;user.sessions&quot;</code>; fields <code>frontend.name</code> (<code>stable</code>), <code>os.name</code> (<code>stable</code>), <code>app.short_version</code> (<code>stable</code>), <code>duration</code> (<code>stable</code>), <code>trace.id</code> (<code>stable</code>), <code>device.model.identifier</code> (<code>stable</code>), <code>geo.country.iso_code</code> (<code>stable</code>), read 10/29/2026. No row for any <code>useraction.*</code> field under <code>startsWith(name, &quot;useraction&quot;)</code>, read 09/28/2026 (control: <code>startsWith(name, &quot;os.&quot;)</code> returns rows).</sub></p>
+</blockquote>
+<p><a id="querying-entities"></a></p>
+<h2>2. Querying Mobile Entities</h2>
+<p>Each mobile application registered in Dynatrace is a Smartscape <code>FRONTEND</code> node with <code>frontend.type == &quot;mobile&quot;</code> (classic: <code>dt.entity.mobile_application</code>). Querying entities gives you an inventory of your monitored mobile apps along with their metadata.</p>
+<p>This is typically the first query to run when onboarding a new environment — it confirms which mobile apps are being monitored and how they are tagged.</p>
+<pre><code class="language-dql">// Mobile application inventory with details
+// PREFERRED -- Smartscape. Mobile and web applications converged onto the single
+// FRONTEND node type; frontend.type (&quot;mobile&quot; / &quot;web&quot;) is the discriminator, and
+// there is no dt.smartscape.mobile_application. id_classic holds the
+// MOBILE_APPLICATION-* id for joining back to unmigrated queries.
+smartscapeNodes &quot;FRONTEND&quot;
+| filter frontend.type == &quot;mobile&quot;
+| fields name, id, id_classic, lifetime, tags
+| sort name asc
+| limit 50
+
+// Mobile-vs-web split in one pass (no filter needed):
+// smartscapeNodes &quot;FRONTEND&quot;
+// | summarize apps = count(), by:{frontend.type}
+
+// CORRECTION (07/30/2026): a previous revision claimed dt.entity.mobile_application had no
+// Grail Smartscape equivalent. It does -- FRONTEND filtered on frontend.type == &quot;mobile&quot;
+// (dt.smartscape.frontend). SaaS 1.344 (07/27/2026, staged tenant rollout from 07/29/2026)
+// makes Smartscape the primary surface for the Digital Experience apps; verify it has
+// reached your tenant. The classic table below still works and remains a real fallback.
+// FALLBACK (classic surface -- still functional):
+// fetch dt.entity.mobile_application
+// | fields entity.name, id, lifetime, tags
+// | sort entity.name asc
+// | limit 50
+</code></pre>
+<p><strong>Expected output:</strong> A table listing each mobile application entity with its display name, entity ID, lifetime (first seen to last seen), and any assigned tags.</p>
+<blockquote>
+<p><strong>Tip:</strong> Inventory queries (<code>smartscapeNodes</code>, or classic <code>dt.entity.*</code>) do not require a <code>from:</code> time range because they return the current state of the entity, not time-series data.</p>
+</blockquote>
+<p><a id="user-action-analytics"></a></p>
+<h2>3. User Action Analytics</h2>
+<p>User actions represent every meaningful interaction a user has with your mobile app — taps, swipes, app starts, and custom-defined actions. Analyzing user actions reveals engagement patterns, popular features, and potential friction points.</p>
+<p>The query below calculates <strong>total actions</strong>, <strong>unique sessions</strong>, and <strong>actions per session</strong> for each application. A high actions-per-session ratio typically indicates strong engagement, while a low ratio may signal usability issues or users abandoning the app early.</p>
+<pre><code class="language-dql">// User engagement summary -- actions per session, per app
+fetch user.events, from:-24h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and characteristics.has_user_action
+| summarize {total_actions = count(), unique_sessions = countDistinct(dt.rum.session.id)}, by:{frontend.name}
+| fieldsAdd actions_per_session = toDouble(total_actions) / toDouble(unique_sessions)
+| sort total_actions desc
+| limit 20
+</code></pre>
+<p><strong>Expected output:</strong> A ranked table of mobile applications showing total user actions, unique session count, and the computed actions-per-session engagement ratio.</p>
+<p><strong>Key fields used:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.rum.agent.type</code></td>
+<td><code>android</code> / <code>ios</code> for OneAgent for Mobile, <code>javascript</code> for RUM JavaScript</td>
+</tr>
+<tr>
+<td><code>characteristics.has_user_action</code></td>
+<td>Marks user-action events in <code>user.events</code></td>
+</tr>
+<tr>
+<td><code>frontend.name</code></td>
+<td>Name of the mobile application</td>
+</tr>
+<tr>
+<td><code>dt.rum.session.id</code></td>
+<td>Unique session identifier for counting distinct sessions</td>
+</tr>
+</tbody>
+</table>
+<p><a id="crash-error-analytics"></a></p>
+<h2>4. Crash &amp; Error Analytics</h2>
+<p>Crashes are the most critical mobile quality signal. A single crash can result in a negative app store review and lost users. This section provides queries for tracking crash volume trends over time.</p>
+<p>The following query creates a 7-day timeseries of daily crash counts, broken down by application. This is ideal for spotting regressions after a new release.</p>
+<pre><code class="language-dql">// Daily crash volume by application (7 day trend)
+fetch user.events, from:-7d
+| filter characteristics.has_crash
+| makeTimeseries crash_count = count(), by:{frontend.name}, interval:24h
+</code></pre>
+<p><strong>Expected output:</strong> A time chart with one line per mobile application showing daily crash counts over the past 7 days.</p>
+<blockquote>
+<p><strong>Important:</strong> A sudden spike in the crash timeseries after a deployment date is a strong signal that a release introduced a regression. Pair this query with the crash rate by app version query in <a href="#reusable-templates">Section 8</a> for release-level analysis.</p>
+</blockquote>
+<p><a id="performance-metrics"></a></p>
+<h2>5. Performance Metrics</h2>
+<p>App launch time is a key performance indicator for mobile applications — it is the first thing every user waits for.</p>
+<p>This query tracks the average app launch duration over the past 24 hours at hourly granularity, using app-start events (<code>characteristics.has_app_start</code>, mobile-only) and reporting both the average and the 90th percentile per OS.</p>
+<pre><code class="language-dql">// App start duration trend (timeseries) -- app-start events are mobile-only
+fetch user.events, from:-24h
+| filter characteristics.has_app_start
+| makeTimeseries {avg_start = avg(duration), p90_start = percentile(duration, 90)}, by:{os.name}, interval:1h
+</code></pre>
+<p><strong>Expected output:</strong> A time chart showing average and p90 app-start duration per hour and OS over the last 24 hours. <code>duration</code> is a duration value, so charts show it with time units.</p>
+<p><strong>Rule-of-thumb bands</strong> (community practice — set your own targets from your app's baseline):</p>
+<table>
+<thead>
+<tr>
+<th>Launch Time</th>
+<th>Rating</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>duration &lt; 1s</code></td>
+<td>Excellent</td>
+</tr>
+<tr>
+<td><code>1s</code>–<code>2s</code></td>
+<td>Acceptable</td>
+</tr>
+<tr>
+<td><code>2s</code>–<code>5s</code></td>
+<td>Needs improvement</td>
+</tr>
+<tr>
+<td><code>duration &gt; 5s</code></td>
+<td>Poor — investigate immediately</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> The query already splits by <code>os.name</code>. To compare start types (cold, warm, hot), inspect the app-start events in your tenant for the start-type field before grouping on it. Compare <code>duration</code> with duration literals (<code>duration &gt; 2s</code>), never with a bare number.</p>
+</blockquote>
+<p><a id="device-os-segmentation"></a></p>
+<h2>6. Device &amp; OS Segmentation</h2>
+<p>Understanding the device and OS landscape of your user base is critical for prioritizing testing efforts and identifying platform-specific issues. These queries segment <code>user.sessions</code> (one record per session) by OS version and device model.</p>
+<pre><code class="language-dql">// OS version distribution
+fetch user.sessions, from:-24h
+| filter dt.rum.application.type == &quot;mobile&quot;
+| summarize session_count = count(), by:{os.name, os.version}
+| sort session_count desc
+| limit 20
+</code></pre>
+<p><strong>Expected output:</strong> A table showing the top 20 OS type/version combinations ranked by session count. This helps answer questions like &quot;What percentage of our users are on iOS 18 vs iOS 17?&quot; and &quot;Should we still support Android 12?&quot;</p>
+<p>The next query drills into the physical device landscape:</p>
+<pre><code class="language-dql">// Top device models by session count
+fetch user.sessions, from:-24h
+| filter dt.rum.application.type == &quot;mobile&quot;
+| filter isNotNull(device.model.identifier)
+| summarize session_count = count(), by:{device.manufacturer, device.model.identifier}
+| sort session_count desc
+| limit 20
+</code></pre>
+<p><strong>Expected output:</strong> A ranked table of the top 20 device manufacturer/model combinations by session count.</p>
+<blockquote>
+<p><strong>Tip:</strong> Combine device segmentation with crash data to identify device-specific crash patterns. For example, if a particular Samsung model has a disproportionately high crash rate, it may indicate a hardware or firmware compatibility issue.</p>
+</blockquote>
+<p><a id="geolocation-analysis"></a></p>
+<h2>7. Geolocation Analysis</h2>
+<p>Geographic distribution of mobile sessions helps you understand where your users are and whether regional performance or availability issues exist. This data is invaluable for CDN optimization, regional rollout planning, and compliance considerations.</p>
+<pre><code class="language-dql">// Geographic distribution of mobile sessions
+fetch user.sessions, from:-24h
+| filter dt.rum.application.type == &quot;mobile&quot;
+| summarize {session_count = count(), action_count = sum(user_action_count)}, by:{geo.country.iso_code}
+| sort session_count desc
+| limit 20
+</code></pre>
+<p><strong>Expected output:</strong> A table of the top 20 countries by session count, also showing total user-action count per country (the sum of <code>user_action_count</code>). This dual metric helps distinguish between countries with many casual users (high sessions, low actions) versus countries with highly engaged users (lower sessions, high actions per session).</p>
+<blockquote>
+<p><strong>Tip:</strong> <code>geo.country.iso_code</code> is the session's country code. Check the semantic dictionary for finer-grained geo fields available on <code>user.sessions</code> in your tenant before grouping on them.</p>
+</blockquote>
+<p><a id="reusable-templates"></a></p>
+<h2>8. Reusable Query Templates</h2>
+<p>This section provides production-ready query templates that combine multiple concepts. The crash rate by app version query below is one of the most valuable templates for mobile release monitoring.</p>
+<h3>Crash Rate by App Version</h3>
+<p>This query calculates the <strong>crash rate percentage</strong> for each app version and OS combination over the past 7 days. It reads <code>user.sessions</code>, where each record is one session and <code>error.has_crash</code> marks sessions that crashed, so <code>countIf(error.has_crash == true)</code> over <code>count()</code> is the session crash rate.</p>
+<pre><code class="language-dql">// Crash rate by app version -- useful for release monitoring (session grain)
+fetch user.sessions, from:-7d
+| filter dt.rum.application.type == &quot;mobile&quot;
+| summarize {total_sessions = count(), crash_sessions = countIf(error.has_crash == true)}, by:{app.short_version, os.name}
+| fieldsAdd crash_rate_pct = toDouble(crash_sessions) / toDouble(total_sessions) * 100.0
+| sort crash_rate_pct desc
+| limit 20
+</code></pre>
+<p><strong>Expected output:</strong> A table showing each app version and OS combination with total sessions, crash sessions, and crash rate percentage.</p>
+<p><strong>Interpreting crash rates.</strong> There is no single industry standard. One published external anchor is Google Play's Android vitals <em>bad behavior threshold</em>: a user-perceived crash rate of <strong>1.09%</strong> overall (8% per phone model) and an ANR rate of <strong>0.47%</strong>. Google measures the share of <strong>daily active users</strong> who saw a crash, not the share of sessions, so this query's session rate is not directly comparable — use the threshold as a ceiling to stay well below, and set your own target from your app's baseline.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.android.com/google/play/vitals">Android vitals (Android Developers)</a> — bad-behavior thresholds table: <em>&quot;User-perceived crash rate 1.09% 8% 4%&quot;</em>, <em>&quot;User-perceived ANR rate 0.47% 8% 5%&quot;</em>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Because <code>user.sessions</code> has one record per session, <code>countIf(error.has_crash == true)</code> counts each crashed session once, however many crashes it had. Subtract the rate from 100% for the crash-free session rate.</p>
+</blockquote>
+<h2>Summary</h2>
+<p>This notebook provided 8 production-ready DQL queries covering the full spectrum of mobile analytics:</p>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Query Focus</th>
+<th>Key Insight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mobile Data Model</td>
+<td>Data architecture</td>
+<td>Mobile RUM data lives in <code>user.events</code> and <code>user.sessions</code></td>
+</tr>
+<tr>
+<td>Entity Queries</td>
+<td>App inventory</td>
+<td>Smartscape <code>FRONTEND</code> with <code>frontend.type == &quot;mobile&quot;</code></td>
+</tr>
+<tr>
+<td>User Action Analytics</td>
+<td>Engagement</td>
+<td>Actions per session measures user engagement</td>
+</tr>
+<tr>
+<td>Crash Analytics</td>
+<td>Stability</td>
+<td>Daily crash trends reveal regression patterns</td>
+</tr>
+<tr>
+<td>Performance Metrics</td>
+<td>Launch time</td>
+<td>App start duration is the key mobile KPI</td>
+</tr>
+<tr>
+<td>Device/OS Segmentation</td>
+<td>Compatibility</td>
+<td>Identify platform-specific issues</td>
+</tr>
+<tr>
+<td>Geolocation</td>
+<td>Regional analysis</td>
+<td>Session and action counts by country</td>
+</tr>
+<tr>
+<td>Reusable Templates</td>
+<td>Release monitoring</td>
+<td>Crash rate by app version for release gates</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key patterns to remember:</strong></p>
+<ul>
+<li>Filter <code>user.events</code> on <code>in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;})</code> (and <code>user.sessions</code> on <code>dt.rum.application.type == &quot;mobile&quot;</code>, after checking it is populated), and select event types with <code>characteristics.has_*</code></li>
+<li>Count sessions with <code>count()</code> on <code>user.sessions</code> (one record per session), or <code>countDistinct(dt.rum.session.id)</code> on <code>user.events</code></li>
+<li>Use <code>countIf(error.has_crash == true)</code> on <code>user.sessions</code> for crashed sessions</li>
+<li>Add <code>isNotNull()</code> filters before grouping on optional fields like <code>app.short_version</code> or <code>device.model.identifier</code></li>
+<li><code>duration</code> is a duration: compare with <code>duration &gt; 2s</code>, not a number</li>
+</ul>
+<h2>Next Steps</h2>
+<p>Continue to <strong>MOBL-11: Dashboards &amp; Alerting</strong> to learn about building mobile monitoring dashboards and alerts that operationalize the DQL queries from this notebook into automated workflows.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

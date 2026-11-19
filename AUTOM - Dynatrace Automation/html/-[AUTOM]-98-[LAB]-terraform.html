@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-98 LAB: Terraform for Dynatrace</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-98 LAB</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-98 LAB: Terraform for Dynatrace</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Reference:</strong> 98 — Terraform Hands-On LAB | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/29/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Hands-on lab for installing the Dynatrace Terraform provider, configuring authentication, creating and managing Dynatrace resources as code, importing existing configuration, and integrating into a CI/CD pipeline with GitHub Actions.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#install-terraform">Install Terraform</a></li>
+<li><a href="#configure-provider">Configure the Dynatrace Provider</a></li>
+<li><a href="#first-resource">Create Your First Resource — a Notebook Document</a></li>
+<li><a href="#settings-resources">Create Settings 2.0 Resources</a></li>
+<li><a href="#iam-resources">Create IAM Resources (OAuth Required)</a></li>
+<li><a href="#import-resources">Import Existing Resources</a></li>
+<li><a href="#variables-multi-env">Variables and Multi-Environment</a></li>
+<li><a href="#state-management">State Management</a></li>
+<li><a href="#github-actions">GitHub Actions CI/CD Pipeline</a></li>
+<li><a href="#drift-detection">Drift Detection</a></li>
+<li><a href="#summary">Summary and Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Completed</strong></td>
+<td>AUTOM-04: Terraform Provider (lecture notebook)</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS tenant (Gen3)</td>
+</tr>
+<tr>
+<td><strong>Terraform CLI</strong></td>
+<td>Version 1.5+ (the §6 import walkthrough uses <code>import</code> blocks); 1.11+ for native S3 state locking (§8)</td>
+</tr>
+<tr>
+<td><strong>Authentication</strong></td>
+<td>Platform Token for §3–§4; OAuth client (client ID, secret, account UUID) for §5; classic API Token only for classic resources</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Settings write, IAM admin (for Section 5)</td>
+</tr>
+<tr>
+<td><strong>Git</strong></td>
+<td>Git CLI and a GitHub account (for Section 9)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="install-terraform"></a></p>
+<h2>1. Install Terraform</h2>
+<p>Terraform is a single binary. Download it from <a href="https://developer.hashicorp.com/terraform/install">terraform.io</a> or use a package manager.</p>
+<p><strong>macOS (Homebrew):</strong></p>
+<pre><code class="language-bash">brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
+</code></pre>
+<p><strong>Linux (APT — Debian/Ubuntu):</strong></p>
+<pre><code class="language-bash">wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo &quot;deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main&quot; | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt-get update &amp;&amp; sudo apt-get install terraform
+</code></pre>
+<p><strong>Windows (Chocolatey):</strong></p>
+<pre><code class="language-bash">choco install terraform
+</code></pre>
+<p><strong>Verify the installation:</strong></p>
+<pre><code class="language-bash">terraform version
+# Expected output: Terraform v1.x.x
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> The Dynatrace Terraform provider requires Terraform 1.0 or later. This LAB uses <code>import</code> blocks (§6, Terraform 1.5+) and native S3 locking (§8, Terraform 1.11+), so install a current 1.x release.</p>
+</blockquote>
+<hr />
+<p><a id="configure-provider"></a></p>
+<h2>2. Configure the Dynatrace Provider</h2>
+<p>Create a project directory and a <code>main.tf</code> file:</p>
+<pre><code class="language-bash">mkdir dynatrace-terraform &amp;&amp; cd dynatrace-terraform
+touch main.tf
+</code></pre>
+<p>Add the provider block to <code>main.tf</code>:</p>
+<pre><code class="language-hcl">terraform {
+  required_providers {
+    dynatrace = {
+      source  = &quot;dynatrace-oss/dynatrace&quot;
+      version = &quot;~&gt; 1.96&quot;
+    }
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>Token-type decision (read first):</strong> The provider has a <strong>mixed-auth model</strong> — some resources need a Platform Token (<code>dt0s16</code>), others need a classic API Token (<code>dt0c01</code>), and IAM resources need OAuth. For the full per-resource decision matrix, see <strong>AUTOM-04 § 3 &quot;Service User Credentials for Terraform — Platform Token vs Classic API Token&quot;</strong>. The methods below cover the three credential types you will configure; the lecture explains <em>which one each resource needs</em>.</p>
+</blockquote>
+<h3>Authentication Method 1: Platform Token (default for most new resources)</h3>
+<p>Best for Settings 2.0 and most Gen3 resources (workflows, documents, segments, Davis anomaly detectors). The OpenPipeline v2 resources also accept it — the provider recommends platform credentials there because they set the settings object's owner — and Grail buckets go through the same platform client as documents. <code>dynatrace_platform_slo</code> and IAM need an OAuth client instead (Method 3). Mint in the Dynatrace UI under <strong>Account Management &gt; Identity &amp; access management &gt; Platform tokens</strong> with the scopes the resource requires.</p>
+<pre><code class="language-hcl">provider &quot;dynatrace&quot; {
+  dt_env_url       = &quot;https://&lt;env-id&gt;.apps.dynatrace.com&quot;
+  platform_token   = var.dt_platform_token
+}
+</code></pre>
+<p>Methods 1–3 read their credentials from variables, and §5 needs the account UUID as a variable, so declare them once in <code>variables.tf</code> (§7 adds to this file):</p>
+<pre><code class="language-hcl">variable &quot;dt_platform_token&quot; {
+  type      = string
+  sensitive = true
+  default   = null
+}
+
+variable &quot;dt_api_token&quot; {
+  type      = string
+  sensitive = true
+  default   = null
+}
+
+variable &quot;dt_client_id&quot; {
+  type      = string
+  sensitive = true
+  default   = null
+}
+
+variable &quot;dt_client_secret&quot; {
+  type      = string
+  sensitive = true
+  default   = null
+}
+
+variable &quot;dt_account_id&quot; {
+  type        = string
+  default     = null
+  description = &quot;Dynatrace account UUID — required by the IAM resources in §5&quot;
+}
+</code></pre>
+<p>A <code>null</code> default leaves the provider argument unset, so the provider falls back to the matching environment variable (Method 4).</p>
+<h3>Authentication Method 2: Classic API Token (legacy + a few specific resources)</h3>
+<p>Required for Synthetic monitors, the classic SLO resources (<code>dynatrace_slo</code>, <code>dynatrace_slo_v2</code>), and the <code>dynatrace_api_token</code> resource itself. Often configured <strong>alongside</strong> a Platform Token in the same provider block.</p>
+<pre><code class="language-hcl">provider &quot;dynatrace&quot; {
+  dt_env_url       = &quot;https://&lt;env-id&gt;.live.dynatrace.com&quot;
+  dt_api_token     = var.dt_api_token
+  platform_token   = var.dt_platform_token
+}
+</code></pre>
+<blockquote>
+<p><strong>Important (v1.88.0+):</strong> The OAuth functionality was removed from ~16 provider resources in v1.88.0. Synthetic monitors, the original <code>dynatrace_slo</code> resource, and <code>dynatrace_api_token</code> no longer accept OAuth — they need a classic API Token. (The modern <code>dynatrace_platform_slo</code> is the opposite: OAuth client only.) See AUTOM-04 § 3 for the full list.</p>
+</blockquote>
+<h3>Authentication Method 3: OAuth Client Credentials (IAM, platform SLOs)</h3>
+<p>Required for <code>dynatrace_iam_*</code> resources (groups, policies, bindings) and for <code>dynatrace_platform_slo</code>. The provider docs state that <em>&quot;Platform tokens can't be used for IAM (Account Management) or classic resources&quot;</em>, and the SLO service is not among the services the <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a> page lists as covered. The argument names are <code>client_id</code>, <code>client_secret</code> and <code>account_id</code> — there are no <code>dt_</code>-prefixed variants (<a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md">provider schema (Dynatrace GitHub)</a>).</p>
+<pre><code class="language-hcl">provider &quot;dynatrace&quot; {
+  dt_env_url       = &quot;https://&lt;env-id&gt;.apps.dynatrace.com&quot;
+  client_id        = var.dt_client_id
+  client_secret    = var.dt_client_secret
+  account_id       = var.dt_account_id
+}
+</code></pre>
+<h3>Authentication Method 4: Environment Variables</h3>
+<p>Keep credentials out of <code>.tf</code> files entirely:</p>
+<pre><code class="language-bash">export DYNATRACE_ENV_URL=&quot;https://&lt;env-id&gt;.apps.dynatrace.com&quot;
+export DT_PLATFORM_TOKEN=&quot;dt0s16.xxx...&quot;
+export DYNATRACE_API_TOKEN=&quot;dt0c01.xxx...&quot;   # classic resources only
+# OAuth client for §5 (IAM) and dynatrace_platform_slo
+export DT_CLIENT_ID=&quot;dt0s02.xxx...&quot;
+export DT_CLIENT_SECRET=&quot;dt0s02.xxx.yyy...&quot;
+export DT_ACCOUNT_ID=&quot;&lt;account-uuid&gt;&quot;
+export TF_VAR_dt_account_id=&quot;$DT_ACCOUNT_ID&quot;  # the §5 resources also take it as an argument
+</code></pre>
+<p>With environment variables set, the provider block needs no arguments:</p>
+<pre><code class="language-hcl">provider &quot;dynatrace&quot; {}
+</code></pre>
+<blockquote>
+<p><strong>Production callout — run Terraform as a Service User.</strong> Outside this LAB, mint the Platform Token (and any classic API Token) on a <strong>Service User</strong>, not on a human's account. Three things must align: the Service User's IAM permissions, the creator's <code>iam:service-users:use</code> permission, and the token scopes at creation time. The <code>dynatrace_api_token</code> resource also stores its minted token plain-text in state — see <strong>AUTOM-04 § 3 &quot;Operational Safety — State File Leakage&quot;</strong> and the <strong>&quot;Bridging the Trust Boundary&quot;</strong> subsection for the recommended <em>mint-out-of-band, deliver-in-band</em> pattern.</p>
+</blockquote>
+<h3>Initialize the Provider</h3>
+<p>Run <code>terraform init</code> to download the provider plugin:</p>
+<pre><code class="language-bash">terraform init
+# Initializing provider plugins...
+# - Installing dynatrace-oss/dynatrace v1.105.x...   (the newest 1.x release)
+# Terraform has been successfully initialized!
+</code></pre>
+<hr />
+<blockquote>
+<p><strong>Provider version currency (checked 10/02/2026):</strong> the <code>~&gt; 1.96</code> constraint <strong>floats</strong> — <code>terraform init</code> will pull the newest 1.x release (v1.105.0, released 09/23/2026, at time of writing), and releases v1.97–v1.105 include stricter validation and breaking changes (<code>dynatrace_kubernetes_enrichment</code> field removal in v1.100; stricter OpenPipeline-v2, anomaly, and RUM validation in v1.97; legacy HTTP client and <code>DYNATRACE_HTTP_RESPONSE</code> removed in v1.101) plus new resources (<code>dynatrace_maintenance_windows</code> in v1.98 — deprecates <code>dynatrace_maintenance</code>; OpenPipeline <code>*_dataforwarding</code> in v1.99). The HCL blocks in §2–§8 were re-checked with <code>terraform validate</code> against v1.105.0 on 10/02/2026, with a resource present so that the provider blocks are checked too. If you need that validated baseline exactly, pin <code>version = &quot;1.105.0&quot;</code> (exact); if you float, review the <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases">provider release notes</a> for the versions <code>init</code> selects before applying.</p>
+</blockquote>
+<p><a id="first-resource"></a></p>
+<h2>3. Create Your First Resource — a Notebook Document</h2>
+<p>The first resource is a Dynatrace <strong>notebook</strong>, managed as a <code>dynatrace_document</code>. It is a good first target: it runs on the Platform Token from Method 1 (or Method 4's <code>DT_PLATFORM_TOKEN</code>), it is private to you, it changes nothing about how your tenant monitors or alerts, and you can open it in the Notebooks app a few seconds after <code>apply</code>.</p>
+<p>Add the resource to <code>main.tf</code>:</p>
+<pre><code class="language-hcl">resource &quot;dynatrace_document&quot; &quot;first_notebook&quot; {
+  type    = &quot;notebook&quot;
+  name    = &quot;Terraform LAB - first notebook&quot;
+  private = true # visible only to the token's owner
+  content = jsonencode({
+    version = &quot;7&quot;
+    sections = [
+      {
+        id       = &quot;intro&quot;
+        type     = &quot;markdown&quot;
+        markdown = &quot;## Managed by Terraform\nEdits made in the app will show up as drift on the next `terraform plan`.&quot;
+      },
+      {
+        id    = &quot;errors&quot;
+        type  = &quot;dql&quot;
+        title = &quot;Error logs, last hour&quot;
+        state = {
+          input = {
+            value = &quot;fetch logs, from:-1h\n| filter status == \&quot;ERROR\&quot;\n| summarize errors = count()&quot;
+          }
+        }
+      }
+    ]
+  })
+}
+</code></pre>
+<p>Two schema details that trip people up: <code>version</code> is the <strong>string</strong> <code>&quot;7&quot;</code>, and a section has <strong>no <code>content</code> key</strong> — a <code>markdown</code> section carries <code>markdown</code>, a <code>dql</code> section carries its query under <code>state.input.value</code> (AUTOM-04 §4 <em>Grail Notebook</em>).</p>
+<h3>Preview the Change</h3>
+<pre><code class="language-bash">terraform plan
+</code></pre>
+<p>Expected output (abbreviated — the <code>content</code> attribute prints as the full <code>jsonencode(...)</code> body):</p>
+<pre><code>Terraform will perform the following actions:
+
+  # dynatrace_document.first_notebook will be created
+  + resource &quot;dynatrace_document&quot; &quot;first_notebook&quot; {
+      + content = jsonencode(
+            {
+              + sections = [ ... ]
+              + version  = &quot;7&quot;
+            }
+        )
+      + id      = (known after apply)
+      + name    = &quot;Terraform LAB - first notebook&quot;
+      + private = true
+      + type    = &quot;notebook&quot;
+      ...
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+</code></pre>
+<h3>Apply the Change</h3>
+<pre><code class="language-bash">terraform apply
+# Type &quot;yes&quot; when prompted to confirm
+</code></pre>
+<h3>Verify the Resource</h3>
+<pre><code class="language-bash">terraform show
+</code></pre>
+<p>Open the <strong>Notebooks</strong> app and look for <em>Terraform LAB - first notebook</em>. Now edit its markdown section in the app, run <code>terraform plan</code> again, and watch Terraform report the edit as a change it wants to revert — that is drift detection (§10) in miniature.</p>
+<blockquote>
+<p><strong>Classic equivalent — earlier versions of this LAB.</strong> This step used to create an alerting profile (<code>dynatrace_alerting</code>). That resource still works on a tenant that has not been upgraded, but it is Dynatrace Classic: <code>builtin:alerting.profile</code> is on the <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">removed-schemas list (DT docs)</a>, and its Gen3 successor is a problem-triggered <code>dynatrace_automation_workflow</code> (AUTOM-04 §4, §6). If your tenant still runs alerting profiles and you need to manage them until the upgrade, this is the shape (the same plan → apply → show loop applies):</p>
+<pre><code class="language-hcl"># Dynatrace Classic — unupgraded tenants only; classic API token (settings.read / settings.write)
+resource &quot;dynatrace_alerting&quot; &quot;production&quot; {
+  name = &quot;Production Alerts&quot;
+  rules {
+    rule {
+      include_mode     = &quot;NONE&quot; # NONE | INCLUDE_ALL | INCLUDE_ANY
+      severity_level   = &quot;AVAILABILITY&quot;
+      delay_in_minutes = 0
+    }
+    rule {
+      include_mode     = &quot;NONE&quot;
+      severity_level   = &quot;ERRORS&quot;
+      delay_in_minutes = 5 # successor: problem_open_duration on the workflow trigger
+    }
+  }
+}
+</code></pre>
+</blockquote>
+<hr />
+<p><a id="settings-resources"></a></p>
+<h2>4. Create Settings 2.0 Resources</h2>
+<p>The <code>dynatrace_generic_setting</code> resource can manage any Settings 2.0 schema. This is useful when the provider does not have a dedicated resource type for a particular setting.</p>
+<h3>Example: Ownership Team</h3>
+<p><code>builtin:ownership.teams</code> is a multi-object schema (so creating one never overwrites an existing object) and survives the upgrade to Latest Dynatrace. The value below passes the Settings API's validate-only check (09/18/2026).</p>
+<pre><code class="language-hcl">resource &quot;dynatrace_generic_setting&quot; &quot;platform_team&quot; {
+  schema = &quot;builtin:ownership.teams&quot;
+  scope  = &quot;environment&quot;
+  value = jsonencode({
+    name        = &quot;Platform Team&quot;
+    identifier  = &quot;platform-team&quot;
+    description = &quot;Owned by the Terraform LAB&quot;
+    responsibilities = {
+      development    = false
+      infrastructure = true
+      lineOfBusiness = false
+      operations     = true
+      security       = false
+    }
+    supplementaryIdentifiers = []
+    contactDetails           = []
+    links                    = []
+    additionalInformation    = []
+  })
+}
+</code></pre>
+<h3>Key Attributes</h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>schema</code></td>
+<td>The Settings 2.0 schema identifier (e.g., <code>builtin:ownership.teams</code>). The argument is <code>schema</code> — <code>schema_id</code> fails <code>terraform validate</code></td>
+</tr>
+<tr>
+<td><code>scope</code></td>
+<td>Where the setting applies: <code>environment</code>, <code>HOST-xxx</code>, <code>KUBERNETES_CLUSTER-xxx</code>, etc.</td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td>JSON-encoded configuration object matching the schema definition</td>
+</tr>
+</tbody>
+</table>
+<h3>Finding Schema IDs</h3>
+<p>Navigate to <strong>Settings</strong> in the Dynatrace UI. The schema ID appears in the URL when you open any setting:</p>
+<pre><code>https://&lt;env-id&gt;.apps.dynatrace.com/ui/settings/builtin:ownership.teams
+                                                ^^^^^^^^^^^^^^^^^^^^^^^
+                                                This is the schema
+</code></pre>
+<p>Before choosing a schema for new automation, check it is not on the <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">removed-schemas list (DT docs)</a>; <code>builtin:kubernetes.generic.metadata.enrichment</code>, used in earlier versions of this LAB, is a deprecated singleton whose rule fields differ from what was shown here.</p>
+<p>Alternatively, use the Settings API:</p>
+<pre><code class="language-bash">curl -H &quot;Authorization: Api-Token $DT_API_TOKEN&quot; \
+  &quot;https://&lt;env-id&gt;.live.dynatrace.com/api/v2/settings/schemas&quot; | jq '.items[].schemaId'
+</code></pre>
+<hr />
+<p><a id="iam-resources"></a></p>
+<h2>5. Create IAM Resources (OAuth Required)</h2>
+<p>IAM resources (groups, policies, bindings) require OAuth client credentials (Method 3, or the <code>DT_CLIENT_ID</code> / <code>DT_CLIENT_SECRET</code> / <code>DT_ACCOUNT_ID</code> environment variables of Method 4). Neither API tokens nor Platform Tokens can manage IAM.</p>
+<blockquote>
+<p><strong>Deeper IAM hands-on:</strong> This section gives the minimum viable IAM pattern alongside the main Terraform LAB. For the full IAM lifecycle — OAuth client setup with four minimal scopes, permission-statement lookup (the IAM policy reference) and account discovery, the four IAM resource types, boundaries, the <code>bindings_v2</code> re-assigns-all caveat, deprecated arguments to avoid, bulk export of an existing account, and HTTP 400 troubleshooting — see <strong>AUTOM-95 LAB: Terraform IAM Management</strong>.</p>
+</blockquote>
+<h3>Create an IAM Group</h3>
+<pre><code class="language-hcl">resource &quot;dynatrace_iam_group&quot; &quot;sre_team&quot; {
+  name = &quot;SRE Team&quot;
+}
+</code></pre>
+<h3>Create an IAM Policy</h3>
+<pre><code class="language-hcl">resource &quot;dynatrace_iam_policy&quot; &quot;sre_policy&quot; {
+  name            = &quot;SRE Environment Access&quot;
+  account         = var.dt_account_id
+  statement_query = &quot;ALLOW environment:roles:viewer;&quot;
+  tags            = [&quot;sre&quot;]
+}
+</code></pre>
+<h3>Bind the Policy to the Group</h3>
+<pre><code class="language-hcl">resource &quot;dynatrace_iam_policy_bindings_v2&quot; &quot;sre_binding&quot; {
+  group   = dynatrace_iam_group.sre_team.id
+  account = var.dt_account_id
+
+  policy {
+    id = dynatrace_iam_policy.sre_policy.id
+  }
+}
+</code></pre>
+<h3>Apply</h3>
+<pre><code class="language-bash">terraform plan
+terraform apply
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Both the policy and the binding take <code>account</code> — your Dynatrace account UUID, found under <strong>Account Management &gt; Account settings</strong> (passed here as <code>var.dt_account_id</code>, declared in §2). <code>environment:roles:viewer</code> <em>&quot;Grants user the Access environment permission&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a>) — the policy name says what it grants. A policy needs exactly one of <code>account</code> / <code>environment</code> (environment-level policies are deprecated). The v2 binding takes one <code>group</code> and one <code>policy { id = … }</code> block per bound policy, and it <strong>re-assigns every policy on that group</strong> — list all of them.</p>
+</blockquote>
+<hr />
+<p><a id="import-resources"></a></p>
+<h2>6. Import Existing Resources</h2>
+<p>If you already have Dynatrace resources configured manually, you can bring them under Terraform management without recreating them.</p>
+<blockquote>
+<p><strong>Bootstrapping from an existing tenant in bulk?</strong> Use the provider's built-in <strong><code>-export</code> utility</strong> rather than running <code>terraform import</code> per-resource. From a downloaded provider binary: <code>./terraform-provider-dynatrace -export -ref -id</code> (canonical form per <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands">Terraform CLI commands (DT docs)</a> — <code>-ref</code> emits inter-resource references rather than hardcoded IDs, <code>-id</code> adds commented IDs for traceability; supply credentials via env vars per AUTOM-04 §3). Generates <code>.tf</code> files for the entire tenant. The per-resource flow below is right when you only need to onboard a few specific resources.</p>
+</blockquote>
+<p>The walk-through below imports an existing <strong>workflow</strong>; the same steps apply to any resource type.</p>
+<h3>Step 1: Find the Resource ID</h3>
+<p>Locate the resource ID from the Dynatrace UI or API. For a workflow, open it in the Workflows app — the ID is the last segment of the URL:</p>
+<pre><code>https://&lt;env-id&gt;.apps.dynatrace.com/ui/apps/dynatrace.automations/workflows/abc12345-def6-7890-abcd-ef1234567890
+                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                                                            This is the resource ID
+</code></pre>
+<h3>Step 2: Add an <code>import</code> Block</h3>
+<p>Add an <code>import</code> block — not a resource block — to a <code>.tf</code> file:</p>
+<pre><code class="language-hcl">import {
+  to = dynatrace_automation_workflow.existing_workflow
+  id = &quot;abc12345-def6-7890-abcd-ef1234567890&quot;
+}
+</code></pre>
+<p>HashiCorp documents this as the alternative to the CLI command: <em>&quot;Instead of manually importing resources, you can add the import block to your Terraform configurations so that Terraform imports resources when you run the terraform apply command.&quot;</em> (<a href="https://developer.hashicorp.com/terraform/cli/commands/import">terraform import (HashiCorp)</a>)</p>
+<h3>Step 3: Generate the HCL</h3>
+<pre><code class="language-bash">terraform plan -generate-config-out=generated.tf
+</code></pre>
+<p>Terraform writes a <code>resource &quot;dynatrace_automation_workflow&quot; &quot;existing_workflow&quot;</code> block to <code>generated.tf</code> (a file that must not already exist). HashiCorp marks this as experimental: <em>&quot;Configuration generation is available in Terraform v1.5 as an experimental feature.&quot;</em> (<a href="https://developer.hashicorp.com/terraform/language/import/generating-configuration">Generating configuration (HashiCorp)</a>) Treat the output as a draft — remove attributes you do not want to own, and replace hard-coded IDs with references.</p>
+<h3>Step 4: Apply the Import</h3>
+<pre><code class="language-bash">terraform apply
+</code></pre>
+<p>The apply records the workflow in state without changing it. Afterwards you can delete the <code>import</code> block.</p>
+<blockquote>
+<p><strong>CLI alternative.</strong> <code>terraform import dynatrace_automation_workflow.existing_workflow &lt;id&gt;</code> also works, but it needs a resource block with that address to exist first, and it writes no configuration. Do not save <code>terraform show</code> output next to that block as <code>imported.tf</code>: it declares the same address a second time, so the next plan fails, and it is a rendering of state rather than HCL you can apply. Fill in the existing block by hand instead.</p>
+</blockquote>
+<h3>Common Import Targets</h3>
+<table>
+<thead>
+<tr>
+<th>Resource Type</th>
+<th>ID Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dynatrace_automation_workflow</code></td>
+<td>Workflows app URL</td>
+</tr>
+<tr>
+<td><code>dynatrace_document</code> (dashboards, notebooks)</td>
+<td>Dashboards / Notebooks app URL, or the Documents API</td>
+</tr>
+<tr>
+<td><code>dynatrace_platform_slo</code></td>
+<td>SLO app or the SLO Service Public API — and name it explicitly when exporting, it is excluded by default</td>
+</tr>
+<tr>
+<td><code>dynatrace_segment</code></td>
+<td>Segments UI or <code>-export dynatrace_segment</code></td>
+</tr>
+<tr>
+<td><code>dynatrace_generic_setting</code></td>
+<td>Settings API (<code>objectId</code> field)</td>
+</tr>
+<tr>
+<td><em>Classic:</em> <code>dynatrace_alerting</code>, <code>dynatrace_json_dashboard</code>, <code>dynatrace_slo_v2</code></td>
+<td>Settings UI URL / classic dashboard URL / SLO API — only while the tenant still runs these (AUTOM-04 §4 <em>Classic Resources</em>)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> After import, run <code>terraform plan</code> to verify the imported state matches the live configuration. Any differences indicate drift that you should reconcile in the <code>.tf</code> file.</p>
+</blockquote>
+<hr />
+<p><a id="variables-multi-env"></a></p>
+<h2>7. Variables and Multi-Environment</h2>
+<h3>Define Variables</h3>
+<p>Add to the <code>variables.tf</code> you started in §2:</p>
+<pre><code class="language-hcl">variable &quot;dt_env_url&quot; {
+  type        = string
+  description = &quot;Dynatrace environment URL&quot;
+}
+
+variable &quot;environment&quot; {
+  type        = string
+  default     = &quot;dev&quot;
+  description = &quot;Target environment name (dev, staging, production)&quot;
+}
+</code></pre>
+<h3>Supply Values with tfvars</h3>
+<p>Create <code>terraform.tfvars</code> (add to <code>.gitignore</code> — never commit credentials):</p>
+<pre><code class="language-hcl">dt_env_url        = &quot;https://&lt;env-id&gt;.apps.dynatrace.com&quot;
+dt_platform_token = &quot;dt0s16.xxx...&quot;
+dt_account_id     = &quot;&lt;account-uuid&gt;&quot;
+environment       = &quot;production&quot;
+</code></pre>
+<h3>Approach 1: Directory-Based Multi-Environment (recommended)</h3>
+<p>Each Dynatrace environment is a separate tenant with its own credentials, so give each one its own root directory, with shared modules:</p>
+<pre><code>dynatrace-terraform/
+  modules/
+    problem-routing/
+      main.tf
+      variables.tf
+  environments/
+    dev/
+      main.tf         # calls module with dev values
+      terraform.tfvars
+    staging/
+      main.tf
+      terraform.tfvars
+    production/
+      main.tf
+      terraform.tfvars
+</code></pre>
+<p>Each environment directory runs independently with its own state, credentials and variables. AUTOM-09 §2 and §6 build this layout out.</p>
+<h3>Approach 2: Workspaces — same tenant only</h3>
+<p>Terraform workspaces keep separate state files for one configuration and one set of credentials. HashiCorp is explicit that they do not fit separate tenants: <em>&quot;Workspaces are not appropriate for system decomposition or deployments requiring separate credentials and access controls.&quot;</em> (<a href="https://developer.hashicorp.com/terraform/language/state/workspaces">Workspaces (HashiCorp)</a>) Use them only for disposable copies inside <strong>one</strong> tenant — for example, a per-feature test notebook:</p>
+<pre><code class="language-bash">terraform workspace new feature-x
+terraform workspace select feature-x
+# terraform.workspace returns the current workspace name
+</code></pre>
+<pre><code class="language-hcl">resource &quot;dynatrace_document&quot; &quot;env_notebook&quot; {
+  type    = &quot;notebook&quot;
+  name    = &quot;${terraform.workspace} - runbook&quot;
+  content = file(&quot;${path.module}/notebooks/runbook.json&quot;)
+}
+</code></pre>
+<hr />
+<p><a id="state-management"></a></p>
+<h2>8. State Management</h2>
+<p>Terraform state tracks the mapping between your <code>.tf</code> files and real Dynatrace resources. By default, state is stored locally in <code>terraform.tfstate</code>.</p>
+<blockquote>
+<p><strong>State-file leakage warning.</strong> If your Terraform manages the <strong><code>dynatrace_api_token</code></strong> resource, the minted token value is written <strong>plain-text</strong> to state regardless of <code>sensitive = true</code>. The same risk applies to any provider that produces a credential at apply time. Mitigate with backend encryption + restricted access — see <strong>AUTOM-04 § 3 &quot;Operational Safety — State File Leakage When Minting Tokens&quot;</strong> for the full pattern, and <strong>AUTOM-09 § 3</strong> (state backends) and <strong>§ 8</strong> (secrets handling) for the bootstrap recipe.</p>
+</blockquote>
+<h3>Local State (Default)</h3>
+<p>Works for single-operator setups. The state file is created automatically after <code>terraform apply</code>.</p>
+<blockquote>
+<p><strong>Warning:</strong> Never commit <code>terraform.tfstate</code> to version control. It may contain sensitive values. Add it to <code>.gitignore</code>.</p>
+</blockquote>
+<h3>Remote State — S3 Backend</h3>
+<p>For team use, store state in a shared remote backend. The S3 backend supports <strong>native locking with a lockfile</strong> (<code>use_lockfile</code>) — generally available since Terraform 1.11 (experimental in 1.10); the <a href="https://github.com/hashicorp/terraform/blob/v1.11/CHANGELOG.md">Terraform 1.11 changelog (HashiCorp GitHub)</a> states <em>&quot;S3 native state locking is now generally available.&quot;</em> No DynamoDB table is required — HashiCorp's <a href="https://developer.hashicorp.com/terraform/language/backend/s3">S3 backend (HashiCorp)</a> page says <em>&quot;DynamoDB-based locking is deprecated and will be removed in a future minor version.&quot;</em></p>
+<pre><code class="language-hcl">terraform {
+  backend &quot;s3&quot; {
+    bucket       = &quot;my-terraform-state&quot;
+    key          = &quot;dynatrace/terraform.tfstate&quot;
+    region       = &quot;us-east-1&quot;
+    encrypt      = true
+    use_lockfile = true   # native S3 locking (GA in Terraform 1.11); DynamoDB locking is deprecated
+  }
+}
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bucket</code></td>
+<td>S3 bucket for state storage</td>
+</tr>
+<tr>
+<td><code>key</code></td>
+<td>Path within the bucket</td>
+</tr>
+<tr>
+<td><code>use_lockfile</code></td>
+<td>Native S3 lockfile-based concurrency control (GA in Terraform 1.11); replaces the deprecated DynamoDB-based locking</td>
+</tr>
+<tr>
+<td><code>encrypt</code></td>
+<td>Encrypt state at rest (use SSE-KMS with a customer-managed key for production)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Migrating from DynamoDB?</strong> Set <code>use_lockfile = true</code> alongside the existing <code>dynamodb_table</code> attribute, run <code>terraform init -reconfigure</code>, verify lock acquisition succeeds, then remove <code>dynamodb_table</code> on a follow-up apply. See AUTOM-09 § 3 for the full migration recipe.</p>
+</blockquote>
+<h3>Remote State — Azure Blob</h3>
+<pre><code class="language-hcl">terraform {
+  backend &quot;azurerm&quot; {
+    resource_group_name  = &quot;rg-terraform&quot;
+    storage_account_name = &quot;tfstateaccount&quot;
+    container_name       = &quot;tfstate&quot;
+    key                  = &quot;dynatrace.terraform.tfstate&quot;
+  }
+}
+</code></pre>
+<h3>Remote State — Terraform Cloud / HCP Terraform</h3>
+<pre><code class="language-hcl">terraform {
+  cloud {
+    organization = &quot;my-org&quot;
+    workspaces {
+      name = &quot;dynatrace-production&quot;
+    }
+  }
+}
+</code></pre>
+<h3>Inspecting State</h3>
+<pre><code class="language-bash"># List all resources in state
+terraform state list
+
+# Show details of a specific resource
+terraform state show dynatrace_document.first_notebook
+
+# Remove a resource from state (without destroying it)
+terraform state rm dynatrace_document.first_notebook
+</code></pre>
+<hr />
+<p><a id="github-actions"></a></p>
+<h2>9. GitHub Actions CI/CD Pipeline</h2>
+<p>This section is a <strong>minimal starter</strong> to confirm the basics work end-to-end with static GitHub Secrets. For production CI/CD — OIDC-federated secret retrieval, multi-environment promotion, plan-comments on PRs, manual-approval gates, and patterns for GitLab / Bitbucket / Bamboo / Jenkins / Azure DevOps — go to:</p>
+<table>
+<thead>
+<tr>
+<th>Where</th>
+<th>What it covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AUTOM-96 LAB: GitHub Actions CI/CD for Dynatrace Terraform</strong></td>
+<td>Full hands-on: OIDC → Vault → Platform Token, plan-comment via <code>actions/github-script</code>, environment-gated apply, validation walkthrough. The recommended-default end state.</td>
+</tr>
+<tr>
+<td><strong>AUTOM-07: CI/CD Integration</strong></td>
+<td>Conceptual coverage of GitHub Actions, GitLab CI, Bitbucket Pipelines, Atlassian Bamboo, Jenkins, Azure DevOps.</td>
+</tr>
+<tr>
+<td><strong>AUTOM-04 § 3 &quot;Bridging the Trust Boundary&quot;</strong></td>
+<td>Why static GitHub Secrets is no longer the recommended default, and the five mechanisms for getting tokens to the runner.</td>
+</tr>
+</tbody>
+</table>
+<p>The starter below uses static secrets and is intentionally kept simple — do <strong>not</strong> ship this pattern to production. It passes every credential this LAB's resources use: the Platform Token for the §3 notebook and §4 setting, and the OAuth client for the §5 IAM resources. Drop the ones your configuration does not need.</p>
+<h3>Starter Workflow (static secrets — not for production)</h3>
+<p>Create <code>.github/workflows/terraform-deploy.yml</code>:</p>
+<pre><code class="language-yaml">name: Deploy Dynatrace Terraform (starter)
+
+on:
+  pull_request:
+    paths: [&quot;terraform/**&quot;]
+  push:
+    branches: [main]
+    paths: [&quot;terraform/**&quot;]
+
+env:
+  DYNATRACE_ENV_URL: ${{ secrets.DT_ENV_URL }}
+  DYNATRACE_PLATFORM_TOKEN: ${{ secrets.DT_PLATFORM_TOKEN }}
+  # OAuth client: IAM resources (§5) and dynatrace_platform_slo
+  DT_CLIENT_ID: ${{ secrets.DT_CLIENT_ID }}
+  DT_CLIENT_SECRET: ${{ secrets.DT_CLIENT_SECRET }}
+  DT_ACCOUNT_ID: ${{ secrets.DT_ACCOUNT_ID }}
+  TF_VAR_dt_account_id: ${{ secrets.DT_ACCOUNT_ID }}
+  # Classic API token — only if you manage classic resources
+  # DYNATRACE_API_TOKEN: ${{ secrets.DT_API_TOKEN }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: terraform/
+
+      - name: Terraform Plan
+        run: terraform plan -no-color
+        working-directory: terraform/
+
+  apply:
+    if: github.ref == 'refs/heads/main' &amp;&amp; github.event_name == 'push'
+    needs: plan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: terraform/
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: terraform/
+</code></pre>
+<p>Action versions are the latest majors as of 10/2026 (<code>actions/checkout</code> v7, <code>hashicorp/setup-terraform</code> v4 — v4 <em>&quot;requires Node.js 24&quot;</em>, per its <a href="https://github.com/hashicorp/setup-terraform/releases/tag/v4.0.0">v4.0.0 release notes (HashiCorp GitHub)</a>).</p>
+<h3>GitHub Secrets (starter only)</h3>
+<p>Store credentials in GitHub repository secrets (<strong>Settings &gt; Secrets and variables &gt; Actions</strong>):</p>
+<table>
+<thead>
+<tr>
+<th>Secret Name</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DT_ENV_URL</code></td>
+<td><code>https://&lt;env-id&gt;.apps.dynatrace.com</code></td>
+</tr>
+<tr>
+<td><code>DT_PLATFORM_TOKEN</code></td>
+<td>Platform Token with the scopes your resources need (§2, Method 1)</td>
+</tr>
+<tr>
+<td><code>DT_CLIENT_ID</code> / <code>DT_CLIENT_SECRET</code></td>
+<td>OAuth client for IAM and platform SLOs (§2, Method 3)</td>
+</tr>
+<tr>
+<td><code>DT_ACCOUNT_ID</code></td>
+<td>Your account UUID</td>
+</tr>
+<tr>
+<td><code>DT_API_TOKEN</code></td>
+<td>Classic API token — only if you manage classic resources</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Production migration path:</strong> Once the starter runs cleanly, walk through <strong>AUTOM-96 LAB</strong> to replace these static secrets with OIDC-federated runtime credential fetch from Vault (or AWS Secrets Manager / Azure Key Vault / GCP Secret Manager). The end state has zero long-lived Dynatrace credentials in GitHub Secrets.</p>
+</blockquote>
+<hr />
+<p><a id="drift-detection"></a></p>
+<h2>10. Drift Detection</h2>
+<p>Drift occurs when someone changes a Dynatrace resource manually (through the UI or API) after it was deployed via Terraform.</p>
+<h3>Detect Drift</h3>
+<pre><code class="language-bash"># Run plan with detailed exit code
+terraform plan -detailed-exitcode
+
+# Exit codes:
+#   0 = No changes (no drift)
+#   1 = Error
+#   2 = Changes detected (drift found)
+</code></pre>
+<h3>Scheduled Drift Detection</h3>
+<p>Add a scheduled GitHub Actions workflow to check for drift daily. It branches on the exit code, so that an error (exit 1 — an expired token, for example) fails the job instead of being reported as drift:</p>
+<pre><code class="language-yaml">name: Drift Detection
+
+on:
+  schedule:
+    - cron: &quot;0 8 * * 1-5&quot;   # Weekdays at 8 AM UTC
+
+jobs:
+  detect-drift:
+    runs-on: ubuntu-latest
+    env:
+      DYNATRACE_ENV_URL: ${{ secrets.DT_ENV_URL }}
+      DYNATRACE_PLATFORM_TOKEN: ${{ secrets.DT_PLATFORM_TOKEN }}
+      DT_CLIENT_ID: ${{ secrets.DT_CLIENT_ID }}
+      DT_CLIENT_SECRET: ${{ secrets.DT_CLIENT_SECRET }}
+      DT_ACCOUNT_ID: ${{ secrets.DT_ACCOUNT_ID }}
+      TF_VAR_dt_account_id: ${{ secrets.DT_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false   # plain exit codes
+      - run: terraform init
+        working-directory: terraform/
+      - name: Check for drift
+        id: drift
+        working-directory: terraform/
+        run: |
+          set +e
+          terraform plan -detailed-exitcode -no-color
+          echo &quot;rc=$?&quot; &gt;&gt; &quot;$GITHUB_OUTPUT&quot;
+      - name: Fail on plan error
+        if: steps.drift.outputs.rc == '1'
+        run: |
+          echo &quot;terraform plan failed - this is an error, not drift.&quot;
+          exit 1
+      - name: Alert on drift
+        if: steps.drift.outputs.rc == '2'
+        run: echo &quot;Drift detected! Review terraform plan output.&quot;
+</code></pre>
+<h3>Handling Drift</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Manual change was intentional</td>
+<td>Update <code>.tf</code> to match, or import the new resource (§6)</td>
+</tr>
+<tr>
+<td>Manual change was accidental</td>
+<td>Run <code>terraform apply</code> to restore the desired state</td>
+</tr>
+<tr>
+<td>State is stale</td>
+<td>Run <code>terraform apply -refresh-only</code>, review the proposed state changes, then confirm. <code>terraform refresh</code> is deprecated: <em>&quot;Instead, add the -refresh-only flag to terraform apply and terraform plan commands.&quot;</em> (<a href="https://developer.hashicorp.com/terraform/cli/commands/refresh">terraform refresh (HashiCorp)</a>)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="summary"></a></p>
+<h2>11. Summary and Checklist</h2>
+<h3>Deployment Checklist</h3>
+<ul>
+<li>[ ] Terraform 1.5+ installed and verified (1.11+ for native S3 backend locking)</li>
+<li>[ ] Provider configured with the <strong>right token type per resource</strong> (Platform / classic API / OAuth — see AUTOM-04 § 3)</li>
+<li>[ ] <code>terraform init</code> downloads the Dynatrace provider (v1.105.x at time of writing)</li>
+<li>[ ] Resources defined in <code>.tf</code> files, not configured manually</li>
+<li>[ ] <code>terraform.tfvars</code> and <code>terraform.tfstate</code> in <code>.gitignore</code></li>
+<li>[ ] Remote state backend configured for team use, with encryption at rest</li>
+<li>[ ] <strong>Production:</strong> token holder is a Service User, not a human account (see AUTOM-04 § 3)</li>
+<li>[ ] <strong>Production:</strong> no <code>dynatrace_api_token</code> minted in this state file (or backend access is locked down — state stores the token plain-text)</li>
+<li>[ ] CI/CD pipeline runs <code>plan</code> on PRs, <code>apply</code> on merge — production uses OIDC-federated secret fetch (see AUTOM-96)</li>
+<li>[ ] Drift detection scheduled</li>
+</ul>
+<h3>Key Takeaways</h3>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Key Point</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Provider Setup</strong></td>
+<td>Pin version with <code>~&gt; 1.96</code> (or <code>~&gt; 1.105</code> for current resources); v1.88.0+ uses a mixed-auth model</td>
+</tr>
+<tr>
+<td><strong>Authentication</strong></td>
+<td>Platform Token (default, incl. OpenPipeline v2 and buckets) + classic API Token (Synthetics, classic SLOs, <code>dynatrace_api_token</code>) + OAuth (IAM, <code>dynatrace_platform_slo</code>) — see AUTOM-04 § 3</td>
+</tr>
+<tr>
+<td><strong>Service User</strong></td>
+<td>Production token holder is a Service User; three things must align (perms, creator scope, token scope)</td>
+</tr>
+<tr>
+<td><strong>Plan Before Apply</strong></td>
+<td>Always review <code>terraform plan</code> output before applying</td>
+</tr>
+<tr>
+<td><strong>State Management</strong></td>
+<td>Use remote backends with encryption; <code>dynatrace_api_token</code> stores its value plain-text in state regardless of <code>sensitive</code></td>
+</tr>
+<tr>
+<td><strong>Import</strong></td>
+<td>Use <code>-export</code> utility for bulk bootstrap; <code>import</code> blocks for individual resources</td>
+</tr>
+<tr>
+<td><strong>CI/CD</strong></td>
+<td>Static GitHub Secrets is a starter; production uses OIDC → Vault (or cloud-native secret manager) — see AUTOM-96</td>
+</tr>
+<tr>
+<td><strong>Drift Detection</strong></td>
+<td>Schedule regular checks with <code>plan -detailed-exitcode</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Monaco vs Terraform — When to Use Which</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommended Tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Quick config export/import</td>
+<td>Either (Monaco UI flow, or Terraform <code>-export</code> utility)</td>
+</tr>
+<tr>
+<td>Multi-environment promotion</td>
+<td>Either</td>
+</tr>
+<tr>
+<td>IAM policy management</td>
+<td>Terraform (OAuth required)</td>
+</tr>
+<tr>
+<td>Multi-cloud infrastructure + Dynatrace</td>
+<td>Terraform</td>
+</tr>
+<tr>
+<td>Drift detection and state tracking</td>
+<td>Terraform</td>
+</tr>
+<tr>
+<td>Team with existing Terraform expertise</td>
+<td>Terraform</td>
+</tr>
+<tr>
+<td>Team new to IaC</td>
+<td>Monaco (lower learning curve)</td>
+</tr>
+</tbody>
+</table>
+<h3>References</h3>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Terraform Registry</td>
+<td><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest">registry.terraform.io/providers/dynatrace-oss/dynatrace</a></td>
+</tr>
+<tr>
+<td>Provider Documentation</td>
+<td><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs">registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs</a></td>
+</tr>
+<tr>
+<td>Provider GitHub</td>
+<td><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace">github.com/dynatrace-oss/terraform-provider-dynatrace</a></td>
+</tr>
+<tr>
+<td>Terraform Install</td>
+<td><a href="https://developer.hashicorp.com/terraform/install">developer.hashicorp.com/terraform/install</a></td>
+</tr>
+<tr>
+<td>Dynatrace IAM Docs</td>
+<td><a href="https://docs.dynatrace.com/docs/manage/identity-access-management">docs.dynatrace.com/docs/manage/identity-access-management</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>Continue to <strong>AUTOM-09: Terraform GitOps Setup Recipe</strong> for state backends, lifecycle protections, and multi-environment promotion; then <strong>AUTOM-07: CI/CD Integration</strong> for production pipeline patterns (and the <strong>AUTOM-96 LAB</strong> for the GitHub Actions hands-on); or jump to <strong>AUTOM-05: Dynatrace Workflows</strong> for event-driven automation.</em></p>
+<h3>Community Resources</h3>
+<table>
+<thead>
+<tr>
+<th>Repository</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace">terraform-provider-dynatrace</a></td>
+<td>Official provider (v1.105.x at time of writing) with built-in <code>-export</code> utility</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code">community-examples/configuration-as-code</a></td>
+<td>Starter templates in <code>basic-templates-terraform</code> (moved from the archived <code>dynatrace-configuration-as-code-samples</code> repo), plus modules, IAM, and DQL examples</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/terraform_modules">terraform_modules</a></td>
+<td>Reusable module pattern for synthetic monitors</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/terraform_dql_example">terraform_dql_example</a></td>
+<td>DQL as a Terraform data source for dynamic config generation</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/terraform_team_onboarding">terraform_team_onboarding</a></td>
+<td>IAM policies, groups, and Azure Entra ID for team provisioning</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/iam_tf_sample">iam_tf_sample</a></td>
+<td>IAM policies, Grail buckets, OpenPipelines, and segments</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Use the provider export feature (<code>./terraform-provider-dynatrace -export -ref -id</code> — canonical Dynatrace-recommended form; supply credentials via env vars per AUTOM-04 §3) to generate <code>.tf</code> files from an existing tenant — the fastest path to Terraform-managed configuration. See AUTOM-04 §8 for the full flag reference.</p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

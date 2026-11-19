@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-14: Zone Disposition Workshop</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-14</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-14: Zone Disposition Workshop</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> Bonus Workshop | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 10/19/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A management-zone migration stalls on decisions, not on configuration. Somebody has to say which zones die, which job each surviving zone does, what the team and stage values are, who sets them, and what each group may see. This workshop is a structured way to get those decisions made by the people who own them, in one series of working sessions, with every decision written into a table the build work can use.</p>
+<blockquote>
+<p><strong>Workshop Format:</strong> a hands-on planning exercise that turns MZ2POL-00 and -03 output into the inputs MZ2POL-10, -11, -12, -05 and -09 need. It does not build anything. MZ2POL-95 LAB is the worked example: the same sessions applied to a fictional eight-zone estate.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#who-attends">Who Should Attend</a></li>
+<li><a href="#before">Before the Workshop</a></li>
+<li><a href="#sessions">The Six Sessions</a></li>
+<li><a href="#session-1">Session 1 — Triage</a></li>
+<li><a href="#session-2">Session 2 — Jobs</a></li>
+<li><a href="#session-3">Session 3 — Dimensions and Tags</a></li>
+<li><a href="#session-4">Session 4 — Rule Translation</a></li>
+<li><a href="#session-5">Session 5 — Personas and Boundaries</a></li>
+<li><a href="#session-6">Session 6 — Alerting and Cutover</a></li>
+<li><a href="#facilitator-notes">Facilitator Notes: Traps to Name Out Loud</a></li>
+<li><a href="#outputs">Outputs and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Inputs</strong></td>
+<td>MZ2POL-00 rule export; the classified inventory from MZ2POL-03; IdP group list; alerting profile list</td>
+</tr>
+<tr>
+<td><strong>Reading for the facilitator</strong></td>
+<td>MZ2POL-10, -11, -12 — the workshop asks the questions those notebooks answer</td>
+</tr>
+<tr>
+<td><strong>Tenant access</strong></td>
+<td><code>storage:entities:read</code> for the two pre-work queries (zero bytes scanned)</td>
+</tr>
+<tr>
+<td><strong>Time</strong></td>
+<td>In community practice, one long day for a few dozen zones; split sessions 4–6 across days for large estates</td>
+</tr>
+</tbody>
+</table>
+<p><a id="who-attends"></a></p>
+<h2>1. Who Should Attend</h2>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Why they are needed</th>
+<th>Decides</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Observability platform owner</strong> (facilitator)</td>
+<td>Knows the zone estate and the target model</td>
+<td>Running order, stop conditions</td>
+</tr>
+<tr>
+<td><strong>IAM / identity owner</strong></td>
+<td>Owns IdP groups and the account</td>
+<td>Group design, who binds what</td>
+</tr>
+<tr>
+<td><strong>One owner per application team</strong></td>
+<td>Knows what the zone was actually for</td>
+<td>Keep / delete, job, team value</td>
+</tr>
+<tr>
+<td><strong>Infrastructure / Kubernetes owner</strong></td>
+<td>Controls host tags, OneAgent install, namespaces</td>
+<td>Where values are set, by whom</td>
+</tr>
+<tr>
+<td><strong>On-call / incident lead</strong></td>
+<td>Owns alerting profiles and destinations</td>
+<td>Routing replacements, parity window</td>
+</tr>
+<tr>
+<td><strong>Security or compliance (for P1 zones)</strong></td>
+<td>Signs off restricted data</td>
+<td>Boundary values for regulated data</td>
+</tr>
+</tbody>
+</table>
+<p>A team that does not send an owner cannot have its zones decided. Park them — do not guess.</p>
+<p><a id="before"></a></p>
+<h2>2. Before the Workshop</h2>
+<p>Run these two queries and bring the output. Both read the classic entity model, scan zero bytes, and were executed on the validation tenant on 10/13/2026.</p>
+<p><strong>Pre-work A — which tag keys do the zones rely on?</strong> (MZ2POL-10 §9, Step 2)</p>
+<pre><code class="language-dql">// Classic tag keys on hosts: the vocabulary the zones were built from. Zero bytes scanned.
+fetch dt.entity.host
+| fields entity.name, tags
+| expand tags
+| parse tags, &quot;LD:tag_key ':' LD&quot;
+| fieldsAdd tag_key = coalesce(tag_key, tags)
+| summarize {hosts = countDistinctExact(entity.name)}, by:{tag_key}
+| sort hosts desc
+| limit 50
+</code></pre>
+<p><strong>Pre-work B — which zones are really host-group zones?</strong> (MZ2POL-11 §9, Check 1)</p>
+<pre><code class="language-dql">// Per zone: how many host groups its hosts span, and how many hosts have none. Zero bytes scanned.
+fetch dt.entity.host
+| fields entity.name, managementZones, hostGroupName
+| expand managementZones
+| filter isNotNull(managementZones)
+| summarize {hosts = count(),
+    without_host_group = countIf(isNull(hostGroupName)),
+    host_groups = countDistinct(hostGroupName),
+    group_list = collectDistinct(hostGroupName)},
+    by:{zone = managementZones}
+| fieldsAdd translation = if(without_host_group &gt; 0, &quot;needs a tag - some hosts have no host group&quot;,
+    else: if(host_groups == 1, &quot;dt.host_group.id = &lt;group&gt;&quot;,
+    else: if(host_groups &lt;= 5, &quot;in(dt.host_group.id, {...})&quot;,
+    else: &quot;needs a tag - spans many host groups&quot;)))
+| sort hosts desc
+| limit 100
+</code></pre>
+<p>Also bring, as exports or screenshots:</p>
+<ul>
+<li><strong>Role assignments per zone</strong> — which groups hold which classic roles on which zones (the access job).</li>
+<li><strong>Alerting profiles</strong> with their zone filters and destinations (the alerting job).</li>
+<li><strong>Dashboard and query usage per zone</strong> for the last 90 days (the filtering job — and the &quot;unused&quot; evidence for deletion).</li>
+</ul>
+<p><a id="sessions"></a></p>
+<h2>3. The Six Sessions</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+Wm9uZSBEaXNwb3NpdGlvbiBXb3Jrc2hvcDogU2Vzc2lvbnMgYW5kIE91dHB1dHM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMi41Ij5TaXggd29ya2luZyBzZXNzaW9uczsgZWFjaCBvbmUgZW5kcyB3aXRoIGEgZmlsbGVkLWluIHRhYmxlIHRoZSBuZXh0IHNlc3Npb24gbmVlZHM8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9Ijc0IiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjExOCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNCIgeT0iMTAyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+MSDCtyBUcmlhZ2U8L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjEzMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPmluOiAgem9uZSBleHBvcnQsIHVzYWdlPC90ZXh0PgogIDx0ZXh0IHg9IjM0IiB5PSIxNTQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMS41IiBmb250LXdlaWdodD0iNzAwIj5vdXQ6IGtlZXAgLyBkZWxldGUgcGVyIHpvbmU8L3RleHQ+CiAgPHJlY3QgeD0iMzIwIiB5PSI3NCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIxMTgiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzM0IiB5PSIxMDIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMy41IiBmb250LXdlaWdodD0iNzAwIj4yIMK3IEpvYnM8L3RleHQ+CiAgPHRleHQgeD0iMzM0IiB5PSIxMzAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5pbjogIGtlcHQgem9uZXM8L3RleHQ+CiAgPHRleHQgeD0iMzM0IiB5PSIxNTQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMS41IiBmb250LXdlaWdodD0iNzAwIj5vdXQ6IGFjY2VzcyAvIGZpbHRlciAvIGFsZXJ0IHBlciB6b25lPC90ZXh0PgogIDxyZWN0IHg9IjYyMCIgeT0iNzQiIHdpZHRoPSIyOTAiIGhlaWdodD0iMTE4IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjYzNCIgeT0iMTAyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+MyDCtyBEaW1lbnNpb25zICsgdGFnczwvdGV4dD4KICA8dGV4dCB4PSI2MzQiIHk9IjEzMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPmluOiAgam9icywgZXhpc3RpbmcgdGFnczwvdGV4dD4KICA8dGV4dCB4PSI2MzQiIHk9IjE1NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPm91dDoga2V5IGxpc3QgKyBhbGxvd2VkIHZhbHVlczwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMjE0IiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjExOCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNCIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+NCDCtyBSdWxlIHRyYW5zbGF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM0IiB5PSIyNzAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5pbjogIHJ1bGVzLCBrZXkgbGlzdDwvdGV4dD4KICA8dGV4dCB4PSIzNCIgeT0iMjk0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEuNSIgZm9udC13ZWlnaHQ9IjcwMCI+b3V0OiBNWjJQT0wtMTEgd29ya3NoZWV0IHJvd3M8L3RleHQ+CiAgPHJlY3QgeD0iMzIwIiB5PSIyMTQiIHdpZHRoPSIyOTAiIGhlaWdodD0iMTE4IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMzNCIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+NSDCtyBQZXJzb25hcyArIGJvdW5kYXJpZXM8L3RleHQ+CiAgPHRleHQgeD0iMzM0IiB5PSIyNzAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5pbjogIElkUCBncm91cHMsIGpvYnM8L3RleHQ+CiAgPHRleHQgeD0iMzM0IiB5PSIyOTQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMS41IiBmb250LXdlaWdodD0iNzAwIj5vdXQ6IGdyb3VwIMOXIHBvbGljeSDDlyBib3VuZGFyeTwvdGV4dD4KICA8cmVjdCB4PSI2MjAiIHk9IjIxNCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIxMTgiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNjM0IiB5PSIyNDIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMy41IiBmb250LXdlaWdodD0iNzAwIj42IMK3IEFsZXJ0aW5nICsgY3V0b3ZlcjwvdGV4dD4KICA8dGV4dCB4PSI2MzQiIHk9IjI3MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPmluOiAgYWxlcnRpbmcgcHJvZmlsZXM8L3RleHQ+CiAgPHRleHQgeD0iNjM0IiB5PSIyOTQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMS41IiBmb250LXdlaWdodD0iNzAwIj5vdXQ6IHJvdXRpbmcgdGFibGUsIGJhdGNoIHBsYW48L3RleHQ+CiAgPGxpbmUgeDE9IjMxMCIgeTE9IjEzMyIgeDI9IjMxOSIgeTI9IjEzMyIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8bGluZSB4MT0iMzEwIiB5MT0iMjczIiB4Mj0iMzE5IiB5Mj0iMjczIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxsaW5lIHgxPSI2MTAiIHkxPSIxMzMiIHgyPSI2MTkiIHkyPSIxMzMiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPGxpbmUgeDE9IjYxMCIgeTE9IjI3MyIgeDI9IjYxOSIgeTI9IjI3MyIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8cGF0aCBkPSJNIDc2NSAxOTIgQyA3NjUgMjA1LCAxNjUgMjAwLCAxNjUgMjEyIiBmaWxsPSJub25lIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxyZWN0IHg9IjIwIiB5PSIzNTIiIHdpZHRoPSI4OTAiIGhlaWdodD0iMTI2IiByeD0iNyIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjIwIiB5PSIzNTIiIHdpZHRoPSI4OTAiIGhlaWdodD0iMTI2IiByeD0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM2IiB5PSIzNzYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U3RvcCBjb25kaXRpb25zIOKAlCBkbyBub3QgbGVhdmUgdGhlIHJvb20gd2l0aCB0aGVzZSBvcGVuPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0MDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7igKIgQSB6b25lIHdpdGggbm8gb3duZXIgYW5kIG5vIGRlY2lzaW9uICDigKIgQSBkaW1lbnNpb24gd2l0aCBubyBhbGxvd2VkLXZhbHVlIGxpc3QgIOKAoiBBIGtleSBub2JvZHkgc2V0cyBhdCB0aGUgc291cmNlPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0MjQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7igKIgQSBib3VuZGFyeSB0aGF0IGRvZXMgbm90IGNvdmVyIGV2ZXJ5IGRvbWFpbiBpdHMgcG9saWNpZXMgZ3JhbnQgIOKAoiBBIHRlYW0gaW4gYW4gdW5zY29wZWQgZGF0YS1wb2xpY3kgZ3JvdXA8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjQ0OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKAoiBBbiBhbGVydGluZyBwcm9maWxlIHdpdGggbm8gbmFtZWQgcmVwbGFjZW1lbnQgd29ya2Zsb3cgIOKAoiBBIGN1dG92ZXIgYmF0Y2ggd2l0aG91dCBhIHJvbGxiYWNrIGxpbmU8L3RleHQ+Cjwvc3ZnPgo=" alt="Zone disposition workshop: sessions and outputs" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Session | In | Out |
+|---|---|---|
+| 1 · Triage | Zone export, usage | Keep / delete per zone |
+| 2 · Jobs | Kept zones | Access / filter / alert per zone |
+| 3 · Dimensions + tags | Jobs, existing tags | Key list + allowed values |
+| 4 · Rule translation | Rules, key list | MZ2POL-11 worksheet rows |
+| 5 · Personas + boundaries | IdP groups, jobs | Group × policy × boundary |
+| 6 · Alerting + cutover | Alerting profiles | Routing table, batch plan |
+| Stop conditions | A zone with no owner and no decision; a dimension with no allowed-value list; a key nobody sets at the source; a boundary that does not cover every domain its policies grant; a team in an unscoped data-policy group; an alerting profile with no named replacement workflow; a cutover batch without a rollback line | |
+For environments where SVG doesn't render
+-->
+<p>Every session ends with its table filled in. If it cannot be, the open items go on the stop list and the session after it works only on the zones that are complete.</p>
+<p><a id="session-1"></a></p>
+<h2>4. Session 1 — Triage</h2>
+<p><strong>Question:</strong> does this zone still do anything?</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+RGVjaWRpbmcgT25lIFpvbmUncyBGYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+VXNhZ2UgZmlyc3QsIHRoZW4gam9icyDigJQgYSB6b25lIGNhbiBkbyBzZXZlcmFsIGpvYnMsIGFuZCBlYWNoIGpvYiBtaWdyYXRlcyBvbiBpdHMgb3duIHBhdGg8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9Ijc2IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjkyIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMwIiB5PSI5NSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5ab25lPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIxMTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5ydWxlcywgcm9sZSBhc3NpZ25tZW50cyw8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjEzMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnByb2ZpbGVzLCBkYXNoYm9hcmRzPC90ZXh0PgogIDxsaW5lIHgxPSIyNzAiIHkxPSIxMjIiIHgyPSIzMDAiIHkyPSIxMjIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPHJlY3QgeD0iMzAyIiB5PSI3NiIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI5MiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzMTYiIHk9IjEwMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPlVzZWQgaW4gdGhlIGxhc3QgOTAgZGF5cz88L3RleHQ+CiAgPHRleHQgeD0iMzE2IiB5PSIxMjQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cXVlcmllcywgcm9sZSBhc3NpZ25tZW50cyw8L3RleHQ+CiAgPHRleHQgeD0iMzE2IiB5PSIxNDIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cHJvZmlsZXMgb3IgZGFzaGJvYXJkczwvdGV4dD4KICA8bGluZSB4MT0iNTgyIiB5MT0iMTAwIiB4Mj0iNjQwIiB5Mj0iMTAwIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1yZWQpIi8+CiAgPHRleHQgeD0iNjEwIiB5PSI5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+bm88L3RleHQ+CiAgPHJlY3QgeD0iNjQyIiB5PSI3NiIgd2lkdGg9IjI2OCIgaGVpZ2h0PSI1NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI2NTIiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkRlbGV0ZSDigJQgZG9uJ3QgY29udmVydDwvdGV4dD4KICA8dGV4dCB4PSI2NTIiIHk9IjExMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmFyY2hpdmUgdGhlIGV4cG9ydCBmaXJzdDwvdGV4dD4KICA8bGluZSB4MT0iNDQyIiB5MT0iMTY4IiB4Mj0iNDQyIiB5Mj0iMTk2IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmVlbikiLz4KICA8dGV4dCB4PSI0NTgiIHk9IjE4OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj55ZXM8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjE5OCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIxNjAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzQiIHk9IjIyMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5BY2Nlc3Mgam9iPC90ZXh0PgogIDx0ZXh0IHg9IjM0IiB5PSIyNDIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41IiBmb250LXN0eWxlPSJpdGFsaWMiPnRlc3Q6IHJlbW92aW5nIGl0IHdvdWxkIGV4cG9zZSBkYXRhPC90ZXh0PgogIDx0ZXh0IHg9IjM0IiB5PSIyNzAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7ihpIgdGFncyBhdCBzb3VyY2UgKDEwLCAxMSk8L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjI5MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKGkiBib3VuZGFyeSBwZXIgdGVhbSAoMTIsIDA0KTwvdGV4dD4KICA8dGV4dCB4PSIzNCIgeT0iMzE0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+4oaSIHRlbXBsYXRlcyBpZiBtYW55ICgwOCk8L3RleHQ+CiAgPHJlY3QgeD0iMzIwIiB5PSIxOTgiIHdpZHRoPSIyOTAiIGhlaWdodD0iMTYwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMzNCIgeT0iMjIyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkZpbHRlcmluZyBqb2I8L3RleHQ+CiAgPHRleHQgeD0iMzM0IiB5PSIyNDIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41IiBmb250LXN0eWxlPSJpdGFsaWMiPnRlc3Q6IHJlbW92aW5nIGl0IG9ubHkgYWRkcyBub2lzZTwvdGV4dD4KICA8dGV4dCB4PSIzMzQiIHk9IjI3MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKGkiB0YWdzIG9yIGJ1aWx0LWluIGZpZWxkczwvdGV4dD4KICA8dGV4dCB4PSIzMzQiIHk9IjI5MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKGkiBvbmUgc2VnbWVudCBwZXIgZGltZW5zaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjMzNCIgeT0iMzE0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+ICAgKDA1KTwvdGV4dD4KICA8cmVjdCB4PSI2MjAiIHk9IjE5OCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIxNjAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNjM0IiB5PSIyMjIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+QWxlcnRpbmcgam9iPC90ZXh0PgogIDx0ZXh0IHg9IjYzNCIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC1zdHlsZT0iaXRhbGljIj50ZXN0OiBpdCBkZWNpZGVzIHdobyBpcyBwYWdlZDwvdGV4dD4KICA8dGV4dCB4PSI2MzQiIHk9IjI3MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKGkiByb3V0aW5nIHRhZ3Mgb24gdGhlIGRhdGE8L3RleHQ+CiAgPHRleHQgeD0iNjM0IiB5PSIyOTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7ihpIgcHJvYmxlbS10cmlnZ2VyZWQgd29ya2Zsb3c8L3RleHQ+CiAgPHRleHQgeD0iNjM0IiB5PSIzMTQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij4gICAoMDkpPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIzNzQiIHdpZHRoPSI4OTAiIGhlaWdodD0iMTA0IiByeD0iNyIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjIwIiB5PSIzNzQiIHdpZHRoPSI4OTAiIGhlaWdodD0iMTA0IiByeD0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM2IiB5PSIzOTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RXZlcnkgcGF0aCBzdGFydHMgdGhlIHNhbWUgd2F5PC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0MjIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5UaGUgdmFsdWUgaGFzIHRvIGJlIG9uIHRoZSBkYXRhIGZpcnN0LiBBIHpvbmUgZG9pbmcgYWxsIHRocmVlIGpvYnMgZ2V0cyBvbmUgdHJhbnNsYXRpb24gKE1aMlBPTC0xMSkgdGhhdCBmZWVkczwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iNDQ0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+dGhyZWUgY29uc3VtZXJzOiBkdC5zZWN1cml0eV9jb250ZXh0IGZvciB0aGUgYm91bmRhcnksIHByaW1hcnlfdGFncy4qIGZvciB0aGUgc2VnbWVudCBhbmQgdGhlIHdvcmtmbG93IHRyaWdnZXIuPC90ZXh0Pgo8L3N2Zz4K" alt="Deciding one zone's fate" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Decision | Test | Path |
+|---|---|---|
+| Delete | No queries, role assignments, alerting profiles or dashboards in 90 days | Archive the export first |
+| Access job | Removing it would let someone see data they must not | Tags at source (10, 11) → boundary per team (12, 04) → templates if many (08) |
+| Filtering job | Removing it only adds noise | Tags or built-in fields → one segment per dimension (05) |
+| Alerting job | It decides who is paged | Routing tags on the data → problem-triggered workflow (09) |
+| All paths | The value has to be on the data first; one translation (MZ2POL-11) feeds three consumers | dt.security_context for the boundary; primary_tags.* for the segment and the trigger |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Zone</th>
+<th>Owner</th>
+<th>Used in 90 days? (evidence)</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td>queries / roles / profiles / dashboards</td>
+<td>keep / delete / park</td>
+</tr>
+</tbody>
+</table>
+<p>Collect the evidence column with MZ2POL-15 (consumers) and MZ2POL-00 §3 (query usage).</p>
+<p>Delete aggressively. A zone nobody uses is a zone nobody needs translated, tagged, tested or explained. MZ2POL-05 §2 makes the same point for filtering zones.</p>
+<p><a id="session-2"></a></p>
+<h2>5. Session 2 — Jobs</h2>
+<p><strong>Question:</strong> for each kept zone, which of the three jobs does it do? A zone can do more than one, and each job migrates separately.</p>
+<table>
+<thead>
+<tr>
+<th>Zone</th>
+<th>Access?</th>
+<th>Filtering?</th>
+<th>Alerting?</th>
+<th>Priority (MZ2POL-03)</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td>removing it exposes data</td>
+<td>removing it adds noise</td>
+<td>it decides who is paged</td>
+<td>P1 – P3</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Use the series' test word for word: <em>if removing it would let someone see data they must not, it is access; if it would only make dashboards noisy, it is filtering; if it decides who is paged, it is alerting.</em> In community practice, teams tend to overestimate the access share, and many estates turn out to be mostly filtering (MZ2POL-05 §1) — verify against your own inventory rather than assuming it.</p>
+<p><a id="session-3"></a></p>
+<h2>6. Session 3 — Dimensions and Tags</h2>
+<p><strong>Question:</strong> what are the few dimensions behind all these zones, and what are their allowed values?</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Key</th>
+<th>Allowed values</th>
+<th>Constrained?</th>
+<th>Also written to <code>dt.security_context</code>?</th>
+<th>Set by (producer, owner)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Team</td>
+<td><code>primary_tags.team</code></td>
+<td>payments, checkout, …</td>
+<td>yes — allowlist</td>
+<td>yes, as <code>&lt;stage&gt;/&lt;team&gt;</code></td>
+<td>central rule / DT_TAGS / namespace annotation</td>
+</tr>
+<tr>
+<td>Stage</td>
+<td><code>primary_tags.stage</code></td>
+<td>prod, staging, dev</td>
+<td>yes</td>
+<td>inside the context value</td>
+<td>host group or install</td>
+</tr>
+<tr>
+<td>App</td>
+<td><code>primary_tags.app</code></td>
+<td></td>
+<td>open</td>
+<td>no</td>
+<td>deployment pipeline</td>
+</tr>
+</tbody>
+</table>
+<p>Rules the session enforces (MZ2POL-10 §4–§8):</p>
+<ul>
+<li><strong>Follow the vocabulary you already have</strong> — cloud tags, Kubernetes labels, the CMDB.</li>
+<li><strong>Constrain</strong> stage, region and classification; agree spellings now (Grail compares exactly).</li>
+<li><strong>Write access dimensions to <code>dt.security_context</code> too</strong> — a primary tag cannot carry IAM.</li>
+<li><strong>Stay well under 20 primary tags per host or process.</strong></li>
+<li><strong>Name an owner for every producer</strong>, including the ones that inherit nothing: remote extensions, synthetic monitors, RUM, API ingest (FAQ-26 §5).</li>
+</ul>
+<p><a id="session-4"></a></p>
+<h2>7. Session 4 — Rule Translation</h2>
+<p><strong>Question:</strong> where does each rule's logic live now?</p>
+<p>Fill one worksheet row per <strong>rule</strong>, not per zone — the format is MZ2POL-11 §10. Walk the decision path in order: built-in field → set at source → central enrichment rule → OpenPipeline tag rule → explicit membership tag.</p>
+<table>
+<thead>
+<tr>
+<th>Zone</th>
+<th>Rule #</th>
+<th>Property · operator · value</th>
+<th>Decision step</th>
+<th>Target field = value</th>
+<th>Set where, by whom</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>1–5</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Call out, as each appears:</p>
+<ul>
+<li><strong>Exclusions</strong> (<code>NOT_*</code>) — push the <code>NOT</code> into the enrichment condition; segments and record-level IAM cannot exclude (MZ2POL-11 §5).</li>
+<li><strong>Regex, numeric, IP-range</strong> — no Grail surface evaluates them; the value must be computed at the source.</li>
+<li><strong>Propagation flags</strong> — decide where the value is really true (host or process), instead of copying the flag (MZ2POL-10 §7).</li>
+<li><strong>Entity selectors with relationships</strong> — list-type zones go to Smartscape queries; data-scope zones need a tag (MZ2POL-11 §7).</li>
+</ul>
+<p><a id="session-5"></a></p>
+<h2>8. Session 5 — Personas and Boundaries</h2>
+<p><strong>Question:</strong> which groups exist, what may each read and change, and which boundary scopes it?</p>
+<table>
+<thead>
+<tr>
+<th>IdP group</th>
+<th>Persona</th>
+<th>Policies (defaults first)</th>
+<th>Boundary</th>
+<th>Boundary lines — one per domain the policies grant</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td>developer / lead / SRE / auditor</td>
+<td></td>
+<td></td>
+<td><code>storage:dt.security_context MATCH (…)</code>; <code>settings:dt.security_context IN (…)</code>; <code>environment:management-zone IN (…)</code> while classic pages are used</td>
+</tr>
+</tbody>
+</table>
+<p>The facilitator checks every row against MZ2POL-12 before the session closes:</p>
+<ul>
+<li><strong>Every domain covered.</strong> A zone-only boundary on a default policy leaves Grail unscoped; a Grail-only boundary on Standard User leaves classic pages unscoped (MZ2POL-12 §4.2).</li>
+<li><strong>One boundary per binding</strong> for team scope; shared data as an extra value on the same condition, not a second boundary (MZ2POL-12 §4.1).</li>
+<li><strong>No unscoped data policy</strong> in any group a team member also belongs to (§3).</li>
+<li><strong><code>MATCH</code></strong> on <code>storage:dt.security_context</code> wherever events are in scope.</li>
+<li><strong>Settings</strong> scoped by edge-set security context or <code>settings:schemaId</code> — not by zones (§5).</li>
+<li><strong>Zone line and settings line together are unverified.</strong> Both apply to <code>settings:objects:read</code> / <code>write</code>, and Dynatrace does not document whether two different condition names on one permission are ANDed. Record the boundary as <em>to be dry-run</em>: resolve a pilot user's settings permissions with <code>effectivepermissions:dry-run</code> before the boundary is bound to a real group, or put the zone line in a separate classic-only binding (MZ2POL-12 §4.2).</li>
+</ul>
+<p><a id="session-6"></a></p>
+<h2>9. Session 6 — Alerting and Cutover</h2>
+<p><strong>Question:</strong> what replaces each alerting profile, and in what order do zones leave?</p>
+<p><strong>Routing table</strong> (MZ2POL-09):</p>
+<table>
+<thead>
+<tr>
+<th>Alerting profile</th>
+<th>Zone</th>
+<th>Replacement workflow</th>
+<th>Trigger tag / DQL matcher</th>
+<th>Minimum duration (from delay)</th>
+<th>Destination</th>
+<th>Parity window</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Batch plan</strong> (MZ2POL-06 §6 states):</p>
+<table>
+<thead>
+<tr>
+<th>Batch</th>
+<th>Zones</th>
+<th>Exit evidence for &quot;verified&quot;</th>
+<th>Rollback line</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td>P1 first</td>
+<td>tag gate green; effective permissions clean; alert parity</td>
+<td>re-add the zone line / re-enable the profile</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Two sequencing rules are not negotiable: alerting profiles are <strong>disabled</strong> before anything is deleted, and <strong>zones are deleted last</strong>, in a separate change window (MZ2POL-09 §8).</p>
+<p><a id="facilitator-notes"></a></p>
+<h2>10. Facilitator Notes: Traps to Name Out Loud</h2>
+<p>Each of these has cost real migrations time, and each looks correct on paper. Say them before the session where they apply.</p>
+<table>
+<thead>
+<tr>
+<th>Session</th>
+<th>Trap</th>
+<th>Why it bites</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>&quot;Keep it, just in case&quot;</td>
+<td>Every kept zone costs a translation, a tag, a test and a cutover step</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Treating filtering zones as access</td>
+<td>Turns a segment into an IAM project</td>
+</tr>
+<tr>
+<td>3</td>
+<td>A tag key with no allowed values</td>
+<td><code>prod</code>, <code>Prod</code> and <code>production</code> become three segment values</td>
+</tr>
+<tr>
+<td>3</td>
+<td>&quot;We'll tag it in OpenPipeline later&quot;</td>
+<td>A backstop rule overwrites source values unless guarded with <code>isNull</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Copying <code>pgToHost</code> propagation</td>
+<td>Puts a shared host's metrics in front of one team</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Re-creating zones as zone-only boundaries</td>
+<td>Grail is unscoped — every default data policy reads everything</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Adding a second boundary for shared data</td>
+<td>Boundaries are computed separately; a permission one cannot scope leaks</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Testing access as an admin</td>
+<td>Admin grants hide every boundary problem</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Deleting zones and disabling profiles together</td>
+<td>No way to tell which caused a regression</td>
+</tr>
+<tr>
+<td>Any</td>
+<td>&quot;Wait for Spaces&quot;</td>
+<td>Not documented as available; build on documented mechanisms (MZ2POL-13)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="outputs"></a></p>
+<h2>11. Outputs and Next Steps</h2>
+<table>
+<thead>
+<tr>
+<th>Output</th>
+<th>Feeds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Triage table (keep / delete)</td>
+<td>Deletion list; MZ2POL-03 inventory</td>
+</tr>
+<tr>
+<td>Jobs table</td>
+<td>Which of MZ2POL-12/04, -05, -09 each zone goes to</td>
+</tr>
+<tr>
+<td>Dimension and tag table</td>
+<td>MZ2POL-10 enrichment work and its readiness gate</td>
+</tr>
+<tr>
+<td>Rule worksheet</td>
+<td>MZ2POL-11 §10; the record kept until each zone is retired</td>
+</tr>
+<tr>
+<td>Persona and boundary table</td>
+<td>MZ2POL-12 design; MZ2POL-08 templates if teams are many</td>
+</tr>
+<tr>
+<td>Routing table and batch plan</td>
+<td>MZ2POL-09 workflows; MZ2POL-06 execution</td>
+</tr>
+<tr>
+<td>Stop list</td>
+<td>The next workshop's agenda</td>
+</tr>
+</tbody>
+</table>
+<p>The build starts with the tag work — nothing else can be tested until the MZ2POL-10 gate passes.</p>
+<hr />
+<h2>Summary</h2>
+<ol>
+<li><strong>Decisions, not configuration</strong> — the workshop exists to get owners to decide.</li>
+<li><strong>Six sessions, six tables</strong>; each table is the next session's input.</li>
+<li><strong>Triage hard</strong>: delete unused zones before translating anything.</li>
+<li><strong>One translation per rule</strong> feeds the boundary, the segment and the workflow.</li>
+<li><strong>Name the traps</strong> before the session where they apply.</li>
+</ol>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

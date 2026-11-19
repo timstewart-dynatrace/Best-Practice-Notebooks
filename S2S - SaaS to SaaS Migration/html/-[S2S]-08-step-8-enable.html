@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2S-08: Step 8 — Enable: Parallel Operation and Stakeholder Handover</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2S — SaaS to SaaS Migration</a><span class="sep">/</span><span aria-current="page">S2S-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2S-08: Step 8 — Enable: Parallel Operation and Stakeholder Handover</h1>
+<blockquote>
+<p><strong>Series:</strong> S2S — SaaS to SaaS Migration | <strong>Notebook:</strong> 8 of 9 | <strong>Phase:</strong> Run | <strong>Step:</strong> Enable | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/01/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>With data pipelines, SLOs, and alerting configured in the target tenant (Step 7), this step focuses on the human side of migration: managing parallel operation, communicating changes to stakeholders, establishing Dynatrace Intelligence baselines, and preparing users for the cutover. Parallel operation is the most expensive phase of the migration — you are paying for two tenants — so the goal is to keep it as short as possible while ensuring confidence in the target tenant.</p>
+<blockquote>
+<p><strong>S2S Migration Journey — 3 Phases / 9 Steps</strong></p>
+<p><strong>Plan:</strong> 1. Discover | 2. Strategize | 3. Design</p>
+<p><strong>Upgrade:</strong> 4. Prepare | 5. Execute | 6. Integrate</p>
+<p><strong>Run:</strong> 7. Expand | <strong>8. Enable</strong> | 9. Optimize</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#parallel-operation-strategy">Parallel Operation Strategy</a></li>
+<li><a href="#davis-ai-baseline-establishment">Dynatrace Intelligence Baseline Establishment</a></li>
+<li><a href="#slo-continuity">SLO Continuity</a></li>
+<li><a href="#stakeholder-communication">Stakeholder Communication</a></li>
+<li><a href="#cost-management-during-parallel-period">Cost Management During Parallel Period</a></li>
+<li><a href="#user-training-and-documentation">User Training and Documentation</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Step 7 Complete</strong></td>
+<td>OpenPipeline rules, SLOs, and alerting deployed in target tenant</td>
+</tr>
+<tr>
+<td><strong>Agents Reporting</strong></td>
+<td>OneAgents and DynaKube operators sending data to target tenant</td>
+</tr>
+<tr>
+<td><strong>Both Tenants Active</strong></td>
+<td>Source and target tenants both receiving data for validation</td>
+</tr>
+<tr>
+<td><strong>Stakeholder List</strong></td>
+<td>Identified audiences for migration communication</td>
+</tr>
+<tr>
+<td><strong>Training Environment</strong></td>
+<td>Target tenant accessible for user training and exploration</td>
+</tr>
+</tbody>
+</table>
+<p><a id="parallel-operation-strategy"></a></p>
+<h2>1. Parallel Operation Strategy</h2>
+<p>During parallel operation, both the source and target tenants are live. Each host's OneAgent reports to exactly one of them — a single OneAgent has one destination — so hosts move from source to target in waves, while synthetics and log forwarders can feed both tenants at once. Cloud connections are the exception to plan around: for Azure, the docs warn against monitoring one subscription from multiple connections (<strong>S2S-06</strong> §1), so Azure subscriptions move per subscription rather than running in both. This period exists to validate the target tenant, build Dynatrace Intelligence baselines, and give users confidence before cutover.</p>
+<h3>Parallel Operation Timeline</h3>
+<table>
+<thead>
+<tr>
+<th>Week</th>
+<th>Activity</th>
+<th>Key Milestones</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Week 1</strong></td>
+<td>Data validation</td>
+<td>Confirm hosts, services, logs, and spans in target match source counts</td>
+</tr>
+<tr>
+<td><strong>Week 2</strong></td>
+<td>Dynatrace Intelligence learning</td>
+<td>Baselines begin forming; initial anomaly detection active</td>
+</tr>
+<tr>
+<td><strong>Week 3</strong></td>
+<td>SLO evaluation</td>
+<td>7-day rolling SLOs have full data; compare source vs target values</td>
+</tr>
+<tr>
+<td><strong>Week 4</strong></td>
+<td>User acceptance</td>
+<td>Key users validate dashboards, workflows, and alerts in target</td>
+</tr>
+<tr>
+<td><strong>Weeks 5–6</strong></td>
+<td>Cutover preparation</td>
+<td>Go/no-go decision, communication, maintenance window scheduled</td>
+</tr>
+<tr>
+<td><strong>Weeks 7–8</strong></td>
+<td>Post-cutover buffer</td>
+<td>Source tenant no longer ingesting; data stays queryable for its bucket retention</td>
+</tr>
+<tr>
+<td><strong>Week 9+</strong></td>
+<td>Decommission</td>
+<td>Source tenant deactivated and deprovisioned</td>
+</tr>
+</tbody>
+</table>
+<h3>Operation Models</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Description</th>
+<th>Best For</th>
+<th>Duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Full Parallel</strong></td>
+<td>Both tenants live; each host reports to exactly one — pending waves to source, migrated waves to target. Synthetics and log forwarders can feed both; Azure subscriptions switch per subscription rather than feeding both (see S2S-06 §1)</td>
+<td>High-risk environments, regulatory requirements</td>
+<td>4–6 weeks</td>
+</tr>
+<tr>
+<td><strong>Phased</strong></td>
+<td>Migrate groups of hosts/services incrementally</td>
+<td>Large environments (1000+ hosts)</td>
+<td>6–10 weeks</td>
+</tr>
+<tr>
+<td><strong>Reference</strong></td>
+<td>Source receives data, target receives from a representative subset only</td>
+<td>Cost-constrained, low-risk migrations</td>
+<td>2–4 weeks</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Cost impact:</strong> overlap cost comes from the integrations, synthetics and forwarders you point at both tenants, plus the per-wave window — not from agents, because a host reports to one tenant at a time. Work with your Dynatrace account team to negotiate temporary parallel licensing.</p>
+<p><strong>Agents cannot dual-report.</strong> Do not plan for a host to send to both tenants: a single OneAgent per host is required, and one OneAgent has one destination (<strong>S2S-02</strong>, and <strong>FAQ-25</strong> §6).</p>
+</blockquote>
+<h3>Validate Host Count Parity</h3>
+<p>Run this query in both source and target tenants. The host counts should match (allowing for normal churn):</p>
+<pre><code class="language-dql">// Host count validation — run in both source and target tenants (Smartscape)
+smartscapeNodes &quot;HOST&quot;, from:-24h
+| fieldsAdd provider = coalesce(cloud.provider, &quot;none (on-premises or undetected)&quot;)
+| summarize hosts = count(), by:{provider}
+| sort hosts desc
+
+// cloud.provider is aws / azure / gcp on cloud-hosted hosts. Summed across both tenants, the
+// per-provider totals should match the pre-migration baseline (allowing for churn), because each
+// host reports to exactly one tenant. Classic fallback: fetch dt.entity.host — but its cloud-tag
+// fields (awsNameTag / azureResourceGroupName) do not exist on the Smartscape node, and mixing
+// classic and Smartscape counts produces false gaps.
+</code></pre>
+<h3>Validate Log Continuity</h3>
+<p>Compare log volumes between source and target to ensure data pipelines are operating at parity:</p>
+<pre><code class="language-dql">// Log volume over the last 24 hours by loglevel
+// Run in both source and target — compare totals
+fetch logs, from:-24h
+| summarize record_count = count(), by:{loglevel}
+| sort record_count desc
+</code></pre>
+<p><a id="davis-ai-baseline-establishment"></a></p>
+<h2>2. Dynatrace Intelligence Baseline Establishment</h2>
+<p>Dynatrace Intelligence requires historical data to establish baselines for anomaly detection. In the target tenant, Dynatrace Intelligence starts from zero — there is no way to transfer learned baselines.</p>
+<h3>Baseline Types and Learning Times</h3>
+<p>In community practice, baselines become trustworthy on roughly these timescales — planning estimates, not documented figures. Replace them with a measurement after each wave: <strong>FAQ-25</strong> §5 has a per-host history-depth query that shows which migrated hosts have enough data yet.</p>
+<table>
+<thead>
+<tr>
+<th>Baseline Type</th>
+<th>Learning Period</th>
+<th>What It Detects</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Response time</strong></td>
+<td>1–2 weeks</td>
+<td>Service slowdowns</td>
+</tr>
+<tr>
+<td><strong>Error rate</strong></td>
+<td>1–2 weeks</td>
+<td>Error rate increases</td>
+</tr>
+<tr>
+<td><strong>Throughput</strong></td>
+<td>2–4 weeks</td>
+<td>Traffic anomalies (requires weekly patterns)</td>
+</tr>
+<tr>
+<td><strong>Infrastructure</strong></td>
+<td>1 week</td>
+<td>CPU, memory, disk anomalies</td>
+</tr>
+<tr>
+<td><strong>Custom events</strong></td>
+<td>2–4 weeks</td>
+<td>Depends on event frequency</td>
+</tr>
+</tbody>
+</table>
+<h3>Accelerating Baseline Learning</h3>
+<p>You cannot directly speed up Dynatrace Intelligence learning, but you can reduce noise:</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use wave-scoped maintenance windows during each cutover</td>
+<td>Keeps the cutover itself from raising problems</td>
+</tr>
+<tr>
+<td>Ensure consistent traffic patterns</td>
+<td>Avoid load testing or unusual deployments during baseline period</td>
+</tr>
+<tr>
+<td>Configure sensitivity thresholds</td>
+<td>Set anomaly detection sensitivity to match source tenant settings</td>
+</tr>
+<tr>
+<td>Migrate anomaly detection settings first</td>
+<td>Ensures Dynatrace Intelligence uses the same thresholds from day one</td>
+</tr>
+</tbody>
+</table>
+<h3>Expected Behavior During Baseline Period</h3>
+<table>
+<thead>
+<tr>
+<th>Week</th>
+<th>Dynatrace Intelligence Behavior</th>
+<th>Action Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Week 1</td>
+<td>Many false positives (no baseline context)</td>
+<td>Route to a staging alert channel — do not suppress or retune yet</td>
+</tr>
+<tr>
+<td>Week 2</td>
+<td>Infrastructure baselines forming, fewer false positives</td>
+<td>Monitor and triage manually</td>
+</tr>
+<tr>
+<td>Week 3</td>
+<td>Service baselines forming, anomaly detection improving</td>
+<td>Compare detected problems with source tenant</td>
+</tr>
+<tr>
+<td>Week 4+</td>
+<td>Baselines stable for most metrics</td>
+<td>Ready for production alerting</td>
+</tr>
+</tbody>
+</table>
+<h3>Monitor Detected Problem Trends</h3>
+<p>Track detected problem volume in the target tenant to see baselines stabilize over time:</p>
+<pre><code class="language-dql">fetch dt.davis.problems, from:-7d
+| summarize {problem_count = count()}, by:{day = bin(event.start, 24h)}
+| sort day asc
+
+// Bucketed by event.start (when the problem began) — timestamp on a problem record is its
+// last update. 24h rather than 1d: calendar durations are rewritten with an INFO notification.
+</code></pre>
+<pre><code class="language-dql">// detected problems by category — identify which areas are generating noise
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;ACTIVE&quot; or event.status == &quot;CLOSED&quot;
+| summarize problem_count = count(), by:{event.category}
+| sort problem_count desc
+</code></pre>
+<p><a id="slo-continuity"></a></p>
+<h2>3. SLO Continuity</h2>
+<p>SLOs with rolling evaluation windows will show incomplete or misleading values during the transition period. This is expected and must be communicated to stakeholders.</p>
+<h3>Impact During Transition</h3>
+<table>
+<thead>
+<tr>
+<th>SLO Window</th>
+<th>Impact</th>
+<th>Duration of Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7-day rolling</td>
+<td>Partial data for first 7 days</td>
+<td>1 week</td>
+</tr>
+<tr>
+<td>30-day rolling</td>
+<td>Severely incomplete for first 30 days</td>
+<td>4 weeks</td>
+</tr>
+<tr>
+<td>Calendar month</td>
+<td>No data until month boundary</td>
+<td>Up to 30 days</td>
+</tr>
+</tbody>
+</table>
+<h3>Mitigation Strategies</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Implementation</th>
+<th>When to Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Temporary short window</strong></td>
+<td>Change 30-day SLOs to 7-day during transition</td>
+<td>When stakeholders need early visibility</td>
+</tr>
+<tr>
+<td><strong>Dual reporting</strong></td>
+<td>Report SLOs from both tenants until target window fills</td>
+<td>When SLO values are reported externally</td>
+</tr>
+<tr>
+<td><strong>SLO holiday</strong></td>
+<td>Suspend SLO reporting during transition with documented justification</td>
+<td>When stakeholders accept a gap</td>
+</tr>
+<tr>
+<td><strong>Timestamp shift</strong></td>
+<td>Start SLO tracking at beginning of evaluation window</td>
+<td>For calendar-based SLOs</td>
+</tr>
+</tbody>
+</table>
+<p><a id="stakeholder-communication"></a></p>
+<h2>4. Stakeholder Communication</h2>
+<p>Migration success depends as much on communication as on technical execution. Different audiences need different messages.</p>
+<h3>Communication Plan by Audience</h3>
+<table>
+<thead>
+<tr>
+<th>Audience</th>
+<th>What They Need to Know</th>
+<th>When</th>
+<th>Channel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Executive leadership</strong></td>
+<td>Timeline, risk summary, cost impact, go/no-go decision</td>
+<td>Week 1 + weekly status</td>
+<td>Email + steering committee</td>
+</tr>
+<tr>
+<td><strong>SRE / Platform team</strong></td>
+<td>Technical details, runbooks, rollback procedures</td>
+<td>Throughout</td>
+<td>Slack + wiki</td>
+</tr>
+<tr>
+<td><strong>Application developers</strong></td>
+<td>New tenant URL, updated API tokens, dashboard locations</td>
+<td>2 weeks before cutover</td>
+<td>Email + team meeting</td>
+</tr>
+<tr>
+<td><strong>Service desk</strong></td>
+<td>Updated escalation paths, known issues during transition</td>
+<td>1 week before cutover</td>
+<td>Runbook update</td>
+</tr>
+<tr>
+<td><strong>External stakeholders</strong></td>
+<td>Expected alert changes, SLO reporting gaps</td>
+<td>2 weeks before cutover</td>
+<td>Email + SLA documentation</td>
+</tr>
+</tbody>
+</table>
+<h3>Expected Impact Summary</h3>
+<p>Include this table in your stakeholder communication:</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Impact</th>
+<th>Duration</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Intelligence</strong></td>
+<td>Increased false positives in target tenant</td>
+<td>Until migrated hosts have enough history (measured per host — <strong>FAQ-25</strong> §5)</td>
+<td>Alerts routed to staging channel</td>
+</tr>
+<tr>
+<td><strong>SLOs</strong></td>
+<td>Incomplete evaluation in target tenant</td>
+<td>1–4 weeks (depends on window)</td>
+<td>Dual reporting from both tenants</td>
+</tr>
+<tr>
+<td><strong>Historical data</strong></td>
+<td>Not available in target tenant</td>
+<td>Permanent</td>
+<td>Source tenant stays queryable during the buffer period (no new ingest)</td>
+</tr>
+<tr>
+<td><strong>Dashboards</strong></td>
+<td>New URLs, possible layout differences</td>
+<td>One-time</td>
+<td>User training and URL redirect documentation</td>
+</tr>
+<tr>
+<td><strong>API tokens</strong></td>
+<td>All tokens regenerated</td>
+<td>One-time</td>
+<td>Token distribution before cutover</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cost-management-during-parallel-period"></a></p>
+<h2>5. Cost Management During Parallel Period</h2>
+<p>Parallel operation is expensive — but only for what actually reaches both tenants. A host reports to one tenant at a time, so agent-sourced data is not doubled; integrations, synthetics and forwarders that you deliberately point at both tenants are.</p>
+<h3>Dual Licensing Impact</h3>
+<table>
+<thead>
+<tr>
+<th>DPS Capability</th>
+<th>Impact During Parallel</th>
+<th>Optimization</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Full-Stack (GiB-hours) / Infrastructure (host-hours) Monitoring</strong></td>
+<td>1x per host — each host reports to one tenant</td>
+<td>Keep wave windows short</td>
+</tr>
+<tr>
+<td><strong>Log Management &amp; Analytics (ingest &amp; retain)</strong></td>
+<td>1x for agent-collected logs; 2x only for forwarders you deliberately dual-feed</td>
+<td>Dual-feed only the sources you must compare</td>
+</tr>
+<tr>
+<td><strong>Traces</strong></td>
+<td>1x per host (agent-sourced)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td>1x for agent metrics; 2x for cloud-integration and API-ingested metrics sent to both</td>
+<td>Enable cloud integrations in the target per wave</td>
+</tr>
+<tr>
+<td><strong>Real User Monitoring / Synthetic Monitoring</strong></td>
+<td>2x only for synthetics and RUM you run in both tenants</td>
+<td>Disable synthetic in source once target is validated</td>
+</tr>
+</tbody>
+</table>
+<p>See <strong>FINOPS-01</strong> for the current DPS capability names and how to query consumption per tenant.</p>
+<h3>Cost Optimization Strategies</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Savings</th>
+<th>Risk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shorten parallel period (2 weeks vs 4 weeks)</td>
+<td>50% reduction</td>
+<td>Less baseline time for Dynatrace Intelligence</td>
+</tr>
+<tr>
+<td>Phased migration (migrate by group)</td>
+<td>Dual-fed integrations are enabled per wave, not all at once</td>
+<td>Longer total timeline</td>
+</tr>
+<tr>
+<td>Reduce source tenant data collection</td>
+<td>20–40% on source during parallel</td>
+<td>Reduced source visibility</td>
+</tr>
+<tr>
+<td>Negotiate temporary parallel licensing</td>
+<td>Cost-neutral</td>
+<td>Requires account team engagement</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Recommendation:</strong> Negotiate parallel licensing with your Dynatrace account team <strong>before</strong> starting the parallel phase. Most account teams can provide temporary licensing for migration periods.</p>
+</blockquote>
+<p><a id="user-training-and-documentation"></a></p>
+<h2>6. User Training and Documentation</h2>
+<p>Users need to know what changes, what stays the same, and where to find things in the target tenant.</p>
+<h3>Persona-Based Training</h3>
+<table>
+<thead>
+<tr>
+<th>Persona</th>
+<th>Training Focus</th>
+<th>Format</th>
+<th>Duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Platform admin</strong></td>
+<td>IAM, OpenPipeline, bucket management, API token generation</td>
+<td>Hands-on workshop</td>
+<td>2 hours</td>
+</tr>
+<tr>
+<td><strong>SRE</strong></td>
+<td>Dashboards, SLOs, alerting, Dynatrace Intelligence differences</td>
+<td>Live demo + Q&amp;A</td>
+<td>1 hour</td>
+</tr>
+<tr>
+<td><strong>Developer</strong></td>
+<td>New tenant URL, notebook access, DQL querying</td>
+<td>Self-service guide + office hours</td>
+<td>30 min</td>
+</tr>
+<tr>
+<td><strong>Service desk</strong></td>
+<td>Escalation paths, known issues, FAQ</td>
+<td>Runbook update</td>
+<td>30 min</td>
+</tr>
+</tbody>
+</table>
+<h3>Documentation Updates Required</h3>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Update Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Runbooks</td>
+<td>New tenant URLs, API endpoints, token references</td>
+</tr>
+<tr>
+<td>Wiki / knowledge base</td>
+<td>Dashboard links, notebook links, SLO references</td>
+</tr>
+<tr>
+<td>CI/CD pipelines</td>
+<td>API token environment variables, deployment scripts</td>
+</tr>
+<tr>
+<td>Incident response playbooks</td>
+<td>Alert routing, escalation contacts</td>
+</tr>
+<tr>
+<td>Onboarding documentation</td>
+<td>New user access procedures, IAM group requests</td>
+</tr>
+</tbody>
+</table>
+<h3>FAQ Template</h3>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Why are my dashboards showing less data?</td>
+<td>The target tenant does not have historical data. Data accumulates from the migration date forward.</td>
+</tr>
+<tr>
+<td>Why am I getting more alerts than usual?</td>
+<td>Dynatrace Intelligence is establishing baselines from the target's own data. Expect more noise for recently migrated hosts until they have built up history — the platform team tracks this per host.</td>
+</tr>
+<tr>
+<td>Where is my old dashboard?</td>
+<td>Dashboards have been migrated. Open the Dashboards app in the target tenant and search by name.</td>
+</tr>
+<tr>
+<td>Do I need a new API token?</td>
+<td>Yes. All API tokens must be regenerated in the target tenant.</td>
+</tr>
+<tr>
+<td>When will SLOs be accurate?</td>
+<td>SLOs need one full evaluation window of data. 7-day SLOs: 1 week. 30-day SLOs: 4 weeks.</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-completion-checklist"></a></p>
+<h2>7. Step Completion Checklist</h2>
+<p>Before proceeding to <strong>Step 9 — Optimize</strong>, confirm that you have completed each item:</p>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Parallel operation model selected (full, phased, or reference)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Host count parity validated between source and target</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Log and span volumes validated between source and target</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Dynatrace Intelligence problem trend monitored — false positives decreasing</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>SLO continuity strategy documented (temporary window, dual reporting, or holiday)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Stakeholder communication sent to all audiences</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Cost optimization negotiated with account team</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>User training completed for all personas</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Documentation updated (runbooks, wiki, CI/CD, playbooks)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Go/no-go criteria defined for cutover decision</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Next Step</h2>
+<blockquote>
+<p><strong>S2S-09: Step 9 — Optimize</strong> — Execute the final cutover, validate migration completeness, decommission the source tenant, and capture lessons learned.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Completed</th>
+<th>Next</th>
+<th>Remaining</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><s>1. Discover</s> → <s>2. Strategize</s> → <s>3. Design</s> → <s>4. Prepare</s> → <s>5. Execute</s> → <s>6. Integrate</s> → <s>7. Expand</s> → <s>8. Enable</s></td>
+<td><strong>9. Optimize</strong></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In Step 8, you:</p>
+<ul>
+<li>Established a parallel operation strategy with a clear timeline (weeks 1–9+)</li>
+<li>Monitored Dynatrace Intelligence baseline establishment and tracked false positive trends</li>
+<li>Documented SLO continuity strategy for the transition period</li>
+<li>Communicated migration impact to all stakeholder audiences</li>
+<li>Optimized cost during the dual-tenant parallel period</li>
+<li>Trained users by persona and updated all supporting documentation</li>
+</ul>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection">Dynatrace Intelligence Anomaly Detection</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-level objectives (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic">Dynatrace Notifications and Alerting</a></li>
+<li><a href="https://docs.dynatrace.com/docs/license">Dynatrace Platform Subscription (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

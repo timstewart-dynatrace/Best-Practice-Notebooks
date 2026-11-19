@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2S-02: Step 2 — Strategize: Define Your Migration Approach</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2S — SaaS to SaaS Migration</a><span class="sep">/</span><span aria-current="page">S2S-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2S-02: Step 2 — Strategize: Define Your Migration Approach</h1>
+<blockquote>
+<p><strong>Series:</strong> S2S — SaaS to SaaS Migration | <strong>Notebook:</strong> 2 of 9 | <strong>Phase:</strong> Plan | <strong>Step:</strong> Strategize | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/24/2026</p>
+</blockquote>
+<p>With your discovery complete, it's time to turn inventory into action. This notebook helps you select a migration approach, sequence your operations, assess risks, and build a timeline that earns stakeholder confidence.</p>
+<blockquote>
+<p><strong>Migration Journey — You Are Here</strong></p>
+<p><strong>Plan:</strong> 1. Discover → <strong>2. Strategize</strong> → 3. Design | <strong>Upgrade:</strong> 4. Prepare → 5. Execute → 6. Integrate | <strong>Run:</strong> 7. Expand → 8. Enable → 9. Optimize</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#three-phase-framework">The Three-Phase Framework</a></li>
+<li><a href="#migration-approach-selection">Migration Approach Selection</a></li>
+<li><a href="#order-of-operations">S2S Order of Operations</a></li>
+<li><a href="#migration-considerations">Migration Considerations</a></li>
+<li><a href="#risk-assessment">Risk Assessment</a></li>
+<li><a href="#defining-success-criteria">Defining Success Criteria</a></li>
+<li><a href="#timeline-planning">Timeline Planning</a></li>
+<li><a href="#the-90-10-rule">The 90/10 Rule</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Step 1 Complete</strong></td>
+<td>Discovery inventory from S2S-01 (entity counts, configuration scope, integration inventory, IAM assessment)</td>
+</tr>
+<tr>
+<td><strong>Stakeholder Access</strong></td>
+<td>Ability to engage infrastructure, security, and application teams</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Account Team</strong></td>
+<td>Contact established for licensing and migration support</td>
+</tr>
+<tr>
+<td><strong>Risk Tolerance Understood</strong></td>
+<td>Organizational appetite for parallel operation duration and cost</td>
+</tr>
+</tbody>
+</table>
+<p><a id="three-phase-framework"></a></p>
+<h2>1. The Three-Phase Framework</h2>
+<p>The SaaS-to-SaaS migration follows the same proven three-phase, nine-step framework used for Managed-to-SaaS. Each phase builds on the previous one, and skipping steps leads to preventable failures.</p>
+<h3>Phase Overview</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Steps</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Plan</strong></td>
+<td>1. Discover → 2. Strategize → 3. Design</td>
+<td>Understand what you have, decide how to move it, design the target</td>
+</tr>
+<tr>
+<td><strong>Upgrade</strong></td>
+<td>4. Prepare → 5. Execute → 6. Integrate</td>
+<td>Provision target, migrate agents and config, reconnect integrations</td>
+</tr>
+<tr>
+<td><strong>Run</strong></td>
+<td>7. Expand → 8. Enable → 9. Optimize</td>
+<td>Extend coverage, activate new capabilities, tune for value</td>
+</tr>
+</tbody>
+</table>
+<h3>What Each Step Delivers</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Name</th>
+<th>Key Deliverable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Discover</strong></td>
+<td>Complete environment inventory (entities, configs, integrations, IAM)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Strategize</strong></td>
+<td>Migration approach, timeline, risk assessment, success criteria</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Design</strong></td>
+<td>Target SaaS architecture, network topology, IAM model</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Prepare</strong></td>
+<td>Target tenant provisioned, ActiveGates deployed, network validated</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Execute</strong></td>
+<td>Configurations migrated, OneAgents redirected, data flowing</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Integrate</strong></td>
+<td>Webhooks, CI/CD, ITSM, and third-party tools reconnected</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Expand</strong></td>
+<td>Additional environments, cloud integrations, OpenTelemetry</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Enable</strong></td>
+<td>Workflows, OpenPipeline, Business Analytics, Notebooks activated</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Optimize</strong></td>
+<td>Alert tuning, cost management, query performance, feature adoption</td>
+</tr>
+</tbody>
+</table>
+<h3>Time Investment by Phase</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Typical Duration</th>
+<th>Effort Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plan</td>
+<td>2-4 weeks</td>
+<td>Medium — analysis and decision-making</td>
+</tr>
+<tr>
+<td>Upgrade</td>
+<td>2-6 weeks</td>
+<td>High — technical execution</td>
+</tr>
+<tr>
+<td>Run</td>
+<td>2-4 weeks</td>
+<td>Medium — enablement and tuning</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>S2S vs. M2S:</strong> The framework is identical, but SaaS-to-SaaS migrations typically move faster because there is no Managed-to-SaaS architecture change. Do not assume the two SaaS environments are identical, though: either can still use Dynatrace Classic surfaces, and they can be hosted on different clouds and regions (<strong>S2S-01</strong> §1). However, the SaaS Upgrade Assistant is documented for a Managed source only, so plan on Monaco, Terraform, and the Settings API — the assistant is at most an optional, rehearsed import path (<strong>S2S-10</strong> §1).</p>
+</blockquote>
+<p><a id="migration-approach-selection"></a></p>
+<h2>2. Migration Approach Selection</h2>
+<p>The single most consequential decision in your migration is the approach. Choose based on environment size, risk tolerance, and operational constraints.</p>
+<h3>Three Approaches</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>When to Use</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Big Bang</strong></td>
+<td>&lt; 500 hosts, simple environment</td>
+<td>Fast, decisive, clean cutover</td>
+<td>Higher risk, requires extensive prep</td>
+</tr>
+<tr>
+<td><strong>Phased by Environment</strong></td>
+<td>500-2,000 hosts</td>
+<td>Lower risk, lessons learned per wave</td>
+<td>Longer timeline, dual-run costs</td>
+</tr>
+<tr>
+<td><strong>Phased by Region/App</strong></td>
+<td>&gt; 2,000 hosts or complex integrations</td>
+<td>Lowest risk, maximum flexibility</td>
+<td>Longest timeline, complex coordination</td>
+</tr>
+</tbody>
+</table>
+<h3>Big Bang Migration</h3>
+<p>All agents and configurations migrate in a single maintenance window.</p>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Typical window</strong></td>
+<td>4-8 hours</td>
+</tr>
+<tr>
+<td><strong>Best for</strong></td>
+<td>Smaller environments with flexible maintenance windows</td>
+</tr>
+<tr>
+<td><strong>Requires</strong></td>
+<td>Complete preparation, tested rollback procedure</td>
+</tr>
+<tr>
+<td><strong>Risk</strong></td>
+<td>Higher — all-or-nothing in a single window</td>
+</tr>
+</tbody>
+</table>
+<h3>Phased by Environment</h3>
+<p>Migrate in waves: Dev → Staging → Production.</p>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Typical duration</strong></td>
+<td>3-6 weeks (1-2 weeks per wave)</td>
+</tr>
+<tr>
+<td><strong>Best for</strong></td>
+<td>Mid-size environments with distinct environment tiers</td>
+</tr>
+<tr>
+<td><strong>Requires</strong></td>
+<td>Parallel operation budget, wave-by-wave validation</td>
+</tr>
+<tr>
+<td><strong>Risk</strong></td>
+<td>Medium — each wave validates the next</td>
+</tr>
+</tbody>
+</table>
+<h3>Phased by Region or Application</h3>
+<p>Migrate by geography (EMEA → APAC → Americas) or by application criticality.</p>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Typical duration</strong></td>
+<td>6-12 weeks</td>
+</tr>
+<tr>
+<td><strong>Best for</strong></td>
+<td>Large, complex environments with regional or app-team ownership</td>
+</tr>
+<tr>
+<td><strong>Requires</strong></td>
+<td>Complex coordination, extended parallel operation</td>
+</tr>
+<tr>
+<td><strong>Risk</strong></td>
+<td>Lowest — isolated blast radius per wave</td>
+</tr>
+</tbody>
+</table>
+<h3>Multi-Source Consolidation (Sequential Pattern)</h3>
+<p>When consolidating multiple source tenants into a single target, migrate sources <strong>sequentially</strong>, not in parallel. Complete one source before starting the next.</p>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pattern</strong></td>
+<td>Source 1 → validate → Source 2 → validate → ... → Source N</td>
+</tr>
+<tr>
+<td><strong>Why sequential</strong></td>
+<td>Isolates issues to a single source; avoids configuration collisions; simplifies rollback</td>
+</tr>
+<tr>
+<td><strong>Best for</strong></td>
+<td>Tenant consolidation (M&amp;A, regional merge)</td>
+</tr>
+<tr>
+<td><strong>K8s complexity</strong></td>
+<td>If one source has Kubernetes and another does not, migrate the simpler source first — K8s requires DynaKube redeployment (not <code>oneagentctl</code>) and introduces additional validation steps</td>
+</tr>
+<tr>
+<td><strong>Typical duration</strong></td>
+<td>Add 2-3 weeks per additional source tenant</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Lesson from real migrations:</strong> A two-source consolidation (70 non-K8s hosts + 38 K8s hosts) used sequential migration — the simpler source first to validate the <code>monaco download</code> → <code>monaco deploy</code> workflow, then the K8s source second. This isolated a DynaKube redeployment issue that would have been much harder to diagnose if both sources migrated simultaneously.</p>
+</blockquote>
+<h3>S2S Advantages Over M2S</h3>
+<p>SaaS-to-SaaS migration has inherent advantages that affect approach selection:</p>
+<table>
+<thead>
+<tr>
+<th>Advantage</th>
+<th>Impact on Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Both environments are SaaS</strong></td>
+<td>Easier parallel operation — no on-premises infrastructure to maintain</td>
+</tr>
+<tr>
+<td><strong>No Managed-to-SaaS architecture change</strong></td>
+<td>Both are SaaS — but record each environment's platform state (Classic vs Latest surfaces, hosting cloud, region); they are not guaranteed to match</td>
+</tr>
+<tr>
+<td><strong>Cloud-hosted infrastructure</strong></td>
+<td>Network connectivity is simpler (SaaS-to-SaaS, not on-prem-to-cloud)</td>
+</tr>
+<tr>
+<td><strong>Same product family</strong></td>
+<td>Most capabilities exist on both sides — but verify rather than assume: features roll out to SaaS environments in stages, and a target on a different hosting cloud or region can differ in what is available on day one</td>
+</tr>
+</tbody>
+</table>
+<h3>S2S Risks vs. M2S</h3>
+<table>
+<thead>
+<tr>
+<th>Risk Factor</th>
+<th>S2S Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Entity IDs change completely</strong></td>
+<td>Every entity gets a new ID in the target tenant — dashboards, SLOs, and alerts with entity references must be remapped</td>
+</tr>
+<tr>
+<td><strong>No documented SaaS Upgrade Assistant path</strong></td>
+<td>Plan configuration migration on Monaco, Terraform, or the Settings API; importing a packaged Monaco export through the assistant is a field practice to rehearse first (<strong>S2S-10</strong> §1)</td>
+</tr>
+<tr>
+<td><strong>Rollback is harder</strong></td>
+<td>Unlike M2S where Managed can remain as fallback, reverting S2S means redirecting agents back to a tenant that has data gaps</td>
+</tr>
+<tr>
+<td><strong>Double licensing cost</strong></td>
+<td>Both tenants consume DPS during parallel operation — budget accordingly</td>
+</tr>
+</tbody>
+</table>
+<h3>Decision Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Big Bang</th>
+<th>Phased by Env</th>
+<th>Phased by Region/App</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts &lt; 500</td>
+<td>Recommended</td>
+<td>Optional</td>
+<td>Unnecessary</td>
+</tr>
+<tr>
+<td>Hosts 500-2,000</td>
+<td>Possible</td>
+<td>Recommended</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Hosts &gt; 2,000</td>
+<td>Not recommended</td>
+<td>Possible</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Simple integrations</td>
+<td>Recommended</td>
+<td>Optional</td>
+<td>Unnecessary</td>
+</tr>
+<tr>
+<td>Complex integrations</td>
+<td>Risky</td>
+<td>Recommended</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Short timeline required</td>
+<td>Fastest</td>
+<td>Moderate</td>
+<td>Longest</td>
+</tr>
+<tr>
+<td>Risk-averse organization</td>
+<td>Higher risk</td>
+<td>Lower risk</td>
+<td>Lowest risk</td>
+</tr>
+<tr>
+<td>Multi-source consolidation</td>
+<td>Not recommended</td>
+<td>Sequential by source</td>
+<td>Sequential by source</td>
+</tr>
+</tbody>
+</table>
+<p><a id="order-of-operations"></a></p>
+<h2>3. S2S Order of Operations</h2>
+<p>Regardless of which approach you choose, the migration must follow this exact 11-step sequence. Steps cannot be reordered — each depends on the previous one completing successfully. The rightmost column shows which notebook covers each operation in detail.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Operation</th>
+<th>Why This Order</th>
+<th>Covered In</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Assess</strong> — Inventory source tenant</td>
+<td>Cannot plan what you don't know</td>
+<td>Step 4: Prepare</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Provision</strong> — Target SaaS tenant and access (SSO/IAM)</td>
+<td>Target must exist before anything moves</td>
+<td>Step 4: Prepare</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Export</strong> — Configuration from source tenant</td>
+<td>Need config before import</td>
+<td>Step 4: Prepare</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Migrate</strong> — Configuration to target tenant</td>
+<td>Settings must be in place before agents report</td>
+<td>Step 5: Execute</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Rebuild</strong> — Dashboards, SLOs, alerts</td>
+<td>Operational visibility before cutover</td>
+<td>Step 5: Execute</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Redirect</strong> — OneAgents and operators to target</td>
+<td>Agents begin reporting to target tenant</td>
+<td>Step 5: Execute</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Reconnect</strong> — Cloud integrations and extensions</td>
+<td>Restore external connections in target</td>
+<td>Step 6: Integrate</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Migrate</strong> — Any remaining configuration</td>
+<td>Entity-dependent configs that require agent data</td>
+<td>Step 6: Integrate</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Validate</strong> — Data flow and performance</td>
+<td>Confirm everything works before declaring success</td>
+<td>Step 9: Optimize</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>Cutover</strong> — Full switch to target tenant</td>
+<td>Formal declaration that target is primary</td>
+<td>Step 9: Optimize</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Decommission</strong> — Source tenant</td>
+<td>Only after validation period complete</td>
+<td>Step 9: Optimize</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Key Difference from M2S:</strong> In M2S, the SaaS Upgrade Assistant handles Steps 3-5 semi-automatically. In S2S, you use <code>monaco download</code> / <code>monaco deploy</code> (or Terraform) for export and import, optionally importing through the assistant as a field practice (<strong>S2S-10</strong> §1). The sequence is the same, but the tooling is largely manual.</p>
+</blockquote>
+<h3>Critical Dependencies</h3>
+<table>
+<thead>
+<tr>
+<th>Dependency</th>
+<th>Impact if Missed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Configuration before agent redirect</td>
+<td>No alerting, no dashboards during cutover</td>
+</tr>
+<tr>
+<td>SSO/IAM before user access</td>
+<td>Teams locked out of new target tenant</td>
+</tr>
+<tr>
+<td>ActiveGates before OneAgents</td>
+<td>Agents have nowhere to route — data loss</td>
+</tr>
+<tr>
+<td>Firewall rules before anything</td>
+<td>All agent traffic blocked — complete failure</td>
+</tr>
+<tr>
+<td>Entity data before SLO/dashboard migration</td>
+<td>Entity-referenced configs will fail without entity IDs in target</td>
+</tr>
+</tbody>
+</table>
+<p><a id="migration-considerations"></a></p>
+<h2>4. Migration Considerations</h2>
+<p>These are the factors specific to SaaS-to-SaaS migration that are often overlooked.</p>
+<h3>Entity ID Changes</h3>
+<p><strong>Every entity gets a new ID in the target tenant</strong> — in S2S exactly as in M2S. Entity IDs are minted per environment; reconfiguring an agent with <code>oneagentctl</code> keeps its installation and host metadata but not its entity ID (<strong>FAQ-25</strong> § 4). What makes S2S heavier is how much more configuration in a SaaS source tends to reference those IDs.</p>
+<table>
+<thead>
+<tr>
+<th>Impact Area</th>
+<th>What Changes</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dashboards</strong></td>
+<td>Entity filters and tile queries reference source IDs</td>
+<td>Export, remap IDs using entity name matching, reimport</td>
+</tr>
+<tr>
+<td><strong>SLO definitions</strong></td>
+<td>Metric expressions with entity selectors</td>
+<td>Recreate with target entity IDs after agents report</td>
+</tr>
+<tr>
+<td><strong>Notification rules</strong></td>
+<td>Entity-based alert filters</td>
+<td>Update selectors after entity discovery in target</td>
+</tr>
+<tr>
+<td><strong>Management zones</strong></td>
+<td>Entity-based rules (if using legacy MZ)</td>
+<td>Rules based on tags/properties migrate cleanly; entity-ID rules need remapping</td>
+</tr>
+<tr>
+<td><strong>Automation workflows</strong></td>
+<td>Hardcoded entity IDs in workflow actions</td>
+<td>Parameterize workflows to use names/tags instead of IDs</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Best Practice:</strong> Before migration, refactor any configuration that references entity IDs to use tags, naming patterns, or properties instead. This makes migration significantly simpler.</p>
+</blockquote>
+<h3>Dynatrace Intelligence Baselines</h3>
+<p>Dynatrace Intelligence learns normal behavior from historical data. In a new tenant, it starts from scratch.</p>
+<p>In community practice, baselines become trustworthy on roughly the timescales below — planning estimates, not documented figures. <strong>FAQ-25</strong> §5 gives a query that measures each host's history depth in the target, which replaces the estimate with a fact after each wave.</p>
+<table>
+<thead>
+<tr>
+<th>Baseline Type</th>
+<th>Rough Planning Estimate</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Availability</td>
+<td>2-3 days</td>
+<td>Binary metric, fast learning</td>
+</tr>
+<tr>
+<td>Response time</td>
+<td>1-2 weeks</td>
+<td>Requires weekday/weekend patterns</td>
+</tr>
+<tr>
+<td>Error rate</td>
+<td>1-2 weeks</td>
+<td>Needs regular traffic patterns</td>
+</tr>
+<tr>
+<td>Resource utilization</td>
+<td>2-4 weeks</td>
+<td>Needs full business cycle</td>
+</tr>
+</tbody>
+</table>
+<h3>Parallel Operation</h3>
+<p>Both tenants are cloud-hosted, which makes parallel operation easier than M2S but introduces cost considerations.</p>
+<table>
+<thead>
+<tr>
+<th>Consideration</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Double licensing</strong></td>
+<td>Both tenants consume DPS during parallel period — coordinate with Dynatrace account team</td>
+</tr>
+<tr>
+<td><strong>Duration</strong></td>
+<td>Per wave: from a wave's cutover until its hosts have enough history in the target (measure it — <strong>FAQ-25</strong> §5); the source stays readable for its bucket retention</td>
+</tr>
+<tr>
+<td><strong>Agent dual-reporting</strong></td>
+<td>OneAgent cannot report to two tenants — use phased waves, not dual-send</td>
+</tr>
+<tr>
+<td><strong>Cloud integrations</strong></td>
+<td>Each environment needs its own connection and credentials. For Azure, do <strong>not</strong> leave the same subscription on two connections: <em>&quot;Do not onboard Azure subscriptions already monitored by the classic Azure integration, and avoid monitoring the same subscription across multiple Azure connections—both increase the risk of API throttling and service interruptions.&quot;</em> (<a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/create-an-azure-connection">Create your first Azure connection (DT docs)</a>) — plan a switch per subscription, not a long overlap</td>
+</tr>
+</tbody>
+</table>
+<h3>Items That Cannot Be Exported</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Reason</th>
+<th>Workaround</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Credential Vault secrets</strong></td>
+<td>Secrets cannot be exported from any tenant</td>
+<td>Recreate each credential manually in target</td>
+</tr>
+<tr>
+<td><strong>Cloud integration credentials</strong></td>
+<td>AWS/Azure/GCP keys are tenant-specific</td>
+<td>Create new integration credentials in target</td>
+</tr>
+<tr>
+<td><strong>Synthetic private locations</strong></td>
+<td>Tied to source ActiveGates</td>
+<td>Recreate with target tenant ActiveGates</td>
+</tr>
+<tr>
+<td><strong>API tokens</strong></td>
+<td>Secrets, cannot be exported</td>
+<td>Create new tokens in target</td>
+</tr>
+<tr>
+<td><strong>OAuth client secrets</strong></td>
+<td>Secrets, cannot be exported</td>
+<td>Create new OAuth clients in target</td>
+</tr>
+<tr>
+<td><strong>Historical data</strong></td>
+<td>Stored in source tenant Grail</td>
+<td>Accept data gap or extend parallel period</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Intelligence baselines</strong></td>
+<td>Learned from source data</td>
+<td>Relearned in the target — measure per-host history depth (<strong>FAQ-25</strong> §5)</td>
+</tr>
+<tr>
+<td><strong>Problem history</strong></td>
+<td>Stored in source tenant</td>
+<td>Export key problems as documentation</td>
+</tr>
+<tr>
+<td><strong>Extensions 2.0</strong></td>
+<td>Monaco does not export extension installations</td>
+<td>Terraform install/activate (<code>dynatrace_hub_extension_active_version</code>) and configure (<code>dynatrace_hub_extension_v2_config</code>), or manual reinstall from Dynatrace Hub</td>
+</tr>
+</tbody>
+</table>
+<h3>Use Your Discovery Data to Assess Dependencies</h3>
+<p>The queries from Step 1 (Discover) provide the data you need to assess these considerations. If you haven't run them yet, go back to <strong>S2S-01</strong> and complete the discovery first.</p>
+<p>Once your agents are reporting to the target tenant, use these DQL queries to validate coverage and identify gaps.</p>
+<pre><code class="language-dql">smartscapeNodes &quot;HOST&quot;, from:-7d
+| summarize hosts = count()
+| append [smartscapeNodes &quot;SERVICE&quot;, from:-7d | summarize services = count()]
+| append [smartscapeNodes &quot;FRONTEND&quot;, from:-7d | summarize frontends = count()]
+| append [fetch dt.entity.process_group, from:-7d | summarize process_groups = count()]
+
+</code></pre>
+<pre><code class="language-dql">// Verify ActiveGate connectivity in target tenant — all Environment ActiveGates should be reporting
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| fields name, zone = dt.network_zone.id, group = dt.active_gate.group.name
+| sort name asc
+
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from &quot;no ActiveGates deployed&quot;. `smartscapeNodes &quot;ACTIVEGATE&quot;` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+</code></pre>
+<pre><code class="language-dql">fetch dt.entity.host, from:-7d
+| fieldsAdd version = installerVersion
+| summarize {hostCount = count()}, by:{version}
+| sort hostCount desc
+
+</code></pre>
+<p><a id="risk-assessment"></a></p>
+<h2>5. Risk Assessment</h2>
+<p>Every migration carries risk. The goal is not to eliminate risk but to identify, quantify, and mitigate it before execution begins.</p>
+<h3>Risk Register</h3>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Impact</th>
+<th>Likelihood</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Entity ID remapping failures</strong></td>
+<td>High</td>
+<td>High</td>
+<td>Refactor configs to use tags/names before migration; validate entity references post-import</td>
+</tr>
+<tr>
+<td><strong>Data gaps during cutover</strong></td>
+<td>High</td>
+<td>Medium</td>
+<td>Use phased approach; minimize per-wave gap to &lt; 15 minutes</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Intelligence false positives</strong></td>
+<td>Medium</td>
+<td>High</td>
+<td>Communicate the relearn period to on-call teams; route non-critical alerts to a staging channel rather than disabling them, and track per-host history depth (<strong>FAQ-25</strong> §5)</td>
+</tr>
+<tr>
+<td><strong>Configuration drift</strong></td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Freeze source tenant changes during migration; use Monaco manifest for consistent exports</td>
+</tr>
+<tr>
+<td><strong>Integration failures</strong></td>
+<td>High</td>
+<td>Medium</td>
+<td>Test all webhooks and APIs in target before cutover; verify endpoints and tokens</td>
+</tr>
+<tr>
+<td><strong>Rollback complexity</strong></td>
+<td>High</td>
+<td>Low</td>
+<td>Document rollback procedure; keep source tenant active during entire parallel period</td>
+</tr>
+<tr>
+<td><strong>Licensing overlap costs</strong></td>
+<td>Medium</td>
+<td>High</td>
+<td>Coordinate with Dynatrace account team early; negotiate parallel operation terms</td>
+</tr>
+<tr>
+<td><strong>SSO/SAML misconfiguration</strong></td>
+<td>High</td>
+<td>Medium</td>
+<td>Test IdP integration before any user access; verify SAML message signing</td>
+</tr>
+<tr>
+<td><strong>Extensions 2.0 gaps</strong></td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Inventory extensions in source; verify availability in Dynatrace Hub before migration</td>
+</tr>
+<tr>
+<td><strong>Credential Vault recreation</strong></td>
+<td>Medium</td>
+<td>High</td>
+<td>Inventory all credentials early; coordinate with security team for secret provisioning</td>
+</tr>
+</tbody>
+</table>
+<h3>Risk Scoring</h3>
+<table>
+<thead>
+<tr>
+<th>Impact Level</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>High</strong></td>
+<td>Migration failure, data loss, or monitoring gap &gt; 1 hour</td>
+</tr>
+<tr>
+<td><strong>Medium</strong></td>
+<td>Partial functionality loss or delayed timeline</td>
+</tr>
+<tr>
+<td><strong>Low</strong></td>
+<td>Inconvenience or minor cost impact</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Assign an owner to each risk. Unowned risks are unmitigated risks.</p>
+</blockquote>
+<p><a id="defining-success-criteria"></a></p>
+<h2>6. Defining Success Criteria</h2>
+<p>Define measurable success criteria before migration starts. These criteria determine when the migration is &quot;done&quot; and when you can decommission the source tenant.</p>
+<h3>Target Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Target</th>
+<th>How to Measure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Host coverage</strong></td>
+<td>100% of discovered hosts reporting</td>
+<td>Compare DQL host count in target to discovery inventory</td>
+</tr>
+<tr>
+<td><strong>Service discovery</strong></td>
+<td>100% of known services detected</td>
+<td>Compare DQL service count to discovery inventory</td>
+</tr>
+<tr>
+<td><strong>Data gaps</strong></td>
+<td>&lt; 15 minutes per wave during cutover</td>
+<td>Review data availability in target after each wave</td>
+</tr>
+<tr>
+<td><strong>Alert delivery</strong></td>
+<td>100% of critical alerts firing correctly</td>
+<td>Trigger test alerts; verify notification channels</td>
+</tr>
+<tr>
+<td><strong>Dashboard availability</strong></td>
+<td>100% of migrated dashboards rendering</td>
+<td>Spot-check each dashboard in target; verify entity ID remapping</td>
+</tr>
+<tr>
+<td><strong>Integration success</strong></td>
+<td>100% of external integrations operational</td>
+<td>Test each webhook, API, and ITSM connection</td>
+</tr>
+<tr>
+<td><strong>User access</strong></td>
+<td>All users can authenticate via SSO</td>
+<td>Verify SSO login for each role/group</td>
+</tr>
+<tr>
+<td><strong>SLO accuracy</strong></td>
+<td>All SLOs evaluating correctly</td>
+<td>Confirm metric expressions resolve with target entity IDs</td>
+</tr>
+<tr>
+<td><strong>Baseline established</strong></td>
+<td>Migrated hosts have enough history in the target for their detectors</td>
+<td>Per-host history-depth query (<strong>FAQ-25</strong> §5); problem volume back to a normal operating level</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Post-migration validation — compare host count to your discovery inventory
+smartscapeNodes &quot;HOST&quot;, from:-24h
+| summarize totalHosts = count()
+| fieldsAdd target = &quot;&lt;YOUR_DISCOVERY_COUNT&gt;&quot;, coverage = &quot;Compare totalHosts to target&quot;
+
+// Classic fallback: fetch dt.entity.host | summarize totalHosts = count()
+// Use the same surface in source and target — the classic store can retain hosts Smartscape
+// no longer lists, so mixing the two produces a false gap.
+</code></pre>
+<pre><code class="language-dql">// Post-migration validation — check for recent detected problems (confirms AI baseline is building)
+fetch dt.davis.problems, from:-24h
+| summarize problemCount = count(), by:{event.status}
+| sort problemCount desc
+</code></pre>
+<p><a id="timeline-planning"></a></p>
+<h2>7. Timeline Planning</h2>
+<p>Build your timeline working backward from the desired source tenant decommission date.</p>
+<h3>Milestone Durations</h3>
+<table>
+<thead>
+<tr>
+<th>Milestone</th>
+<th>Duration</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Plan</strong> (Steps 1-3)</td>
+<td>2-4 weeks</td>
+<td>Front-load planning — rushed planning causes failed execution</td>
+</tr>
+<tr>
+<td><strong>Prepare</strong> (Step 4)</td>
+<td>1-2 weeks</td>
+<td>Target tenant provisioning, ActiveGate deployment, network validation</td>
+</tr>
+<tr>
+<td><strong>Execute</strong> (Step 5)</td>
+<td>1-3 weeks</td>
+<td>Config migration + OneAgent redirect (per wave for phased)</td>
+</tr>
+<tr>
+<td><strong>Integrate</strong> (Step 6)</td>
+<td>1-2 weeks</td>
+<td>Cloud integrations, webhooks, ITSM reconnection</td>
+</tr>
+<tr>
+<td><strong>Parallel operation</strong></td>
+<td>Per wave</td>
+<td>Source stays readable while each migrated wave builds history in the target — measure it rather than fixing a duration</td>
+</tr>
+<tr>
+<td><strong>Run</strong> (Steps 7-9)</td>
+<td>2-4 weeks</td>
+<td>Expand coverage, enable new features, optimize</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>4-12 weeks</strong></td>
+<td>Depends on environment size and approach</td>
+</tr>
+</tbody>
+</table>
+<h3>Sample Timelines by Approach</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Week 1-2</th>
+<th>Week 3-4</th>
+<th>Week 5-6</th>
+<th>Week 7-8</th>
+<th>Week 9-12</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Big Bang</strong></td>
+<td>Plan + Prepare</td>
+<td>Execute + Validate</td>
+<td>Parallel Run</td>
+<td>Decommission</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Phased by Env</strong></td>
+<td>Plan + Prepare</td>
+<td>Dev wave</td>
+<td>Staging wave</td>
+<td>Prod wave</td>
+<td>Parallel + Decommission</td>
+</tr>
+<tr>
+<td><strong>Phased by Region</strong></td>
+<td>Plan + Prepare</td>
+<td>Region 1</td>
+<td>Region 2</td>
+<td>Region 3</td>
+<td>Parallel + Decommission</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> The overlap is non-negotiable, but its length is not a fixed number. Each wave needs enough history in the target before its problem detection can be trusted; the per-host history-depth query in <strong>FAQ-25</strong> §5 tells you when that is true. Do not decommission the source tenant until the last wave passes that check.</p>
+</blockquote>
+<h3>Migration Plan Checklist</h3>
+<p>When building your high-level migration plan, ensure these items are addressed:</p>
+<ol>
+<li><strong>Catalog and evaluate</strong> monitoring components (OneAgents, ActiveGates, extensions, external sources) — any version updates needed?</li>
+<li><strong>Identify</strong> configurations and settings — what migrates via Monaco/Terraform vs. what requires manual effort?</li>
+<li><strong>Leave legacy behind</strong> — excessive or outdated configuration items can be left behind; apply naming standards in the target</li>
+<li><strong>Understand procedures and timeline</strong> for ActiveGate, OneAgent, and configuration migrations plus application restarts</li>
+<li><strong>Minimize dual running</strong> — provide a seamless cutover for Dynatrace users
+<ul>
+<li>What can be done over a weekend or outside of peak/business hours?</li>
+<li>Group components into migration waves; learn from non-production first</li>
+</ul>
+</li>
+</ol>
+<h3>Things to Include in Your Plan</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SSO implementation</td>
+<td>IdP configuration, DNS domain validation, group mapping</td>
+</tr>
+<tr>
+<td>Email allowlisting</td>
+<td>Dynatrace email domain for SaaS platform/problem/security notifications</td>
+</tr>
+<tr>
+<td>ActiveGate provisioning</td>
+<td>New Environment ActiveGates for target tenant</td>
+</tr>
+<tr>
+<td>Network change requests</td>
+<td>Connectivity between agents, ActiveGates, and target SaaS tenant</td>
+</tr>
+<tr>
+<td>Integration connectivity</td>
+<td>External on-premise or SaaS systems, Dynatrace API, webhook integrations</td>
+</tr>
+<tr>
+<td>Credential recreation</td>
+<td>Credential Vault entries, OAuth clients, API tokens in target</td>
+</tr>
+<tr>
+<td>Deployment automation</td>
+<td>Prepare OneAgent and ActiveGate redeployment scripts (Ansible, Puppet, Terraform, PowerShell)</td>
+</tr>
+<tr>
+<td>Training</td>
+<td>Train team on Monaco/Terraform migration tooling and target tenant administration</td>
+</tr>
+<tr>
+<td>Execution plan</td>
+<td>Environments and applications — in what order and what waves</td>
+</tr>
+</tbody>
+</table>
+<p><a id="the-90-10-rule"></a></p>
+<h2>8. The 90/10 Rule</h2>
+<p>In community practice, a consistent pattern emerges — a planning heuristic, not a measured ratio:</p>
+<blockquote>
+<p><strong>Most configuration migrates with Monaco or Terraform; the small remainder takes most of the manual effort.</strong></p>
+</blockquote>
+<h3>What Migrates With Tooling</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settings 2.0 (all schemas)</td>
+<td>Monaco <code>monaco download</code> / <code>monaco deploy</code></td>
+</tr>
+<tr>
+<td>Dashboards and Notebooks</td>
+<td>Monaco (documents type)</td>
+</tr>
+<tr>
+<td>SLO definitions</td>
+<td>Monaco (settings type)</td>
+</tr>
+<tr>
+<td>Notification rules</td>
+<td>Monaco (settings type)</td>
+</tr>
+<tr>
+<td>Workflows and automations</td>
+<td>Monaco (automations type)</td>
+</tr>
+<tr>
+<td>OpenPipeline processing rules</td>
+<td>Monaco (settings type, <code>builtin:openpipeline.*</code> schemas — Monaco 2.31.0 removed the <code>openpipeline</code> type)</td>
+</tr>
+<tr>
+<td>Grail bucket definitions</td>
+<td>Monaco (bucket type)</td>
+</tr>
+<tr>
+<td>Segments</td>
+<td>Monaco (segment type)</td>
+</tr>
+<tr>
+<td>Synthetic monitors</td>
+<td>Monaco (requires classic API token)</td>
+</tr>
+<tr>
+<td>IAM policies and groups</td>
+<td>Terraform, or Monaco's <code>monaco account</code> commands (OAuth client)</td>
+</tr>
+</tbody>
+</table>
+<h3>What Requires Manual Effort</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Why Manual</th>
+<th>Effort Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Entity ID remapping</strong></td>
+<td>IDs are unique per tenant — all references must be updated</td>
+<td>High — most time-consuming item</td>
+</tr>
+<tr>
+<td><strong>Credential Vault entries</strong></td>
+<td>Secrets cannot be exported from any tenant</td>
+<td>High — must recreate each credential</td>
+</tr>
+<tr>
+<td><strong>Cloud integration credentials</strong></td>
+<td>AWS/Azure/GCP keys are tenant-specific</td>
+<td>Medium — reconfigure each integration</td>
+</tr>
+<tr>
+<td><strong>Synthetic private locations</strong></td>
+<td>Tied to source ActiveGates</td>
+<td>Medium — recreate with target ActiveGates</td>
+</tr>
+<tr>
+<td><strong>Extensions 2.0</strong></td>
+<td>Monaco does not export extension installations</td>
+<td>Medium — Terraform (<code>dynatrace_hub_extension_active_version</code>, <code>dynatrace_hub_extension_v2_config</code>) or manual reinstall from Hub</td>
+</tr>
+<tr>
+<td><strong>Problem notification webhooks</strong></td>
+<td>URLs and tokens may change between environments</td>
+<td>Medium — update each endpoint</td>
+</tr>
+<tr>
+<td><strong>Custom scripts and automation</strong></td>
+<td>Hardcoded source tenant URLs and tokens</td>
+<td>Medium — update all references</td>
+</tr>
+<tr>
+<td><strong>Third-party ITSM integrations</strong></td>
+<td>Webhook endpoints change</td>
+<td>Medium — reconfigure each connection</td>
+</tr>
+</tbody>
+</table>
+<h3>Budget Accordingly</h3>
+<table>
+<thead>
+<tr>
+<th>Planning Item</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Identify the 10% early</strong></td>
+<td>Use your discovery inventory to list every manual item</td>
+</tr>
+<tr>
+<td><strong>Assign owners</strong></td>
+<td>Each manual item needs a person responsible</td>
+</tr>
+<tr>
+<td><strong>Track separately</strong></td>
+<td>Manual items need their own checklist — do not mix with automated migration</td>
+</tr>
+<tr>
+<td><strong>Test before cutover</strong></td>
+<td>Every manual item should be validated in target before redirecting agents</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-completion-checklist"></a></p>
+<h2>9. Step Completion Checklist</h2>
+<p>Do not proceed to Step 3 (Design) until all items are confirmed.</p>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Migration approach selected (Big Bang / Phased by Env / Phased by Region)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Order of operations documented and reviewed with stakeholders</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Entity ID remapping strategy defined (tags vs. names vs. post-migration scripting)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Risk assessment completed with owners assigned to each risk</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Success criteria defined with measurable targets</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>High-level timeline established with milestone dates</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Dynatrace account team engaged for licensing and parallel operation support</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>90/10 manual effort items identified and owners assigned</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Communication plan drafted for affected teams</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Rollback procedure documented</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Next Step</h2>
+<blockquote>
+<p><strong>S2S-03: Step 3 — Design</strong> — Create your target SaaS architecture, including network topology, ActiveGate placement, IAM model, and configuration mapping.</p>
+</blockquote>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you:</p>
+<ul>
+<li>Reviewed the three-phase, nine-step migration framework adapted for SaaS-to-SaaS</li>
+<li>Selected a migration approach based on your environment size and risk tolerance</li>
+<li>Documented the 11-step order of operations and critical dependencies</li>
+<li>Assessed S2S-specific considerations including entity ID changes, Dynatrace Intelligence baselines, and parallel operation costs</li>
+<li>Completed a risk register with S2S-specific mitigations and owners</li>
+<li>Defined measurable success criteria for migration completion</li>
+<li>Built a timeline with milestone durations</li>
+<li>Identified the 90/10 split between automated (Monaco/Terraform) and manual migration effort</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> SaaS-to-SaaS migration is simpler than Managed-to-SaaS in architecture but harder in entity management. With no documented SaaS Upgrade Assistant path, you own the toolchain. A clear approach, documented risks, and measurable success criteria are what separate migrations that succeed from those that spiral into firefighting.</p>
+</blockquote>
+<hr />
+<p><em>Continue to <strong>S2S-03: Step 3 — Design</strong> to create your target SaaS architecture.</em></p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

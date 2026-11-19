@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SYNTH-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SYNTH — Synthetic Monitoring</a><span class="sep">/</span><span aria-current="page">SYNTH-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SYNTH-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> SYNTH — Synthetic Monitoring | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/25/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook consolidates every actionable best practice from the SYNTH series (notebooks 01-06) into a single definitive reference. Each practice specifies the exact setting or value to use, its priority level, and category. Use this as a checklist when deploying or auditing Dynatrace synthetic monitoring.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#monitor-selection">Monitor Selection</a></li>
+<li><a href="#http-monitor-configuration">HTTP Monitor Configuration</a></li>
+<li><a href="#browser-monitor-configuration">Browser Monitor Configuration</a></li>
+<li><a href="#network-monitor-configuration">Network Monitor Configuration</a></li>
+<li><a href="#scheduling-and-frequency">Scheduling and Frequency</a></li>
+<li><a href="#location-strategy">Location Strategy</a></li>
+<li><a href="#private-locations-and-activegate">Private Locations and ActiveGate</a></li>
+<li><a href="#validation-and-assertions">Validation and Assertions</a></li>
+<li><a href="#authentication-and-security">Authentication and Security</a></li>
+<li><a href="#performance-thresholds">Performance Thresholds</a></li>
+<li><a href="#alerting-configuration">Alerting Configuration</a></li>
+<li><a href="#slos-and-error-budgets">SLOs and Error Budgets</a></li>
+<li><a href="#dashboard-and-reporting">Dashboard and Reporting</a></li>
+<li><a href="#operational-hygiene">Operational Hygiene</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with Synthetic Monitoring enabled</li>
+<li>✅ Completed SYNTH-01 through SYNTH-06 (or using as a standalone reference)</li>
+<li>✅ DQL query permissions (viewer role minimum)</li>
+</ul>
+<p><a id="monitor-selection"></a></p>
+<h2>1. Monitor Selection</h2>
+<p>Choose the right monitor type for each use case.</p>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use <strong>HTTP monitors</strong> for API health checks and REST endpoints</td>
+<td>Monitor type: HTTP single request</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <strong>HTTP multi-step</strong> for auth-token-then-API workflows</td>
+<td>Monitor type: HTTP multi-step with variable extraction</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <strong>Single-URL browser monitors</strong> for homepage/landing page availability</td>
+<td>Monitor type: Browser single-URL</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <strong>Browser clickpath monitors</strong> for multi-page user journeys (login, checkout)</td>
+<td>Monitor type: Browser clickpath</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <strong>ICMP monitors</strong> for host reachability and latency baseline</td>
+<td>Monitor type: Network availability - ICMP</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use <strong>DNS monitors</strong> for name resolution validation</td>
+<td>Monitor type: Network availability - DNS</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use <strong>TCP port monitors</strong> for service port connectivity (databases, caches)</td>
+<td>Monitor type: Network availability - TCP</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Layer monitors: DNS + ICMP + TCP + HTTP for full-stack coverage of critical services</td>
+<td>Deploy one monitor per OSI layer for each critical path</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Prefer HTTP monitors over browser monitors when JavaScript rendering is not needed</td>
+<td>Saves cost and runs faster (&lt; 1s vs 3-30s)</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<h3>Selecting Monitors in Bulk (SaaS 1.344)</h3>
+<p>Monitor <em>selection</em> is a separate concern from monitor <em>type</em>, so it sits outside the table above rather than as a row in it. <strong>SaaS 1.344</strong> (released 07/27/2026, <strong>staged tenant rollout from 07/29/2026</strong>) lets a single monitor selection combine <strong>AND and OR</strong> operators, instead of requiring one selection per tag:</p>
+<table>
+<thead>
+<tr>
+<th>Selector form</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tag(tag1),tag(tag2)</code></td>
+<td>logical <strong>AND</strong> — the monitor must carry both tags</td>
+</tr>
+<tr>
+<td><code>tag(tag1,tag2)</code></td>
+<td>logical <strong>OR</strong> — the monitor carries either tag</td>
+</tr>
+</tbody>
+</table>
+<p>So <code>tag(env:prod),tag(team:payments)</code> selects the production payments monitors in one expression. Before 1.344 this needed separate selections per tag, then a union downstream — which is why bulk operations and tag-scoped automation tended to fragment.</p>
+<p>Verify 1.344 has reached your tenant before relying on the combined form; until it does, the per-tag selection approach remains the working path, and it keeps working afterwards.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">Dynatrace SaaS release notes 1.344 (DT docs)</a> — &quot;<code>tag(tag1),tag(tag2)</code> is the logical AND&quot;, &quot;<code>tag(tag1,tag2)</code> is the logical OR&quot;.</sub></p>
+</blockquote>
+<p><a id="http-monitor-configuration"></a></p>
+<h2>2. HTTP Monitor Configuration</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Set a per-request performance threshold where response time matters</td>
+<td><em>Generate a problem and send an alert on performance threshold violations</em> on the request</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Set <code>Content-Type</code> and <code>Accept</code> headers on every request</td>
+<td><code>Content-Type: application/json</code>, <code>Accept: application/json</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Add User-Agent header for identification</td>
+<td><code>User-Agent: Dynatrace Synthetic</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Keep certificate validation on, and alert before expiry</td>
+<td>Invalid certificates fail the monitor by default (leave <em>Accept any SSL certificate</em> off); turn on the expiry problem (n ≤ 100 days)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Validate API responses with a text/regex rule, or with <code>api.fail()</code> in a post-execution script for structured checks (JSON-path assertions are not a rule type)</td>
+<td>Regex rule: <code>&quot;status&quot;:\s*&quot;success&quot;</code> (evaluated over the first 50 KB of the body)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Pass values between requests with a post-execution script</td>
+<td><code>api.setValue(&quot;token&quot;, JSON.parse(response.getResponseBody()).access_token)</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Reference stored values in later requests as <code>{variable_name}</code> — single braces, no <code>$</code></td>
+<td>URL: <code>https://api.example.com/users/{userId}</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Validate HTTP status codes</td>
+<td>Response status code validation is a rule type, evaluated first</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Add content-present assertion for positive match</td>
+<td>Validation: contains <code>&quot;status&quot;: &quot;ok&quot;</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Add content-absent assertion to catch error states</td>
+<td>Validation: does not contain <code>&quot;error&quot;</code></td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor">Create and configure an HTTP monitor (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic">Pre- and post-execution scripting for HTTP monitors (DT docs)</a> — <em>&quot;You can also apply the value of a variable previously set using api.setValue() in subsequent HTTP monitor configuration fields using the {variable_name} convention.&quot;</em></sub></p>
+</blockquote>
+<p><a id="browser-monitor-configuration"></a></p>
+<h2>3. Browser Monitor Configuration</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Set viewport to match target audience device</td>
+<td>Desktop: <strong>1920x1080</strong>, Laptop: <strong>1366x768</strong>, Tablet: <strong>768x1024</strong>, Mobile: <strong>375x667</strong></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use CSS selectors as the primary element selector type</td>
+<td>Selector: <code>#login-btn</code> or <code>[data-testid='login']</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <code>data-testid</code> attributes for automation-stable selectors</td>
+<td>Selector: <code>[data-testid='submit']</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Avoid XPath selectors unless DOM structure requires it</td>
+<td>Use CSS first; XPath only for complex structures</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Add content validation on every clickpath step</td>
+<td>Validate expected text/element exists after each action</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Record clickpaths with the Dynatrace Synthetic Recorder Chrome extension</td>
+<td>Recorder captures reliable events and selectors</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Enable automatic screenshots on success and failure</td>
+<td>Screenshots: enabled (default)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Keep clickpath steps minimal (only critical path)</td>
+<td>Fewer steps = faster execution and fewer false positives</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Do NOT rely on session persistence between executions</td>
+<td>Cookies are maintained within a single execution only</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="network-monitor-configuration"></a></p>
+<h2>4. Network Monitor Configuration</h2>
+<p>NAM monitors run only on private locations. The values below are starting points from community practice unless quoted.</p>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Send several ICMP packets per request</td>
+<td>Number of packets: 3–5 (range 1–10, default 1)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Name the DNS server and record types explicitly</td>
+<td>DNS server + <code>A</code> (and <code>AAAA</code> where you serve IPv6)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Monitor TCP ports for every critical service: 443 (HTTPS), 5432 (PostgreSQL), 6379 (Redis), 3306 (MySQL), 27017 (MongoDB)</td>
+<td>Port ranges per request</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Layer DNS, ICMP and TCP checks on critical infrastructure</td>
+<td>One monitor per type per target, so each raises its own problem</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Set the step success-rate constraint deliberately</td>
+<td>Default ≥ 80%; 100 for single-target requests (the docs suggest it)</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="scheduling-and-frequency"></a></p>
+<h2>5. Scheduling and Frequency</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Run HTTP monitors at <strong>1-5 minute</strong> intervals for critical APIs</td>
+<td>Frequency: <strong>1 min</strong> (critical), <strong>5 min</strong> (standard)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Run browser monitors at <strong>5-15 minute</strong> intervals</td>
+<td>Frequency: <strong>5 min</strong> (critical), <strong>15 min</strong> (standard)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Run network monitors at <strong>1-5 minute</strong> intervals</td>
+<td>Frequency: <strong>1 min</strong> (infrastructure), <strong>5 min</strong> (standard)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use <strong>5-minute</strong> frequency as the default for all non-critical monitors</td>
+<td>Frequency: <strong>5 minutes</strong></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Never run browser monitors more frequently than every 5 minutes</td>
+<td>Minimum interval: <strong>5 min</strong> (browser)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Match frequency to SLA detection requirements: 1 min frequency detects outages within 2-3 min</td>
+<td>Frequency = desired detection time / consecutive-failure count</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="location-strategy"></a></p>
+<h2>6. Location Strategy</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Assign a minimum of <strong>3 public locations</strong> per external-facing monitor</td>
+<td>Locations: 3+ geographically distributed</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Select locations that match your user base geography</td>
+<td>Choose regions where real users access the app</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use public locations for external-facing applications only</td>
+<td>Location type: Public (Dynatrace-hosted)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use private locations for internal applications, VPN-only apps, and pre-production</td>
+<td>Location type: Private (ActiveGate)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Require failures from <strong>2+ locations</strong> before raising an outage alert</td>
+<td>Outage detection: multi-location confirmation</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Include at least one location per major region (Americas, EMEA, APAC) for global apps</td>
+<td>1+ location per continent where users exist</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="private-locations-and-activegate"></a></p>
+<h2>7. Private Locations and ActiveGate</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deploy ActiveGate with <code>--enable-synthetic</code> capability</td>
+<td>Capability: <strong>synthetic</strong></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Size each synthetic ActiveGate from the sizing guide (XS/S/M/L by executions per hour), with at least <strong>8 GB RAM and 25 GB free disk</strong></td>
+<td>XS minimum is 2 vCPU / 4 GB / 20 GB; docs recommend 8 GB RAM / 25 GB disk; resizing means reinstalling (SYNTH-04)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Deploy <strong>2+ ActiveGates</strong> per private location for high availability</td>
+<td>Nodes per location: <strong>2+</strong></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Distribute ActiveGates across availability zones</td>
+<td>AZ distribution: one AG per AZ minimum</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Let the ActiveGate installer provide the browser, and keep it current with the per-location <strong>Enable Chrome(-ium) auto-update</strong> switch (Linux; on by default) — not by changing ActiveGate auto-update</td>
+<td>Browser updates during ActiveGate and Synthetic engine updates; Windows always updates it; supported window is two versions behind the latest (SYNTH-04)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Keep every ActiveGate in a private location on the same version</td>
+<td>One ActiveGate version per location</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Keep ActiveGate CPU below 50% and memory below 80%</td>
+<td>Alert on <strong>50%</strong> sustained CPU and <strong>80%</strong> memory, per the ActiveGate hardware requirements; disk above 80% is a community-practice alert (Dynatrace sets minimum free disk, not a percentage) (SYNTH-04)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Monitor ActiveGate execution queue depth</td>
+<td>Alert threshold: queue &gt; <strong>100</strong> pending executions</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Deploy containerized private locations from the UI-generated <code>synthetic.yaml</code> template, not from DynaKube</td>
+<td>Template: Synthetic → Private locations → Download synthetic.yaml (plus the metric-adapter template)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Ensure outbound-only connectivity (no inbound firewall rules required)</td>
+<td>Network: HTTPS outbound to Dynatrace cluster only</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">ActiveGate hardware and system requirements (DT docs)</a> — <em>&quot;It is recommended that the machine on which ActiveGate is running should not exceed 50% CPU and 80% memory.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/requirements-for-private-synthetic">Requirements for private Synthetic locations (DT docs)</a> — <em>&quot;On Windows, the ActiveGate installer package includes the Chrome for Testing browser used to run browser monitors.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/containerized-locations-synth-app">Containerized private Synthetic locations on Kubernetes (DT docs)</a> — <em>&quot;Select Download synthetic.yaml. This is the location template file.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/private-synthetic-locations/manage-private-synthetic-locations">Manage private Synthetic locations (DT docs)</a> — <em>&quot;the browser autoupdate is turned on by default for locations with Linux-based ActiveGates&quot;</em> and <em>&quot;We strongly recommend updating all ActiveGates per location to the same version.&quot;</em></sub></p>
+</blockquote>
+<p><a id="validation-and-assertions"></a></p>
+<h2>8. Validation and Assertions</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Add at least one content validation rule to every monitor</td>
+<td>Validation: text-present or regex rule (HTTP), or a post-execution <code>api.fail()</code> check</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Validate positive content (&quot;Welcome&quot;, &quot;status: ok&quot;) rather than only checking for absence of errors</td>
+<td>Validation type: <strong>Text Present</strong></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use regex validation for dynamic content (e.g., order numbers)</td>
+<td>Regex: <code>Order #\d{6}</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Validate JSON responses with a text/regex rule or a post-execution script — JSON-path assertions are not a rule type</td>
+<td><code>var d = JSON.parse(response.getResponseBody()); if (d.status !== &quot;success&quot;) api.fail(&quot;status=&quot; + d.status);</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Verify element presence in browser monitors for SPA pages</td>
+<td>Selector: <code>#success-message</code> must exist</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Enable HTTP status code validation (fail on 4xx/5xx) on all monitors</td>
+<td>Default: fail on status 400-599</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Add content-absent checks for known error strings</td>
+<td>Validation: does not contain <code>&quot;error&quot;</code>, <code>&quot;exception&quot;</code></td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor">Create and configure an HTTP monitor (DT docs)</a> — <em>&quot;HTTP status code validation is the most important, followed by text and regular expression validation, and finally by SSL certificate expiry validation.&quot;</em></sub></p>
+</blockquote>
+<p><a id="authentication-and-security"></a></p>
+<h2>9. Authentication and Security</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Store all credentials in the Dynatrace Credential Vault</td>
+<td>Path: Credential Vault</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Reference credentials as <code>{CREDENTIALS_VAULT-&lt;id&gt;|username}</code>, <code>|password}</code> or <code>|token}</code></td>
+<td>Never hardcode tokens or passwords in monitor config</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use OAuth2 client_credentials flow for API authentication</td>
+<td>Step 1: POST to token endpoint, Step 2: Bearer token in header</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use Bearer token auth (not Basic auth) for modern APIs</td>
+<td>Header: <code>Authorization: Bearer {token}</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use client certificates (mTLS) for high-security API endpoints</td>
+<td>Credential type: certificate in vault</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Set SSL certificate expiration warning at <strong>30 days</strong></td>
+<td>Alert: warning at 30 days before expiry</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Set SSL certificate expiration critical alert at <strong>14 days</strong></td>
+<td>Alert: critical at 14 days before expiry</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Set SSL certificate expiration emergency alert at <strong>7 days</strong></td>
+<td>Alert: emergency at 7 days before expiry</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Validate SSL certificate chain, hostname match, and trusted CA on every HTTPS monitor</td>
+<td>SSL checks: validity + chain + hostname + trust (all enabled)</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor">Create and configure an HTTP monitor (DT docs)</a> — <em>&quot;Use the format {<credential ID>|token} , {<credential ID>|username} , or {<credential ID>|password}&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="performance-thresholds"></a></p>
+<h2>10. Performance Thresholds</h2>
+<p>Set definitive thresholds for synthetic response time.</p>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HTTP monitor response time target</td>
+<td>Good: <strong>&lt; 2s</strong>, Warning: <strong>2-5s</strong>, Critical: <strong>&gt; 5s</strong></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>DNS resolution time target</td>
+<td>Good: <strong>&lt; 50ms</strong>, Warning: <strong>50-200ms</strong>, Critical: <strong>&gt; 200ms</strong></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>TCP connect time target</td>
+<td>Good: <strong>&lt; 100ms</strong>, Warning: <strong>100-300ms</strong>, Critical: <strong>&gt; 300ms</strong></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Time to First Byte (TTFB) target</td>
+<td>Good: <strong>&lt; 500ms</strong>, Warning: <strong>500ms-1s</strong>, Critical: <strong>&gt; 1s</strong></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Take Web Vitals targets (LCP, FCP, CLS) from RUM, not synthetic</td>
+<td>Synthetic browser monitors expose availability and step/total duration, not Web Vitals keys — see SYNTH-02 and the WEBRUM series</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Flag performance anomalies when max response time &gt; <strong>2x</strong> the average</td>
+<td>Deviation factor threshold: <strong>2.0</strong></td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="alerting-configuration"></a></p>
+<h2>11. Alerting Configuration</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Require <strong>2-3 consecutive failures</strong> before triggering an availability alert</td>
+<td>Consecutive failures: <strong>3</strong> (recommended)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Require failures from <strong>2+ locations</strong> to confirm a global outage</td>
+<td>Location threshold: <strong>2</strong></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Enable <strong>Automatic retry on error</strong> on browser monitors to absorb single transient failures</td>
+<td>Retry: enabled (one extra execution after a failure)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Expect performance problems to close only after <strong>five clean executions</strong></td>
+<td>No separate auto-resolve or alert-delay setting exists</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Configure availability alerts for outage detection</td>
+<td>Alert type: availability, trigger on consecutive failures</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Configure performance alerts for degradation detection</td>
+<td>Alert type: P95 response time &gt; threshold</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Configure SLO-based alerts for error budget consumption</td>
+<td>Alert type: error budget burn rate</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Configure SSL certificate expiration alerts at 30/14/7 day thresholds</td>
+<td>Three alert tiers: warning/critical/emergency</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use multi-location failure detection to classify local vs global outages</td>
+<td>Severity: WARNING at 2 locations, CRITICAL at 3+ locations</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-alerting-overview-on-grail">Synthetic alerting overview (DT docs)</a> — <em>&quot;it configures the monitor to avoid false positives by making one more execution after the first one failed&quot;</em> and <em>&quot;no performance threshold is violated in the five most recent executions&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="slos-and-error-budgets"></a></p>
+<h2>12. SLOs and Error Budgets</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Define an availability SLO for every critical synthetic monitor</td>
+<td>SLO target: <strong>99.9%</strong> (8.76 hours downtime/year)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Define a performance SLO for P95 response time</td>
+<td>SLO: <strong>95%</strong> of executions &lt; <strong>3000ms</strong></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Calculate error budget as <code>total_executions * (1 - SLO_target)</code></td>
+<td>Budget: 0.1% of executions for 99.9% SLO</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Track error budget burn rate daily</td>
+<td>Daily query: failures / daily budget allocation</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use a <strong>30-day rolling window</strong> for SLO evaluation</td>
+<td>SLO timeframe: <strong>30 days</strong></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Alert when error budget is <strong>50% consumed</strong> in less than half the window</td>
+<td>Burn rate alert: above 1x the sustainable rate (50% of the budget in half the window is exactly 1x; 2x would be 50% in a quarter of the window)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Map SLA tiers to availability targets: 99.9% = 8.76h/yr, 99.5% = 43.8h/yr, 99.0% = 87.6h/yr</td>
+<td>Set SLO target to match contractual SLA</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dashboard-and-reporting"></a></p>
+<h2>13. Dashboard and Reporting</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Build a synthetic dashboard with these 6 tiles: Overall Availability (single value), Availability Trend (line chart), P95 Response Time by Monitor (bar chart), Location Map, Failures Table, SLO Status (gauge)</td>
+<td>Dashboard layout: KPI row + trend row + detail row + table row</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Show overall availability as a single-value tile</td>
+<td>Tile: <code>countIf(available) * 100 / count()</code> over 24h</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Show hourly availability trend as a line chart over 24 hours</td>
+<td>Tile: availability_pct by 1h buckets</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Show P95 response time by monitor as a bar chart, sorted descending</td>
+<td>Tile: <code>percentile(response_time, 95)</code> by monitor, top 10</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Show recent failures table with timestamp, monitor, location, error</td>
+<td>Tile: last 20 failures, sorted by timestamp desc</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Include a week-over-week performance comparison</td>
+<td>Query: this week avg/P95 vs last week avg/P95</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Generate a daily availability report for the last 30 days</td>
+<td>Query: daily availability_pct, sorted by day</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="operational-hygiene"></a></p>
+<h2>14. Operational Hygiene</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name monitors descriptively: <code>[Type] Target - Purpose</code></td>
+<td>Example: <code>[HTTP] api.example.com/health - API Health</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Name private locations with a consistent convention that distinguishes them from public locations</td>
+<td>Example: <code>PRIVATE-DC1-US-EAST</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Pair every synthetic monitor with a corresponding RUM configuration for the same application</td>
+<td>Synthetic = baseline/SLA; RUM = actual user experience</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Review and disable stale monitors that no longer have valid targets</td>
+<td>Audit: quarterly review of all enabled monitors</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use the HTTP timing breakdown (DNS, TCP connect, TLS, TTFB) to isolate root cause of slowness</td>
+<td>Query: avg per phase by monitor from <code>http_step_execution</code> records</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Check the private-location logs when tests fail</td>
+<td><code>/var/log/dynatrace/synthetic</code> (synthetic) and <code>/var/log/dynatrace/gateway</code> (ActiveGate)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Test network connectivity from ActiveGate to targets with <code>curl -v</code> and <code>nslookup</code> before configuring monitors</td>
+<td>Pre-check: verify DNS resolution and HTTPS connectivity</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <code>fetch dt.synthetic.events</code> (event.type <code>*_monitor_execution</code>, success via <code>result.state</code>) as the primary data source for DQL analysis; use <code>timeseries dt.synthetic.*</code> metrics for trends</td>
+<td>Data source: <code>dt.synthetic.events</code> + synthetic metrics, not <code>bizevents</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Set primary Grail tags on every monitor</td>
+<td>Edit &gt; Primary Grail tags (or <code>primaryGrailTags</code> in the API); max 10 per monitor; private locations need ActiveGate 1.331+ — nothing is inherited from locations</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

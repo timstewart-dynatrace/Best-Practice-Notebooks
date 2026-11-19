@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2S-10: Migration Scripts</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2S — SaaS to SaaS Migration</a><span class="sep">/</span><span aria-current="page">S2S-10</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2S-10: Migration Scripts</h1>
+<blockquote>
+<p><strong>Series:</strong> S2S — SaaS to SaaS Migration | <strong>Notebook:</strong> 10 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/23/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Reusable scripts for SaaS-to-SaaS configuration export. They download Monaco, export the source tenant's configuration with a short-lived read-only token, and leave a timestamped export folder that you review, commit to Git, and <strong>deploy directly to the target with <code>monaco deploy</code></strong>. As an option, the same scripts also package the export as a <code>.tar.gz</code> for the SaaS Upgrade Assistant (SUA) on the target — a field practice, not a documented SaaS-source path (§1). Both Bash (macOS/Linux/WSL) and PowerShell (Windows) versions are provided.</p>
+<blockquote>
+<p><strong>Why scripts instead of raw <code>monaco download</code>?</strong> They handle platform detection, Monaco binary download, checksum verification, temporary token creation and revocation, and the export in a single command — and they leave the Monaco binary in place for the deploy step.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-direct-deploy">Two Import Paths: Monaco Deploy or the SaaS Upgrade Assistant</a></li>
+<li><a href="#monaco-bash">Monaco Configuration Export (Bash)</a></li>
+<li><a href="#monaco-powershell">Monaco Configuration Export (PowerShell)</a></li>
+<li><a href="#usage-notes">Usage Notes</a></li>
+<li><a href="#post-export-workflow">Post-Export Workflow</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>API Token</strong></td>
+<td>Token with <code>apiTokens.write</code> scope on the source tenant — the scripts use it to create, then revoke, a short-lived export token</td>
+</tr>
+<tr>
+<td><strong>Shell (Option A)</strong></td>
+<td>Bash (macOS, Linux, or WSL) with <code>curl</code>, <code>jq</code>, <code>shasum</code> — plus <code>tar</code> for the optional SUA package</td>
+</tr>
+<tr>
+<td><strong>Shell (Option B)</strong></td>
+<td>PowerShell 5.1+ on Windows 10/11 — the optional SUA package uses the <code>tar.exe</code> that ships with Windows 10 1803+ and Windows 11</td>
+</tr>
+<tr>
+<td><strong>Network</strong></td>
+<td>HTTPS access to <code>github.com</code> (Monaco download), the source tenant URL, and — for the deploy — the target tenant URL</td>
+</tr>
+<tr>
+<td><strong>Target credentials</strong></td>
+<td>For the deploy: a target API token for classic configuration and settings, plus a platform token or OAuth client for platform configuration (documents, automations, buckets, segments, SLOs, OpenPipeline)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="why-direct-deploy"></a></p>
+<h2>1. Two Import Paths: Monaco Deploy or the SaaS Upgrade Assistant</h2>
+<p>The export is the same either way. What differs is how it reaches the target:</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Import into the target</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A — Monaco deploy</strong> (default)</td>
+<td><code>monaco deploy &lt;manifest&gt; --environment &lt;target&gt;</code></td>
+<td>Documented (<a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco CLI commands (DT docs)</a>)</td>
+</tr>
+<tr>
+<td><strong>B — SaaS Upgrade Assistant</strong> (optional)</td>
+<td>Upload a <code>.tar.gz</code> package to the SaaS Upgrade Assistant app on the target, preview, then deploy selectively</td>
+<td>Field practice — not documented for a SaaS source</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why Path B is labelled field practice.</strong> The SUA documentation describes a Managed source: <em>&quot;SaaS Upgrade Assistant imports your Dynatrace Managed environment configuration.&quot;</em> It does not describe a SaaS source. In the field, the SUA app on a SaaS target has accepted Monaco exports packaged in the format below, and it adds what <code>monaco deploy</code> lacks: the docs list <em>&quot;preview changes&quot;</em>, partial deployment (<em>&quot;Choose which configurations you want to migrate and run partial deployment&quot;</em>) and <em>&quot;Automatically update dashboard owners&quot;</em>. Rehearse Path B on a non-production target before relying on it, and keep Path A as the fallback.</p>
+<p><strong>Terraform</strong> remains the choice for IAM and for teams already on Terraform: <code>terraform-provider-dynatrace -export</code> from the source, <code>terraform apply</code> with target credentials (see <strong>S2S-06</strong> §4 for workflows and <strong>AUTOM</strong> for the provider).</p>
+<h3>SUA Package Format (Path B)</h3>
+<p>Run either script with the SUA option (§2, §3) and it writes this package beside the export folder:</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Format</strong></td>
+<td><code>.tar.gz</code> — field reports say <code>.zip</code> is rejected</td>
+</tr>
+<tr>
+<td><strong>Metadata file</strong></td>
+<td><code>exportMetadata.json</code> at the archive root</td>
+</tr>
+<tr>
+<td><strong>Export directory</strong></td>
+<td><code>export/</code> subdirectory holding the Monaco download output</td>
+</tr>
+</tbody>
+</table>
+<p><code>exportMetadata.json</code>:</p>
+<pre><code class="language-json">{
+  &quot;clusterUuid&quot;: &quot;&lt;source-tenant-id&gt;&quot;,
+  &quot;productVersion&quot;: &quot;1.305.0.20260331-000000&quot;,
+  &quot;monacoVersion&quot;: &quot;2.30.0&quot;,
+  &quot;exportTimestamp&quot;: &quot;&lt;unix-ms&gt;&quot;,
+  &quot;environments&quot;: [
+    {
+      &quot;name&quot;: &quot;&lt;source-tenant-id&gt;&quot;,
+      &quot;uuid&quot;: &quot;&lt;source-tenant-id&gt;&quot;
+    }
+  ]
+}
+</code></pre>
+<p>Directory layout inside the archive:</p>
+<pre><code class="language-text">configurationExport-YYYY-MM-DD_HH-MM-SS/
+├── exportMetadata.json
+└── export/
+    └── project/
+        ├── alerting-profile/
+        ├── auto-tag/
+        ├── dashboard/
+        └── ... (one folder per configuration type)
+</code></pre>
+<blockquote>
+<p><strong>Field note:</strong> raw <code>monaco download</code> output uploaded without this wrapper has been reported as rejected. The metadata fields mirror a Managed cluster export; the <code>productVersion</code> value is the one used in field-tested packages, not a documented requirement.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT docs)</a> — <em>&quot;SaaS Upgrade Assistant imports your Dynatrace Managed environment configuration&quot;</em>, <em>&quot;preview changes&quot;</em>, <em>&quot;Choose which configurations you want to migrate and run partial deployment&quot;</em>, <em>&quot;Automatically update dashboard owners&quot;</em>; <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco CLI commands (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="monaco-bash"></a></p>
+<h2>2. Monaco Configuration Export (Bash)</h2>
+<p>Downloads Monaco, exports all configuration from the source tenant, and stages it in a timestamped folder for <code>monaco deploy</code>. Set <code>SUA_PACKAGE=1</code> to also write the optional SaaS Upgrade Assistant package (§1, Path B).</p>
+<blockquote>
+<p><strong>Deprecation — Dynatrace API 1.348 (rollout start 10/12/2026, staged tenant rollout).</strong> The API 1.348 changelog marks the whole <code>/apiTokens</code> endpoint family deprecated — <em>&quot;The following endpoints are deprecated&quot;</em>, covering <code>POST /apiTokens</code>, <code>POST /apiTokens/lookup</code> and the per-token <code>GET</code>/<code>PUT</code>/<code>DELETE</code>. No successor is named. Deprecated endpoints keep working during the deprecation period, so both scripts below (which mint a temporary export token with <code>POST /api/v2/apiTokens</code>) remain the working path — re-check the <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348">API 1.348 changelog (DT docs)</a> for a successor before building new automation on that endpoint. Separately, once an environment opts into <strong>Phase 3</strong> of the upgrade to Latest Dynatrace, <em>&quot;classic API token creation is disabled; all new integrations must use platform tokens&quot;</em> (<a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-11-api-tokens/upgrade-api-endpoints">Best practices for upgrading App Observability API endpoints (DT docs)</a>) — check your environment's upgrade phase before running these scripts, since each one mints a classic token.</p>
+</blockquote>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-bash">export ENV_TOKEN=&quot;dt0c01.XXXX...&quot;
+./monaco-export-migration.sh &lt;source-tenant-id&gt;
+
+# Example
+./monaco-export-migration.sh abc12345
+
+# Also write the optional SUA package (Path B)
+SUA_PACKAGE=1 ./monaco-export-migration.sh abc12345
+</code></pre>
+<p><strong>Script:</strong></p>
+<pre><code class="language-bash">#!/bin/bash
+#
+# Monaco Configuration Export for SaaS-to-SaaS migration
+# Produces a timestamped export folder for review and `monaco deploy` to the target.
+# With SUA_PACKAGE=1 it also writes a .tar.gz for the SaaS Upgrade Assistant (field practice).
+#
+# Usage: ENV_TOKEN=&lt;api-token&gt; [SUA_PACKAGE=1] ./monaco-export-migration.sh &lt;tenantId&gt;
+
+set -euo pipefail
+
+MONACO_VERSION=&quot;2.30.0&quot;   # pinned; check the releases page before reuse
+
+# --- Argument validation ---
+if [ $# -ne 1 ]; then
+    echo &quot;Usage: $0 &lt;tenantId&gt;&quot;
+    echo &quot;&quot;
+    echo &quot;Example: ENV_TOKEN=\$MY_TOKEN $0 abc12345&quot;
+    exit 1
+fi
+
+if [ -z &quot;${ENV_TOKEN:-}&quot; ]; then
+    echo &quot;Error: ENV_TOKEN environment variable is not set.&quot;
+    echo &quot;Create a token with apiTokens.write scope at:&quot;
+    echo &quot;  https://$1.live.dynatrace.com/#settings/integration/apikeys&quot;
+    exit 1
+fi
+
+tenantId=&quot;$1&quot;
+echo &quot;=== Monaco Export v${MONACO_VERSION} ===&quot;
+echo &quot;Tenant: ${tenantId}&quot;
+echo &quot;&quot;
+
+# --- Detect platform ---
+OS=$(uname -s)
+ARCH=$(uname -m)
+
+case &quot;${OS}-${ARCH}&quot; in
+    Darwin-arm64)  platform=&quot;darwin-arm64&quot; ;;
+    Darwin-x86_64) platform=&quot;darwin-amd64&quot; ;;
+    Linux-x86_64)  platform=&quot;linux-amd64&quot; ;;
+    Linux-aarch64) platform=&quot;linux-arm64&quot; ;;
+    Linux-i386)    platform=&quot;linux-386&quot; ;;
+    *)
+        echo &quot;Error: Unsupported platform ${OS}-${ARCH}&quot;
+        exit 1
+        ;;
+esac
+
+echo &quot;Platform: ${platform}&quot;
+
+# --- Download Monaco ---
+binary_url=&quot;https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/download/v${MONACO_VERSION}/monaco-${platform}&quot;
+checksum_url=&quot;${binary_url}.sha256&quot;
+
+echo &quot;Downloading Monaco v${MONACO_VERSION}...&quot;
+curl -sL -o &quot;monaco-${platform}&quot; &quot;${binary_url}&quot;
+curl -sL -o monaco_checksum &quot;${checksum_url}&quot;
+
+echo &quot;Verifying checksum...&quot;
+if shasum --quiet -c monaco_checksum 2&gt;/dev/null; then
+    echo &quot;  Checksum verified&quot;
+else
+    echo &quot;  Checksum verification failed&quot;
+    rm -f &quot;monaco-${platform}&quot; monaco_checksum
+    exit 1
+fi
+
+mv &quot;monaco-${platform}&quot; monaco
+chmod +x monaco
+echo &quot;  Monaco v${MONACO_VERSION} ready&quot;
+echo &quot;&quot;
+
+# --- Revoke the export token on exit (success or failure) ---
+MONACO_TOKEN_ID=&quot;&quot;
+revoke_export_token() {
+    if [ -n &quot;${MONACO_TOKEN_ID}&quot; ] &amp;&amp; [ &quot;${MONACO_TOKEN_ID}&quot; != &quot;null&quot; ]; then
+        echo &quot;Revoking temporary export token...&quot;
+        curl -s -o /dev/null -w &quot;  DELETE apiTokens -&gt; HTTP %{http_code}\n&quot; -X DELETE \
+          &quot;https://${tenantId}.live.dynatrace.com/api/v2/apiTokens/${MONACO_TOKEN_ID}&quot; \
+          -H &quot;Authorization: Api-Token ${ENV_TOKEN}&quot; \
+          || echo &quot;  Revoke failed: delete token ${MONACO_TOKEN_ID} manually&quot;
+    fi
+}
+trap revoke_export_token EXIT
+
+# --- Create short-lived export token (read scopes only, expires in 24 h) ---
+echo &quot;Creating temporary export token...&quot;
+expiry=$(date -u -v+1d +%Y-%m-%dT%H:%M:%S 2&gt;/dev/null || date -u -d '+1 day' +%Y-%m-%dT%H:%M:%S)
+token_body=$(jq -n --arg exp &quot;${expiry}&quot; '{
+    name: &quot;s2s-monaco-export-temp&quot;,
+    expirationDate: $exp,
+    scopes: [
+      &quot;attacks.read&quot;,
+      &quot;entities.read&quot;,
+      &quot;extensionConfigurations.read&quot;,
+      &quot;extensionEnvironment.read&quot;,
+      &quot;extensions.read&quot;,
+      &quot;geographicRegions.read&quot;,
+      &quot;javaScriptMappingFiles.read&quot;,
+      &quot;networkZones.read&quot;,
+      &quot;settings.read&quot;,
+      &quot;slo.read&quot;,
+      &quot;syntheticExecutions.read&quot;,
+      &quot;syntheticLocations.read&quot;,
+      &quot;DataExport&quot;,
+      &quot;ReadConfig&quot;,
+      &quot;ReadSyntheticData&quot;
+    ]
+  }')
+
+token_response=$(curl -s -X POST &quot;https://${tenantId}.live.dynatrace.com/api/v2/apiTokens&quot; \
+  -H &quot;accept: application/json; charset=utf-8&quot; \
+  -H &quot;Content-Type: application/json; charset=utf-8&quot; \
+  -H &quot;Authorization: Api-Token ${ENV_TOKEN}&quot; \
+  -d &quot;${token_body}&quot;)
+MONACO_TOKEN=$(echo &quot;${token_response}&quot; | jq -r '.token // empty')
+MONACO_TOKEN_ID=$(echo &quot;${token_response}&quot; | jq -r '.id // empty')
+
+if [ -z &quot;${MONACO_TOKEN}&quot; ]; then
+    echo &quot;  Failed to create export token. Check ENV_TOKEN permissions (apiTokens.write).&quot;
+    rm -f monaco monaco_checksum
+    exit 1
+fi
+export MONACO_TOKEN
+echo &quot;  Export token created (expires ${expiry} UTC)&quot;
+echo &quot;&quot;
+
+# --- Create manifest ---
+cat &gt; manifest.yaml &lt;&lt;EOF
+manifestVersion: 1.0
+
+projects:
+- name: saas
+  path: saas/${tenantId}
+
+environmentGroups:
+- name: saas
+  environments:
+  - name: ${tenantId}
+    url:
+      value: https://${tenantId}.live.dynatrace.com
+    auth:
+      token:
+        name: MONACO_TOKEN
+EOF
+
+# --- Run Monaco download ---
+echo &quot;Running Monaco download...&quot;
+echo &quot;  This may take several minutes depending on configuration volume.&quot;
+echo &quot;&quot;
+./monaco download --environment &quot;${tenantId}&quot; --output-folder &quot;${tenantId}&quot;
+echo &quot;&quot;
+
+# The export token is no longer needed: revoke it now (the EXIT trap covers failures)
+revoke_export_token
+MONACO_TOKEN_ID=&quot;&quot;
+unset MONACO_TOKEN
+echo &quot;&quot;
+
+# --- Stage the export for review and deploy ---
+datetime=$(date +&quot;%Y-%m-%d_%H-%M-%S&quot;)
+export_dir=&quot;export-${tenantId}-${datetime}&quot;
+mv &quot;${tenantId}&quot; &quot;${export_dir}&quot;
+
+# --- Optional: package for the SaaS Upgrade Assistant (Path B, field practice) ---
+sua_archive=&quot;&quot;
+if [ &quot;${SUA_PACKAGE:-0}&quot; = &quot;1&quot; ]; then
+    sua_dir=&quot;configurationExport-${datetime}&quot;
+    mkdir -p &quot;${sua_dir}/export&quot;
+    current_timestamp=$(($(date +%s) * 1000))
+    cat &gt; &quot;${sua_dir}/exportMetadata.json&quot; &lt;&lt;EOF
+{
+  &quot;clusterUuid&quot;: &quot;${tenantId}&quot;,
+  &quot;productVersion&quot;: &quot;1.305.0.20260331-000000&quot;,
+  &quot;monacoVersion&quot;: &quot;${MONACO_VERSION}&quot;,
+  &quot;exportTimestamp&quot;: &quot;${current_timestamp}&quot;,
+  &quot;environments&quot;: [
+    {
+      &quot;name&quot;: &quot;${tenantId}&quot;,
+      &quot;uuid&quot;: &quot;${tenantId}&quot;
+    }
+  ]
+}
+EOF
+    cp -R &quot;${export_dir}/.&quot; &quot;${sua_dir}/export/&quot;
+    tar -czf &quot;${sua_dir}.tar.gz&quot; &quot;${sua_dir}&quot;
+    rm -rf &quot;${sua_dir}&quot;
+    sua_archive=&quot;${sua_dir}.tar.gz&quot;
+fi
+
+# --- Summary ---
+echo &quot;&quot;
+echo &quot;=== Export Summary ===&quot;
+echo &quot;Tenant:    ${tenantId}&quot;
+echo &quot;Monaco:    v${MONACO_VERSION}&quot;
+echo &quot;Output:    ${export_dir}/ (manifest.yaml + project/)&quot;
+if [ -n &quot;${sua_archive}&quot; ]; then
+    echo &quot;SUA:       ${sua_archive} (upload to the SaaS Upgrade Assistant on the target)&quot;
+fi
+echo &quot;&quot;
+
+config_count=$(find &quot;${export_dir}&quot; -name &quot;*.json&quot; -o -name &quot;*.yaml&quot; 2&gt;/dev/null | wc -l | tr -d ' ')
+echo &quot;Configs exported: ~${config_count} files&quot;
+echo &quot;&quot;
+
+echo &quot;Next steps:&quot;
+echo &quot;  1. Commit ${export_dir}/ to Git&quot;
+echo &quot;  2. Add the target environment to ${export_dir}/manifest.yaml (S2S-05, section 2)&quot;
+echo &quot;  3. Remap entity IDs (S2S-05, section 4)&quot;
+echo &quot;  4. ./monaco deploy ${export_dir}/manifest.yaml --environment target-tenant --dry-run&quot;
+echo &quot;  5. ./monaco deploy ${export_dir}/manifest.yaml --environment target-tenant&quot;
+echo &quot;&quot;
+
+# --- Cleanup (the monaco binary is kept for the deploy step) ---
+rm -f monaco_checksum manifest.yaml
+
+echo &quot;Done.&quot;
+</code></pre>
+<p><a id="monaco-powershell"></a></p>
+<h2>3. Monaco Configuration Export (PowerShell)</h2>
+<p>Windows equivalent of the Bash script above. Produces the same timestamped export folder for <code>monaco deploy</code>. Add <code>-PackageForSUA</code> to also write the optional SaaS Upgrade Assistant package (§1, Path B).</p>
+<p><strong>Usage:</strong></p>
+<pre><code class="language-powershell">$env:ENV_TOKEN = &quot;dt0c01.XXXX...&quot;
+.\Monaco-Export-Migration.ps1 -TenantId abc12345
+
+# Also write the optional SUA package (Path B)
+.\Monaco-Export-Migration.ps1 -TenantId abc12345 -PackageForSUA
+</code></pre>
+<p><strong>Script:</strong></p>
+<pre><code class="language-powershell">#Requires -Version 5.1
+&lt;#
+.SYNOPSIS
+    Monaco Configuration Export for SaaS-to-SaaS migration
+.DESCRIPTION
+    Downloads Monaco, exports all configuration from a source tenant,
+    and stages the result in a timestamped folder for monaco deploy.
+.PARAMETER TenantId
+    The Dynatrace tenant identifier (e.g., abc12345)
+.PARAMETER PackageForSUA
+    Also write a .tar.gz for the SaaS Upgrade Assistant (field practice; not documented for a SaaS source)
+.EXAMPLE
+    $env:ENV_TOKEN = &quot;dt0c01.XXXX...&quot;
+    .\Monaco-Export-Migration.ps1 -TenantId abc12345
+#&gt;
+param(
+    [Parameter(Mandatory)]
+    [string]$TenantId,
+    [switch]$PackageForSUA
+)
+
+$ErrorActionPreference = &quot;Stop&quot;
+$MonacoVersion = &quot;2.30.0&quot;   # pinned; check the releases page before reuse
+
+# --- Validate token ---
+if (-not $env:ENV_TOKEN) {
+    Write-Error &quot;ENV_TOKEN environment variable is not set.`nCreate a token with apiTokens.write scope at:`n  https://$TenantId.live.dynatrace.com/#settings/integration/apikeys&quot;
+}
+
+Write-Host &quot;=== Monaco Export v$MonacoVersion ===&quot;
+Write-Host &quot;Tenant: $TenantId&quot;
+Write-Host &quot;&quot;
+
+# --- Download Monaco (Windows amd64) ---
+$platform = &quot;windows-amd64&quot;
+$binaryUrl = &quot;https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/download/v$MonacoVersion/monaco-$platform.exe&quot;
+$checksumUrl = &quot;$binaryUrl.sha256&quot;
+
+Write-Host &quot;Downloading Monaco v$MonacoVersion...&quot;
+Invoke-WebRequest -Uri $binaryUrl -OutFile &quot;monaco.exe&quot; -UseBasicParsing
+Invoke-WebRequest -Uri $checksumUrl -OutFile &quot;monaco_checksum&quot; -UseBasicParsing
+
+Write-Host &quot;Verifying checksum...&quot;
+$expectedHash = (Get-Content monaco_checksum -Raw).Split()[0].Trim()
+$actualHash = (Get-FileHash -Algorithm SHA256 monaco.exe).Hash.ToLower()
+if ($actualHash -ne $expectedHash) {
+    Remove-Item -Force monaco.exe, monaco_checksum
+    Write-Error &quot;Checksum verification failed&quot;
+}
+Write-Host &quot;  Checksum verified&quot;
+Write-Host &quot;  Monaco v$MonacoVersion ready&quot;
+Write-Host &quot;&quot;
+
+# --- Create short-lived export token (read scopes only, expires in 24 h) ---
+Write-Host &quot;Creating temporary export token...&quot;
+$expiry = (Get-Date).ToUniversalTime().AddDays(1).ToString(&quot;yyyy-MM-ddTHH:mm:ss&quot;)
+$tokenBody = @{
+    name           = &quot;s2s-monaco-export-temp&quot;
+    expirationDate = $expiry
+    scopes         = @(
+        &quot;attacks.read&quot;, &quot;entities.read&quot;, &quot;extensionConfigurations.read&quot;,
+        &quot;extensionEnvironment.read&quot;, &quot;extensions.read&quot;, &quot;geographicRegions.read&quot;,
+        &quot;javaScriptMappingFiles.read&quot;, &quot;networkZones.read&quot;, &quot;settings.read&quot;,
+        &quot;slo.read&quot;, &quot;syntheticExecutions.read&quot;, &quot;syntheticLocations.read&quot;,
+        &quot;DataExport&quot;, &quot;ReadConfig&quot;, &quot;ReadSyntheticData&quot;
+    )
+} | ConvertTo-Json
+
+$headers = @{
+    &quot;Authorization&quot; = &quot;Api-Token $($env:ENV_TOKEN)&quot;
+    &quot;Content-Type&quot;  = &quot;application/json; charset=utf-8&quot;
+}
+
+$response = Invoke-RestMethod `
+    -Uri &quot;https://$TenantId.live.dynatrace.com/api/v2/apiTokens&quot; `
+    -Method Post -Headers $headers -Body $tokenBody
+
+if (-not $response.token) {
+    Remove-Item -Force monaco.exe, monaco_checksum -ErrorAction SilentlyContinue
+    Write-Error &quot;Failed to create export token. Check ENV_TOKEN permissions.&quot;
+}
+$env:MONACO_TOKEN = $response.token
+$tokenId = $response.id
+Write-Host &quot;  Export token created (expires $expiry UTC)&quot;
+Write-Host &quot;&quot;
+
+# --- Create manifest ---
+@&quot;
+manifestVersion: 1.0
+
+projects:
+- name: saas
+  path: saas/$TenantId
+
+environmentGroups:
+- name: saas
+  environments:
+  - name: $TenantId
+    url:
+      value: https://$TenantId.live.dynatrace.com
+    auth:
+      token:
+        name: MONACO_TOKEN
+&quot;@ | Set-Content -Path &quot;manifest.yaml&quot; -Encoding UTF8
+
+# --- Run Monaco download ---
+Write-Host &quot;Running Monaco download...&quot;
+Write-Host &quot;  This may take several minutes depending on configuration volume.&quot;
+Write-Host &quot;&quot;
+.\monaco.exe download --environment $TenantId --output-folder $TenantId
+$downloadExit = $LASTEXITCODE
+Write-Host &quot;&quot;
+
+# --- Revoke the export token (also when the download failed) ---
+Write-Host &quot;Revoking temporary export token...&quot;
+try {
+    Invoke-RestMethod `
+        -Uri &quot;https://$TenantId.live.dynatrace.com/api/v2/apiTokens/$tokenId&quot; `
+        -Method Delete -Headers $headers | Out-Null
+    Write-Host &quot;  Export token revoked&quot;
+} catch {
+    Write-Warning &quot;Revoke failed: delete token $tokenId manually (it expires $expiry UTC regardless)&quot;
+}
+Remove-Item Env:\MONACO_TOKEN -ErrorAction SilentlyContinue
+if ($downloadExit -ne 0) {
+    Write-Error &quot;monaco download failed with exit code $downloadExit&quot;
+}
+Write-Host &quot;&quot;
+
+# --- Stage the export for review and deploy ---
+$datetime = Get-Date -Format &quot;yyyy-MM-dd_HH-mm-ss&quot;
+$exportDir = &quot;export-$TenantId-$datetime&quot;
+Rename-Item -Path $TenantId -NewName $exportDir
+
+# --- Optional: package for the SaaS Upgrade Assistant (Path B, field practice) ---
+$suaArchive = $null
+if ($PackageForSUA) {
+    $suaDir = &quot;configurationExport-$datetime&quot;
+    New-Item -ItemType Directory -Path &quot;$suaDir\export&quot; -Force | Out-Null
+    $currentTimestamp = [long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())
+    @&quot;
+{
+  &quot;clusterUuid&quot;: &quot;$TenantId&quot;,
+  &quot;productVersion&quot;: &quot;1.305.0.20260331-000000&quot;,
+  &quot;monacoVersion&quot;: &quot;$MonacoVersion&quot;,
+  &quot;exportTimestamp&quot;: &quot;$currentTimestamp&quot;,
+  &quot;environments&quot;: [
+    {
+      &quot;name&quot;: &quot;$TenantId&quot;,
+      &quot;uuid&quot;: &quot;$TenantId&quot;
+    }
+  ]
+}
+&quot;@ | Set-Content -Path &quot;$suaDir\exportMetadata.json&quot; -Encoding UTF8
+    Copy-Item -Path &quot;$exportDir\*&quot; -Destination &quot;$suaDir\export\&quot; -Recurse -Force
+    tar -czf &quot;$suaDir.tar.gz&quot; $suaDir
+    Remove-Item -Recurse -Force $suaDir
+    $suaArchive = &quot;$suaDir.tar.gz&quot;
+}
+
+# --- Summary ---
+Write-Host &quot;&quot;
+Write-Host &quot;=== Export Summary ===&quot;
+Write-Host &quot;Tenant:    $TenantId&quot;
+Write-Host &quot;Monaco:    v$MonacoVersion&quot;
+Write-Host &quot;Output:    $exportDir\ (manifest.yaml + project\)&quot;
+if ($suaArchive) {
+    Write-Host &quot;SUA:       $suaArchive (upload to the SaaS Upgrade Assistant on the target)&quot;
+}
+Write-Host &quot;&quot;
+
+$configCount = (Get-ChildItem -Path $exportDir -Recurse -Include *.json, *.yaml).Count
+Write-Host &quot;Configs exported: ~$configCount files&quot;
+Write-Host &quot;&quot;
+
+Write-Host &quot;Next steps:&quot;
+Write-Host &quot;  1. Commit $exportDir\ to Git&quot;
+Write-Host &quot;  2. Add the target environment to $exportDir\manifest.yaml (S2S-05, section 2)&quot;
+Write-Host &quot;  3. Remap entity IDs (S2S-05, section 4)&quot;
+Write-Host &quot;  4. .\monaco.exe deploy $exportDir\manifest.yaml --environment target-tenant --dry-run&quot;
+Write-Host &quot;  5. .\monaco.exe deploy $exportDir\manifest.yaml --environment target-tenant&quot;
+Write-Host &quot;&quot;
+
+# --- Cleanup (monaco.exe is kept for the deploy step) ---
+Remove-Item -Force monaco_checksum, manifest.yaml -ErrorAction SilentlyContinue
+
+Write-Host &quot;Done.&quot;
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> the optional SUA package uses the <code>tar.exe</code> included with Windows 10 version 1803+ and Windows 11. On older systems, install <a href="https://www.7-zip.org/">7-Zip</a> and replace the <code>tar</code> line with:</p>
+<pre><code class="language-powershell">&amp; &quot;C:\Program Files\7-Zip\7z.exe&quot; a -ttar &quot;$suaDir.tar&quot; $suaDir
+&amp; &quot;C:\Program Files\7-Zip\7z.exe&quot; a -tgzip &quot;$suaDir.tar.gz&quot; &quot;$suaDir.tar&quot;
+Remove-Item &quot;$suaDir.tar&quot;
+</code></pre>
+</blockquote>
+<p><a id="usage-notes"></a></p>
+<h2>4. Usage Notes</h2>
+<h3>Bash (macOS / Linux / WSL)</h3>
+<ul>
+<li>Save the Bash script to a file (e.g., <code>monaco-export-migration.sh</code>) and run <code>chmod +x monaco-export-migration.sh</code></li>
+<li>Requires <code>curl</code>, <code>jq</code> and <code>shasum</code></li>
+</ul>
+<h3>PowerShell (Windows)</h3>
+<ul>
+<li>Save the PowerShell script to a file (e.g., <code>Monaco-Export-Migration.ps1</code>)</li>
+<li>If execution policy blocks the script, run: <code>Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></li>
+</ul>
+<h3>Both Scripts</h3>
+<ul>
+<li>The script downloads Monaco automatically — no pre-installation required — and keeps the binary for the deploy step</li>
+<li>A short-lived export token (<code>s2s-monaco-export-temp</code>) is created with read scopes only, expires after 24 hours, and is revoked as soon as the download finishes — also when it fails</li>
+<li>The export token is a classic API token, so the download covers classic configuration and Settings 2.0. Platform configuration (documents, automations, buckets, segments, SLOs, OpenPipeline) needs a platform token or OAuth client — Monaco's <code>--platform-token</code> flag takes the <em>&quot;Platform token environment variable&quot;</em>, and <code>--oauth-client-id</code> / <code>--oauth-client-secret</code> name an OAuth client's variables (<strong>S2S-04</strong> §3)</li>
+<li>Monaco is pinned to v2.30.0 (released 09/23/2026); check the <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/releases">releases page</a> before reuse and bump <code>MONACO_VERSION</code> / <code>$MonacoVersion</code></li>
+<li>Output is a folder <code>export-&lt;tenant&gt;-&lt;timestamp&gt;/</code> holding the Monaco manifest and the <code>project/</code> configuration</li>
+<li>With <code>SUA_PACKAGE=1</code> (Bash) or <code>-PackageForSUA</code> (PowerShell), the script also writes <code>configurationExport-&lt;timestamp&gt;.tar.gz</code> for the SaaS Upgrade Assistant (§1, Path B) — the export folder is kept either way, so Path A stays available</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/download/download_command.go">monaco download flags, v2.30.0 (Dynatrace GitHub)</a>.</sub></p>
+</blockquote>
+<h3>Multi-Source Consolidation</h3>
+<p>When consolidating multiple source tenants into a single target, run the script once per source tenant:</p>
+<pre><code class="language-bash"># Source 1
+ENV_TOKEN=$SOURCE1_TOKEN ./monaco-export-migration.sh tenant-id-1
+
+# Source 2
+ENV_TOKEN=$SOURCE2_TOKEN ./monaco-export-migration.sh tenant-id-2
+</code></pre>
+<p>Deploy (or import) Source 1 first, validate, then Source 2. Sequential migration isolates issues to a single source at a time. See <strong>S2S-02</strong> for the multi-source consolidation pattern.</p>
+<p><a id="post-export-workflow"></a></p>
+<h2>5. Post-Export Workflow</h2>
+<p>After running the export script:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Reference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Commit the export folder to Git</td>
+<td>The reviewed baseline for everything that follows</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Add the target environment to the export's <code>manifest.yaml</code></td>
+<td><strong>S2S-05 §2: Monaco Deploy Workflow</strong></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Audit for entity ID references</td>
+<td>Search exported config for <code>HOST-</code>, <code>SERVICE-</code>, <code>PROCESS_GROUP-</code> patterns</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Remap entity IDs to tag-, segment- or dimension-based filters</td>
+<td><strong>S2S-05 §4: Entity ID Remapping</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>monaco deploy &lt;manifest&gt; --environment &lt;target&gt; --dry-run</code></td>
+<td>Checks structure and references only — it does not contact the target</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>monaco deploy &lt;manifest&gt; --environment &lt;target&gt;</code> (per project, for phased deployment)</td>
+<td><strong>S2S-05 §1: Configuration Deployment Order</strong></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Validate data flow after each wave</td>
+<td><strong>S2S-05 §8: Wave Execution and Validation</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>Path B: Import Through the SaaS Upgrade Assistant (Optional)</h3>
+<p>Use this only after rehearsing it on a non-production target (§1).</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Reference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Remap entity IDs in the export <strong>before</strong> packaging, then re-run packaging</td>
+<td><strong>S2S-05 §4: Entity ID Remapping</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Install the SaaS Upgrade Assistant app on the target and upload <code>configurationExport-&lt;timestamp&gt;.tar.gz</code></td>
+<td><a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT docs)</a></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Preview the changes and select which configurations to deploy</td>
+<td>The docs' <em>&quot;preview changes&quot;</em> and partial deployment</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Deploy in waves per the configuration deployment order</td>
+<td><strong>S2S-05 §1: Configuration Deployment Order</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Validate data flow after each wave; fall back to Path A for anything the assistant rejects</td>
+<td><strong>S2S-05 §8: Wave Execution and Validation</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>Path A: Deploy to the Target</h3>
+<pre><code class="language-bash">export DT_TARGET_URL=&quot;https://&lt;target-env-id&gt;.live.dynatrace.com&quot;
+export DT_TARGET_TOKEN=&quot;dt0c01.xxx...&quot;   # the manifest names this variable; it never holds the token
+
+./monaco deploy export-&lt;tenant&gt;-&lt;timestamp&gt;/manifest.yaml --environment target-tenant --dry-run
+./monaco deploy export-&lt;tenant&gt;-&lt;timestamp&gt;/manifest.yaml --environment target-tenant
+</code></pre>
+<p>A clean dry-run is not a guarantee: Monaco's flag help says a dry-run <em>&quot;can not validate the content of JSON payloads. After a successful dry-run, deployments may still fail with Dynatrace API errors if the content of JSONs is not valid.&quot;</em> Deploy to a non-production target first.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/deploy/command.go">monaco deploy flags, v2.30.0 (Dynatrace GitHub)</a>.</sub></p>
+</blockquote>
+<h3>When NOT to Use These Scripts</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Use Instead</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>You only need specific config types</td>
+<td><code>monaco download --only-settings</code>, <code>--settings-schema &lt;schema&gt;</code> or <code>--api &lt;api&gt;</code></td>
+</tr>
+<tr>
+<td>You want ongoing config management</td>
+<td>Terraform with state management</td>
+</tr>
+<tr>
+<td>The source is a Managed environment</td>
+<td>The SaaS Upgrade Assistant (see the M2S series)</td>
+</tr>
+<tr>
+<td>You need IAM migration</td>
+<td>Terraform (<code>dynatrace_iam_*</code>), or <code>monaco account download</code> / <code>deploy</code> with an OAuth client</td>
+</tr>
+</tbody>
+</table>
+<h3>Script vs. Manual Monaco</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Script</th>
+<th>Manual <code>monaco download</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Monaco installation</td>
+<td>Automatic (downloads + verifies checksum)</td>
+<td>Manual pre-installation required</td>
+</tr>
+<tr>
+<td>Export token</td>
+<td>Auto-created with read scopes, 24 h expiry, revoked after download</td>
+<td>Manual token creation and revocation</td>
+</tr>
+<tr>
+<td>Output</td>
+<td>Timestamped export folder, ready for <code>monaco deploy</code></td>
+<td>Whatever <code>--output-folder</code> you choose</td>
+</tr>
+<tr>
+<td>SUA package</td>
+<td>Optional <code>.tar.gz</code> with <code>exportMetadata.json</code> (<code>SUA_PACKAGE=1</code> / <code>-PackageForSUA</code>)</td>
+<td>Manual packaging</td>
+</tr>
+<tr>
+<td>Cleanup</td>
+<td>Automatic (removes temp files, keeps the binary)</td>
+<td>Manual cleanup</td>
+</tr>
+<tr>
+<td>Cross-platform</td>
+<td>Bash + PowerShell versions</td>
+<td>Single platform</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

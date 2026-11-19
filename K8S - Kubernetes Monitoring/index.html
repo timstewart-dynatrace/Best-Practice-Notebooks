@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8S - Kubernetes Monitoring</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../">Best Practice Notebooks</a><span class="sep">/</span><span aria-current="page">K8S — Kubernetes Monitoring</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="k8s---kubernetes-monitoring">K8S - Kubernetes Monitoring</h1>
+<p>Best practices for monitoring Kubernetes with Dynatrace.</p>
+<blockquote>
+<p><strong>Recommended:</strong> Import the JSON files from notebooks/ into a Dynatrace tenant for the best experience. These notebooks contain interactive DQL queries that execute against your environment's data.</p>
+</blockquote>
+<h2 id="structure">Structure</h2>
+<ul>
+<li>notebooks/ — Dynatrace notebook JSON files</li>
+<li>pdfs/ — Printable versions of each notebook</li>
+<li>markdown/ — Markdown exports of the notebooks</li>
+</ul>
+<h2 id="notebook-lineup">Notebook Lineup</h2>
+<ol>
+<li><a href="html/-%5BK8S%5D-01-fundamentals.html">Fundamentals</a> — Core Kubernetes monitoring concepts</li>
+<li><a href="html/-%5BK8S%5D-02-dynakube-deployment.html">Dynakube Deployment</a> — Deploying Dynatrace Operator and Dynakube</li>
+<li><a href="html/-%5BK8S%5D-03-gitops-dynakube.html">GitOps Dynakube</a> — Managing Dynakube with GitOps</li>
+<li><a href="html/-%5BK8S%5D-04-cluster-monitoring.html">Cluster Health Monitoring</a> — Node and cluster-level health metrics, capacity planning, and alerting strategies</li>
+<li><a href="html/-%5BK8S%5D-05-workload-monitoring.html">Workload Monitoring</a> — Monitoring workloads and applications</li>
+<li><a href="html/-%5BK8S%5D-06-namespace-organization.html">Namespace Organization</a> — Organizing and filtering by namespace</li>
+<li><a href="html/-%5BK8S%5D-07-events-and-logs.html">Events and Logs</a> — Kubernetes events and log monitoring</li>
+<li><a href="html/-%5BK8S%5D-08-dql-for-k8s.html">DQL for K8s</a> — Querying Kubernetes data with DQL</li>
+<li><a href="html/-%5BK8S%5D-09-troubleshooting.html">Troubleshooting</a> — Diagnosing Kubernetes monitoring issues; known issues by Operator version, CSI crash-loop mitigations, injection-skip reason codes, support-archive subcommand, and a symptom-to-resolution index mapped to community articles</li>
+<li><a href="html/-%5BK8S%5D-10-metadata-telemetry-enrichment.html">Metadata Telemetry Enrichment</a> — Enriching telemetry with Kubernetes metadata</li>
+<li><a href="html/-%5BK8S%5D-11-multi-tool-coexistence.html">Multi-Tool Coexistence</a> — Running Dynatrace alongside other monitoring tools</li>
+<li><a href="html/-%5BK8S%5D-12-specialized-monitoring.html">Specialized Monitoring</a> — NGINX Ingress, code-module delivery (image volumes, CSI driver, ephemeral volumes), resource tuning, and StatsD</li>
+<li><a href="html/-%5BK8S%5D-13-kafka-monitoring-with-kpow.html">Kafka Monitoring with Kpow</a> — Kafka observability using Kpow Prometheus metrics</li>
+<li><a href="html/-%5BK8S%5D-14-%5BLAB%5D-deployment-guide.html">[LAB] Kubernetes Deployment Guide</a> — Hands-on lab: end-to-end Dynatrace Kubernetes deployment walkthrough</li>
+<li><a href="html/-%5BK8S%5D-99-best-practice-summary.html">Best Practice Summary</a> — Consolidated best practices from the K8S series</li>
+</ol>
+<h2 id="usage">Usage</h2>
+<ol>
+<li>Choose a format: import JSON from notebooks/, read pdfs/ for print, or view markdown/ for lightweight browsing.</li>
+<li>Start with Fundamentals and Dynakube Deployment, then explore advanced topics.</li>
+</ol>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

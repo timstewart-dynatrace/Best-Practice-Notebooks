@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-12: Cassandra Metrics Store Health</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-12</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-12: Cassandra Metrics Store Health</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 12 — Cassandra Metrics Store Health | <strong>Created:</strong> September 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Every Managed node runs Apache Cassandra, and together those nodes form the cluster's <strong>metrics repository</strong>, which the docs also call the Long-term Metrics Store. It keeps five years of timeseries data in three replicas. It is the store most likely to outgrow its disks, and a restore brings back less of it than most teams assume.</p>
+<p>This notebook is layer 2 of the DTM-10 health model, for Cassandra. It covers what the store holds, how big it may get, how long metrics are kept and at what resolution, how to check Cassandra's health, what adding, removing and repairing nodes does to it, and what its daily backup does and does not protect.</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>The per-node size ceilings, the events that report them, and the one documented way to stay under them</li>
+<li>Why metric retention can't be turned down to save space</li>
+<li>How to read <code>cassandra-nodetool.sh status</code> — <code>UN</code>, <code>UJ</code>, <code>Load</code> and <code>Owns</code></li>
+<li>What adding or removing a node does to the data on disk, and when to run <code>cleanup</code></li>
+<li>When Cassandra needs a repair, and when one runs automatically</li>
+<li>Exactly which metrics a Cassandra backup restores</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#what-it-holds">What Cassandra Holds and How It Is Replicated</a></li>
+<li><a href="#size-ceilings">Size Ceilings</a></li>
+<li><a href="#retention">Retention and Resolution</a></li>
+<li><a href="#health-checks">Health Checks</a></li>
+<li><a href="#disk">Disk and Storage Location</a></li>
+<li><a href="#add-remove">Adding and Removing Nodes</a></li>
+<li><a href="#repair">Repair</a></li>
+<li><a href="#backup">Backup — the Cassandra Part</a></li>
+<li><a href="#racks-versions">Rack Awareness and Cassandra Versions</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A self-hosted <strong>Dynatrace Managed</strong> cluster. Nothing in this series applies to Dynatrace SaaS.</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Cluster Management Console (CMC) administrator access; root (or <code>sudo</code>) on the cluster nodes</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong>. Every check is a CMC view, a cluster event, or a node command</td>
+</tr>
+<tr>
+<td><strong>Read first</strong></td>
+<td>DTM-10 (health model) and DTM-11 (node processes and the service start order)</td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 09/28/2026. Cassandra version notes are labeled with the Managed release that introduced them</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<ul>
+<li><strong>Cassandra is the metrics repository.</strong> It keeps three replicas, holds five years of metrics, and runs on every node.</li>
+<li><strong>Keep it under 2 TB per node, and never past 4 TB.</strong> Of the two size events, only the 4 TB one can email you; the 2 TB warning goes to Mission Control and the CMC Events list only. Low free disk is a separate, also <em>Configurable</em> event (<em>&quot;Insufficient disk space on %s on %s.&quot;</em>).</li>
+<li><strong>You can't shrink retention to save space.</strong> Metric retention is five years, with no documented setting, and adaptive data retention never touches metrics. The documented remedies are <em>another node</em> or <em>fewer metrics</em> — and from Managed 1.344, a metric dimension block list is one way to cut what is ingested (§3).</li>
+<li><strong>Healthy means every node shows <code>UN</code> and <code>Load</code> is roughly even</strong> (except just after a scale-out, until <code>cleanup</code> has run). <code>cassandra-nodetool.sh status</code> is the check.</li>
+<li><strong>Adding a node doesn't shrink the others.</strong> Run <code>cleanup</code> on the existing nodes, and only after the last new node has joined.</li>
+<li><strong>A daily backup is not a full copy.</strong> It excludes 1-minute and 5-minute data and the most frequently changing column families (~80% of storage). Plan restores around that.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="what-it-holds"></a></p>
+<h2>2. What Cassandra Holds and How It Is Replicated</h2>
+<p><em>&quot;Data is stored in Metrics repository at DATASTORE_PATH/cassandra. Data is replicated across Managed Cluster nodes. Replication factor is set to three.&quot;</em> The hardware guide says the same thing in sizing terms: <em>&quot;In multi-node installations, Dynatrace Managed stores three copies of the metrics store.&quot;</em></p>
+<p>Besides metrics, the docs name two more things kept in Cassandra:</p>
+<ul>
+<li><strong>Configuration.</strong> The backup docs file configuration under the same store, in a section titled <em>Metrics and configuration storage</em>, and restore it with the Cassandra restore script (§9).</li>
+<li><strong>OneAgent and ActiveGate support archives.</strong> <em>&quot;Dynatrace OneAgent or Dynatrace ActiveGate creates support archives and keeps them in Cassandra, where Dynatrace automatically deletes them after 30 days.&quot;</em></li>
+</ul>
+<p>Some pages call it <em>&quot;Cassandra-based Hypercube storage&quot;</em>. That is the same store under another name, and it uses ports <code>7000</code>, <code>7001</code> and <code>9042</code> between nodes, plus <code>7199</code> for JMX (DTM-11 §8).</p>
+<p><strong>What three replicas buy.</strong> With a replication factor of three, each piece of metrics data lives on three nodes. That is why one node can fail without data loss, and why losing two can make some data unavailable (DTM-10 §4). It is also the reason the docs give for spacing node removals: <em>&quot;it takes up to 24 hours for the long-term metrics replicas to be automatically redistributed on the remaining nodes&quot;</em> (§7.2).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/install-managed-cluster">Install a Managed Cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/cluster-node-ports">Cluster node ports (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/remove-a-cluster-node">Remove a cluster node (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="size-ceilings"></a></p>
+<h2>3. Size Ceilings</h2>
+<p><em>&quot;Keep the Long-term Metrics Store data below 2 TB per node.&quot;</em> and <em>&quot;Dynatrace Managed raises a warning cluster event when the data on a node exceeds 2 TB, and a severe cluster event when it exceeds 4 TB.&quot;</em> Growing past them has a cost beyond disk space: <em>&quot;Persistent storage growth degrades Managed Cluster performance, resilience, and availability, and causes issues when adding nodes.&quot;</em></p>
+<p>The planned Long-term Metrics Store per node, by node size:</p>
+<table>
+<thead>
+<tr>
+<th>Node size</th>
+<th>Metrics store per node</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Micro</td>
+<td>100 GB</td>
+</tr>
+<tr>
+<td>Small</td>
+<td>500 GB</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>1 TB</td>
+</tr>
+<tr>
+<td>Large</td>
+<td>2 TB</td>
+</tr>
+<tr>
+<td>XLarge</td>
+<td>4 TB</td>
+</tr>
+</tbody>
+</table>
+<p>An XLarge node is sized at the supported ceiling from day one, so it has no headroom above it.</p>
+<p><strong>The two events, and who hears them:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Emailed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;Long-term Metrics Store size exceeds recommended 2 TB on %s.&quot;</em></td>
+<td><strong>No</strong> — Mission Control and CMC Events only</td>
+</tr>
+<tr>
+<td><em>&quot;Long-term Metrics Store size exceeds the maximum acceptable 4 TB on %s.&quot;</em></td>
+<td>Configurable (on by default)</td>
+</tr>
+</tbody>
+</table>
+<p>By the time an email arrives, the store is already past the supported limit. Watch for the 2 TB event in CMC Events, or measure the store yourself (§6).</p>
+<p><strong>What to do about it.</strong> The docs give two remedies. The hardware guide: <em>&quot;If you need more storage, add another node to reduce the per-node requirement.&quot;</em> The event description: <em>&quot;you need to review your monitoring settings or add additional nodes to the Managed Cluster.&quot;</em> Adding a node works because the three replicas are spread over more nodes. With more than three nodes, each owns <code>(3 / number_of_nodes) × 100%</code> of the data (§5). Add nodes before the store crosses the ceiling, not after: growth <em>&quot;causes issues when adding nodes&quot;</em>.</p>
+<p><strong>Fewer metrics (Managed 1.344+).</strong> <em>&quot;You can now stop specific metric dimensions from being ingested using the new Metric dimension block list in Settings &gt; Metrics&quot;</em>. The release-notes page (read 11/10/2026) lists 1.344 as supported <em>&quot;Only with Enterprise Success and Support&quot;</em> and 1.346, 1.348 and 1.350 as currently supported; on a cluster older than 1.344 this setting is not there. The release note doesn't say how much it reduces the metrics store, so measure the store before and after (§6).</p>
+<p><strong>Metric limits alerts (Managed 1.350).</strong> Managed 1.350 raises one limit and exposes the alerts on all of them. It <em>&quot;Doubled the overall number of custom metric dimensions that an environment can store in the 30-day sliding window&quot;</em>. And <em>&quot;The Metric limits alerts setting is now available on Dynatrace Managed under Settings &gt; Metrics &gt; Metric limits alerts and via the Settings API under the new schema ID builtin:metric.limits-alerts.&quot;</em> The four rules alert <em>&quot;when your environment's metric or dimension usage approaches the preset platform limits&quot;</em>: dimension tuples for built-in metrics, dimension tuples for custom metrics, the number of custom metrics, and dimension tuples in a single metric. <em>&quot;All four rules are disabled by default.&quot;</em>, and <em>&quot;Enabling alerts consumes metric event quota.&quot;</em> Existing rules carry over: <em>&quot;Existing configurations are automatically migrated to the new schema ID; no manual action is required.&quot;</em> These are per-environment ingest limits, not a measure of the metrics store, so they complement the 2 TB event rather than replace it. Before 1.350, <em>&quot;these alerts were only configurable via the internal schema ID builtin:internal.metric.limits-alerts, which was not exposed in the UI.&quot;</em></p>
+<p><strong>Compression (Managed 1.314+).</strong> Managed 1.314 changed how Cassandra compresses metrics: <em>&quot;the used compression format of timeseries data in Cassandra will be switched from LZ4 to ZSTD&quot;</em>. The saving builds up slowly: <em>&quot;reduction in disk usage will not be instant, but rather will happen gradually over the course of one month&quot;</em>. Any cluster on 1.314 or later already has it, so it is not a lever left to pull.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/add-cluster-node">Add a cluster node (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-314">Managed 1.314 release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-344">Managed 1.344 (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-350">Managed 1.350 (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed">Dynatrace Managed release notes (DT docs)</a> (read 11/10/2026). <strong>Derived:</strong> &quot;add nodes before the ceiling&quot; combines the growth warning with the add-node remedy.</sub></p>
+</blockquote>
+<p><a id="retention"></a></p>
+<h2>4. Retention and Resolution</h2>
+<p>Managed keeps metrics for <strong>5 years</strong>. How finely you can look at them depends on their age. <em>&quot;The following interval granularity levels are available for dashboarding and API access:&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th>Data age</th>
+<th>Finest resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0–14 days</td>
+<td>1 minute</td>
+</tr>
+<tr>
+<td>14–28 days</td>
+<td>5 minutes</td>
+</tr>
+<tr>
+<td>28–400 days</td>
+<td>1 hour</td>
+</tr>
+<tr>
+<td>400 days–5 years</td>
+<td>1 day</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5NZXRyaWMgUmVzb2x1dGlvbiBieSBBZ2Ug4oCUIGFuZCBXaGF0IGEgQmFja3VwIFJlc3RvcmVzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPk1ldHJpY3MgYXJlIGtlcHQgNSB5ZWFyczsgdGhlIGZpbmVyIHRoZSByZXNvbHV0aW9uLCB0aGUgc2hvcnRlciBpdCBsYXN0cyDigJQgYW5kIHRoZSBsZXNzIG9mIGl0IGEgcmVzdG9yZSBicmluZ3MgYmFjazwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMTAwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5EYXRhIGFnZSDihpI8L3RleHQ+CgogIDxyZWN0IHg9IjMwIiB5PSIxMTQiIHdpZHRoPSIxNDAiIGhlaWdodD0iODYiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTAwIiB5PSIxNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjDigJMxNCBkYXlzPC90ZXh0PgogIDx0ZXh0IHg9IjEwMCIgeT0iMTY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIj4xIG1pbnV0ZTwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjE4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cXVlcnkgcmVzb2x1dGlvbjwvdGV4dD4KICA8cmVjdCB4PSIxOTAiIHk9IjExNCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI4NiIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIyNjAiIHk9IjE0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+MTTigJMyOCBkYXlzPC90ZXh0PgogIDx0ZXh0IHg9IjI2MCIgeT0iMTY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIj41IG1pbnV0ZXM8L3RleHQ+CiAgPHRleHQgeD0iMjYwIiB5PSIxODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnF1ZXJ5IHJlc29sdXRpb248L3RleHQ+CiAgPHJlY3QgeD0iMzUwIiB5PSIxMTQiIHdpZHRoPSIyNDAiIGhlaWdodD0iODYiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDcwIiB5PSIxNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjI44oCTNDAwIGRheXM8L3RleHQ+CiAgPHRleHQgeD0iNDcwIiB5PSIxNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiPjEgaG91cjwvdGV4dD4KICA8dGV4dCB4PSI0NzAiIHk9IjE4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cXVlcnkgcmVzb2x1dGlvbjwvdGV4dD4KICA8cmVjdCB4PSI2MTAiIHk9IjExNCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI4NiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NTAiIHk9IjE0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+NDAwIGRheXMg4oCTIDUgeWVhcnM8L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSIxNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiPjEgZGF5PC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iMTg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5xdWVyeSByZXNvbHV0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIyMzYiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPkluIHRoZSBkYWlseSBDYXNzYW5kcmEgYmFja3VwPzwvdGV4dD4KICA8cmVjdCB4PSIzMCIgeT0iMjUwIiB3aWR0aD0iMzEwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTg1IiB5PSIyNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vIOKAlCBleGNsdWRlZDwvdGV4dD4KICA8dGV4dCB4PSIxODUiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+MS1taW51dGUgYW5kIDUtbWludXRlIHJlc29sdXRpb24gZGF0YTwvdGV4dD4KICA8cmVjdCB4PSIzNTAiIHk9IjI1MCIgd2lkdGg9IjU1MCIgaGVpZ2h0PSI3MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9IjYyNSIgeT0iMjc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5QYXJ0bHk8L3RleHQ+CiAgPHRleHQgeD0iNjI1IiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRoZSBtb3N0IGZyZXF1ZW50bHkgY2hhbmdpbmcgY29sdW1uIGZhbWlsaWVzICh+ODAlIG9mIHN0b3JhZ2UpIGFyZSBleGNsdWRlZCBhcyB3ZWxsPC90ZXh0PgoKICA8dGV4dCB4PSIzMCIgeT0iMzU4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5XaGF0IHRoYXQgbWVhbnM8L3RleHQ+CiAgPHJlY3QgeD0iMzAiIHk9IjM3MiIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI4NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9IjE3MCIgeT0iMzk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BZnRlciBhIHJlc3RvcmU8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSI0MTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRoZSAxLW1pbnV0ZSBhbmQgNS1taW51dGUgZGV0YWlsPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iNDM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5vZiB0aGUgbGFzdCAyOCBkYXlzIGlzIG5vdCByZXN0b3JlZDwvdGV4dD4KICA8cmVjdCB4PSIzMjUiIHk9IjM3MiIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI4NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5ObyByZXRlbnRpb24ga25vYjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+NS15ZWFyIG1ldHJpYyByZXRlbnRpb24gaGFzIG5vIGRvY3VtZW50ZWQ8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0MzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnNldHRpbmc7IGFkYXB0aXZlIHJldGVudGlvbiBza2lwcyBtZXRyaWNzPC90ZXh0PgogIDxyZWN0IHg9IjYyMCIgeT0iMzcyIiB3aWR0aD0iMjgwIiBoZWlnaHQ9Ijg0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzYwIiB5PSIzOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkdyb3d0aCBpcyBtYW5hZ2VkIGJ5IG5vZGVzPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iNDE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50aGUgZG9jdW1lbnRlZCByZW1lZHkgZm9yIGEgbGFyZ2Ugc3RvcmU8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSI0MzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmlzIGFub3RoZXIgbm9kZSwgb3IgZmV3ZXIgbWV0cmljczwvdGV4dD4KCiAgPGxpbmUgeDE9IjQwIiB5MT0iNDc0IiB4Mj0iODkwIiB5Mj0iNDc0IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5UaWVyIHdpZHRocyBhcmUgbm90IHRvIHNjYWxlLiBTb3VyY2U6IERhdGEgcmV0ZW50aW9uIHBlcmlvZHM7IEJhY2t1cCBhbmQgcmVzdG9yZSBhIGNsdXN0ZXI7IEhhcmR3YXJlIHJlcXVpcmVtZW50cyAoRFQgZG9jcywgcmVhZCAwOS8yOC8yMDI2KTwvdGV4dD4KPC9zdmc+Cg==" alt="Metric Resolution by Age — and What a Backup Restores" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Data age | Resolution | In the daily Cassandra backup? |
+|----------|------------|--------------------------------|
+| 0–14 days | 1 minute | No — 1-minute data excluded |
+| 14–28 days | 5 minutes | No — 5-minute data excluded |
+| 28–400 days | 1 hour | Partly — most frequently changing column families (~80% of storage) excluded |
+| 400 days–5 years | 1 day | Partly — same exclusion |
+Retention is 5 years with no documented setting; adaptive data retention does not cover metrics.
+For environments where SVG doesn't render
+-->
+<p><strong>Retention is not a size lever.</strong> Other rows on the retention page say <em>Configurable</em>; the metrics row doesn't, and no metric-retention setting is documented. Adaptive data retention, which shortens retention automatically when the disk is full or an environment exceeds its storage quota, applies only to <em>&quot;transaction storage, Session Replay storage, and Log Monitoring data&quot;</em>. For metrics, disk pressure has to be solved with nodes or with fewer metrics (§3), not with a shorter look-back.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/adaptive-data-retention">Adaptive data retention (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>. <strong>Observed 09/28/2026:</strong> the retention page's Metrics row reads <em>5 years</em> where other rows read <em>Configurable</em>, and no metric-retention setting appears in the 140 pages under <code>/managed/managed-cluster/</code> and <code>/managed/dynatrace-api/cluster-api/</code>.</sub></p>
+</blockquote>
+<p><a id="health-checks"></a></p>
+<h2>5. Health Checks</h2>
+<h3>5.1 <code>cassandra-nodetool.sh status</code></h3>
+<p>The single check the docs rely on, from any node:</p>
+<pre><code class="language-bash">sudo /opt/dynatrace-managed/utils/cassandra-nodetool.sh status
+</code></pre>
+<p>Its output starts with a legend and one line per node, as in the docs' example:</p>
+<pre><code class="language-text">Status=Up/Down |/ State=Normal/Leaving/Joining/Moving
+--  Address   Load        Tokens  Owns (effective)  Host ID   Rack
+UN  1.6.1.6   349.88 GiB  256     100.0%            aaaa...   rack1
+UJ  1.6.3.9   278.75 GiB  256     ?                 qqqq...   rack1
+</code></pre>
+<p>How to read it:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Healthy looks like</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>First two letters</td>
+<td><code>UN</code>: Up and Normal. <em>&quot;Make sure that all nodes display UN before proceeding to the next step.&quot;</em> <code>UJ</code> means joining: <em>&quot;Where UJ marks the node as joining.&quot;</em></td>
+</tr>
+<tr>
+<td><code>Load</code></td>
+<td>Roughly even across nodes. <em>&quot;The Load value shouldn't differ significantly between the nodes, and Status should display UN on all nodes.&quot;</em></td>
+</tr>
+<tr>
+<td><code>Owns (effective)</code></td>
+<td><code>100.0%</code> on clusters of up to three nodes. Above that, *&quot;the percentage is calculated as follows: (3/number_of_nodes)<em>100%&quot;</em>. On rack-aware clusters, <em>&quot;In a multi-rack setup, the formula for the Owns (effective) column changes to (100 / number_of_nodes)%.&quot;</em> Small differences are expected: unequal values <em>&quot;such as 75.1% instead of 75.0%&quot;</em> are <em>&quot;normal&quot;</em>. <em>&quot;While a node joins, the Owns (effective) column shows a question mark ( ? ).&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>Anything other than <code>UN</code> on a node that isn't deliberately joining or leaving is a problem. So is one node carrying far more <code>Load</code> than the rest — unless a node was added recently and <code>cleanup</code> hasn't run yet: after a node joins, <code>Load</code> <em>&quot;isn't automatically reduced&quot;</em> on the existing nodes (§7.1).</p>
+<h3>5.2 Cassandra events</h3>
+<p>None of these email you. They appear in CMC Events and Mission Control only:</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;Cassandra node connection lost ( %d times in the last hour).&quot;</em></td>
+<td>WARNING</td>
+</tr>
+<tr>
+<td><em>&quot;Cassandra backup problem.&quot;</em></td>
+<td>SEVERE</td>
+</tr>
+<tr>
+<td><em>&quot;Internal: Cassandra has old files.&quot;</em></td>
+<td>INFO</td>
+</tr>
+</tbody>
+</table>
+<p>The Cassandra <em>process</em> is covered by DTM-11: <code>dynatrace-cassandra.service</code> in <code>dynatrace.sh status</code>, port <code>9042</code> in <code>dynatrace.sh check</code>, and the generic <em>&quot;<component name> is down.&quot;</em> event. Mission Control also receives Cassandra details in the cluster heartbeat, including <em>&quot;Cassandra version, Cassandra data files, Cassandra partitions&quot;</em>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/add-cluster-node">Add a cluster node (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-cluster">Start/stop/restart a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/migrate-a-cluster">Migrate a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-data-exchange">Mission Control data exchange (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="disk"></a></p>
+<h2>6. Disk and Storage Location</h2>
+<p><strong>Where it lives.</strong> By default, <code>/var/opt/dynatrace-managed/cassandra</code>, set at install time with <code>--cas-datastore-dir</code> (<em>&quot;Full path to the Dynatrace metrics repository directory&quot;</em>). The storage-location table asks for <strong>25 GB</strong> free on that path to install and <strong>1 GB</strong> to upgrade. That is only the minimum to install; plan capacity from the size table in §3.</p>
+<p><strong>How big it is now.</strong> The docs use plain <code>du</code> to measure it:</p>
+<pre><code class="language-bash">du -sh /var/opt/dynatrace-managed/cassandra/
+</code></pre>
+<p>Run it on each node and compare against the 2 TB line. That catches growth before the non-emailed 2 TB event does.</p>
+<p><strong>Leave room for compaction.</strong> A Dynatrace community KB article explains why the disk needs headroom beyond the store itself: the metrics store can undergo compaction phases, during which it can grow to twice its size, and when free space runs short transaction storage is deleted first to make room (<a href="https://community.dynatrace.com/t/why-is-my-reserve-disk-space-in-managed-node-is-getting-consumed-although-there-is-enough-cassandra-storage/38445">reserve disk space consumed (Dynatrace community)</a>, 2023). In community practice, that is the reason to keep well clear of a full disk even when the store is under its ceiling — verify the margin against your own compaction peaks.</p>
+<p><strong>Layout rules:</strong></p>
+<ul>
+<li>
+<p>Keep partitions equal: <em>&quot;Use the same partition size on all Cluster nodes.&quot;</em> An undersized node is shut down (DTM-10 §3).</p>
+</li>
+<li>
+<p>Give Cassandra its own volume. The rack-awareness guide says so directly: <em>&quot;Keep Cassandra data on a separate volume to avoid disk space issues caused by other data types.&quot;</em></p>
+</li>
+<li>
+<p>Don't nest stores: <em>&quot;Keep in mind that you cannot nest datastores within each other. For example, Cassandra storage cannot be a subdirectory of session storage.&quot;</em></p>
+</li>
+<li>
+<p>No network file systems for live data: <em>&quot;High-latency remote volumes such as NFS or CIFS are not supported for primary storage; NFS is sufficient for backups only.&quot;</em></p>
+</li>
+</ul>
+<p><strong>Growing it in place first.</strong> The storage-location page also documents <em>&quot;Extend the size of the storage volume&quot;</em>. If the volume can grow, that is less risky than moving the store.</p>
+<p><strong>Moving it.</strong> The documented procedure, per node. The page doesn't say to do one node at a time; do so anyway (DTM-11 §5):</p>
+<ol start="0">
+<li>Back up first: <em>&quot;Back up your data. An error in this procedure can result in data loss. Back up all the storage files to a safe location before you proceed and, if possible, run this procedure on a test deployment first.&quot;</em></li>
+<li>Stop the node: <code>sudo /opt/dynatrace-managed/launcher/dynatrace.sh stop</code></li>
+<li>Copy the data, keeping permissions: <code>cp -pR /old_location/cassandra/* /new_location/cassandra</code></li>
+<li>Fix ownership: <code>chown -R dynatrace:dynatrace /new_location</code></li>
+<li>Point <code>CASSANDRA_DATASTORE_PATH</code> at the new location in <code>/etc/dynatrace.conf</code>. The new path <em>&quot;It must be a directory, and it cannot be a symlink.&quot;</em></li>
+<li>Apply it: <code>nohup &lt;PRODUCT_PATH&gt;/installer/reconfigure.sh --no-start &amp;</code></li>
+<li>Start the node: <code>sudo /opt/dynatrace-managed/launcher/dynatrace.sh start</code></li>
+<li><em>&quot;Check the logs to make sure all services started without issues.&quot;</em></li>
+</ol>
+<p>Stopping one node with <code>dynatrace.sh</code> matches the documented single-node maintenance pattern (DTM-11 §5.1). Confirm every other node is <code>UN</code> before you start.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/change-storage-location">Change storage location (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-cluster-installation-parameters">Managed Cluster installation parameters (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size">Estimating cluster backup size (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/rack-aware-replication">Rack awareness — replication (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="add-remove"></a></p>
+<h2>7. Adding and Removing Nodes</h2>
+<h3>7.1 Adding a node</h3>
+<p>A new node streams its share of the data from the others. <em>&quot;Full data synchronization can take a couple of hours.&quot;</em> During that time it shows as <code>UJ</code>, and <em>&quot;You can't add more Cluster nodes until synchronization completes.&quot;</em></p>
+<p>The existing nodes don't shrink by themselves. <em>&quot;Cassandra doesn't automatically balance the data on disk in the entire cluster after a node is added.&quot;</em> And <em>&quot;Data on disk ( Load ) isn't automatically reduced on the Cluster nodes.&quot;</em> To reclaim that space, run <code>cleanup</code> on each existing node. It's a node-local operation, and it's slow: <em>&quot;The cleanup can run for several hours, because Cassandra needs to rewrite all data on the local disk.&quot;</em>.</p>
+<pre><code class="language-bash">sudo /opt/dynatrace-managed/utils/cassandra-nodetool.sh cleanup
+</code></pre>
+<p>Time it right. The docs say <em>&quot;To avoid rewriting the data several times, run the cleanup only after you add all the nodes you plan to add.&quot;</em> For a scale-out from three to six nodes, that means running it once the sixth node has joined, on the five nodes that were there before it.</p>
+<p><strong>Why this matters for health.</strong> If the store is near its ceiling, adding a node relieves nothing until <code>cleanup</code> has run. Budget the hours for it as part of the scale-out.</p>
+<h3>7.2 Removing a node</h3>
+<p><em>&quot;Remove no more than one node at a time. To avoid data loss, allow 24 hours before removing any subsequent nodes. This is because it takes up to 24 hours for the long-term metrics replicas to be automatically redistributed on the remaining nodes.&quot;</em> The survivors grow to absorb the removed node's share, so check that they have the disk for it before you start. Two further waits apply: before removing a node, <em>&quot;it's recommended that you wait for at least the duration of the transaction storage data retention period (up to 35 days)&quot;</em>; afterwards, <em>&quot;you must wait 72 hours before installing a new node on a host that shares the same IP&quot;</em>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/add-cluster-node">Add a cluster node (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/remove-a-cluster-node">Remove a cluster node (DT docs)</a>. <strong>Derived:</strong> &quot;survivors grow&quot; and &quot;nothing is relieved until cleanup&quot; follow from the redistribution and no-automatic-rebalance statements.</sub></p>
+</blockquote>
+<p><a id="repair"></a></p>
+<h2>8. Repair</h2>
+<p>A repair makes the replicas consistent with each other again, for example after a node has been down or data has been restored.</p>
+<p><strong>Manual repair.</strong> The backup-and-restore procedure has it as an optional step: <em>&quot;You can run the repair only on clusters with more than one node.&quot;</em> Run it on one node after another, never in parallel:</p>
+<pre><code class="language-bash">sudo /opt/dynatrace-managed/utils/repair-cassandra-data.sh
+</code></pre>
+<p><em>&quot;The repair ensures data consistency between the nodes. This step might take several hours to complete.&quot;</em> Since Managed 1.318, a manual repair is gentler on the cluster: <em>&quot;When a Cassandra repair operation is executed manually for some reason, we now run it table by table in order to avoid causing too much overhead on the overall cluster.&quot;</em></p>
+<p><strong>Automatic repair — multi-data-center clusters only.</strong> On Premium High Availability clusters, <em>&quot;If Cassandra was down for three hours or more, Nodekeepers also run Cassandra repairs, one by one, on all nodes in the unhealthy DC.&quot;</em> The same page's FAQ narrows that: <em>&quot;Dynatrace repairs only the nodes that were down.&quot;</em> (a conflict, recorded in §11). It gets one attempt: <em>&quot;The repair process runs only once, even if it fails. You should manually run the repair process on nodes where it automatically triggered repair failure.&quot;</em> The logs to check are <code>nodekeeper.0.0.log</code>, <code>nodekeeper-healthcheck.0.log</code> and <code>repair-cassandra-data.log</code>. Automatic recovery covers <em>&quot;outages longer than 15 minutes and shorter than 72 hours&quot;</em>; after that, the cluster <em>&quot;will be marked in Mission Control as not repaired in 72 hours from the failover&quot;</em> and has to be replicated from a healthy data center (DTM-16 §7.3).</p>
+<p><strong>Single data center.</strong> No automatic repair is documented for a single data center (observed 09/28/2026). In community practice, a manual repair is planned once a node that has been down for an extended period is back and <code>UN</code> — confirm with Dynatrace support first.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/failover">Multi-data center failover (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-318">Managed 1.318 release notes (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="backup"></a></p>
+<h2>9. Backup — the Cassandra Part</h2>
+<p>DTM-16 covers backup and disaster recovery as a whole. This section covers what matters specifically about the metrics store.</p>
+<p><strong>What's in it.</strong> <em>&quot;The snapshot is performed daily.&quot;</em> It is not a full copy: <em>&quot;Dynatrace excludes the most frequently changing column families (excluded column families comprise about 80% of total storage) in addition to 1-minute and 5-minute resolution data.&quot;</em> It also stores every replica: <em>&quot;Any data that's replicated between nodes is also stored in the backup (there is no deduplication).&quot;</em> So the 1-minute and 5-minute history (up to 28 days, §4) is not restored, and neither is the excluded ~80% of storage — the docs don't name which data those column families hold. What comes back is configuration and part of the longer-term metrics, from up to a day ago: <em>&quot;your Managed Cluster restore point is the most recently performed backup, which can set your data back by up to 24 hours.&quot;</em></p>
+<p><strong>How much space.</strong> Size the metrics backup from the store itself: <em>&quot;Typically, it's 20% of the sum of the metrics storage on all nodes.&quot;</em> The previous backup is kept until the next one finishes (<em>&quot;Dynatrace keeps the previous backup until a new one is completed.&quot;</em>), so <em>&quot;Double the estimated space you need for metrics storage backup.&quot;</em> A configuration-only backup (<em>&quot;Exclude time series metric data from the backup if your historical data isn't relevant and you only want to retain configuration data.&quot;</em>) <em>&quot;Takes up to 10% of metrics storage instead of 20%&quot;</em>.</p>
+<p><strong>Where it goes.</strong> Backups need a shared file system, and <em>&quot;the shared file system needs to be mounted at the same shared directory on each node.&quot;</em> A missing mount is a node-health problem: <em>&quot;If the shared file system mount point isn't available on system boot, Dynatrace won't start on that node.&quot;</em></p>
+<p><strong>When it fails.</strong> <em>&quot;Cassandra backup problem.&quot;</em> is SEVERE, but <strong>not emailed</strong>. Check CMC <strong>Home</strong>, which shows the last backup's date, and CMC Events.</p>
+<p><strong>Restoring.</strong> Cassandra is restored node by node, starting with the seed node, from each node's archive:</p>
+<pre><code class="language-bash">sudo /opt/dynatrace-managed/utils/restore-cassandra-data.sh &lt;path-to-backup&gt;/&lt;UUID&gt;/node_&lt;node-id&gt;/files/&lt;backup-version-number&gt;/backup-001.tar
+</code></pre>
+<p>Then wait for every node to show <em>Status = Up / State = Normal</em> in <code>cassandra-nodetool.sh status</code>, and optionally run the repair (§8).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size">Estimating cluster backup size (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/operation/migrate-a-cluster">Migrate a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a></sub></li>
+<li><sub><strong>Derived:</strong> &quot;the 1-/5-minute history is not restored&quot; applies the backup exclusion to the resolution tiers in §4</sub></li>
+</ul>
+</blockquote>
+<p><a id="racks-versions"></a></p>
+<h2>10. Rack Awareness and Cassandra Versions</h2>
+<h3>10.1 Rack awareness</h3>
+<p><em>&quot;Rack awareness ensures that no replica is stored redundantly inside a single rack, so replicas are spread across all racks.&quot;</em> It exists for Cassandra's sake, and its requirements follow from the replication factor: <em>&quot;The final number of racks is three, corresponding to the replication factor of Dynatrace data storage.&quot;</em> <em>&quot;Each rack holds at least three nodes. Dynatrace doesn't enforce this&quot;</em>. Racks must also be in the same low-latency network.</p>
+<p>Converting an existing cluster is a large Cassandra operation:</p>
+<ul>
+<li><em>&quot;Rack-aware conversion using restore suits a metric storage (Cassandra database) per node of more than 1 TB.&quot;</em></li>
+<li>The replication method needs room: <em>&quot;The disk size should be at least double the combined Cassandra storage of all existing nodes.&quot;</em> It also takes time: <em>&quot;Cassandra bootstrapping can take several days.&quot;</em></li>
+<li><em>&quot;Run the reconfigure.sh script sequentially, because it triggers process restarts and there's a risk of Cassandra database downtime if it's run on multiple nodes in parallel.&quot;</em></li>
+</ul>
+<h3>10.2 Which Cassandra you are running</h3>
+<p>Cassandra is upgraded as part of normal Managed updates, so your Cassandra version follows your Managed version:</p>
+<table>
+<thead>
+<tr>
+<th>Managed release</th>
+<th>Cassandra</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.338</td>
+<td>4.1.11</td>
+</tr>
+<tr>
+<td>1.344 and 1.346</td>
+<td>4.1.12 — <em>&quot;The Cassandra nodes are upgraded to version 4.1.12, delivering critical bug and security fixes.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>In both cases <em>&quot;No manual user intervention or downtime is required&quot;</em>: the upgrade happens through rolling updates. Keeping Managed within its supported releases (DTM-16) is how you keep Cassandra patched.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/rack-awareness">Rack awareness (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/rack-aware-replication">Rack awareness — replication (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-338">Managed 1.338 (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-344">Managed 1.344 (DT docs)</a> release notes.</sub></p>
+</blockquote>
+<p><a id="doc-gaps"></a></p>
+<h2>11. What the Documentation Does Not Say</h2>
+<p>Searched for in the Managed documentation on 09/28/2026 and <strong>not found</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Working assumption in this notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What to do about status codes other than <code>UN</code> and <code>UJ</code> — the printed <code>nodetool</code> legend (<em>Status=Up/Down</em>, <em>State=Normal/Leaving/Joining/Moving</em>) names them, but no page explains them</td>
+<td>Treat anything that isn't <code>UN</code> as unhealthy unless it's a planned join or removal</td>
+</tr>
+<tr>
+<td>A <code>dsfm:</code> self-monitoring metric for Cassandra or the metrics store</td>
+<td>Measure with <code>du</code> and <code>nodetool</code> on the node (§5, §6)</td>
+</tr>
+<tr>
+<td>A setting for metric retention</td>
+<td>Retention is not a size lever (§4)</td>
+</tr>
+<tr>
+<td>Which data the excluded column families (~80% of storage) hold</td>
+<td>Assume part of the longer-term metrics is not restored (§9)</td>
+</tr>
+<tr>
+<td>A procedure for recovering Cassandra on a single failed node</td>
+<td>Replace the node, then run a manual repair (§8)</td>
+</tr>
+<tr>
+<td>An explicit statement in the docs that configuration lives in Cassandra</td>
+<td>Inferred from the backup docs' <em>Metrics and configuration storage</em> section (§2); a Dynatrace product manager's 2019 forum answer says the same (<a href="https://community.dynatrace.com/t/what-are-the-different-type-of-data/21768">what are the different type of data (Dynatrace community)</a>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A conflict on one page.</strong> The multi-data-center failover page says automatic repair runs <em>&quot;on all nodes in the unhealthy DC&quot;</em>, and in its FAQ that <em>&quot;Dynatrace repairs only the nodes that were down.&quot;</em> Check the repair logs on every node of the failed data center.</p>
+<p><strong>A naming oddity.</strong> The restore procedure's configuration-only option runs <code>repair-cassandra-data.sh 1</code>, not <code>restore-cassandra-data.sh</code>. It is quoted exactly as the docs print it. Confirm with Dynatrace support before relying on it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/add-cluster-node">Add a cluster node (DT docs)</a>. <strong>Observed 09/28/2026:</strong> none of the first five gaps is filled in the 140 pages under <code>/managed/managed-cluster/</code> and <code>/managed/dynatrace-api/cluster-api/</code>, the 23 Managed release-note pages linked from the release-notes index and the data-privacy pages (crawled and searched for <code>nodetool</code> status codes, <code>dsfm:</code> keys, metric-retention settings and Cassandra recovery procedures). The rest of <code>/managed/</code> was not searched.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>12. Recommended Approach</h2>
+<ol>
+<li><strong>Measure the store weekly on every node</strong> with <code>du -sh /var/opt/dynatrace-managed/cassandra/</code>. Trend it against the 2 TB line, since the 2 TB event never emails.</li>
+<li><strong>Check <code>cassandra-nodetool.sh status</code> as part of every node check.</strong> Every node <code>UN</code>, and <code>Load</code> roughly even (except after a scale-out, until <code>cleanup</code> has run).</li>
+<li><strong>Scale out before 2 TB, not after 4 TB.</strong> Budget the synchronization time, the one-node-at-a-time rule, and the <code>cleanup</code> hours after the last node joins.</li>
+<li><strong>Keep Cassandra on its own local volume</strong>, never NFS, with room for growth.</li>
+<li><strong>Know what a restore gives back.</strong> It returns configuration and part of the longer-term metrics from up to a day ago, and none of the last 28 days' 1-minute and 5-minute data. Size the backup target at twice 20% of the total store.</li>
+<li><strong>Plan a manual repair after any extended node outage</strong> on a single-DC cluster. Nothing runs one for you.</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>13. Summary and Next Steps</h2>
+<p>Cassandra is the cluster's metrics repository: three replicas, five years of data, one instance per node. It stays healthy when every node is <code>UN</code> with even load, when it stays under 2 TB per node, and when it gets the nodes it needs before it gets there. Retention can't be turned down to save space, a new node relieves nothing until <code>cleanup</code> runs, and the daily backup restores configuration and part of the longer-term metrics — not recent high-resolution data, and not the ~80% of storage it excludes.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Layer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-13: Elasticsearch Store Health</td>
+<td>2 — Storage</td>
+</tr>
+<tr>
+<td>DTM-15: Capacity and Scaling</td>
+<td>3 — Capacity (node sizing and scale-out)</td>
+</tr>
+<tr>
+<td>DTM-16: Backup, Upgrade, and Disaster Recovery</td>
+<td>5 — Lifecycle (full backup and restore)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

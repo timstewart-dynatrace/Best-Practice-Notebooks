@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2D-06: ArrayMovingSum for Extended Timeframes</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2D — Splunk to Dynatrace Migration</a><span class="sep">/</span><span aria-current="page">S2D-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2D-06: ArrayMovingSum for Extended Timeframes</h1>
+<blockquote>
+<p><strong>Series:</strong> S2D — Splunk to Dynatrace Migration | <strong>Notebook:</strong> 6 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/02/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Anomaly Detectors have a maximum sliding window of 60 minutes. For alerts that need to evaluate longer timeframes while still using continuous monitoring, the <code>arrayMovingSum</code> function provides a solution.</p>
+<p>This notebook explains how to use <code>arrayMovingSum</code> to create rolling aggregations that can be used with Anomaly Detectors.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#the-problem">The Problem</a></li>
+<li><a href="#how-arraymovingsum-works">How ArrayMovingSum Works</a></li>
+<li><a href="#basic-example">Basic Example</a></li>
+<li><a href="#limitations">Limitations</a></li>
+<li><a href="#using-with-davis-anomaly-detectors">Using with Anomaly Detectors</a></li>
+<li><a href="#dashboardreport-example-longer-timeframes">Dashboard/Report Example (Longer Timeframes)</a></li>
+<li><a href="#other-array-functions">Other Array Functions</a></li>
+<li><a href="#when-arraymovingsum-isnt-enough">When ArrayMovingSum Isn't Enough</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:buckets:read</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Basic DQL and array functions</td>
+</tr>
+</tbody>
+</table>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will be able to:</p>
+<ol>
+<li>Understand the <code>arrayMovingSum</code> function</li>
+<li>Create rolling sum queries for extended timeframes</li>
+<li>Apply this pattern to Anomaly Detectors</li>
+<li>Recognize limitations and alternatives</li>
+</ol>
+<p><a id="the-problem"></a></p>
+<h2>The Problem</h2>
+<p>Many Splunk alerts evaluate over timeframes longer than 1 hour:</p>
+<ul>
+<li>&quot;Alert if more than 500 errors in the last 4 hours&quot;</li>
+<li>&quot;Alert if average response time exceeds 2s over the past 2 hours&quot;</li>
+</ul>
+<p>Anomaly Detectors have a <strong>maximum sliding window of 60 minutes</strong>.</p>
+<h3>The Solution: ArrayMovingSum</h3>
+<p>The <code>arrayMovingSum</code> function calculates a rolling sum across timeseries data points, allowing you to aggregate values over longer periods while maintaining 1-minute granularity.</p>
+<p><a id="how-arraymovingsum-works"></a></p>
+<h2>How ArrayMovingSum Works</h2>
+<pre><code>arrayMovingSum(array, window)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>array</code></td>
+<td>The timeseries array to aggregate</td>
+</tr>
+<tr>
+<td><code>window</code></td>
+<td>Number of data points to sum</td>
+</tr>
+</tbody>
+</table>
+<h3>Timeframe Calculation</h3>
+<p>The effective timeframe depends on:</p>
+<ul>
+<li><strong>Interval</strong>: The timeseries interval (e.g., 1m)</li>
+<li><strong>Window</strong>: The number of points to sum</li>
+</ul>
+<pre><code>Effective Timeframe = Interval × Window
+</code></pre>
+<p><strong>Example:</strong> <code>interval:1m</code> with <code>window:60</code> = 60-minute rolling sum</p>
+<p><a id="basic-example"></a></p>
+<h2>Basic Example</h2>
+<p>Create a 60-minute rolling sum of error logs:</p>
+<pre><code class="language-dql">// 60-minute rolling sum of error logs
+fetch logs, from:-24h
+| filter status == &quot;ERROR&quot;
+| makeTimeseries error_count = count(), interval:1m
+| fieldsAdd error_count_last_1h = arrayMovingSum(error_count, 60)
+| fieldsRemove error_count
+</code></pre>
+<h3>Understanding the Output</h3>
+<p>Each data point in <code>error_count_last_1h</code> represents the <strong>sum of errors in the preceding 60 minutes</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>error_count (per minute)</th>
+<th>error_count_last_1h (rolling 60m)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10:00</td>
+<td>5</td>
+<td>120 (sum of 9:01-10:00)</td>
+</tr>
+<tr>
+<td>10:01</td>
+<td>3</td>
+<td>118 (sum of 9:02-10:01)</td>
+</tr>
+<tr>
+<td>10:02</td>
+<td>8</td>
+<td>123 (sum of 9:03-10:02)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="limitations"></a></p>
+<h2>Limitations</h2>
+<h3>Maximum Window Size: 60</h3>
+<p>The <code>arrayMovingSum</code> window parameter has a <strong>maximum value of 60</strong>.</p>
+<p>With a 1-minute interval, this means:</p>
+<ul>
+<li><strong>Maximum effective timeframe: 60 minutes</strong></li>
+</ul>
+<h3>Increasing the Interval?</h3>
+<p>You could increase the interval to extend the timeframe:</p>
+<table>
+<thead>
+<tr>
+<th>Interval</th>
+<th>Window</th>
+<th>Effective Timeframe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1m</td>
+<td>60</td>
+<td>60 minutes</td>
+</tr>
+<tr>
+<td>5m</td>
+<td>60</td>
+<td>300 minutes (5 hours)</td>
+</tr>
+<tr>
+<td>10m</td>
+<td>60</td>
+<td>600 minutes (10 hours)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Intervals snap to supported values.</strong> <code>makeTimeseries</code> silently coarsens an interval it does not support: <code>interval:4m</code> returns 5-minute points, and <code>interval:1m</code> over 7 days returns 10-minute points, with no warning. Read the returned <code>interval</code> field before you multiply it by the window.</p>
+<p><strong>However:</strong> Anomaly Detectors require a <strong>1-minute interval</strong>, so this workaround only applies to dashboards and reports, not continuous alerting.</p>
+<p><a id="using-with-davis-anomaly-detectors"></a></p>
+<h2>Using with Anomaly Detectors</h2>
+<p>For Anomaly Detectors, you must use <code>interval:1m</code> and <code>window:60</code>.</p>
+<p><strong>Custom-alert query</strong> (no <code>from:</code>/<code>to:</code>, per S2D-04 Step 1):</p>
+<pre><code class="language-dql">// Paste into the custom alert WITHOUT from:/to:
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
+fetch logs
+| filter status == &quot;ERROR&quot;
+| filter matchesPhrase(k8s.deployment.name, &quot;checkout-service&quot;)
+| makeTimeseries error_count = count(), by:{dt.entity.cloud_application}, interval:1m
+| fieldsAdd error_count_1h = arrayMovingSum(error_count, 60)
+| fieldsRemove error_count
+</code></pre>
+<p>Notebook preview of the same query:</p>
+<pre><code class="language-dql">// Notebook PREVIEW of the custom-alert query above (60-minute rolling sum)
+// Remove from:-24h when you paste it into the custom alert
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
+fetch logs, from:-24h
+| filter status == &quot;ERROR&quot;
+| filter matchesPhrase(k8s.deployment.name, &quot;checkout-service&quot;)
+| makeTimeseries error_count = count(), by:{dt.entity.cloud_application}, interval:1m
+| fieldsAdd error_count_1h = arrayMovingSum(error_count, 60)
+| fieldsRemove error_count
+</code></pre>
+<h3>Configuring the Detector</h3>
+<p>When creating the Anomaly Detector:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Threshold</strong></td>
+<td>Total errors in 60 minutes</td>
+<td>e.g., 100</td>
+</tr>
+<tr>
+<td><strong>Sliding Window</strong></td>
+<td>60 minutes (the maximum)</td>
+<td>The query only sees the data its sliding window fetches (see below)</td>
+</tr>
+<tr>
+<td><strong>Violating Samples</strong></td>
+<td>1</td>
+<td>A sample above the threshold already means that many errors fell inside 60 minutes</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Why not a 1-minute sliding window.</strong> The configuration page says the sliding window <em>&quot;defines how many one-minute samples must violate the threshold&quot;</em>, and the DQL writing guide says <em>&quot;The custom alert retrieves data from Grail based on predefined sliding windows.&quot;</em> <code>arrayMovingSum</code> can only add up the points the query returns. With a 1-minute window the query gets about one minute of data, so each &quot;60-minute&quot; sample is really a 1-minute count compared against a 60-minute threshold, and the alert would rarely fire.</p>
+<p><strong>The first 59 points are partial sums.</strong> In any query window, point <em>n</em> of <code>arrayMovingSum(…, 60)</code> adds up only the points up to it. Measured on a validation tenant on 10/14/2026: over <code>from:-60m</code> the series had 61 points, the first was 1,868 (one minute of errors) and the last 116,116 (the 60-minute sum); over <code>from:-1m</code> the &quot;rolling sum&quot; was 966, a single minute. Preview the query above with <code>from:-60m</code> to see what one evaluation receives.</p>
+<p><strong>Not tested on a live custom alert.</strong> These settings are derived from the two quoted pages and the measurements, not from a configured detector. Confirm them on a non-production custom alert before relying on them. A 60-minute sliding window is also the most a detector can evaluate, so this recipe cannot cover a longer lookback; for that, see S2D-05.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration">Anomaly detection configuration (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-best-practice">Anomaly Detection DQL writing guide (DT docs)</a>. <strong>Derived:</strong> the 60-minute sliding window combines the sliding-window definition and the data-retrieval sentence with the measured partial sums.</sub></p>
+</blockquote>
+<p><a id="dashboardreport-example-longer-timeframes"></a></p>
+<h2>Dashboard/Report Example (Longer Timeframes)</h2>
+<p>For dashboards and reports (not Anomaly Detectors), you can use longer intervals:</p>
+<pre><code class="language-dql">// 4-hour rolling sum for dashboard visualization
+// 5-minute interval x 48 points = 240 minutes (4 hours)
+// Intervals snap to supported values - check the returned `interval` field
+fetch logs, from:now()-24h
+| filter status == &quot;ERROR&quot;
+| makeTimeseries error_count = count(), interval:5m
+| fieldsAdd error_count_4h = arrayMovingSum(error_count, 48)
+| fieldsRemove error_count
+</code></pre>
+<p><a id="other-array-functions"></a></p>
+<h2>Other Array Functions</h2>
+<p>Related functions for rolling calculations:</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>arrayMovingSum</code></td>
+<td>Rolling sum</td>
+</tr>
+<tr>
+<td><code>arrayMovingAvg</code></td>
+<td>Rolling average</td>
+</tr>
+<tr>
+<td><code>arrayMovingMin</code></td>
+<td>Rolling minimum</td>
+</tr>
+<tr>
+<td><code>arrayMovingMax</code></td>
+<td>Rolling maximum</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Rolling average response time over 30 minutes
+// response_time is not a built-in field: parse it from the content first
+fetch logs, from:-24h
+| parse content, &quot;DATA? 'response_time=' DOUBLE:response_time&quot;
+| filter isNotNull(response_time)
+| makeTimeseries avg_response = avg(response_time), interval:1m
+| fieldsAdd avg_response_30m = arrayMovingAvg(avg_response, 30)
+</code></pre>
+<p><a id="when-arraymovingsum-isnt-enough"></a></p>
+<h2>When ArrayMovingSum Isn't Enough</h2>
+<p>If you need timeframes exceeding 60 minutes with Anomaly Detectors, you have these options:</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Use Case</th>
+<th>Trade-offs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Workflow-based alerting</strong></td>
+<td>Any timeframe</td>
+<td>No Dynatrace Intelligence, consumes workflow hours</td>
+</tr>
+<tr>
+<td><strong>Metric extraction</strong></td>
+<td>High-volume queries</td>
+<td>Requires OpenPipeline config</td>
+</tr>
+<tr>
+<td><strong>Reduce threshold</strong></td>
+<td>Proportional reduction</td>
+<td>May increase false positives</td>
+</tr>
+</tbody>
+</table>
+<h3>Proportional Threshold Reduction Example</h3>
+<p>If Splunk alert is: 500 errors in 4 hours</p>
+<p>Convert to 1-hour equivalent:</p>
+<ul>
+<li>500 ÷ 4 = 125 errors per hour</li>
+<li>Set Dynatrace Intelligence threshold to 125 with arrayMovingSum over 60 minutes</li>
+</ul>
+<p><strong>Caveat:</strong> This assumes errors are evenly distributed, which may not match actual patterns.</p>
+<h2>Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alert over ≤60 minutes</td>
+<td>Standard Anomaly Detector</td>
+</tr>
+<tr>
+<td>Alert over exactly 60 minutes</td>
+<td>ArrayMovingSum with window:60</td>
+</tr>
+<tr>
+<td>Alert over &gt;60 minutes</td>
+<td>Use Workflows (see S2D-05)</td>
+</tr>
+<tr>
+<td>Dashboard visualization &gt;60 minutes</td>
+<td>ArrayMovingSum with larger interval</td>
+</tr>
+</tbody>
+</table>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>S2D-07: Metric Creation</strong> - For performance-critical alerting queries</li>
+<li><strong>S2D-05: Workflow Alerts</strong> - For timeframes exceeding 60 minutes</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/array-functions#array-moving-sum">ArrayMovingSum Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/array-functions">Array functions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection">anomaly-detection (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

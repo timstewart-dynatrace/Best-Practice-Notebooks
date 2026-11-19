@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M2S-01: Step 1 — Discover: Understand SaaS Differences</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">M2S — Managed to SaaS Migration</a><span class="sep">/</span><span aria-current="page">M2S-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>M2S-01: Step 1 — Discover: Understand SaaS Differences</h1>
+<blockquote>
+<p><strong>Series:</strong> M2S — Managed to SaaS Migration | <strong>Notebook:</strong> 1 of 9 | <strong>Phase:</strong> Plan | <strong>Step:</strong> Discover | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/17/2026</p>
+</blockquote>
+<p>The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.</p>
+<blockquote>
+<p><strong>M2S Migration Journey — 3 Phases / 9 Steps</strong></p>
+<p><strong>Plan:</strong> <strong>1. Discover</strong> | 2. Strategize | 3. Design</p>
+<p><strong>Upgrade:</strong> 4. Prepare | 5. Execute | 6. Integrate</p>
+<p><strong>Run:</strong> 7. Enable | 8. Expand | 9. Optimize</p>
+</blockquote>
+<h3>Platform Changes That Affect an M2S Migration</h3>
+<ol>
+<li><strong>Primary Grail fields and tags enriched at the source</strong> (OneAgent 1.333+) — OneAgent can stamp <code>dt.security_context</code>, <code>dt.cost.costcenter</code>, <code>dt.cost.product</code> and <code>primary_tags.*</code> onto every signal it sends. Decide the tag and security-context model in the M2S-03 (Design) step, and set these values in the same <code>oneagentctl</code> call that redirects each agent (M2S-05).</li>
+<li><strong>Platform tokens</strong> for new automation. Classic API tokens still work for the classic API paths, but new SaaS pipelines against the platform services should use <code>dt0s16</code> platform tokens (<code>Authorization: Bearer …</code>). Note: <code>dt0s01</code> is a SCIM token for account-level user provisioning — it is NOT a platform-token prefix and should not be used for environment-level automation.</li>
+</ol>
+<p><strong>Extensions review</strong> — if Managed carries custom <strong>Extensions Framework 1.0</strong> extensions, migration to SaaS is the natural moment to rebuild them as <strong>Extensions 2.0</strong>, the current extensions framework. Extensions Framework 1.0 reached end of support on 2025-03-31 (its Python 3.8 variant on 2024-10-31). JMX and PMI extensions on Framework 1.0 were carried past that date as deprecated and now have their own end-of-support date, <strong>July 1, 2027</strong>, after which <em>&quot;they will no longer be supported in SaaS environments.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent (DT docs)</a> — <em>&quot;OneAgent version 1.333&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication">Tokens and authentication (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End of support announcements (DT docs)</a> — <em>&quot;EF1 JMX and PMI extensions reach end of support on July 1, 2027.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-upgrade-to-saas">Why Upgrade to SaaS</a></li>
+<li><a href="#review-your-current-environment">Review Your Current Environment</a></li>
+<li><a href="#confirm-use-cases-and-goals">Confirm Use Cases and Goals</a></li>
+<li><a href="#saas-upgrade-assistant-overview">SaaS Upgrade Assistant Overview</a></li>
+<li><a href="#what-migrates-and-what-doesnt">What Migrates and What Doesn't</a></li>
+<li><a href="#product-safeguards-and-security-review">Product Safeguards, Limits &amp; SaaS Security Review</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h3>Inventory Categories</h3>
+<p>A complete discovery must cover ALL of these categories — missing any one will create surprises during execution:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>What to Inventory</th>
+<th>Migration Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Configurations and settings</strong></td>
+<td>All environment-level settings, entity-level settings</td>
+<td>SaaS Upgrade Assistant — confirm each type in the app's review screen</td>
+</tr>
+<tr>
+<td><strong>Credential Vault</strong></td>
+<td>All stored credentials, certificates</td>
+<td>Manual — secrets cannot be exported</td>
+</tr>
+<tr>
+<td><strong>API tokens</strong></td>
+<td>All tokens and their scopes</td>
+<td>Manual — recreate with minimal scopes</td>
+</tr>
+<tr>
+<td><strong>Extensions</strong></td>
+<td>OneAgent extensions, ActiveGate extensions — are they current or need upgrade?</td>
+<td>Manual — evaluate for Extensions 2.0</td>
+</tr>
+<tr>
+<td><strong>External and custom sources</strong></td>
+<td>Cloud integrations (AWS/Azure/GCP), Kubernetes integration, log ingest, custom metrics</td>
+<td>Manual — reconfigure each source</td>
+</tr>
+<tr>
+<td><strong>Other integrations</strong></td>
+<td>ITSM, CMDB, reports, data lakes, CI/CD pipelines</td>
+<td>Manual — update endpoints and tokens</td>
+</tr>
+<tr>
+<td><strong>Monitoring components</strong></td>
+<td>OneAgent instances (hosts, PaaS, K8s/OpenShift), ActiveGate instances (routing, extensions, synthetic, zRemote)</td>
+<td>Manual — reconfigure each OneAgent (<code>oneagentctl</code>) or redeploy it; install new ActiveGates (M2S-04/05)</td>
+</tr>
+<tr>
+<td><strong>Dashboards</strong></td>
+<td>All dashboards, their owners, and management zone filters</td>
+<td>SaaS Upgrade Assistant — it can update dashboard owners automatically</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Consider environment clean-up during discovery. Excessive or legacy configuration items can be left behind. Configuration items such as tagging rules and management zones are generally carried by the SaaS Upgrade Assistant, but its documentation publishes no per-type list — treat the app's review screen as the authority, and migrate dashboards selectively.</p>
+</blockquote>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Managed</strong></td>
+<td>Active Managed environment with administrator access</td>
+</tr>
+<tr>
+<td><strong>Dynatrace SaaS Tenant</strong></td>
+<td>Provisioned SaaS environment (or planning to provision)</td>
+</tr>
+<tr>
+<td><strong>API Tokens</strong></td>
+<td>Tokens with <code>entities.read</code>, <code>settings.read</code> scopes on Managed</td>
+</tr>
+<tr>
+<td><strong>Healthy source cluster</strong></td>
+<td>Check the Managed cluster's health first with the DTM series (DTM-99 checklist) — a cluster with failing nodes, a full store or a broken backup carries its problems into the migration</td>
+</tr>
+<tr>
+<td><strong>Stakeholder Access</strong></td>
+<td>Ability to document and share findings with decision-makers</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3MDAiIGhlaWdodD0iNDAwIiB2aWV3Qm94PSIwIDAgNzAwIDQwMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJjYXJkR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMzM0MTU1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFlMjkzYiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWNjZW50R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTRiOGE2Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzYzNjZmMSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTQwJSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSI0IiBzdGREZXZpYXRpb249IjQiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjcwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9InVybCgjYmdHcmFkKSIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9ImJvbGQiPkR5bmF0cmFjZSBTYWFTIEJlbmVmaXRzPC90ZXh0PgoKICA8IS0tIEJlbmVmaXQgQ2FyZHMgLS0+CiAgPCEtLSBSb3cgMSAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMCwgNzApIj4KICAgIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iOTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2NhcmRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICAgIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iNCIgcng9IjIiIGZpbGw9InVybCgjYWNjZW50R3JhZCkiLz4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPlJlZHVjZWQgT3BlcmF0aW9uczwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+Tm8gc2VydmVyIG1haW50ZW5hbmNlPC90ZXh0PgogICAgPHRleHQgeD0iMTAwIiB5PSI3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj5ObyBwYXRjaGluZyBvciB1cGdyYWRlczwvdGV4dD4KICA8L2c+CgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI1MCwgNzApIj4KICAgIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iOTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2NhcmRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICAgIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iNCIgcng9IjIiIGZpbGw9InVybCgjYWNjZW50R3JhZCkiLz4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPkF1dG9tYXRpYyBVcGRhdGVzPC90ZXh0PgogICAgPHRleHQgeD0iMTAwIiB5PSI1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj5BbHdheXMgb24gbGF0ZXN0IHZlcnNpb248L3RleHQ+CiAgICA8dGV4dCB4PSIxMDAiIHk9IjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPk5ldyBmZWF0dXJlcyBpbW1lZGlhdGVseTwvdGV4dD4KICA8L2c+CgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQ3MCwgNzApIj4KICAgIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iOTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2NhcmRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICAgIDxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iNCIgcng9IjIiIGZpbGw9InVybCgjYWNjZW50R3JhZCkiLz4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPkVsYXN0aWMgU2NhbGFiaWxpdHk8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDAiIHk9IjU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPlNjYWxlIGF1dG9tYXRpY2FsbHk8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDAiIHk9IjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPk5vIGNhcGFjaXR5IHBsYW5uaW5nPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBSb3cgMiAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMCwgMTgwKSI+CiAgICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjkwIiByeD0iOCIgZmlsbD0idXJsKCNjYXJkR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQiIHJ4PSIyIiBmaWxsPSJ1cmwoI2FjY2VudEdyYWQpIi8+CiAgICA8dGV4dCB4PSIxMDAiIHk9IjM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIj5FbmhhbmNlZCBTZWN1cml0eTwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+RHluYXRyYWNlIG1hbmFnZXMgaW5mcmE8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDAiIHk9IjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPlNPQzIsIElTTyBjZXJ0aWZpZWQ8L3RleHQ+CiAgPC9nPgoKICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyNTAsIDE4MCkiPgogICAgPHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSI5MCIgcng9IjgiIGZpbGw9InVybCgjY2FyZEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogICAgPHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0IiByeD0iMiIgZmlsbD0idXJsKCNhY2NlbnRHcmFkKSIvPgogICAgPHRleHQgeD0iMTAwIiB5PSIzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCI+R2xvYmFsIEF2YWlsYWJpbGl0eTwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+TXVsdGktQVosIGluLXJlZ2lvbjwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+QnVpbHQtaW4gcmVzaWxpZW5jZTwvdGV4dD4KICA8L2c+CgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQ3MCwgMTgwKSI+CiAgICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjkwIiByeD0iOCIgZmlsbD0idXJsKCNjYXJkR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQiIHJ4PSIyIiBmaWxsPSJ1cmwoI2FjY2VudEdyYWQpIi8+CiAgICA8dGV4dCB4PSIxMDAiIHk9IjM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIj5Db3N0IE9wdGltaXphdGlvbjwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+UHJlZGljdGFibGUgbGljZW5zaW5nPC90ZXh0PgogICAgPHRleHQgeD0iMTAwIiB5PSI3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj5ObyBoYXJkd2FyZSBjb3N0czwvdGV4dD4KICA8L2c+CgogIDwhLS0gQm90dG9tIHNlY3Rpb24gLSBTYWFTIHZzIE1hbmFnZWQgY29tcGFyaXNvbiAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMCwgMjk1KSI+CiAgICA8cmVjdCB3aWR0aD0iNjQwIiBoZWlnaHQ9Ijg1IiByeD0iOCIgZmlsbD0iIzBmMTcyYSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjMyMCIgeT0iMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPk1pZ3JhdGlvbiBJbXBhY3QgU3VtbWFyeTwvdGV4dD4KCiAgICA8IS0tIE1hbmFnZWQgc2lkZSAtLT4KICAgIDx0ZXh0IHg9IjE2MCIgeT0iNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmODcxNzEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiPk1hbmFnZWQgKEJlZm9yZSk8L3RleHQ+CiAgICA8dGV4dCB4PSIxNjAiIHk9IjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkluZnJhc3RydWN0dXJlIG92ZXJoZWFkICsgTWFudWFsIHVwZGF0ZXMgKyBDYXBhY2l0eSBwbGFubmluZzwvdGV4dD4KCiAgICA8IS0tIEFycm93IC0tPgogICAgPHBhdGggZD0iTTMyMCA1NSBMMzUwIDU1IE0zNDUgNTAgTDM1MCA1NSBMMzQ1IDYwIiBzdHJva2U9IiMxNGI4YTYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPgoKICAgIDwhLS0gU2FhUyBzaWRlIC0tPgogICAgPHRleHQgeD0iNDgwIiB5PSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzRhZGU4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCI+U2FhUyAoQWZ0ZXIpPC90ZXh0PgogICAgPHRleHQgeD0iNDgwIiB5PSI3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5aZXJvIG9wcyArIEF1dG8gdXBkYXRlcyArIEVsYXN0aWMgc2NhbGUgKyBMYXRlc3QgZmVhdHVyZXM8L3RleHQ+CiAgPC9nPgo8L3N2Zz4K" alt="SaaS Benefits Overview" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Benefit Category | Managed | SaaS |
+|-----------------|---------|------|
+| Infrastructure | Customer-managed clusters | Fully managed by Dynatrace |
+| Updates | Automatic every 4 weeks; you schedule and run them | Automatic every 2 weeks, run by Dynatrace |
+| Availability | Customer-managed HA | 99.5% SLA (99.95% with Enterprise Success and Support) |
+| Data Platform | Time-series DB + Elasticsearch | Grail data lakehouse |
+| Capabilities | Core monitoring | AppEngine, AutomationEngine, Dynatrace Assist |
+For environments where SVG doesn't render
+-->
+<p><a id="why-upgrade-to-saas"></a></p>
+<h2>1. Why Upgrade to SaaS</h2>
+<p>Moving from Dynatrace Managed to SaaS is not just a hosting change — it unlocks a fundamentally different platform architecture. Understanding these differences helps you build the business case and set expectations with stakeholders.</p>
+<h3>Infrastructure and Operations</h3>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Managed</th>
+<th>SaaS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cluster management</strong></td>
+<td>Customer-managed servers, storage, networking</td>
+<td>Fully managed by Dynatrace</td>
+</tr>
+<tr>
+<td><strong>Scaling</strong></td>
+<td>Manual capacity planning and provisioning</td>
+<td>Automatic scaling with licensing</td>
+</tr>
+<tr>
+<td><strong>Updates</strong></td>
+<td>Automatic cluster updates every 4 weeks, run in a maintenance window you define; a cluster with fewer than 3 nodes is unavailable while it updates</td>
+<td>Automatic updates every 2 weeks, operated by Dynatrace</td>
+</tr>
+<tr>
+<td><strong>Availability</strong></td>
+<td>Customer-managed HA/DR</td>
+<td>Contractual SLA — 99.5% monthly uptime with Standard Support, 99.95% with Enterprise Success and Support — on a multi-availability-zone architecture</td>
+</tr>
+<tr>
+<td><strong>Security patches</strong></td>
+<td>Operating-system patches on the cluster nodes are yours to apply</td>
+<td>Operating-system security patches applied by Dynatrace</td>
+</tr>
+</tbody>
+</table>
+<h3>Platform Capabilities</h3>
+<p>SaaS provides capabilities that are not available on Managed:</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Grail</strong></td>
+<td>Petabyte-scale data lakehouse — unified querying across logs, metrics, traces, events, and entities</td>
+</tr>
+<tr>
+<td><strong>DQL</strong></td>
+<td>Dynatrace Query Language — context-aware queries replacing USQL</td>
+</tr>
+<tr>
+<td><strong>Notebooks</strong></td>
+<td>Interactive, collaborative analysis documents (you are reading one now)</td>
+</tr>
+<tr>
+<td><strong>AppEngine</strong></td>
+<td>Build and deploy custom Dynatrace apps</td>
+</tr>
+<tr>
+<td><strong>AutomationEngine</strong></td>
+<td>Advanced workflow engine for alerting, remediation, and orchestration</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Assist</strong></td>
+<td>AI-powered assistant for natural-language queries and analysis</td>
+</tr>
+<tr>
+<td><strong>OpenPipeline</strong></td>
+<td>Custom data processing, routing, and enrichment at ingest</td>
+</tr>
+<tr>
+<td><strong>Business Analytics</strong></td>
+<td>Full business event tracking and conversion funnel analysis</td>
+</tr>
+</tbody>
+</table>
+<h3>Operational Cost Reduction</h3>
+<p>Migrating to SaaS eliminates operational overhead associated with running Managed clusters:</p>
+<ul>
+<li>No hardware procurement, racking, or lifecycle management</li>
+<li>No cluster OS patching, and no cluster updates to schedule and run</li>
+<li>No capacity planning for Cassandra, Elasticsearch, or transaction storage</li>
+<li>No backup/restore procedures for cluster data</li>
+<li>No need for dedicated Managed cluster administrators</li>
+</ul>
+<h3>Enhanced Security and Compliance</h3>
+<table>
+<thead>
+<tr>
+<th>Compliance</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SOC 2 Type II</strong></td>
+<td>Annual audit of security controls</td>
+</tr>
+<tr>
+<td><strong>ISO 27001</strong></td>
+<td>Information security management certification</td>
+</tr>
+<tr>
+<td><strong>HIPAA</strong></td>
+<td>Health data handling compliance</td>
+</tr>
+<tr>
+<td><strong>FedRAMP</strong></td>
+<td>US government security authorization (select regions)</td>
+</tr>
+<tr>
+<td><strong>Automatic patching</strong></td>
+<td>Security vulnerabilities addressed without customer action</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/upgrade/up-information">Pre-upgrade information (DT docs)</a> — Managed: <em>&quot;Automatic upgrades every 4 weeks; OS Patches by Customer&quot;</em>; SaaS: <em>&quot;Automatic upgrades every 2 weeks; OS Security patches by Dynatrace ACE team.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster">Update a cluster (DT docs)</a> — <em>&quot;If your Managed Cluster consists of fewer than three nodes, Dynatrace Managed will not be accessible during the update process.&quot;</em></sub></li>
+<li><sub><a href="https://www.dynatrace.com/company/trust-center/sla/saas/">Dynatrace SaaS SLA (Dynatrace)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="review-your-current-environment"></a></p>
+<h2>2. Review Your Current Environment</h2>
+<p>Before planning the migration, take a complete inventory of what exists in your Managed environment. This inventory serves two purposes: sizing your SaaS license and identifying configurations that need migration.</p>
+<blockquote>
+<p><strong>Note:</strong> DQL queries below run against your <strong>SaaS tenant</strong> (where entity data has been synced or where agents are already reporting). For Managed-only environments, use the <strong>Entities API v2</strong> or <strong>Dynatrace UI</strong> alternatives shown after each query.</p>
+</blockquote>
+<h3>Host Inventory</h3>
+<pre><code class="language-dql">// Count total monitored hosts
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 9 compares against a 24 h count.
+fetch dt.entity.host, from:-24h
+| summarize hostCount = count()
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;HOST&quot; | summarize hostCount = count()
+// Caveat: Smartscape counts CURRENT live topology and can report fewer hosts than the
+// classic entity store, which retains monitored hosts not in active topology. For a
+// pre-migration discovery inventory, keep the classic entity-store count above.
+</code></pre>
+<pre><code class="language-dql">// Hosts grouped by OS type
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 9 compares against a 24 h count.
+fetch dt.entity.host, from:-24h
+| summarize hostCount = count(), by:{osType}
+| sort hostCount desc
+
+// Smartscape equivalent (deprecated dt.entity.* still functional):
+//   smartscapeNodes &quot;HOST&quot; | summarize hostCount = count(), by:{os.type} | sort hostCount desc
+// Field map: osType -&gt; os.type (value form also changes, e.g. LINUX -&gt; OS_TYPE_LINUX).
+// The live-topology count caveat from the previous cell applies here too.
+</code></pre>
+<p><strong>Managed alternative (Entities API v2):</strong></p>
+<pre><code class="language-bash"># Total host count
+curl -s &quot;https://{managed-url}/api/v2/entities?entitySelector=type(HOST)&amp;pageSize=1&quot; \
+  -H &quot;Authorization: Api-Token {TOKEN}&quot; | jq '.totalCount'
+</code></pre>
+<h3>Service Inventory</h3>
+<pre><code class="language-dql">// Count total monitored services
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 9 compares against a 24 h count.
+fetch dt.entity.service, from:-24h
+| summarize serviceCount = count()
+
+// Smartscape equivalent (deprecated dt.entity.* still functional):
+//   smartscapeNodes &quot;SERVICE&quot; | summarize serviceCount = count()
+// Caveat: Smartscape reflects CURRENT live topology and typically reports fewer services
+// than the classic entity store (short-lived / inactive services are omitted). For a
+// pre-migration discovery inventory, keep the classic entity-store count above.
+</code></pre>
+<pre><code class="language-dql">// Services grouped by technology
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 9 compares against a 24 h count.
+fetch dt.entity.service, from:-24h
+| summarize serviceCount = count(), by:{serviceType}
+| sort serviceCount desc
+
+// Smartscape equivalent (deprecated dt.entity.* still functional):
+//   smartscapeNodes &quot;SERVICE&quot; | summarize serviceCount = count(), by:{dt.service.sdv1_type} | sort serviceCount desc
+// Field map: serviceType -&gt; dt.service.sdv1_type (same value labels, e.g. WEB_REQUEST_SERVICE).
+// dt.service.sdv1_type is set only when dt.service_detection.version is 1; on SDv2 services it is null — add dt.service_detection.version to the by: list to see which applies.
+// The live-topology count caveat applies here too.
+</code></pre>
+<h3>Application Inventory</h3>
+<pre><code class="language-dql">// Count monitored web applications
+smartscapeNodes &quot;FRONTEND&quot;
+| filter frontend.type == &quot;web&quot;
+| summarize appCount = count()
+
+// Smartscape (preferred, verified 07/2026): dt.entity.application maps to the FRONTEND node,
+// filtered on frontend.type == &quot;web&quot; (mobile apps are the same node with frontend.type ==
+// &quot;mobile&quot;). This corrects an earlier note here that claimed no Smartscape equivalent existed.
+// FRONTEND also carries id_classic holding the APPLICATION-* id, for joining migrated and
+// unmigrated queries. Unlike ActiveGate, `fetch dt.entity.application` does still work and remains
+// a genuine fallback — but it reads the classic entity store, which can retain entities Smartscape
+// (live topology) no longer lists, so cross-check if the two counts disagree.
+// Classic fallback: fetch dt.entity.application | summarize appCount = count()
+</code></pre>
+<h3>Synthetic Test Inventory</h3>
+<pre><code class="language-dql">// Count synthetic monitors by type (browser, HTTP, multi-protocol) — Step 9 repeats this count
+smartscapeNodes &quot;BROWSER_MONITOR&quot;, &quot;HTTP_MONITOR&quot;, &quot;NETWORK_AVAILABILITY_MONITOR&quot;
+| summarize syntheticCount = count(), by:{type}
+| sort type asc
+
+// Smartscape (preferred, verified 07/2026): dt.entity.synthetic_test maps to the BROWSER_MONITOR
+// node (individual steps are a separate BROWSER_MONITOR_STEP node). HTTP monitors are HTTP_MONITOR,
+// multi-protocol monitors NETWORK_AVAILABILITY_MONITOR, private locations SYNTHETIC_LOCATION. This
+// corrects an earlier note here that claimed no Smartscape equivalent existed. Unlike ActiveGate,
+// `fetch dt.entity.synthetic_test` does still work and remains a genuine fallback — it reads the
+// classic entity store, which can retain entities Smartscape (live topology) no longer lists.
+// Classic fallback (browser monitors only): fetch dt.entity.synthetic_test | summarize syntheticCount = count()
+</code></pre>
+<pre><code class="language-dql">// Synthetic monitors by type (HTTP, browser, multi-protocol)
+// dt.entity.synthetic_test does not expose a 'type' field in Grail entity store;
+// use dt.synthetic.events to count distinct monitors by execution event type.
+fetch dt.synthetic.events, from:-1h
+| filter in(event.type, {&quot;http_monitor_execution&quot;, &quot;browser_monitor_execution&quot;, &quot;multiprotocol_monitor_execution&quot;})
+| summarize testCount = countDistinct(dt.synthetic.monitor.id), by:{event.type}
+| sort testCount desc
+
+// Note: event.type values map to monitor types:
+//   http_monitor_execution      → HTTP monitor
+//   browser_monitor_execution   → Browser (clickpath) monitor
+//   multiprotocol_monitor_execution → Network availability (TCP/ICMP/DNS) monitor
+</code></pre>
+<h3>OneAgent Version Assessment</h3>
+<p>Understanding your OneAgent version spread is important because SaaS supports a rolling 9-month (Standard) / 12-month (Enterprise) version window. Agents older than this window must be updated before or during migration.</p>
+<blockquote>
+<p><strong>Breaking (SaaS 1.347 — staged tenant rollout from 09/16/2026):</strong> <em>&quot;Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier.&quot;</em> Falling outside the support window stops fixes; being at or below 1.241 stops <strong>data</strong> once 1.347 reaches your tenant — an agent that old, redirected to SaaS, reports nothing. Managed estates are where agents this old survive, so find them with the query below and upgrade them on Managed <strong>before</strong> redirecting them in Step 5. Until 1.347 reaches your tenant, such agents still connect but are outside support, so the support-window check above remains the working rule. See FAQ-04 for managing OneAgent updates on SaaS.</p>
+<p><strong>The same cutoff on the source cluster (Managed 1.348):</strong> the Managed 1.348 release notes carry the identical breaking change. It changes the inventory only if the source cluster is already on 1.348 or later. There, agents at or below 1.241 are rejected by Managed too, so they are not reporting and an inventory of the hosts the cluster monitors will not list them. Find them in your own deployment records, and upgrade them before Step 5. On a cluster still on 1.346, they connect to Managed and are rejected only after the redirect to SaaS. DTM-14 lists every Managed cutoff.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in Dynatrace SaaS 1.347 (DT docs)</a> — <em>&quot;Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier.&quot;</em>; <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-348">What's new in Dynatrace Managed 1.348 (DT docs)</a> — <em>&quot;Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier.&quot;</em> <strong>Derived:</strong> &quot;will not list them&quot; combines the Managed rejection with an inventory taken from monitored hosts.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// OneAgent versions across hosts
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 9 compares against a 24 h count.
+fetch dt.entity.host, from:-24h
+| summarize hostCount = count(), by:{installerVersion}
+| sort hostCount desc
+
+// No Smartscape equivalent: installerVersion (OneAgent version) is not a Smartscape node
+// field, so this agent-version distribution stays on the classic entity store.
+</code></pre>
+<h3>ActiveGate Assessment</h3>
+<pre><code class="language-dql">// ActiveGate inventory
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| summarize activeGateCount = count()
+
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from &quot;no ActiveGates deployed&quot;. `smartscapeNodes &quot;ACTIVEGATE&quot;` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+// ActiveGate 1.343 (published 07/15/2026, staged tenant rollout from 07/28/2026) deprecates
+// GET /api/v2/activeGates, /api/v2/activeGates/{agId} and /api/v2/activeGates/groups in favour of
+// this same Smartscape node — the classic entity and the classic REST endpoints were retired as one
+// move. If you need a REST surface in the meantime, the classic Entities API v2 selector
+// (GET /api/v2/entities?entitySelector=type(&quot;ENVIRONMENT_ACTIVE_GATE&quot;)) is a different surface and
+// may still respond; the DQL `fetch dt.entity.*` form does not.
+</code></pre>
+<h3>Environment Size Summary</h3>
+<p>Record your findings in this table:</p>
+<table>
+<thead>
+<tr>
+<th>Entity Type</th>
+<th>Count</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts</td>
+<td>___</td>
+<td>Include OS breakdown</td>
+</tr>
+<tr>
+<td>Services</td>
+<td>___</td>
+<td>Include technology breakdown</td>
+</tr>
+<tr>
+<td>Applications</td>
+<td>___</td>
+<td>Web and mobile</td>
+</tr>
+<tr>
+<td>Synthetic Tests</td>
+<td>___</td>
+<td>HTTP, browser, scripted</td>
+</tr>
+<tr>
+<td>ActiveGates</td>
+<td>___</td>
+<td>Environment and cluster</td>
+</tr>
+<tr>
+<td>Management Zones</td>
+<td>___</td>
+<td>Will migrate as-is</td>
+</tr>
+<tr>
+<td>Dashboards</td>
+<td>___</td>
+<td>Classic dashboards migrate; rebuild as modern recommended</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> In community practice, a single environment is planned at roughly <strong>25,000 hosts of typical load</strong> (no Dynatrace page states this figure); the platform can technically scale higher, but beyond that threshold plan to split host-unit quota across multiple SaaS tenants/environments. This is a planning guideline, not a hard cap — discuss tenant topology with your Dynatrace account team before proceeding.</p>
+</blockquote>
+<p><a id="confirm-use-cases-and-goals"></a></p>
+<h2>3. Confirm Use Cases and Goals</h2>
+<p>Every migration needs clearly documented motivations and success criteria. Use the table below to identify which benefits matter most to your organization and align them with concrete goals.</p>
+<h3>Common Migration Motivations</h3>
+<table>
+<thead>
+<tr>
+<th>Motivation</th>
+<th>SaaS Benefit</th>
+<th>Success Metric</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Eliminate cluster maintenance</td>
+<td>Fully managed infrastructure</td>
+<td>Zero hours spent on cluster patching</td>
+</tr>
+<tr>
+<td>Access new capabilities</td>
+<td>Grail, Notebooks, AppEngine, Dynatrace Assist</td>
+<td>Teams actively using SaaS-exclusive features</td>
+</tr>
+<tr>
+<td>Improve availability</td>
+<td>99.5%+ SLA</td>
+<td>Reduced monitoring downtime incidents</td>
+</tr>
+<tr>
+<td>Reduce operational cost</td>
+<td>No hardware, patching, capacity planning</td>
+<td>Measured reduction in Managed infrastructure spend</td>
+</tr>
+<tr>
+<td>Enhance security posture</td>
+<td>Managed infrastructure, automatic security patches</td>
+<td>Faster time-to-patch for vulnerabilities</td>
+</tr>
+<tr>
+<td>Simplify compliance</td>
+<td>SOC 2 Type II, ISO 27001, HIPAA</td>
+<td>Inherited compliance controls</td>
+</tr>
+<tr>
+<td>Consolidate tenants</td>
+<td>Single SaaS platform</td>
+<td>Fewer environments to manage</td>
+</tr>
+<tr>
+<td>Enable self-service</td>
+<td>IAM policies, Grail permissions</td>
+<td>Teams can query their own data without admin requests</td>
+</tr>
+</tbody>
+</table>
+<h3>Documenting Your Goals</h3>
+<p>For each selected motivation, document:</p>
+<ol>
+<li><strong>Current pain point</strong> — What problem does this solve today?</li>
+<li><strong>Expected outcome</strong> — What does success look like after migration?</li>
+<li><strong>Measurement</strong> — How will you verify the goal was achieved?</li>
+<li><strong>Timeline</strong> — When should this benefit be realized (during migration or post-migration)?</li>
+</ol>
+<blockquote>
+<p><strong>Tip:</strong> Share this goals document with stakeholders before proceeding to Step 2 (Strategize). Alignment on goals prevents scope creep and sets realistic expectations.</p>
+</blockquote>
+<p><a id="saas-upgrade-assistant-overview"></a></p>
+<h2>4. SaaS Upgrade Assistant Overview</h2>
+<p>The <strong><a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant</a></strong> is Dynatrace's primary migration tool for Managed-to-SaaS upgrades. Understanding its capabilities early helps you plan what will be automated versus what requires manual effort.</p>
+<h3>How It Works</h3>
+<ol>
+<li><strong>Export</strong> — Download configuration archive from your Managed Cluster Management Console</li>
+<li><strong>Upload</strong> — Import the archive into the SaaS Upgrade Assistant app on your target SaaS tenant</li>
+<li><strong>Review</strong> — Configurations are grouped by type with error highlighting for incompatible items</li>
+<li><strong>Edit</strong> — Fix failed or incompatible configurations individually or in bulk</li>
+<li><strong>Deploy</strong> — Push selected configurations to your SaaS environment</li>
+<li><strong>Track</strong> — Monitor progress and download deployment result reports (CSV)</li>
+</ol>
+<h3>Key Features</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Automated configuration import</strong></td>
+<td>Most settings and dashboards migrate automatically</td>
+</tr>
+<tr>
+<td><strong>Selective import</strong></td>
+<td>Smart dependency-aware import — choose what to deploy per wave</td>
+</tr>
+<tr>
+<td><strong>Dashboard ownership migration</strong></td>
+<td>Updates dashboard owners from Managed to SaaS user identifiers</td>
+</tr>
+<tr>
+<td><strong>Entity ID adjustment</strong></td>
+<td>Handles entity ID changes between environments</td>
+</tr>
+<tr>
+<td><strong>Bulk editing</strong></td>
+<td>Edit and correct failed configurations in batch</td>
+</tr>
+<tr>
+<td><strong>Preview changes</strong></td>
+<td>Review all changes before deploying</td>
+</tr>
+<tr>
+<td><strong>Progress tracking</strong></td>
+<td>Real-time status with CSV export of results</td>
+</tr>
+</tbody>
+</table>
+<h3>Requirements</h3>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Managed version</strong></td>
+<td>No fixed minimum in the SaaS Upgrade Assistant docs — align to the same <em>major</em> version as the target SaaS tenant (verify the current requirement in docs)</td>
+</tr>
+<tr>
+<td><strong>Version alignment</strong></td>
+<td>Export from the same <strong>major</strong> version as the target SaaS environment to avoid false-positive migration failures (docs example: Managed 1.284.x → SaaS 1.284.x)</td>
+</tr>
+<tr>
+<td><strong>IAM policy</strong></td>
+<td><code>upgrade-assistant:environments:write</code> to operate the app, plus <code>app-engine:apps:install</code> to install it — both assigned in Account Management</td>
+</tr>
+<tr>
+<td><strong>Installation</strong></td>
+<td>Install the SaaS Upgrade Assistant app on your target SaaS tenant</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Contact your Dynatrace account team for guided migration support. They can help plan waves and troubleshoot incompatible configurations.</p>
+</blockquote>
+<p><a id="what-migrates-and-what-doesnt"></a></p>
+<h2>5. What Migrates and What Doesn't</h2>
+<p>Understanding portability constraints upfront prevents surprises during execution. The SaaS Upgrade Assistant imports environment configuration and can update dashboard owners and adjust entity IDs, but its documentation publishes no per-type support list. The tables below reflect what migration teams commonly report — confirm each type in the app's review screen before you rely on it. FAQ-25 explains the underlying rule: configuration moves, platform-minted identity is re-minted, and accumulated state (history, baselines, secrets) does not move at all.</p>
+<h3>Commonly Carried by the SaaS Upgrade Assistant</h3>
+<table>
+<thead>
+<tr>
+<th>Configuration Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settings and configurations</td>
+<td>Application detection, service detection, data privacy</td>
+</tr>
+<tr>
+<td>Management zones</td>
+<td>Migrate as-is; consider converting to Grail permissions post-migration</td>
+</tr>
+<tr>
+<td>Auto-tagging rules</td>
+<td>Tag definitions and conditions</td>
+</tr>
+<tr>
+<td>Alerting profiles</td>
+<td>Alert filtering and notification routing</td>
+</tr>
+<tr>
+<td>Classic dashboards</td>
+<td>Migrate automatically; rebuild as modern dashboards recommended</td>
+</tr>
+<tr>
+<td>Service detection rules</td>
+<td>Custom service naming and merging</td>
+</tr>
+<tr>
+<td>Request attributes</td>
+<td>Capture rules for request metadata</td>
+</tr>
+<tr>
+<td>Calculated metrics</td>
+<td>Service, log, and RUM calculated metrics</td>
+</tr>
+<tr>
+<td>Maintenance windows</td>
+<td>Scheduled suppression windows</td>
+</tr>
+</tbody>
+</table>
+<h3>Requires Manual Recreation</h3>
+<table>
+<thead>
+<tr>
+<th>Configuration Type</th>
+<th>Why</th>
+<th>Recommended Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Credentials Vault entries</strong></td>
+<td>Security — secrets cannot be exported</td>
+<td>Re-create in SaaS Credentials Vault</td>
+</tr>
+<tr>
+<td><strong>API tokens</strong></td>
+<td>Security — tokens are environment-specific</td>
+<td>Generate new tokens in SaaS</td>
+</tr>
+<tr>
+<td><strong>Webhook endpoints</strong></td>
+<td>URLs may differ for SaaS network paths</td>
+<td>Reconfigure notification integrations</td>
+</tr>
+<tr>
+<td><strong>Synthetic private locations</strong></td>
+<td>ActiveGate-bound, environment-specific</td>
+<td>Deploy new ActiveGates, recreate locations</td>
+</tr>
+<tr>
+<td><strong>Custom extensions (1.0)</strong></td>
+<td>EF1 deprecated — must rebuild as Extensions 2.0</td>
+<td>Rebuild using Extensions 2.0 framework</td>
+</tr>
+<tr>
+<td><strong>Network zones</strong></td>
+<td>The Upgrade Assistant's Hub listing names network zones as supported — but SaaS ActiveGates must be assigned to them</td>
+<td>Confirm they arrived; create missing ones; assign the new ActiveGates (M2S-04 § 6)</td>
+</tr>
+<tr>
+<td><strong>Plugin-based integrations</strong></td>
+<td>Legacy plugin framework</td>
+<td>Migrate to Extensions 2.0 or ActiveGate extensions</td>
+</tr>
+</tbody>
+</table>
+<h3>Non-Portable (Data)</h3>
+<blockquote>
+<p><strong>Important:</strong> Historic data does <strong>not</strong> migrate. This includes metrics, logs, traces, user sessions, problems, and detected events. Plan for a baseline period where both Managed and SaaS run in parallel so SaaS accumulates its own history.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Retention Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Metrics</td>
+<td>New baseline starts from SaaS go-live</td>
+</tr>
+<tr>
+<td>Logs</td>
+<td>No historic log data in SaaS</td>
+</tr>
+<tr>
+<td>Traces/spans</td>
+<td>Distributed traces start fresh</td>
+</tr>
+<tr>
+<td>User sessions</td>
+<td>RUM session data not transferred</td>
+</tr>
+<tr>
+<td>Problems</td>
+<td>detected problem history stays in Managed</td>
+</tr>
+<tr>
+<td>Deployment events</td>
+<td>Release tracking starts fresh</td>
+</tr>
+</tbody>
+</table>
+<p><a id="product-safeguards-and-security-review"></a></p>
+<h2>6. Product Safeguards, Limits &amp; SaaS Security Review</h2>
+<p>During discovery, inventory the product safeguards and platform limits that behave differently on SaaS, and complete a short security and privacy review so nothing surprises you during execution. Several of these settings are <strong>not</strong> carried over automatically by the SaaS Upgrade Assistant and must be re-established manually.</p>
+<h3>Capture Rates and Traffic Safeguards</h3>
+<p><strong>Adaptive Traffic Management (ATM)</strong> governs how much trace and service-call data is captured. Its behavior depends on your licensing model — confirm which one your target tenant uses before you rely on full trace fidelity.</p>
+<table>
+<thead>
+<tr>
+<th>Licensing model</th>
+<th>Capture behavior</th>
+<th>Plan for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Classic (host-unit) license</strong></td>
+<td>Safeguard caps apply: roughly <strong>250 full-service calls/min per in-use host unit</strong>, an environment floor of <strong>5,000 full-service calls/min</strong>, and per-process bounds of <strong>50–50,000 calls/min</strong>.</td>
+<td>Environments near these caps may sample. Compare captured-vs-total call volume before assuming 100% trace fidelity.</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Platform Subscription (DPS) / ATM v3</strong></td>
+<td><strong>Adaptive</strong> — sampling adjusts to your licensed volume and typically approaches ~100% capture, with <strong>no fixed per-host-unit number</strong>.</td>
+<td>DPS tenants scale capture to licensed volume rather than a static cap. Verify your tenant's ATM version, as capture behavior differs from the classic model.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SQL bind-variable capture</strong> is off by default and is a <strong>self-service toggle</strong> — <em>Settings &gt; Server-side service monitoring &gt; Deep monitoring &gt; Database &gt; &quot;Capture SQL bind values&quot;</em> (global, with an optional process-group override), <strong>not</strong> a Support request. It is DPS-gated, consumes additional trace ingress volume (which can lower the overall OneAgent capture rate on SaaS), and literal values in batched statements are always masked. Inventory where it is enabled on Managed so you can reproduce it deliberately — and narrowly — on SaaS.</p>
+<p><strong>API rate limits</strong> — the Dynatrace API returns <strong>HTTP 429</strong> when request-rate limits are exceeded. Bulk automation during migration (token recreation, configuration import, entity queries) should use backoff/retry rather than tight loops.</p>
+<h3>Settings the SaaS Upgrade Assistant Does Not Carry Over</h3>
+<p>Some cluster-level safeguards are <strong>not</strong> migrated by the SaaS Upgrade Assistant. Record their Managed values during discovery and re-apply them manually during Prepare/Execute:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Why it matters</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Overload prevention — max entry-point PurePaths/traces per process per minute</td>
+<td>Protects against trace floods from a single process</td>
+<td>Record the Managed value; set manually on SaaS</td>
+</tr>
+<tr>
+<td>Overload prevention — max user actions per minute (RUM)</td>
+<td>Caps RUM ingestion spikes</td>
+<td>Record and re-apply manually</td>
+</tr>
+</tbody>
+</table>
+<h3>SaaS Security and Privacy Review</h3>
+<p>Identity, notification, and data-control surfaces differ on SaaS. Confirm each during discovery:</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Managed</th>
+<th>SaaS</th>
+<th>Implication</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SSO federation</strong></td>
+<td>SAML, LDAP</td>
+<td><strong>SAML 2.0</strong> federation (plus SCIM provisioning) is what Dynatrace documents for SaaS</td>
+<td>Plan SAML 2.0 through your IdP; the IdP must sign the <strong>entire SAML message</strong> (M2S-04 § 3).</td>
+</tr>
+<tr>
+<td><strong>Outbound email (SMTP)</strong></td>
+<td>Custom SMTP server (CMC)</td>
+<td>Email is sent by Dynatrace; we found no documented custom-SMTP option for SaaS — verify for your contract</td>
+<td>If you need your own mail path, route to an internal relay via a webhook or Workflow action.</td>
+</tr>
+<tr>
+<td><strong>Data-subject rights</strong></td>
+<td>—</td>
+<td><strong>Sensitive Data Center</strong> app (formerly Privacy Rights): export and delete a specific end user's personal data through an auditable workflow with assignees and reviewers. It currently covers <strong>Grail logs only</strong> — other data types are not supported</td>
+<td>Use this surface for GDPR/CCPA export and deletion requests.</td>
+</tr>
+<tr>
+<td><strong>Network access control</strong></td>
+<td>—</td>
+<td><strong>IP allow-list</strong> (CIDR) for UI and API</td>
+<td>Caveat: it protects the latest (Grail/Gen3) UI and API only — it does <strong>not</strong> block the classic <code>*.live.dynatrace.com</code> UI or the data-ingest APIs.</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Support access</strong></td>
+<td>Customer-grantable</td>
+<td>Role-based and approved internally; <em>&quot;restricted to the Dynatrace corporate network and requires multi-factor authentication when accessed remotely&quot;</em>; <em>&quot;every access and all changes are audit logged&quot;</em>. The data-security page documents no customer grant/deny toggle</td>
+<td>Governance shifts from a prospective switch to auditable, least-privilege access.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/adaptive-traffic-management-saas-classic">Adaptive Traffic Management — classic license (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/support-for-sql-bind-variables">Support for SQL bind variables (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/access-saml">SAML SSO (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/email-integration">Email workflow action (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/privacy-rights">Sensitive Data Center (DT docs)</a> — <em>&quot;Sensitive Data Center currently supports export, deletion, and cleanup of Grail logs. Other data types are not supported.&quot;</em>, <a href="https://docs.dynatrace.com/docs/shortlink/record-deletion-in-grail">Record deletion in Grail (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/ip-allowlist">IP allow-listing (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/data-security-controls">Data security controls (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="step-completion-checklist"></a></p>
+<h2>7. Step Completion Checklist</h2>
+<p>Before proceeding to Step 2, confirm that you have completed each item:</p>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SaaS benefits documented and shared with stakeholders</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Current environment inventory complete (hosts, services, applications, synthetics)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>OneAgent version spread assessed (any agents outside support window identified)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>ActiveGate inventory documented</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Migration use cases and goals documented with success metrics</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>SaaS Upgrade Assistant requirements understood (version, IAM, installation)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Non-portable items identified and manual recreation plan noted</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Historic data limitation communicated to stakeholders</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Product safeguards and limits reviewed (ATM capture behavior, SQL bind-variable capture, API rate limits)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Overload-prevention settings inventoried for manual re-apply on SaaS</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>SaaS security review complete (SSO surface, custom SMTP, Sensitive Data Center, IP allow-list, support-access model)</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h2>Next Step</h2>
+<blockquote>
+<p><strong>M2S-02: Step 2 — Strategize</strong> — Define your migration approach, timeline, and risk assessment. Choose between big-bang and phased migration, plan your parallel-run period, and identify dependencies and risks.</p>
+</blockquote>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant Documentation</a></li>
+<li><a href="https://www.dynatrace.com/hub/detail/saas-upgrade-assistant/">SaaS Upgrade Assistant on Dynatrace Hub</a></li>
+<li><a href="https://www.dynatrace.com/platform/saas-upgrade/">Upgrading from Dynatrace Managed to SaaS</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail">Grail Data Lakehouse</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Reference</a></li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In Step 1, you:</p>
+<ul>
+<li>Documented the key benefits of Dynatrace SaaS compared to Managed</li>
+<li>Inventoried your current environment (hosts, services, applications, synthetics, ActiveGates)</li>
+<li>Confirmed your migration use cases and goals with measurable success criteria</li>
+<li>Understood the SaaS Upgrade Assistant as the primary migration tool</li>
+<li>Identified what migrates automatically, what requires manual recreation, and what data does not transfer</li>
+<li>Reviewed product safeguards, platform limits, and the SaaS security/privacy surface (capture rates, SSO, notifications, privacy controls, support-access model)</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

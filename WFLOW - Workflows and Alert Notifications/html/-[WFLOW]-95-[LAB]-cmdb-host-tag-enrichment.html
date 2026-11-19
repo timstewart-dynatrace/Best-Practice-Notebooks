@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WFLOW-95 LAB: CMDB-Driven Host Tag Enrichment</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WFLOW — Workflows and Alert Notifications</a><span class="sep">/</span><span aria-current="page">WFLOW-95 LAB</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WFLOW-95 LAB: CMDB-Driven Host Tag Enrichment</h1>
+<blockquote>
+<p><strong>Series:</strong> WFLOW — Workflows and Alert Notifications | <strong>Reference:</strong> 95 — CMDB-Driven Host Tag Enrichment LAB | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A frequent ask: read host→application mappings from a CMDB and apply them as host tags in bulk. This hands-on LAB builds that end to end as a Dynatrace <strong>Workflow</strong> — two <em>Run JavaScript</em> tasks that enrich hosts from CMDB lookup tables and apply the tags via the OneAgent Remote Configuration Management API, safely (dry-run first) and idempotently (skip tags that already exist).</p>
+<p>It is the capstone for <strong>WFLOW-08 (JavaScript &amp; HTTP Actions)</strong> — it combines an SDK DQL query (WFLOW-08 §2), <code>fetch()</code> to a Dynatrace API with auth (§3), retry logic (§4) and <code>result()</code> / <code>withItems</code> data passing between tasks (§7) into one deployable workflow. Build it in the editor by following the <a href="#build-steps">steps</a>, or import the <a href="#import-skeleton">YAML skeleton</a> at the end.</p>
+<blockquote>
+<p><strong>Is this the right tool?</strong> This LAB writes tags onto hosts through the classic remote configuration API. If the value can be derived from context the host already reports — host group, host name, an existing host tag — Latest Dynatrace has a simpler path: <strong>Ingest enrichment configuration</strong> (FAQ-02 § 3.3), a central rule with no host changes and no agent restart (OneAgent 1.343+). Use this LAB when the value exists <strong>only in an external CMDB</strong>, one value per host.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-this-builds">What This LAB Builds</a></li>
+<li><a href="#two-surfaces">The Two Tag Surfaces</a></li>
+<li><a href="#safety-model">Safety Model</a></li>
+<li><a href="#build-steps">Build It in the Workflows Editor</a></li>
+<li><a href="#import-skeleton">Prefer to Import? (YAML Skeleton)</a></li>
+<li><a href="#adapting">Adapting It</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+<li><a href="#bonus-seed-lookups">Bonus — Seed Sample Lookup Tables (testing only)</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Workflows (AutomationEngine) and Grail</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>To build and run the workflow: <code>automation:workflows:write</code>, <code>automation:workflows:run</code>, <code>app-engine:functions:run</code>. <strong>Workflow actor:</strong> <code>storage:entities:read</code> (<code>dt.entity.host</code>), <code>storage:files:read</code> (the lookup tables) and <code>fleet-management:oneagents:write</code> (the remote configuration API, platform authentication — SaaS 1.343+), each also enabled in <strong>Workflows &gt; Settings &gt; Authorization settings</strong>. <em>Classic/hybrid alternative only:</em> a classic API token with <code>oneAgents.write</code> in the Credential Vault, and <code>environment-api:credentials:read</code> on the actor</td>
+</tr>
+<tr>
+<td><strong>Hosts</strong></td>
+<td>OneAgents in Full-Stack or Infrastructure Monitoring mode, connected to the environment. Remote configuration does not work with Operator-deployed or application-only OneAgents, or on Solaris</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Your CMDB exports uploaded as Grail lookup tables</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td><strong>WFLOW-08</strong> (JavaScript &amp; HTTP actions); DQL <code>lookup</code> / <code>load</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="what-this-builds"></a></p>
+<h2>1. What This LAB Builds</h2>
+<p>The workflow is two <code>run-javascript</code> tasks chained by a loop:</p>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Type</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>query_hosts_and_enrich</code></td>
+<td><code>run-javascript</code></td>
+<td>Runs the DQL enrichment (host → three-table CMDB lookup chain), dedups by host id, fetches each host's current tags, and returns a <code>hosts[]</code> array containing <strong>only the tags that are missing</strong>.</td>
+</tr>
+<tr>
+<td><code>apply_tags_to_hosts</code></td>
+<td><code>run-javascript</code> with a loop</td>
+<td>For each host in <code>hosts[]</code>, POSTs a <code>set hostTag</code> operation to the <strong>OneAgent Remote Configuration Management API</strong> as the workflow actor (relative URL, no stored token) — respecting dry-run, retrying on HTTP 409 and checking <code>failedEntities</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The write mechanism is <code>POST /api/v2/oneagents/remoteConfigurationManagement</code> with a <code>set hostTag</code> operation — the same <code>--set-host-tag</code> form you would run locally with <code>oneagentctl</code>, applied remotely across many hosts in one workflow.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZFdGOCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwRjE3MkEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMUUyOTNCIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0YWJsZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNCODJGNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzRUIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImpzR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojQTc4QkZBIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdDM0FFRCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGFyZ2V0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNzNCRTI4Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE2YTM0YSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvd1dGOCIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTQwJSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd1dGOCIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjOTRBM0I4Ii8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93TG9vcDgiIG1hcmtlcldpZHRoPSI5IiBtYXJrZXJIZWlnaHQ9IjYiIHJlZlg9IjgiIHJlZlk9IjMiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCA5IDMsIDAgNiIgZmlsbD0iI0ZDRDM0RCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9InVybCgjYmdHcmFkV0Y4KSIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPkNNREItRHJpdmVuIEhvc3QgVGFnIEVucmljaG1lbnQ8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+RFFMIGxvb2t1cCBlbnJpY2htZW50ICYjODU5NDsgcGVyLWhvc3QgdGFnIGFwcGx5IHZpYSB0aGUgT25lQWdlbnQgUmVtb3RlIENvbmZpZ3VyYXRpb24gTWFuYWdlbWVudCBBUEk8L3RleHQ+CgogIDwhLS0gQm94IEE6IENNREIgbG9va3VwIHRhYmxlcyAtLT4KICA8cmVjdCB4PSIyNCIgeT0iOTIiIHdpZHRoPSIxNzIiIGhlaWdodD0iMTY4IiByeD0iMTAiIGZpbGw9InVybCgjdGFibGVHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1dGOCkiLz4KICA8dGV4dCB4PSIxMTAiIHk9IjExOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Q01EQiBsb29rdXAgdGFibGVzPC90ZXh0PgogIDx0ZXh0IHg9IjExMCIgeT0iMTM3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjREJFQUZFIiBmb250LXNpemU9IjEwIj4odXBsb2FkZWQgdG8gR3JhaWwpPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSIxNTAiIHdpZHRoPSIxNDAiIGhlaWdodD0iMjYiIHJ4PSI1IiBmaWxsPSIjMUUzQThBIi8+CiAgPHRleHQgeD0iMTEwIiB5PSIxNjciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAuNSI+L2xvb2t1cHMvY21kYl9zZXJ2ZXI8L3RleHQ+CiAgPHJlY3QgeD0iNDAiIHk9IjE4MiIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIyNiIgcng9IjUiIGZpbGw9IiMxRTNBOEEiLz4KICA8dGV4dCB4PSIxMTAiIHk9IjE5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMCI+Y21kYl9tYXBwZWRfYXBwX3NlcnZpY2U8L3RleHQ+CiAgPHJlY3QgeD0iNDAiIHk9IjIxNCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIyNiIgcng9IjUiIGZpbGw9IiMxRTNBOEEiLz4KICA8dGV4dCB4PSIxMTAiIHk9IjIzMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMC41Ij5jbWRiX2J1c2luZXNzYXBwPC90ZXh0PgoKICA8IS0tIEFycm93IEEgLT4gQiAtLT4KICA8cGF0aCBkPSJNIDE5NiAxNzYgTCAyMzAgMTc2IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1dGOCkiLz4KCiAgPCEtLSBCb3ggQjogVGFzayAxIC0tPgogIDxyZWN0IHg9IjIzMiIgeT0iOTIiIHdpZHRoPSIxOTYiIGhlaWdodD0iMTY4IiByeD0iMTAiIGZpbGw9InVybCgjanNHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1dGOCkiLz4KICA8dGV4dCB4PSIzMzAiIHk9IjExNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+MS4gcXVlcnlfaG9zdHNfYW5kX2VucmljaDwvdGV4dD4KICA8dGV4dCB4PSIzMzAiIHk9IjEzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMCI+cnVuLWphdmFzY3JpcHQgJiMxODM7IHJlYWRzIGlucHV0czwvdGV4dD4KICA8dGV4dCB4PSIyNDYiIHk9IjE1OCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+JiM4MjI2OyBmZXRjaCBkdC5lbnRpdHkuaG9zdDwvdGV4dD4KICA8dGV4dCB4PSIyNDYiIHk9IjE3OCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+JiM4MjI2OyBsb29rdXAgJiMyMTU7MyAoQ01EQiBjaGFpbik8L3RleHQ+CiAgPHRleHQgeD0iMjQ2IiB5PSIxOTgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPiYjODIyNjsgZGVkdXAgYnkgaG9zdCBpZDwvdGV4dD4KICA8dGV4dCB4PSIyNDYiIHk9IjIxOCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+JiM4MjI2OyBkaWZmIHZzIGV4aXN0aW5nIHRhZ3M8L3RleHQ+CiAgPHRleHQgeD0iMjQ2IiB5PSIyNDUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9IjcwMCI+cmV0dXJuczogaG9zdHNbIF08L3RleHQ+CgogIDwhLS0gQXJyb3cgQiAtPiBDIC0tPgogIDxwYXRoIGQ9Ik0gNDI4IDE3NiBMIDQ2MiAxNzYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V0Y4KSIvPgoKICA8IS0tIEJveCBDOiBUYXNrIDIgLS0+CiAgPHJlY3QgeD0iNDY2IiB5PSI5MiIgd2lkdGg9IjE5NiIgaGVpZ2h0PSIxNjgiIHJ4PSIxMCIgZmlsbD0idXJsKCNqc0dyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93V0Y4KSIvPgogIDx0ZXh0IHg9IjU2NCIgeT0iMTE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4yLiBhcHBseV90YWdzX3RvX2hvc3RzPC90ZXh0PgogIDx0ZXh0IHg9IjU2NCIgeT0iMTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEwIj5ydW4tamF2YXNjcmlwdCAmIzE4Mzsgd2l0aEl0ZW1zPC90ZXh0PgogIDx0ZXh0IHg9IjQ4MCIgeT0iMTU4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj4mIzgyMjY7IGxvb3AgcGVyIGhvc3Q8L3RleHQ+CiAgPHRleHQgeD0iNDgwIiB5PSIxNzgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiPiYjODIyNjsgYXMgd29ya2Zsb3cgYWN0b3IgKG5vIHRva2VuKTwvdGV4dD4KICA8dGV4dCB4PSI0ODAiIHk9IjE5OCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMC41Ij4mIzgyMjY7IFBPU1QgJiM4MjMwOy9yZW1vdGVDb25maWcmIzgyMzA7PC90ZXh0PgogIDx0ZXh0IHg9IjQ4MCIgeT0iMjE4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj4mIzgyMjY7IG9wZXJhdGlvbjogc2V0IGhvc3RUYWc8L3RleHQ+CiAgPCEtLSBsb29wIGluZGljYXRvciAtLT4KICA8cGF0aCBkPSJNIDQ5OCAyMzIgcSAtMTYgOCAwIDE2IHEgMTYgOCAzMiAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNGQ0QzNEQiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtZGFzaGFycmF5PSI0IDMiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dMb29wOCkiLz4KICA8dGV4dCB4PSI1NTYiIHk9IjI0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+cGVyLWhvc3QgaXRlcmF0aW9uPC90ZXh0PgoKICA8IS0tIEFycm93IEMgLT4gRCAtLT4KICA8cGF0aCBkPSJNIDY2MiAxNzYgTCA3MjYgMTc2IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1dGOCkiLz4KCiAgPCEtLSBCb3ggRDogdGFyZ2V0IC0tPgogIDxyZWN0IHg9IjczMCIgeT0iOTIiIHdpZHRoPSIxNzYiIGhlaWdodD0iMTY4IiByeD0iMTAiIGZpbGw9InVybCgjdGFyZ2V0R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3dXRjgpIi8+CiAgPHRleHQgeD0iODE4IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkhvc3RzIHRhZ2dlZDwvdGV4dD4KICA8dGV4dCB4PSI3NDQiIHk9IjE0NiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMC41Ij5wcmltYXJ5X3RhZ3MuYXBwbGljYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNzQ0IiB5PSIxNzAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAuNSI+cHJpbWFyeV90YWdzLmVudmlyb25tZW50PC90ZXh0PgogIDx0ZXh0IHg9Ijc0NCIgeT0iMTk0IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwLjUiPmR0LnNlY3VyaXR5X2NvbnRleHQ8L3RleHQ+CiAgPHRleHQgeD0iNzQ0IiB5PSIyMTgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAuNSI+ZHQuY29zdC5jb3N0Y2VudGVyPC90ZXh0PgogIDx0ZXh0IHg9IjgxOCIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRENGQ0U3IiBmb250LXNpemU9IjEwIj5yZXN0YXJ0IG9wdGlvbmFsPC90ZXh0PgoKICA8IS0tIFNhZmV0eSBnYXRlcyBzdHJpcCAtLT4KICA8cmVjdCB4PSIyNCIgeT0iMjkyIiB3aWR0aD0iODgyIiBoZWlnaHQ9IjU4IiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjQwIiB5PSIzMTYiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNhZmV0eSBnYXRlczwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMzM4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExLjUiPkRSWV9SVU4gPSB0cnVlIChkZWZhdWx0KSAmIzE4MzsgTUFYX0hPU1RTIGNhcCAmIzE4Mzsgc2tpcCB0YWdzIHRoYXQgYWxyZWFkeSBleGlzdCAmIzE4MzsgcmV0cnkgb24gSFRUUCA0MDkgKCYjMjE1OzMpICYjMTgzOyBmYWlsZWRFbnRpdGllcyBjaGVja2VkIG9uIEhUVFAgMjAxPC90ZXh0PgoKICA8IS0tIFR3byBzdXJmYWNlcyBjYWxsb3V0IC0tPgogIDxyZWN0IHg9IjI0IiB5PSIzNjYiIHdpZHRoPSI4ODIiIGhlaWdodD0iNTgiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNDAiIHk9IjM5MCIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+VHdvIHRhZyBzdXJmYWNlcywgb25lIEFQSSBjYWxsPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSI0MTIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEuNSI+PHRzcGFuIGZpbGw9IiM3M0JFMjgiIGZvbnQtd2VpZ2h0PSI3MDAiPnByaW1hcnlfdGFncy4qPC90c3Bhbj4gJiM4NTk0OyBob3N0IHRhZ3MgKHRoZSBwcmVmaXggaXMgcmVxdWlyZWQgJiM4MjEyOyBuZXZlciBhZGRlZCBhdXRvbWF0aWNhbGx5KSAgICYjMTgzOyAgIDx0c3BhbiBmaWxsPSIjNzNCRTI4IiBmb250LXdlaWdodD0iNzAwIj5kdC4qPC90c3Bhbj4gJiM4NTk0OyBwcmltYXJ5IGZpZWxkcyAoc2VjdXJpdHkgY29udGV4dCwgY29zdCBjZW50ZXIpPC90ZXh0PgoKICA8IS0tIEZvb3RlciBub3RlIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Db25maWcgdmlhIHdvcmtmbG93IGlucHV0cyAmIzE4MzsgcGxhdGZvcm0gYXV0aCBhcyB0aGUgYWN0b3IgPHRzcGFuIGZpbGw9IiNDQkQ1RTEiIGZvbnQtd2VpZ2h0PSI3MDAiPmZsZWV0LW1hbmFnZW1lbnQ6b25lYWdlbnRzOndyaXRlPC90c3Bhbj4gJiMxODM7IGlkZW1wb3RlbnQgKHJlLXJ1bnMgc2tpcCBleGlzdGluZyk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPkFsd2F5cyBydW4gd2l0aCBEUllfUlVOID0gdHJ1ZSBmaXJzdCBhbmQgcmV2aWV3IHRoZSBsb2cgYmVmb3JlIHNldHRpbmcgRFJZX1JVTiA9IGZhbHNlPC90ZXh0Pgo8L3N2Zz4K" alt="CMDB-Driven Host Tag Enrichment" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | What happens |
+|-------|--------------|
+| CMDB lookup tables (Grail) | cmdb_server -> cmdb_mapped_app_service -> cmdb_businessapp uploaded as lookup tables |
+| 1. query_hosts_and_enrich (run-javascript) | fetch dt.entity.host, lookup x3 (CMDB chain), dedup by host id, diff vs existing tags -> returns hosts[] |
+| 2. apply_tags_to_hosts (run-javascript, withItems loop) | per host: POST set hostTag to the Remote Configuration Management API as the workflow actor (relative URL; classic token from the Credential Vault only as the classic/hybrid alternative) |
+| Hosts tagged | primary_tags.application, primary_tags.environment, dt.security_context, dt.cost.costcenter |
+| Safety gates | DRY_RUN=true default, MAX_HOSTS cap, skip existing tags, retry on 409 (x3), failedEntities checked on 201 |
+-->
+<p>The two tasks are chained: task 2 loops over <code>result('query_hosts_and_enrich').hosts</code> (one run per host) and only runs when task 1 found at least one host. The diagram below opens each task into its internal function flow.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNjEyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZFdGOGQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMEYxNzJBIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFFMjkzQiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvd1dGOGQiIHg9Ii0yMCUiIHk9Ii0yMCUiIHdpZHRoPSIxNDAlIiBoZWlnaHQ9IjE0MCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjMiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYVdGOGQiIG1hcmtlcldpZHRoPSI5IiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjgiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDkgMy41LCAwIDciIGZpbGw9IiM5NEEzQjgiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYUhhbmQiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iI0E3OEJGQSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI2MTIiIGZpbGw9InVybCgjYmdHcmFkV0Y4ZCkiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5JbnNpZGUgdGhlIFdvcmtmbG93IOKAlCBGdW5jdGlvbiBGbG93IHBlciBUYXNrPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+VHdvIHJ1bi1qYXZhc2NyaXB0IHRhc2tzOyBjb25maWcgY29tZXMgZnJvbSB3b3JrZmxvdyBpbnB1dHM7IGVhY2ggaW5uZXIgYm94IGlzIG9uZSBzdGFnZTwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT09PT09PT09PT0gVEFTSyAxIExBUkdFIEJPWCA9PT09PT09PT09PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iMjQiIHk9IjcyIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQ5OCIgcng9IjEyIiBmaWxsPSIjMEIxMjIwIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjIyNCIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPlRBU0sgMSDCtyBxdWVyeV9ob3N0c19hbmRfZW5yaWNoPC90ZXh0PgogIDx0ZXh0IHg9IjIyNCIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnJ1bi1qYXZhc2NyaXB0IOKAlCBydW5zIG9uY2UgwrcgcmVhZHMgZXguaW5wdXQ8L3RleHQ+CgogIDwhLS0gVDEgaW5uZXIgYm94ZXMgLS0+CiAgPHJlY3QgeD0iNDQiIHk9IjEzOCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI0NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzQ3NTU2OSIvPgogIDx0ZXh0IHg9IjU2IiB5PSIxNTgiIGZpbGw9IiNFMkU4RjAiIGZvbnQtc2l6ZT0iMTEuNSI+PHRzcGFuIGZpbGw9IiM5M0M1RkQiIGZvbnQtd2VpZ2h0PSI3MDAiPjEgPC90c3Bhbj4gUmVhZCBydW50aW1lIGlucHV0czwvdGV4dD4KICA8dGV4dCB4PSI1NiIgeT0iMTc1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjguNSI+RFJZX1JVTiDCtyBNQVhfSE9TVFMgwrcgQVBQX1NDT1BFIMK3IEVOVklST05NRU5UX1VSTCDCtyBDUkVERU5USUFMX0lEPC90ZXh0PgogIDxwYXRoIGQ9Ik0gMjI0IDE4NCBMIDIyNCAxOTgiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjgiIG1hcmtlci1lbmQ9InVybCgjYVdGOGQpIi8+CiAgPHJlY3QgeD0iNDQiIHk9IjIwMCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI0NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzQ3NTU2OSIvPgogIDx0ZXh0IHg9IjU2IiB5PSIyMjAiIGZpbGw9IiNFMkU4RjAiIGZvbnQtc2l6ZT0iMTEuNSI+PHRzcGFuIGZpbGw9IiM5M0M1RkQiIGZvbnQtd2VpZ2h0PSI3MDAiPjIgPC90c3Bhbj4gUnVuIGVucmljaG1lbnQgRFFMPC90ZXh0PgogIDx0ZXh0IHg9IjU2IiB5PSIyMzciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOS41Ij5mZXRjaCBkdC5lbnRpdHkuaG9zdCDCtyBsb29rdXAgw5czIChDTURCIGNoYWluKSDCtyBwYXJzZSBob3N0bmFtZTwvdGV4dD4KICA8cGF0aCBkPSJNIDIyNCAyNDYgTCAyMjQgMjYwIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMS44IiBtYXJrZXItZW5kPSJ1cmwoI2FXRjhkKSIvPgogIDxyZWN0IHg9IjQ0IiB5PSIyNjIiIHdpZHRoPSIzNjAiIGhlaWdodD0iNDYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM0NzU1NjkiLz4KICA8dGV4dCB4PSI1NiIgeT0iMjgyIiBmaWxsPSIjRTJFOEYwIiBmb250LXNpemU9IjExLjUiPjx0c3BhbiBmaWxsPSIjOTNDNUZEIiBmb250LXdlaWdodD0iNzAwIj4zIDwvdHNwYW4+IERlZHVwICsgY2FwIChNQVhfSE9TVFMpPC90ZXh0PgogIDx0ZXh0IHg9IjU2IiB5PSIyOTkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOS41Ij5vbmUgcmVjb3JkIHBlciBob3N0IGlkPC90ZXh0PgogIDxwYXRoIGQ9Ik0gMjI0IDMwOCBMIDIyNCAzMjIiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjgiIG1hcmtlci1lbmQ9InVybCgjYVdGOGQpIi8+CiAgPHJlY3QgeD0iNDQiIHk9IjMyNCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI0NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzQ3NTU2OSIvPgogIDx0ZXh0IHg9IjU2IiB5PSIzNDQiIGZpbGw9IiNFMkU4RjAiIGZvbnQtc2l6ZT0iMTEuNSI+PHRzcGFuIGZpbGw9IiM5M0M1RkQiIGZvbnQtd2VpZ2h0PSI3MDAiPjQgPC90c3Bhbj4gRmV0Y2ggZXhpc3RpbmcgdGFnczwvdGV4dD4KICA8dGV4dCB4PSI1NiIgeT0iMzYxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkuNSI+YmF0Y2hlZCA1MC9yZXF1ZXN0IMK3IHBhcnNlIFtTb3VyY2Vda2V5OnZhbHVlPC90ZXh0PgogIDxwYXRoIGQ9Ik0gMjI0IDM3MCBMIDIyNCAzODQiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjgiIG1hcmtlci1lbmQ9InVybCgjYVdGOGQpIi8+CiAgPHJlY3QgeD0iNDQiIHk9IjM4NiIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI0NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzQ3NTU2OSIvPgogIDx0ZXh0IHg9IjU2IiB5PSI0MDYiIGZpbGw9IiNFMkU4RjAiIGZvbnQtc2l6ZT0iMTEuNSI+PHRzcGFuIGZpbGw9IiM5M0M1RkQiIGZvbnQtd2VpZ2h0PSI3MDAiPjUgPC90c3Bhbj4gRGlmZiAmIzg1OTQ7IGtlZXAgbWlzc2luZyBvbmx5PC90ZXh0PgogIDx0ZXh0IHg9IjU2IiB5PSI0MjMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOS41Ij5kcm9wIGtleXMgYWxyZWFkeSBwcmVzZW50IChpZGVtcG90ZW50KTwvdGV4dD4KICA8cGF0aCBkPSJNIDIyNCA0MzIgTCAyMjQgNDQ2IiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMS44IiBtYXJrZXItZW5kPSJ1cmwoI2FXRjhkKSIvPgogIDxyZWN0IHg9IjQ0IiB5PSI0NDgiIHdpZHRoPSIzNjAiIGhlaWdodD0iNDYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM0NzU1NjkiLz4KICA8dGV4dCB4PSI1NiIgeT0iNDY4IiBmaWxsPSIjRTJFOEYwIiBmb250LXNpemU9IjExLjUiPjx0c3BhbiBmaWxsPSIjOTNDNUZEIiBmb250LXdlaWdodD0iNzAwIj42IDwvdHNwYW4+IEF0dGFjaCBwZXItcnVuIGNvbmZpZzwvdGV4dD4KICA8dGV4dCB4PSI1NiIgeT0iNDg1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkuNSI+ZW52aXJvbm1lbnRVcmwgKyBjcmVkZW50aWFsSWQgb250byBlYWNoIGhvc3QgKGZvciB0YXNrIDIpPC90ZXh0PgogIDxwYXRoIGQ9Ik0gMjI0IDQ5NCBMIDIyNCA1MDgiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjgiIG1hcmtlci1lbmQ9InVybCgjYVdGOGQpIi8+CiAgPHJlY3QgeD0iNDQiIHk9IjUxMCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI0OCIgcng9IjciIGZpbGw9IiMxNDUzMkQiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI1NiIgeT0iNTMwIiBmaWxsPSIjRENGQ0U3IiBmb250LXNpemU9IjExLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPnJldHVybiBob3N0c1sgXTwvdGV4dD4KICA8dGV4dCB4PSI1NiIgeT0iNTQ4IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjkuNSI+aWQgwrcgbmFtZSDCtyB0YWdzVG9BcHBseSDCtyBkcnlSdW4gwrcgZW52aXJvbm1lbnRVcmwgwrcgY3JlZGVudGlhbElkPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PT09PT09PT09PSBUQVNLIDIgTEFSR0UgQk9YID09PT09PT09PT09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI1MDYiIHk9IjcyIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQ5OCIgcng9IjEyIiBmaWxsPSIjMEIxMjIwIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjcwNiIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPlRBU0sgMiDCtyBhcHBseV90YWdzX3RvX2hvc3RzPC90ZXh0PgogIDx0ZXh0IHg9IjcwNiIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnJ1bi1qYXZhc2NyaXB0IOKAlCB3aXRoSXRlbXMgbG9vcCwgY29uY3VycmVuY3kgMTwvdGV4dD4KCiAgPCEtLSBUMiBpbm5lciBib3hlcyAocGxhdGZvcm0gYXV0aDsgY2xhc3NpYyB0b2tlbiBvcHRpb25hbCkgLS0+CiAgPHJlY3QgeD0iNTI0IiB5PSIxMzgiIHdpZHRoPSIzNDAiIGhlaWdodD0iNDYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM0NzU1NjkiLz4KICA8dGV4dCB4PSI1MzYiIHk9IjE1OCIgZmlsbD0iI0UyRThGMCIgZm9udC1zaXplPSIxMS41Ij48dHNwYW4gZmlsbD0iIzkzQzVGRCIgZm9udC13ZWlnaHQ9IjcwMCI+MSA8L3RzcGFuPiBsb29wSXRlbS5ob3N0PC90ZXh0PgogIDx0ZXh0IHg9IjUzNiIgeT0iMTc1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkuNSI+b25lIGhvc3QgKGNhcnJpZXMgZW52aXJvbm1lbnRVcmwgKyBjcmVkZW50aWFsSWQpPC90ZXh0PgogIDxwYXRoIGQ9Ik0gNjk0IDE4NCBMIDY5NCAxOTgiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjgiIG1hcmtlci1lbmQ9InVybCgjYVdGOGQpIi8+CiAgPCEtLSAyIGRlY2lzaW9uIC0tPgogIDxyZWN0IHg9IjUyNCIgeT0iMjAwIiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjQ2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjUzNiIgeT0iMjIwIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPjx0c3BhbiBmaWxsPSIjRkNEMzREIj4yIDwvdHNwYW4+IERSWV9SVU4/PC90ZXh0PgogIDx0ZXh0IHg9IjUzNiIgeT0iMjM3IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjkuNSI+eWVzIOKGkiBsb2cgIi0tc2V0LWhvc3QtdGFnIiAmYW1wOyByZXR1cm4gwrcgbm8g4oaSIGNvbnRpbnVlPC90ZXh0PgogIDxwYXRoIGQ9Ik0gNjk0IDI0NiBMIDY5NCAyNjAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjgiIG1hcmtlci1lbmQ9InVybCgjYVdGOGQpIi8+CiAgPCEtLSAzIC0tPgogIDxyZWN0IHg9IjUyNCIgeT0iMjYyIiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjQ2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNDc1NTY5Ii8+CiAgPHRleHQgeD0iNTM2IiB5PSIyODIiIGZpbGw9IiNFMkU4RjAiIGZvbnQtc2l6ZT0iMTEuNSI+PHRzcGFuIGZpbGw9IiM5M0M1RkQiIGZvbnQtd2VpZ2h0PSI3MDAiPjMgPC90c3Bhbj4gQ2hvb3NlIGF1dGhlbnRpY2F0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjUzNiIgeT0iMjk5IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkuNSI+Q1JFREVOVElBTF9JRCBlbXB0eSDihpIgcGxhdGZvcm0gYXV0aCBhcyB0aGUgYWN0b3I8L3RleHQ+CiAgPHBhdGggZD0iTSA2OTQgMzA4IEwgNjk0IDMyMiIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjEuOCIgbWFya2VyLWVuZD0idXJsKCNhV0Y4ZCkiLz4KICA8IS0tIDQgLS0+CiAgPHJlY3QgeD0iNTI0IiB5PSIzMjQiIHdpZHRoPSIzNDAiIGhlaWdodD0iNDYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM0NzU1NjkiLz4KICA8dGV4dCB4PSI1MzYiIHk9IjM0NCIgZmlsbD0iI0UyRThGMCIgZm9udC1zaXplPSIxMS41Ij48dHNwYW4gZmlsbD0iIzkzQzVGRCIgZm9udC13ZWlnaHQ9IjcwMCI+NCA8L3RzcGFuPiBDbGFzc2ljIGFsdGVybmF0aXZlIG9ubHk8L3RleHQ+CiAgPHRleHQgeD0iNTM2IiB5PSIzNjEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOS41Ij5BcGktVG9rZW4gZnJvbSBDcmVkZW50aWFsIFZhdWx0IChza2lwcGVkIGZvciBwbGF0Zm9ybSk8L3RleHQ+CiAgPHBhdGggZD0iTSA2OTQgMzcwIEwgNjk0IDM4NCIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjEuOCIgbWFya2VyLWVuZD0idXJsKCNhV0Y4ZCkiLz4KICA8IS0tIDUgLS0+CiAgPHJlY3QgeD0iNTI0IiB5PSIzODYiIHdpZHRoPSIzNDAiIGhlaWdodD0iNDYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM0NzU1NjkiLz4KICA8dGV4dCB4PSI1MzYiIHk9IjQwNiIgZmlsbD0iI0UyRThGMCIgZm9udC1zaXplPSIxMS41Ij48dHNwYW4gZmlsbD0iIzkzQzVGRCIgZm9udC13ZWlnaHQ9IjcwMCI+NSA8L3RzcGFuPiBCdWlsZCBvcGVyYXRpb25zWyBdPC90ZXh0PgogIDx0ZXh0IHg9IjUzNiIgeT0iNDIzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkuNSI+eyBhdHRyaWJ1dGU6IGhvc3RUYWcsIG9wZXJhdGlvbjogc2V0LCB2YWx1ZSB9PC90ZXh0PgogIDxwYXRoIGQ9Ik0gNjk0IDQzMiBMIDY5NCA0NDYiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjgiIG1hcmtlci1lbmQ9InVybCgjYVdGOGQpIi8+CiAgPCEtLSA2IFBPU1QgLS0+CiAgPHJlY3QgeD0iNTI0IiB5PSI0NDgiIHdpZHRoPSIzNDAiIGhlaWdodD0iNDYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM0NzU1NjkiLz4KICA8dGV4dCB4PSI1MzYiIHk9IjQ2OCIgZmlsbD0iI0UyRThGMCIgZm9udC1zaXplPSIxMS41Ij48dHNwYW4gZmlsbD0iIzkzQzVGRCIgZm9udC13ZWlnaHQ9IjcwMCI+NiA8L3RzcGFuPiBQT1NUIGFzIHRoZSBhY3RvcjwvdGV4dD4KICA8dGV4dCB4PSI1MzYiIHk9IjQ4NSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij4vYXBpL3YyL29uZWFnZW50cy9yZW1vdGVDb25maWd1cmF0aW9uTWFuYWdlbWVudCAocmVsYXRpdmUpPC90ZXh0PgogIDwhLS0gNDA5IHJldHJ5IG5vdGUgLS0+CiAgPHRleHQgeD0iNzA0IiB5PSI1MDMiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iOSI+4oa7IG9uIEhUVFAgNDA5IOKAlCByZXRyeSDDlzMgKDE1cyBiYWNrb2ZmKTwvdGV4dD4KICA8cGF0aCBkPSJNIDY5NCA0OTQgTCA2OTQgNTA2IiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMS44IiBtYXJrZXItZW5kPSJ1cmwoI2FXRjhkKSIvPgogIDwhLS0gcmV0dXJuIC0tPgogIDxyZWN0IHg9IjUyNCIgeT0iNTA4IiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjUwIiByeD0iNyIgZmlsbD0iIzE0NTMyRCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjUzNiIgeT0iNTI4IiBmaWxsPSIjRENGQ0U3IiBmb250LXNpemU9IjExLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPnJldHVybiAgYXBwbGllZCAvIGRyeS1ydW4gLyBmYWlsZWQ8L3RleHQ+CiAgPHRleHQgeD0iNTM2IiB5PSI1NDYiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOS41Ij5mYWlsZWRFbnRpdGllcyBjaGVja2VkIMK3IHN0YXR1cyDCtyBqb2JJZDwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT09PT09PT09PT0gSEFORE9GRiBDT05ORUNUT1IgPT09PT09PT09PT09PT09PT09PT09IC0tPgogIDxwYXRoIGQ9Ik0gNDA0IDUzMyBDIDQ2MiA1MzMsIDQ2MiAxNjEsIDUyNCAxNjEiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIyLjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNCIgbWFya2VyLWVuZD0idXJsKCNhSGFuZCkiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0M0QjVGRCIgZm9udC1zaXplPSI5LjUiIGZvbnQtd2VpZ2h0PSI3MDAiPndpdGhJdGVtczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjM2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0M0QjVGRCIgZm9udC1zaXplPSI5Ij5ob3N0IGluPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzc3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQzRCNUZEIiBmb250LXNpemU9IjkiPmhvc3RzWyBdPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PT09PT09PT09PSBMRUdFTkQgPT09PT09PT09PT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjI0IiB5PSI1ODAiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxMiIgcng9IjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzQ3NTU2OSIvPgogIDx0ZXh0IHg9IjQ0IiB5PSI1OTAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmZ1bmN0aW9uIHN0ZXA8L3RleHQ+CiAgPHJlY3QgeD0iMTUwIiB5PSI1ODAiIHdpZHRoPSIxNCIgaGVpZ2h0PSIxMiIgcng9IjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIvPgogIDx0ZXh0IHg9IjE3MCIgeT0iNTkwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5kZWNpc2lvbjwvdGV4dD4KICA8cmVjdCB4PSIyNDgiIHk9IjU4MCIgd2lkdGg9IjE0IiBoZWlnaHQ9IjEyIiByeD0iMiIgZmlsbD0iIzE0NTMyRCIgc3Ryb2tlPSIjNzNCRTI4Ii8+CiAgPHRleHQgeD0iMjY4IiB5PSI1OTAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnJldHVybiAvIG91dHB1dDwvdGV4dD4KICA8bGluZSB4MT0iMzkyIiB5MT0iNTg2IiB4Mj0iNDIwIiB5Mj0iNTg2IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMi4yIiBzdHJva2UtZGFzaGFycmF5PSI2IDQiLz4KICA8dGV4dCB4PSI0MjYiIHk9IjU5MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+ZGF0YSBoYW5kb2ZmIChvbmUgbG9vcCBpdGVyYXRpb24gcGVyIGhvc3QpPC90ZXh0Pgo8L3N2Zz4K" alt="Inside the workflow — function flow per task" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Task 1 — query_hosts_and_enrich (runs once) | Task 2 — apply_tags_to_hosts (per host, loop) |
+|----------------------------------------------|-----------------------------------------------|
+| 1. Run enrichment DQL (fetch host + lookup x3 + parse hostname) | 1. loopItem.host (one host from hosts[]) |
+| 2. Deduplicate by host id -> uniqueHosts | 2. DRY_RUN? yes -> log and return, no -> continue |
+| 3. Apply MAX_HOSTS cap | 3. Relative URL (platform auth, as the actor) |
+| 4. Fetch existing tags (batched) | 4. Classic alternative only: token <- Credential Vault |
+| 5. Diff: drop tags already present | 5. Build operations[] (set hostTag per tag) |
+| 6. Keep hosts with >=1 missing tag | 6. POST to API (retry x3 on HTTP 409) |
+| -> return hosts[] | -> check failedEntities; return applied / dry-run / failed |
+| Task 1 output feeds Task 2 via the loop (one iteration per host) | |
+-->
+<p><a id="two-surfaces"></a></p>
+<h2>2. The Two Tag Surfaces, One API Call</h2>
+<p><code>TAG_MAPPING</code> maps an enrichment field to a host-tag key. Two different Dynatrace surfaces are written through the <strong>same</strong> <code>set hostTag</code> operation:</p>
+<ul>
+<li><code>primary_tags.application</code> / <code>primary_tags.environment</code> become <strong>primary tags</strong>. The <code>primary_tags.</code> prefix is mandatory and is <strong>never added for you</strong> — a bare <code>application</code> key would create an ordinary tag, not a primary tag.</li>
+<li><code>dt.security_context</code> and <code>dt.cost.costcenter</code> are <strong>primary fields</strong> (security context, cost-allocation), set through that same operation.</li>
+</ul>
+<p>This split — and the primary-tags prefix rule — is covered in depth in <strong>FAQ-02 (Tagging: Sources, Standards &amp; Strategy)</strong>. Tune <code>TAG_MAPPING</code> to the fields and tag keys your environment actually uses.</p>
+<p><a id="safety-model"></a></p>
+<h2>3. Safety Model</h2>
+<p>The workflow defaults to <strong>safe</strong>: a first run changes nothing. Read the dry-run log, confirm the proposed tags, then flip one flag.</p>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DRY_RUN = true</code> <em>(default)</em></td>
+<td>Task 2 only logs the <code>--set-host-tag</code> it <em>would</em> run — no write. Set to <code>false</code> to apply.</td>
+</tr>
+<tr>
+<td><code>MAX_HOSTS</code></td>
+<td>Caps hosts processed per run (default <code>50</code>; <code>0</code> = unlimited).</td>
+</tr>
+<tr>
+<td>Skip-existing</td>
+<td>Task 1 reads current tags and drops any key already present — re-runs are idempotent.</td>
+</tr>
+<tr>
+<td>409 retry</td>
+<td>HTTP 409 means <em>another</em> remote configuration job is running in the environment — any bulk action, by a person or another workflow, not only this one. Task 2 retries up to <code>MAX_RETRIES</code> (3) with a 15s backoff.</td>
+</tr>
+<tr>
+<td><code>failedEntities</code> check</td>
+<td>A 201 response returns only after every OneAgent in the job is processed, and lists agents that failed (<code>CONNECTION_FAILURE</code>, <code>TIMEOUT</code>) in <code>failedEntities</code>. Task 2 reports those hosts as <code>failed</code>, not <code>applied</code>.</td>
+</tr>
+<tr>
+<td>No stored secret</td>
+<td>Task 2 calls the API with a <strong>relative URL</strong>, so the runtime authenticates it as the workflow actor — no token in the vault or the workflow.</td>
+</tr>
+<tr>
+<td>Config validation</td>
+<td>In the classic-token alternative, task 2 throws <em>before any live write</em> if <code>ENVIRONMENT_URL</code> / <code>CREDENTIAL_ID</code> still hold placeholders.</td>
+</tr>
+<tr>
+<td>Loop concurrency <code>1</code></td>
+<td>Hosts are tagged one at a time (serialized loop) to avoid colliding jobs and API pressure.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong><code>RESTART_ONEAGENT = false</code> means &quot;accepted&quot;, not &quot;applied&quot;.</strong> The API reference states that <em>&quot;By default OneAgents will be restarted when network zone, host group, host tags or host properties are reconfigured - the restart is required to apply the changes.&quot;</em> The LAB defaults to no restart so that a first live run cannot bounce agents unexpectedly — but with it off, a successful job (HTTP 2xx, a <code>jobId</code>) does not mean the tags are on the data yet; they apply when each host's OneAgent next restarts. Either schedule a restart window and set <code>RESTART_ONEAGENT = true</code>, or verify on data ingested after the hosts' next restart. Removals are slower still: <em>&quot;Removing host properties and tags may require up to seven hours to take effect.&quot;</em></p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job">POST a configuration job (DT docs)</a> — <em>&quot;409 - Other remote configuration management job is currently being executed&quot;</em> and <em>&quot;The response is not sent to the client until all OneAgents defined in the payload are processed.&quot;</em>; <a href="https://docs.dynatrace.com/docs/ingest-from/bulk-configuration-classic">Remote configuration management (DT docs)</a> — <em>&quot;You can't start another bulk action until the current one is finished.&quot;</em></sub></p>
+</blockquote>
+<p><a id="build-steps"></a></p>
+<h2>4. Build It in the Workflows Editor (Step by Step)</h2>
+<p>Two <em>Run JavaScript</em> tasks wired with a loop. <strong>All configuration lives in workflow inputs</strong> (runtime variables) — task 1 reads them with <code>ex.input</code> and passes the values task 2 needs onto each host object, so the loop task needs no input wiring of its own.</p>
+<blockquote>
+<p><strong>UI labels vary between Workflows app versions.</strong> Where you define workflow inputs and the loop differs by version; the authoritative shape is the exported YAML (see the <a href="#import-skeleton">import skeleton</a>, which includes the <code>input:</code> block verbatim). The workflow is adapted from a working deployment that used a classic token, with its tenant URL and names genericized, rather than from a Dynatrace-published example — keep <code>DRY_RUN = true</code> for the first run in your tenant.</p>
+</blockquote>
+<p><strong>Step 0 — Prerequisites (once):</strong></p>
+<ul>
+<li><strong>Upload your CMDB exports as Grail lookup tables</strong> at the paths the query references (<code>/lookups/cmdb_server</code>, <code>/lookups/cmdb_mapped_app_service</code>, <code>/lookups/cmdb_businessapp</code>); adjust names/<code>fields</code> to your schema. <em>(If they're missing, task 1's preflight stops the run cleanly with a &quot;Missing CMDB lookup tables&quot; message — no raw <code>UNKNOWN_TABULAR_FILE</code> error.)</em></li>
+<li><strong>Give the workflow's actor the permissions</strong> in the Prerequisites — above all <code>fleet-management:oneagents:write</code> — and enable them in <strong>Workflows &gt; Settings &gt; Authorization settings</strong>. A permission missing from either place makes the task fail with 403 Forbidden. A service user is the recommended actor for a production workflow (WFLOW-09 §4).</li>
+<li><strong>Classic or hybrid environments that keep a classic token instead:</strong> create a classic API token with <strong><code>oneAgents.write</code></strong>, store it in the <strong>Credential Vault</strong> with <strong>AppEngine</strong> scope and <strong>Allow access without app context</strong> turned on, give the workflow actor access to the credential and <code>environment-api:credentials:read</code>, and set the <code>ENVIRONMENT_URL</code> and <code>CREDENTIAL_ID</code> inputs. Latest environments have no classic tokens, so this path does not exist there.</li>
+</ul>
+<blockquote>
+<p><strong>Platform authentication (SaaS 1.343+).</strong> Since SaaS 1.343, the OneAgent fleet-management endpoints accept platform authentication, and the API reference lists <em>&quot;Platform Token / OAuth: Required scope: fleet-management:oneagents:write&quot;</em>. Task 2 therefore calls the endpoint with a <strong>relative URL</strong>: the Run JavaScript runtime attaches the authentication for the actor, so no token is stored anywhere. This path follows the documentation but has <strong>not been tested live</strong> for this endpoint — keep <code>DRY_RUN = true</code>, then try one host with <code>MAX_HOSTS = 1</code> before a full run. If your tenant is not yet on 1.343, use the classic-token alternative.</p>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a> — <em>&quot;Use relative paths, for example /api/v2/entities , to call Dynatrace APIs. The runtime automatically attaches the required authentication headers. Don't set a custom Authorization header on relative URL requests.&quot;</em> and <em>&quot;The AppEngine scope is selected. Allow access without app context is turned on. The workflow actor has access to the credential.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job">POST a configuration job (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: fleet-management:oneagents:write&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">Sprint 343 release notes (DT docs)</a> — <em>&quot;We recommend platform tokens over classic API tokens for new integrations.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from classic access tokens (DT docs)</a> — (latest environment) <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Workflow security (DT docs)</a> — <em>&quot;If the required permission for a workflow task is missing, an attempt to execute this task results in a 403 Forbidden error.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><strong>Step 1 — Create the workflow and define its inputs.</strong> New workflow (leave the on-demand trigger). Define these <strong>workflow inputs</strong> — they become the parameters you can override in the Run dialog (easiest to set via the YAML editor — see the <a href="#import-skeleton">import skeleton</a>):</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DRY_RUN</code></td>
+<td><code>true</code></td>
+<td>preview only; flip to <code>false</code> to apply</td>
+</tr>
+<tr>
+<td><code>MAX_HOSTS</code></td>
+<td><code>50</code></td>
+<td>cap per run; <code>0</code> = unlimited</td>
+</tr>
+<tr>
+<td><code>APP_SCOPE</code></td>
+<td><code>''</code></td>
+<td>limit to one business app; <code>''</code> = all</td>
+</tr>
+<tr>
+<td><code>EXCLUDE_PRODUCTION</code></td>
+<td><code>false</code></td>
+<td>skip <code>environment == production</code></td>
+</tr>
+<tr>
+<td><code>RESTART_ONEAGENT</code></td>
+<td><code>false</code></td>
+<td>restart OneAgent after tagging</td>
+</tr>
+<tr>
+<td><code>ENVIRONMENT_URL</code></td>
+<td><code>''</code></td>
+<td>classic-token alternative only: tenant API base (no trailing slash)</td>
+</tr>
+<tr>
+<td><code>CREDENTIAL_ID</code></td>
+<td><code>''</code></td>
+<td>classic-token alternative only: vault entry holding the <code>oneAgents.write</code> token. Empty = platform auth</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Step 2 — Add the first JavaScript block.</strong> Click <strong>+</strong> under the trigger → <strong>Run JavaScript</strong>. Rename it <code>query_hosts_and_enrich</code>.</p>
+<p><strong>Step 3 — Fill it with this code.</strong> It preflights the lookup tables (so a missing upload fails clean), then enriches and diffs:</p>
+<pre><code class="language-javascript">import { queryExecutionClient } from '@dynatrace-sdk/client-query';
+import { execution } from '@dynatrace-sdk/automation-utils';
+
+export default async function ({ executionId }) {
+  // ---- Runtime inputs (workflow `input` block; override per run) ----
+  const ex = await execution(executionId);
+  const inp = ex.input || {};
+  const MAX_HOSTS = Number(inp.MAX_HOSTS ?? 50);
+  const DRY_RUN = (inp.DRY_RUN === false || inp.DRY_RUN === 'false') ? false : true; // default true
+  const RESTART_ONEAGENT = (inp.RESTART_ONEAGENT === true || inp.RESTART_ONEAGENT === 'true');
+  // APP_SCOPE is interpolated into DQL below — allow only a plain identifier (no quotes, no pipes).
+  const APP_SCOPE = (inp.APP_SCOPE ?? '').toString().trim().toLowerCase();
+  if (APP_SCOPE &amp;&amp; !/^[a-z0-9._-]+$/.test(APP_SCOPE)) throw new Error(`APP_SCOPE '${APP_SCOPE}' must match [a-z0-9._-]+`);
+  const EXCLUDE_PRODUCTION = (inp.EXCLUDE_PRODUCTION === true || inp.EXCLUDE_PRODUCTION === 'true');
+  // Optional — only for the classic-token alternative (task 2). Leave both empty for platform auth.
+  const ENVIRONMENT_URL = (inp.ENVIRONMENT_URL ?? '').toString().replace(/\/+$/, '');
+  const CREDENTIAL_ID = (inp.CREDENTIAL_ID ?? '').toString();
+
+  const TAG_MAPPING = {
+    'application': 'primary_tags.application',
+    'environment': 'primary_tags.environment',
+    'dt.security_context': 'dt.security_context',
+    'dt.cost.costcenter': 'dt.cost.costcenter',
+  };
+
+  console.log('=== Host Tag Enrichment (runtime inputs) ===');
+  console.log(`DRY_RUN=${DRY_RUN} | MAX_HOSTS=${MAX_HOSTS} | APP_SCOPE='${APP_SCOPE}' | EXCLUDE_PRODUCTION=${EXCLUDE_PRODUCTION} | RESTART_ONEAGENT=${RESTART_ONEAGENT}`);
+
+  // ---- Preflight: confirm the CMDB lookup tables exist before querying them, ----
+  // ---- so a missing upload stops cleanly instead of throwing UNKNOWN_TABULAR_FILE. ----
+  const LOOKUP_TABLES = ['/lookups/cmdb_server', '/lookups/cmdb_mapped_app_service', '/lookups/cmdb_businessapp'];
+  const missingTables = await checkLookupTables(LOOKUP_TABLES);
+  if (missingTables.length &gt; 0) {
+    console.log(`Missing CMDB lookup tables: ${missingTables.join(', ')}`);
+    console.log('Upload them first (Step 0), then re-run. Stopping cleanly - no hosts processed.');
+    return { hosts: [], totalFound: 0, toProcess: 0, dryRun: DRY_RUN, missingLookupTables: missingTables };
+  }
+
+  let enrichmentQuery = `fetch dt.entity.host
+| fields id, entity.name, monitoringMode, paasVendorType, isMonitoringCandidate, awsNameTag
+| filter isMonitoringCandidate == false
+// Remote configuration management does not work with Operator-deployed or application-only
+// OneAgents. PaaS hosts (paasVendorType set, e.g. Kubernetes) are excluded as not eligible —
+// the label says nothing about how they are billed or monitored.
+| fieldsAdd rcm_eligibility = if(isNotNull(paasVendorType), &quot;NOT_RCM_ELIGIBLE&quot;, else: &quot;ELIGIBLE&quot;),
+            provider = if(isNotNull(awsNameTag), &quot;aws&quot;, else: &quot;datacenter&quot;)
+| filterOut rcm_eligibility == &quot;NOT_RCM_ELIGIBLE&quot;
+| fieldsRemove paasVendorType, awsNameTag, isMonitoringCandidate
+| parse entity.name, &quot;&quot;&quot;LD:hostname ('.' LD:domain)? EOS&quot;&quot;&quot;
+| lookup [load &quot;/lookups/cmdb_server&quot;
+          | fields cmdb_ci_key, name, dv_operational_status, environment, busapp_cmdb_ci_key, apps_cmdb_ci_key], sourceField:hostname, lookupField:name, prefix:&quot;server.&quot;
+| lookup [load &quot;/lookups/cmdb_mapped_app_service&quot;
+          | fields environment, managed_by_email, cmdb_ci_key, busapp_name], sourceField:server.apps_cmdb_ci_key, lookupField:cmdb_ci_key, prefix:&quot;mapped_app.&quot;
+| lookup [load &quot;/lookups/cmdb_businessapp&quot;
+          | fields short_name, owned_by, cmdb_ci_key], sourceField:server.busapp_cmdb_ci_key, lookupField:cmdb_ci_key, prefix:&quot;bus_app.&quot;
+| fields id, entity.name, application = lower(bus_app.short_name), environment = lower(mapped_app.environment), dt.cost.costcenter = lower(bus_app.short_name), dt.security_context = lower(bus_app.short_name)
+| filter isNotNull(application) OR isNotNull(environment)`;
+
+  if (APP_SCOPE) enrichmentQuery += `\n| filter application == &quot;${APP_SCOPE}&quot;`; // validated above
+  if (EXCLUDE_PRODUCTION) enrichmentQuery += `\n| filterOut environment == &quot;production&quot;`;
+
+  const enriched = await executeDqlQuery(enrichmentQuery);
+  console.log(`Found ${enriched.length} enriched host records`);
+
+  const hostMap = new Map();
+  enriched.forEach(record =&gt; {
+    if (!hostMap.has(record.id)) {
+      const hostData = { id: record.id, name: record['entity.name'], application: record.application };
+      Object.keys(TAG_MAPPING).forEach(f =&gt; { hostData[f] = getNestedField(record, f); });
+      hostMap.set(record.id, hostData);
+    }
+  });
+  const uniqueHosts = Array.from(hostMap.values());
+  const hostsToProcess = MAX_HOSTS &gt; 0 ? uniqueHosts.slice(0, MAX_HOSTS) : uniqueHosts;
+  console.log(`${uniqueHosts.length} unique hosts; processing ${hostsToProcess.length}`);
+  if (hostsToProcess.length === 0) return { hosts: [], totalFound: 0, toProcess: 0, dryRun: DRY_RUN };
+
+  const BATCH = 50;
+  const existing = new Map();
+  for (let i = 0; i &lt; hostsToProcess.length; i += BATCH) {
+    const batch = hostsToProcess.slice(i, i + BATCH);
+    const filterParts = batch.map(h =&gt; `id == &quot;${h.id}&quot;`).join(' or ');
+    const recs = await executeDqlQuery(`fetch dt.entity.host
+| fieldsAdd tags
+| filter ${filterParts}
+| fields id, tags`);
+    recs.forEach(record =&gt; {
+      const allTags = (record.tags || []).filter(t =&gt; typeof t === 'string');
+      const keys = allTags.map(t =&gt; {
+        let s = t; const b = t.lastIndexOf(']'); if (b !== -1) s = t.substring(b + 1);
+        const c = s.indexOf(':'); return c === -1 ? null : s.substring(0, c);
+      }).filter(k =&gt; k &amp;&amp; Object.values(TAG_MAPPING).includes(k));
+      existing.set(record.id, new Set(keys));
+    });
+  }
+
+  const hostsWithTags = [];
+  let skipped = 0;
+  hostsToProcess.forEach(host =&gt; {
+    const have = existing.get(host.id) || new Set();
+    const tagsToApply = [];
+    Object.entries(TAG_MAPPING).forEach(([f, tagKey]) =&gt; {
+      const value = host[f];
+      if (!value || String(value).trim().length === 0) return;
+      if (have.has(tagKey)) { skipped++; return; }
+      const clean = sanitizeTagValue(tagKey, value);
+      if (clean) tagsToApply.push({ key: tagKey, value: clean });
+    });
+    if (tagsToApply.length &gt; 0) {
+      hostsWithTags.push({ id: host.id, name: host.name, application: host.application, tagsToApply,
+        dryRun: DRY_RUN, restartOneAgent: RESTART_ONEAGENT, environmentUrl: ENVIRONMENT_URL, credentialId: CREDENTIAL_ID });
+    }
+  });
+
+  console.log(DRY_RUN ? 'DRY RUN - no changes' : 'LIVE - will apply tags');
+  hostsWithTags.forEach((h, i) =&gt; { console.log(`  ${i + 1}. ${h.name} (${h.id})`); h.tagsToApply.forEach(t =&gt; console.log(`     + ${t.key}=${t.value}`)); });
+  console.log(`Hosts to tag: ${hostsWithTags.length} | tags skipped (exist): ${skipped}`);
+
+  return { hosts: hostsWithTags, totalFound: uniqueHosts.length, toProcess: hostsWithTags.length, totalSkipped: skipped, dryRun: DRY_RUN };
+}
+
+// Preflight helper: returns the subset of lookup-table paths that do NOT exist.
+async function checkLookupTables(paths) {
+  const missing = [];
+  for (const path of paths) {
+    try {
+      await executeDqlQuery(`load &quot;${path}&quot; | limit 1`);
+    } catch (e) {
+      if (e.message &amp;&amp; e.message.includes('UNKNOWN_TABULAR_FILE')) missing.push(path);
+      else throw e; // a real/unexpected error - surface it
+    }
+  }
+  return missing;
+}
+
+function getNestedField(record, fieldName) {
+  if (record[fieldName] !== undefined) return record[fieldName];
+  return fieldName.split('.').reduce((v, p) =&gt; (v == null ? undefined : v[p]), record);
+}
+// A host tag may not contain whitespace or '=' in its value, and `key=value` may be at most 256 characters.
+function sanitizeTagValue(key, value) { return String(value).replace(/[\s=]/g, '').slice(0, Math.max(0, 256 - key.length - 1)); }
+async function executeDqlQuery(query) {
+  // Keep the token from queryExecute: poll responses do not carry one of their own.
+  const started = await queryExecutionClient.queryExecute({ body: { query, requestTimeoutMilliseconds: 60000, maxResultRecords: 10000 } });
+  let r = started;
+  while (r &amp;&amp; (r.state === 'NOT_STARTED' || r.state === 'RUNNING')) {
+    r = await queryExecutionClient.queryPoll({ requestToken: started.requestToken, requestTimeoutMilliseconds: 30000 });
+  }
+  if (!r || r.state !== 'SUCCEEDED') throw new Error(`DQL failed: ${r?.state ?? 'no response'}`);
+  return r.result.records;   // capped at maxResultRecords (10,000) - the query API has no result paging
+}
+</code></pre>
+<p><strong>Step 4 — Customize task 1.</strong> Adjust <code>TAG_MAPPING</code>, the three <code>lookup [load &quot;/lookups/…&quot;]</code> tables and their <code>| fields …</code> lists, and the final <code>| fields … = lower(…)</code> mapping to match your CMDB. <strong>If you rename the lookup tables, update both the <code>LOOKUP_TABLES</code> preflight list and the <code>lookup [load …]</code> calls.</strong> Run scope and behavior (<code>DRY_RUN</code>, <code>MAX_HOSTS</code>, etc.) come from the <strong>inputs</strong>, not code constants.</p>
+<p><strong>Step 5 — Add the second JavaScript block.</strong> Click <strong>+</strong> beneath task 1 → <strong>Run JavaScript</strong>. Rename it <code>apply_tags_to_hosts</code> (placing it beneath task 1 makes task 1 its predecessor).</p>
+<p><strong>Step 6 — Fill it with this code:</strong></p>
+<pre><code class="language-javascript">import { actionExecution } from '@dynatrace-sdk/automation-utils';
+import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 15000; // 15s between retries on 409
+const API_PATH = '/api/v2/oneagents/remoteConfigurationManagement';
+
+export default async function ({ actionExecutionId }) {
+  const actionExe = await actionExecution(actionExecutionId);
+  const host = actionExe.loopItem.host;
+  const ENVIRONMENT_URL = host.environmentUrl;   // from task 1 (workflow input) — classic alternative only
+  const CREDENTIAL_ID = host.credentialId;       // from task 1 (workflow input) — classic alternative only
+
+  console.log(`--- ${host.name} (${host.id}) - ${host.tagsToApply.length} tag(s) ---`);
+
+  if (host.dryRun) {
+    host.tagsToApply.forEach(t =&gt; console.log(`  [DRY RUN] --set-host-tag=${t.key}=${t.value}`));
+    return { host: host.name, hostId: host.id, status: 'dry-run', tagCount: host.tagsToApply.length };
+  }
+
+  // Default: platform authentication. A relative URL is called as the workflow actor — the runtime
+  // attaches the authentication header; never set Authorization yourself. The actor needs
+  // fleet-management:oneagents:write.
+  let url = `${API_PATH}?restart=${host.restartOneAgent}`;
+  const headers = { 'Content-Type': 'application/json; charset=utf-8' };
+
+  // Classic/hybrid alternative: a classic API token (oneAgents.write) read from the Credential Vault.
+  if (CREDENTIAL_ID) {
+    if (!ENVIRONMENT_URL || ENVIRONMENT_URL.includes('&lt;')) throw new Error('ENVIRONMENT_URL input is not set.');
+    if (CREDENTIAL_ID.includes('X')) throw new Error('CREDENTIAL_ID input still holds the placeholder.');
+    const cred = await credentialVaultClient.getCredentialsDetails({ id: CREDENTIAL_ID });
+    if (!cred.token) throw new Error('Credential has no token value.');
+    url = `${ENVIRONMENT_URL}${url}`;
+    headers['Authorization'] = `Api-Token ${cred.token}`;
+  }
+
+  const operations = host.tagsToApply.map(tag =&gt; ({ attribute: 'hostTag', operation: 'set', value: `${tag.key}=${tag.value}` }));
+
+  for (let attempt = 1; attempt &lt;= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ entities: [host.id], operations })
+      });
+      // 409: another remote configuration job is running in the environment — wait and retry.
+      if (response.status === 409 &amp;&amp; attempt &lt; MAX_RETRIES) { await new Promise(s =&gt; setTimeout(s, RETRY_DELAY_MS)); continue; }
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      const data = await response.json();
+      // 201 means the job ran — not that every agent accepted it. Check failedEntities.
+      const failed = data.failedEntities || [];
+      if (failed.length &gt; 0) {
+        const reason = `${failed[0].failureReason}: ${failed[0].failureMessage || ''}`;
+        console.error(`  FAILED on agent (job ${data.id}): ${reason}`);
+        return { host: host.name, hostId: host.id, status: 'failed', error: reason, jobId: data.id, attempt };
+      }
+      console.log(`  SUCCESS (attempt ${attempt}) jobId=${data.id || 'N/A'}`);
+      return { host: host.name, hostId: host.id, status: 'applied', tagsApplied: host.tagsToApply.length, jobId: data.id || 'N/A', attempt };
+    } catch (error) {
+      if (attempt &lt; MAX_RETRIES &amp;&amp; error.message &amp;&amp; error.message.includes('409')) { await new Promise(s =&gt; setTimeout(s, RETRY_DELAY_MS)); continue; }
+      console.error(`  FAILED (attempt ${attempt}): ${error.message}`);
+      return { host: host.name, hostId: host.id, status: 'failed', error: error.message, attempt };
+    }
+  }
+  return { host: host.name, hostId: host.id, status: 'failed', error: 'Max retries exceeded' };
+}
+</code></pre>
+<p><strong>Step 7 — Customize task 2.</strong> Normally nothing. With <code>CREDENTIAL_ID</code> empty, task 2 uses platform authentication as the actor. Only in the classic-token alternative do <code>ENVIRONMENT_URL</code> and <code>CREDENTIAL_ID</code> matter; they arrive from task 1 on each host object.</p>
+<p><strong>Step 8 — Make task 2 loop over the hosts.</strong> Enable the loop (Options → Loop / &quot;Run task for each item&quot;):</p>
+<ul>
+<li><strong>Items:</strong> <code>{{ result('query_hosts_and_enrich').hosts }}</code></li>
+<li><strong>Loop item variable name:</strong> <code>host</code> — must be <code>host</code> so <code>actionExe.loopItem.host</code> resolves.</li>
+<li><strong>Concurrency:</strong> <code>1</code> (serialize the writes).</li>
+</ul>
+<p>Run condition (Conditions → Custom): <code>{{ result('query_hosts_and_enrich').hosts | length &gt; 0 }}</code></p>
+<p><strong>Step 9 — Run with inputs.</strong> Save → Run. Leave <code>DRY_RUN = true</code> (and set <code>ENVIRONMENT_URL</code> / <code>CREDENTIAL_ID</code> only for the classic-token alternative). Review the task-2 log's <code>--set-host-tag</code> lines, then re-run with <code>DRY_RUN = false</code> to apply. Add a schedule trigger (WFLOW-02) to keep newly onboarded hosts tagged; skip-existing keeps repeat runs cheap and idempotent.</p>
+<p><a id="import-skeleton"></a></p>
+<h2>5. Prefer to Import? (YAML Skeleton)</h2>
+<p>Build the envelope below — it includes the <code>input:</code> block and the loop/condition wiring — paste the <strong>Step 3</strong> and <strong>Step 6</strong> scripts into the <code>script:</code> blocks, and import it from the Workflows app.</p>
+<pre><code class="language-yaml">metadata:
+  version: '1'
+  dependencies:
+    apps:
+      - id: dynatrace.automations
+        version: ^1.3074.2
+workflow:
+  title: Host Tag Enrichment from Lookup Table
+  schemaVersion: 4
+  trigger: {}
+  type: STANDARD
+  input:
+    DRY_RUN: true
+    APP_SCOPE: ''
+    MAX_HOSTS: 50
+    ENVIRONMENT_URL: ''   # classic-token alternative only
+    CREDENTIAL_ID: ''     # classic-token alternative only; empty = platform auth
+    RESTART_ONEAGENT: false
+    EXCLUDE_PRODUCTION: false
+  tasks:
+    query_hosts_and_enrich:
+      name: query_hosts_and_enrich
+      action: dynatrace.automations:run-javascript
+      predecessors: []
+      input:
+        script: |
+          # paste the Step 3 script (query_hosts_and_enrich) here
+    apply_tags_to_hosts:
+      name: apply_tags_to_hosts
+      action: dynatrace.automations:run-javascript
+      predecessors:
+        - query_hosts_and_enrich
+      conditions:
+        custom: '{{ result(''query_hosts_and_enrich'').hosts | length &gt; 0 }}'
+        states:
+          query_hosts_and_enrich: OK
+      withItems: host in {{ result('query_hosts_and_enrich').hosts }}
+      concurrency: 1
+      input:
+        script: |
+          # paste the Step 6 script (apply_tags_to_hosts) here
+</code></pre>
+<p><a id="adapting"></a></p>
+<h2>6. Adapting It</h2>
+<ul>
+<li><strong>Runtime inputs</strong> — every knob (<code>DRY_RUN</code>, <code>MAX_HOSTS</code>, <code>APP_SCOPE</code>, <code>EXCLUDE_PRODUCTION</code>, <code>RESTART_ONEAGENT</code>, and the classic-only <code>ENVIRONMENT_URL</code> / <code>CREDENTIAL_ID</code>) is a workflow input, overridable per run in the Run dialog. No code edits to change scope or target.</li>
+<li><strong>Scope filters</strong> — <code>APP_SCOPE</code> limits the run to one business app; <code>EXCLUDE_PRODUCTION</code> skips hosts whose enriched <code>environment</code> is <code>production</code>. Both are appended to the DQL at runtime, so task 1 accepts <code>APP_SCOPE</code> only as a plain identifier (<code>[a-z0-9._-]</code>) — a quote in the input cannot reach the query.</li>
+<li><strong><code>sanitizeTagValue</code></strong> strips whitespace and <code>=</code> from the value and caps the whole <code>key=value</code> at 256 characters, the documented host-tag limit.</li>
+<li><strong>Batching</strong> — the job API takes a list of <code>entities</code>. Sending several hosts that need the same tags in one job means fewer jobs and fewer 409 collisions.</li>
+<li><strong>Schedule it</strong> with a cron trigger (WFLOW-02) so newly onboarded hosts get tagged automatically; skip-existing keeps repeat runs cheap.</li>
+<li><strong>Authentication</strong> — platform authentication as the workflow actor (relative URL, <code>fleet-management:oneagents:write</code>) is the default; the classic <code>Api-Token</code> from the Credential Vault is kept only for classic or hybrid environments.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface">OneAgent configuration via command-line interface (DT docs)</a> — <em>&quot;A property value must not contain = (unless used as a key-value delimiter) or whitespace characters. The maximum length is 256 characters, including the key-value delimiter.&quot;</em>; <a href="https://docs.dynatrace.com/docs/ingest-from/bulk-configuration-classic">Remote configuration management (DT docs)</a> — <em>&quot;Remote configuration management does NOT work with: OneAgent deployed with Dynatrace Operator Application-only OneAgents OneAgents on Solaris&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="next-steps"></a></p>
+<h2>7. Next Steps</h2>
+<ul>
+<li><strong>WFLOW-02: Triggers</strong> — add a schedule trigger to run this enrichment on a cadence.</li>
+<li><strong>WFLOW-07: Auto-Remediation</strong> — the DRY_RUN / max-attempts / serialized-write guardrails here are the same safety patterns used for remediation tasks.</li>
+<li><strong>WFLOW-08: JavaScript &amp; HTTP Actions</strong> — the building blocks this LAB composes (SDK DQL, <code>fetch()</code>, retry, <code>result()</code> / <code>withItems</code>, Credential Vault).</li>
+<li><strong>WFLOW-09: Security, Governance &amp; Monitoring</strong> — service-user actors and the permissions a production workflow needs.</li>
+<li><strong>FAQ-02: Tagging — Sources, Standards &amp; Strategy</strong> — the tagging-source model and the <code>primary_tags.</code> prefix rule that this workflow writes against.</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job">OneAgent remote configuration management API — POST a configuration job (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/bulk-configuration-classic">Remote configuration management of OneAgents and ActiveGates (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/lookup-data">Lookup data in Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent">OneAgent tag setup — primary tags / fields (DT docs)</a></li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/remote-configuration/oneagent/post-config-job">OneAgent remote configuration management API — POST a configuration job (DT docs)</a> — documents the <code>hostTag</code> <code>set</code> operation, the <code>dt.cost.costcenter=&lt;value&gt;</code> form, and the <code>oneAgents.write</code> / <code>fleet-management:oneagents:write</code> scopes, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/grail/lookup-data">Lookup data in Grail (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent">OneAgent tag setup (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="bonus-seed-lookups"></a></p>
+<h2>Appendix — Bonus: Seed Sample Lookup Tables (Testing Only)</h2>
+<blockquote>
+<p><strong>Not part of the main workflow.</strong> In production the three CMDB lookup tables are uploaded from your <strong>real CMDB</strong> (Step 0). This appendix is only for trying the LAB on a tenant that has <strong>no CMDB tables</strong> — it creates three tiny sample tables so the enrichment resolves for one host. <strong>Do not run it where the real tables already exist</strong> (it would overwrite them).</p>
+</blockquote>
+<p>It uses the Grail <strong>Resource Store API</strong> (<code>/platform/storage/resource-store/v1/files/tabular/lookup:upload</code>) — the reverse direction of this LAB (writing <em>to</em> a lookup table instead of reading <em>from</em> one). The same API is how you'd build a real &quot;sync CMDB → lookup table&quot; job if your CMDB is reachable from a workflow.</p>
+<p><strong>Prerequisite:</strong> the workflow's actor needs <strong><code>storage:files:write</code></strong> to upload. Reading the tables back needs <code>storage:files:read</code> (the main LAB's actor has it); deleting a table needs <code>storage:files:delete</code>.</p>
+<p><strong>How to use:</strong> create a <strong>separate</strong> one-task workflow (don't add this to the tagging workflow), paste the code, <strong>replace <code>myhost-01</code></strong> with the short hostname of a real host in your tenant (the part before the first dot), and run it once. Then verify with <code>load &quot;/lookups/cmdb_server&quot; | limit 10</code> and run the main workflow with <code>DRY_RUN = true</code>. The sample chain resolves to <code>application = sampleapp</code>, <code>environment = dev</code>.</p>
+<pre><code class="language-javascript">const BASE = '/platform/storage/resource-store/v1/files/tabular';
+
+const TABLES = [
+  {
+    filePath: '/lookups/cmdb_server', lookupField: 'name', displayName: 'cmdb_server',
+    parsePattern: 'JSON{STRING:name, STRING:cmdb_ci_key, STRING:dv_operational_status, STRING:environment, STRING:busapp_cmdb_ci_key, STRING:apps_cmdb_ci_key}(flat=true)',
+    rows: [{ name: 'myhost-01', cmdb_ci_key: 'SRV1', dv_operational_status: 'operational',
+             environment: 'dev', busapp_cmdb_ci_key: 'BAPP1', apps_cmdb_ci_key: 'APP1' }],
+  },
+  {
+    filePath: '/lookups/cmdb_mapped_app_service', lookupField: 'cmdb_ci_key', displayName: 'cmdb_mapped_app_service',
+    parsePattern: 'JSON{STRING:cmdb_ci_key, STRING:environment, STRING:managed_by_email, STRING:busapp_name}(flat=true)',
+    rows: [{ cmdb_ci_key: 'APP1', environment: 'dev',
+             managed_by_email: 'owner@example.com', busapp_name: 'Sample App' }],
+  },
+  {
+    filePath: '/lookups/cmdb_businessapp', lookupField: 'cmdb_ci_key', displayName: 'cmdb_businessapp',
+    parsePattern: 'JSON{STRING:cmdb_ci_key, STRING:short_name, STRING:owned_by}(flat=true)',
+    rows: [{ cmdb_ci_key: 'BAPP1', short_name: 'sampleapp', owned_by: 'platform-team' }],
+  },
+];
+
+export default async function () {
+  const out = {};
+  for (const t of TABLES) {
+    const jsonl = t.rows.map(r =&gt; JSON.stringify(r)).join('\n');
+
+    // upload (multipart: request as a JSON string + content blob; NO headers)
+    const form = new FormData();
+    form.append('request', JSON.stringify({
+      filePath: t.filePath,
+      displayName: t.displayName,
+      description: 'Sample CMDB data for testing host-tag enrichment',
+      parsePattern: t.parsePattern,
+      skippedRecords: 0,
+      overwrite: true,
+      lookupField: t.lookupField,
+      timezone: 'UTC',
+      locale: 'en_US',
+    }));
+    form.append('content', new Blob([jsonl], { type: 'text/plain' }), 'data.jsonl');
+
+    const resp = await fetch(`${BASE}/lookup:upload`, { method: 'POST', body: form });
+    const body = await resp.text();
+    console.log(`[upload] ${t.filePath} -&gt; HTTP ${resp.status} :: ${body.slice(0, 300)}`);
+    out[t.filePath] = { status: resp.status, ok: resp.ok };
+    if (!resp.ok) console.error(`Upload failed for ${t.filePath}: ${body}`);
+  }
+  console.log('Verify each: load &quot;/lookups/cmdb_server&quot; | limit 10');
+  return out;
+}
+</code></pre>
+<p><strong>Upload mechanics (reusable for any lookup-table upload):</strong></p>
+<ul>
+<li><code>parsePattern: 'JSON{STRING:field, INT:field, …}(flat=true)'</code> produces <strong>flat top-level columns</strong> from JSONL. <code>(flat=true)</code> makes that explicit; when the pattern yields a single record-type field, the upload flattens it to the root by default anyway (<code>autoFlatten</code>).</li>
+<li>The <code>request</code> part is a plain <strong>JSON string</strong>; <code>content</code> is a <code>Blob</code>; <strong>set no headers</strong> — <code>fetch</code> builds the multipart boundary.</li>
+<li>The <strong>relative URL</strong> is authenticated by the platform as the workflow's actor — <strong>no token needed</strong>, the same mechanism task 2 of the main LAB uses.</li>
+<li><strong>Re-runnable:</strong> <code>overwrite: true</code> replaces an existing table. To remove a table, POST <code>{&quot;filePath&quot;: &quot;/lookups/&lt;name&gt;&quot;}</code> to <code>/platform/storage/resource-store/v1/files:delete</code> (needs <code>storage:files:delete</code>; deletion is irreversible).</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/lookup-data">Lookup data in Grail (DT docs)</a> — <em>&quot;Delete the file from the Resource Store. POST/platform/storage/resource-store/v1/files:delete&quot;</em>, <em>&quot;To upload lookup data to Grail via REST API or to delete it, the policy bound to your user group must contain the following permissions: storage:files:write storage:files:delete&quot;</em> and <em>&quot;nested fields are extracted to the root level by default&quot;</em>.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

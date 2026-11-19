@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M2S-06: Step 6 — Integrate: Reconnect Integrations</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">M2S — Managed to SaaS Migration</a><span class="sep">/</span><span aria-current="page">M2S-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>M2S-06: Step 6 — Integrate: Reconnect Integrations</h1>
+<blockquote>
+<p><strong>Series:</strong> M2S — Managed to SaaS Migration | <strong>Notebook:</strong> 6 of 9 | <strong>Phase:</strong> Upgrade | <strong>Step:</strong> Integrate | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<p>With OneAgents reporting to SaaS and configurations migrated, the next challenge is ensuring every external system that depends on Dynatrace is reconnected. Dashboards need updated links, alerting channels need validation, CI/CD pipelines need new API endpoints, and ITSM integrations need reconfiguration. This notebook provides a systematic approach to reconnecting every integration point.</p>
+<blockquote>
+<p><strong>M2S Migration Journey — 3 Phases / 9 Steps</strong></p>
+<p><strong>Plan:</strong> 1. Discover | 2. Strategize | 3. Design</p>
+<p><strong>Upgrade:</strong> 4. Prepare | 5. Execute | <strong>6. Integrate</strong></p>
+<p><strong>Run:</strong> 7. Enable | 8. Expand | 9. Optimize</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#dashboard-integration">Dashboard Integration</a></li>
+<li><a href="#alerting-and-notification-integration">Alerting and Notification Integration</a></li>
+<li><a href="#cicd-pipeline-integration">CI/CD Pipeline Integration</a></li>
+<li><a href="#itsm-and-incident-management">ITSM and Incident Management</a></li>
+<li><a href="#extension-migration">Extension Migration</a></li>
+<li><a href="#api-script-migration">API Script Migration</a></li>
+<li><a href="#synthetic-monitor-migration">Synthetic Monitor Migration</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Steps 1-5 Complete</strong></td>
+<td>Discovery, strategy, design, preparation, and execution phases finished</td>
+</tr>
+<tr>
+<td><strong>SaaS Tenant Active</strong></td>
+<td>OneAgents reporting data to SaaS environment</td>
+</tr>
+<tr>
+<td><strong>SaaS API Tokens</strong></td>
+<td>Tokens with appropriate scopes for each integration</td>
+</tr>
+<tr>
+<td><strong>Integration Inventory</strong></td>
+<td>List of all third-party integrations from Step 1 (Discover)</td>
+</tr>
+<tr>
+<td><strong>Access to External Systems</strong></td>
+<td>Admin access to Slack, Teams, PagerDuty, ServiceNow, CI/CD tools</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Order of Operations — You Are Here</strong></p>
+<p>This notebook covers operations <strong>7-8</strong> of the 11-step Order of Operations (see <strong>M2S-02: Step 2 — Strategize</strong>) defined in Step 2:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Operation</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Assess — Inventory current environment</td>
+<td>Step 4: Prepare ✅</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Provision — SaaS tenant and access (SSO)</td>
+<td>Step 4: Prepare ✅</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Install — New ActiveGates in parallel</td>
+<td>Step 4: Prepare ✅</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Migrate — Configuration and integrations</td>
+<td>Step 5: Execute ✅</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Rebuild — Dashboards, zones, alerts</td>
+<td>Step 5: Execute ✅</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Redirect — OneAgents to SaaS</td>
+<td>Step 5: Execute ✅</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td><strong>Reconnect — Integrations and extensions</strong></td>
+<td><strong>This notebook</strong></td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td><strong>Migrate — Remaining config and integrations</strong></td>
+<td><strong>This notebook</strong></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Validate — Data flow and performance</td>
+<td>Step 9: Optimize</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Cutover — Full switch to SaaS</td>
+<td>Step 9: Optimize</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Decommission — Managed environment</td>
+<td>Step 9: Optimize</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<p><a id="dashboard-integration"></a></p>
+<h2>1. Dashboard Integration</h2>
+<p>Dashboards migrated via the SaaS Upgrade Assistant retain their structure, but several elements need manual attention. Internal links, entity references, and ownership must be validated against the new SaaS environment.</p>
+<h3>What Needs Updating</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Why</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dashboard ownership</strong></td>
+<td>Managed user IDs differ from SaaS user IDs</td>
+<td>Reassign ownership via SaaS Upgrade Assistant bulk edit or manually</td>
+</tr>
+<tr>
+<td><strong>Internal links</strong></td>
+<td>URLs pointing to Managed UI pages are broken</td>
+<td>Update all <code>https://{managed-url}/e/{env-id}/...</code> links to the SaaS tenant (see <em>URL Format Changes</em> below)</td>
+</tr>
+<tr>
+<td><strong>Management zone filters</strong></td>
+<td>MZ IDs may differ between environments</td>
+<td>Verify MZ filters resolve correctly; update IDs if needed</td>
+</tr>
+<tr>
+<td><strong>Hardcoded entity IDs</strong></td>
+<td>Entity IDs are environment-scoped — the SaaS tenant mints new ones</td>
+<td>Re-point each reference; prefer tag or management-zone filters over fixed IDs where the tile supports them</td>
+</tr>
+<tr>
+<td><strong>Tile data sources</strong></td>
+<td>Some tiles may reference unavailable data</td>
+<td>Verify every tile renders data</td>
+</tr>
+</tbody>
+</table>
+<h3>Dashboard Validation Strategy</h3>
+<p>Work through dashboards in priority order:</p>
+<ol>
+<li><strong>Executive dashboards</strong> — High visibility, first to be noticed if broken</li>
+<li><strong>Operations dashboards</strong> — Used for daily monitoring decisions</li>
+<li><strong>Team-specific dashboards</strong> — Application and service team views</li>
+<li><strong>Report dashboards</strong> — Used for periodic reporting</li>
+</ol>
+<h3>Verify Dashboards Are Present</h3>
+<p>Dashboards are <strong>Document Service</strong> objects on SaaS, not Grail entities — <code>fetch dt.entity.dashboard</code> is <strong>not valid DQL</strong> and returns no data. To list and count dashboards on your SaaS tenant so you can compare against your Managed inventory, use the <strong>Document Service API</strong>. It is a platform API: authenticate with a <strong>platform token</strong> (<code>Authorization: Bearer …</code>) that carries the <code>document:documents:read</code> permission, not a classic API token.</p>
+<pre><code class="language-bash"># Count dashboards on SaaS (compare to your Managed inventory)
+curl -s &quot;https://{tenant}.apps.dynatrace.com/platform/document/v1/documents?filter=type='dashboard'&quot; \
+  -H &quot;Authorization: Bearer {PLATFORM_TOKEN}&quot; | jq '.totalCount'
+
+# List dashboard names and owners
+curl -s &quot;https://{tenant}.apps.dynatrace.com/platform/document/v1/documents?filter=type='dashboard'&quot; \
+  -H &quot;Authorization: Bearer {PLATFORM_TOKEN}&quot; | jq -r '.documents[] | &quot;\(.name)\t\(.owner)&quot;'
+</code></pre>
+<p>This lists dashboards built on the new Dashboards app. Classic dashboards migrated by the Upgrade Assistant are listed in the classic <strong>Dashboards (classic)</strong> page and the classic Dashboards API (<code>/api/config/v1/dashboards</code>, <code>ReadConfig</code> scope). Alternatively, open each app in the SaaS UI and compare against your Managed dashboard inventory.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a> — <em>&quot;Platform tokens are directly usable with the APIs offered by the Dynatrace platform services.&quot;</em></sub></p>
+</blockquote>
+<h3>URL Format Changes</h3>
+<p>Every internal link in dashboards must be updated from Managed format to SaaS format. For <strong>classic</strong> pages, the path after the environment is unchanged — only the host part moves:</p>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Managed URL</th>
+<th>SaaS URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Classic pages</strong> (hosts, services, classic dashboards)</td>
+<td><code>https://{managed}/e/{env-id}/#&lt;page&gt;;id=&lt;ID&gt;</code></td>
+<td><code>https://{tenant-id}.live.dynatrace.com/#&lt;page&gt;;id=&lt;NEW-ID&gt;</code></td>
+</tr>
+<tr>
+<td><strong>New platform apps</strong> (Dashboards, Notebooks, Services, Infrastructure &amp; Operations)</td>
+<td>N/A (Managed)</td>
+<td>Copy the link from the app's share or address bar on <code>https://{tenant-id}.apps.dynatrace.com/ui/apps/…</code> — do not hand-build these paths</td>
+</tr>
+</tbody>
+</table>
+<p>Remember that the <code>id=</code> part changes too: entity and dashboard IDs are minted by the new tenant (FAQ-25 § 4), so a link with the host rewritten but the old ID still points nowhere.</p>
+<blockquote>
+<p><strong>Tip:</strong> Use the classic Dashboards API to search for and replace Managed URLs across all classic dashboards. This is faster and more reliable than manual editing for large dashboard inventories.</p>
+</blockquote>
+<h3>Replacing Hardcoded Entity IDs</h3>
+<p>Where a classic tile is pinned to a fixed entity ID, re-point it to the new ID, or — where the tile offers a tag or management-zone filter — switch to that filter so the tile survives the next ID change.</p>
+<p><a id="alerting-and-notification-integration"></a></p>
+<h2>2. Alerting and Notification Integration</h2>
+<p>Alerting is the most critical integration to validate. A missed alert during migration can mean an undetected production incident. Every notification channel must be tested end-to-end before declaring the migration complete.</p>
+<h3>What Changes Between Managed and SaaS</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Managed</th>
+<th>SaaS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Problem notifications</strong></td>
+<td>Classic notification rules</td>
+<td>Migrate to SaaS notification rules or Workflow triggers</td>
+</tr>
+<tr>
+<td><strong>Webhook source URL</strong></td>
+<td><code>https://{managed}/e/{env-id}/...</code></td>
+<td><code>https://{tenant}.apps.dynatrace.com/...</code></td>
+</tr>
+<tr>
+<td><strong>Alerting profiles</strong></td>
+<td>Migrated via SaaS Upgrade Assistant</td>
+<td>Verify filters and thresholds match</td>
+</tr>
+<tr>
+<td><strong>Notification templates</strong></td>
+<td>May reference Managed-specific variables</td>
+<td>Update template variables for SaaS</td>
+</tr>
+</tbody>
+</table>
+<h3>Integration Endpoints to Update</h3>
+<table>
+<thead>
+<tr>
+<th>Integration</th>
+<th>What Changes</th>
+<th>What Stays the Same</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Slack</strong></td>
+<td>Dynatrace source URLs in message payloads</td>
+<td>Webhook URL</td>
+</tr>
+<tr>
+<td><strong>Microsoft Teams</strong></td>
+<td>Dynatrace source URLs in adaptive cards</td>
+<td>Webhook URL</td>
+</tr>
+<tr>
+<td><strong>PagerDuty</strong></td>
+<td>Create new integration in SaaS; Dynatrace source URLs</td>
+<td>Routing key</td>
+</tr>
+<tr>
+<td><strong>ServiceNow</strong></td>
+<td>Create new Dynatrace integration user in SNOW</td>
+<td>ServiceNow instance URL</td>
+</tr>
+<tr>
+<td><strong>Custom webhooks</strong></td>
+<td>All Dynatrace API endpoints in webhook payloads</td>
+<td>External system endpoints</td>
+</tr>
+<tr>
+<td><strong>Email</strong></td>
+<td>Notification sender address (Dynatrace SaaS domain)</td>
+<td>Recipient distribution lists</td>
+</tr>
+</tbody>
+</table>
+<h3>Converting to Workflow-Based Notifications</h3>
+<p>SaaS provides the AutomationEngine for advanced alerting workflows. Consider converting Managed problem notifications to Workflow triggers for:</p>
+<ul>
+<li><strong>Conditional routing</strong> — Route alerts based on management zone, severity, or tags</li>
+<li><strong>Enrichment</strong> — Add entity details, runbook links, or Dynatrace Intelligence context to notifications</li>
+<li><strong>Multi-channel delivery</strong> — Send to Slack AND PagerDuty from a single workflow</li>
+<li><strong>Auto-remediation</strong> — Trigger runbooks or API calls in response to problems</li>
+</ul>
+<h3>End-to-End Alert Validation</h3>
+<p>For each notification channel:</p>
+<ol>
+<li><strong>Configure</strong> — Set up the notification integration in SaaS</li>
+<li><strong>Trigger</strong> — Create a test problem or use a custom event to fire an alert</li>
+<li><strong>Verify delivery</strong> — Confirm the alert arrives at the destination</li>
+<li><strong>Check content</strong> — Verify URLs, entity names, and context are correct</li>
+<li><strong>Test resolution</strong> — Close the problem and verify the resolution notification</li>
+</ol>
+<blockquote>
+<p><strong>Warning:</strong> Do not skip testing resolution notifications. Many integrations (PagerDuty, ServiceNow) auto-resolve incidents when the Dynatrace problem closes. If resolution notifications are broken, incidents pile up in your ITSM system.</p>
+</blockquote>
+<h3>Verify Alert Delivery Using Detected Problems</h3>
+<p>After configuring notifications, monitor detected problems to confirm alerts are flowing:</p>
+<pre><code class="language-dql">// Recent problems — verify these triggered notifications in your external systems
+fetch dt.davis.problems, from:-24h
+| fieldsKeep display_id, event.name, event.status, event.category, timestamp
+| sort timestamp desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Problem trend over last 7 days — confirms Dynatrace Intelligence baseline is building
+fetch dt.davis.problems, from:-7d
+| makeTimeseries count = count(default: 0), interval: 24h
+</code></pre>
+<p><a id="cicd-pipeline-integration"></a></p>
+<h2>3. CI/CD Pipeline Integration</h2>
+<p>Every CI/CD pipeline that integrates with Dynatrace needs its connection parameters updated. This includes deployment event notifications, quality gate evaluations, and release tracking.</p>
+<h3>URL Format Change</h3>
+<p>All Dynatrace API calls must switch from Managed format to SaaS format:</p>
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>Managed Format</th>
+<th>SaaS Format</th>
+<th>Survives the Gen3 upgrade?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Environment API v2</strong></td>
+<td><code>https://{managed}/e/{env-id}/api/v2/...</code></td>
+<td><code>https://{tenant}.live.dynatrace.com/api/v2/...</code></td>
+<td>Ingest paths yes; several read/config paths <strong>no</strong> — see below</td>
+</tr>
+<tr>
+<td><strong>Configuration API v1</strong></td>
+<td><code>https://{managed}/e/{env-id}/api/config/v1/...</code></td>
+<td><code>https://{tenant}.live.dynatrace.com/api/config/v1/...</code></td>
+<td><strong>Mostly no</strong></td>
+</tr>
+<tr>
+<td><strong>Platform API</strong></td>
+<td>N/A (Managed)</td>
+<td><code>https://{tenant}.apps.dynatrace.com/platform/...</code></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Repoint once, not twice.</strong> This step is a host-and-path rewrite for the Managed → SaaS move, and on that axis the table above is correct. But a separate change is coming: when the tenant later upgrades to the latest Dynatrace, <strong>most of <code>/api/config/v1</code> and a number of <code>/api/v2</code> read and configuration paths stop answering</strong>, while the <strong>ingest</strong> endpoints (<code>/api/v2/logs/ingest</code>, <code>/metrics/ingest</code>, <code>/events/ingest</code>, <code>/api/v2/otlp</code>, <code>/api/bizevents/ingest</code>) and everything under <code>/platform/</code> carry forward.</p>
+<p>The narrow <code>/api/config/v1</code> carve-outs that do survive are worth knowing, because they are easy to confuse with neighbours that do not: <code>/service/requestAttributes</code>, <code>/service/requestNaming</code> and <code>/service/customServices</code> survive, while <code>/conditionalNaming/*</code> and <code>/calculatedMetrics/service</code> do not — and <code>/calculatedMetrics/mobile</code> survives while <code>/calculatedMetrics/service</code> does not.</p>
+<p>If a script is being rewritten anyway, check it against AUTOM-02's catalog now and move it to its Gen3 equivalent in the same pass rather than migrating it twice. See the Classic → Gen3 doorway in the <code>-START-HERE-</code> playbook for the sequence.</p>
+</blockquote>
+<h3>CI/CD Tools to Update</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Configuration to Update</th>
+<th>Where to Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Jenkins</strong></td>
+<td>Dynatrace plugin configuration, API token</td>
+<td>Jenkins system configuration and pipeline credentials</td>
+</tr>
+<tr>
+<td><strong>GitHub Actions</strong></td>
+<td>Repository secrets: <code>DYNATRACE_URL</code>, <code>DYNATRACE_API_TOKEN</code></td>
+<td>Repository Settings &gt; Secrets and Variables</td>
+</tr>
+<tr>
+<td><strong>Azure DevOps</strong></td>
+<td>Service connections, pipeline variables</td>
+<td>Project Settings &gt; Service Connections</td>
+</tr>
+<tr>
+<td><strong>GitLab CI</strong></td>
+<td>CI/CD variables: <code>DT_URL</code>, <code>DT_TOKEN</code></td>
+<td>Settings &gt; CI/CD &gt; Variables</td>
+</tr>
+<tr>
+<td><strong>Ansible</strong></td>
+<td>Dynatrace collection connection variables</td>
+<td>Inventory or playbook variables</td>
+</tr>
+<tr>
+<td><strong>Terraform</strong></td>
+<td>Provider configuration (<code>environment_url</code>, <code>api_token</code>)</td>
+<td>Provider block in <code>.tf</code> files or environment variables</td>
+</tr>
+</tbody>
+</table>
+<h3>Generate New API Tokens</h3>
+<p>Create dedicated API tokens for each CI/CD integration. Follow the principle of least privilege:</p>
+<table>
+<thead>
+<tr>
+<th>Integration</th>
+<th>Required Token Scopes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Deployment events</strong></td>
+<td><code>events.ingest</code></td>
+</tr>
+<tr>
+<td><strong>Configuration push</strong></td>
+<td><code>settings.write</code>, <code>settings.read</code></td>
+</tr>
+<tr>
+<td><strong>Entity query</strong></td>
+<td><code>entities.read</code></td>
+</tr>
+<tr>
+<td><strong>Metric ingestion</strong></td>
+<td><code>metrics.ingest</code></td>
+</tr>
+<tr>
+<td><strong>SLO evaluation</strong></td>
+<td><code>slo.read</code></td>
+</tr>
+<tr>
+<td><strong>Full automation</strong></td>
+<td>Combine scopes per tool requirements</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Never reuse a single token across all CI/CD tools. If one token is compromised, all integrations are affected. Create one token per tool with only the scopes that tool requires.</p>
+</blockquote>
+<h3>Deployment Event Validation</h3>
+<p>After updating CI/CD configurations, trigger a test deployment and verify that deployment events appear in SaaS.</p>
+<p>Deployment events are identified by <strong><code>event.type == &quot;CUSTOM_DEPLOYMENT&quot;</code></strong>. <code>CUSTOM_DEPLOYMENT</code> is an event <em>type</em>; filtering on <code>event.kind</code> instead never matches, and returns an empty result that looks exactly like a pipeline that sent nothing. The two queries below were executed successfully against a live tenant, but that tenant held no deployment events, so they were confirmed to run, not confirmed to return rows. The field names come from the documentation and the semantic dictionary. Your first real test deployment is the positive check.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/davis">Davis events model (DT docs)</a> — <code>event.type</code>: <em>&quot;The unique type identifier of a given event. Must be one of:&quot;</em> (the list includes <code>CUSTOM_DEPLOYMENT</code>). <strong>Dictionary:</strong> <code>event.kind</code> (<code>stable</code>), <code>deployment.release_version</code> (<code>experimental</code>), <code>deployment.release_stage</code> (<code>experimental</code>); no row for <code>event.deployment.*</code>, read 09/28/2026 (control: the same filter returned <code>deployment.release_*</code> rows).</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Verify deployment events are being received from CI/CD pipelines
+fetch events, from:-24h
+| filter event.type == &quot;CUSTOM_DEPLOYMENT&quot;
+| fieldsKeep event.type, event.name, dt.entity.service, timestamp
+| sort timestamp desc
+| limit 10
+</code></pre>
+<h3>Release Tracking</h3>
+<p>If you use Dynatrace release tracking, verify that version metadata is being captured correctly after the CI/CD update. The release fields are <code>deployment.release_version</code> and <code>deployment.release_stage</code> (both <code>experimental</code> in the semantic dictionary) — not <code>event.deployment.*</code>, which does not exist:</p>
+<pre><code class="language-dql">// Check release versions captured by Dynatrace via deployment events
+// Release version and stage are carried on the deployment event, not as entity fields
+fetch events, from:-7d
+| filter event.type == &quot;CUSTOM_DEPLOYMENT&quot;
+| fieldsKeep event.name, dt.entity.service, deployment.release_version, deployment.release_stage, timestamp
+| sort timestamp desc
+| limit 20
+
+// Note: releaseVersion / releaseStage are not directly addressable fields on dt.entity.service in DQL.
+// Release tracking data surfaces through deployment events (event.type == &quot;CUSTOM_DEPLOYMENT&quot;) or
+// via the Release Monitoring app in the Dynatrace UI.
+
+</code></pre>
+<p><a id="itsm-and-incident-management"></a></p>
+<h2>4. ITSM and Incident Management</h2>
+<p>ITSM integrations are business-critical — they drive incident response workflows. A broken ITSM integration means problems detected by Dynatrace never reach the teams that can fix them.</p>
+<h3>ServiceNow Integration</h3>
+<table>
+<thead>
+<tr>
+<th>Configuration Item</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace instance URL</strong></td>
+<td>Update from Managed URL to <code>https://{tenant}.live.dynatrace.com</code></td>
+</tr>
+<tr>
+<td><strong>Integration user</strong></td>
+<td>Create new integration user with SaaS API token</td>
+</tr>
+<tr>
+<td><strong>Problem webhook</strong></td>
+<td>Reconfigure webhook to send from SaaS</td>
+</tr>
+<tr>
+<td><strong>CMDB synchronization</strong></td>
+<td>Update API endpoint for entity data push</td>
+</tr>
+<tr>
+<td><strong>Event management</strong></td>
+<td>Verify event forwarding from SaaS to ServiceNow event management</td>
+</tr>
+</tbody>
+</table>
+<h3>Jira Integration</h3>
+<table>
+<thead>
+<tr>
+<th>Configuration Item</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Webhook endpoint</strong></td>
+<td>Update Dynatrace webhook to call Jira from SaaS</td>
+</tr>
+<tr>
+<td><strong>Problem-to-ticket mapping</strong></td>
+<td>Verify field mappings work with SaaS problem format</td>
+</tr>
+<tr>
+<td><strong>Back-link URLs</strong></td>
+<td>Update Jira ticket templates to link to SaaS URLs</td>
+</tr>
+</tbody>
+</table>
+<h3>CMDB Synchronization</h3>
+<p>If you synchronize Dynatrace entities to a CMDB:</p>
+<ol>
+<li><strong>Update API endpoint</strong> — Point CMDB sync to SaaS Entities API v2</li>
+<li><strong>Update authentication</strong> — New SaaS API token with <code>entities.read</code> scope</li>
+<li><strong>Verify entity mapping</strong> — Entity IDs may differ; use entity selectors or tags for matching</li>
+<li><strong>Test sync cycle</strong> — Run a sync and confirm entities appear correctly in the CMDB</li>
+</ol>
+<h3>Validate ITSM Connectivity</h3>
+<pre><code class="language-dql">// Check for recent closed problems — use these to verify ITSM tickets were created and resolved
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| fieldsKeep display_id, event.name, event.category, timestamp
+| sort timestamp desc
+| limit 10
+</code></pre>
+<p><a id="extension-migration"></a></p>
+<h2>5. Extension Migration</h2>
+<p>Extensions provide monitoring for technologies not covered by OneAgent auto-instrumentation. The extension framework has changed significantly between Managed and SaaS.</p>
+<h3>Extension Framework Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>Managed</th>
+<th>SaaS</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Extensions 1.0 (EF1)</strong></td>
+<td>Reached end of support 2025-03-31; the JMX/PMI EF1 deprecation notice no longer applies to Managed (Managed 1.348)</td>
+<td>Reached end of support 2025-03-31 (JMX/PMI: July 1, 2027)</td>
+<td>Rebuild as Extensions 2.0</td>
+</tr>
+<tr>
+<td><strong>Extensions 2.0 (EF2)</strong></td>
+<td>Supported</td>
+<td>Fully supported</td>
+<td>Migrate configuration; may need re-signing</td>
+</tr>
+<tr>
+<td><strong>ActiveGate extensions</strong></td>
+<td>Supported</td>
+<td>Supported — plan host-based ActiveGates; SQL extensions can also run on Kubernetes through the Dynatrace Operator</td>
+<td>Deploy on host-based ActiveGates in SaaS</td>
+</tr>
+<tr>
+<td><strong>Custom plugins</strong> (OneAgent / ActiveGate plugins on EF1)</td>
+<td>End of support with EF1</td>
+<td>Not supported</td>
+<td>Rebuild as Extensions 2.0</td>
+</tr>
+</tbody>
+</table>
+<h3>Extensions 2.0 Requirements in SaaS</h3>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Host-based ActiveGate</strong></td>
+<td>Plan host-based ActiveGates for remote extensions. The documented Kubernetes path is narrower: <em>&quot;Run SQL monitoring extensions on Kubernetes using Dynatrace Operator.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Extension signing</strong></td>
+<td>Extensions must be signed with a valid certificate for SaaS</td>
+</tr>
+<tr>
+<td><strong>Credential Vault</strong></td>
+<td>Extension credentials must be re-entered in SaaS Credentials Vault</td>
+</tr>
+<tr>
+<td><strong>Monitoring configuration</strong></td>
+<td>Extension monitoring configurations need recreation in SaaS</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End of support announcements (DT docs)</a> — <em>&quot;EF1 JMX and PMI extensions reach end of support on July 1, 2027. After this date, they will no longer be supported in SaaS environments.&quot;</em>; <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-348">Managed 1.348 (DT docs)</a> — <em>&quot;The deprecation notice for JMX/PMI EF1 no longer applies to Dynatrace Managed and has been removed.&quot;</em>; <a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions (DT docs)</a> — <em>&quot;Run SQL monitoring extensions on Kubernetes using Dynatrace Operator.&quot;</em></sub></p>
+</blockquote>
+<h3>Cloud Integration Verification</h3>
+<p>Cloud platform integrations (AWS, Azure, GCP) require reconfiguration in SaaS because credentials are not portable:</p>
+<table>
+<thead>
+<tr>
+<th>Cloud Platform</th>
+<th>Configuration to Update</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AWS</strong></td>
+<td>IAM role or access key for CloudWatch metrics and ActiveGate</td>
+</tr>
+<tr>
+<td><strong>Azure</strong></td>
+<td>Service principal credentials for Azure Monitor</td>
+</tr>
+<tr>
+<td><strong>GCP</strong></td>
+<td>Service account key for Google Cloud Monitoring</td>
+</tr>
+</tbody>
+</table>
+<p>After reconfiguring cloud integrations, verify metrics are flowing:</p>
+<pre><code class="language-dql">// Verify AWS cloud metrics are flowing after integration reconfiguration
+//
+// The `dt.cloud.aws.*` metric namespace DOES NOT EXIST in any spelling (verified 08/12/2026).
+// AWS CloudWatch metrics are published as cloud.aws.&lt;service&gt;.&lt;CloudWatchName&gt;.By.&lt;Dimension&gt; —
+// the CloudWatch name keeps its PascalCase and the split dimension is part of the key. A
+// timeseries against a missing key returns an EMPTY result rather than an error, so this cell
+// silently drew nothing. Enumerate with:
+//   metrics | filter startsWith(metric.key, &quot;cloud.aws&quot;) | fields metric.key | sort metric.key asc
+timeseries cpu = avg(cloud.aws.ec2.CPUUtilization.By.InstanceId), from:-1h, by:{InstanceId}
+| fieldsAdd avg_cpu = arrayAvg(cpu)
+| fields InstanceId, avg_cpu
+| sort avg_cpu desc
+| limit 5
+</code></pre>
+<pre><code class="language-dql">// Verify Azure cloud metrics are flowing
+//
+// Corrected 08/12/2026: `dt.cloud.azure.vm.cpu_usage` does not exist. The `dt.cloud.azure.*`
+// namespace is real but carries only VM *counts* (running / stopped / initializing, by region and
+// scale set) — there is no CPU metric in it. Azure Monitor resource metrics are published as
+// cloud.azure.&lt;provider_namespace&gt;.&lt;resource_type&gt;.&lt;MetricName&gt;, so VM CPU is PercentageCPU.
+// (For OneAgent-monitored Azure VMs, dt.host.cpu.usage is the host-level equivalent.) Enumerate:
+//   metrics | filter startsWith(metric.key, &quot;cloud.azure&quot;) | fields metric.key | sort metric.key asc
+timeseries cpu = avg(cloud.azure.microsoft_compute.virtualmachines.PercentageCPU), from:-1h
+| fieldsAdd avg_cpu = arrayAvg(cpu)
+| fields avg_cpu
+</code></pre>
+<h3>Extension Health Check</h3>
+<pre><code class="language-dql">// Check ActiveGate health — extensions run on host-based ActiveGates carrying the
+// EXTENSION_CONTROLLER module, so filter to exactly those rather than listing every AG
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| filter is_containerized == false and iAny(modules[] == &quot;EXTENSION_CONTROLLER&quot;)
+| fields name, version = dt.active_gate.version, group = dt.active_gate.group.name, modules
+| sort name asc
+
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from &quot;no ActiveGates deployed&quot;. `smartscapeNodes &quot;ACTIVEGATE&quot;` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+// is_containerized and modules are Smartscape-only fields — the classic entity never exposed them,
+// so this host-based-AG filter was not expressible before.
+</code></pre>
+<p><a id="api-script-migration"></a></p>
+<h2>6. API Script Migration</h2>
+<p>Most organizations have scripts and tools that call Dynatrace APIs for automation, reporting, or meta-monitoring. Every one of these must be updated.</p>
+<h3>URL Format Change</h3>
+<table>
+<thead>
+<tr>
+<th>API Endpoint</th>
+<th>Managed Format</th>
+<th>SaaS Format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Environment API v2</strong></td>
+<td><code>https://{managed}/e/{env-id}/api/v2/...</code></td>
+<td><code>https://{tenant}.live.dynatrace.com/api/v2/...</code></td>
+</tr>
+<tr>
+<td><strong>Configuration API v1</strong></td>
+<td><code>https://{managed}/e/{env-id}/api/config/v1/...</code></td>
+<td><code>https://{tenant}.live.dynatrace.com/api/config/v1/...</code></td>
+</tr>
+<tr>
+<td><strong>Cluster API</strong></td>
+<td><code>https://{managed}/api/cluster/v2/...</code></td>
+<td>N/A — use Account Management API instead</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> The Cluster Management API does not exist in SaaS. Scripts that use cluster-level APIs (user management, environment provisioning, license management) must be rewritten to use the <a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api">Account Management API</a> or the SaaS UI.</p>
+</blockquote>
+<h3>Common Script Types to Audit</h3>
+<table>
+<thead>
+<tr>
+<th>Script Type</th>
+<th>Typical Purpose</th>
+<th>Update Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Health check scripts</strong></td>
+<td>Monitor Dynatrace cluster availability</td>
+<td>Update URL and token; remove cluster-specific checks</td>
+</tr>
+<tr>
+<td><strong>Reporting scripts</strong></td>
+<td>Pull metrics and SLO data for reports</td>
+<td>Update URL and token</td>
+</tr>
+<tr>
+<td><strong>Provisioning scripts</strong></td>
+<td>Create management zones, tags, dashboards</td>
+<td>Update URL and token</td>
+</tr>
+<tr>
+<td><strong>Token rotation scripts</strong></td>
+<td>Rotate API tokens automatically</td>
+<td>Rewrite for SaaS token management</td>
+</tr>
+<tr>
+<td><strong>Backup scripts</strong></td>
+<td>Export configurations periodically</td>
+<td>Update URL and token</td>
+</tr>
+<tr>
+<td><strong>Meta-monitoring</strong></td>
+<td>Monitor the monitoring platform itself</td>
+<td>Update URL and token; adjust health checks for SaaS architecture</td>
+</tr>
+</tbody>
+</table>
+<h3>Token Migration Strategy</h3>
+<ol>
+<li><strong>Inventory all tokens</strong> — List every API token used in Managed with its purpose and scopes</li>
+<li><strong>Create SaaS equivalents</strong> — Generate new tokens in SaaS with matching (or tighter) scopes</li>
+<li><strong>Update scripts</strong> — Replace Managed tokens with SaaS tokens in all scripts and configuration files</li>
+<li><strong>Test each script</strong> — Run every script and verify it completes successfully against SaaS</li>
+<li><strong>Document the mapping</strong> — Record which SaaS token replaces which Managed token</li>
+</ol>
+<h3>Meta-Monitoring Considerations</h3>
+<p>If you monitor Dynatrace itself (meta-monitoring), the health checks change:</p>
+<table>
+<thead>
+<tr>
+<th>Managed Health Check</th>
+<th>SaaS Equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cluster node availability</td>
+<td>Not applicable — Dynatrace manages SaaS infrastructure</td>
+</tr>
+<tr>
+<td>Cassandra/Elasticsearch health</td>
+<td>Not applicable</td>
+</tr>
+<tr>
+<td>ActiveGate connectivity to cluster</td>
+<td>ActiveGate connectivity to SaaS endpoints</td>
+</tr>
+<tr>
+<td>OneAgent connectivity to cluster</td>
+<td>OneAgent connectivity to SaaS endpoints</td>
+</tr>
+<tr>
+<td>Disk space on cluster nodes</td>
+<td>Not applicable</td>
+</tr>
+<tr>
+<td>API endpoint availability</td>
+<td>API endpoint availability (same concept, new URL)</td>
+</tr>
+</tbody>
+</table>
+<h3>Verify API Connectivity</h3>
+<p>Use a simple API call to confirm SaaS API access is working:</p>
+<pre><code class="language-bash"># Test SaaS API connectivity
+curl -s -o /dev/null -w &quot;%{http_code}&quot; \
+  &quot;https://{tenant}.live.dynatrace.com/api/v2/entities?pageSize=1&quot; \
+  -H &quot;Authorization: Api-Token {SAAS_TOKEN}&quot;
+# Expected: 200
+</code></pre>
+<pre><code class="language-bash"># Verify token scopes
+curl -s &quot;https://{tenant}.live.dynatrace.com/api/v2/apiTokens/lookup&quot; \
+  -H &quot;Authorization: Api-Token {SAAS_TOKEN}&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;token&quot;: &quot;{SAAS_TOKEN}&quot;}' | jq '.scopes'
+</code></pre>
+<blockquote>
+<p><strong>Deprecation — Dynatrace API 1.348 (rollout start 10/12/2026, staged tenant rollout).</strong> The API 1.348 changelog marks the whole <code>/apiTokens</code> endpoint family deprecated — <em>&quot;The following endpoints are deprecated&quot;</em>, covering <code>GET</code> and <code>POST /apiTokens</code>, <code>POST /apiTokens/lookup</code> and the per-token <code>GET</code>/<code>PUT</code>/<code>DELETE</code>. No successor is named. Deprecated endpoints keep working during the deprecation period, so the scope check above (<code>POST /api/v2/apiTokens/lookup</code>) and the classic token it inspects remain the working path — re-check the <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348">API 1.348 changelog (DT docs)</a> for a successor before building new automation on <code>/apiTokens/lookup</code>.</p>
+</blockquote>
+<p><a id="synthetic-monitor-migration"></a></p>
+<h2>7. Synthetic Monitor Migration</h2>
+<p>Synthetic monitors cannot be directly migrated from Managed to SaaS. They must be recreated because synthetic execution depends on ActiveGate infrastructure and location IDs that differ between environments.</p>
+<h3>Migration by Monitor Type</h3>
+<table>
+<thead>
+<tr>
+<th>Monitor Type</th>
+<th>Migration Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HTTP monitors</strong></td>
+<td>Export configuration; recreate in SaaS with same URLs and assertions</td>
+</tr>
+<tr>
+<td><strong>Browser monitors</strong></td>
+<td>Export Selenium/Synthetic scripts; import into new SaaS monitors</td>
+</tr>
+<tr>
+<td><strong>Browser clickpath</strong></td>
+<td>Re-record or import clickpath scripts</td>
+</tr>
+</tbody>
+</table>
+<h3>Private Synthetic Locations</h3>
+<p>If you use private synthetic locations (monitoring from inside your network):</p>
+<ol>
+<li><strong>Deploy Synthetic-enabled ActiveGates</strong> in SaaS — these replace your Managed Synthetic ActiveGates</li>
+<li><strong>Create new private locations</strong> in SaaS pointing to the new ActiveGates</li>
+<li><strong>Assign monitors</strong> to the new private locations</li>
+<li><strong>Test execution</strong> — verify monitors run from the new locations</li>
+</ol>
+<h3>Public Synthetic Locations</h3>
+<p>Public locations are available in both Managed and SaaS. Simply recreate the monitors and assign the same geographic locations.</p>
+<h3>Verify Synthetic Monitors Are Executing</h3>
+<pre><code class="language-dql">// Count synthetic monitors in SaaS by type — compare to your Managed inventory
+// Browser, HTTP and multi-protocol monitors are separate node types; counting BROWSER_MONITOR alone misses two of them
+smartscapeNodes &quot;BROWSER_MONITOR&quot;, &quot;HTTP_MONITOR&quot;, &quot;NETWORK_AVAILABILITY_MONITOR&quot;
+| summarize monitorCount = count(), by:{type}
+| sort type asc
+
+// Smartscape (preferred, verified 07/2026): dt.entity.synthetic_test maps to the BROWSER_MONITOR
+// node (individual steps are a separate BROWSER_MONITOR_STEP node). HTTP monitors are HTTP_MONITOR,
+// multi-protocol monitors NETWORK_AVAILABILITY_MONITOR, private locations SYNTHETIC_LOCATION. This
+// corrects an earlier note here that claimed no Smartscape equivalent existed. Unlike ActiveGate,
+// `fetch dt.entity.synthetic_test` does still work and remains a genuine fallback — it reads the
+// classic entity store, which can retain entities Smartscape (live topology) no longer lists.
+// Classic fallback (browser monitors only): fetch dt.entity.synthetic_test | summarize monitorCount = count()
+</code></pre>
+<pre><code class="language-dql">// List synthetic monitors with their names and types — verify expected monitors are present
+smartscapeNodes &quot;BROWSER_MONITOR&quot;, &quot;HTTP_MONITOR&quot;, &quot;NETWORK_AVAILABILITY_MONITOR&quot;
+| fields name, type
+| sort type asc, name asc
+
+// Smartscape (preferred, verified 07/2026): dt.entity.synthetic_test maps to the BROWSER_MONITOR
+// node (individual steps are a separate BROWSER_MONITOR_STEP node). HTTP monitors are HTTP_MONITOR,
+// multi-protocol monitors NETWORK_AVAILABILITY_MONITOR, private locations SYNTHETIC_LOCATION. This
+// corrects an earlier note here that claimed no Smartscape equivalent existed. Unlike ActiveGate,
+// `fetch dt.entity.synthetic_test` does still work and remains a genuine fallback — it reads the
+// classic entity store, which can retain entities Smartscape (live topology) no longer lists.
+</code></pre>
+<pre><code class="language-dql">// Verify synthetic execution results are being recorded
+// Execution results live in dt.synthetic.events, not in the generic events table
+fetch dt.synthetic.events, from:-1h
+| filter in(event.type, {&quot;http_monitor_execution&quot;, &quot;browser_monitor_execution&quot;, &quot;multiprotocol_monitor_execution&quot;})
+| summarize executionCount = count()
+| fieldsAdd status = if(executionCount &gt; 0, then: &quot;Synthetic monitors executing&quot;, else: &quot;No synthetic results — check monitor configuration&quot;)
+</code></pre>
+<p><a id="step-completion-checklist"></a></p>
+<h2>8. Step Completion Checklist</h2>
+<p>Do not proceed to Step 7 (Enable) until all items are confirmed.</p>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All dashboard tiles showing data</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Dashboard ownership and internal links updated to SaaS URLs</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Hardcoded entity IDs re-pointed to new IDs (or replaced with tag / management-zone filters)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>All notification channels tested end-to-end (email, Slack, Teams, PagerDuty, ServiceNow)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Problem notification resolution events verified</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>CI/CD pipeline integrations updated with SaaS URLs and new tokens</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Deployment events appearing in SaaS after CI/CD trigger</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>ServiceNow integration reconnected and verified</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Jira integration updated (if applicable)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>CMDB synchronization pointing to SaaS APIs</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Extensions 1.0 rebuilt as Extensions 2.0 (or confirmed SaaS-compatible)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Extensions 2.0 deployed on host-based ActiveGates</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Cloud integrations (AWS, Azure, GCP) reconfigured and metrics flowing</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>All API scripts updated with SaaS URLs and new tokens</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Meta-monitoring health checks updated for SaaS architecture</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Synthetic monitors recreated and executing</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Synthetic private locations deployed (if applicable)</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Next Step</h2>
+<blockquote>
+<p><strong>M2S-07: Step 7 — Enable</strong> — Train users and communicate the migration to the organization. Deliver persona-based training, update runbooks and documentation, publish self-service resources, and establish support channels for the broader user base.</p>
+</blockquote>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver">Automations (Workflows) Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions 2.0 Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from">Cloud Integrations Overview</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic">Synthetic Monitoring Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api">Account Management API</a></li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In Step 6, you:</p>
+<ul>
+<li>Validated dashboard ownership, internal links, and entity references in SaaS</li>
+<li>Reconnected and tested all alerting notification channels end-to-end</li>
+<li>Updated CI/CD pipeline integrations with SaaS URLs and new API tokens</li>
+<li>Reconfigured ITSM integrations (ServiceNow, Jira, CMDB synchronization)</li>
+<li>Migrated extensions from EF1 to EF2 and reconfigured cloud integrations</li>
+<li>Updated all API scripts and meta-monitoring health checks for SaaS</li>
+<li>Recreated synthetic monitors with appropriate private and public locations</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> Integration is where the migration becomes real for everyone outside the Dynatrace admin team. Developers see deployment events, operations see alerts, and management sees dashboards. Test every channel before declaring Step 6 complete.</p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-08: How Does OneAgent Decide Which Logs to Collect?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-08: How Does OneAgent Decide Which Logs to Collect?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 08 — How OneAgent Decides Which Logs to Collect | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 11/18/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A common surprise after deploying OneAgent is that <em>some</em> log files show up in Dynatrace automatically and others don't — with no obvious pattern from the outside. The application log under <code>/opt/app/logs/</code> appears within a minute; the one your batch job writes to <code>/data/exports/run.out</code> never does. Neither was configured by hand, so why the difference?</p>
+<p>The answer is <strong>log auto-discovery</strong> — a mechanism inside OneAgent that continuously scans the host, decides which files are logs worth collecting, and starts ingesting them. It is not magic and it is not arbitrary: it applies an explicit, documented set of rules. Understanding those rules turns &quot;why isn't my log here?&quot; from a guessing game into a three-question checklist, and tells you exactly when to reach for a <strong>custom log source</strong> instead.</p>
+<p>This entry explains how the decision is made, what gets picked up automatically versus what needs a nudge, and how to verify what was actually discovered in your environment.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#three-gates">The Mental Model — Three Gates</a></li>
+<li><a href="#requirements">The Auto-Discovery Requirements</a></li>
+<li><a href="#builtin-rules">The Built-in Include / Exclude Rules</a></li>
+<li><a href="#auto-vs-help">What's Auto-Detected vs. What Needs Help</a></li>
+<li><a href="#custom-sources">When Auto-Discovery Misses Your Log — Custom Log Sources</a></li>
+<li><a href="#scale-limits">Scale and Limits</a></li>
+<li><a href="#recommended-approach">Recommended Approach</a></li>
+<li><a href="#gotchas">Common Gotchas</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform/infra engineers, SREs, and onboarding leads deciding what log coverage to expect from OneAgent and where manual configuration is needed</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Decision-support document — explains the discovery mechanism and the auto-vs-custom decision; no hands-on lab</td>
+</tr>
+<tr>
+<td><strong>Deployment</strong></td>
+<td>Dynatrace SaaS with Grail; Log Monitoring powered by the OneAgent log module (enabled by default). Applies to host OneAgent on Linux and Windows</td>
+</tr>
+<tr>
+<td><strong>Related topic series</strong></td>
+<td>OPLOGS (OpenPipeline log processing), OPMIG (Classic Log Monitoring → OpenPipeline), ONBRD-07 (validating discovered data), K8S (container/Kubernetes log collection), S2D (locating logs during migration)</td>
+</tr>
+<tr>
+<td><strong>Related FAQ</strong></td>
+<td>FAQ-03 (OneAgent and OpenTelemetry — includes Windows Event Log and IIS handling)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p>OneAgent runs a <strong>log auto-discovery engine</strong> that re-evaluates the host roughly <strong>every 60 seconds</strong>. A file is collected automatically only when it passes <strong>three independent gates</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>The question it answers</th>
+<th>Pass condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Process</strong></td>
+<td><em>Who is holding this file?</em></td>
+<td>The file is kept open, in write mode, by an <strong>important</strong> process — a supported technology, an open TCP listening port, sustained CPU/memory/network use, or one flagged as important</td>
+</tr>
+<tr>
+<td><strong>Pattern</strong></td>
+<td><em>Where is it and what is it named?</em></td>
+<td>Its path/name matches a built-in <strong>include</strong> rule and no <strong>exclude</strong> rule</td>
+</tr>
+<tr>
+<td><strong>File properties</strong></td>
+<td><em>What kind of file is it?</em></td>
+<td>Text content, supported encoding, recent activity, append-only</td>
+</tr>
+</tbody>
+</table>
+<p>If a file fails any gate, auto-discovery skips it — and the fix is almost always a <strong>custom log source</strong> (§6), not a tweak to the built-in rules (which you cannot expand, only narrow).</p>
+<p>By default OneAgent auto-discovers logs from a wide range of technologies: <strong>process log files, system logs (syslog), journald, IIS logs, Windows Event Log channels, and container <code>stdout</code>/<code>stderr</code></strong>. Log Monitoring is on by default; your <strong>log ingest rules</strong> then decide which of the discovered records are actually stored in Grail.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery">Log autodiscovery (DT docs)</a> — discovery runs &quot;every 60 seconds&quot;; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa">Log ingestion via OneAgent (DT docs)</a> — <em>&quot;Dynatrace log monitoring is enabled by default but only controls the OneAgent log module capability.&quot;</em>, default-detected source list and ingest-rule gating; <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/process-groups/basic-concepts/which-are-the-most-important-processes">Which are the most important processes? (DT docs)</a> — the &quot;important&quot; criteria. <strong>Derived:</strong> the &quot;three gates&quot; framing is a synthesis of the requirements, built-in rules, and file constraints documented separately on the autodiscovery page — Dynatrace documents the conditions but does not group them this way.</sub></p>
+</blockquote>
+<p><a id="three-gates"></a></p>
+<h2>2. The Mental Model — Three Gates</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5PbmVBZ2VudCBMb2cgQXV0by1EaXNjb3Zlcnkg4oCUIEhvdyBhIEZpbGUgQmVjb21lcyBhIExvZyBTb3VyY2U8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+QSBmaWxlIGlzIGNvbGxlY3RlZCBvbmx5IGlmIGl0IHBhc3NlcyBhbGwgdGhyZWUgZ2F0ZXMuIFRoZSBkaXNjb3ZlcnkgZW5naW5lIHJlLWV2YWx1YXRlcyBldmVyeSA2MCBzZWNvbmRzLjwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBMRUZUOiBTb3VyY2VzIG9uIHRoZSBob3N0IC0tPgogIDxyZWN0IHg9IjI0IiB5PSI4MCIgd2lkdGg9IjE4NiIgaGVpZ2h0PSIyNzIiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTE3IiB5PSIxMDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlNvdXJjZXMgb24gdGhlIGhvc3Q8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjEzMiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIFByb2Nlc3MgbG9nIGZpbGVzPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIxNTYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBTeXN0ZW0gbG9ncyAoc3lzbG9nKTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMTgwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgam91cm5hbGQ8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjIwNCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIElJUyBsb2dzIChXaW5kb3dzKTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMjI4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgV2luZG93cyBFdmVudCBMb2c8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjI1MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIENvbnRhaW5lciBzdGRvdXQvc3RkZXJyPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIyODQiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPkxvZyBNb25pdG9yaW5nIGlzIGVuYWJsZWQ8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjI5OCIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+YnkgZGVmYXVsdDsgaW5nZXN0IHJ1bGVzPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIzMTIiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPmRlY2lkZSB3aGF0IGlzIHN0b3JlZC48L3RleHQ+CgogIDxsaW5lIHgxPSIyMTAiIHkxPSIxNzAiIHgyPSIyNDQiIHkyPSIxNzAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CgogIDwhLS0gTUlERExFOiBUaHJlZSBnYXRlcyAtLT4KICA8dGV4dCB4PSI0NDgiIHk9IjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5UaGUgdGhyZWUgZ2F0ZXMg4oCUIEFMTCBtdXN0IHBhc3M8L3RleHQ+CgogIDwhLS0gR2F0ZSAxIC0tPgogIDxyZWN0IHg9IjI1MCIgeT0iOTAiIHdpZHRoPSIzOTYiIGhlaWdodD0iNzYiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjY2IiB5PSIxMTMiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkdhdGUgMSDigJQgUHJvY2VzczwvdGV4dD4KICA8dGV4dCB4PSIyNjYiIHk9IjEzMyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RmlsZSBpcyBrZXB0IG9wZW4gaW4gd3JpdGUgbW9kZSBieSBhbiBpbXBvcnRhbnQ8L3RleHQ+CiAgPHRleHQgeD0iMjY2IiB5PSIxNDkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnByb2Nlc3MgKHRlY2gsIGxpc3RlbmluZyBwb3J0LCBsb2FkLCBvciBmbGFnKS48L3RleHQ+CiAgPHRleHQgeD0iNjMwIiB5PSIxMDYiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPldITyBIT0xEUyBJVDwvdGV4dD4KCiAgPGxpbmUgeDE9IjQ0OCIgeTE9IjE2NiIgeDI9IjQ0OCIgeTI9IjE3OCIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcikiLz4KCiAgPCEtLSBHYXRlIDIgLS0+CiAgPHJlY3QgeD0iMjUwIiB5PSIxODAiIHdpZHRoPSIzOTYiIGhlaWdodD0iNzYiIGZpbGw9IiNGQ0QzNEQiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iI0ZDRDM0RCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjY2IiB5PSIyMDMiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkdhdGUgMiDigJQgUGF0dGVybjwvdGV4dD4KICA8dGV4dCB4PSIyNjYiIHk9IjIyMyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UGF0aC9uYW1lIG1hdGNoZXMgYSBidWlsdC1pbiBJTkNMVURFIHJ1bGUgYW5kPC90ZXh0PgogIDx0ZXh0IHg9IjI2NiIgeT0iMjM5IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ubyBFWENMVURFIHJ1bGUgKERCLCBjb250YWluZXIsICouZXZ0eCBkaXJzKS48L3RleHQ+CiAgPHRleHQgeD0iNjMwIiB5PSIxOTYiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPldIRVJFIC8gTkFNRTwvdGV4dD4KCiAgPGxpbmUgeDE9IjQ0OCIgeTE9IjI1NiIgeDI9IjQ0OCIgeTI9IjI2OCIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcikiLz4KCiAgPCEtLSBHYXRlIDMgLS0+CiAgPHJlY3QgeD0iMjUwIiB5PSIyNzAiIHdpZHRoPSIzOTYiIGhlaWdodD0iNzYiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjY2IiB5PSIyOTMiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkdhdGUgMyDigJQgRmlsZSBwcm9wZXJ0aWVzPC90ZXh0PgogIDx0ZXh0IHg9IjI2NiIgeT0iMzEzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UZXh0LCBVVEYtOC9VVEYtMTYsIOKJpTEgbWluIG9sZCwgYXBwZW5kLW9ubHksPC90ZXh0PgogIDx0ZXh0IHg9IjI2NiIgeT0iMzI5IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj51cGRhdGVkICZsdDs3IGRheXMsIHRpbWVzdGFtcCB3aXRoaW4gMjQgaC48L3RleHQ+CiAgPHRleHQgeD0iNjMwIiB5PSIyODYiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPldIQVQgSVQgSVM8L3RleHQ+CgogIDxsaW5lIHgxPSI2NDYiIHkxPSIzMDgiIHgyPSI2ODgiIHkyPSIzMDgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CgogIDwhLS0gUklHSFQ6IE91dGNvbWUgLS0+CiAgPHJlY3QgeD0iNjk0IiB5PSIyNzAiIHdpZHRoPSIyMTIiIGhlaWdodD0iNzYiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTQiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODAwIiB5PSIyOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkluZ2VzdGVkIHRvIEdyYWlsPC90ZXh0PgogIDx0ZXh0IHg9IjgwMCIgeT0iMzIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj52aWEgT25lQWdlbnQg4oaSIChvcHRpb25hbDwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjMzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QWN0aXZlR2F0ZSkg4oaSIGNsdXN0ZXI8L3RleHQ+CgogIDwhLS0gUklHSFQgVE9QOiBuYXJyb3dpbmcgbm90ZSAtLT4KICA8cmVjdCB4PSI2OTQiIHk9IjkwIiB3aWR0aD0iMjEyIiBoZWlnaHQ9IjE2NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MTAiIHk9IjExMyIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U2VjdXJpdHkgcnVsZXM8L3RleHQ+CiAgPHRleHQgeD0iNzEwIiB5PSIxMzQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmNhbiBvbmx5IE5BUlJPVzwvdGV4dD4KICA8dGV4dCB4PSI3MTAiIHk9IjE0OSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YXV0by1kZXRlY3Rpb24g4oCUPC90ZXh0PgogIDx0ZXh0IHg9IjcxMCIgeT0iMTY0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5uZXZlciBleHBhbmQgaXQuPC90ZXh0PgogIDxsaW5lIHgxPSI3MTAiIHkxPSIxODAiIHgyPSI4OTAiIHkyPSIxODAiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNzEwIiB5PSIyMDEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk5vdCBhdXRvLWRldGVjdGVkOjwvdGV4dD4KICA8dGV4dCB4PSI3MTAiIHk9IjIxNyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YmluYXJpZXMsIG5ldHdvcmsgRlM8L3RleHQ+CiAgPHRleHQgeD0iNzEwIiB5PSIyMzMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPihvZmYgYnkgZGVmYXVsdCksIGFuZDwvdGV4dD4KICA8dGV4dCB4PSI3MTAiIHk9IjI0OSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T25lQWdlbnQncyBvd24gbG9ncy48L3RleHQ+CgogIDwhLS0gRm9vdGVyOiBmYWxsYmFjayAtLT4KICA8bGluZSB4MT0iMjQiIHkxPSIzNzIiIHgyPSI5MDYiIHkyPSIzNzIiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMjQiIHk9IjM5NiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+TWlzc2VzIHlvdXIgZmlsZT8g4oaSIEN1c3RvbSBsb2cgc291cmNlPC90ZXh0PgogIDx0ZXh0IHg9IjI0IiB5PSI0MTYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNldHRpbmdzIOKGkiBDb2xsZWN0IGFuZCBjYXB0dXJlIOKGkiBMb2cgbW9uaXRvcmluZyDihpIgQ29uZmlndXJlIGxvZyBtb2R1bGUg4oaSIFNvdXJjZXMuIEFic29sdXRlIHBhdGhzOyAqIChub3QgLyksICMgKGRpZ2l0cyk8L3RleHQ+CiAgPHRleHQgeD0iMjQiIHk9IjQzMyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+d2lsZGNhcmRzOyB1cCB0byAxMDAgcGF0aHMgcGVyIHJ1bGUuIEEgY3VzdG9tIHNvdXJjZSBTVVBQTEVNRU5UUyBhdXRvLWRldGVjdGlvbiDigJQgaXQgZG9lcyBub3QgY2hhbmdlIHRoZSBidWlsdC1pbiBydWxlcy48L3RleHQ+CiAgPHRleHQgeD0iMjQiIHk9IjQ1NyIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+UmVjb21tZW5kZWQ6IHZlcmlmeSB3aGF0IHdhcyBkaXNjb3ZlcmVkIChDb25maWd1cmUgbG9nIG1vZHVsZSDihpIgU291cmNlcyAvIHNlbGYtbW9uaXRvcmluZyBEUUwpIGZpcnN0LjwvdGV4dD4KICA8dGV4dCB4PSIyNCIgeT0iNDc5IiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5TdXBwb3J0ZWQgbGV2ZWxzOiAxMCwwMDAgZmlsZXMgcGVyIGRpcmVjdG9yeSwgMjAwIE1CIG5ldyBjb250ZW50L21pbiAoYWJvdmUgdGhhdCwgYXNrIHN1cHBvcnQpOyBkZWZhdWx0IDIwMCBzb3VyY2VzIHBlciBQR0kuPC90ZXh0Pgo8L3N2Zz4K" alt="OneAgent log auto-discovery decision flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | What happens |
+|-------|--------------|
+| Sources on the host | Process logs, system logs, journald, IIS, Windows Event Log, container stdout/stderr |
+| Gate 1 — Process | File kept open in write mode by an important process (supported technology, open TCP listening port, sustained CPU/memory/network use, or flagged important) |
+| Gate 2 — Pattern | Path/name matches a built-in INCLUDE rule and no EXCLUDE rule |
+| Gate 3 — File properties | Text, UTF-8/UTF-16, >=1 min old, append-only, updated <7 days, timestamp within 24h |
+| Outcome | Ingested to Grail via OneAgent (optional ActiveGate) -> cluster |
+| Fallback | Misses your file? Add a custom log source (supplements, never expands auto-detection) |
+-->
+<p>Reading the gates in order is the fastest way to diagnose a missing log.</p>
+<p><strong>Gate 1 — Process.</strong> Auto-discovery is process-anchored, not filesystem-anchored. OneAgent finds candidate files by looking at what <strong>important processes</strong> have open, not by walking the whole disk. The docs put it plainly: <em>&quot;The log file must be kept open by an important process.&quot;</em> &quot;Important&quot; has a documented definition, and it is not the same as deep (code-module) monitoring. A process qualifies if it is a supported application, has an open TCP listening port, exceeds 5% CPU, memory or network traffic in at least 3 of the last 5 one-minute intervals, or has been flagged by a user — <em>&quot;Processes that have been defined by a user as important, for example, by enabling Log Monitoring for a process.&quot;</em> None of those criteria requires code-module injection. This single fact explains most surprises: a log written by a short-lived cron job, or a file no long-lived important process holds open, will not be discovered, no matter where it lives.</p>
+<p><strong>Gate 2 — Pattern.</strong> Among the files that survive Gate 1, OneAgent applies a fixed set of <strong>built-in include/exclude rules</strong> (§4) against the path and filename. Files in a <code>log</code>/<code>logs</code> directory, or whose names carry a <code>log</code> token, are included; database transaction logs, container runtime directories, and Windows event-trace files are explicitly excluded.</p>
+<p><strong>Gate 3 — File properties.</strong> Finally, the file itself must look like an active text log: supported encoding, recently written, above a minimum size, appended-to rather than rewritten. The full list is in §3.</p>
+<p>A file is collected only when it clears <strong>all three</strong>. The gates are independent — passing two of three is not enough.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery">Log autodiscovery (DT docs)</a> — &quot;The log file must be kept open by an important process&quot;; <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/process-groups/basic-concepts/which-are-the-most-important-processes">Which are the most important processes? (DT docs)</a> — <em>&quot;Processes with an open TCP listening port&quot;</em>, the CPU/memory/network thresholds, and the user-defined criterion quoted above. <strong>Derived:</strong> &quot;none requires code-module injection&quot; reads the criteria list, which does not mention deep monitoring. <strong>Derived:</strong> the ordering of the three gates as a diagnostic sequence is an authoring synthesis, not a documented procedure.</sub></p>
+</blockquote>
+<p><a id="requirements"></a></p>
+<h2>3. The Auto-Discovery Requirements</h2>
+<p>For a file to be auto-discovered, <strong>all</strong> of the following must hold. These are the literal conditions from the autodiscovery reference:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Requirement</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Held open by an important process</strong></td>
+<td>The file must be kept open by an <em>important</em> process (§2, Gate 1)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Minimum age</strong></td>
+<td>The file must have existed for at least <strong>one minute</strong></td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Supported encoding</strong></td>
+<td>UTF-8 by default; also UTF-8 BOM and, if the byte-order mark is present, UTF-16LE and UTF-16BE</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Recent activity</strong></td>
+<td>The file must have been <strong>written to within the last 7 days</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Path or name match</strong></td>
+<td>The file must be in a <code>log</code> / <code>logs</code> folder (or directly one subfolder below it — <code>c:\log\NewFolder\NewFolder\log_file.txt</code> is the documented invalid example), <strong>or</strong> its filename must contain a <code>log</code> string preceded or followed by a period (<code>.</code>) or underscore (<code>_</code>)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Recent timestamps</strong></td>
+<td>Records are ingested only if their timestamp is within the <strong>last 24 hours</strong>; entries timestamped more than 10 minutes <strong>ahead</strong> of the current time are overridden</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Security rules</strong></td>
+<td>The file path must satisfy OneAgent's security rules</td>
+</tr>
+</tbody>
+</table>
+<p>And the file must behave like a live, append-only text log:</p>
+<ul>
+<li>It <strong>cannot be deleted earlier than a minute</strong> after creation.</li>
+<li>It must be <strong>appended</strong> to (old content is not rewritten).</li>
+<li>It must have <strong>text content</strong> (binaries are not auto-detected — see §5).</li>
+<li>It must be <strong>opened constantly</strong>, not just briefly while a line is written.</li>
+<li>It must be <strong>opened in write mode</strong>.</li>
+<li>It is <strong>checked for binary content</strong> once it reaches the configured size threshold (default <strong>500 bytes</strong>; the setting is <em>Minimal log file size to perform binary detection</em>). The page names this threshold for binary detection and states no separate minimum size for discovery. OneAgent 1.349 (staged rollout from 11/09/2026) adds two controls here, both in the log module's <strong>Advanced settings</strong>: whether finding binary content blocks the <strong>entire log source</strong> or <strong>only the files that contain it</strong>, and a new binary recognition algorithm. Check the OneAgent version on the host before relying on either.</li>
+</ul>
+<blockquote>
+<p><strong>OneAgent 1.343 — immediate compress-or-delete rotation, Linux local drives only.</strong> OneAgent 1.343 (released 07/28/2026) <em>&quot;supports the rotation patterns in which the files are compressed or removed immediately after the rotation&quot;</em> — the case the &quot;cannot be deleted earlier than a minute after creation&quot; bullet excludes. It lets OneAgent keep following the live file under that rotation scheme; it does <strong>not</strong> make compressed archives (<code>.gz</code>) collectable. Three limits on that relief matter more than the headline:</p>
+<ul>
+<li><strong>It is Linux-only.</strong> On Windows the constraint above is unchanged, and a rapidly rotated file there still needs a custom log source (§6). (The narrower restart case below is the exception.)</li>
+<li><strong>It is local drives only.</strong> <em>&quot;The supported scope is limited to Linux and only log files that are located on local drives.&quot;</em> Logs on NFS or other remote drives are not covered.</li>
+<li><strong>It depends on the agent version, not the tenant version.</strong> Fleets upgrade on their own schedule, so <strong>verify the OneAgent version on the hosts concerned</strong>; anything on 1.342 or earlier behaves exactly as the table describes. Expect a mixed fleet for weeks.</li>
+</ul>
+<p>Until the hosts you care about are on 1.343, treat the one-minute-deletion bullet as fully in force — it remains the working model.</p>
+</blockquote>
+<blockquote>
+<p><strong>OneAgent 1.349 — compressed files rotated during a Log module restart, Windows and Linux.</strong> The 1.349 notes (staged rollout from 11/09/2026 — verify the version on the host) record a second, narrower case. OneAgent 1.347 extended rotation handling to <em>&quot;rotation during a Log module restart, when the file-handle approach alone can't help&quot;</em>, reading rotated GZIP-compressed files, and 1.349 adds ZIP: <em>&quot;GZIP and ZIP handling during a Log module restart is supported on both Windows and Linux.&quot;</em> This recovers records from files compressed while OneAgent was down for a restart or upgrade; it does not extend the immediate compress-or-delete support above to Windows. On hosts below 1.349, the Linux-only behaviour above is the working model.</p>
+</blockquote>
+<p>Two of these trip people up most often. The <strong>7-day activity window</strong> (#4) and the <strong>24-hour timestamp rule</strong> (#6) are <em>different</em> checks: #4 is about when the file was last <em>written</em>, #6 is about the <em>timestamps inside the records</em>. A file actively written today but full of records dated last week will be discovered yet have its old records dropped by the timestamp rule. And the <strong>path/name rule</strong> (#5) is why <code>/data/exports/run.out</code> from the Overview is invisible — it is neither under a <code>log</code>/<code>logs</code> path nor does its name carry a <code>log</code> token.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery">Log autodiscovery (DT docs)</a> — requirements list, encodings, 7-day activity window, 24-hour timestamp rule, 10-minute future-timestamp override, append-only constraints, the one-subfolder path rule, and the 500-byte binary-detection threshold (<em>&quot;must not be smaller than the configured size threshold (default: 500 bytes) to be checked for binary content&quot;</em>), <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343">OneAgent 1.343 release notes (DT docs)</a> — released 07/28/2026; <em>&quot;OneAgent now supports the rotation patterns in which the files are compressed or removed immediately after the rotation.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349">OneAgent 1.349 release notes (DT docs)</a> — <em>&quot;Rollout start on Nov 09, 2026&quot;</em>; <em>&quot;Extended to cover rotation during a Log module restart, when the file-handle approach alone can't help.&quot;</em>; <em>&quot;GZIP and ZIP handling during a Log module restart is supported on both Windows and Linux.&quot;</em>; <em>&quot;You can now decide how OneAgent handles binary log files: block the entire log source, or block only the files that contain binary content.&quot;</em>; <em>&quot;A new binary recognition algorithm is also available.&quot;</em> <strong>Derived:</strong> the &quot;verify the agent version per host, expect a mixed fleet&quot; qualifier follows from agent fleets upgrading independently of tenant version.</sub></p>
+</blockquote>
+<p><a id="builtin-rules"></a></p>
+<h2>4. The Built-in Include / Exclude Rules</h2>
+<p>Gate 2 is driven by a fixed set of <strong>built-in autodetector rules</strong>. Each rule matches an operating system, a directory pattern, and a file pattern, and either <strong>includes</strong> or <strong>excludes</strong> the match. Exclude rules win where they overlap with include rules — which is how database and container-runtime paths stay out even though they may sit near <code>log</code> directories.</p>
+<table>
+<thead>
+<tr>
+<th>OS</th>
+<th>Directory pattern</th>
+<th>File pattern</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All</td>
+<td><code>/Log/</code></td>
+<td><code>*.xel</code></td>
+<td>Exclude</td>
+</tr>
+<tr>
+<td>All</td>
+<td><code>/commitlog/</code></td>
+<td><code>*.log</code></td>
+<td>Exclude</td>
+</tr>
+<tr>
+<td>Windows</td>
+<td><code>/CCM/Logs/</code></td>
+<td><code>*</code></td>
+<td>Exclude</td>
+</tr>
+<tr>
+<td>Windows</td>
+<td><code>/MSSQL/Log/</code></td>
+<td><code>*.trc</code></td>
+<td>Exclude</td>
+</tr>
+<tr>
+<td>Windows</td>
+<td><code>/*MSSQL*/OLAP/Log/</code></td>
+<td><code>*.trc</code></td>
+<td>Exclude</td>
+</tr>
+<tr>
+<td>Windows</td>
+<td><code>MSSQL/DATA/</code></td>
+<td><code>*.ldf</code></td>
+<td>Exclude</td>
+</tr>
+<tr>
+<td>Windows</td>
+<td>—</td>
+<td><code>*.evtx</code></td>
+<td>Exclude</td>
+</tr>
+<tr>
+<td>Linux</td>
+<td><code>/var/log/pods/</code></td>
+<td><code>*</code></td>
+<td>Exclude</td>
+</tr>
+<tr>
+<td>Linux</td>
+<td><code>/var/lib/docker/containers/</code></td>
+<td><code>*</code></td>
+<td>Exclude</td>
+</tr>
+<tr>
+<td>All</td>
+<td><code>/</code></td>
+<td><code>*[-._]log</code></td>
+<td>Include</td>
+</tr>
+<tr>
+<td>All</td>
+<td><code>/</code></td>
+<td><code>catalina.out*</code></td>
+<td>Include</td>
+</tr>
+<tr>
+<td>All</td>
+<td><code>/log/</code></td>
+<td><code>*</code></td>
+<td>Include</td>
+</tr>
+<tr>
+<td>All</td>
+<td><code>/log/*/</code></td>
+<td><code>*</code></td>
+<td>Include</td>
+</tr>
+<tr>
+<td>All</td>
+<td><code>/logs/</code></td>
+<td><code>*</code></td>
+<td>Include</td>
+</tr>
+<tr>
+<td>All</td>
+<td><code>/logs/*/</code></td>
+<td><code>*</code></td>
+<td>Include</td>
+</tr>
+<tr>
+<td>Linux</td>
+<td><code>^/var/log/**/</code></td>
+<td><code>*</code></td>
+<td>Include</td>
+</tr>
+</tbody>
+</table>
+<p>What this tells you:</p>
+<ul>
+<li><strong><code>*[-._]log</code> is the filename escape hatch.</strong> A file does not have to live under a <code>log</code>/<code>logs</code> directory — <code>payments-2026.log</code>, <code>audit_log</code>, or <code>app.log</code> anywhere on disk matches the include rule by name. (<code>catalina.out*</code> is a special-cased Tomcat include.)</li>
+<li><strong>Database transaction logs are deliberately excluded</strong> (<code>*.xel</code>, <code>/commitlog/</code>, <code>*.trc</code>, <code>*.ldf</code>). These are not application logs and would be noise; that exclusion is by design, not a gap.</li>
+<li><strong><code>*.evtx</code> is excluded as a file</strong> because Windows Event Log is collected through the Event Log API, not by reading the <code>.evtx</code> files (see §5).</li>
+<li><strong><code>/var/log/pods/</code> and <code>/var/lib/docker/containers/</code> are excluded</strong> because Kubernetes and Docker container logs are collected via the dedicated container-log path, not as host files — excluding them here prevents double-collection.</li>
+</ul>
+<p>Crucially, the security rules can only <strong>narrow</strong> this set — <em>&quot;the custom security rules can only narrow auto-detection but not expand it.&quot;</em> There is no setting that adds new include rules. To collect a file the built-in rules don't match, you use a custom log source (§6).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery">Log autodiscovery (DT docs)</a> — built-in autodetector rules table and the &quot;security rules can only narrow auto-detection but not expand it&quot; constraint (both quoted from the page). <strong>Derived:</strong> the &quot;why each exclusion exists&quot; annotations combine the rule table with the container-collection and Windows-Event-Log handling documented elsewhere on the page.</sub></p>
+</blockquote>
+<p><a id="auto-vs-help"></a></p>
+<h2>5. What's Auto-Detected vs. What Needs Help</h2>
+<p>&quot;Which logs&quot; is broader than just files held open by a process. By default OneAgent auto-collects several distinct source types:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Auto-detected?</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Process / application log files</strong></td>
+<td>Yes</td>
+<td>The core file-discovery path described in §2–§4</td>
+</tr>
+<tr>
+<td><strong>System logs (syslog)</strong></td>
+<td>Yes</td>
+<td>Enabled by default</td>
+</tr>
+<tr>
+<td><strong>journald</strong></td>
+<td>Yes</td>
+<td>systemd journal on Linux</td>
+</tr>
+<tr>
+<td><strong>IIS logs</strong></td>
+<td>Yes (Windows)</td>
+<td>On by default; can be turned <strong>off</strong> in advanced OneAgent log settings if not needed</td>
+</tr>
+<tr>
+<td><strong>Windows Event Log</strong></td>
+<td>Yes (Windows)</td>
+<td>System / Application / Security channels via the Event Log API — <em>not</em> by reading <code>.evtx</code> files (which the rules exclude)</td>
+</tr>
+<tr>
+<td><strong>Container <code>stdout</code>/<code>stderr</code></strong></td>
+<td>Yes (Linux)</td>
+<td>In Kubernetes, OpenShift, and non-instrumented Docker, via the container-log path — not the host file rules</td>
+</tr>
+</tbody>
+</table>
+<p>And several things are deliberately <strong>not</strong> auto-collected, each with a specific reason:</p>
+<ul>
+<li><strong>Binary log files</strong> — <em>&quot;Binary log files are not detected automatically.&quot;</em> You must add a custom log source with the binary-format option enabled.</li>
+<li><strong>Logs on network filesystems (Linux)</strong> — detection of NFS-mounted logs is <strong>disabled by default</strong> and must be explicitly enabled.</li>
+<li><strong>OneAgent's own logs</strong> — collected only if you enable <em>&quot;Allow OneAgent to monitor Dynatrace logs.&quot;</em></li>
+<li><strong>Files that fail any gate in §3</strong> — wrong path/name, no important process holding it, stale, non-text, or rewritten-in-place rather than appended.</li>
+</ul>
+<p>The log-module configuration lives under <strong>Settings → Collect and capture → Log monitoring → Configure log module</strong>; the network-filesystem option and <em>Allow OneAgent to monitor Dynatrace logs</em> are on its <strong>Advanced settings</strong> page. Container and Kubernetes specifics (the container-log path, namespace scoping, masking) are covered in depth in the K8S series rather than here.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa">Log ingestion via OneAgent (DT docs)</a> — default-detected sources (system logs, IIS, Windows Event Log, containers)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery">Log autodiscovery (DT docs)</a> — binaries not auto-detected, network-filesystem default-off, &quot;Allow OneAgent to monitor Dynatrace logs&quot;; <em>&quot;Settings &gt; Collect and capture &gt; Log monitoring &gt; Configure log module &gt; Advanced settings&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/advanced-log-settings">Advanced log settings (DT docs)</a> — per-technology toggles (e.g., turning off IIS log detection)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-windows-event-logs">Windows event logs (DT docs)</a></sub> — System / Application / Security channel collection</sub></li>
+</ul>
+</blockquote>
+<p><a id="custom-sources"></a></p>
+<h2>6. When Auto-Discovery Misses Your Log — Custom Log Sources</h2>
+<p>When a file fails a gate, the fix is a <strong>custom log source</strong> — an explicit path you tell OneAgent to monitor. A custom log source <strong>supplements</strong> auto-detection for a specific path; it does <strong>not</strong> change the built-in rules or expand what auto-discovery finds elsewhere.</p>
+<p><strong>Where to configure</strong> (narrower scope wins) — the page is the same at every scope; for host and host group, first use <strong>Go to scope</strong> in the upper-left corner of Settings to select the host or host group:</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Environment</td>
+<td>Settings → Collect and capture → Log monitoring → Configure log module → Sources</td>
+</tr>
+<tr>
+<td>Host group</td>
+<td>Settings → <em>Go to scope</em> (host group) → Collect and capture → Log monitoring → Configure log module → Sources</td>
+</tr>
+<tr>
+<td>Host</td>
+<td>Settings → <em>Go to scope</em> (host) → Collect and capture → Log monitoring → Configure log module → Sources</td>
+</tr>
+</tbody>
+</table>
+<p>In each case, select <strong>New log source rule</strong> in the <em>Add missing log sources</em> section.</p>
+<p><strong>Path rules:</strong></p>
+<ul>
+<li>Paths must be <strong>absolute</strong> — Windows <code>letter:\...</code>, Linux <code>/...</code>, NFS <code>//hostname/...</code>. Relative paths are rejected.</li>
+<li>Up to <strong>100 paths per rule</strong>, and up to <strong>1000 rules per scope</strong>.</li>
+<li>Wildcards: <strong><code>*</code></strong> substitutes any string of characters <em>except</em> <code>/</code> or <code>\</code> (valid in both directories and filenames); <strong><code>#</code></strong> substitutes a string of digits (valid in <strong>filenames only</strong>). Example: <code>/var/log/app/access_#.log</code> or <code>/opt/*/out/*.log</code>.</li>
+<li><strong>Permissions.</strong> Linux, local drives: nothing to do — OneAgent has the capabilities it needs. Linux, remote drives: the OneAgent account (<strong><code>dtuser</code></strong> by default) needs <strong>read</strong> on the file and <strong>read+execute</strong> on each directory in the path. Windows: OneAgent runs as <strong>LocalSystem</strong>; permissions are usually granted automatically on local drives, so check them on remote drives. AIX: no action needed.</li>
+<li>Each custom path must still satisfy OneAgent's <strong>security rules</strong>.</li>
+</ul>
+<p><strong>When you specifically need a custom source:</strong></p>
+<ul>
+<li>The file lives outside a <code>log</code>/<code>logs</code> path and its name has no <code>log</code> token (the Overview's <code>/data/exports/run.out</code>).</li>
+<li>Nothing long-lived keeps the file open, or the writing process isn't an <em>important</em> process (§2).</li>
+<li>The file is <strong>binary</strong> (enable the binary-format option).</li>
+<li>The file uses an unusual <strong>rotation pattern</strong> the detector doesn't follow cleanly — <strong>narrowed on Linux from OneAgent 1.343</strong> (released 07/28/2026), which supports rotation schemes that compress or remove the rotated file immediately — <strong>local drives only</strong>. On <strong>Windows</strong>, for logs on <strong>remote/NFS drives</strong>, or on any host still running <strong>1.342 or earlier</strong>, this remains a live cause and the custom-source fix still applies. Check the agent version on the host before concluding the rotation pattern is the problem: tenant version is not agent version.</li>
+<li>The file is <strong>compressed</strong> (<code>.gz</code> and similar). Compressed archives are not part of the auto-discovery text-file model, and OneAgent 1.343 does not change that: its rotation support keeps following the live file when the <em>rotated</em> copy is compressed, it does not ingest the archive. Change the writer so an uncompressed live file exists to tail. The one exception is a file rotated and compressed while OneAgent was restarting or upgrading: from OneAgent 1.349 (staged rollout from 11/09/2026) the Log module reads those GZIP and ZIP files on restart, on Windows and Linux.</li>
+</ul>
+<p>Because custom sources don't expand the rules, the durable fix for &quot;we have a whole class of logs in a non-standard location&quot; is sometimes simpler: write those logs to a <code>log</code>/<code>logs</code> directory, or give them a <code>*.log</code> name, so the built-in include rules catch them without per-host configuration.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-custom-log-source">Custom log source (DT docs)</a> — config scopes and precedence (<em>&quot;Go to Settings &gt; Collect and capture &gt; Log monitoring &gt; Configure log module &gt; Sources&quot;</em>), absolute-path requirement, <code>*</code>/<code>#</code> wildcard semantics, 100 paths/rule and 1000 rules/scope, per-OS permission requirements (Linux: <em>&quot;Log files on local drives: no action needed.&quot;</em>; Windows: <em>&quot;OneAgent operates on the LocalSystem account.&quot;</em>), &quot;custom log sources do not expand auto-detection&quot;, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery">Log autodiscovery (DT docs)</a> — binary-format option for binary files; rotation-pattern handling, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343">OneAgent 1.343 release notes (DT docs)</a> — released 07/28/2026; <em>&quot;The supported scope is limited to Linux and only log files that are located on local drives.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349">OneAgent 1.349 release notes (DT docs)</a> — <em>&quot;The OneAgent Log module now recovers log records from compressed log files (ZIP, GZIP) created during a OneAgent restart or upgrade.&quot;</em> <strong>Derived:</strong> the &quot;write to a log/ directory or use a .log name&quot; recommendation combines the §4 include rules with the custom-source-doesn't-expand constraint — neither source states it as advice.</sub></p>
+</blockquote>
+<p><a id="scale-limits"></a></p>
+<h2>7. Scale and Limits</h2>
+<p>The documented figures are a mix of supported levels and configurable defaults:</p>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Files per directory — supported level in standard environments</td>
+<td><strong>10,000</strong></td>
+</tr>
+<tr>
+<td>New log content per minute — supported level in standard environments</td>
+<td><strong>200 MB</strong></td>
+</tr>
+<tr>
+<td>Default maximum log sources per process-group instance (configurable)</td>
+<td><strong>200</strong></td>
+</tr>
+<tr>
+<td>Size from which a file is checked for binary content</td>
+<td><strong>500 bytes</strong> (default; not a discovery minimum)</td>
+</tr>
+<tr>
+<td>Paths per custom log source rule</td>
+<td><strong>100</strong></td>
+</tr>
+<tr>
+<td>Custom log source rules per scope</td>
+<td><strong>1,000</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Planned (OneAgent 1.351) — the 200-sources limit stops skipping logs.</strong> The OneAgent 1.351 pre-release notes (published 11/17/2026, rollout planned from 12/01/2026) say: <em>&quot;When a process group instance has more than 200 automatically detected log sources, the Log module now ingests logs from all of them without additional configuration.&quot;</em> They add: <em>&quot;Ingesting previously skipped sources may increase your log volume, so review your log ingestion rules and adjust them if needed.&quot;</em> To see which sources were skipped, the notes point to the <code>pgi.lgi_explosion</code> self-monitoring events for OneAgent. Until 1.351 reaches your hosts, the 200-sources default and the advice below still apply. Pre-release notes can change before GA.</p>
+</blockquote>
+<p>These matter at design time. A directory with tens of thousands of rotated files, or a process group that legitimately emits more than 200 distinct log sources, goes beyond those figures — and the symptom (some files silently not collected) looks identical to a discovery rule miss. The 10,000-file and 200 MB/min figures are not hard ceilings: <em>&quot;If you have more data, especially a higher level of magnitude, there's a high chance that the OneAgent log module supports it. Contact the Dynatrace support team to review your setup beforehand.&quot;</em> If you operate at that scale, have support review the setup, split logs across directories, raise the 200-sources default (<em>Maximum number of log sources per process group instance</em>), and verify coverage explicitly (§8) rather than assuming everything is captured.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery">Log autodiscovery (DT docs)</a> — <em>&quot;In standard environments, OneAgent log module supports up to 10,000 files in one directory with logs and 200 MB of new log content per minute.&quot;</em>, the support-review quote above, the configurable default of 200 log sources per process-group instance, and the 500-byte binary-detection threshold; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-custom-log-source">Custom log source (DT docs)</a> — 100 paths/rule and 1,000 rules/scope; <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-351">OneAgent 1.351 release notes (DT docs)</a> — <em>&quot;Rollout start on Dec 01, 2026 (planned)&quot;</em>, the 200-sources quotes above.</sub></p>
+</blockquote>
+<p><a id="recommended-approach"></a></p>
+<h2>8. Recommended Approach</h2>
+<p>Don't assume coverage — confirm it, then patch the gaps deliberately.</p>
+<ol>
+<li><strong>Verify what was actually discovered before adding anything — from the log-module self-monitoring events.</strong> The OneAgent log module emits a self-monitoring event per discovered source into <code>dt.system.events</code> under the <code>Log Module</code> provider. Each <code>log_source.status</code> event carries the source's current file status and ingest status, so one events query gives you the whole coverage picture — including sources that were <strong>detected but are not being ingested</strong>, which a <code>fetch logs</code> query cannot show (no stored records means nothing to count):</li>
+</ol>
+<pre><code class="language-dql">fetch dt.system.events, from:-24h
+| filter event.provider == &quot;Log Module&quot; and event.type == &quot;log_source.status&quot;
+| dedup event.id, sort:{ timestamp desc }
+| filter event.status == &quot;Active&quot;
+| fieldsAdd coverage =
+    if(log.source.file_status == &quot;FILE_STATUS_OK&quot; and log.source.ingest_status == &quot;Ingested&quot;, &quot;Available | Ingesting&quot;, else:
+    if(log.source.file_status == &quot;FILE_STATUS_OK&quot; and log.source.ingest_status == &quot;Not ingested&quot;, &quot;Available | NOT ingesting&quot;, else:
+    if(log.source.ingest_status == &quot;Partially ingested&quot;, &quot;Partial ingestion&quot;,
+    else: &quot;Unsupported or issue&quot;)))
+| summarize source_instances = count(), by:{coverage}
+| sort source_instances desc
+</code></pre>
+<p><code>log.source.file_status</code> reflects the source's current state (<code>FILE_STATUS_OK</code>, <code>FILE_STATUS_IS_BINARY</code>, <code>FILE_STATUS_NOT_EXIST</code>, …) and <code>log.source.ingest_status</code> is one of <code>Ingested</code> / <code>Not ingested</code> / <code>Partially ingested</code>. One row is one source <strong>instance</strong> — a source on a given host, process, or container — so one path is counted once per host (or container) that holds it, not once overall (310 instances over 24 h on the validation tenant, 10/02/2026). Crossing the two gives a coverage matrix — the cell that matters most is <strong>available but not ingesting</strong>: a source OneAgent can read but no ingest rule keeps.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Ingesting</th>
+<th>NOT ingesting</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Available</strong> (<code>FILE_STATUS_OK</code>)</td>
+<td>✅ working as intended</td>
+<td>⚠️ detected, silently uncollected — the gap to investigate</td>
+</tr>
+<tr>
+<td><strong>Unsupported / issue</strong></td>
+<td>ingesting despite a file issue</td>
+<td>❌ dead — neither cleanly readable nor collected</td>
+</tr>
+</tbody>
+</table>
+<p>To list the sources behind the ⚠️ cell, swap the <code>summarize</code> for a filter and <code>fields</code> — keep the host in the output, because the same path can be ingested on one host and not on another:</p>
+<pre><code class="language-dql">fetch dt.system.events, from:-24h
+| filter event.provider == &quot;Log Module&quot; and event.type == &quot;log_source.status&quot;
+| dedup event.id, sort:{ timestamp desc }
+| filter event.status == &quot;Active&quot;
+| filter log.source.file_status == &quot;FILE_STATUS_OK&quot; and log.source.ingest_status == &quot;Not ingested&quot;
+| fields log.source, dt.entity.host, host.name, log.source.file_status, log.source.ingest_status, log.source.origin
+| limit 50
+</code></pre>
+<p>This surface is billing-cheap — it scans events, not raw log records (0 bytes billed in testing) — and needs only event-read permission rather than logs-table read. Log-module self-monitoring is <strong>on by default for Grail environments since SaaS 1.340</strong> and opt-in for Log Monitoring Classic; the ready-made <strong>Log ingest overview</strong> dashboard visualizes it (upgraded in SaaS 1.343). Verify the events are flowing in your environment before relying on them; where they are not, the Grail log-records query below is the working path.</p>
+<p><strong>Fallback (Log Monitoring Classic, or events not flowing).</strong> Query the stored log records directly. This shows only sources that produced records, so it cannot separate &quot;detected but not ingested&quot; from &quot;never detected&quot; — but it does not depend on the self-monitoring events. It is also the expensive query in this entry: it scans every stored log record in the window, so narrow <code>from:</code> or filter on <code>dt.entity.host</code> first on a busy environment. Group by <code>log.source</code> alone: <code>log.source.file_status</code> and <code>log.source.ingest_status</code> are fields of the <code>log_source.status</code> self-monitoring events above, not of log records, and are empty on every log record (0 of 20,006,675 records over 24 h on the validation tenant, 09/28/2026):</p>
+<pre><code class="language-dql">fetch logs, from:-24h
+| summarize records = count(), by:{log.source}
+| sort records desc
+| limit 20
+</code></pre>
+<p>The same picture is available interactively at <strong>Settings → Collect and capture → Log monitoring → Configure log module → Sources</strong>: its <em>Summary of entities with logs</em> section <em>&quot;shows totals and ingestion coverage&quot;</em> for host groups, hosts and log sources.</p>
+<ol start="2">
+<li>
+<p><strong>For a missing log, walk the three gates in order (§2).</strong> Is an <em>important</em> process holding it open? Does its path/name match an include rule and dodge the exclude rules? Does the file itself meet the §3 properties? The first failing gate is your answer.</p>
+</li>
+<li>
+<p><strong>Prefer making the file discoverable over per-host config.</strong> If you control the application, writing to a <code>log</code>/<code>logs</code> directory or using a <code>*.log</code> name lets the built-in rules collect it everywhere with zero configuration — more durable than a custom source maintained per host.</p>
+</li>
+<li>
+<p><strong>Use custom log sources for what genuinely can't be moved</strong> — binaries, fixed non-standard paths, files no monitored process holds open. Set them at the broadest scope that's correct (environment &gt; host group &gt; host) to minimize drift.</p>
+</li>
+<li>
+<p><strong>Don't try to &quot;open up&quot; auto-discovery.</strong> Security rules only narrow it; there is no expand knob. Custom sources are the supported way to add coverage.</p>
+</li>
+<li>
+<p><strong>Mind the storage step.</strong> Discovery is not ingestion. Log Monitoring is on by default, but your <strong>log ingest rules</strong> decide what's stored in Grail and what's dropped — a source can be discovered and still produce no stored records because a rule excludes it.</p>
+</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery">Log autodiscovery (DT docs)</a> — narrow-only security rules and the <em>Sources</em> coverage view; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa">Log ingestion via OneAgent (DT docs)</a> — ingest rules gate storage. The <code>dt.system.events</code> / <code>Log Module</code> / <code>log_source.status</code> coverage queries and the <code>log.source.file_status</code> (<code>FILE_STATUS_OK</code> / <code>FILE_STATUS_IS_BINARY</code> / <code>FILE_STATUS_NOT_EXIST</code>) and <code>log.source.ingest_status</code> (<code>Ingested</code> / <code>Not ingested</code> / <code>Partially ingested</code>) values re-executed against a live tenant on 10/02/2026 with no notifications (272 / 19 / 19 source instances) — the &quot;available but not ingesting&quot; cell returned real sources (OneAgent's own logs, <code>/var/log/syslog</code>). <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-340">SaaS 1.340 release notes (DT docs)</a> — <em>&quot;Enabled by default for Grail; available as opt-in for Log Monitoring Classic (LMv2).&quot;</em> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">SaaS 1.343 release notes (DT docs)</a> — <em>&quot;Upgraded ready-made Log ingest overview dashboard for OneAgent log modules and Environment ActiveGate health.&quot;</em> <strong>Derived:</strong> the file-status × ingest-status coverage matrix and the verify-first / make-discoverable-before-custom ordering are authoring recommendations, not a documented procedure.</sub></p>
+</blockquote>
+<p><a id="gotchas"></a></p>
+<h2>9. Common Gotchas</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Log file exists but never appears</td>
+<td>Path isn't under <code>log</code>/<code>logs</code> and name has no <code>log</code> token</td>
+<td>§3 #5, §4</td>
+</tr>
+<tr>
+<td>File appears but old lines are missing</td>
+<td>Records' timestamps are outside the 24-hour window</td>
+<td>§3 #6</td>
+</tr>
+<tr>
+<td>Nothing from a short-lived job's log</td>
+<td>No long-lived <em>important</em> process keeps the file open</td>
+<td>§2 Gate 1</td>
+</tr>
+<tr>
+<td>Database <code>.trc</code> / <code>.ldf</code> / commitlog not collected</td>
+<td>Excluded by built-in rules by design</td>
+<td>§4</td>
+</tr>
+<tr>
+<td><code>.evtx</code> files &quot;ignored&quot; on Windows</td>
+<td>Event Log is read via the API, not the files</td>
+<td>§5</td>
+</tr>
+<tr>
+<td>Container logs missing under <code>/var/log/pods</code></td>
+<td>Collected via the container path, not host file rules</td>
+<td>§4, §5</td>
+</tr>
+<tr>
+<td>A binary log is invisible</td>
+<td>Binaries aren't auto-detected</td>
+<td>§5, §6</td>
+</tr>
+<tr>
+<td>Logs on an NFS mount not collected (Linux)</td>
+<td>Network-filesystem detection is off by default</td>
+<td>§5</td>
+</tr>
+<tr>
+<td>Source shows as discovered but no records in Grail</td>
+<td>A log <strong>ingest rule</strong> is dropping it (discovery ≠ storage)</td>
+<td>§8</td>
+</tr>
+<tr>
+<td>Some files in a huge directory collected, others not</td>
+<td>Beyond the documented 10,000-files / 200 MB-per-minute supported levels, or the configurable 200-sources default</td>
+<td>§7</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-autodiscovery">Log autodiscovery (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa">Log ingestion via OneAgent (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-custom-log-source">Custom log source (DT docs)</a> — each row maps to the requirement, rule, source-type, or limit cited in the referenced section.</sub></p>
+</blockquote>
+<hr />
+<blockquote>
+<p><sub><strong>⚠️ Disclaimer:</strong> This content is AI-generated, community-driven, and <strong>not supported by Dynatrace</strong>. Log auto-discovery behavior, built-in rules, and limits evolve across OneAgent versions — always verify against the current <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> for your environment before relying on a specific rule or threshold.</sub></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

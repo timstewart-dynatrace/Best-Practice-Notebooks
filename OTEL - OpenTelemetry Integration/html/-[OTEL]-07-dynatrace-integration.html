@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTEL-07: Dynatrace OTLP Integration</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OTEL — OpenTelemetry Integration</a><span class="sep">/</span><span aria-current="page">OTEL-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OTEL-07: Dynatrace OTLP Integration</h1>
+<blockquote>
+<p><strong>Series:</strong> OTEL — OpenTelemetry Integration | <strong>Notebook:</strong> 7 of 8 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Complete Setup for OpenTelemetry with Dynatrace</h2>
+<p>This notebook provides end-to-end configuration for sending OpenTelemetry data to Dynatrace, including authentication, endpoints, and verification.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#dynatrace-otlp-endpoints">Dynatrace OTLP Endpoints</a></li>
+<li><a href="#authentication-setup">Authentication Setup</a></li>
+<li><a href="#collector-configuration">Collector Configuration</a></li>
+<li><a href="#direct-sdk-export">Direct SDK Export</a></li>
+<li><a href="#entity-mapping">Entity Mapping</a></li>
+<li><a href="#span-attributes-for-dynatrace">Span Attributes for Dynatrace</a></li>
+<li><a href="#otlp-metric-dimensions">OTLP Metric Dimensions</a></li>
+<li><a href="#verification">Verification</a></li>
+<li><a href="#hybrid-with-oneagent">Coexistence with OneAgent and DynaKube</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS or Managed with OTLP enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Token creation access</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OTEL-01 through OTEL-06</td>
+</tr>
+</tbody>
+</table>
+<h3>SaaS 1.337: OpenTelemetry-relevant changes</h3>
+<ol>
+<li><strong>OTel <code>service.name</code> in SDv1 service names.</strong> Per the release notes, <em>&quot;You can now use the OTel service.name attribute to customize the name of SDv1 services.&quot;</em> Smartscape shows <code>service.name (detected name)</code>, and the change <em>&quot;affects the service name in all Smartscape use cases, and the dt.service.name attribute on spans and metrics.&quot;</em> <code>dt.service.name</code> is on every span — OneAgent and OTLP alike — so it is the field to group by:<pre><code class="language-dql">fetch spans, from:-1h
+| filter isNotNull(dt.service.name)
+| summarize span_count = count(), by:{dt.service.name, dt.smartscape.service}
+</code></pre>
+</li>
+<li><strong>OneAgent + OpenTelemetry-injector coexistence matrix</strong> — documented in <strong>K8S-11 § 2a</strong>. Covers double-instrumentation symptoms, init-container ordering, <code>LD_PRELOAD</code>/<code>JAVA_TOOL_OPTIONS</code> clobber, trace-context conflicts, and a per-namespace decision flow. Read it before planning OTel auto-instrumentation where OneAgent is also deployed.</li>
+<li><strong>SDv2 for AWS Lambda (Early Access).</strong> <em>&quot;It provides a single unified ruleset for both OpenTelemetry and OneAgent instrumentation.&quot;</em> See <strong>CLOUD-04 § Sprint 1.337</strong>.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">SaaS 1.337 release notes (DT docs)</a>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="dynatrace-otlp-endpoints"></a></p>
+<h2>1. Dynatrace OTLP Endpoints</h2>
+<h3>SaaS Endpoints</h3>
+<p>Dynatrace supports <strong>OTLP/HTTP only</strong> for native ingest, with binary Protocol Buffers — <em>&quot;gRPC is not supported. API calls need to use HTTP.&quot;</em> and <em>&quot;JSON is not supported for Protocol Buffers. Binary format must be used.&quot;</em> Use a Collector to convert gRPC to HTTP.</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>HTTP Endpoint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All (base)</td>
+<td><code>https://{env-id}.live.dynatrace.com/api/v2/otlp</code></td>
+</tr>
+<tr>
+<td>Traces</td>
+<td><code>https://{env-id}.live.dynatrace.com/api/v2/otlp/v1/traces</code></td>
+</tr>
+<tr>
+<td>Metrics</td>
+<td><code>https://{env-id}.live.dynatrace.com/api/v2/otlp/v1/metrics</code></td>
+</tr>
+<tr>
+<td>Logs</td>
+<td><code>https://{env-id}.live.dynatrace.com/api/v2/otlp/v1/logs</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> gRPC is <strong>not supported</strong> for direct Dynatrace ingest. If your SDKs use gRPC, route through a Collector with an <code>otlp</code> gRPC receiver and <code>otlphttp</code> exporter. See <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/grpc">Transform OTLP gRPC</a>.</p>
+</blockquote>
+<h3>ActiveGate Endpoints</h3>
+<p>For on-premises or network-restricted environments:</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Endpoint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All</td>
+<td><code>https://{activegate-host}:9999/e/{env-id}/api/v2/otlp</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Collector Distribution</h3>
+<p>Dynatrace provides its own <strong>Collector distribution</strong> with verified, production-ready components:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Image</td>
+<td><code>ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector</code></td>
+</tr>
+<tr>
+<td>Features</td>
+<td>Pre-configured for Dynatrace, upstream-compatible components</td>
+</tr>
+<tr>
+<td>Docs</td>
+<td><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector">Dynatrace Collector</a></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Use the Dynatrace Collector distribution for production. Its x86-64 and ARM64 builds <em>&quot;are supported by the Dynatrace Support team&quot;</em>. For Core, Contrib and Builder setups Dynatrace gives limited support, and <em>&quot;This support covers only the components and their versions that are included in the Dynatrace OTel Collector.&quot;</em> Contrib is for test setups: <em>&quot;Dynatrace recommends using the Contrib distribution only for testing purposes.&quot;</em></p>
+<p>If you need a component the Dynatrace distribution does not ship, the same page lists the OpenTelemetry Collector Builder for building your own Collector — <em>&quot;When you need to fully customize the Collector instance and only run the components required for your use case.&quot;</em> A Builder setup gets the same limited support, so components outside the Dynatrace distribution are not covered.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector">Dynatrace OTel Collector (DT docs)</a> — <em>&quot;Dynatrace provides limited support for Core, Contrib, and Builder setups.&quot;</em></sub></p>
+</blockquote>
+<h3>Environment ID</h3>
+<p>Find your environment ID:</p>
+<ol>
+<li>Log into Dynatrace</li>
+<li>Look at the URL: <code>https://abc12345.live.dynatrace.com</code></li>
+<li><code>abc12345</code> is your environment ID</li>
+</ol>
+<p><a id="authentication-setup"></a></p>
+<h2>2. Authentication Setup</h2>
+<h3>Create API Token</h3>
+<ol>
+<li>Navigate to <strong>Settings &gt; Access tokens</strong></li>
+<li>Click <strong>Generate new token</strong></li>
+<li>Name: <code>otel-ingest-token</code></li>
+<li>Select scopes:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Signal</th>
+<th>Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>openTelemetryTrace.ingest</code></td>
+<td>Traces</td>
+<td>Yes (for traces)</td>
+</tr>
+<tr>
+<td><code>metrics.ingest</code></td>
+<td>Metrics</td>
+<td>Yes (for metrics)</td>
+</tr>
+<tr>
+<td><code>logs.ingest</code></td>
+<td>Logs</td>
+<td>Yes (for logs)</td>
+</tr>
+</tbody>
+</table>
+<h3>Token Format</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2UgVG9rZW4gU3RydWN0dXJlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlRocmVlIGNvbXBvbmVudHMgc2VwYXJhdGVkIGJ5IGRvdHMgwrcgdGhlIEF1dGhvcml6YXRpb24gc2NoZW1lIGRlcGVuZHMgb24gdGhlIHRva2VuIHR5cGU8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IFRva2VuIGFuYXRvbXkgPT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjQwIiB5PSI4NSIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSIxNzUiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPlRva2VuIGFuYXRvbXk8L3RleHQ+CgogIDwhLS0gUHJlZml4IC0tPgogIDxyZWN0IHg9IjY1IiB5PSIxMjUiIHdpZHRoPSIxNzAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTUwIiB5PSIxNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPmR0MHMxNjwvdGV4dD4KICA8dGV4dCB4PSIxNTAiIHk9IjE3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+ZHQwYzAxPC90ZXh0PgogIDx0ZXh0IHg9IjE1MCIgeT0iMjA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5QcmVmaXgg4oCUIHRva2VuIHR5cGU8L3RleHQ+CiAgPHRleHQgeD0iMTUwIiB5PSIyMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmR0MHMxNiA9IHBsYXRmb3JtIHRva2VuPC90ZXh0PgogIDx0ZXh0IHg9IjE1MCIgeT0iMjQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5kdDBjMDEgPSBjbGFzc2ljIGFjY2VzcyB0b2tlbjwvdGV4dD4KCiAgPHRleHQgeD0iMjUyIiB5PSIxNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPi48L3RleHQ+CgogIDwhLS0gUHVibGljIC0tPgogIDxyZWN0IHg9IjI3MCIgeT0iMTI1IiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjM4NSIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5BQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE8L3RleHQ+CiAgPHRleHQgeD0iMzg1IiB5PSIyMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlB1YmxpYyBwb3J0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM4NSIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4yNC1jaGFyYWN0ZXIgcHVibGljIGlkZW50aWZpZXI8L3RleHQ+CgogIDx0ZXh0IHg9IjUxNyIgeT0iMTYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj4uPC90ZXh0PgoKICA8IS0tIFNlY3JldCAtLT4KICA8cmVjdCB4PSI1MzUiIHk9IjEyNSIgd2lkdGg9IjMzMCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MDAiIHk9IjE1MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI8L3RleHQ+CiAgPHRleHQgeD0iNzAwIiB5PSIxNjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCPC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMjA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5TZWNyZXQgcG9ydGlvbjwvdGV4dD4KICA8dGV4dCB4PSI3MDAiIHk9IjIyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+NjQtY2hhcmFjdGVyIHN0cmluZzwvdGV4dD4KICA8dGV4dCB4PSI3MDAiIHk9IjI0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dHJlYXQgaXQgbGlrZSBhIHBhc3N3b3JkPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBBdXRob3JpemF0aW9uIGhlYWRlcnMgPT09PT09PT09PT09IC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5BdXRob3JpemF0aW9uIGhlYWRlciDigJQgc2NoZW1lIGZvbGxvd3MgdGhlIHRva2VuIHR5cGU8L3RleHQ+CgogIDwhLS0gUGxhdGZvcm0gdG9rZW4gLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjMwNSIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSI2OCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2MCIgeT0iMzI4IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4xLiBQbGF0Zm9ybSB0b2tlbiDigJQgQmVhcmVyPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIzNTAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPkF1dGhvcml6YXRpb246IEJlYXJlciBkdDBzMTYuQUFBQeKApkFBQUEuQkJCQuKApkJCQkI8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjM2NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T1RMUCBBUEkgc2NvcGVzOiBvcGVucGlwZWxpbmU6dHJhY2VzOmluZ2VzdCDCtyBvcGVucGlwZWxpbmU6bWV0cmljczppbmdlc3Qgwrcgb3BlbnBpcGVsaW5lOmxvZ3M6aW5nZXN0PC90ZXh0PgoKICA8IS0tIENsYXNzaWMgdG9rZW4gLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjM4NSIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSI2OCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2MCIgeT0iNDA4IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4yLiBDbGFzc2ljIGFjY2VzcyB0b2tlbiDigJQgQXBpLVRva2VuPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSI0MzAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPkF1dGhvcml6YXRpb246IEFwaS1Ub2tlbiBkdDBjMDEuQUFBQeKApkFBQUEuQkJCQuKApkJCQkI8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjQ0NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U2NvcGVzOiBvcGVuVGVsZW1ldHJ5VHJhY2UuaW5nZXN0IMK3IG1ldHJpY3MuaW5nZXN0IMK3IGxvZ3MuaW5nZXN0PC90ZXh0PgoKICA8IS0tIEZvb3RlciAtLT4KICA8bGluZSB4MT0iNDAiIHkxPSI0NzAiIHgyPSI4OTAiIHkyPSI0NzAiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDY1IiB5PSI0ODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPk1hdGNoIHRoZSBBdXRob3JpemF0aW9uIHNjaGVtZSB0byB0aGUgdG9rZW4gdHlwZSDCtyBzZWUgT1RFTC0wNyDCpzI8L3RleHQ+Cjwvc3ZnPgo=" alt="Dynatrace API Token Structure" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Part | Description | Length |
+|------|-------------|--------|
+| Prefix | Token type identifier — `dt0s16` platform token, `dt0c01` classic access token | 6 chars |
+| Public portion | Public identifier | 24 chars |
+| Secret portion | Treat it like a password | 64 chars |
+Parts are separated by dots (.)
+
+| Token type | Authorization header | Scopes |
+|------------|----------------------|--------|
+| Platform token | `Authorization: Bearer dt0s16.…` | `openpipeline:traces:ingest`, `openpipeline:metrics:ingest`, `openpipeline:logs:ingest` |
+| Classic access token | `Authorization: Api-Token dt0c01.…` | `openTelemetryTrace.ingest`, `metrics.ingest`, `logs.ingest` |
+For environments where SVG doesn't render
+-->
+<h3>Header Format</h3>
+<p>Use the <code>Api-Token</code> prefix in the Authorization header:</p>
+<pre><code>Authorization: Api-Token &lt;your-full-token&gt;
+</code></pre>
+<h3>Token Type and Auth Scheme</h3>
+<p>The <code>Api-Token</code> scheme above is for <strong>classic API Tokens</strong> (prefix <code>dt0c01.*</code>). <strong>Platform Tokens</strong> (prefix <code>dt0u01.*</code> for user tokens, <code>dt0s16.*</code> for service-user tokens) use <code>Bearer ${TOKEN}</code> instead:</p>
+<pre><code># Classic API Token
+Authorization: Api-Token dt0c01.XXXXXXXX...
+
+# Platform Token (Gen3-preferred)
+Authorization: Bearer dt0u01.XXXXXXXX...
+</code></pre>
+<p>Using the wrong scheme returns <strong>401 Unauthorized</strong> even when the token has the correct scopes — a frequent first-deployment failure mode. Platform Tokens are preferred in Gen3 environments because they support fine-grained scopes via IAM policies. For OTLP ingest both token types work, with different scopes: a Platform Token needs <code>openpipeline:traces:ingest</code>, <code>openpipeline:metrics:ingest</code> and <code>openpipeline:logs:ingest</code>; a classic token needs the scopes in the table above.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api">OTLP API (DT docs)</a> — <em>&quot;To authenticate, use a platform token with <code>Bearer</code> in the <code>Authorization</code> HTTP header.&quot;</em> <em>&quot;The required scopes are <code>openpipeline:logs:ingest</code>, <code>openpipeline:metrics:ingest</code>, and <code>openpipeline:traces:ingest</code>.&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication">API authentication (DT docs)</a> — <code>openTelemetryTrace.ingest</code>: <em>&quot;Grants permission to ingest OpenTelemetry traces.&quot;</em></sub></p>
+</blockquote>
+<p><a id="collector-configuration"></a></p>
+<h2>3. Collector Configuration</h2>
+<h3>Image Versioning Best Practice</h3>
+<blockquote>
+<p><strong>Important:</strong> Always pin your OTel Collector image to a specific version. Using <code>latest</code> can cause unexpected behavior during upgrades.</p>
+</blockquote>
+<pre><code class="language-yaml"># Avoid - Non-deterministic deployments
+image: otel/opentelemetry-collector-contrib:latest
+
+# Production - the Dynatrace distribution, pinned (see §1 for what Dynatrace Support covers)
+image: ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector:v0.48.0
+
+# Test setups - Contrib, pinned (Dynatrace recommends Contrib for testing only)
+image: otel/opentelemetry-collector-contrib:0.151.0
+</code></pre>
+<p>Check the <a href="https://github.com/open-telemetry/opentelemetry-collector-releases/releases">OpenTelemetry Collector releases</a> or <a href="https://github.com/Dynatrace/dynatrace-otel-collector/releases">Dynatrace Collector releases</a> for the current stable version.</p>
+<h3>Complete Collector Config for Dynatrace</h3>
+<pre><code class="language-yaml"># otel-collector-config.yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 10s
+    send_batch_size: 1000
+  
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 800
+    spike_limit_mib: 200
+
+  # Add service.name if missing
+  resource:
+    attributes:
+      - key: service.name
+        value: &quot;unknown-service&quot;
+        action: insert
+
+exporters:
+  otlphttp/dynatrace:
+    endpoint: https://${DT_ENV_ID}.live.dynatrace.com/api/v2/otlp
+    headers:
+      Authorization: Api-Token ${DT_API_TOKEN}
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+  debug:
+    verbosity: detailed
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp/dynatrace]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp/dynatrace]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp/dynatrace]
+</code></pre>
+<h3>Resource Sizing Guide</h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>CPU Limit</th>
+<th>Memory Limit</th>
+<th>Batch Size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dev/Test</td>
+<td>200m</td>
+<td>256Mi</td>
+<td>500</td>
+</tr>
+<tr>
+<td>Staging</td>
+<td>500m</td>
+<td>512Mi</td>
+<td>1000</td>
+</tr>
+<tr>
+<td>Production</td>
+<td>1000m</td>
+<td>1Gi</td>
+<td>2000</td>
+</tr>
+</tbody>
+</table>
+<h3>Running with Environment Variables</h3>
+<pre><code class="language-bash">export DT_ENV_ID=&quot;abc12345&quot;
+export DT_API_TOKEN=&quot;&lt;your-api-token&gt;&quot;
+
+otelcol-contrib --config otel-collector-config.yaml
+</code></pre>
+<p><a id="direct-sdk-export"></a></p>
+<h2>4. Direct SDK Export</h2>
+<h3>Python Direct to Dynatrace</h3>
+<pre><code class="language-python">import os
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+
+# Configuration
+DT_ENV_ID = os.environ[&quot;DT_ENV_ID&quot;]
+DT_API_TOKEN = os.environ[&quot;DT_API_TOKEN&quot;]
+
+# Resource with service name
+resource = Resource.create({
+    &quot;service.name&quot;: &quot;my-python-app&quot;,
+    &quot;service.version&quot;: &quot;1.0.0&quot;,
+    &quot;deployment.environment.name&quot;: &quot;production&quot;
+})
+
+# Setup tracer
+provider = TracerProvider(resource=resource)
+exporter = OTLPSpanExporter(
+    endpoint=f&quot;https://{DT_ENV_ID}.live.dynatrace.com/api/v2/otlp/v1/traces&quot;,
+    headers={&quot;Authorization&quot;: f&quot;Api-Token {DT_API_TOKEN}&quot;}
+)
+provider.add_span_processor(BatchSpanProcessor(exporter))
+trace.set_tracer_provider(provider)
+</code></pre>
+<h3>Java with System Properties</h3>
+<pre><code class="language-bash"># Set environment variables first
+export DT_ENV_ID=&quot;abc12345&quot;
+export DT_API_TOKEN=&quot;&lt;your-api-token&gt;&quot;
+
+# URL-encode the token for the header (space becomes %20)
+java -javaagent:opentelemetry-javaagent.jar \
+  -Dotel.service.name=my-java-app \
+  -Dotel.exporter.otlp.endpoint=https://${DT_ENV_ID}.live.dynatrace.com/api/v2/otlp \
+  -Dotel.exporter.otlp.headers=&quot;Authorization=Api-Token%20${DT_API_TOKEN}&quot; \
+  -jar app.jar
+</code></pre>
+<h3>Node.js</h3>
+<pre><code class="language-javascript">const { NodeSDK } = require('@opentelemetry/sdk-node');
+const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
+const { resourceFromAttributes } = require('@opentelemetry/resources');  // JS SDK 2.x+: the Resource class is no longer exported
+
+const sdk = new NodeSDK({
+  resource: resourceFromAttributes({
+    'service.name': 'my-node-app',
+  }),
+  traceExporter: new OTLPTraceExporter({
+    url: `https://${process.env.DT_ENV_ID}.live.dynatrace.com/api/v2/otlp/v1/traces`,
+    headers: {
+      'Authorization': `Api-Token ${process.env.DT_API_TOKEN}`,
+    },
+  }),
+});
+
+sdk.start();
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/open-telemetry/opentelemetry-js/blob/main/doc/upgrade-to-2.x.md">Upgrade to OpenTelemetry JS SDK 2.x (OpenTelemetry GitHub)</a> — <em>&quot;The <code>Resource</code> class is no longer exported; instead use new utility functions.&quot;</em></sub></p>
+</blockquote>
+<p><a id="entity-mapping"></a></p>
+<h2>5. Entity Mapping</h2>
+<h3>How Dynatrace Maps OTel Data</h3>
+<table>
+<thead>
+<tr>
+<th>OTel Resource Attribute</th>
+<th>Dynatrace Entity</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>service.name</code></td>
+<td>Service</td>
+<td>Names the service; without it OTel SDKs report <code>unknown_service</code></td>
+</tr>
+<tr>
+<td><code>service.namespace</code></td>
+<td>—</td>
+<td>Scopes <code>service.name</code>; two services may share a name in different namespaces</td>
+</tr>
+<tr>
+<td><code>host.name</code></td>
+<td>Host</td>
+<td>Links to host entity</td>
+</tr>
+<tr>
+<td><code>k8s.namespace.name</code></td>
+<td>K8s namespace</td>
+<td>Links to K8s entities</td>
+</tr>
+<tr>
+<td><code>k8s.pod.name</code></td>
+<td>K8s pod</td>
+<td>Links to the pod</td>
+</tr>
+</tbody>
+</table>
+<p>For the exact attributes Dynatrace uses to map OTLP data to entities, see the enrichment and resource-attribute guidance on the <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api">OTLP API (DT docs)</a> page — <em>&quot;make sure your traces have the correct mapping resource attributes set.&quot;</em></p>
+<h3>Essential Resource Attributes</h3>
+<p>Always set these for proper entity mapping:</p>
+<pre><code class="language-python">resource = Resource.create({
+    # Required
+    &quot;service.name&quot;: &quot;checkout-api&quot;,
+    
+    # Recommended
+    &quot;service.version&quot;: &quot;1.2.3&quot;,
+    &quot;service.namespace&quot;: &quot;ecommerce&quot;,
+    &quot;deployment.environment.name&quot;: &quot;production&quot;,
+    
+    # For K8s
+    &quot;k8s.namespace.name&quot;: &quot;checkout&quot;,
+    &quot;k8s.pod.name&quot;: &quot;checkout-api-abc123&quot;,
+    &quot;k8s.deployment.name&quot;: &quot;checkout-api&quot;,
+})
+</code></pre>
+<h3>Organizational Context: <code>primary_tags.*</code> Resource Attributes</h3>
+<p>Resource attributes can also carry <strong>ownership, environment and cost context</strong> as primary Grail tags. Name the attribute <code>primary_tags.&lt;key&gt;</code>, and Dynatrace reads it as a primary Grail tag on spans, metrics and logs directly — no entity tag or auto-tagging rule in between. The same convention covers the special fields <code>dt.security_context</code> (permissions), <code>dt.cost.costcenter</code> and <code>dt.cost.product</code> (Cost Allocation).</p>
+<pre><code class="language-bash">OTEL_RESOURCE_ATTRIBUTES=&quot;primary_tags.team=bravo,primary_tags.application=payment-processing&quot;
+</code></pre>
+<ul>
+<li><strong>Only the exact convention counts.</strong> An attribute that does not follow <code>primary_tags.&lt;key&gt;=&lt;value&gt;</code> stays a regular attribute on the signal that emitted it and is not propagated across signal types or to Davis events and problems.</li>
+<li><strong>Set it once, upstream.</strong> With a Collector in front of your services, add or rename the attributes there with a processor instead of changing every service. Where the same key is set in several places, the last writer wins: an OpenPipeline-derived value beats a Collector attribute, which beats an SDK attribute.</li>
+<li><strong>Classic OTel tagging does not carry over.</strong> Auto-tagging rules and management zones built from resource-attribute entity tags are not evaluated for Grail data. There is no central primary-tag configuration for standalone OpenTelemetry resource attributes yet; Kubernetes workloads can use the Kubernetes-side configuration.</li>
+<li><strong>Infrastructure context may already be there.</strong> Telemetry that arrives through OneAgent injection or the Dynatrace Operator is enriched with primary Grail fields such as <code>dt.host_group.id</code>, <code>k8s.cluster.name</code> and <code>k8s.namespace.name</code> automatically.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/migrate/upgrade-from-opentelemetry-tagging-classic">Upgrade classic OpenTelemetry tagging to primary Grail tags (DT docs)</a> — <em>&quot;Resource attributes that follow the primary_tags.</em> convention are recognized as primary Grail tags directly on spans, metrics, and logs, without needing an entity to carry the context first.&quot;*; <em>&quot;Auto-tagging rules and management zones built from resource-attribute-derived entity tags are not evaluated for Grail data and are not used in any app.&quot;</em>; <em>&quot;A central primary Grail tag configuration for standalone OpenTelemetry resource attributes isn't available yet.&quot;</em>; <em>&quot;an OpenPipeline-derived value takes precedence over a Collector-level resource attribute, which takes precedence over an SDK-level resource attribute.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-otel">Enrich OpenTelemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;Resource attributes that don't follow this convention remain regular attributes and are available on the emitting signal but aren't automatically propagated across signal types or to Davis events and problems.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="span-attributes-for-dynatrace"></a></p>
+<h2>6. Span Attributes for Dynatrace</h2>
+<h3>Dynatrace fields you should not set yourself</h3>
+<p>Fields in the <code>dt.*</code> namespace are populated by Dynatrace. <code>dt.span.type</code> and <code>dt.source</code>, which older material lists as attributes to set, have no row in the semantic dictionary, and <code>dt.entity.*</code> fields are <code>deprecated</code>. Send standard semantic-convention attributes and let Dynatrace derive its own fields.</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> no row for <code>dt.span.type</code> or <code>dt.source</code>, read 10/02/2026 (control: <code>dt.openpipeline.source</code> returned a row).</sub></p>
+</blockquote>
+<h3>Semantic Conventions Dynatrace Uses</h3>
+<table>
+<thead>
+<tr>
+<th>Convention</th>
+<th>Dynatrace Feature</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>http.*</code></td>
+<td>HTTP service detection</td>
+</tr>
+<tr>
+<td><code>db.*</code></td>
+<td>Database call analysis</td>
+</tr>
+<tr>
+<td><code>messaging.*</code></td>
+<td>Message queue tracking</td>
+</tr>
+<tr>
+<td><code>rpc.*</code></td>
+<td>RPC call tracking</td>
+</tr>
+</tbody>
+</table>
+<h3>Example with Rich Attributes</h3>
+<pre><code class="language-python">with tracer.start_as_current_span(&quot;checkout&quot;) as span:
+    # Standard semantic conventions
+    span.set_attribute(&quot;http.request.method&quot;, &quot;POST&quot;)
+    span.set_attribute(&quot;url.full&quot;, &quot;https://api.example.com/checkout&quot;)
+    span.set_attribute(&quot;http.response.status_code&quot;, 200)
+    span.set_attribute(&quot;http.route&quot;, &quot;/checkout&quot;)
+    
+    # Business context
+    span.set_attribute(&quot;order.id&quot;, order_id)
+    span.set_attribute(&quot;order.total&quot;, order_total)
+</code></pre>
+<h3>Complex attribute types (SaaS 1.344)</h3>
+<p><strong>SaaS 1.344+</strong> (staged tenant rollout from 07/29/2026). Per the release notes, <em>&quot;Dynatrace now preserves complex attribute values on ingested OTLP spans. Nested key-value list attributes (maps) are now supported, keeping their structure intact.&quot;</em> (<a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">SaaS 1.344 release notes (DT docs)</a>)</p>
+<p><strong>Verify the release has reached your tenant before you start exporting nested attributes.</strong> How a pre-1.344 tenant treats a nested attribute is not something to discover from production trace data; send one span from a test service and confirm the structure arrives intact.</p>
+<p><strong>Flat scalar attributes are not superseded.</strong> They remain the right default for anything you filter, group, or alert on — they are cheaper to query and they keep cardinality legible (see <strong>OTEL-04 § 8 — Attribute Guidelines</strong>). A nested structure is opaque to a <code>by:{...}</code> clause in the way a flat key is not.</p>
+<table>
+<thead>
+<tr>
+<th>Attribute shape</th>
+<th>Use when</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Flat scalar</strong></td>
+<td>The value is a query dimension — you filter, group, sort, or alert on it</td>
+<td><code>order.tier = &quot;gold&quot;</code>, <code>payment.provider = &quot;stripe&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Nested array / map</strong></td>
+<td>The structure <em>is</em> the payload — you carry it for context and read it on a single span</td>
+<td>A validation-error list, a resolved routing table, a request body echo</td>
+</tr>
+</tbody>
+</table>
+<p>Reach for nesting only in the second case. If you find yourself planning to aggregate on something inside a nested attribute, promote that value to its own flat scalar attribute alongside the structure.</p>
+<p><a id="otlp-metric-dimensions"></a></p>
+<h2>7. OTLP Metric Dimensions</h2>
+<h3>Advanced OTLP Metric Dimensions</h3>
+<p>An opt-in setting changes which attributes become metric dimensions. With <strong>Advanced OTLP metric dimensions</strong> on, <em>&quot;Dynatrace ingests all resource, scope, and data-point attributes as metric dimensions by default, except for attributes on the Deny list: all attributes.&quot;</em> The same page notes that <em>&quot;dimension keys that were previously normalized are now ingested as-is&quot;</em>, and that <em>&quot;Relaxed ingestion limits apply when this feature is enabled.&quot;</em></p>
+<p>It also changes how explicit-bucket histograms are stored: with the setting on they map to a Dynatrace <strong>Histogram</strong>; with it off, to a <strong>Counter</strong>.</p>
+<p>Before enabling it, list the dimensions your SLOs, alerts and dashboards filter on (including any <code>dt.entity.service</code> filters on OTLP metrics). Afterwards, check that each still exists with the same key and case.</p>
+<h3>Scope Attributes as Dimensions</h3>
+<p>With Advanced OTLP metric dimensions on, <em>&quot;Meter name and version are always added as dimensions (otel.scope.name and otel.scope.version) for Grail-ingested metrics, regardless of the Add Meter name and version as metric dimensions setting.&quot;</em> With it off, the <strong>Add Meter name and version as metric dimensions</strong> setting controls them.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics">Configure OTLP metrics ingestion (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest">About OTLP metrics ingest (DT docs)</a> — instrument mapping table.</sub></p>
+</blockquote>
+<h3>OTLP Auto-Configuration for Kubernetes</h3>
+<p>Dynatrace Operator (v1.8+) supports <strong>automatic OTLP exporter configuration</strong> for K8s workloads:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Auto-injection</strong></td>
+<td>Environment variables injected into application pods at startup</td>
+</tr>
+<tr>
+<td><strong>Routing</strong></td>
+<td>Traffic routes through in-cluster ActiveGate if available</td>
+</tr>
+<tr>
+<td><strong>Control</strong></td>
+<td>Per-pod opt-in/out via <code>otlp-exporter-configuration.dynatrace.com/inject</code> annotation</td>
+</tr>
+<tr>
+<td><strong>Docs</strong></td>
+<td><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/otlp-auto-config">OTLP Auto-Config</a></td>
+</tr>
+</tbody>
+</table>
+<p>For more details, see <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics">Configure OTLP Metrics Ingestion</a>.</p>
+<blockquote>
+<p><strong>SaaS 1.348 and ActiveGate 1.349 — breaking change:</strong> the <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 release notes (DT docs)</a> list it as a platform breaking change, <em>&quot;OTLP metric dimensions now retain their original String types&quot;</em> (SaaS 1.348 rollout start 10/12/2026, staged tenant rollout), and the <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349">ActiveGate 1.349 release notes (DT docs)</a> (rollout from 11/09/2026) carry the same text: <em>&quot;We have updated OTLP metric ingestion so that dimension values represented as String for Long and Boolean retain their original type. Exact comparisons that rely on the previous behavior might break and need adjustment.&quot;</em> Both give the same remediation: <em>&quot;Use DQL's toString on Boolean or Integer comparison values used in OTLP metric queries, or set up OpenPipeline rules to convert selected dimensions back to Long or Boolean on ingest.&quot;</em> Check your tenant version as well as the version of the ActiveGates that receive your OTLP metrics before changing comparisons; until the change reaches them, current behavior applies.</p>
+</blockquote>
+<pre><code class="language-dql">// Verify OTel traces are arriving over OTLP
+// dt.openpipeline.source identifies the ingest path; otel.scope.name also appears on OneAgent spans.
+fetch spans, from:-1h
+| filter dt.openpipeline.source == &quot;/api/v2/otlp/v1/traces&quot;
+| summarize count = count(), by:{service.name, otel.scope.name}
+| sort count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Check recent OTel spans (OTLP-ingested)
+fetch spans, from:-1h
+| filter dt.openpipeline.source == &quot;/api/v2/otlp/v1/traces&quot;
+| fields start_time, service.name, span.name, duration
+| sort start_time desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// View OTel data by instrumentation scope (OTLP-ingested spans)
+fetch spans, from:-1h
+| filter dt.openpipeline.source == &quot;/api/v2/otlp/v1/traces&quot;
+| summarize count = count(), by:{otel.scope.name}
+| sort count desc
+| limit 10
+</code></pre>
+<p><a id="verification"></a></p>
+<h2>8. Verification</h2>
+<h3>Verify Data in Dynatrace</h3>
+<ol>
+<li><strong>Services</strong>: Go to <strong>Services</strong> - OTel services appear with OTel icon</li>
+<li><strong>Traces</strong>: Go to <strong>Distributed Traces</strong> - Filter by service</li>
+<li><strong>Metrics</strong>: Go to <strong>Metrics</strong> - Search for custom metric names</li>
+<li><strong>Logs</strong>: Go to <strong>Logs &amp; Events</strong> - Filter by trace_id</li>
+</ol>
+<h3>Troubleshooting Checklist</h3>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Token scopes</td>
+<td>Settings &gt; Access tokens</td>
+</tr>
+<tr>
+<td>Collector logs</td>
+<td><code>otelcol-contrib --config config.yaml</code></td>
+</tr>
+<tr>
+<td>Network connectivity</td>
+<td><code>curl -v https://{env}.live.dynatrace.com/api/v2/otlp</code></td>
+</tr>
+<tr>
+<td>service.name set</td>
+<td>Check resource attributes</td>
+</tr>
+</tbody>
+</table>
+<h3>Common Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>401 Unauthorized</td>
+<td>Invalid token</td>
+<td>Check token, regenerate</td>
+</tr>
+<tr>
+<td>403 Forbidden</td>
+<td>Missing scope</td>
+<td>Add required scopes</td>
+</tr>
+<tr>
+<td>Service shows as <code>unknown_service</code></td>
+<td>service.name missing</td>
+<td>Add the resource attribute</td>
+</tr>
+<tr>
+<td>Request rejected over payload format</td>
+<td>JSON payload — <em>&quot;Binary format must be used&quot;</em></td>
+<td>Send binary protobuf (<code>OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</code>)</td>
+</tr>
+<tr>
+<td>Partial data</td>
+<td>Network timeout</td>
+<td>Check batch size, retry config</td>
+</tr>
+</tbody>
+</table>
+<p><a id="hybrid-with-oneagent"></a></p>
+<h2>9. Coexistence with OneAgent and DynaKube</h2>
+<p>In Kubernetes you may have three Dynatrace-adjacent data paths active at once:</p>
+<ul>
+<li><strong>OneAgent</strong> — host-process auto-instrumentation, deployed by the DynaKube operator.</li>
+<li><strong>OTel Collector</strong> — your own deployment, scraping Prometheus targets or accepting OTLP from apps.</li>
+<li><strong>OTLP auto-config</strong> — DynaKube Operator (v1.8+) can inject OTLP exporter env vars into application pods.</li>
+</ul>
+<p>These do not conflict on the wire, but they overlap on what telemetry they produce. The decision is <strong>which agent handles which signal</strong>.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dPQSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiMxNDk2RkYiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dPVGVsIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iI0E3OEJGQSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0RLIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iI0ZGQjgwMCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8dGV4dCB4PSI0NjUiIHk9IjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5Db2V4aXN0ZW5jZTogT25lQWdlbnQgwrcgRHluYUt1YmUgwrcgT1RlbCBDb2xsZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+U2lnbmFsIHJvdXRpbmcgaW4gYSBLdWJlcm5ldGVzIGNsdXN0ZXIgcnVubmluZyBhbGwgdGhyZWUgRHluYXRyYWNlLWFkamFjZW50IGRhdGEgcGF0aHM8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IFdvcmtsb2FkIHBvZCAobGVmdCkgPT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjIwIiB5PSI4MCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIzNzAiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTE1IiB5PSIxMDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPldvcmtsb2FkIFBvZDwvdGV4dD4KICA8dGV4dCB4PSIxMTUiIHk9IjEyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+YXBwbGljYXRpb24gKyBzaWRlY2FyczwvdGV4dD4KCiAgPHJlY3QgeD0iMzUiIHk9IjEzNSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI0MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMTE1IiB5PSIxNTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPmFwcGxpY2F0aW9uIHByb2Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSIxNjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+SG9zdCArIHByb2Nlc3MgdGVsZW1ldHJ5PC90ZXh0PgoKICA8cmVjdCB4PSIzNSIgeT0iMTg1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSIxMTUiIHk9IjIwMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+L21ldHJpY3MgZW5kcG9pbnQ8L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSIyMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+UHJvbWV0aGV1cyBleHBvc2l0aW9uPC90ZXh0PgoKICA8cmVjdCB4PSIzNSIgeT0iMjM1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSIxMTUiIHk9IjI1MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+T1RlbCBTREs8L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSIyNjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+dHJhY2VzLCBjdXN0b20gbWV0cmljczwvdGV4dD4KCiAgPHJlY3QgeD0iMzUiIHk9IjI4NSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI0MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMTE1IiB5PSIzMDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPmxvZyBmaWxlczwvdGV4dD4KICA8dGV4dCB4PSIxMTUiIHk9IjMxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5zdGRvdXQsIC92YXIvbG9nLy4uLjwvdGV4dD4KCiAgPHJlY3QgeD0iMzUiIHk9IjM0MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSIzLDIiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMTE1IiB5PSIzNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPlBvZCBhbm5vdGF0aW9uczwvdGV4dD4KICA8dGV4dCB4PSIxMTUiIHk9IjM3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSI5Ij5wcm9tZXRoZXVzLmlvL3NjcmFwZTwvdGV4dD4KICA8dGV4dCB4PSIxMTUiIHk9IjM4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSI5Ij5wcm9tZXRoZXVzLmlvL3BvcnQ8L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSI0MDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iOSI+bWV0YWRhdGEuZHluYXRyYWNlLmNvbS8qPC90ZXh0PgogIDx0ZXh0IHg9IjExNSIgeT0iNDE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjkiPi5rOHMubmFtZXNwYWNlLmxhYmVsLio8L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSI0MzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSIgZm9udC1zdHlsZT0iaXRhbGljIj5lbnRpdHktbW9kZWwgam9pbmluZzwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gVGhyZWUgYWdlbnRzIChtaWRkbGUpID09PT09PT09PT09PSAtLT4KICA8IS0tIE9uZUFnZW50IGJveCAtLT4KICA8cmVjdCB4PSIyNDAiIHk9IjgwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE0MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIzNDAiIHk9IjEwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+T25lQWdlbnQ8L3RleHQ+CiAgPHRleHQgeD0iMzQwIiB5PSIxMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRhZW1vblNldCDigJQgb25lIHBlciBub2RlPC90ZXh0PgogIDxyZWN0IHg9IjI1NSIgeT0iMTM1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9Ijc1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSIzNDAiIHk9IjE1MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+T3duczwvdGV4dD4KICA8dGV4dCB4PSIzNDAiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+SG9zdCBDUFUvbWVtL2Rpc2svbmV0PC90ZXh0PgogIDx0ZXh0IHg9IjM0MCIgeT0iMTg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5Qcm9jZXNzIGdyb3VwIGRldGVjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIzNDAiIHk9IjE5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QXV0by1pbnN0cnVtZW50ZWQgdHJhY2VzPC90ZXh0PgoKICA8IS0tIER5bmFLdWJlIGJveCAtLT4KICA8cmVjdCB4PSIyNDAiIHk9IjIzNSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMzQwIiB5PSIyNTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkR5bmFLdWJlIE9wZXJhdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjM0MCIgeT0iMjc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5jb250cm9sbGVyIOKAlCBub3QgYSBkYXRhIHBhdGg8L3RleHQ+CiAgPHJlY3QgeD0iMjU1IiB5PSIyODgiIHdpZHRoPSIxNzAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjM0MCIgeT0iMzA0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5SZWNvbmNpbGVzIE9uZUFnZW50PC90ZXh0PgogIDx0ZXh0IHg9IjM0MCIgeT0iMzE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5JbmplY3RzIE9UTFAgZW52IHZhcnMgKHYxLjgrKTwvdGV4dD4KCiAgPCEtLSBPVGVsIENvbGxlY3RvciBib3ggLS0+CiAgPHJlY3QgeD0iMjQwIiB5PSIzNTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjM0MCIgeT0iMzc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5PVGVsIENvbGxlY3RvcjwvdGV4dD4KICA8dGV4dCB4PSIzNDAiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RGVwbG95bWVudCBpbiBvMTF5IG5hbWVzcGFjZTwvdGV4dD4KICA8cmVjdCB4PSIyNTUiIHk9IjQwMyIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI0MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzQwIiB5PSI0MTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPk93bnM8L3RleHQ+CiAgPHRleHQgeD0iMzQwIiB5PSI0MzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlByb20gc2NyYXBlIMK3IE9UTFAgcmVjZWl2ZSDCtyBsb2dzPC90ZXh0PgoKICA8IS0tIFdvcmtsb2FkIOKGkiBPbmVBZ2VudCAoaG9zdCArIHByb2Nlc3MgdGVsZW1ldHJ5KSAtLT4KICA8bGluZSB4MT0iMjEwIiB5MT0iMTU1IiB4Mj0iMjQwIiB5Mj0iMTYwIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93T0EpIi8+CiAgPCEtLSBXb3JrbG9hZCDihpIgT1RlbCBDb2xsZWN0b3IgKG1ldHJpY3MpIC0tPgogIDxsaW5lIHgxPSIyMTAiIHkxPSIyMDUiIHgyPSIyNDAiIHkyPSIzOTUiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dPVGVsKSIvPgogIDwhLS0gV29ya2xvYWQg4oaSIE9UZWwgQ29sbGVjdG9yIChPVGVsIFNESykgLS0+CiAgPGxpbmUgeDE9IjIxMCIgeTE9IjI1NSIgeDI9IjI0MCIgeTI9IjQxMCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd09UZWwpIi8+CiAgPCEtLSBXb3JrbG9hZCBsb2dzIOKGkiBPbmVBZ2VudCAodmlhIGZpbGUgcGF0aHMpIC0tPgogIDxsaW5lIHgxPSIyMTAiIHkxPSIzMDUiIHgyPSIyNDAiIHkyPSIxOTAiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSIzLDIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dPQSkiIG9wYWNpdHk9IjAuNyIvPgogIDwhLS0gRHluYUt1YmUgcmVjb25jaWxlcyBPbmVBZ2VudCAoY3VydmVkIHVwKSAtLT4KICA8cGF0aCBkPSJNIDI5MCAyMzUgUSAyNDAgMjI1IDI5MCAyMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0RLKSIvPgogIDx0ZXh0IHg9IjMwMCIgeT0iMjMxIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iOSI+cmVjb25jaWxlPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBEeW5hdHJhY2UgVGVuYW50ID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI0NjUiIHk9IjgwIiB3aWR0aD0iNDQ1IiBoZWlnaHQ9IjM3MCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2ODciIHk9IjEwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlIFRlbmFudDwvdGV4dD4KICA8dGV4dCB4PSI2ODciIHk9IjEyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U21hcnRzY2FwZSBlbnRpdHkgbW9kZWwgam9pbnMgc2lnbmFscyBvbiBrOHMuKiBhdHRyaWJ1dGVzICsgc2VydmljZS5uYW1lPC90ZXh0PgoKICA8IS0tIEVudGl0eSB0eXBlcyAobGVmdCBoYWxmIG9mIERUKSAtLT4KICA8dGV4dCB4PSI1NDAiIHk9IjE0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+RW50aXRpZXM8L3RleHQ+CgogIDxyZWN0IHg9IjQ4MCIgeT0iMTU1IiB3aWR0aD0iMTI1IiBoZWlnaHQ9IjMwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI1NDIiIHk9IjE3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+SG9zdCBlbnRpdHk8L3RleHQ+CgogIDxyZWN0IHg9IjQ4MCIgeT0iMTk1IiB3aWR0aD0iMTI1IiBoZWlnaHQ9IjMwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI1NDIiIHk9IjIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+UHJvY2VzcyBncm91cDwvdGV4dD4KCiAgPHJlY3QgeD0iNDgwIiB5PSIyMzUiIHdpZHRoPSIxMjUiIGhlaWdodD0iMzAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjU0MiIgeT0iMjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5TZXJ2aWNlIGVudGl0eTwvdGV4dD4KCiAgPHJlY3QgeD0iNDgwIiB5PSIyNzUiIHdpZHRoPSIxMjUiIGhlaWdodD0iMzAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjU0MiIgeT0iMjk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5LOHMgd29ya2xvYWQ8L3RleHQ+CgogIDx0ZXh0IHg9IjU0MCIgeT0iMzMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiIGZvbnQtc3R5bGU9Iml0YWxpYyI+am9pbmVkIHZpYTwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9IjM0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5IiBmb250LXN0eWxlPSJpdGFsaWMiPms4cy5wb2QudWlkICs8L3RleHQ+CiAgPHRleHQgeD0iNTQwIiB5PSIzNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSIgZm9udC1zdHlsZT0iaXRhbGljIj5zZXJ2aWNlLm5hbWU8L3RleHQ+CgogIDwhLS0gU2lnbmFscyAocmlnaHQgaGFsZiBvZiBEVCkgLS0+CiAgPHRleHQgeD0iNzg1IiB5PSIxNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlNpZ25hbHM8L3RleHQ+CgogIDxyZWN0IHg9IjYzNSIgeT0iMTU1IiB3aWR0aD0iMjY1IiBoZWlnaHQ9IjMwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI3NjciIHk9IjE3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMCI+SG9zdCBDUFUvbWVtL25ldCAoT25lQWdlbnQpPC90ZXh0PgoKICA8cmVjdCB4PSI2MzUiIHk9IjE5NSIgd2lkdGg9IjI2NSIgaGVpZ2h0PSIzMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNzY3IiB5PSIyMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiPkF1dG8taW5zdHJ1bWVudGVkIHRyYWNlcyAoT25lQWdlbnQpPC90ZXh0PgoKICA8cmVjdCB4PSI2MzUiIHk9IjIzNSIgd2lkdGg9IjI2NSIgaGVpZ2h0PSIzMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNzY3IiB5PSIyNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiPlNjcmFwZWQgUHJvbSBtZXRyaWNzIChDb2xsZWN0b3IpPC90ZXh0PgoKICA8cmVjdCB4PSI2MzUiIHk9IjI3NSIgd2lkdGg9IjI2NSIgaGVpZ2h0PSIzMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNzY3IiB5PSIyOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiPk9UTFAgdHJhY2VzICsgbWV0cmljcyAoQ29sbGVjdG9yKTwvdGV4dD4KCiAgPHJlY3QgeD0iNjM1IiB5PSIzMTUiIHdpZHRoPSIyNjUiIGhlaWdodD0iMzAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9Ijc2NyIgeT0iMzM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwIj5Mb2dzIOKAlCBmaWxlIHBhdGhzIG9yIE9UTFA8L3RleHQ+CgogIDxyZWN0IHg9IjYzNSIgeT0iMzk1IiB3aWR0aD0iMjY1IiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWRhc2hhcnJheT0iMywyIiByeD0iNCIvPgogIDx0ZXh0IHg9Ijc2NyIgeT0iNDEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5XM0MgVHJhY2UgQ29udGV4dDwvdGV4dD4KICA8dGV4dCB4PSI3NjciIHk9IjQyNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5jcm9zcy1hZ2VudCB0cmFjZXMgc3RheSBjb250aW51b3VzPC90ZXh0PgoKICA8IS0tIEFycm93cyBmcm9tIGFnZW50cyBpbnRvIERUIC0tPgogIDxsaW5lIHgxPSI0NDAiIHkxPSIxNzAiIHgyPSI0NjUiIHkyPSIxNzAiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dPQSkiLz4KICA8bGluZSB4MT0iNDQwIiB5MT0iMzk1IiB4Mj0iNDY1IiB5Mj0iMjUwIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93T1RlbCkiLz4KCiAgPCEtLSBGb290ZXIgLS0+CiAgPGxpbmUgeDE9IjIwIiB5MT0iNDcwIiB4Mj0iOTEwIiB5Mj0iNDcwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5EZWNpc2lvbjogd2hvIG93bnMgZWFjaCBzaWduYWwg4oCUIHNlZSBPVEVMLTA3IMKnOS4xIHJvdXRpbmcgdGFibGUgwrcgcG9kIGFubm90YXRpb25zIGpvaW4gdGhlIGVudGl0eSBtb2RlbCBhY3Jvc3MgYWxsIHRocmVlIGRhdGEgcGF0aHM8L3RleHQ+Cjwvc3ZnPgo=" alt="Collector, DynaKube, and OneAgent coexistence" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Component | Pod placement | Signals it owns |
+|-----------|---------------|-----------------|
+| OneAgent (DaemonSet) | One per node | Host metrics, process group detection, OneAgent-language traces, logs |
+| DynaKube operator | Deployment in dynatrace namespace | Reconciles OneAgent + ActiveGate; injects OTLP env vars (v1.8+) |
+| OTel Collector | Deployment in o11y namespace | Prometheus scrape; OTLP receiver from app SDKs; logs (OTLP); OTLP export to DT |
+For environments where SVG does not render
+-->
+<h3>9.1. Signal-Routing Decision Table</h3>
+<p>In community practice, placement tends to follow the table below — confirm it against your own OneAgent coverage before committing to it:</p>
+<table>
+<thead>
+<tr>
+<th>Signal type</th>
+<th>Preferred path</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host CPU / memory / disk / network</td>
+<td>OneAgent (DynaKube)</td>
+<td>Auto-discovers; tightly integrated with the Smartscape host entity</td>
+</tr>
+<tr>
+<td>Process-level metrics, process group detection</td>
+<td>OneAgent where installed; otherwise Collector <code>hostmetrics</code> + the OpenTelemetry Host Monitoring extension</td>
+<td>OneAgent detects process groups automatically; the extension generates host and process entities from Collector data</td>
+</tr>
+<tr>
+<td>Application traces (OneAgent-supported language)</td>
+<td>OneAgent</td>
+<td>Auto-instrumentation, no code change</td>
+</tr>
+<tr>
+<td>Application traces (unsupported language or fine-grained custom)</td>
+<td>OTel SDK → Collector → OTLP</td>
+<td>OTel covers languages OneAgent does not</td>
+</tr>
+<tr>
+<td>Prometheus-exposed metrics from third-party / business apps</td>
+<td>OTel Collector <code>prometheus</code> receiver → OTLP</td>
+<td>Scales horizontally with a Target Allocator; a Dynatrace Prometheus extension (run on a OneAgent host or remotely on an ActiveGate) is the alternative when you want host-context enrichment</td>
+</tr>
+<tr>
+<td>Custom application metrics</td>
+<td>OTel SDK → Collector → OTLP</td>
+<td>Same as Prometheus path</td>
+</tr>
+<tr>
+<td>Logs from OneAgent-instrumented hosts</td>
+<td>OneAgent</td>
+<td>Auto-detection from log paths</td>
+</tr>
+<tr>
+<td>Logs from OTel-only apps</td>
+<td>OTel SDK → Collector → OTLP</td>
+<td>OneAgent does not pick them up without the agent installed</td>
+</tr>
+</tbody>
+</table>
+<h3>9.2. Entity Model Joining via <code>metadata.dynatrace.com/*</code></h3>
+<p>When the OTel Collector scrapes a pod, Dynatrace does not automatically know how to link the resulting metrics to existing entities (the service detected by OneAgent, the K8s deployment in DynaKube's view). The <code>k8sattributes</code> processor plus a pod-annotation convention solves this:</p>
+<pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  template:
+    metadata:
+      annotations:
+        # Standard Prometheus scrape contract (see OTEL-05 §6.2)
+        prometheus.io/scrape: &quot;true&quot;
+        prometheus.io/port: &quot;8000&quot;
+
+        # Dynatrace entity-metadata hints — picked up by k8sattributes processor
+        metadata.dynatrace.com/k8s.namespace.label.domain: sandbox
+        metadata.dynatrace.com/k8s.namespace.label.otel.service.name: myapp
+</code></pre>
+<p>The collector's <code>k8sattributes</code> processor pulls these annotations into the resource attributes of every scraped metric. A downstream <code>transform</code> processor can then merge the JSON blob into top-level attributes. Result: scraped metrics carry <code>service.name = &quot;myapp&quot;</code> matching what OneAgent or the OTel SDK produced for the same workload — and Dynatrace's entity model joins them.</p>
+<h3>9.3. Counter Temporality — <code>cumulativetodelta</code></h3>
+<p>Prometheus emits <strong>cumulative</strong> counters that only ever increase. Dynatrace requires <strong>delta</strong> temporality — the per-interval change: <em>&quot;The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality.&quot;</em> Its instrument mapping gives a cumulative Counter no Dynatrace metric type, so Prometheus counters must be converted before export. The collector's <code>cumulativetodelta</code> processor performs the conversion in-pipeline:</p>
+<pre><code class="language-yaml">processors:
+  cumulativetodelta:
+    max_staleness: 3m
+</code></pre>
+<p>For full pipeline shape including this processor see <strong>OTEL-05 §6.5 Full Pipeline</strong>.</p>
+<blockquote>
+<p><strong>Gotcha — processors that create sums.</strong> Prometheus is not the only source of sums Dynatrace will not ingest. A processor that builds new sum metrics sets their temporality itself. Two examples from the full Dynatrace Bindplane OTel Collector build (<code>dynatrace-bindplane-otel-contrib</code> v1.2.0): <code>metricstatsprocessor</code> emits its statistics as <strong>cumulative</strong> sums when the input is a sum, and <code>metricextractprocessor</code> with <code>metric_type: counter_double</code> or <code>counter_int</code> creates sums with <strong>no temporality set</strong>. Cumulative sums are not ingested — <em>&quot;Cumulative histograms aren't ingested (similarly to cumulative counters).&quot;</em> What Dynatrace does with an unspecified temporality is not documented, so do not send it.</p>
+<ul>
+<li>After <code>metricstatsprocessor</code>, add <code>cumulativetodelta</code> (it ships in the Dynatrace OTel Collector as well). It converts only monotonic sums — <em>&quot;Non-monotonic sums are excluded.&quot;</em> — so check the output for non-monotonic inputs.</li>
+<li>For <code>metricextractprocessor</code>, keep a gauge type (<code>gauge_double</code>, the default, or <code>gauge_int</code>). <code>cumulativetodelta</code> skips any sum whose temporality is not cumulative, so it cannot fix a <code>counter_*</code> metric.</li>
+</ul>
+</blockquote>
+<h3>9.4. Auth Scheme Reminder</h3>
+<p>OTLP from a Collector uses <code>Authorization: Api-Token ${TOKEN}</code> (classic) or <code>Authorization: Bearer ${TOKEN}</code> (Platform Token). DynaKube's data-ingest token follows the same rule — match the scheme to the token prefix. See <strong>§2 Authentication Setup → Token Type and Auth Scheme</strong> for the matrix.</p>
+<h3>9.5. Trace Context Propagation</h3>
+<p>OneAgent and OTel both support W3C Trace Context, so a request that crosses agent boundaries produces a single trace in Dynatrace:</p>
+<pre><code>Service A (OneAgent) → Service B (OTel) → Service C (OneAgent)
+                 ↓                  ↓
+            Dynatrace traces show complete path
+</code></pre>
+<p>Configure OTel to use W3C propagation explicitly — some SDKs default to other formats:</p>
+<pre><code class="language-python">from opentelemetry.propagate import set_global_textmap
+from opentelemetry.propagators.composite import CompositePropagator
+from opentelemetry.propagators.w3c.traceparent import W3CTraceparentPropagator
+from opentelemetry.propagators.w3c.tracestate import W3CTracestatePropagator
+
+set_global_textmap(CompositePropagator([
+    W3CTraceparentPropagator(),
+    W3CTracestatePropagator()
+]))
+</code></pre>
+<h3>9.6. Managing Collector Fleets with Bindplane</h3>
+<p>Once a team runs more than a handful of OTel Collectors, the work shifts from writing one configuration to keeping many of them consistent. Dynatrace documents <strong>Bindplane</strong> for that job: <em>&quot;a unified telemetry pipeline to manage OpenTelemetry Collector fleets centrally&quot;</em>. It manages collectors remotely over OpAMP, the open protocol for collector management, and it fits the open-foundation model this series follows. The same fleet can <em>&quot;send data to multiple backends simultaneously, including Dynatrace and Splunk.&quot;</em> Dynatrace announced an agreement to acquire Bindplane on 04/08/2026.</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Where Bindplane fits</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Many Collectors drifting apart in configuration</td>
+<td>Central fleet management from one control plane</td>
+</tr>
+<tr>
+<td>Telemetry that must reach Dynatrace <strong>and</strong> another backend</td>
+<td>Multi-destination routing from the same Collectors</td>
+</tr>
+<tr>
+<td>Deployment model</td>
+<td>Cloud or self-hosted</td>
+</tr>
+</tbody>
+</table>
+<p>Practical notes:</p>
+<ul>
+<li><strong>Bindplane does not change the coexistence decisions above.</strong> It manages <em>Collectors</em>; the signal-routing table in §9.1 and the Span Sensor vs OTLP rule still decide which component emits which signal.</li>
+<li><strong>Do not write into <code>dt.bindplane.*</code>.</strong> From SaaS 1.346 that namespace is <em>&quot;reserved exclusively for Bindplane&quot;</em>. A processing rule that sets those fields should move to a namespace you own.</li>
+<li><strong>Bindplane is optional.</strong> It helps operate many Collectors; it is not a prerequisite for sending OTel data to Dynatrace. As with any SaaS sprint, rollout to tenants is staged — check the tenant version.</li>
+<li><strong>Know which Collector Bindplane runs, and what its support covers.</strong> <em>&quot;Bindplane uses the Dynatrace Bindplane OTel Collector by default, or you can bring your own OpAMP-compatible OTel Collector.&quot;</em> The Dynatrace OTel Collector support statement in §1 covers <em>&quot;only the components and their versions that are included in the Dynatrace OTel Collector.&quot;</em> The full Dynatrace Bindplane OTel Collector ships components the Dynatrace OTel Collector does not — <code>metricstatsprocessor</code> and <code>metricextractprocessor</code> from <code>dynatrace-bindplane-otel-contrib</code>, for example — and those fall outside that statement.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/k8sattributesprocessor">k8sattributes processor (OpenTelemetry Collector Contrib GitHub)</a></sub></li>
+<li><sub><a href="https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/cumulativetodeltaprocessor">Cumulative to Delta processor (OpenTelemetry Collector Contrib GitHub)</a> — <em>&quot;Non-monotonic sums are excluded.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics">Configure OTLP Metrics (DT docs)</a></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-operator">Dynatrace Operator (Dynatrace GitHub)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest">About OTLP metrics ingest (DT docs)</a> — <em>&quot;The Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality.&quot;</em>; <em>&quot;Cumulative histograms aren't ingested (similarly to cumulative counters).&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/bindplane">Bindplane (DT docs)</a> — <em>&quot;Bindplane is a unified telemetry pipeline to manage OpenTelemetry Collector fleets centrally&quot;</em>; <em>&quot;Collectors can send data to multiple backends simultaneously, including Dynatrace and Splunk.&quot;</em>; <em>&quot;Bindplane uses the Dynatrace Bindplane OTel Collector by default, or you can bring your own OpAMP-compatible OTel Collector.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector">Dynatrace OTel Collector (DT docs)</a> — <em>&quot;This support covers only the components and their versions that are included in the Dynatrace OTel Collector.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-otel-collector/blob/main/manifest.yaml">Dynatrace OTel Collector manifest (Dynatrace GitHub)</a></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-bindplane-otel-collector/blob/v1.2.0/manifests/dynatrace-bindplane-otel-collector/manifest.yaml">Dynatrace Bindplane OTel Collector manifest v1.2.0 (Dynatrace GitHub)</a></sub></li>
+<li><sub><a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/metricstatsprocessor/processor.go#L282-L284">metricstatsprocessor v1.2.0 (Dynatrace GitHub)</a></sub></li>
+<li><sub><a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/metricextractprocessor/processor_ottl.go#L110-L111">metricextractprocessor v1.2.0 (Dynatrace GitHub)</a></sub></li>
+<li><sub><strong>Code read (10/29/2026):</strong> <code>metricstatsprocessor/processor.go</code> L282–284 sets <code>AggregationTemporalityCumulative</code> on every sum it emits; <code>metricextractprocessor/processor_ottl.go</code> L110–111 creates a sum for <code>counter_*</code> types with no temporality call; <code>cumulativetodeltaprocessor/processor.go</code> (contrib v0.163.0) skips any sum whose temporality is not cumulative. The Dynatrace Bindplane OTel Collector manifest (v1.2.0) lists both processors; the Dynatrace OTel Collector manifest (v0.59.0) lists neither and does list <code>cumulativetodeltaprocessor</code>.</sub></li>
+<li><sub><strong>Derived:</strong> §9.6 support boundary combines the Dynatrace OTel Collector support statement with the two manifests.</sub></li>
+<li><sub><a href="https://www.dynatrace.com/news/press-release/dynatrace-to-acquire-bindplane/">Dynatrace to acquire Bindplane (Dynatrace press release, 04/08/2026)</a> — <em>&quot;today announced it has signed a definitive agreement to acquire Bindplane&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a> — <em>&quot;The <code>dt.bindplane.*</code> namespace is now reserved exclusively for Bindplane.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/opentelemetry-host-monitoring">OpenTelemetry Host Monitoring extension (DT docs)</a> — <em>&quot;This extension automatically generates entities for hosts and their running processes.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extensions/develop-your-extensions/data-sources/prometheus-extensions">Prometheus data source (DT docs)</a> — <em>&quot;For high-volume Prometheus scraping in Kubernetes, and for new deployments, consider the OpenTelemetry Collector&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Dynatrace OTLP endpoints (HTTP only — gRPC requires Collector)</li>
+<li>Dynatrace OTel Collector distribution for production deployments, what Dynatrace Support covers, and Contrib for test setups</li>
+<li>API token creation with required scopes; classic <code>Api-Token</code> vs Platform <code>Bearer</code> auth schemes</li>
+<li>Complete Collector configuration</li>
+<li>Direct SDK export configuration</li>
+<li>Entity mapping and resource attributes</li>
+<li>Span attributes that enhance Dynatrace analysis</li>
+<li>OTLP metric dimensions changes and auto-configuration</li>
+<li>Verification and troubleshooting</li>
+<li>Coexistence patterns across OneAgent, DynaKube, and the OTel Collector — signal routing, entity-model joining via <code>metadata.dynatrace.com/*</code>, counter temporality, and processors that create sums Dynatrace will not ingest</li>
+<li>Managing OTel Collector fleets centrally with Bindplane, and the reserved <code>dt.bindplane.*</code> namespace</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry">Dynatrace OpenTelemetry</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api">OTLP API Endpoints</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector">Dynatrace Collector</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics">Configure OTLP Metrics</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/extend-observability-k8s/otlp-auto-config">OTLP Auto-Config for K8s</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/troubleshooting">Ensure Success with OTel</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/bindplane">Bindplane</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

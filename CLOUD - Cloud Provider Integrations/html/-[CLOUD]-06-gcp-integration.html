@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLOUD-06: GCP Integration</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">CLOUD — Cloud Provider Integrations</a><span class="sep">/</span><span aria-current="page">CLOUD-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>CLOUD-06: GCP Integration</h1>
+<blockquote>
+<p><strong>Series:</strong> CLOUD — Cloud Provider Integrations | <strong>Notebook:</strong> 6 of 8 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook covers Dynatrace's integration with Google Cloud (GCP): the two connection models and where each is in its lifecycle, how each authenticates without long-lived keys, which services are covered, how to query GCP resources and Cloud Monitoring metrics with DQL, how to forward Cloud Logging into Grail, and how to monitor GKE and Cloud Run workloads.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#gcp-architecture">GCP Integration Architecture</a></li>
+<li><a href="#authentication">Authentication</a></li>
+<li><a href="#supported-services">Supported GCP Services</a></li>
+<li><a href="#querying-entities">Querying GCP Resources</a></li>
+<li><a href="#gcp-metrics">GCP Metrics with DQL</a></li>
+<li><a href="#gcp-logs">Forwarding GCP Logs</a></li>
+<li><a href="#gke-monitoring">GKE Monitoring</a></li>
+<li><a href="#cloud-run">Cloud Run Analysis</a></li>
+<li><a href="#entity-mapping">Project, Folder and Label Governance</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail (the DQL cells do not run on Dynatrace Managed)</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:metrics:read</code>, <code>storage:smartscape:read</code>, <code>storage:entities:read</code>, <code>storage:logs:read</code>, <code>storage:events:read</code>, <code>storage:spans:read</code>, <code>storage:buckets:read</code> to run the queries; <code>settings:objects:read</code> / <code>settings:objects:write</code> to manage connections</td>
+</tr>
+<tr>
+<td><strong>GCP</strong></td>
+<td>A project (or folder / organization) where you can create a service account and grant IAM roles</td>
+</tr>
+<tr>
+<td><strong>Connection</strong></td>
+<td>A GCP connection in the Clouds app (GA) or the <code>dynatrace-gcp-monitor</code> deployment on GKE</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>CLOUD-01 fundamentals; CLOUD-03 for the Kubernetes material in §7</td>
+</tr>
+</tbody>
+</table>
+<p><a id="gcp-architecture"></a></p>
+<h2>1. GCP Integration Architecture</h2>
+<p>Dynatrace reads Google Cloud through two different integration models, and they are at different points in their lifecycle. Pick deliberately — they produce different resource models in Dynatrace (§4).</p>
+<h3>Connection Methods</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Lifecycle</th>
+<th>Mechanism</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GCP connection in the Clouds app</strong></td>
+<td><strong>GA</strong> (10/29/2026)</td>
+<td>Dynatrace SaaS impersonates a service account in your project — no keys, nothing to deploy. Topology from Cloud Asset Inventory, plus metrics and logs</td>
+<td>New GCP onboarding</td>
+</tr>
+<tr>
+<td><strong><code>dynatrace-gcp-monitor</code> on GKE</strong></td>
+<td>Maintenance mode</td>
+<td>A container you run on GKE (Helm). It <strong>polls</strong> the Cloud Monitoring API for metrics and <strong>pulls</strong> logs from a Pub/Sub subscription</td>
+<td>Production estates today; the working path until the Clouds-app connection reaches your tenant as a supported feature</td>
+</tr>
+<tr>
+<td><strong>OneAgent / OpenTelemetry</strong></td>
+<td>Current</td>
+<td>OneAgent on GCE and GKE; OneAgent (Java, Node.js, Python) or OTLP on Cloud Run</td>
+<td>Code-level traces and process metrics — a different signal from the two rows above</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Lifecycle, stated plainly.</strong> The <code>dynatrace-gcp-monitor</code> README says: <em>&quot;This integration is in maintenance mode. A new GCP poller is under active development.&quot;</em> The Clouds-app GCP connection is generally available: Dynatrace's GCP pages record <em>&quot;GCP Cloud Platform Monitoring is now generally available.&quot;</em> (10/29/2026). Start new onboarding with the Clouds-app connection once it has reached your tenant; existing <code>dynatrace-gcp-monitor</code> deployments keep working while you move. The older <strong>Cloud Function</strong> deployment of the monitor is gone — the README: <em>&quot;It is now deprecated and has no support.&quot;</em> There is no ActiveGate-based GCP polling integration.</p>
+</blockquote>
+<h3>Data Flow</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImMwNi1hcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5Hb29nbGUgQ2xvdWQgRGF0YSBGbG93PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlR3byBpbnRlZ3JhdGlvbiBtb2RlbHM7IFB1Yi9TdWIgbmV2ZXIgY2FycmllcyBtZXRyaWNzIOKAlCBtZXRyaWNzIGFyZSBhbHdheXMgcG9sbGVkPC90ZXh0PgogIDxyZWN0IHg9IjMwIiB5PSI4NSIgd2lkdGg9Ijg3MCIgaGVpZ2h0PSIxNDAiIGZpbGw9IiMxNDk2RkYiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NCIgeT0iMTA3IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkNsb3Vkcy1hcHAgY29ubmVjdGlvbiAoR0EpPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIxMjAiIHdpZHRoPSIyMzAiIGhlaWdodD0iNDQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTc1LjAiIHk9IjE0Ni4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5DbG91ZCBBc3NldCBJbnZlbnRvcnk8L3RleHQ+CiAgPGxpbmUgeDE9IjI5MCIgeTE9IjE0MiIgeDI9IjU2MCIgeTI9IjE0MiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNjMDYtYXJyb3cpIi8+CiAgPHRleHQgeD0iNDI1IiB5PSIxMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRvcG9sb2d5OiBob3VybHkgc2NhbiArIGNoYW5nZSBmZWVkPC90ZXh0PgogIDxyZWN0IHg9IjU2MCIgeT0iMTIwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQ0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjcxMC4wIiB5PSIxNDYuMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlIFNhYVM8L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjE3MCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIxNzUuMCIgeT0iMTk2LjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkNsb3VkIE1vbml0b3JpbmcgQVBJPC90ZXh0PgogIDxsaW5lIHgxPSIyOTAiIHkxPSIxOTIiIHgyPSI1NjAiIHkyPSIxOTIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYzA2LWFycm93KSIvPgogIDx0ZXh0IHg9IjQyNSIgeT0iMTg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5tZXRyaWNzPC90ZXh0PgogIDxyZWN0IHg9IjU2MCIgeT0iMTcwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQ0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjcxMC4wIiB5PSIxOTYuMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlIFNhYVM8L3RleHQ+CiAgPHJlY3QgeD0iMzAiIHk9IjI0NSIgd2lkdGg9Ijg3MCIgaGVpZ2h0PSIyMTUiIGZpbGw9IiNGRkI4MDAiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NCIgeT0iMjY3IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPmR5bmF0cmFjZS1nY3AtbW9uaXRvciBvbiBHS0U8L3RleHQ+CiAgPHJlY3QgeD0iNTAiIHk9IjI4NSIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIxNDUuMCIgeT0iMzExLjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkNsb3VkIE1vbml0b3JpbmcgQVBJPC90ZXh0PgogIDxsaW5lIHgxPSIyNDAiIHkxPSIzMDciIHgyPSI1NTUiIHkyPSIzMDciIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYzA2LWFycm93KSIvPgogIDx0ZXh0IHg9IjM5OCIgeT0iMjk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5wb2xsZWQgZXZlcnkgMeKAkzEwIG1pbiAoZGVmYXVsdCAzKTwvdGV4dD4KICA8cmVjdCB4PSI1NTUiIHk9IjI4NSIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxNDUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNjE1LjAiIHk9IjM1My4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5tb25pdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjYxNS4wIiB5PSIzNzAuMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+KHJ1bnMgb24gR0tFKTwvdGV4dD4KICA8bGluZSB4MT0iNjc1IiB5MT0iMzA3IiB4Mj0iNzE1IiB5Mj0iMzA3IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2MwNi1hcnJvdykiLz4KICA8cmVjdCB4PSI3MTUiIHk9IjI4NSIgd2lkdGg9IjE2NSIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3OTcuNSIgeT0iMzExLjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkR5bmF0cmFjZSBtZXRyaWNzIEFQSTwvdGV4dD4KICA8cmVjdCB4PSI1MCIgeT0iMzg1IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjQ0IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjEwNS4wIiB5PSI0MTEuMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Q2xvdWQgTG9nZ2luZzwvdGV4dD4KICA8bGluZSB4MT0iMTYwIiB5MT0iNDA3IiB4Mj0iMTc1IiB5Mj0iNDA3IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2MwNi1hcnJvdykiLz4KICA8cmVjdCB4PSIxNzUiIHk9IjM4NSIgd2lkdGg9IjExMCIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIyMzAuMCIgeT0iNDExLjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkxvZyBSb3V0ZXIgc2luazwvdGV4dD4KICA8bGluZSB4MT0iMjg1IiB5MT0iNDA3IiB4Mj0iMzAwIiB5Mj0iNDA3IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2MwNi1hcnJvdykiLz4KICA8cmVjdCB4PSIzMDAiIHk9IjM4NSIgd2lkdGg9IjExMCIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIzNTUuMCIgeT0iNDExLjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlB1Yi9TdWIgdG9waWM8L3RleHQ+CiAgPGxpbmUgeDE9IjQxMCIgeTE9IjQwNyIgeDI9IjQzMCIgeTI9IjQwNyIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNjMDYtYXJyb3cpIi8+CiAgPHJlY3QgeD0iNDMwIiB5PSIzODUiIHdpZHRoPSIxMTAiIGhlaWdodD0iNDQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDg1LjAiIHk9IjQxMS4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5zdWJzY3JpcHRpb248L3RleHQ+CiAgPGxpbmUgeDE9IjU0MCIgeTE9IjQwNyIgeDI9IjU1NSIgeTI9IjQwNyIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNjMDYtYXJyb3cpIi8+CiAgPHRleHQgeD0iNTQwIiB5PSIzNzUiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnB1bGxlZDwvdGV4dD4KICA8bGluZSB4MT0iNjc1IiB5MT0iNDA3IiB4Mj0iNzE1IiB5Mj0iNDA3IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2MwNi1hcnJvdykiLz4KICA8cmVjdCB4PSI3MTUiIHk9IjM4NSIgd2lkdGg9IjE2NSIgaGVpZ2h0PSI0NCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3OTcuNSIgeT0iNDExLjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkxvZ3MgSW5nZXN0IEFQSTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+TWV0cmljcyBuZXZlciB0cmF2ZWwgdGhyb3VnaCBQdWIvU3ViOiB0aGUgbW9uaXRvciBwb2xscyBDbG91ZCBNb25pdG9yaW5nIChtb25pdG9yaW5nLnRpbWVTZXJpZXMubGlzdCkuPC90ZXh0Pgo8L3N2Zz4K" alt="Google Cloud data flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Model | Flow | Signal |
+|-------|------|--------|
+| Clouds-app connection (GA) | Cloud Asset Inventory → Dynatrace SaaS | Topology (hourly scan + change feed) |
+| Clouds-app connection (GA) | Cloud Monitoring API → Dynatrace SaaS | Metrics |
+| dynatrace-gcp-monitor on GKE | Cloud Monitoring API → (polled every 1–10 min, default 3) → monitor → Dynatrace metrics API | Metrics |
+| dynatrace-gcp-monitor on GKE | Cloud Logging → Log Router sink → Pub/Sub topic → subscription → (pulled) → monitor → Logs Ingest API | Logs |
+For environments where SVG doesn't render
+-->
+<p>Pub/Sub <strong>never carries metrics</strong>: it carries logs, and in the Clouds-app connection also the asset feed. Metrics are polled, never pushed through Pub/Sub — the monitor's metrics role grants <code>monitoring.timeSeries.list</code>, and its Helm values set the polling interval (<em>&quot;Allowed values: 1 - 10&quot;</em>, default <code>queryInterval: 3</code>).</p>
+<h3>GCP-Specific Considerations</h3>
+<ul>
+<li><strong>Project-based organization</strong> — projects, grouped into folders under an organization, are GCP's unit of ownership, billing and IAM</li>
+<li><strong>Labels, not tags</strong> — GCP &quot;labels&quot; play the role of AWS/Azure tags</li>
+<li><strong>Cloud Monitoring API quotas</strong> — the monitor's polling consumes the project's API quota; a shorter polling interval costs quota</li>
+<li><strong>Pub/Sub costs</strong> — billed on bytes; filter at the Log Router sink (§6) before data ever reaches Pub/Sub</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform">Google Cloud integration (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/gcp-onboarding">GCP Cloud Platform Monitoring (DT docs)</a> — changelog 10/29/2026: <em>&quot;GCP Cloud Platform Monitoring is now generally available.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/dynatrace-gcp-monitor">dynatrace-gcp-monitor README (Dynatrace GitHub)</a> — <em>&quot;This integration is in maintenance mode. A new GCP poller is under active development.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/k8s/helm-chart/dynatrace-gcp-monitor/values.yaml">dynatrace-gcp-monitor Helm values (Dynatrace GitHub)</a> — <em>&quot;Metrics polling interval in minutes. Allowed values: 1 - 10&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="authentication"></a></p>
+<h2>2. Authentication</h2>
+<p>Both models avoid long-lived service account keys. Do not create or upload JSON keys for either.</p>
+<h3>Clouds-app Connection — Service Account Impersonation</h3>
+<ol>
+<li><strong>Create a service account</strong> in the project that will host the connection.</li>
+<li><strong>Grant it read roles</strong> on everything it should see. The gcloud CLI path grants Monitoring Viewer (<code>roles/monitoring.viewer</code>), Cloud Asset Viewer (<code>roles/cloudasset.viewer</code>) and Browser (<code>roles/browser</code>), at project, folder or organization scope. <em>&quot;<code>roles/browser</code> at folder scope lets the service account list all folders and projects within that folder.&quot;</em></li>
+<li><strong>Allow Dynatrace to impersonate it.</strong> Grant the Dynatrace principal for your environment (shown in the connection wizard) <code>roles/iam.serviceAccountTokenCreator</code> <strong>on that service account</strong> — not on the project.</li>
+<li><strong>Create the connection and its monitoring configuration</strong> in the Clouds app, choosing locations and feature sets.</li>
+</ol>
+<p>The same connection can be managed as code with the Terraform resources <code>dynatrace_gcp_connection</code> and <code>dynatrace_gcp_principal</code>. GCP IAM is eventually consistent, so a freshly granted role can take a minute or two to take effect — expect the first validation to retry.</p>
+<h3><code>dynatrace-gcp-monitor</code> — Workload Identity</h3>
+<p>The monitor's deployment script creates <strong>custom IAM roles</strong> holding only what it needs — for metrics, among others <code>monitoring.timeSeries.list</code>, <code>compute.instances.list</code>, <code>cloudsql.instances.list</code>; for logs, <code>pubsub.subscriptions.consume</code> — and binds its Kubernetes service account to a GCP service account through <strong>Workload Identity Federation for GKE</strong> (<code>roles/iam.workloadIdentityUser</code>). The Dynatrace side uses an API token; the logs deployment needs <code>logs.ingest</code>.</p>
+<h3>Multi-Project Monitoring</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>How it scales across projects</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Clouds-app connection</strong></td>
+<td>Grant the impersonated service account viewer roles at folder or organization level; one connection covers everything beneath</td>
+</tr>
+<tr>
+<td><strong><code>dynatrace-gcp-monitor</code></strong></td>
+<td>Configure a Cloud Monitoring <strong>metrics scope</strong> that aggregates the projects, and set <code>scopingProjectSupportEnabled: true</code> so the monitor collects from all monitored projects</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Best Practice:</strong> Host the service account, Pub/Sub topics and the monitor in a <strong>dedicated monitoring project</strong>, so monitoring IAM and cost are separate from workload projects.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/create-your-first-connection/via-cli">Create GCP connection via gcloud CLI and dtctl (DT docs)</a> — <em>&quot;<code>roles/browser</code> at folder scope lets the service account list all folders and projects within that folder.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform/create-your-first-connection/via-settings-app">Create a GCP connection via Settings app (DT docs)</a> — <em>&quot;Grant the Dynatrace principal <code>roles/iam.serviceAccountTokenCreator</code> on the new service account (impersonation trust).&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/gcp_connection.md">dynatrace_gcp_connection (Dynatrace GitHub)</a> — <em>&quot;This resource uses service account impersonation, which requires the Dynatrace GCP Principal to be granted the <code>roles/iam.serviceAccountTokenCreator</code> role on the impersonated service account.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/deploy-k8">dynatrace-gcp-monitor on GKE (DT docs)</a></sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/k8s/helm-chart/dynatrace-gcp-monitor/values.yaml">dynatrace-gcp-monitor Helm values (Dynatrace GitHub)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="supported-services"></a></p>
+<h2>3. Supported GCP Services</h2>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Services</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Compute</strong></td>
+<td>Compute Engine (GCE), Cloud Run functions (formerly Cloud Functions), App Engine</td>
+</tr>
+<tr>
+<td><strong>Containers</strong></td>
+<td>GKE (Google Kubernetes Engine), Cloud Run</td>
+</tr>
+<tr>
+<td><strong>Database</strong></td>
+<td>Cloud SQL, Cloud Spanner, Bigtable, Firestore</td>
+</tr>
+<tr>
+<td><strong>Storage</strong></td>
+<td>Cloud Storage, Filestore, Persistent Disk</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>BigQuery, Pub/Sub, Dataflow, Dataproc</td>
+</tr>
+<tr>
+<td><strong>Networking</strong></td>
+<td>Cloud Load Balancing, Cloud CDN, Cloud DNS</td>
+</tr>
+<tr>
+<td><strong>AI/ML</strong></td>
+<td>Vertex AI</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Where the authoritative list lives.</strong> Coverage is defined per model and moves with each release: for <code>dynatrace-gcp-monitor</code>, the <code>gcpServicesYaml</code> block of its Helm values selects services, each backed by the Dynatrace <strong>Google Cloud extension</strong> (Extensions 2.0), which carries the metrics, topology rules and dashboards; for the Clouds-app connection, the feature sets offered in the monitoring configuration. Check the list in your own tenant rather than treating this table as exhaustive.</p>
+</blockquote>
+<p><strong>Metric latency</strong> is bounded by the polling interval (§1) plus Cloud Monitoring's own publication delay, which varies by metric — Google documents the sampling and visibility delay on each metric's reference entry.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/k8s/helm-chart/dynatrace-gcp-monitor/values.yaml">dynatrace-gcp-monitor Helm values (Dynatrace GitHub)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform">Google Cloud integration (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="querying-entities"></a></p>
+<h2>4. Querying GCP Resources</h2>
+<p>The two connection models create <strong>different resource models</strong>, so the query depends on which one feeds your tenant:</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Resource model</th>
+<th>Query with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Clouds-app connection</td>
+<td>Smartscape nodes named <code>GCP_&lt;SERVICE_API&gt;_&lt;RESOURCE&gt;</code> — for example <code>GCP_COMPUTE_GOOGLEAPIS_COM_INSTANCE</code>, <code>GCP_RUN_GOOGLEAPIS_COM_SERVICE</code>, <code>GCP_K8S_IO_POD</code></td>
+<td><code>smartscapeNodes</code></td>
+</tr>
+<tr>
+<td><code>dynatrace-gcp-monitor</code></td>
+<td>Classic generic entities from the Google Cloud extension — <code>dt.entity.cloud:gcp:gce_instance</code>, <code>…:cloudsql_database</code>, <code>…:cloud_run_revision</code> (see CLOUD-01 for the full list)</td>
+<td><code>fetch</code></td>
+</tr>
+</tbody>
+</table>
+<p>GCP Smartscape nodes carry <code>gcp.project.id</code>, <code>gcp.region</code>, <code>gcp.zone</code>, <code>gcp.organization.id</code>, <code>gcp.resource.name</code> and a <code>gcp.object</code> JSON blob with the full resource configuration.</p>
+<h3>What GCP Resources Does This Tenant Know About?</h3>
+<pre><code class="language-dql">// Every GCP resource type discovered through the Clouds-app connection, with counts
+smartscapeNodes &quot;GCP_*&quot;
+| summarize resource_count = count(), by:{type}
+| sort resource_count desc
+</code></pre>
+<h3>List Compute Engine Instances</h3>
+<pre><code class="language-dql">// Compute Engine VMs (Clouds-app connection), with project and placement
+smartscapeNodes &quot;GCP_COMPUTE_GOOGLEAPIS_COM_INSTANCE&quot;
+| fields name, gcp.project.id, gcp.region, gcp.zone
+| sort name asc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Compute Engine VMs (dynatrace-gcp-monitor) — classic generic entity; the colon in the
+// type name requires backticks. dt.entity.* is a look-back view, so it needs from:.
+// The type exists only once the Google Cloud extension has created it. On a tenant without the
+// monitor, the query carries a &quot;The entity type ... wasn't found&quot; warning
+// (ENTITY_DATA_OBJECT_UNDEFINED) and returns zero rows — that means &quot;not set up&quot;, not &quot;no VMs&quot;.
+fetch `dt.entity.cloud:gcp:gce_instance`, from:-7d
+| fieldsKeep id, entity.name
+| sort entity.name asc
+| limit 20
+</code></pre>
+<h3>Machine Type from the Resource Configuration</h3>
+<p><code>gcp.object</code> holds the Cloud Asset Inventory record. Parse it for any configuration attribute the node does not expose as a field.</p>
+<pre><code class="language-dql">// Compute Engine instances by machine type (parsed from gcp.object)
+smartscapeNodes &quot;GCP_COMPUTE_GOOGLEAPIS_COM_INSTANCE&quot;
+| parse gcp.object, &quot;JSON:gcpjson&quot;
+| fieldsAdd machineType = gcpjson[configuration][resource][machineType]
+| summarize instance_count = count(), by:{machineType}
+| sort instance_count desc
+</code></pre>
+<h3>List Kubernetes Clusters (Including GKE)</h3>
+<pre><code class="language-dql">// List all Kubernetes clusters (GKE clusters appear here)
+fetch dt.entity.kubernetes_cluster, from:-7d
+| fields id, entity.name, tags
+| sort entity.name asc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;K8S_CLUSTER&quot;
+//   | fieldsKeep id, name, tags
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat &quot;tags&quot; field on Smartscape (resolve via getNodeField).
+</code></pre>
+<h3>Kubernetes Workload Count</h3>
+<p><code>dt.entity.cloud_application</code> is the classic Kubernetes <strong>workload</strong> entity — it counts GKE workloads alongside workloads on any other monitored cluster. Cloud Run is <strong>not</strong> in it: Cloud Run instances monitored by OneAgent appear as hosts (§8).</p>
+<pre><code class="language-dql">// Kubernetes workloads (all monitored clusters, GKE included)
+fetch dt.entity.cloud_application, from:-7d
+| summarize workload_count = count()
+</code></pre>
+<p><a id="gcp-metrics"></a></p>
+<h2>5. GCP Metrics with DQL</h2>
+<p>Cloud Monitoring metrics land in Grail under <code>cloud.gcp.*</code>. For <code>dynatrace-gcp-monitor</code>, the key is built from the Google metric type: <code>compute.googleapis.com/instance/cpu/utilization</code> becomes <code>cloud.gcp.compute_googleapis_com.instance.cpu.utilization</code> (dots in the service domain become underscores; <code>/</code> becomes <code>.</code>). Discover what your tenant actually holds before building on a key — a <code>timeseries</code> against a key that does not exist returns an empty result, not an error.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/HACKING.md">dynatrace-gcp-monitor HACKING.md (Dynatrace GitHub)</a> — <em>&quot;timeseries avg(cloud.gcp.compute_googleapis_com.instance.cpu.utilization)&quot;</em>; <a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/google-compute-engine/compute-engine-monitoring">Compute Engine monitoring (DT docs)</a> lists the source metric <code>compute.googleapis.com/instance/cpu/utilization</code>. <strong>Derived:</strong> the naming rule follows from the two forms side by side.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Discover the GCP metric keys present in this tenant (note: no comma before from:)
+metrics from:now()-2h
+| filter startsWith(metric.key, &quot;cloud.gcp.&quot;)
+| summarize n = count(), by:{metric.key}
+| sort metric.key asc
+</code></pre>
+<pre><code class="language-dql">// Compute Engine CPU utilization (0–1 ratio) over the last 6 hours
+timeseries cpu = avg(cloud.gcp.compute_googleapis_com.instance.cpu.utilization), from:-6h
+| fieldsAdd avgCpuPct = arrayAvg(cpu) * 100
+</code></pre>
+<p><a id="gcp-logs"></a></p>
+<h2>6. Forwarding GCP Logs</h2>
+<p>Cloud Logging does not push to Dynatrace directly. Every GCP log path starts at the <strong>Log Router</strong>: a <strong>sink</strong> selects log entries with an inclusion filter (minus exclusion filters) and routes them to a Pub/Sub topic, from which the integration reads.</p>
+<h3>The <code>dynatrace-gcp-monitor</code> Log Path</h3>
+<ol>
+<li><strong>Create a Pub/Sub topic and subscription</strong> in the monitoring project. The monitor's deployment script creates the subscription with a 120-second acknowledgement deadline and one day of message retention, and its Helm deployment rejects any other ack deadline.</li>
+<li><strong>Create a Log Router sink</strong> with the topic as destination and an inclusion filter for exactly what you want.</li>
+<li><strong>Grant the sink's writer identity <code>roles/pubsub.publisher</code> on the topic.</strong> Until you do, nothing arrives: <em>&quot;Until you grant this identity write-access to the destination, log entry exports from this sink will fail.&quot;</em></li>
+<li><strong>Deploy the monitor in logs mode</strong> with a Dynatrace token holding <code>logs.ingest</code>. It pulls the subscription, batches, and sends to the Logs Ingest API.</li>
+</ol>
+<p>For the Clouds-app connection, follow the log setup in the connection's onboarding flow.</p>
+<blockquote>
+<p><strong>Forthcoming — SaaS 1.351 (pre-release; rollout planned from 11/11/2026, staged — verify it has reached your tenant):</strong> Dynatrace-provided OpenPipeline log parsers for three Google Cloud log types — <strong>Cloud Audit Logs</strong>, <strong>GKE logs</strong> and <strong>Cloud Run</strong>. The release note does not yet say which ingest path's records they apply to or which fields they write. Until the release is final and documented, the field list in <em>Find GCP Logs in Grail</em> below — the fields <code>dynatrace-gcp-monitor</code> writes — stays the working reference. Inspect one parsed record before you build queries on new field names.</p>
+</blockquote>
+<h3>Sink Design Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Organization and folder sinks export child projects only when <code>includeChildren</code> is set: <em>&quot;If the field is true, then log entries from all the projects, folders, and billing accounts contained in the sink's parent resource are also available for export.&quot;</em></td>
+<td>One <strong>aggregated sink</strong> at the organization or folder replaces a sink per project — and one change point for filters</td>
+</tr>
+<tr>
+<td><em>&quot;If a log entry is matched by both <code>filter</code> and one of <code>exclusion_filters</code> it will not be exported.&quot;</em></td>
+<td>Exclusions are the cheapest volume control: they act before Pub/Sub bills a byte</td>
+</tr>
+<tr>
+<td><em>&quot;You cannot modify the _Required sink or exclude logs from it.&quot;</em></td>
+<td>Admin Activity audit logs always stay in Cloud Logging; your Dynatrace sink is an additional copy</td>
+</tr>
+<tr>
+<td><em>&quot;Except for BigQuery, Data Access audit logs are disabled by default because they can generate large volumes of data.&quot;</em></td>
+<td>Enable them deliberately per service — they are high volume, and a sink cannot export what is never written</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Pub/Sub cost.</strong> <em>&quot;Pub/Sub service charges are based on usage (the number of published, delivered, or stored bytes).&quot;</em> Every byte your sink admits is metered by Pub/Sub on the way through, before Dynatrace ingest is counted.</p>
+</blockquote>
+<h3>Sizing the Log Forwarder</h3>
+<p>The monitor's default logs container (1.25 vCPU, 1 GiB) handles about <strong>8 GB of logs per hour</strong>. Above that, messages accumulate in the Pub/Sub subscription rather than failing — back-pressure is silent until you watch the subscription backlog.</p>
+<ul>
+<li><strong>Scale horizontally</strong> (more replicas). Dynatrace advises against vertical scaling, because each larger machine needs its process-count setting re-tuned to its cores — but not from the base 1.25 vCPU / 1 GiB size: move the container to 4 vCPU / 4 GiB first, then add replicas.</li>
+<li><strong>Autoscaling</strong> is recommended only from about <strong>450 MB/min</strong> of throughput, on 4 vCPU / 4 GiB nodes.</li>
+<li>Size from the tested configurations on the logs-only setup page, using your <strong>post-filter</strong> volume. Each row is a 4 vCPU / 4 GiB machine with <code>PARALLEL_PROCESSES=4</code>, <code>NUMBER_OF_CONCURRENT_MESSAGE_PULL_COROUTINES=30</code> and <code>NUMBER_OF_CONCURRENT_PUSH_COROUTINES=20</code>:</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Achieved throughput</th>
+<th style="text-align:right">Replicas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>~8 MB/s (~480 MB/min)</td>
+<td style="text-align:right">1</td>
+</tr>
+<tr>
+<td>~25 MB/s (~1.5 GB/min, ~2 TB/day)</td>
+<td style="text-align:right">4</td>
+</tr>
+<tr>
+<td>~46 MB/s (~2.7 GB/min, ~4 TB/day)</td>
+<td style="text-align:right">6</td>
+</tr>
+</tbody>
+</table>
+<h3>Find GCP Logs in Grail</h3>
+<p>The monitor stamps each record with <code>cloud.provider</code> (<code>gcp</code>), <code>gcp.project.id</code>, <code>gcp.region</code>, <code>gcp.resource.type</code> (the Cloud Logging monitored-resource type) and <code>log.source</code> (the Cloud Logging <code>logName</code>). Filter on <code>gcp.resource.type</code> rather than on <code>cloud.provider</code> alone: host and container logs collected by OneAgent can carry the cloud provider too (this was observed on Azure hosts in this series' validation), so a provider-only filter risks mixing them into the result.</p>
+<pre><code class="language-dql">// GCP platform logs forwarded through the Log Router, by project and resource type
+fetch logs, from:-1h
+| filter isNotNull(gcp.resource.type)
+| summarize log_count = count(), by:{gcp.project.id, gcp.resource.type}
+| sort log_count desc
+| limit 20
+</code></pre>
+<p>Cloud Audit Logs get three more attributes — <code>audit.identity</code> (the calling principal), <code>audit.action</code> (the API method) and <code>audit.result</code> — which make &quot;who changed what&quot; a one-line query:</p>
+<pre><code class="language-dql">// Who is making administrative changes? (Cloud Audit Logs forwarded by the monitor)
+fetch logs, from:-24h
+| filter contains(log.source, &quot;cloudaudit.googleapis.com&quot;)
+| summarize changes = count(), by:{audit.identity, audit.action}
+| sort changes desc
+| limit 20
+</code></pre>
+<p>If these return nothing, check in order: the sink's writer identity has <code>roles/pubsub.publisher</code>; the subscription has a backlog (logs are arriving but not being pulled); the monitor's token has <code>logs.ingest</code>; the query window. The field names above are those the monitor writes — the Clouds-app connection's log path may differ, so inspect one record before building on them.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://github.com/dynatrace-oss/dynatrace-gcp-monitor/blob/master/docs/k8s.md">dynatrace-gcp-monitor architecture (Dynatrace GitHub)</a> — <em>&quot;Pub/Sub messages with log entries are polled by containerized <code>dynatrace-gcp-monitor</code>, processed, batched and sent to Dynatrace Log Ingest API.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/gcp-guide/set-up-gcp-integration-logs-only">Set up GCP log integration — logs only (DT docs)</a> — <em>&quot;Autoscaling is recommended only when you have a minimum of 450 MB/min throughput and can provide a 4vCPU 4Gi RAM machine.&quot;</em> The sizing table above is reproduced from this page.</sub></li>
+<li><sub><a href="https://docs.cloud.google.com/logging/docs/audit">Cloud Audit Logs overview (Google Cloud)</a> — <em>&quot;Except for BigQuery, Data Access audit logs are disabled by default because they can generate large volumes of data.&quot;</em></sub></li>
+<li><sub><a href="https://docs.cloud.google.com/logging/docs/reference/v2/rest/v2/projects.sinks">LogSink REST reference (Google Cloud)</a> — <em>&quot;Until you grant this identity write-access to the destination, log entry exports from this sink will fail.&quot;</em></sub></li>
+<li><sub><a href="https://cloud.google.com/pubsub/pricing">Pub/Sub pricing (Google Cloud)</a> — <em>&quot;Pub/Sub service charges are based on usage (the number of published, delivered, or stored bytes).&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-351">SaaS 1.351 release notes (DT docs)</a> — pre-release, <em>&quot;Rollout start on Nov 11, 2026 (planned)&quot;</em>; <em>&quot;Dynatrace now provides log parsers for the following Google Cloud logs:&quot;</em> Google Cloud Audit Logs, Google Kubernetes Engine (GKE) logs, Cloud Run</sub></li>
+<li><sub><strong>Derived:</strong> the log-field list and the audit attributes come from the monitor's log-processing configuration (<code>src/config_logs</code>) in the repository above.</sub></li>
+</ul>
+</blockquote>
+<p><a id="gke-monitoring"></a></p>
+<h2>7. GKE Monitoring</h2>
+<p>GKE runs the same Dynatrace Operator and DynaKube as EKS (CLOUD-03) and AKS (CLOUD-05). What is GKE-specific is Autopilot's admission model and identity.</p>
+<h3>GKE-Specific Considerations</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Monitoring Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GKE Standard</strong></td>
+<td>No GKE-specific DynaKube configuration is needed for the Operator's deployment modes</td>
+</tr>
+<tr>
+<td><strong>GKE Autopilot</strong></td>
+<td>Autopilot admits privileged partner workloads only through a GKE <strong>allowlist</strong>. The Operator's Helm chart creates the <code>AllowlistSynchronizer</code> (<code>auto.gke.io/v1</code>) automatically when the cluster offers it; the allowlisted Dynatrace workloads are the <strong>CSI driver</strong>, <strong>log monitoring</strong> and the <strong>CSI job</strong>. On Autopilot the supported mode is App Observability: <em>&quot;For GKE Autopilot, you can install Dynatrace for App Observability.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Helm <code>platform: gke-autopilot</code></strong></td>
+<td>Marked <strong>deprecated</strong> in the Operator chart — the platform is detected automatically; remove the override from existing values files</td>
+</tr>
+<tr>
+<td><strong>Workload Identity Federation for GKE</strong></td>
+<td>Google's recommended way for pods to reach Google Cloud APIs — use it for anything in-cluster that calls GCP (including <code>dynatrace-gcp-monitor</code>) instead of mounting keys</td>
+</tr>
+<tr>
+<td><strong>Control plane</strong></td>
+<td>GKE's API server, scheduler and controller-manager metrics are sent to <strong>Cloud Monitoring</strong> when you enable them on the cluster (which must also have system metrics enabled); GKE audit logs are in Cloud Logging and reach Dynatrace through a sink (§6)</td>
+</tr>
+</tbody>
+</table>
+<h3>GKE Container Metrics</h3>
+<pre><code class="language-dql">// Top 10 container names by CPU, averaged across every replica that shares the name
+timeseries containerCpu = avg(dt.kubernetes.container.cpu_usage), from:-1h, by:{k8s.container.name}
+| fieldsAdd avgCpu = arrayAvg(containerCpu)
+| sort avgCpu desc
+| limit 10
+</code></pre>
+<h3>GKE Node Utilization</h3>
+<pre><code class="language-dql">// Node CPU utilization across GKE nodes over the last hour, derived at container grain.
+//
+// `dt.kubernetes.node.cpu_usage` and `dt.kubernetes.node.memory_working_set` DO NOT EXIST
+// (verified 08/12/2026 against a full 836-key catalog enumeration). The `dt.kubernetes.node.*`
+// namespace is real, but it publishes CAPACITY and CONDITION metrics — `cpu_allocatable`,
+// `memory_allocatable`, `pods_allocatable`, `conditions` — not utilization. Node-level
+// utilization is derived by summing the container metrics per node, which is what this cell does.
+// A timeseries against a missing key returns an EMPTY result rather than an error, so the old
+// cell simply drew nothing. Enumerate the real catalog with:
+//   metrics | filter startsWith(metric.key, &quot;dt.kubernetes&quot;) | summarize n = count(), by:{metric.key} | sort metric.key asc
+// (`metrics` takes `from:` with NO leading comma; `summarize` requires an aggregation, and a
+//  bare `metrics | fields metric.key` is capped and will silently under-report the catalog.)
+timeseries used = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h, by:{dt.entity.kubernetes_node}
+| fieldsAdd avgCpu = arrayAvg(used)
+| sort avgCpu desc
+| limit 10
+</code></pre>
+<h3>GKE Pod Events</h3>
+<pre><code class="language-dql">// Kubernetes events by reason over the last 6 hours.
+//
+// Corrected 08/11/2026 — this cell previously carried three separate filters that each
+// matched nothing, so it returned zero rows against an estate emitting thousands:
+//   1. `event.kind == &quot;K8S_EVENT&quot;` — event.kind never takes that value. Verified over 24h
+//      the only values are DAVIS_EVENT, SYNTHETIC_EVENT, FLEET_EVENT and DAVIS_PROBLEM.
+//      Kubernetes events arrive as DAVIS_EVENT; the discriminator is event.provider.
+//   2. `event.type == &quot;Warning&quot;` — every KUBERNETES_EVENT record carries CUSTOM_INFO
+//      (3,571 of 3,571 checked). The Warning/Normal split is in status (&quot;WARN&quot; / &quot;INFO&quot;);
+//      dt.kubernetes.event.important was &quot;true&quot; on every event over 30 days (10/02/2026).
+//   3. `event.reason` — null on every record. The real field is dt.kubernetes.event.reason.
+// Each filter was valid syntax that executed cleanly, which is why this survived review.
+// Counted with countDistinctExact(event.id): an open Kubernetes event is re-written about every
+// 5 minutes under the same event.id, so count() counts refresh records (10/15/2026: 1,203
+// distinct events vs 8,259 records in 24 h).
+fetch events, from:-6h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter status == &quot;WARN&quot;
+| summarize event_count = countDistinctExact(event.id), by:{dt.kubernetes.event.reason}
+| sort event_count desc
+| limit 10
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/supported-technologies">Kubernetes supported technologies (DT docs)</a> — <em>&quot;For GKE Autopilot, you can install Dynatrace for App Observability.&quot;</em></sub></li>
+<li><sub><a href="https://docs.cloud.google.com/kubernetes-engine/docs/how-to/control-plane-metrics">Control plane metrics (Google Cloud)</a> — <em>&quot;The cluster must have system metrics enabled.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-operator/blob/main/config/helm/chart/default/templates/Common/operator/allowlistsynchronizer.yaml">AllowlistSynchronizer template (Dynatrace GitHub)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="cloud-run"></a></p>
+<h2>8. Cloud Run Analysis</h2>
+<p>Cloud Run is GCP's serverless container platform. It shares some monitoring patterns with Lambda but runs containers instead of functions.</p>
+<h3>Cloud Run Monitoring Points</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+<th>Alert Threshold</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Request count</strong></td>
+<td>Total HTTP requests</td>
+<td>Baseline deviation</td>
+</tr>
+<tr>
+<td><strong>Request latency</strong></td>
+<td>Response time (p50, p95, p99)</td>
+<td>SLO-dependent</td>
+</tr>
+<tr>
+<td><strong>Instance count</strong></td>
+<td>Active container instances</td>
+<td>Max instance limit</td>
+</tr>
+<tr>
+<td><strong>CPU utilization</strong></td>
+<td>Per-instance CPU usage</td>
+<td>&gt; 80% sustained</td>
+</tr>
+<tr>
+<td><strong>Memory utilization</strong></td>
+<td>Per-instance memory</td>
+<td>&gt; 80% (risk of OOM)</td>
+</tr>
+<tr>
+<td><strong>Startup latency</strong></td>
+<td>Cold start time for new instances</td>
+<td>Application-dependent</td>
+</tr>
+</tbody>
+</table>
+<h3>Cloud Run vs Lambda</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Cloud Run</th>
+<th>AWS Lambda</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unit</strong></td>
+<td>Container</td>
+<td>Function</td>
+</tr>
+<tr>
+<td><strong>Runtime</strong></td>
+<td>Any Docker image</td>
+<td>Managed runtimes + custom</td>
+</tr>
+<tr>
+<td><strong>Max duration</strong></td>
+<td>Services: request timeout up to 60 minutes. Jobs: task timeout up to 7 days (up to 12 hours for tasks using GPUs, in preview)</td>
+<td>15 minutes</td>
+</tr>
+<tr>
+<td><strong>Concurrency</strong></td>
+<td>Multiple requests per instance (configurable, up to 1,000)</td>
+<td>One per execution (default)</td>
+</tr>
+<tr>
+<td><strong>Monitoring</strong></td>
+<td>OneAgent (Java, Node.js, Python — Python with OneAgent 1.349, staged rollout from 11/09/2026; verify it has reached your environment) or OTLP — an OpenTelemetry Collector can run as a sidecar container</td>
+<td>Lambda Layer</td>
+</tr>
+<tr>
+<td><strong>Cold start</strong></td>
+<td>Container pull + startup</td>
+<td>Runtime initialization</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.cloud.google.com/run/docs/configuring/request-timeout">Request timeout (Google Cloud)</a> — <em>&quot;The timeout is set by default to 5 minutes (300 seconds) and can be extended up to 60 minutes (3600 seconds).&quot;</em></sub></li>
+<li><sub><a href="https://docs.cloud.google.com/run/docs/configuring/task-timeout">Task timeout (Google Cloud)</a> — <em>&quot;For tasks using GPUs, the maximum available timeout is 12 hours (preview).&quot;</em></sub></li>
+<li><sub><a href="https://docs.cloud.google.com/run/docs/about-concurrency">About concurrency (Google Cloud)</a> — <em>&quot;You can increase this to a maximum of 1,000.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349">OneAgent 1.349 release notes (DT docs)</a> — <em>&quot;OneAgent now supports Python applications on Google Cloud Run.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<h3>Cloud Run Monitoring: OneAgent Coverage and Caveats</h3>
+<p>The Cloud Run setup page gives OneAgent build steps for <strong>Java, Node.js and Python</strong> (Python added 10/28/2026). Cloud Run itself runs any container image; for a runtime without a build tab there (for example Go), send telemetry via <strong>OTLP</strong>. <em>&quot;The runtime base image must be glibc-based. Alpine (musl libc) is not supported by the Dynatrace code module for any technology.&quot;</em> If you build with Cloud Build, mirror the codemodule image to a private registry: <em>&quot;If you use Cloud Build, you may encounter toomanyrequests rate limit errors when pulling codemodule images directly from public ECR, because Cloud Build workers share IP address pools.&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Runtimes with setup steps (OneAgent)</strong></td>
+<td>Java, Node.js, Python — other runtimes use OTLP-direct</td>
+</tr>
+<tr>
+<td><strong>Credentials</strong></td>
+<td>Runtime connection parameters (<code>DT_TENANT</code>, <code>DT_TENANTTOKEN</code>, <code>DT_CONNECTION_POINT</code>) stored in <strong>Secret Manager</strong>; the OneAgent binaries are copied into the image from a public codemodule image with <code>COPY --from</code></td>
+</tr>
+<tr>
+<td><strong>Execution environments</strong></td>
+<td>Gen1 vs Gen2 — <strong>Gen1 does not expose CPU/memory metrics</strong> (intentional security limits); Gen2 has no such restriction</td>
+</tr>
+<tr>
+<td><strong>Where instances appear</strong></td>
+<td>On the <strong>Hosts</strong> page (with GCP properties and each instance's memory limit), not the Container groups page</td>
+</tr>
+<tr>
+<td><strong>Cold-start overhead</strong></td>
+<td>Agent injection adds startup overhead; because each revision autoscales from zero, cold starts appear more often than on always-on hosts</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Migration note:</strong> because the connection parameters live in Secret Manager, redirecting a Cloud Run workload to a new Dynatrace tenant means updating those secrets and deploying a new revision — see <strong>M2S-05: Step 5 — Execute</strong> for the full serverless/container redirect matrix.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Source:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform-classic/gcp-integrations/cloudrun">Monitor Google Cloud Run managed (DT docs)</a> — <em>&quot;Retrieve and store connection credentials in Secret Manager.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Cloud Run service spans in the last hour
+//
+// Corrected 08/12/2026: `cloud.platform` is DEPRECATED in the semantic dictionary and carried no
+// value on any span in the validation tenant, so `cloud.platform == &quot;gcp_cloud_run&quot;` could only
+// ever return nothing. The dictionary marks `cloud.platform` &quot;Deprecated, no replacement available&quot;;
+// `cloud.provider` (stable) is the nearest field, and narrows to provider only (aws / azure / gcp / ...).
+// Note this narrows to provider, not service — add a dt.service.name or faas.name filter to isolate
+// Cloud Run specifically. On a tenant with no GCP workloads this correctly returns no rows.
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot; and cloud.provider == &quot;gcp&quot;
+| summarize {avg_duration_ms = avg(duration) / 1ms, request_count = count()}, by:{dt.service.name}
+| sort request_count desc
+| limit 10
+</code></pre>
+<h3>Tracing Across Pub/Sub</h3>
+<p>GCP shops frequently place Pub/Sub between services. <strong>Pub/Sub is absent from OpenTelemetry's auto-instrumentation coverage</strong> where Kafka and RabbitMQ are first-class (the OpenTelemetry Java supported-libraries list carries Kafka <code>0.11+</code> and RabbitMQ <code>2.7+</code>, but no Pub/Sub entry) — so an auto-instrumented application does not propagate trace context across Pub/Sub for you, and a distributed trace breaks silently at every hop. Coverage varies by language and client version; verify for your own runtime.</p>
+<p><strong>Two ways to close the gap:</strong></p>
+<ul>
+<li><strong>Use the client's own tracing (Java).</strong> Google's Pub/Sub Java client added OpenTelemetry tracing to the Publisher and Subscriber in version 1.133.0 — enable it with <code>setEnableOpenTelemetryTracing(true)</code> and pass your <code>OpenTelemetry</code> instance with <code>setOpenTelemetry(...)</code> on the builder. Check your language's client for the equivalent before hand-rolling propagation.</li>
+<li><strong>Propagate it yourself</strong> where the client cannot. Carry the W3C <strong><code>traceparent</code></strong> through the message <code>attributes</code> map: the <strong>publisher</strong> injects the active trace context into <code>message.attributes</code> before publishing; the <strong>subscriber</strong> reads <code>traceparent</code> and uses it as the parent of the consumer span.</li>
+</ul>
+<p>Without either, producer and consumer spans appear as disconnected traces. See the <strong>SPANS</strong> series for span and trace-context fundamentals.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing/tracking-transactions">Span and trace context propagation (DT docs)</a>; <a href="https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/docs/supported-libraries.md">OpenTelemetry Java supported libraries (OpenTelemetry GitHub)</a>; <a href="https://github.com/googleapis/java-pubsub/releases/tag/v1.133.0">java-pubsub v1.133.0 release (Google GitHub)</a> — <em>&quot;Add OpenTelemetry tracing to the Publisher and Subscriber&quot;</em>; <a href="https://github.com/GoogleCloudPlatform/opentelemetry-cloud-run">OpenTelemetry Collector on Cloud Run (Google Cloud GitHub)</a></sub></p>
+</blockquote>
+<p><a id="entity-mapping"></a></p>
+<h2>9. Project, Folder and Label Governance</h2>
+<p>GCP's hierarchy — organization → folders → projects — arrives in Dynatrace as <strong>fields on the data</strong>, not as tags you have to propagate by hand.</p>
+<table>
+<thead>
+<tr>
+<th>GCP Construct</th>
+<th>Where it appears in Dynatrace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Organization</strong></td>
+<td><code>gcp.organization.id</code> on Smartscape nodes</td>
+</tr>
+<tr>
+<td><strong>Folder</strong></td>
+<td>Not a field — express folder ownership through labels, or through the projects it contains</td>
+</tr>
+<tr>
+<td><strong>Project</strong></td>
+<td><code>gcp.project.id</code> on Smartscape nodes, forwarded logs and monitor metrics — the primary scoping unit</td>
+</tr>
+<tr>
+<td><strong>Region / Zone</strong></td>
+<td><code>gcp.region</code>, <code>gcp.zone</code></td>
+</tr>
+<tr>
+<td><strong>Labels</strong></td>
+<td><code>`tags:gcp_labels`</code> on Smartscape nodes (backticks required)</td>
+</tr>
+</tbody>
+</table>
+<h3>Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Scope by <code>gcp.project.id</code></strong></td>
+<td>Build segments, dashboards and cost views on the project field rather than on free-text tags</td>
+</tr>
+<tr>
+<td><strong>Enforce label conventions at the source</strong></td>
+<td>Standard labels (<code>env</code>, <code>team</code>, <code>service</code>, <code>cost-center</code>) enforced by organization policy, so every resource and log carries them</td>
+</tr>
+<tr>
+<td><strong>Segments for views, IAM for access</strong></td>
+<td>A segment per project is a good default view, but segments filter; they do not restrict access — <em>&quot;Regardless of configured visibility, any segment can be accessed with storage:filter-segments:read permission.&quot;</em> Restrict access with IAM policies or bucket permissions</td>
+</tr>
+<tr>
+<td><strong>Route problems on ownership labels</strong></td>
+<td>Problem-triggered workflows keyed on <code>team</code>/<code>owner</code>, not on project names alone</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility">Visibility of segments (DT docs)</a> — <em>&quot;Regardless of configured visibility, any segment can be accessed with storage:filter-segments:read permission.&quot;</em></sub></p>
+</blockquote>
+<h3>Tagging this producer — primary Grail tags</h3>
+<p>Google Cloud has labels and tags, and <em>&quot;Both can be promoted to primary Grail fields and tags.&quot;</em> The pattern is the AWS one in CLOUD-02: a <strong>GCP label</strong> or <strong>GCP tag</strong> rule at project scope forwards the value as <code>gcp.labels.&lt;key&gt;</code> or <code>gcp.tags.&lt;tag-id&gt;</code> (the tag id <code>payroll/app</code> becomes <code>gcp.tags.payroll.app</code>), and an OpenPipeline primary Grail tag rule promotes it with two sources — <code>gcp.labels.&lt;key&gt;</code> for telemetry and <code>`tags:gcp_labels`[&lt;key&gt;]</code> for Smartscape nodes — under an <code>isNull(primary_tags.&lt;key&gt;)</code> condition. <code>gcp.project.id</code> is set automatically. Central configuration for cloud tags is a SaaS 1.348+ capability on new cloud connections (staged rollout).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-gcp">Enrich Google Cloud telemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;Both can be promoted to primary Grail fields and tags.&quot;</em> and <em>&quot;This page applies to new cloud connections only.&quot;</em></sub></p>
+</blockquote>
+<p><a id="summary"></a></p>
+<h2>10. Summary and Next Steps</h2>
+<h3>Key Takeaways</h3>
+<ul>
+<li><strong>Two models, two lifecycles:</strong> the Clouds-app GCP connection (GA; keyless service account impersonation, Cloud Asset Inventory topology) and <code>dynatrace-gcp-monitor</code> on GKE (maintenance mode; keeps working until you move). The Cloud Function deployment is unsupported</li>
+<li><strong>No keys in either model</strong> — impersonation via <code>roles/iam.serviceAccountTokenCreator</code>, or Workload Identity Federation for GKE</li>
+<li><strong>Pub/Sub never carries metrics</strong>; metrics are polled from Cloud Monitoring and land under <code>cloud.gcp.*</code></li>
+<li><strong>Query by model:</strong> <code>smartscapeNodes &quot;GCP_*&quot;</code> for the Clouds-app connection, <code>fetch `dt.entity.cloud:gcp:*`</code> for the monitor</li>
+<li><strong>Logs start at a Log Router sink</strong> — aggregate at folder/organization with <code>includeChildren</code>, cut volume with exclusions before Pub/Sub bills it, and grant the writer identity <code>roles/pubsub.publisher</code></li>
+<li><strong>GKE Autopilot</strong> admits the Operator's CSI driver through an allowlist the Helm chart creates for you; <strong>Cloud Run</strong> is OneAgent for Java/Node.js/Python, OTLP (optionally via a Collector sidecar) for everything else</li>
+<li><strong>Govern on <code>gcp.project.id</code> and labels</strong>; IAM for access, segments for views</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>CLOUD-07: CloudWatch Log Ingestion</strong> — the AWS counterpart to §6</li>
+<li><strong>CLOUD-08: Multi-Cloud Patterns</strong> — unified monitoring across GCP and other providers</li>
+<li><strong>K8S series</strong> — DynaKube configuration in depth</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

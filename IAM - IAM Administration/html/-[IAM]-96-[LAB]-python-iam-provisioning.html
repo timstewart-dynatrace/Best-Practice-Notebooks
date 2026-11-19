@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IAM-96 LAB: Python IAM Provisioning from Scratch — Raw Account Management API</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">IAM — IAM Administration</a><span class="sep">/</span><span aria-current="page">IAM-96 LAB</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>IAM-96 LAB: Python IAM Provisioning from Scratch — Raw Account Management API</h1>
+<blockquote>
+<p><strong>Series:</strong> IAM — IAM Administration | <strong>Reference:</strong> 96 — Python IAM Provisioning LAB | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 10/13/2026 | <strong>Verified live:</strong> 07/16/2026 — every sample response below is a real API response</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Hands-on lab: build the complete IAM chain — <strong>group → parameterized policy → boundary → binding</strong> — from scratch in Python, using nothing but <code>requests</code> and the Account Management REST API. No SDK, no pre-built tool: every call is shown raw, with the <strong>actual response</strong> the API returned, so you can validate your own results against each step.</p>
+<p>This is one of <strong>three provisioning flavors</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Flavor</th>
+<th>Notebook</th>
+<th>Best for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>curl / shell</td>
+<td><strong>IAM-12</strong></td>
+<td>One-off scripts, CI glue</td>
+</tr>
+<tr>
+<td>Terraform</td>
+<td><strong>IAM-95</strong></td>
+<td>Declarative IaC, drift detection, plan/apply review</td>
+</tr>
+<tr>
+<td><strong>Python raw API (this lab)</strong></td>
+<td><strong>IAM-96</strong></td>
+<td>Learning the API itself; building your own tooling</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What you will build</strong> (the BPN pattern from IAM-05 / IAM-10):</p>
+<pre><code>1. GROUP     PYLAB-Checkout Team
+2. POLICY    PYLAB-tpl-team-data-access          (parameterized: ${bindParam:team})
+3. BOUNDARY  PYLAB-bnd-team-checkout             (hardcoded scope, defense-in-depth)
+4. BINDING   group ⟶ policy   at ENVIRONMENT level,
+             with parameters={&quot;team&quot;: &quot;pylab-checkout&quot;} + the boundary
+</code></pre>
+<p><strong>Time:</strong> 30–40 minutes | <strong>Difficulty:</strong> Beginner-friendly | <strong>Cost:</strong> No consumption impact (IAM objects only)</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#step-0-setup">Step 0 — Setup</a></li>
+<li><a href="#step-1-get-an-oauth-token">Step 1 — Get an OAuth token</a></li>
+<li><a href="#step-2-create-the-group">Step 2 — Create the group</a></li>
+<li><a href="#step-3-create-the-parameterized-policy">Step 3 — Create the parameterized policy</a></li>
+<li><a href="#step-4-create-the-boundary">Step 4 — Create the boundary</a></li>
+<li><a href="#step-5-bind-policy-to-group">Step 5 — Bind policy to group</a></li>
+<li><a href="#step-6-verify-what-you-built">Step 6 — Verify what you built</a></li>
+<li><a href="#step-7-what-happens-on-a-re-run-idempotency">Step 7 — What happens on a re-run (idempotency)</a></li>
+<li><a href="#step-8-clean-up">Step 8 — Clean up</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#validation-checklist">Validation checklist</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Python</strong></td>
+<td>3.10+ with <code>requests</code> (<code>pip install requests</code>)</td>
+</tr>
+<tr>
+<td><strong>Account UUID</strong></td>
+<td>Account Management → Account settings</td>
+</tr>
+<tr>
+<td><strong>OAuth client</strong></td>
+<td>Account Management → Identity &amp; access management → OAuth clients</td>
+</tr>
+<tr>
+<td><strong>OAuth scopes</strong></td>
+<td><code>account-idm-read account-idm-write iam-policies-management iam:policies:read iam:policies:write iam:bindings:read iam:bindings:write iam:boundaries:read iam:boundaries:write</code></td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>IAM-04 (policy authoring), IAM-05 (boundary design), IAM-10 (templated policies)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>Safety rails (do not skip):</strong></p>
+<ol>
+<li>Run only against a <strong>sanctioned test tenant</strong> — confirm the environment ID before executing.</li>
+<li>Keep the <code>PYLAB-</code> name prefix so lab objects are unmistakable.</li>
+<li>The binding is created at <strong>environment level</strong>. Groups and boundaries are account-level objects. Policies can be created at account <strong>or</strong> environment level (IAM-12 creates environment-level ones); this lab creates the policy at account level so one template can serve every environment. The binding is what grants access, and environment-scoping it confines the lab to one environment.</li>
+</ol>
+</blockquote>
+<p><a id="step-0-setup"></a></p>
+<h2>Step 0 — Setup</h2>
+<p>Export your credentials (or set them in your shell profile — never hardcode them in scripts):</p>
+<pre><code class="language-bash">export DT_ACCOUNT_UUID=&quot;&lt;your-account-uuid&gt;&quot;
+export DT_CLIENT_ID=&quot;dt0s02.XXXXXXXX&quot;
+export DT_CLIENT_SECRET=&quot;dt0s02.XXXXXXXX.YYYY...&quot;
+export DT_ENV_ID=&quot;abc12345&quot;          # your TEST environment id
+</code></pre>
+<p>Start a Python session (<code>python3</code>) and set up the shared constants:</p>
+<pre><code class="language-python">import json, os, requests
+
+ACCOUNT = os.environ[&quot;DT_ACCOUNT_UUID&quot;]
+ENV_ID  = os.environ[&quot;DT_ENV_ID&quot;]
+API     = &quot;https://api.dynatrace.com&quot;
+</code></pre>
+<p><a id="step-1-get-an-oauth-token"></a></p>
+<h2>Step 1 — Get an OAuth token</h2>
+<p>The Account Management API does <strong>not</strong> use classic API tokens — it uses OAuth2 client credentials against the Dynatrace SSO, with your account as the <code>resource</code>:</p>
+<pre><code class="language-python">resp = requests.post(
+    &quot;https://sso.dynatrace.com/sso/oauth2/token&quot;,
+    data={
+        &quot;grant_type&quot;: &quot;client_credentials&quot;,
+        &quot;client_id&quot;: os.environ[&quot;DT_CLIENT_ID&quot;],
+        &quot;client_secret&quot;: os.environ[&quot;DT_CLIENT_SECRET&quot;],
+        &quot;scope&quot;: &quot;account-idm-read account-idm-write iam-policies-management &quot;
+                 &quot;iam:policies:read iam:policies:write iam:bindings:read &quot;
+                 &quot;iam:bindings:write iam:boundaries:read iam:boundaries:write&quot;,
+        &quot;resource&quot;: f&quot;urn:dtaccount:{ACCOUNT}&quot;,
+    },
+)
+print(resp.status_code)
+print(json.dumps(resp.json(), indent=2))
+
+HEADERS = {&quot;Authorization&quot;: f&quot;Bearer {resp.json()['access_token']}&quot;,
+           &quot;Content-Type&quot;: &quot;application/json&quot;}
+</code></pre>
+<p><strong>Sample result (HTTP 200):</strong></p>
+<pre><code class="language-json">{
+  &quot;scope&quot;: &quot;account-idm-read account-idm-write iam-policies-management iam:policies:read iam:policies:write iam:bindings:read iam:bindings:write iam:boundaries:read iam:boundaries:write&quot;,
+  &quot;token_type&quot;: &quot;Bearer&quot;,
+  &quot;expires_in&quot;: 300,
+  &quot;access_token&quot;: &quot;eyJhbGciOiJFUzI1NiIs...(redacted)&quot;,
+  &quot;resource&quot;: &quot;urn:dtaccount:&lt;account-uuid&gt;&quot;
+}
+</code></pre>
+<blockquote>
+<p><strong>Note <code>expires_in: 300</code></strong> — tokens live 5 minutes. Long-running scripts must re-fetch.</p>
+</blockquote>
+<p>✅ <strong>Checkpoint:</strong> HTTP 200 with an <code>access_token</code>. A 400 <code>invalid_scope</code> here means your OAuth client is missing one of the scopes.</p>
+<p><a id="step-2-create-the-group"></a></p>
+<h2>Step 2 — Create the group</h2>
+<p>Groups live under <code>/iam/v1/accounts/{account}/groups</code>. <strong>The payload is an ARRAY</strong> — the most common first-timer error is posting a plain object:</p>
+<pre><code class="language-python">resp = requests.post(
+    f&quot;{API}/iam/v1/accounts/{ACCOUNT}/groups&quot;,
+    headers=HEADERS,
+    json=[{
+        &quot;name&quot;: &quot;PYLAB-Checkout Team&quot;,
+        &quot;description&quot;: &quot;Lab: team-scoped access for checkout&quot;,
+    }],
+)
+print(resp.status_code)
+print(json.dumps(resp.json(), indent=2))
+
+GROUP_UUID = resp.json()[0][&quot;uuid&quot;]
+</code></pre>
+<p><strong>Sample result (HTTP 201):</strong></p>
+<pre><code class="language-json">[
+  {
+    &quot;uuid&quot;: &quot;0b7a0ab6-3e4a-4419-a70d-bdede67a0a56&quot;,
+    &quot;name&quot;: &quot;PYLAB-Checkout Team&quot;,
+    &quot;owner&quot;: &quot;LOCAL&quot;,
+    &quot;description&quot;: &quot;Lab: team-scoped access for checkout&quot;,
+    &quot;hidden&quot;: false,
+    &quot;createdAt&quot;: null,
+    &quot;updatedAt&quot;: null
+  }
+]
+</code></pre>
+<p>✅ <strong>Checkpoint:</strong> response is an array with one object; save its <code>uuid</code>. <code>owner: &quot;LOCAL&quot;</code> means the group is managed here (SAML-federated groups show <code>&quot;SAML&quot;</code>).</p>
+<p><a id="step-3-create-the-parameterized-policy"></a></p>
+<h2>Step 3 — Create the parameterized policy</h2>
+<p>One policy for ALL teams: the <code>${bindParam:team}</code> placeholders get resolved per binding (Step 5). Statement rules that matter (all live-verified — see IAM-04): <strong>no wildcards</strong>, comma-lists allowed, <strong>reads</strong> can be condition-scoped, storage <strong>writes</strong> cannot. <code>storage:buckets:read</code> is its own line because the policy reference says it is <em>&quot;Required additionally to a table permission&quot;</em> — the table reads alone are not enough, and the security-context condition still decides which records match.</p>
+<pre><code class="language-python">statement = &quot;&quot;&quot;\
+ALLOW environment:roles:viewer;
+ALLOW app-engine:apps:run;
+ALLOW document:documents:read;
+ALLOW storage:logs:read, storage:spans:read, storage:metrics:read,
+      storage:events:read, storage:bizevents:read
+  WHERE storage:dt.security_context IN (&quot;${bindParam:team}&quot;);
+ALLOW storage:buckets:read;
+ALLOW settings:objects:read WHERE settings:dt.security_context IN (&quot;${bindParam:team}&quot;);
+ALLOW settings:schemas:read;
+&quot;&quot;&quot;
+
+resp = requests.post(
+    f&quot;{API}/iam/v1/repo/account/{ACCOUNT}/policies&quot;,
+    headers=HEADERS,
+    json={
+        &quot;name&quot;: &quot;PYLAB-tpl-team-data-access&quot;,
+        &quot;description&quot;: &quot;Lab: parameterized team data access&quot;,
+        &quot;statementQuery&quot;: statement,
+    },
+)
+print(resp.status_code)
+print(json.dumps(resp.json(), indent=2))
+
+POLICY_UUID = resp.json()[&quot;uuid&quot;]
+</code></pre>
+<p><strong>Sample result (HTTP 201, abridged)</strong> — note the API <strong>parses your statement</strong> into structured <code>statements[]</code>; this is where invalid permissions or wildcards get rejected with a 400:</p>
+<pre><code class="language-json">{
+  &quot;uuid&quot;: &quot;a20ff1ee-46fe-4a65-ac4a-fc922e5e4337&quot;,
+  &quot;name&quot;: &quot;PYLAB-tpl-team-data-access&quot;,
+  &quot;description&quot;: &quot;Lab: parameterized team data access&quot;,
+  &quot;tags&quot;: [],
+  &quot;statementQuery&quot;: &quot;ALLOW environment:roles:viewer;\nALLOW app-engine:apps:run;\n...&quot;,
+  &quot;statements&quot;: [
+    { &quot;effect&quot;: &quot;ALLOW&quot;, &quot;permissions&quot;: [&quot;environment:roles:viewer&quot;], &quot;conditions&quot;: null },
+    { &quot;effect&quot;: &quot;ALLOW&quot;, &quot;permissions&quot;: [&quot;app-engine:apps:run&quot;], &quot;conditions&quot;: null },
+    { &quot;effect&quot;: &quot;ALLOW&quot;, &quot;permissions&quot;: [&quot;document:documents:read&quot;], &quot;conditions&quot;: null },
+    {
+      &quot;effect&quot;: &quot;ALLOW&quot;,
+      &quot;permissions&quot;: [
+        &quot;storage:logs:read&quot;, &quot;storage:spans:read&quot;, &quot;storage:metrics:read&quot;,
+        &quot;storage:events:read&quot;, &quot;storage:bizevents:read&quot;
+      ],
+      &quot;conditions&quot;: [
+        {
+          &quot;name&quot;: &quot;storage:dt.security_context&quot;,
+          &quot;operator&quot;: &quot;IN&quot;,
+          &quot;values&quot;: [&quot;${bindParam:team}&quot;]
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<p>✅ <strong>Checkpoint:</strong> HTTP 201; the <code>statements[]</code> array shows your WHERE clause as a structured condition with the <strong>literal</strong> <code>${bindParam:team}</code> value — the placeholder survives until binding time.</p>
+<p><a id="step-4-create-the-boundary"></a></p>
+<h2>Step 4 — Create the boundary</h2>
+<p>One standalone boundary per team, hardcoded scope (the policy carries the parameterized scope; the boundary is the defense-in-depth layer — IAM-05):</p>
+<pre><code class="language-python">resp = requests.post(
+    f&quot;{API}/iam/v1/repo/account/{ACCOUNT}/boundaries&quot;,
+    headers=HEADERS,
+    json={
+        &quot;name&quot;: &quot;PYLAB-bnd-team-checkout&quot;,
+        &quot;boundaryQuery&quot;: 'storage:dt.security_context IN (&quot;pylab-checkout&quot;);\n'
+                         'settings:dt.security_context IN (&quot;pylab-checkout&quot;);\n',
+    },
+)
+print(resp.status_code)
+print(json.dumps(resp.json(), indent=2))
+
+BOUNDARY_UUID = resp.json()[&quot;uuid&quot;]
+</code></pre>
+<p><strong>Sample result (HTTP 201):</strong></p>
+<pre><code class="language-json">{
+  &quot;uuid&quot;: &quot;b410aff3-e405-48e4-b6c7-35634ecbb1dd&quot;,
+  &quot;levelType&quot;: &quot;account&quot;,
+  &quot;levelId&quot;: &quot;&lt;account-uuid&gt;&quot;,
+  &quot;name&quot;: &quot;PYLAB-bnd-team-checkout&quot;,
+  &quot;boundaryQuery&quot;: &quot;storage:dt.security_context IN (\&quot;pylab-checkout\&quot;);\nsettings:dt.security_context IN (\&quot;pylab-checkout\&quot;);\n&quot;,
+  &quot;boundaryConditions&quot;: [
+    { &quot;name&quot;: &quot;storage:dt.security_context&quot;,  &quot;operator&quot;: &quot;IN&quot;, &quot;values&quot;: [&quot;pylab-checkout&quot;] },
+    { &quot;name&quot;: &quot;settings:dt.security_context&quot;, &quot;operator&quot;: &quot;IN&quot;, &quot;values&quot;: [&quot;pylab-checkout&quot;] }
+  ],
+  &quot;metadata&quot;: {}
+}
+</code></pre>
+<p>✅ <strong>Checkpoint:</strong> <code>levelType: &quot;account&quot;</code> — boundaries are always account-level objects; they take effect only when attached to a binding (next step). Add an <code>environment:management-zone IN (&quot;...&quot;)</code> line only while the team still has a classic MZ (MZ2POL transitional).</p>
+<p><a id="step-5-bind-policy-to-group"></a></p>
+<h2>Step 5 — Bind policy to group</h2>
+<p>The binding is where everything meets: it resolves <code>${bindParam:team}</code>, attaches the boundary, and — created at <strong>environment</strong> level — confines the granted access to one environment:</p>
+<pre><code class="language-python">resp = requests.post(
+    f&quot;{API}/iam/v1/repo/environment/{ENV_ID}/bindings/{POLICY_UUID}&quot;,
+    headers=HEADERS,
+    json={
+        &quot;groups&quot;: [GROUP_UUID],
+        &quot;parameters&quot;: {&quot;team&quot;: &quot;pylab-checkout&quot;},
+        &quot;boundaries&quot;: [BOUNDARY_UUID],
+    },
+)
+print(resp.status_code, repr(resp.text))
+</code></pre>
+<p><strong>Sample result:</strong></p>
+<pre><code>204 ''
+</code></pre>
+<blockquote>
+<p><strong>Success is HTTP 204 with an EMPTY body</strong> — don't call <code>.json()</code> on it. If you want account-wide grants instead, POST to <code>/iam/v1/repo/account/{ACCOUNT}/bindings/{POLICY_UUID}</code>.</p>
+</blockquote>
+<p>✅ <strong>Checkpoint:</strong> 204. The user-visible effect: members of <code>PYLAB-Checkout Team</code> can now read only data whose <code>dt.security_context</code> is <code>pylab-checkout</code>, only in environment <code>abc12345</code>.</p>
+<p><a id="step-6-verify-what-you-built"></a></p>
+<h2>Step 6 — Verify what you built</h2>
+<p>Two useful reads. The quick one only lists policy UUIDs per group:</p>
+<pre><code class="language-python">resp = requests.get(
+    f&quot;{API}/iam/v1/repo/environment/{ENV_ID}/bindings/groups/{GROUP_UUID}&quot;,
+    headers=HEADERS,
+)
+print(json.dumps(resp.json(), indent=2))
+</code></pre>
+<p><strong>Sample result (HTTP 200):</strong></p>
+<pre><code class="language-json">{
+  &quot;policyUuids&quot;: [
+    &quot;a20ff1ee-46fe-4a65-ac4a-fc922e5e4337&quot;
+  ]
+}
+</code></pre>
+<p>The full listing carries the resolved <strong>parameters and boundaries</strong> — filter it for your group:</p>
+<pre><code class="language-python">resp = requests.get(f&quot;{API}/iam/v1/repo/environment/{ENV_ID}/bindings&quot;, headers=HEADERS)
+mine = [b for b in resp.json()[&quot;policyBindings&quot;] if GROUP_UUID in b.get(&quot;groups&quot;, [])]
+print(json.dumps(mine, indent=2))
+</code></pre>
+<p><strong>Sample result (HTTP 200):</strong></p>
+<pre><code class="language-json">[
+  {
+    &quot;policyUuid&quot;: &quot;a20ff1ee-46fe-4a65-ac4a-fc922e5e4337&quot;,
+    &quot;groups&quot;: [&quot;0b7a0ab6-3e4a-4419-a70d-bdede67a0a56&quot;],
+    &quot;parameters&quot;: {
+      &quot;team&quot;: &quot;pylab-checkout&quot;
+    },
+    &quot;boundaries&quot;: [&quot;b410aff3-e405-48e4-b6c7-35634ecbb1dd&quot;]
+  }
+]
+</code></pre>
+<p>✅ <strong>Checkpoint:</strong> <code>parameters.team</code> equals your security context and exactly one boundary UUID is attached. Also check the UI: Account Management → Identity &amp; access management → Policies → <code>PYLAB-tpl-team-data-access</code> → bindings tab shows the resolved value.</p>
+<p><a id="step-7-what-happens-on-a-re-run-idempotency"></a></p>
+<h2>Step 7 — What happens on a re-run (idempotency)</h2>
+<p>POST the exact same binding from Step 5 again:</p>
+<p><strong>Sample result (HTTP 400):</strong></p>
+<pre><code class="language-json">{
+  &quot;error&quot;: {
+    &quot;code&quot;: 400,
+    &quot;message&quot;: &quot;Policy binding cannot be created, such binding already exists: level type: environment,level id: abc12345, policy uuid: a20ff1ee-46fe-4a65-ac4a-fc922e5e4337, groups: [0b7a0ab6-3e4a-4419-a70d-bdede67a0a56], parameters: {team=pylab-checkout}&quot;,
+    &quot;errorsMap&quot;: null
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>This 400 is convergence, not failure.</strong> When the desired state is identical to the current state, both the create endpoint and the per-group update endpoint (<code>POST .../bindings/{policy}/{group}</code>) answer &quot;already exists.&quot; Any tooling you build on these calls should treat that message as success-unchanged — see IAM-12 §7.</p>
+</blockquote>
+<p><a id="step-8-clean-up"></a></p>
+<h2>Step 8 — Clean up</h2>
+<p><strong>Deletion order matters:</strong> the group first (removing it drops its bindings), then the policy (a still-bound policy returns 400), then the boundary:</p>
+<pre><code class="language-python">r1 = requests.delete(f&quot;{API}/iam/v1/accounts/{ACCOUNT}/groups/{GROUP_UUID}&quot;, headers=HEADERS)
+r2 = requests.delete(f&quot;{API}/iam/v1/repo/account/{ACCOUNT}/policies/{POLICY_UUID}&quot;, headers=HEADERS)
+r3 = requests.delete(f&quot;{API}/iam/v1/repo/account/{ACCOUNT}/boundaries/{BOUNDARY_UUID}&quot;, headers=HEADERS)
+print(r1.status_code, r2.status_code, r3.status_code)
+</code></pre>
+<p><strong>Sample result:</strong></p>
+<pre><code>200 204 204
+</code></pre>
+<blockquote>
+<p>Quirk: group deletion answers <code>200</code> with body <code>1</code> (count of deleted groups); policy and boundary deletion answer <code>204</code> with empty bodies.</p>
+</blockquote>
+<p>✅ <strong>Checkpoint:</strong> search <code>PYLAB-</code> in the UI — nothing remains.</p>
+<p><a id="troubleshooting"></a></p>
+<h2>Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>HTTP</th>
+<th>Message (abridged)</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>400</td>
+<td><code>invalid_scope</code> (token call)</td>
+<td>OAuth client missing scopes</td>
+<td>Recreate client with the full scope list</td>
+</tr>
+<tr>
+<td>401</td>
+<td>Unauthorized</td>
+<td>Token expired (5-min lifetime)</td>
+<td>Re-run Step 1</td>
+</tr>
+<tr>
+<td>400</td>
+<td><code>payload.map is not a function</code></td>
+<td>Group POST got an object</td>
+<td>Wrap payload in <code>[{...}]</code></td>
+</tr>
+<tr>
+<td>400</td>
+<td><code>ALLOW or DENY must be followed by a permission...</code></td>
+<td>Wildcard in statement</td>
+<td>No wildcards — enumerate permissions</td>
+</tr>
+<tr>
+<td>400</td>
+<td><code>Invalid condition name for permission storage:logs:write</code></td>
+<td>WHERE on a storage write</td>
+<td>Storage writes take no conditions</td>
+</tr>
+<tr>
+<td>400</td>
+<td><code>such binding already exists</code></td>
+<td>Re-posting identical binding</td>
+<td>That's convergence — treat as success (Step 7)</td>
+</tr>
+<tr>
+<td>400</td>
+<td>on policy DELETE</td>
+<td>Policy still bound</td>
+<td>Delete the group first (Step 8 order)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="validation-checklist"></a></p>
+<h2>Validation checklist</h2>
+<ul>
+<li>[ ] Token response showed <code>expires_in: 300</code> and your account as <code>resource</code></li>
+<li>[ ] Group create returned an <strong>array</strong> with <code>owner: &quot;LOCAL&quot;</code></li>
+<li>[ ] Policy create echoed structured <code>statements[]</code> with the literal <code>${bindParam:team}</code> condition</li>
+<li>[ ] Boundary create showed <code>levelType: &quot;account&quot;</code> and parsed <code>boundaryConditions</code></li>
+<li>[ ] Binding create returned <strong>204 with an empty body</strong></li>
+<li>[ ] Full bindings list showed <code>parameters</code> + <code>boundaries</code> for your group</li>
+<li>[ ] Re-posting the binding returned 400 &quot;already exists&quot; (convergence)</li>
+<li>[ ] Cleanup returned <code>200, 204, 204</code> and the UI shows no <code>PYLAB-</code> objects</li>
+</ul>
+<p><a id="references"></a></p>
+<h2>References</h2>
+<ul>
+<li><strong>IAM-04</strong> Policy Authoring (verified statement syntax) · <strong>IAM-05</strong> Boundary Design · <strong>IAM-10</strong> Templated Policy Assignments · <strong>IAM-12</strong> API Provisioning scripts (curl flavor) · <strong>IAM-95</strong> Terraform lab (same pattern as IaC)</li>
+<li><strong>MZ2POL series</strong> — migrating off Management Zones onto this pattern</li>
+<li>Full-featured utility built on exactly these calls — dry-run CLI, idempotent re-runs, delete helpers: <a href="https://github.com/timstewart-dynatrace/Python-dtiam">Python-IAM-Utility-3.0 (dtiam)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

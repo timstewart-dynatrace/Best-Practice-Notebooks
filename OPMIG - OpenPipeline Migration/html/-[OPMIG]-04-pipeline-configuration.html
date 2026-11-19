@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPMIG-04: OpenPipeline Migration Guide: Part 4</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPMIG — OpenPipeline Migration</a><span class="sep">/</span><span aria-current="page">OPMIG-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPMIG-04: OpenPipeline Migration Guide: Part 4</h1>
+<blockquote>
+<p><strong>Series:</strong> OPMIG — OpenPipeline Migration | <strong>Notebook:</strong> 4 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/16/2026</p>
+</blockquote>
+<h2>Pipeline Configuration Fundamentals</h2>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#accessing-openpipeline-settings-detailed-guide">Accessing OpenPipeline Settings - Detailed Guide</a></li>
+<li><a href="#step-by-step-creating-your-first-pipeline">Step-by-Step: Creating Your First Pipeline</a></li>
+<li><a href="#complete-pipeline-examples">Complete Pipeline Examples</a></li>
+<li><a href="#understanding-the-interface">Understanding the Interface</a></li>
+<li><a href="#creating-your-first-pipeline">Creating Your First Pipeline</a></li>
+<li><a href="#configuring-processors">Configuring Processors</a></li>
+<li><a href="#setting-up-dynamic-routing">Setting Up Dynamic Routing</a></li>
+<li><a href="#testing-your-configuration">Testing Your Configuration</a></li>
+<li><a href="#configuration-best-practices">Configuration Best Practices</a></li>
+<li><a href="#verifying-pipeline-processing">Verifying Pipeline Processing</a></li>
+<li><a href="#complete-pipeline-example">Complete Pipeline Example</a></li>
+</ol>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>✅ Navigate the OpenPipeline UI confidently</li>
+<li>✅ <strong>Follow step-by-step UI walkthrough</strong></li>
+<li>✅ Create custom pipelines from scratch</li>
+<li>✅ Configure processors with best practices</li>
+<li>✅ Test configurations with sample data</li>
+<li>✅ <strong>Build complete end-to-end pipeline examples</strong></li>
+<li>✅ Verify pipeline processing with DQL</li>
+</ul>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail and OpenPipeline access — Managed is not covered by this series</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>settings:read</code> and <code>settings:write</code> (custom pipelines; built-in and ready-made pipelines are view-only with <code>settings:read</code>)</td>
+</tr>
+<tr>
+<td><strong>API Access</strong></td>
+<td><code>logs.read</code> and <code>logs.ingest</code> token scopes</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OPMIG-01 through OPMIG-03; basic understanding of log ingestion</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — pipeline <em>Types</em> table, <em>Permissions</em> row.</sub></p>
+</blockquote>
+<h3>SaaS 1.337: Certain Configuration API endpoints are deprecated</h3>
+<p>SaaS 1.337 deprecated certain Configuration API endpoints: <em>&quot;Many Configuration API endpoints are now covered by the Settings endpoints in the Environment API v2.&quot;</em> The affected endpoints <em>&quot;remain fully active&quot;</em> and have no sunset date, but <em>&quot;these endpoints may be removed in a future release&quot;</em> — so point new automation at the Settings endpoints rather than the deprecated paths.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">What's new in SaaS 1.337 (DT docs)</a> — <em>&quot;Affected endpoints remain fully active. While we haven't set a sunset date, these endpoints may be removed in a future release.&quot;</em></sub></p>
+</blockquote>
+<p><strong>Migration impact for OpenPipeline / log-monitoring config:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Legacy area</th>
+<th>Settings v2 schema</th>
+<th>Upgrade status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Log custom attributes</td>
+<td><code>builtin:logmonitoring.log-custom-attributes</code></td>
+<td><strong>Blocked at upgrade</strong></td>
+</tr>
+<tr>
+<td>Log storage configuration</td>
+<td><code>builtin:logmonitoring.log-storage-settings</code></td>
+<td>Carries forward</td>
+</tr>
+<tr>
+<td>Log dpp rules</td>
+<td><code>builtin:logmonitoring.log-dpp-rules</code></td>
+<td><strong>Blocked at upgrade</strong></td>
+</tr>
+<tr>
+<td>Log timestamp configuration</td>
+<td><code>builtin:logmonitoring.timestamp-configuration</code></td>
+<td>Carries forward</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Settings v2 is the right destination for the API move, but not the end of the journey for these four schemas.</strong> The sprint-1.337 guidance above is about <em>which API surface</em> to call — and on that axis it stands. On the separate upgrade axis, two of these four schemas are flagged <strong>Blocked at upgrade</strong> (the other two carry forward) by the ready-made <em>Check your upgrade readiness</em> dashboard: they stop answering once the tenant moves to the latest Dynatrace. Their real successor is an OpenPipeline processor, which is what the rest of this series builds.</p>
+<p>So: if you are moving automation off the Configuration API <em>today</em>, Settings v2 is the correct target and this table is the mapping. If you are planning the Gen3 migration, do not stop here — retarget these four onto OpenPipeline rather than rebuilding them as Settings v2 objects you will migrate again. See AUTOM-02's catalog for status and OPMIG §5–§7 for the pipeline equivalents.</p>
+</blockquote>
+<p>If your migration tooling reaches into the Configuration API for any of these, switch to the Settings v2 endpoints in Environment API v2 (see <strong>AUTOM-02 § Sprint 1.337</strong> for general patterns and <strong>AUTOM-04 (Terraform)</strong> for <code>dynatrace_settings</code> resource usage).</p>
+<h3>Starting from Your Classic Rules: Translate a Classic Pipeline (Early Access)</h3>
+<p>The OpenPipeline API has an <strong>Early Access</strong> endpoint that translates your classic processing rules into an OpenPipeline pipeline configuration. Call <code>GET /platform/openpipeline/v1/classic-pipelines/translate</code> with <code>configuration=logs</code> or <code>configuration=bizevents</code>. Optional flags skip disabled rules (<code>skipDisabledRules</code>), skip built-in processing rules (<code>skipBuiltinProcessingRules</code>) or include sample data (<code>includeSampleData</code>). The token needs the <code>settings:objects:read</code> scope.</p>
+<pre><code class="language-bash">curl -s -H &quot;Authorization: Bearer $DT_PLATFORM_TOKEN&quot; \
+  &quot;https://&lt;your-environment-id&gt;.apps.dynatrace.com/platform/openpipeline/v1/classic-pipelines/translate?configuration=logs&amp;skipDisabledRules=true&amp;skipBuiltinProcessingRules=true&quot;
+</code></pre>
+<p>Treat the result as a draft for the pipeline you build in the sections below, not as a finished pipeline:</p>
+<ul>
+<li><code>value</code> holds the pipeline in the <code>builtin:openpipeline.logs.pipelines</code> (or <code>bizevents</code>) settings structure, but it may not pass Settings API validation as returned.</li>
+<li><code>withWarning: true</code> means at least one rule could not be translated and needs manual review. Rebuild those rules by hand with the processors covered in OPMIG-06 to OPMIG-08.</li>
+<li>Early Access operations can change in incompatible ways, so do not build long-lived automation on this endpoint yet.</li>
+</ul>
+<p>If the endpoint is not available in your environment, the manual rebuild described in this series remains the working path.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-openpipeline-v1/classic-pipelines-translate-get">Translate a classic pipeline (DT docs)</a> — <em>&quot;You provide the configuration scope to translate, either logs or bizevents, and can optionally include sample data or skip disabled and built-in processing rules.&quot;</em>; <em>&quot;Note: the raw result may not fully pass validation against the Settings API.&quot;</em>; <code>withWarning</code> — <em>&quot;Indicates whether at least one processor couldn't be translated automatically and needs manual review.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-openpipeline-v1">OpenPipeline API (DT docs)</a> — <em>&quot;Operations marked as early adopter or preview may be changed in non-compatible ways, although we try to avoid this.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<hr />
+<p><a id="accessing-openpipeline-settings-detailed-guide"></a></p>
+<h2>Accessing OpenPipeline Settings - Detailed Guide</h2>
+<h3>Navigation Path</h3>
+<p><strong>From Dynatrace Home:</strong></p>
+<pre><code>1. Click ☰ (hamburger menu) in top-left
+2. Scroll to &quot;Manage&quot; section
+3. Click &quot;Settings&quot;
+4. In left sidebar, expand &quot;Process and contextualize&quot;
+5. Click &quot;OpenPipeline&quot;
+</code></pre>
+<p><strong>Direct URL:</strong></p>
+<pre><code>https://{your-environment}.apps.dynatrace.com/ui/settings/openpipeline
+</code></pre>
+<h3>OpenPipeline UI Overview</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaGVhZGVyR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWU0MGFmO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTNhOGE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0idWlTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9InVpQXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzNiODJmNiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjcwMCIgaGVpZ2h0PSIzODAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFdpbmRvdyBmcmFtZSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMjAiIHdpZHRoPSI2NDAiIGhlaWdodD0iMzQwIiByeD0iOCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjdWlTaGFkb3cpIi8+CgogIDwhLS0gSGVhZGVyIGJhciAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMjAiIHdpZHRoPSI2NDAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2hlYWRlckdyYWQpIi8+CiAgPHJlY3QgeD0iMzAiIHk9IjU3IiB3aWR0aD0iNjQwIiBoZWlnaHQ9IjgiIGZpbGw9InVybCgjaGVhZGVyR3JhZCkiLz4KICA8dGV4dCB4PSI1MCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIj5PcGVuUGlwZWxpbmUgQ29uZmlndXJhdGlvbjwvdGV4dD4KCiAgPCEtLSBIZWxwIGJ1dHRvbiAtLT4KICA8cmVjdCB4PSI2MjAiIHk9IjMyIiB3aWR0aD0iMzUiIGhlaWdodD0iMjAiIHJ4PSI0IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMikiLz4KICA8dGV4dCB4PSI2MzciIHk9IjQ2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4/IEhlbHA8L3RleHQ+CgogIDwhLS0gU2NvcGUgZHJvcGRvd24gLS0+CiAgPHRleHQgeD0iNTAiIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM2NDc0OGIiPkNvbmZpZ3VyYXRpb24gc2NvcGU6PC90ZXh0PgogIDxyZWN0IHg9IjE3NSIgeT0iODAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxOTAiIHk9Ijk5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiMzMzQxNTUiPkxvZ3M8L3RleHQ+CiAgPHRleHQgeD0iMjgwIiB5PSI5OSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj7ilrw8L3RleHQ+CgogIDwhLS0gQXJyb3cgcG9pbnRpbmcgdG8gZHJvcGRvd24gLS0+CiAgPHBhdGggZD0iTTMwNSw5NCBMMzQwLDk0IiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCN1aUFycm93KSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iOTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzNiODJmNiIgZm9udC1zdHlsZT0iaXRhbGljIj5TRUxFQ1QgREFUQSBUWVBFPC90ZXh0PgoKICA8IS0tIFRhYnMgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjEyMCIgd2lkdGg9IjYwMCIgaGVpZ2h0PSIzNSIgcng9IjQiIGZpbGw9IiNmMWY1ZjkiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHJlY3QgeD0iNTIiIHk9IjEyMiIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIzMSIgcng9IjMiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSIxMTIiIHk9IjE0MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9ImJvbGQiPlBpcGVsaW5lczwvdGV4dD4KICA8dGV4dCB4PSIyMzIiIHk9IjE0MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hbWljIHJvdXRpbmc8L3RleHQ+CiAgPHRleHQgeD0iMzcyIiB5PSIxNDMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW5nZXN0IHNvdXJjZXM8L3RleHQ+CgogIDwhLS0gQWRkIFBpcGVsaW5lIGJ1dHRvbiAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMTcwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzEwYjk4MSIvPgogIDx0ZXh0IHg9IjEwNSIgeT0iMTkxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iYm9sZCI+KyBQaXBlbGluZTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBwb2ludGluZyB0byBidXR0b24gLS0+CiAgPHBhdGggZD0iTTE3MCwxODYgTDIxMCwxODYiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CiAgPHRleHQgeD0iMjIwIiB5PSIxOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzEwYjk4MSIgZm9udC1zdHlsZT0iaXRhbGljIj5DUkVBVEUgTkVXIFBJUEVMSU5FPC90ZXh0PgoKICA8IS0tIFBpcGVsaW5lIGxpc3QgLS0+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAsIDIyMCkiPgogICAgPCEtLSBQaXBlbGluZSAxOiBkZWZhdWx0IC0tPgogICAgPHJlY3Qgd2lkdGg9IjYwMCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiNmOGZhZmMiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICA8dGV4dCB4PSIxNSIgeT0iMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iI2Y1OWUwYiI+8J+TgTwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ1IiB5PSIyNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjMzM0MTU1Ij5kZWZhdWx0PC90ZXh0PgogICAgPHRleHQgeD0iNTc1IiB5PSIyNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTRhM2I4Ij7ii648L3RleHQ+CgogICAgPCEtLSBQaXBlbGluZSAyIC0tPgogICAgPHJlY3QgeT0iNDUiIHdpZHRoPSI2MDAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjZjhmYWZjIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHRleHQgeD0iMTUiIHk9IjcwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiMzYjgyZjYiPvCfk4E8L3RleHQ+CiAgICA8dGV4dCB4PSI0NSIgeT0iNzEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzMzNDE1NSI+a3ViZXJuZXRlcy1sb2dzPC90ZXh0PgogICAgPHRleHQgeD0iNTc1IiB5PSI3MSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTRhM2I4Ij7ii648L3RleHQ+CgogICAgPCEtLSBQaXBlbGluZSAzOiBjdXN0b20gLS0+CiAgICA8cmVjdCB5PSI5MCIgd2lkdGg9IjYwMCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiNlZmY2ZmYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgICA8dGV4dCB4PSIxNSIgeT0iMTE1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiMzYjgyZjYiPvCfk4E8L3RleHQ+CiAgICA8dGV4dCB4PSI0NSIgeT0iMTE2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiMxZTQwYWYiIGZvbnQtd2VpZ2h0PSJib2xkIj5teS1jdXN0b20tcGlwZWxpbmU8L3RleHQ+CiAgICA8dGV4dCB4PSI1NzUiIHk9IjExNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTRhM2I4Ij7ii648L3RleHQ+CiAgPC9nPgo8L3N2Zz4K" alt="OpenPipeline UI Overview" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| UI Element | Purpose |
+|------------|---------|
+| Configuration scope dropdown | Select data type (Logs, Spans, Metrics, etc.) |
+| Pipelines tab | View/create/edit pipelines |
+| Dynamic routing tab | Configure routing rules |
+| Ingest sources tab | Monitor data sources |
+| + Pipeline button | Create new custom pipeline |
+| Pipeline list | All pipelines for selected scope |
+-->
+<h3>Configuration Scopes</h3>
+<p>The dropdown at the top lets you switch between data types:</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Icon</th>
+<th>What It Handles</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Logs</strong></td>
+<td>📋</td>
+<td>Log records from all sources</td>
+</tr>
+<tr>
+<td><strong>Spans</strong></td>
+<td>🔗</td>
+<td>Distributed trace spans</td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td>📊</td>
+<td>Metric data ingestion</td>
+</tr>
+<tr>
+<td><strong>Events</strong></td>
+<td>⚡</td>
+<td>Platform events</td>
+</tr>
+<tr>
+<td><strong>Business Events</strong></td>
+<td>💼</td>
+<td>Business analytics events</td>
+</tr>
+<tr>
+<td><strong>Security Events</strong></td>
+<td>🔐</td>
+<td>Security data</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>Tip:</strong> Each scope has its own separate set of pipelines. Start with <strong>Logs</strong> for your migration.</p>
+</blockquote>
+<h3>Three Main Tabs</h3>
+<h4>1. Pipelines Tab</h4>
+<ul>
+<li>View all pipelines for selected scope</li>
+<li>Create new pipelines</li>
+<li>Edit pipeline configuration</li>
+<li>Configure processing, extraction, storage</li>
+</ul>
+<h4>2. Dynamic Routing Tab</h4>
+<ul>
+<li>Create routing rules</li>
+<li>Map data to pipelines</li>
+<li>Set matching conditions</li>
+<li>Control route order</li>
+</ul>
+<h4>3. Ingest Sources Tab</h4>
+<ul>
+<li>View data sources</li>
+<li>See ingestion statistics</li>
+<li>Monitor source health</li>
+<li>Troubleshoot ingestion issues</li>
+</ul>
+<hr />
+<p><a id="step-by-step-creating-your-first-pipeline"></a></p>
+<h2>Step-by-Step: Creating Your First Pipeline</h2>
+<p>Let's walk through creating a complete pipeline for nginx access logs.</p>
+<h3>Step 1: Create the Pipeline</h3>
+<p><strong>Actions:</strong></p>
+<ol>
+<li>Go to OpenPipeline → Logs scope</li>
+<li>Click <strong>[+ Pipeline]</strong> button (top-left)</li>
+<li>Enter name: <code>nginx-access-logs</code></li>
+<li>Add description: <code>Process nginx access logs with parsing and metric extraction</code></li>
+<li>Click <strong>Create</strong></li>
+</ol>
+<p><strong>Result:</strong> New empty pipeline appears in list</p>
+<hr />
+<h3>Step 2: Configure Processing Stage</h3>
+<h4>2a. Add DQL Processor for Parsing</h4>
+<p><strong>Actions:</strong></p>
+<ol>
+<li>Click on your <code>nginx-access-logs</code> pipeline</li>
+<li>Go to <strong>Processing</strong> tab</li>
+<li>Click <strong>[+ Processor]</strong> button</li>
+<li>Select <strong>DQL</strong> from processor types</li>
+</ol>
+<p><strong>Configuration:</strong></p>
+<pre><code>Name: Parse nginx access log
+
+Matching condition:
+log.source == &quot;nginx&quot; OR matchesPhrase(content, &quot;GET&quot;) OR matchesPhrase(content, &quot;POST&quot;)
+
+Processor definition:
+parse content, &quot;IPADDR:client_ip SPACE '-' SPACE LD:user SPACE '[' LD:log_time ']' SPACE '\&quot;' LD:method SPACE LD:path SPACE LD:protocol '\&quot;' SPACE INT:status_code SPACE INT:bytes&quot;
+</code></pre>
+<p><strong>Test with Sample Data:</strong></p>
+<pre><code class="language-json">{
+  &quot;content&quot;: &quot;192.168.1.100 - - [12/Dec/2024:10:30:45 +0000] \&quot;GET /api/users HTTP/1.1\&quot; 200 1234&quot;,
+  &quot;log.source&quot;: &quot;nginx&quot;
+}
+</code></pre>
+<ol start="5">
+<li>Click <strong>[Run sample data]</strong></li>
+<li>Verify fields extracted: <code>client_ip</code>, <code>log_time</code>, <code>method</code>, <code>path</code>, <code>status_code</code>, <code>bytes</code> (the bracketed time goes into <code>log_time</code>, not <code>timestamp</code> — overwriting the record's <code>timestamp</code> with a string risks the record failing log schema validation)</li>
+<li>Click <strong>[Save]</strong></li>
+</ol>
+<h4>2b. Add Enrichment Processor</h4>
+<p><strong>Actions:</strong></p>
+<ol>
+<li>Click <strong>[+ Processor]</strong> again</li>
+<li>Select <strong>DQL</strong></li>
+</ol>
+<p><strong>Configuration:</strong></p>
+<pre><code>Name: Add environment tags
+
+Matching condition:
+(leave empty to apply to all)
+
+Processor definition:
+fieldsAdd environment = &quot;production&quot;
+| fieldsAdd service_type = &quot;web-server&quot;
+| fieldsAdd response_category = if(status_code &lt; 400, &quot;success&quot;, 
+                                else: if(status_code &lt; 500, &quot;client_error&quot;, 
+                                else: &quot;server_error&quot;))
+</code></pre>
+<ol start="3">
+<li>Click <strong>[Save]</strong></li>
+</ol>
+<hr />
+<h3>Step 3: Configure Metric Extraction</h3>
+<p><strong>Actions:</strong></p>
+<ol>
+<li>Go to <strong>Metric extraction</strong> tab</li>
+<li>Click <strong>[+ Metric]</strong></li>
+</ol>
+<p><strong>Configuration for Request Count:</strong></p>
+<pre><code>Metric type: Counter
+Metric key: log.nginx.request_count
+
+Dimensions:
+  - method
+  - status_code
+  - environment
+
+Matching condition:
+isNotNull(status_code)
+</code></pre>
+<ol start="3">
+<li>Click <strong>[Save]</strong></li>
+<li>Click <strong>[+ Metric]</strong> again for bytes metric</li>
+</ol>
+<p><strong>Configuration for Response Size:</strong></p>
+<pre><code>Metric type: Value
+Metric key: log.nginx.response_bytes
+Value field: bytes
+
+Dimensions:
+  - method
+  - path
+
+Matching condition:
+isNotNull(bytes)
+</code></pre>
+<ol start="5">
+<li>Click <strong>[Save]</strong></li>
+</ol>
+<hr />
+<h3>Step 4: Configure Storage</h3>
+<p><strong>Actions:</strong></p>
+<ol>
+<li>Go to the <strong>Bucket assignment</strong> stage</li>
+<li>Add a <strong>Bucket assignment</strong> processor, give it a name and a matching condition (for example <code>true</code>)</li>
+<li>In the <strong>Storage</strong> list, choose the bucket — for example a custom <code>web_logs</code> bucket with 14-day retention</li>
+<li>Click <strong>[Save]</strong></li>
+</ol>
+<blockquote>
+<p>💡 <strong>Tip:</strong> Bucket assignment is <em>first match only</em> — the first processor whose condition matches decides the bucket. In community practice, records that match no bucket-assignment processor land in the scope's default bucket (<code>default_logs</code>); confirm where yours land with the bucket query in <a href="#verifying-pipeline-processing">Verifying Pipeline Processing</a>. To keep a record out of storage entirely (for example after extracting a metric), use <strong>No storage assignment</strong> instead.</p>
+</blockquote>
+<hr />
+<h3>Step 5: Create Dynamic Routing</h3>
+<p><strong>Actions:</strong></p>
+<ol>
+<li>Go to <strong>Dynamic routing</strong> tab (top of OpenPipeline page)</li>
+<li>Click <strong>[+ Dynamic route]</strong></li>
+</ol>
+<p><strong>Configuration:</strong></p>
+<pre><code>Name: Route nginx logs
+
+Matching condition:
+log.source == &quot;nginx&quot; OR matchesValue(content, &quot;*nginx*&quot;)
+
+Pipeline: nginx-access-logs
+</code></pre>
+<ol start="3">
+<li>Click <strong>[Save]</strong></li>
+</ol>
+<hr />
+<h3>Step 6: Test End-to-End</h3>
+<p><strong>Option 1: Send Test Log via API</strong></p>
+<pre><code class="language-bash">curl -i -X POST \
+  &quot;https://{your-environment}.live.dynatrace.com/api/v2/logs/ingest&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -H &quot;Authorization: Api-Token {your-token}&quot; \
+  -d '{
+    &quot;content&quot;: &quot;192.168.1.100 - - [12/Dec/2024:10:30:45 +0000] \&quot;GET /api/users HTTP/1.1\&quot; 200 1234&quot;,
+    &quot;log.source&quot;: &quot;nginx&quot;
+  }'
+</code></pre>
+<p><strong>Option 2: Check with Existing Logs</strong></p>
+<p>Wait 2-3 minutes for processing, then run verification query (see next section).</p>
+<hr />
+<h3>Step 7: Verify Processing</h3>
+<p>See the validation queries in the next section to confirm:</p>
+<ul>
+<li>Logs are routed to your pipeline ✓</li>
+<li>Fields are parsed correctly ✓</li>
+<li>Metrics are being generated ✓</li>
+</ul>
+<hr />
+<p><a id="complete-pipeline-examples"></a></p>
+<h2>Complete Pipeline Examples</h2>
+<h3>Example 1: Application Logs with Error Tracking</h3>
+<p><strong>Use Case:</strong> Java application logs with structured format</p>
+<h4>Pipeline: <code>java-app-logs</code></h4>
+<p><strong>Processing Stage:</strong></p>
+<p><strong>Processor 1: Parse Log Structure</strong></p>
+<pre><code class="language-dql">parse content, &quot;'[' TIMESTAMP('yyyy-MM-dd HH:mm:ss'):log_time ']' SPACE '[' LD:level ']' SPACE '[' LD:thread ']' SPACE LD:class ' - ' DATA:message&quot;
+</code></pre>
+<p><strong>Processor 2: Extract Request ID</strong></p>
+<pre><code class="language-dql">parse content, &quot;LD? 'requestId=' NSPACE:request_id&quot;
+</code></pre>
+<p><code>parse</code> matches from the <strong>start</strong> of the field. A pattern that opens with <code>'requestId='</code> returns null on every line that does not <em>begin</em> with that text, and a trailing <code>LD</code> runs to the end of the line. <code>LD?</code> skips any prefix (or none); <code>NSPACE</code> stops at the next space.</p>
+<p><strong>Processor 3: Classify Errors</strong></p>
+<pre><code class="language-dql">fieldsAdd error_type = if(contains(message, &quot;NullPointerException&quot;), &quot;NPE&quot;,
+                       else: if(contains(message, &quot;SQLException&quot;), &quot;DB&quot;,
+                       else: if(contains(message, &quot;TimeoutException&quot;), &quot;Timeout&quot;,
+                       else: &quot;Other&quot;)))
+| fieldsAdd severity = if(level == &quot;ERROR&quot;, &quot;critical&quot;,
+                       else: if(level == &quot;WARN&quot;, &quot;warning&quot;,
+                       else: &quot;info&quot;))
+</code></pre>
+<p><strong>Metric Extraction:</strong></p>
+<ul>
+<li><strong>Counter:</strong> <code>log.java.error_count</code> (dimensions: error_type, class)</li>
+<li><strong>Counter:</strong> <code>log.java.request_count</code> (dimensions: level, thread)</li>
+</ul>
+<p><strong>Event Extraction:</strong>
+Davis stage → <strong>Davis event</strong> processor:</p>
+<ul>
+<li><strong>Event name:</strong> <code>Error in {class}: {error_type}</code></li>
+<li><strong>Event properties:</strong> <code>event.type = CUSTOM_ALERT</code> (the Davis stage docs list <code>event.type</code> as recommended)</li>
+<li><strong>Matching:</strong> <code>level == &quot;ERROR&quot;</code></li>
+</ul>
+<p><strong>Storage:</strong> <code>default_logs</code> (35 days)</p>
+<hr />
+<h3>Example 2: Payment Service with PCI-DSS Compliance</h3>
+<p><strong>Use Case:</strong> Financial logs requiring credit card masking</p>
+<h4>Pipeline: <code>payment-service-secure</code></h4>
+<p><strong>Processing Stage (in order):</strong></p>
+<p><strong>Processor 1: Mask Credit Cards (FIRST!)</strong></p>
+<pre><code class="language-dql">fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;[CC_REDACTED]&quot;)
+</code></pre>
+<p><strong>Processor 2: Mask CVV</strong></p>
+<pre><code class="language-dql">fieldsAdd content = replacePattern(content, &quot;('cvv='|'cvc='|'CVV='|'CVC=') [0-9]{3,4}&quot;, replacement: &quot;cvv=[REDACTED]&quot;)
+</code></pre>
+<p><strong>Processor 3: Parse Payment Data</strong></p>
+<pre><code class="language-dql">parse content, &quot;LD? 'orderId=' INT:order_id&quot;
+| parse content, &quot;LD? 'amount=' DOUBLE:amount&quot;
+| parse content, &quot;LD? 'currency=' NSPACE:currency&quot;
+| parse content, &quot;LD? 'status=' NSPACE:payment_status&quot;
+</code></pre>
+<p><strong>Processor 4: Add Tags</strong></p>
+<pre><code class="language-dql">fieldsAdd service = &quot;payment&quot;
+| fieldsAdd compliance = &quot;pci-dss&quot;
+| fieldsAdd audit_required = true
+</code></pre>
+<p><strong>Metric Extraction:</strong></p>
+<ul>
+<li><strong>Value:</strong> <code>log.payment.amount</code> (value: amount, dimensions: currency, payment_status)</li>
+<li><strong>Counter:</strong> <code>log.payment.transaction_count</code> (dimensions: payment_status, currency)</li>
+</ul>
+<p><strong>Business Event Extraction:</strong></p>
+<ul>
+<li><strong>Type:</strong> <code>com.company.payment.processed</code></li>
+<li><strong>Provider:</strong> <code>payment-service</code></li>
+<li><strong>Fields:</strong> order_id, amount, currency, payment_status</li>
+</ul>
+<p><strong>Storage:</strong> <code>financial_logs</code> (90 days - compliance requirement)</p>
+<hr />
+<h3>Example 3: Kubernetes Logs with Pod Context</h3>
+<p><strong>Use Case:</strong> Container logs with K8s metadata</p>
+<h4>Pipeline: <code>kubernetes-app-logs</code></h4>
+<p><strong>Processing Stage:</strong></p>
+<p><strong>Processor 1: Drop System Logs</strong></p>
+<pre><code class="language-text">Processor type: Drop record
+Matching condition: k8s.namespace.name == &quot;kube-system&quot; AND loglevel == &quot;DEBUG&quot;
+</code></pre>
+<p><strong>Processor 2: Parse JSON Logs</strong></p>
+<pre><code class="language-dql">parse content, &quot;JSON:json_payload&quot;
+</code></pre>
+<p><strong>Processor 3: Enrich with K8s Context</strong></p>
+<pre><code class="language-dql">fieldsAdd app = k8s.deployment.name
+| fieldsAdd namespace = k8s.namespace.name
+| fieldsAdd pod_name = k8s.pod.name
+| fieldsAdd container = k8s.container.name
+</code></pre>
+<p><strong>Metric Extraction:</strong></p>
+<ul>
+<li><strong>Counter:</strong> <code>log.k8s.pod_log_count</code> (dimensions: namespace, app, loglevel)</li>
+</ul>
+<p><strong>Storage:</strong> Route based on namespace:</p>
+<ul>
+<li>production namespace → <code>prod_logs</code> (35 days)</li>
+<li>staging namespace → <code>staging_logs</code> (14 days)</li>
+<li>dev namespace → <code>dev_logs</code> (7 days)</li>
+</ul>
+<hr />
+<hr />
+<p><a id="understanding-the-interface"></a></p>
+<h2>Understanding the Interface</h2>
+<h3>Pipeline Configuration Tabs</h3>
+<p>Each pipeline has these configuration sections:</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Purpose</th>
+<th>Processors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Processing</strong></td>
+<td>Transform, mask, drop and enrich records</td>
+<td>DQL, Add/Remove/Rename fields, Drop record, Technology bundle, Inline lookup</td>
+</tr>
+<tr>
+<td><strong>Smartscape node / edge</strong></td>
+<td>Create topology from records</td>
+<td>Smartscape node, Smartscape edge</td>
+</tr>
+<tr>
+<td><strong>Permission</strong></td>
+<td>Set <code>dt.security_context</code></td>
+<td>Set security context (first match only)</td>
+</tr>
+<tr>
+<td><strong>Product / Cost allocation</strong></td>
+<td>DPS cost allocation</td>
+<td>First match only</td>
+</tr>
+<tr>
+<td><strong>Bucket assignment</strong></td>
+<td>Choose the Grail bucket</td>
+<td>Bucket assignment, No storage assignment (first match only)</td>
+</tr>
+<tr>
+<td><strong>Metric extraction</strong></td>
+<td>Create metrics from records</td>
+<td>Counter, Value, Histogram metric</td>
+</tr>
+<tr>
+<td><strong>Davis</strong></td>
+<td>Raise Davis events</td>
+<td>Davis event</td>
+</tr>
+<tr>
+<td><strong>Data extraction</strong></td>
+<td>Create new records</td>
+<td>Business event, SDLC event</td>
+</tr>
+</tbody>
+</table>
+<p>The stage order is fixed; only the processor order <em>within</em> a stage is yours (see OPMIG-02 § Understanding Processing Order).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — stage and processor table.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Two additions in SaaS 1.345 (August 2026 — staged tenant rollout).</strong> The <strong>Inline lookup</strong> processor maps an attribute to a new value from a lookup table defined inside the processor, with no external system — useful for error-code descriptions, app-ID-to-cost-centre mapping, and deriving <code>dt.security_context</code>. Separately, any field named with the <strong><code>dt.temp</code></strong> prefix is available throughout processing but is <strong>not persisted to Grail</strong>, so intermediate values feeding metric/event/bizevent extraction no longer have to be stored on the record. Both apply across every scope with a Processing stage. Verify each has reached your tenant before designing against it.</p>
+</blockquote>
+<h3>Processor Configuration Panel</h3>
+<p>When adding a processor, you configure:</p>
+<ol>
+<li><strong>Name</strong>: Descriptive name for the processor</li>
+<li><strong>Matching condition</strong>: When this processor runs</li>
+<li><strong>Processor definition</strong>: What the processor does</li>
+<li><strong>Sample data</strong>: Test data to validate</li>
+</ol>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNDAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icGNIZWFkZXJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTQwYWY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFlM2E4YTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJwY1NoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjQiIGZsb29kLW9wYWNpdHk9IjAuMiIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjYwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIE1vZGFsIHdpbmRvdyAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMjAiIHdpZHRoPSI1NDAiIGhlaWdodD0iMzYwIiByeD0iOCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjcGNTaGFkb3cpIi8+CgogIDwhLS0gSGVhZGVyIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIyMCIgd2lkdGg9IjU0MCIgaGVpZ2h0PSI0MCIgcng9IjgiIGZpbGw9InVybCgjcGNIZWFkZXJHcmFkKSIvPgogIDxyZWN0IHg9IjMwIiB5PSI1MiIgd2lkdGg9IjU0MCIgaGVpZ2h0PSI4IiBmaWxsPSJ1cmwoI3BjSGVhZGVyR3JhZCkiLz4KICA8dGV4dCB4PSI1MCIgeT0iNDYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIj5BZGQgcHJvY2Vzc29yOiBEUUw8L3RleHQ+CgogIDwhLS0gTmFtZSBmaWVsZCAtLT4KICA8dGV4dCB4PSI1MCIgeT0iOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY0NzQ4YiI+TmFtZTo8L3RleHQ+CiAgPHJlY3QgeD0iNTAiIHk9Ijk1IiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0id2hpdGUiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjAiIHk9IjExNCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzMzNDE1NSI+UGFyc2UgbmdpbnggYWNjZXNzIGxvZzwvdGV4dD4KCiAgPCEtLSBNYXRjaGluZyBjb25kaXRpb24gLS0+CiAgPHRleHQgeD0iNTAiIHk9IjE0NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjQ3NDhiIj5NYXRjaGluZyBjb25kaXRpb246PC90ZXh0PgogIDxyZWN0IHg9IjUwIiB5PSIxNTAiIHdpZHRoPSI1MDAiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSIjZjhmYWZjIiBzdHJva2U9IiNjYmQ1ZTEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjYwIiB5PSIxNjkiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzYjgyZjYiPmxvZy5zb3VyY2UgPT0gIm5naW54IjwvdGV4dD4KCiAgPCEtLSBQcm9jZXNzb3IgZGVmaW5pdGlvbiAtLT4KICA8dGV4dCB4PSI1MCIgeT0iMjAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NDc0OGIiPlByb2Nlc3NvciBkZWZpbml0aW9uOjwvdGV4dD4KICA8cmVjdCB4PSI1MCIgeT0iMjA1IiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjUwIiByeD0iNCIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2MCIgeT0iMjI1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMGY3NjZlIj5wYXJzZSBjb250ZW50LCAiSVBBRERSOmNsaWVudF9pcCBTUEFDRSAnLScgU1BBQ0U8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjI0MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzBmNzY2ZSI+TEQ6dXNlciBTUEFDRSAnWycgTEQ6bG9nX3RpbWUgJ10nIC4uLiI8L3RleHQ+CgogIDwhLS0gU2FtcGxlIGRhdGEgLS0+CiAgPHRleHQgeD0iNTAiIHk9IjI4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjQ3NDhiIj5TYW1wbGUgZGF0YTo8L3RleHQ+CiAgPHJlY3QgeD0iNTAiIHk9IjI4NSIgd2lkdGg9IjUwMCIgaGVpZ2h0PSI0NSIgcng9IjQiIGZpbGw9IiNmZmZiZWIiIHN0cm9rZT0iI2ZjZDM0ZCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjAiIHk9IjMwNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzkyNDAwZSI+eyJjb250ZW50IjogIjE5Mi4xNjguMS4xIC0gLSBbMTAvRGVjLzIwMjQ6MTA6MzA6NDU8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjMyMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzkyNDAwZSI+KzAwMDBdIFwiR0VUIC9hcGkvdXNlcnMgSFRUUC8xLjFcIiAyMDAgMTIzNCJ9PC90ZXh0PgoKICA8IS0tIEJ1dHRvbnMgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjM0NSIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiMxMGI5ODEiLz4KICA8dGV4dCB4PSIxMTAiIHk9IjM2NCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9ImJvbGQiPlJ1biBzYW1wbGUgZGF0YTwvdGV4dD4KCiAgPHJlY3QgeD0iMzkwIiB5PSIzNDUiIHdpZHRoPSI3MCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IndoaXRlIiBzdHJva2U9IiNjYmQ1ZTEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQyNSIgeT0iMzY0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNhbmNlbDwvdGV4dD4KCiAgPHJlY3QgeD0iNDcwIiB5PSIzNDUiIHdpZHRoPSI4MCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI1MTAiIHk9IjM2NCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9ImJvbGQiPlNhdmU8L3RleHQ+Cjwvc3ZnPgo=" alt="Processor Configuration Panel" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Field | Purpose | Example |
+|-------|---------|---------|
+| Name | Identify the processor | "Parse nginx access log" |
+| Matching condition | When to apply | `log.source == "nginx"` |
+| Processor definition | DQL/DPL code | `parse content, "IPADDR:client_ip ..."` |
+| Sample data | Test input | `{"content": "192.168.1.1 - - ..."}` |
+| Run sample data | Execute test | Validate parsing |
+-->
+<hr />
+<p><a id="creating-your-first-pipeline"></a></p>
+<h2>Creating Your First Pipeline</h2>
+<h3>Step-by-Step: Create a Log Processing Pipeline</h3>
+<p><strong>Example</strong>: Create a pipeline for nginx access logs</p>
+<h4>Step 1: Navigate to OpenPipeline</h4>
+<pre><code>Settings → Process and contextualize → OpenPipeline → Logs
+</code></pre>
+<h4>Step 2: Create Pipeline</h4>
+<ol>
+<li>Click <strong>+ Pipeline</strong></li>
+<li>Enter name: <code>nginx-access-logs</code></li>
+<li>Click <strong>Create</strong></li>
+</ol>
+<h4>Step 3: Add Processing (Parsing)</h4>
+<ol>
+<li>Go to <strong>Processing</strong> tab</li>
+<li>Click <strong>+ Processor</strong> → <strong>DQL</strong></li>
+<li>Configure:
+<ul>
+<li><strong>Name</strong>: <code>Parse nginx access log</code></li>
+<li><strong>Matching condition</strong>: <code>matchesValue(content, &quot;*HTTP*&quot;)</code></li>
+<li><strong>Processor definition</strong>:</li>
+</ul>
+<pre><code>parse content, &quot;IPADDR:client_ip SPACE '-' SPACE LD:user SPACE '[' LD:log_time ']' SPACE '\&quot;' LD:method SPACE LD:path SPACE LD:protocol '\&quot;' SPACE INT:status_code SPACE INT:bytes&quot;
+</code></pre>
+</li>
+</ol>
+<h4>Step 4: Test with Sample Data</h4>
+<ol>
+<li>Enter sample log:<pre><code class="language-json">{&quot;content&quot;: &quot;192.168.1.100 - - [12/Dec/2024:10:30:45 +0000] \&quot;GET /api/users HTTP/1.1\&quot; 200 1234&quot;}
+</code></pre>
+</li>
+<li>Click <strong>Run sample data</strong></li>
+<li>Verify extracted fields</li>
+</ol>
+<h4>Step 5: Save Pipeline</h4>
+<p>Click <strong>Save</strong> to store the configuration.</p>
+<hr />
+<p><a id="configuring-processors"></a></p>
+<h2>Configuring Processors</h2>
+<h3>DQL Processor Examples</h3>
+<p>The DQL processor is the most flexible. Here are common patterns:</p>
+<h4>Add Static Fields</h4>
+<pre><code>fieldsAdd environment = &quot;production&quot;
+| fieldsAdd application = &quot;web-frontend&quot;
+</code></pre>
+<h4>Add Conditional Fields</h4>
+<pre><code>fieldsAdd severity = if(loglevel == &quot;ERROR&quot;, &quot;critical&quot;, 
+                     else: if(loglevel == &quot;WARN&quot;, &quot;warning&quot;, 
+                     else: &quot;normal&quot;))
+</code></pre>
+<h4>Parse with DPL Pattern</h4>
+<pre><code>parse content, &quot;LD? 'userId=' LD:user_id ','&quot;
+</code></pre>
+<p>Start the pattern with <code>LD?</code> unless the field always begins with your literal — <code>parse</code> anchors at the start of the field and returns null otherwise.</p>
+<h4>Remove Sensitive Fields</h4>
+<pre><code>fieldsRemove password, secret_key, api_token
+</code></pre>
+<h4>Rename Fields for Standardization</h4>
+<pre><code>fieldsRename standardized_name = old_field_name
+</code></pre>
+<h3>Drop Processor Examples</h3>
+<p>Drop processors remove records matching conditions:</p>
+<table>
+<thead>
+<tr>
+<th>Matching Condition</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>loglevel == &quot;DEBUG&quot;</code></td>
+<td>Drop all debug logs</td>
+</tr>
+<tr>
+<td><code>matchesValue(content, &quot;*healthz*&quot;)</code></td>
+<td>Drop health check logs</td>
+</tr>
+<tr>
+<td><code>matchesValue(content, &quot;*/metrics*&quot;)</code></td>
+<td>Drop Prometheus scrapes</td>
+</tr>
+<tr>
+<td><code>loglevel == &quot;TRACE&quot;</code></td>
+<td>Drop trace-level logs</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Matchers accept <code>matchesValue</code> (with <code>*</code> wildcards, any substring) and <code>matchesPhrase</code> (whole tokens); <code>contains()</code> is not enabled in a matching condition.</p>
+</blockquote>
+<h3>Technology Bundle Processor</h3>
+<p>For common formats, add a <strong>Technology bundle</strong> processor instead of writing the pattern yourself. It <em>&quot;matches records for the selected technology and processes them according to predefined context-sensitive processing statements.&quot;</em> The fields each bundle adds are defined by the bundle — run its preview on a sample record before you depend on them downstream.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — processor table, <em>Technology bundle</em>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="setting-up-dynamic-routing"></a></p>
+<h2>Setting Up Dynamic Routing</h2>
+<p>Dynamic routing sends data to specific pipelines based on matching conditions.</p>
+<h3>Routing Configuration Steps</h3>
+<ol>
+<li>Go to <strong>Dynamic routing</strong> tab</li>
+<li>Click <strong>+ Dynamic route</strong></li>
+<li>Configure:
+<ul>
+<li><strong>Name</strong>: Descriptive route name</li>
+<li><strong>Matching condition</strong>: When to use this route</li>
+<li><strong>Pipeline</strong>: Target pipeline</li>
+</ul>
+</li>
+</ol>
+<h3>Matching Condition Examples</h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Routes To</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>log.source == &quot;nginx&quot;</code></td>
+<td>nginx-logs pipeline</td>
+</tr>
+<tr>
+<td><code>k8s.namespace.name == &quot;production&quot;</code></td>
+<td>prod-logs pipeline</td>
+</tr>
+<tr>
+<td><code>matchesPhrase(content, &quot;payment&quot;)</code></td>
+<td>payment-logs pipeline</td>
+</tr>
+<tr>
+<td><code>dt.openpipeline.source == &quot;/api/v2/logs/ingest&quot;</code></td>
+<td>api-ingested pipeline</td>
+</tr>
+<tr>
+<td><code>host.name == &quot;web-server-01&quot;</code></td>
+<td>specific host pipeline</td>
+</tr>
+</tbody>
+</table>
+<h3>Route Evaluation Order</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZGF0YUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJyb3V0ZUFHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyYzU1ZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icm91dGVCR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJvdXRlQ0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWM0ODk5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYjI3Nzc7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJkZWZhdWx0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2NDc0OGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzQ3NTU2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJkclNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iZHJBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImdyZWVuQXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzE2YTM0YSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIzNDAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkR5bmFtaWMgUm91dGluZyBGbG93PC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RWFjaCByZWNvcmQgdGFrZXMgdGhlIEZJUlNUIG1hdGNoaW5nIHJvdXRlOyBubyBtYXRjaCDihpIgZGVmYXVsdCByb3V0ZTwvdGV4dD4KCiAgPCEtLSBJbmNvbWluZyBEYXRhIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI4MCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI1MCIgcng9IjgiIGZpbGw9InVybCgjZGF0YUdyYWQpIiBmaWx0ZXI9InVybCgjZHJTaGFkb3cpIi8+CiAgPHRleHQgeD0iODAiIHk9IjExMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkluY29taW5nPC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSIxMjQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SZWNvcmQ8L3RleHQ+CgogIDwhLS0gQXJyb3cgdG8gZXZhbHVhdGlvbiAtLT4KICA8cGF0aCBkPSJNMTMwLDEwNSBMMTYwLDEwNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjZHJBcnJvdykiLz4KCiAgPCEtLSBSb3V0ZSBFdmFsdWF0aW9uIEJveCAtLT4KICA8cmVjdCB4PSIxNzAiIHk9IjYwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIyMCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMzcwIiB5PSI4NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Uk9VVEUgRVZBTFVBVElPTjwvdGV4dD4KCiAgPCEtLSBSb3V0ZSAxIC0tPgogIDxyZWN0IHg9IjE5MCIgeT0iMTAwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0iI2QxZmFlNSIgc3Ryb2tlPSIjMjJjNTVlIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjExNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzA0Nzg1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Um91dGUgMTogazhzLm5hbWVzcGFjZTwvdGV4dD4KICA8dGV4dCB4PSIyNzAiIHk9IjEyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj49PSAicHJvZHVjdGlvbiI8L3RleHQ+CgogIDx0ZXh0IHg9IjM2NSIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMxNmEzNGEiPlllcyDihpI8L3RleHQ+CgogIDxyZWN0IHg9IjQwMCIgeT0iMTAwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0idXJsKCNyb3V0ZUFHcmFkKSIgZmlsdGVyPSJ1cmwoI2RyU2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMTIyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cHJvZC1sb2dzIHBpcGVsaW5lPC90ZXh0PgoKICA8IS0tIFJvdXRlIDIgLS0+CiAgPHJlY3QgeD0iMTkwIiB5PSIxNDUiIHdpZHRoPSIxNjAiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSIjZmVmM2M3IiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjI3MCIgeT0iMTYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Sb3V0ZSAyOiBsb2cuc291cmNlPC90ZXh0PgogIDx0ZXh0IHg9IjI3MCIgeT0iMTczIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPj09ICJuZ2lueCI8L3RleHQ+CgogIDx0ZXh0IHg9IjM2NSIgeT0iMTY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNkOTc3MDYiPlllcyDihpI8L3RleHQ+CgogIDxyZWN0IHg9IjQwMCIgeT0iMTQ1IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0idXJsKCNyb3V0ZUJHcmFkKSIgZmlsdGVyPSJ1cmwoI2RyU2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMTY3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bmdpbngtbG9ncyBwaXBlbGluZTwvdGV4dD4KCiAgPCEtLSBSb3V0ZSAzIC0tPgogIDxyZWN0IHg9IjE5MCIgeT0iMTkwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0iI2ZjZTdmMyIgc3Ryb2tlPSIjZWM0ODk5IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjIwNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzlkMTc0ZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Um91dGUgMzogbWF0Y2hlc1BocmFzZTwvdGV4dD4KICA8dGV4dCB4PSIyNzAiIHk9IjIxOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOWQxNzRkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oY29udGVudCwgInBheW1lbnQiKTwvdGV4dD4KCiAgPHRleHQgeD0iMzY1IiB5PSIyMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iI2RiMjc3NyI+WWVzIOKGkjwvdGV4dD4KCiAgPHJlY3QgeD0iNDAwIiB5PSIxOTAiIHdpZHRoPSIxNTAiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSJ1cmwoI3JvdXRlQ0dyYWQpIiBmaWx0ZXI9InVybCgjZHJTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDc1IiB5PSIyMTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wYXltZW50LWxvZ3MgcGlwZWxpbmU8L3RleHQ+CgogIDwhLS0gRGVmYXVsdCAtLT4KICA8cmVjdCB4PSIxOTAiIHk9IjIzNSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9IiNmMWY1ZjkiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMjcwIiB5PSIyNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KG5vIG1hdGNoKTwvdGV4dD4KCiAgPHRleHQgeD0iMzY1IiB5PSIyNTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY0NzQ4YiI+4oaSPC90ZXh0PgoKICA8cmVjdCB4PSI0MDAiIHk9IjIzNSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9InVybCgjZGVmYXVsdEdyYWQpIiBmaWx0ZXI9InVybCgjZHJTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDc1IiB5PSIyNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kZWZhdWx0IHJvdXRlPC90ZXh0PgoKICA8IS0tIEtleSBQb2ludHMgLS0+CiAgPHJlY3QgeD0iNTkwIiB5PSI4MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyMDAiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjY4MCIgeT0iMTA1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5LZXkgQ29uY2VwdHM8L3RleHQ+CgogIDx0ZXh0IHg9IjYxMCIgeT0iMTMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPuKAoiBPcmRlciBtYXR0ZXJzPC90ZXh0PgogIDx0ZXh0IHg9IjYxMCIgeT0iMTQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPuKAoiBGaXJzdCBtYXRjaCB3aW5zPC90ZXh0PgogIDx0ZXh0IHg9IjYxMCIgeT0iMTY2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPuKAoiBPbmUgcm91dGUgcGVyIHJlY29yZDwvdGV4dD4KICA8dGV4dCB4PSI2MTAiIHk9IjE4NCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj7igKIgRGVmYXVsdCByb3V0ZTogdGhlIHJlc3Q8L3RleHQ+CgogIDxyZWN0IHg9IjYxMCIgeT0iMjAwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjYwIiByeD0iNCIgZmlsbD0iI2UwZjJmZSIvPgogIDx0ZXh0IHg9IjY4MCIgeT0iMjIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDM2OWExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm8gVGlwPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iMjM4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwMzY5YTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBsYWNlIHNwZWNpZmljIHJvdXRlczwvdGV4dD4KICA8dGV4dCB4PSI2ODAiIHk9IjI1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDM2OWExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5iZWZvcmUgZ2VuZXJhbCBvbmVzPC90ZXh0PgoKICA8IS0tIFJlc3VsdCBOb3RlIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIyOTUiIHdpZHRoPSI3NDAiIGhlaWdodD0iMzAiIHJ4PSI0IiBmaWxsPSIjZmVmM2M3Ii8+CiAgPHRleHQgeD0iNDAwIiB5PSIzMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Tm90ZTogdG8gcnVuIG9uZSByZWNvcmQgdGhyb3VnaCBzZXZlcmFsIHBpcGVsaW5lcywgcm91dGUgaXQgdG8gYSBtZW1iZXIgcGlwZWxpbmUgb2YgYSBwaXBlbGluZSBncm91cCAoYmFzZSArIG1lbWJlcik8L3RleHQ+Cjwvc3ZnPgo=" alt="Dynamic Routing Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Condition | Result |
+|------|-----------|--------|
+| 1 | Route 1 matches? | → Pipeline A (if yes) |
+| 2 | Route 2 matches? | → Pipeline B (if yes) |
+| 3 | No match | → Default Pipeline |
+
+Key: Routes are evaluated in order. First match wins.
+-->
+<blockquote>
+<p>💡 <strong>Tip:</strong> Routes are evaluated in order. Place more specific routes first, general routes last.</p>
+</blockquote>
+<hr />
+<p><a id="testing-your-configuration"></a></p>
+<h2>Testing Your Configuration</h2>
+<h3>Using Sample Data in UI</h3>
+<p>Every processor supports sample data testing:</p>
+<ol>
+<li>Enter JSON sample in <strong>Sample data</strong> field</li>
+<li>Click <strong>Run sample data</strong></li>
+<li>Review output in preview panel</li>
+<li>Adjust processor definition as needed</li>
+</ol>
+<h3>Sample Data Format</h3>
+<pre><code class="language-json">{
+  &quot;content&quot;: &quot;Your log message here&quot;,
+  &quot;log.source&quot;: &quot;your-source&quot;,
+  &quot;timestamp&quot;: &quot;2024-12-12T10:30:00Z&quot;,
+  &quot;k8s.namespace.name&quot;: &quot;production&quot;
+}
+</code></pre>
+<h3>Testing via API</h3>
+<p>Send test logs to validate end-to-end:</p>
+<pre><code class="language-bash">curl -i -X POST \
+  &quot;https://{your-environment}.live.dynatrace.com/api/v2/logs/ingest&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -H &quot;Authorization: Api-Token {your-token}&quot; \
+  -d '{&quot;content&quot;:&quot;Test log message&quot;,&quot;log.source&quot;:&quot;test-source&quot;}'
+</code></pre>
+<p>Response <code>204</code> indicates successful ingestion.</p>
+<hr />
+<p><a id="configuration-best-practices"></a></p>
+<h2>Configuration Best Practices</h2>
+<h3>Pipeline Design Principles</h3>
+<table>
+<thead>
+<tr>
+<th>Principle</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single Purpose</strong></td>
+<td>One pipeline per use case (not one mega-pipeline)</td>
+</tr>
+<tr>
+<td><strong>Specific Routing</strong></td>
+<td>Use precise matching conditions</td>
+</tr>
+<tr>
+<td><strong>Security First</strong></td>
+<td>Add masking processors early in the chain</td>
+</tr>
+<tr>
+<td><strong>Drop Early</strong></td>
+<td>Remove unwanted data before processing</td>
+</tr>
+<tr>
+<td><strong>Test Thoroughly</strong></td>
+<td>Validate every processor with sample data</td>
+</tr>
+</tbody>
+</table>
+<h3>Processor Ordering</h3>
+<p>Within the <strong>Processing stage</strong>, order processors logically:</p>
+<pre><code class="language-text">1. Masking      → Protect sensitive data first
+2. Drop         → Remove unwanted records
+3. Parse        → Extract structured fields
+4. Enrich       → Add context fields
+5. Transform    → Compute derived values
+</code></pre>
+<p>Everything else — Smartscape, permission, cost allocation, bucket assignment, and metric/event extraction — runs in later stages whose order is fixed by the platform (see OPMIG-02 § Understanding Processing Order).</p>
+<h3>Naming Conventions</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Convention</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pipeline</td>
+<td><code>{source}-{purpose}</code></td>
+<td><code>nginx-access-logs</code></td>
+</tr>
+<tr>
+<td>Processor</td>
+<td><code>{action}-{target}</code></td>
+<td><code>parse-request-line</code></td>
+</tr>
+<tr>
+<td>Route</td>
+<td><code>route-to-{pipeline}</code></td>
+<td><code>route-to-nginx-logs</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Common Mistakes to Avoid</h3>
+<table>
+<thead>
+<tr>
+<th>Mistake</th>
+<th>Problem</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Overly broad routing</td>
+<td>Too many logs hit pipeline</td>
+<td>Use specific conditions</td>
+</tr>
+<tr>
+<td>No masking</td>
+<td>Sensitive data stored</td>
+<td>Add masking before processing</td>
+</tr>
+<tr>
+<td>Complex conditions</td>
+<td>Hard to maintain</td>
+<td>Break into multiple pipelines</td>
+</tr>
+<tr>
+<td>Untested patterns</td>
+<td>Parsing fails on real data</td>
+<td>Always test with samples</td>
+</tr>
+<tr>
+<td>Assuming unmatched data is lost</td>
+<td>It is not — the default route still stores it, unprocessed (classic pipeline for logs and business events)</td>
+<td>Watch default-route volume with the query below and add routes for what lands there</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="verifying-pipeline-processing"></a></p>
+<h2>Verifying Pipeline Processing</h2>
+<p>After configuring pipelines, verify they're working correctly with these queries.</p>
+<pre><code class="language-dql">// Verify logs are being processed by your new pipeline
+// Replace 'your-pipeline-name' with your actual pipeline name
+fetch logs, from: now() - 1h
+| filter contains(toString(dt.openpipeline.pipelines), &quot;your-pipeline-name&quot;)
+| summarize {processed_count = count()}
+| fieldsAdd status = if(processed_count &gt; 0, &quot;✅ Pipeline is processing logs&quot;, else: &quot;⚠️ No logs processed yet&quot;)
+</code></pre>
+<pre><code class="language-dql">// Check routing distribution across all pipelines
+fetch logs, from: now() - 1h
+| summarize {record_count = count()}, by: {dt.openpipeline.pipelines}
+| sort record_count desc
+</code></pre>
+<pre><code class="language-dql">// Verify parsing is extracting expected fields
+// Check for a specific field that should be parsed
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.openpipeline.pipelines)
+| summarize {
+    total = count(),
+    with_loglevel = countIf(loglevel != &quot;NONE&quot;)
+  }, by: {dt.openpipeline.pipelines}
+| fieldsAdd parsing_rate = round((toDouble(with_loglevel) / toDouble(total)) * 100, decimals: 1)
+</code></pre>
+<pre><code class="language-dql">// Sample recent logs from your pipeline to inspect parsed fields
+fetch logs, from: now() - 1h
+| filter contains(toString(dt.openpipeline.pipelines), &quot;your-pipeline-name&quot;)
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Check logs taking the default route (may need routing)
+// For logs, the default route is the classic pipeline: pipeline id &quot;logs:default&quot;.
+// dt.openpipeline.pipelines is an array, so use in(), never ==.
+fetch logs, from: now() - 1h
+| filter in(dt.openpipeline.pipelines, &quot;logs:default&quot;)
+| summarize {unrouted = count()}, by: {log.source}
+| sort unrouted desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Monitor pipeline processing over time
+fetch logs, from: now() - 24h
+| filter isNotNull(dt.openpipeline.pipelines)
+| makeTimeseries {record_count = count()}, by: {dt.openpipeline.pipelines}, interval: 1h
+</code></pre>
+<pre><code class="language-dql">// Verify bucket routing is working
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.openpipeline.pipelines)
+| summarize {record_count = count()}, by: {dt.openpipeline.pipelines, dt.system.bucket}
+| sort record_count desc
+</code></pre>
+<hr />
+<p><a id="complete-pipeline-example"></a></p>
+<h2>Complete Pipeline Example</h2>
+<p>Here's a complete example of a production pipeline configuration:</p>
+<h3>Pipeline: <code>payment-service-logs</code></h3>
+<p><strong>Routing Condition:</strong></p>
+<pre><code>k8s.namespace.name == &quot;payments&quot; OR log.source == &quot;payment-service&quot;
+</code></pre>
+<p><strong>Processors (in order):</strong></p>
+<ol>
+<li>
+<p><strong>Mask Credit Cards</strong> (Masking)</p>
+<ul>
+<li>Matching: <code>matchesPhrase(content, &quot;card&quot;)</code></li>
+<li>Definition: <code>fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;****-****-****-****&quot;)</code> — <code>replacePattern</code> takes a DPL pattern, not a regular expression. The <code>!&lt;&lt;</code> / <code>!&gt;&gt;</code> bounds stop <code>CREDITCARD</code> matching digit runs inside UUIDs, which it otherwise rewrites (OPMIG-08)</li>
+</ul>
+</li>
+<li>
+<p><strong>Drop Health Checks</strong> (Drop)</p>
+<ul>
+<li>Matching: <code>matchesValue(content, &quot;*/health*&quot;) OR matchesValue(content, &quot;*/ready*&quot;)</code></li>
+</ul>
+</li>
+<li>
+<p><strong>Parse Payment Logs</strong> (DQL)</p>
+<ul>
+<li>Matching: <code>matchesValue(content, &quot;*transaction*&quot;)</code></li>
+<li>Definition: <code>parse content, &quot;LD? 'transaction_id=' LD:transaction_id ',' SPACE? 'amount=' DOUBLE:amount ',' SPACE? 'status=' NSPACE:payment_status&quot;</code></li>
+</ul>
+</li>
+<li>
+<p><strong>Add Environment Tag</strong> (DQL)</p>
+<ul>
+<li>Matching: (none - applies to all)</li>
+<li>Definition: <code>fieldsAdd service = &quot;payment-service&quot;, criticality = &quot;high&quot;</code></li>
+</ul>
+</li>
+</ol>
+<p><strong>Metric Extraction:</strong></p>
+<ul>
+<li>Name: <code>payment_amount_by_status</code></li>
+<li>Field: <code>amount</code></li>
+<li>Dimensions: <code>payment_status</code></li>
+</ul>
+<p><strong>Storage:</strong></p>
+<ul>
+<li>Bucket: <code>financial_logs</code> (90-day retention)</li>
+</ul>
+<hr />
+<h2>Next Steps</h2>
+<p>Now that you can create and configure pipelines, continue with:</p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Focus Area</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OPMIG-05</strong></td>
+<td>Routing &amp; Bucket Management</td>
+</tr>
+<tr>
+<td><strong>OPMIG-06</strong></td>
+<td>Processing, Parsing &amp; Transformation</td>
+</tr>
+<tr>
+<td><strong>OPMIG-07</strong></td>
+<td>Metric &amp; Event Extraction</td>
+</tr>
+<tr>
+<td><strong>OPMIG-08</strong></td>
+<td>Security, Masking &amp; Compliance</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/get-started/tutorial-configure-processing">Configure Processing Pipeline</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples">Processing Examples</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/openpipeline-dql-functions">DQL Functions in OpenPipeline</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language">Dynatrace Pattern Language</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

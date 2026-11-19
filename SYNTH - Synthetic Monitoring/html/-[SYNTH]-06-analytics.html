@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SYNTH-06: Synthetic Analytics &amp; Alerting</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SYNTH — Synthetic Monitoring</a><span class="sep">/</span><span aria-current="page">SYNTH-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SYNTH-06: Synthetic Analytics &amp; Alerting</h1>
+<blockquote>
+<p><strong>Series:</strong> SYNTH — Synthetic Monitoring | <strong>Notebook:</strong> 6 of 6 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/02/2026</p>
+</blockquote>
+<h2>Dashboards, SLOs, and Alerting Strategies</h2>
+<p>This notebook covers advanced analytics for synthetic monitoring, including building dashboards, configuring SLOs, and implementing effective alerting strategies using the latest Dynatrace platform.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#analytics-overview">Analytics Overview</a></li>
+<li><a href="#availability-analysis">Availability Analysis</a></li>
+<li><a href="#performance-analysis">Performance Analysis</a></li>
+<li><a href="#location-comparison">Location Comparison</a></li>
+<li><a href="#slo-configuration">SLO Configuration</a></li>
+<li><a href="#alerting-strategies">Alerting Strategies</a></li>
+<li><a href="#dashboard-building">Dashboard Building</a></li>
+<li><a href="#series-complete">Series Complete!</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with Synthetic Monitoring</li>
+<li>✅ Completed SYNTH-01 through SYNTH-05</li>
+<li>✅ Active synthetic monitors generating data</li>
+</ul>
+<blockquote>
+<p><strong>Query convention:</strong> These analyses span all monitor types, so they read monitor-level execution events with <code>filter endsWith(event.type, &quot;_monitor_execution&quot;)</code> and group by <code>monitor.name</code>. Success is <code>result.state == &quot;SUCCESS&quot;</code>; duration is <code>result.statistics.duration / 1ms</code>.</p>
+</blockquote>
+<p><a id="analytics-overview"></a></p>
+<h2>1. Analytics Overview</h2>
+<h3>Key Metrics for Synthetic Monitoring</h3>
+<table>
+<thead>
+<tr>
+<th>Metric Category</th>
+<th>Metrics</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Availability</strong></td>
+<td>Success rate, failure count</td>
+<td>SLA compliance</td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Response time, TTFB, DNS</td>
+<td>User experience</td>
+</tr>
+<tr>
+<td><strong>Reliability</strong></td>
+<td>Consecutive failures, MTTR</td>
+<td>Stability</td>
+</tr>
+<tr>
+<td><strong>Geographic</strong></td>
+<td>Per-location metrics</td>
+<td>Regional issues</td>
+</tr>
+</tbody>
+</table>
+<h3>Data Sources</h3>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Description</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.synthetic.events</code></td>
+<td>Execution results (events)</td>
+<td>Per-execution analysis, failures, percentiles</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.detailed_events</code></td>
+<td>Request-level detail for HTTP steps (<code>http_step_execution_details</code>)</td>
+<td>Deep-dive on individual HTTP requests</td>
+</tr>
+<tr>
+<td><code>timeseries dt.synthetic.*</code></td>
+<td>Pre-aggregated metrics</td>
+<td>Long-term trends, dashboards</td>
+</tr>
+<tr>
+<td><code>dt.entity.synthetic_test</code> / <code>dt.entity.http_check</code> / <code>dt.entity.multiprotocol_monitor</code></td>
+<td>Monitor definitions (classic — deprecated in DQL)</td>
+<td>Configuration, name resolution</td>
+</tr>
+<tr>
+<td><code>dt.entity.synthetic_location</code></td>
+<td>Location info (classic — deprecated in DQL)</td>
+<td>Geographic analysis</td>
+</tr>
+<tr>
+<td><code>smartscapeNodes &quot;BROWSER_MONITOR&quot;</code> / <code>&quot;HTTP_MONITOR&quot;</code> / <code>&quot;NETWORK_AVAILABILITY_MONITOR&quot;</code></td>
+<td>Monitor definitions (Smartscape — <strong>preferred</strong>)</td>
+<td>Configuration; <code>name</code> is already the display name, so no <code>entityName()</code> step</td>
+</tr>
+<tr>
+<td><code>smartscapeNodes &quot;BROWSER_MONITOR_STEP&quot;</code> / <code>&quot;HTTP_MONITOR_STEP&quot;</code></td>
+<td>Step definitions as <strong>separate nodes</strong></td>
+<td>Per-step configuration; <code>traverse</code> the <code>belongs_to</code> edge to reach the parent monitor</td>
+</tr>
+<tr>
+<td><code>smartscapeNodes &quot;SYNTHETIC_LOCATION&quot;</code></td>
+<td>Location info (Smartscape — <strong>preferred</strong>)</td>
+<td>Geographic analysis with <code>location_type</code>, <code>stage</code>, <code>cloud.provider</code>, <code>geo.*</code> — none of which exist on the classic entity</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note on the entity rows.</strong> SaaS 1.344 (released 07/27/2026, <strong>staged tenant rollout from 07/29/2026</strong>) makes <code>dt.smartscape.*</code> the primary entity surface for the Synthetic app. The classic tables above still return rows, but DQL queries against classic synthetic entities are documented as deprecated — <em>&quot;They remain supported for as long as Dynatrace Classic is supported, so you can adopt the new model at your own pace.&quot;</em> Keep them as a fallback, not a target. Two mapping traps: the network-monitor node is <code>NETWORK_AVAILABILITY_MONITOR</code> (<strong>not</strong> <code>MULTIPROTOCOL_MONITOR</code>), and classic <code>synthetic_test</code> splits into <code>BROWSER_MONITOR</code> + <code>BROWSER_MONITOR_STEP</code>. See SYNTH-01 § 4 for the full mapping table and FAQ-16 for migration mechanics.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-smartscape">Synthetic monitors in Smartscape (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="availability-analysis"></a></p>
+<h2>2. Availability Analysis</h2>
+<h3>Calculating Availability</h3>
+<pre><code>Availability = (Successful Executions / Total Executions) × 100%
+
+Example SLA Targets:
+- 99.9% = max 8.76 hours downtime/year
+- 99.5% = max 43.8 hours downtime/year
+- 99.0% = max 87.6 hours downtime/year
+</code></pre>
+<blockquote>
+<p><strong>Count each scheduled run once.</strong> A browser monitor that retries on error writes the failed attempt <em>and</em> a re-run (<code>execution.type</code> <code>RE_RUN</code>) for the same scheduled run. The Synthetic events model describes <code>execution.retry_on_error</code> as <em>&quot;Should we ignore this execution attempt (which was a failure) - will there be retry.&quot;</em> Counting both inflates failures: on the validation tenant, 2,015 of 4,701 browser executions in 24 hours were re-runs. The aggregating queries below drop the superseded attempt with <code>filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)</code>. The <code>coalesce</code> matters: HTTP executions carry no value for the field, and without it their failures would be filtered out as well.</p>
+<p><strong>Monitor names are not unique.</strong> A browser monitor and an HTTP monitor can share a name, so per-monitor queries group by <code>dt.synthetic.monitor.id</code> as well as <code>monitor.name</code>.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/synthetic">Synthetic events model (DT docs)</a> — <em>&quot;execution.type MUST be one of the following&quot;</em> (the list includes <code>re-run</code> and <code>standard</code>; the tenant returned <code>RE_RUN</code> / <code>STANDARD</code> for browser and <code>standard</code> for HTTP, read 10/02/2026).</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Overall synthetic availability (last 7 days)
+// Execution-weighted across every monitor and location. For a downtime estimate,
+// use the per-monitor query below -- a tenant-wide failed count cannot be turned
+// into minutes, because it sums failures across monitors, locations and frequencies.
+fetch dt.synthetic.events, from: now() - 7d
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| summarize {
+    total_executions = count(),
+    successful = countIf(result.state == &quot;SUCCESS&quot;),
+    failed = countIf(result.state == &quot;FAIL&quot;)
+  }
+| fieldsAdd availability_pct = round((successful * 100.0) / total_executions, decimals: 3)
+</code></pre>
+<pre><code class="language-dql">// Estimated failed minutes per monitor (last 7 days)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+// Share of executions that failed x the minutes in the window. This needs no
+// frequency assumption and never exceeds the window, unlike failed-count x 5,
+// which sums failures across every monitor and location.
+fetch dt.synthetic.events, from: now() - 7d
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| summarize {
+    executions = count(),
+    failed = countIf(result.state == &quot;FAIL&quot;),
+    locations = countDistinct(dt.smartscape.synthetic_location)
+  }, by: {monitor.name, dt.synthetic.monitor.id}
+| fieldsAdd failed_pct = round(failed * 100.0 / executions, decimals: 2)
+| fieldsAdd est_failed_minutes = round(failed * 10080.0 / executions, decimals: 0)  // 10,080 = minutes in 7 days
+| sort est_failed_minutes desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Availability by monitor (last 7 days)
+fetch dt.synthetic.events, from: now() - 7d
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| summarize {
+    total = count(),
+    successful = countIf(result.state == &quot;SUCCESS&quot;),
+    failed = countIf(result.state == &quot;FAIL&quot;)
+  }, by: {monitor.name, dt.synthetic.monitor.id}
+| fieldsAdd availability_pct = round((successful * 100.0) / total, decimals: 3)
+| sort availability_pct asc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Availability trend over time
+fetch dt.synthetic.events, from: now() - 7d
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| fieldsAdd hour_bucket = bin(timestamp, 1h)
+| summarize {
+    success_count = countIf(result.state == &quot;SUCCESS&quot;),
+    total_count = count()
+  }, by: {hour_bucket}
+| fieldsAdd availability_pct = round((success_count * 100.0) / total_count, decimals: 2)
+| sort hour_bucket desc
+</code></pre>
+<pre><code class="language-dql">// Daily availability report
+fetch dt.synthetic.events, from: now() - 30d
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| fieldsAdd day = formatTimestamp(timestamp, format: &quot;yyyy-MM-dd&quot;)
+| summarize {
+    total = count(),
+    successful = countIf(result.state == &quot;SUCCESS&quot;),
+    failed = countIf(result.state == &quot;FAIL&quot;)
+  }, by: {day}
+| fieldsAdd availability_pct = round((successful * 100.0) / total, decimals: 3)
+| sort day desc
+| limit 30
+</code></pre>
+<p><a id="performance-analysis"></a></p>
+<h2>3. Performance Analysis</h2>
+<h3>Performance Metrics</h3>
+<p>Starting points from community practice — set yours from each monitor's observed baseline.</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+<th>Good</th>
+<th>Warning</th>
+<th>Critical</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Response Time</strong></td>
+<td>Total execution time</td>
+<td>&lt; 2s</td>
+<td>2-5s</td>
+<td>&gt; 5s</td>
+</tr>
+<tr>
+<td><strong>DNS</strong></td>
+<td>DNS resolution</td>
+<td>&lt; 50ms</td>
+<td>50-200ms</td>
+<td>&gt; 200ms</td>
+</tr>
+<tr>
+<td><strong>Connect</strong></td>
+<td>TCP connection</td>
+<td>&lt; 100ms</td>
+<td>100-300ms</td>
+<td>&gt; 300ms</td>
+</tr>
+<tr>
+<td><strong>TTFB</strong></td>
+<td>Time to first byte</td>
+<td>&lt; 500ms</td>
+<td>500ms-1s</td>
+<td>&gt; 1s</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Response time percentiles by monitor
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;SUCCESS&quot;
+| summarize {
+    p50 = percentile(result.statistics.duration, 50),
+    p75 = percentile(result.statistics.duration, 75),
+    p90 = percentile(result.statistics.duration, 90),
+    p95 = percentile(result.statistics.duration, 95),
+    p99 = percentile(result.statistics.duration, 99),
+    executions = count()
+  }, by: {monitor.name, dt.synthetic.monitor.id}
+| fieldsAdd p50_ms = round(p50/1ms, decimals:1), p75_ms = round(p75/1ms, decimals:1),
+            p90_ms = round(p90/1ms, decimals:1), p95_ms = round(p95/1ms, decimals:1),
+            p99_ms = round(p99/1ms, decimals:1)
+| fieldsRemove p50, p75, p90, p95, p99
+| sort p95_ms desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Performance trend comparison (this week vs last week)
+fetch dt.synthetic.events, from: now() - 14d
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;SUCCESS&quot;
+| fieldsAdd week = if(timestamp &gt; now() - 7d, &quot;This Week&quot;, else: &quot;Last Week&quot;)
+| summarize {
+    avg_response_ms = round(avg(result.statistics.duration / 1ms), decimals: 1),
+    p95 = percentile(result.statistics.duration / 1ms, 95),
+    executions = count()
+  }, by: {monitor.name, dt.synthetic.monitor.id, week}
+| fieldsAdd p95_response_ms = round(p95, decimals: 1)
+| fieldsRemove p95
+| sort monitor.name asc, week asc
+</code></pre>
+<pre><code class="language-dql">// Timing breakdown analysis (HTTP step records)
+// TTFB already includes DNS + TCP + TLS, so these phases overlap — do not sum them.
+fetch dt.synthetic.events, from: now() - 24h
+| filter event.type == &quot;http_step_execution&quot;
+| filter result.status.code == 0
+| summarize {
+    avg_dns_ms     = round(avg(result.statistics.host_name_resolution_time) / 1ms, decimals: 2),
+    avg_connect_ms = round(avg(result.statistics.tcp_connect_time) / 1ms, decimals: 2),
+    avg_tls_ms     = round(avg(result.statistics.tls_handshake_time) / 1ms, decimals: 2),
+    avg_ttfb_ms    = round(avg(result.statistics.time_to_first_byte) / 1ms, decimals: 2),
+    avg_total_ms   = round(avg(result.statistics.duration) / 1ms, decimals: 2)
+  }, by: {monitor.name}
+| sort avg_total_ms desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Performance anomalies (max response time &gt; 2x average per monitor)
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;SUCCESS&quot;
+| fieldsAdd response_ms = result.statistics.duration / 1ms
+| summarize {
+    avg_response = avg(response_ms),
+    max_response = max(response_ms),
+    min_response = min(response_ms),
+    executions = count()
+  }, by: {monitor.name, dt.synthetic.monitor.id}
+| fieldsAdd deviation_factor = round(max_response / avg_response, decimals: 1)
+| filter deviation_factor &gt; 2
+| sort deviation_factor desc
+| limit 50
+</code></pre>
+<p><a id="location-comparison"></a></p>
+<h2>4. Location Comparison</h2>
+<h3>Geographic Analysis</h3>
+<p>Compare synthetic results across locations to:</p>
+<ul>
+<li>Identify regional performance issues</li>
+<li>Detect CDN or DNS problems</li>
+<li>Validate global availability</li>
+<li>Optimize user experience by region</li>
+</ul>
+<pre><code class="language-dql">// Availability by location
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| summarize {
+    total = count(),
+    successful = countIf(result.state == &quot;SUCCESS&quot;),
+    failed = countIf(result.state == &quot;FAIL&quot;)
+  }, by: {dt.smartscape.synthetic_location}
+| fieldsAdd availability_pct = round((successful * 100.0) / total, decimals: 2)
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
+| sort availability_pct asc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Performance by location
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;SUCCESS&quot;
+| summarize {
+    avg_response_ms = round(avg(result.statistics.duration / 1ms), decimals: 1),
+    p50 = percentile(result.statistics.duration, 50),
+    p95 = percentile(result.statistics.duration, 95),
+    executions = count()
+  }, by: {dt.smartscape.synthetic_location}
+| fieldsAdd p50_ms = round(p50 / 1ms, decimals: 1), p95_ms = round(p95 / 1ms, decimals: 1)
+| fieldsRemove p50, p95
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
+| sort avg_response_ms desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Location performance heatmap (monitor x location)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| summarize {
+    executions = count(),
+    availability_pct = round(countIf(result.state == &quot;SUCCESS&quot;) * 100.0 / count(), decimals: 2),
+    avg_response_ms = round(avg(result.statistics.duration / 1ms), decimals: 1)
+  }, by: {monitor.name, dt.synthetic.monitor.id, dt.smartscape.synthetic_location}
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
+| sort monitor.name asc, avg_response_ms desc
+</code></pre>
+<pre><code class="language-dql">// Location-specific failures
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;FAIL&quot;
+| summarize {
+    failure_count = count(),
+    unique_monitors = countDistinct(dt.synthetic.monitor.id),
+    error_types = collectDistinct(result.status.message)
+  }, by: {dt.smartscape.synthetic_location}
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
+| sort failure_count desc
+| limit 20
+</code></pre>
+<p><a id="slo-configuration"></a></p>
+<h2>5. SLO Configuration</h2>
+<h3>Service Level Objectives for Synthetic</h3>
+<table>
+<thead>
+<tr>
+<th>SLO Type</th>
+<th>Metric</th>
+<th>Example Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Availability</strong></td>
+<td>Success rate</td>
+<td>99.9%</td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Response time P95</td>
+<td>&lt; 3000ms</td>
+</tr>
+<tr>
+<td><strong>Error Budget</strong></td>
+<td>Allowed failures</td>
+<td>0.1% of executions</td>
+</tr>
+</tbody>
+</table>
+<h3>Creating Synthetic SLOs</h3>
+<p>Create SLOs in the <strong>Service-Level Objectives</strong> app on a DQL query — the availability and P95 queries below are the shape it takes. The SLO series covers defining the SLI, error budgets and burn-rate alerting (SLO-02 to SLO-04).</p>
+<pre><code class="language-dql">// SLO calculation - Availability (30-day window)
+fetch dt.synthetic.events, from: now() - 30d
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| summarize {
+    total_executions = count(),
+    successful = countIf(result.state == &quot;SUCCESS&quot;),
+    failed = countIf(result.state == &quot;FAIL&quot;)
+  }, by: {monitor.name, dt.synthetic.monitor.id}
+| fieldsAdd sli_availability = round((successful * 100.0) / total_executions, decimals: 4)
+| fieldsAdd slo_target = 99.9
+| fieldsAdd error_budget_total = total_executions * 0.001  // 0.1% budget, in failed runs (not rounded before use)
+| fieldsAdd error_budget_remaining = error_budget_total - failed
+| fieldsAdd error_budget_pct = if(error_budget_total &gt; 0,
+    round((error_budget_remaining * 100.0) / error_budget_total, decimals: 1))
+| fieldsAdd slo_status = if(sli_availability &gt;= slo_target, &quot;✅ Met&quot;, else: &quot;❌ Breached&quot;)
+| sort sli_availability asc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// SLO calculation - Performance (P95 &lt; 3000ms)
+fetch dt.synthetic.events, from: now() - 30d
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;SUCCESS&quot;
+| fieldsAdd response_ms = result.statistics.duration / 1ms
+| summarize {
+    executions = count(),
+    p95 = percentile(response_ms, 95),
+    within_target = countIf(response_ms &lt; 3000)
+  }, by: {monitor.name, dt.synthetic.monitor.id}
+| fieldsAdd p95_response_ms = round(p95, decimals: 1)
+| fieldsRemove p95
+| fieldsAdd sli_performance = round((within_target * 100.0) / executions, decimals: 2)
+| fieldsAdd slo_target = 95.0  // 95% of requests &lt; 3s
+| fieldsAdd slo_status = if(sli_performance &gt;= slo_target, &quot;✅ Met&quot;, else: &quot;❌ Breached&quot;)
+| sort sli_performance asc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Error budget burn rate (last 7 days)
+fetch dt.synthetic.events, from: now() - 7d
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| fieldsAdd day = formatTimestamp(timestamp, format: &quot;yyyy-MM-dd&quot;)
+| summarize {
+    total = count(),
+    failed = countIf(result.state == &quot;FAIL&quot;)
+  }, by: {monitor.name, dt.synthetic.monitor.id, day}
+| fieldsAdd daily_error_rate = round((failed * 100.0) / total, decimals: 3)
+| fieldsAdd budget_consumed = round(failed * 100.0 / (total * 0.001), decimals: 1)  // vs 0.1% budget
+| sort monitor.name asc, day desc
+</code></pre>
+<p><a id="alerting-strategies"></a></p>
+<h2>6. Alerting Strategies</h2>
+<h3>Alert Types</h3>
+<table>
+<thead>
+<tr>
+<th>Alert Type</th>
+<th>Trigger</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Availability</strong></td>
+<td>Consecutive failures</td>
+<td>Outage detection</td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Response time threshold</td>
+<td>Degradation</td>
+</tr>
+<tr>
+<td><strong>SLO</strong></td>
+<td>Error budget consumption</td>
+<td>Proactive warning</td>
+</tr>
+<tr>
+<td><strong>SSL</strong></td>
+<td>Certificate expiration</td>
+<td>Security</td>
+</tr>
+</tbody>
+</table>
+<h3>Alert Configuration Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Recommendation</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Consecutive failures</strong></td>
+<td>2-3</td>
+<td>Avoid false positives</td>
+</tr>
+<tr>
+<td><strong>Location threshold</strong></td>
+<td>2+ locations</td>
+<td>Confirm not local issue</td>
+</tr>
+<tr>
+<td><strong>Automatic retry on error</strong> (browser monitors)</td>
+<td>Enabled</td>
+<td>Absorbs a single transient failure before the execution counts as failed</td>
+</tr>
+</tbody>
+</table>
+<p>Synthetic outage handling has no separate alert-delay or auto-resolve-after-N-successes setting. Global and local outages are driven by the consecutive-failure count and the location threshold above; performance problems close once <em>&quot;no performance threshold is violated in the five most recent executions&quot;</em>. Browser monitors can also retry once: the option <em>&quot;configures the monitor to avoid false positives by making one more execution after the first one failed&quot;</em>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-alerting-overview-on-grail">Synthetic alerting overview (DT docs)</a> — <em>&quot;You can specify how many consecutive executions must fail so the problem is generated&quot;</em>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Monitors with recent failures (potential outages)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+fetch dt.synthetic.events, from: now() - 1h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;FAIL&quot;
+| summarize {
+    failure_count = count(),
+    last_failure = max(timestamp),
+    first_failure = min(timestamp)
+  }, by: {monitor.name, dt.synthetic.monitor.id, dt.smartscape.synthetic_location}
+| filter failure_count &gt;= 2
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
+| sort failure_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Performance degradation alerts (P95 &gt; threshold)
+fetch dt.synthetic.events, from: now() - 1h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;SUCCESS&quot;
+| summarize {
+    avg_response_ms = round(avg(result.statistics.duration / 1ms), decimals: 1),
+    p95 = percentile(result.statistics.duration / 1ms, 95),
+    executions = count()
+  }, by: {monitor.name, dt.synthetic.monitor.id}
+| fieldsAdd p95_response_ms = round(p95, decimals: 1)
+| fieldsRemove p95
+| filter p95_response_ms &gt; 5000  // &gt; 5 seconds threshold
+| sort p95_response_ms desc
+</code></pre>
+<pre><code class="language-dql">// Multi-location failure detection (global outage indicator)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+fetch dt.synthetic.events, from: now() - 30m
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;FAIL&quot;
+| summarize {
+    failing_locations = countDistinct(dt.smartscape.synthetic_location),
+    failure_count = count(),
+    locations = collectDistinct(dt.smartscape.synthetic_location)
+  }, by: {monitor.name, dt.synthetic.monitor.id}
+| filter failing_locations &gt;= 2
+| fieldsAdd severity = if(failing_locations &gt;= 3, &quot;CRITICAL&quot;, else: &quot;WARNING&quot;)
+| sort failing_locations desc
+</code></pre>
+<p><a id="dashboard-building"></a></p>
+<h2>7. Dashboard Building</h2>
+<h3>Recommended Dashboard Tiles</h3>
+<table>
+<thead>
+<tr>
+<th>Tile Type</th>
+<th>Content</th>
+<th>Visualization</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Overall Health</strong></td>
+<td>Availability %</td>
+<td>Single value</td>
+</tr>
+<tr>
+<td><strong>Availability Trend</strong></td>
+<td>Hourly availability</td>
+<td>Line chart</td>
+</tr>
+<tr>
+<td><strong>Response Time</strong></td>
+<td>P95 by monitor</td>
+<td>Bar chart</td>
+</tr>
+<tr>
+<td><strong>Location Map</strong></td>
+<td>Geographic availability</td>
+<td>World map</td>
+</tr>
+<tr>
+<td><strong>Failures Table</strong></td>
+<td>Recent failures</td>
+<td>Table</td>
+</tr>
+<tr>
+<td><strong>SLO Status</strong></td>
+<td>Error budget</td>
+<td>Gauge</td>
+</tr>
+</tbody>
+</table>
+<h3>Dashboard Layout</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzYwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGlsZUdyYWQxIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDU5NjY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGlsZUdyYWQyIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGlsZUdyYWQzIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VmNDQ0NDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZGMyNjI2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGlsZUdyYWQ0IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9ImRhc2hTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjM2MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3ludGhldGljIE1vbml0b3JpbmcgRGFzaGJvYXJkIExheW91dDwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJlY29tbWVuZGVkIHRpbGUgb3JnYW5pemF0aW9uIGZvciBvcGVyYXRpb25hbCB2aXNpYmlsaXR5PC90ZXh0PgoKICA8IS0tIERhc2hib2FyZCBjb250YWluZXIgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjY1IiB3aWR0aD0iNzQwIiBoZWlnaHQ9IjI4MCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMiIvPgoKICA8IS0tIFJvdyAxOiBLUEkgVGlsZXMgLS0+CiAgPHRleHQgeD0iNTAiIHk9IjkwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNjQ3NDhiIj5LRVkgTUVUUklDUzwvdGV4dD4KCiAgPCEtLSBBdmFpbGFiaWxpdHkgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjEwMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI3MCIgcng9IjgiIGZpbGw9InVybCgjdGlsZUdyYWQxKSIgZmlsdGVyPSJ1cmwoI2Rhc2hTaGFkb3cpIi8+CiAgPHRleHQgeD0iMTMwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PdmVyYWxsIEF2YWlsYWJpbGl0eTwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjE1NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjk5LjglPC90ZXh0PgoKICA8IS0tIEFjdGl2ZSBNb25pdG9ycyAtLT4KICA8cmVjdCB4PSIyMjUiIHk9IjEwMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI3MCIgcng9IjgiIGZpbGw9InVybCgjdGlsZUdyYWQyKSIgZmlsdGVyPSJ1cmwoI2Rhc2hTaGFkb3cpIi8+CiAgPHRleHQgeD0iMzA1IiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BY3RpdmUgTW9uaXRvcnM8L3RleHQ+CiAgPHRleHQgeD0iMzA1IiB5PSIxNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj40NzwvdGV4dD4KCiAgPCEtLSBGYWlsZWQgTW9uaXRvcnMgLS0+CiAgPHJlY3QgeD0iNDAwIiB5PSIxMDAiIHdpZHRoPSIxNjAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3RpbGVHcmFkMykiIGZpbHRlcj0idXJsKCNkYXNoU2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ4MCIgeT0iMTI1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RmFpbGVkIE1vbml0b3JzPC90ZXh0PgogIDx0ZXh0IHg9IjQ4MCIgeT0iMTU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MjwvdGV4dD4KCiAgPCEtLSBTTE8gU3RhdHVzIC0tPgogIDxyZWN0IHg9IjU3NSIgeT0iMTAwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0idXJsKCN0aWxlR3JhZDQpIiBmaWx0ZXI9InVybCgjZGFzaFNoYWRvdykiLz4KICA8dGV4dCB4PSI2NjUiIHk9IjEyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNMTyBUYXJnZXQgTWV0PC90ZXh0PgogIDx0ZXh0IHg9IjY2NSIgeT0iMTU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ODUlPC90ZXh0PgoKICA8IS0tIFJvdyAyOiBDaGFydHMgLS0+CiAgPHRleHQgeD0iNTAiIHk9IjE5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzY0NzQ4YiI+VFJFTkRTPC90ZXh0PgoKICA8IS0tIEF2YWlsYWJpbGl0eSBUcmVuZCAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMjA1IiB3aWR0aD0iMzQ1IiBoZWlnaHQ9IjY1IiByeD0iNiIgZmlsbD0iI2YxZjVmOSIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2NSIgeT0iMjI1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIj5BdmFpbGFiaWxpdHkgVHJlbmQgKDcgZGF5cyk8L3RleHQ+CiAgPCEtLSBTcGFya2xpbmUgc2ltdWxhdGlvbiAtLT4KICA8cG9seWxpbmUgcG9pbnRzPSI3MCwyNTUgMTIwLDI1MCAxNzAsMjUyIDIyMCwyNDggMjcwLDI1MSAzMjAsMjQ1IDM3MCwyNTAiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CiAgPGxpbmUgeDE9IjcwIiB5MT0iMjYwIiB4Mj0iMzcwIiB5Mj0iMjYwIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgoKICA8IS0tIFJlc3BvbnNlIFRpbWUgRGlzdHJpYnV0aW9uIC0tPgogIDxyZWN0IHg9IjQxMCIgeT0iMjA1IiB3aWR0aD0iMzQ1IiBoZWlnaHQ9IjY1IiByeD0iNiIgZmlsbD0iI2YxZjVmOSIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0MjUiIHk9IjIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyI+UmVzcG9uc2UgVGltZSBieSBNb25pdG9yIFR5cGU8L3RleHQ+CiAgPCEtLSBCYXIgY2hhcnQgc2ltdWxhdGlvbiAtLT4KICA8cmVjdCB4PSI0NDAiIHk9IjI0MCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjI1IiByeD0iMiIgZmlsbD0iIzNiODJmNiIvPgogIDxyZWN0IHg9IjUxMCIgeT0iMjQ4IiB3aWR0aD0iNjAiIGhlaWdodD0iMTciIHJ4PSIyIiBmaWxsPSIjMTBiOTgxIi8+CiAgPHJlY3QgeD0iNTgwIiB5PSIyNTIiIHdpZHRoPSI2MCIgaGVpZ2h0PSIxMyIgcng9IjIiIGZpbGw9IiNmNTllMGIiLz4KICA8cmVjdCB4PSI2NTAiIHk9IjI0NSIgd2lkdGg9IjYwIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzhiNWNmNiIvPgoKICA8IS0tIFJvdyAzOiBUYWJsZSAtLT4KICA8dGV4dCB4PSI1MCIgeT0iMjkwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNjQ3NDhiIj5SRUNFTlQgRkFJTFVSRVM8L3RleHQ+CgogIDxyZWN0IHg9IjUwIiB5PSIzMDAiIHdpZHRoPSI3MDUiIGhlaWdodD0iMzUiIHJ4PSI0IiBmaWxsPSIjZmVmMmYyIiBzdHJva2U9IiNlZjQ0NDQiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjY1IiB5PSIzMTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+TW9uaXRvcjwvdGV4dD4KICA8dGV4dCB4PSIyMDAiIHk9IjMxOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5Mb2NhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIzMjAiIHk9IjMxOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5FcnJvcjwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjMxOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5UaW1lPC90ZXh0PgogIDx0ZXh0IHg9IjYyMCIgeT0iMzE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPkR1cmF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMzE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPlN0YXR1czwvdGV4dD4KCiAgPHRleHQgeD0iNjUiIHk9IjMyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5jaGVja291dC1mbG93PC90ZXh0PgogIDx0ZXh0IHg9IjIwMCIgeT0iMzI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPlVTLUVhc3Q8L3RleHQ+CiAgPHRleHQgeD0iMzIwIiB5PSIzMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+VGltZW91dCBhZnRlciA2MHM8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIzMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+MTA6NDUgQU08L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSIzMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+NSBtaW48L3RleHQ+CiAgPHJlY3QgeD0iNjk1IiB5PSIzMTUiIHdpZHRoPSI1MCIgaGVpZ2h0PSIxNiIgcng9IjQiIGZpbGw9IiNlZjQ0NDQiLz4KICA8dGV4dCB4PSI3MjAiIHk9IjMyNyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T1BFTjwvdGV4dD4KPC9zdmc+Cg==" alt="Dashboard Layout" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Row | Tiles | Content |
+|-----|-------|---------|
+| 1 | KPI Cards | Availability, Active Monitors, Failed, SLO Status |
+| 2 | Trend Chart | Availability and Response Time over 7 days |
+| 3 | Details | Response Time by Monitor, Failures by Location |
+| 4 | Table | Recent Failures with timestamp, monitor, error |
+-->
+<pre><code class="language-dql">// Dashboard tile: Overall availability (single value)
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| summarize {
+    availability_pct = round(countIf(result.state == &quot;SUCCESS&quot;) * 100.0 / count(), decimals: 2)
+  }
+</code></pre>
+<pre><code class="language-dql">// Dashboard tile: Healthy vs failing monitors (last hour)
+fetch dt.synthetic.events, from: now() - 1h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| summarize {
+    failed_recent = countIf(result.state == &quot;FAIL&quot;),
+    executions = count()
+  }, by: {monitor.name, dt.synthetic.monitor.id}
+| summarize {
+    total_monitors = count(),
+    healthy = countIf(failed_recent == 0),
+    failing = countIf(failed_recent &gt; 0)
+  }
+</code></pre>
+<pre><code class="language-dql">// Dashboard tile: Response time by monitor (bar chart)
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;SUCCESS&quot;
+| summarize {
+    p95 = percentile(result.statistics.duration / 1ms, 95)
+  }, by: {monitor.name, dt.synthetic.monitor.id}
+| fieldsAdd p95_response_ms = round(p95, decimals: 1)
+| fieldsRemove p95
+| sort p95_response_ms desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Dashboard tile: Recent failures table
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;FAIL&quot;
+| fields timestamp,
+         monitor = monitor.name,
+         location = getNodeName(dt.smartscape.synthetic_location),
+         status = result.status.message,
+         detail = result.status.details
+| sort timestamp desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Dashboard tile: Hourly availability trend (line chart)
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| fieldsAdd hour_bucket = bin(timestamp, 1h)
+| summarize {
+    success_count = countIf(result.state == &quot;SUCCESS&quot;),
+    total_executions = count(),
+    failures = countIf(result.state == &quot;FAIL&quot;)
+  }, by: {hour_bucket}
+| fieldsAdd availability_pct = round((success_count * 100.0) / total_executions, decimals: 2)
+| sort hour_bucket asc
+</code></pre>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>Availability analysis</strong> - Calculating and trending availability with <code>result.state</code><br />
+✅ <strong>Performance analysis</strong> - Percentiles, timing breakdown, anomalies<br />
+✅ <strong>Location comparison</strong> - Geographic performance analysis<br />
+✅ <strong>SLO configuration</strong> - Service level objectives and error budgets<br />
+✅ <strong>Alerting strategies</strong> - Outage detection, performance alerts<br />
+✅ <strong>Dashboard building</strong> - Key tiles and layouts</p>
+<hr />
+<p><a id="series-complete"></a></p>
+<h2>Series Complete!</h2>
+<p>You have completed the Synthetic Monitoring Best Practices series:</p>
+<ol>
+<li>✅ <strong>SYNTH-01</strong>: Fundamentals</li>
+<li>✅ <strong>SYNTH-02</strong>: Browser Monitors</li>
+<li>✅ <strong>SYNTH-03</strong>: HTTP Monitors</li>
+<li>✅ <strong>SYNTH-04</strong>: Private Locations</li>
+<li>✅ <strong>SYNTH-05</strong>: Network Monitoring</li>
+<li>✅ <strong>SYNTH-06</strong>: Analytics &amp; Alerting</li>
+</ol>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic">Synthetic on Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-alerting-overview-on-grail">Synthetic alerting overview (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-for-workflows">Synthetic for Workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-level objectives (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks">Dashboards and notebooks (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

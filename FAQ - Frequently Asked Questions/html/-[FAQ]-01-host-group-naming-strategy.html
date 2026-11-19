@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-01: Why you need a good Host Group naming strategy</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-01: Why you need a good Host Group naming strategy</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 01 — Host Group Naming Strategy | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 10/02/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Host groups are a <strong>foundational Dynatrace construct</strong> used to establish meaningful boundaries within the monitored estate. They directly influence access control, alert ownership, operational clarity, automation scope, and long-term tenant maintainability.</p>
+<p>A weak naming strategy — including the common pattern of placing every host into a single host group — appears simpler initially, but introduces <strong>material operational, security, and governance risks</strong> as the environment scales. A strong, deliberate naming strategy is one of the highest-leverage architectural decisions you make at tenant standup, because every layer of Dynatrace topology, alerting, IAM, and automation inherits from it.</p>
+<p>This FAQ entry consolidates the case for taking host group naming seriously, the trade-offs of deferring it, and the design principles to anchor on.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-host-groups-represent">What Host Groups Represent</a></li>
+<li><a href="#ownership">Consideration #1: Clear Ownership and Operational Accountability</a></li>
+<li><a href="#access-control">Consideration #2: Access Control and Visibility Boundaries</a></li>
+<li><a href="#alerting">Consideration #3: Alerting Accuracy and Notification Routing</a></li>
+<li><a href="#operations">Consideration #4: Operational Efficiency and Troubleshooting</a></li>
+<li><a href="#automation">Consideration #5: Automation Scope and Risk Containment</a></li>
+<li><a href="#scalability">Consideration #6: Tenant Scalability and Long-Term Maintainability</a></li>
+<li><a href="#tradeoffs-weak">Trade-offs of a Weak or Single-Group Strategy</a></li>
+<li><a href="#benefits-strong">Benefits of a Strong Naming Strategy</a></li>
+<li><a href="#scaling">How a Strong Strategy Compounds as Your Environment Grows</a></li>
+<li><a href="#design-principles">Recommended Design Principles</a></li>
+<li><a href="#final-recommendation">Final Recommendation</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform team, SRE leads, architecture review board, security stakeholders</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Decision-support document — presents justification and trade-offs, no hands-on lab</td>
+</tr>
+<tr>
+<td><strong>Related topic series</strong></td>
+<td>ORGNZ (Organize Data: Buckets, Segments, Security), IAM (IAM Administration), ONBRD (Dynatrace Onboarding)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="what-host-groups-represent"></a></p>
+<h2>1. What Host Groups Represent</h2>
+<p>A host group is a <strong>logical boundary</strong> used to organize hosts based on stable, real-world ownership or purpose, such as:</p>
+<ul>
+<li>Environment (production vs. non-production)</li>
+<li>Application or service ownership</li>
+<li>Platform or workload type</li>
+<li>Business unit or team responsibility</li>
+<li>Compliance or regulatory boundaries</li>
+</ul>
+<p>Host groups are <strong>not merely labels</strong>. They are used across Dynatrace configuration to define <strong>scope, responsibility, and isolation</strong>.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5TaW5nbGUgdnMuIE11bHRpIEhvc3QgR3JvdXA8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+U2FtZSBob3N0cywgdHdvIG9yZ2FuaXphdGlvbnMg4oCUIG93bmVyc2hpcCBiZWNvbWVzIHZpc2libGU8L3RleHQ+CgogIDwhLS0gTEVGVDogc2luZ2xlIC0tPgogIDx0ZXh0IHg9IjIzNSIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNERTM1MEIiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPlNpbmdsZSBob3N0IGdyb3VwPC90ZXh0PgogIDxyZWN0IHg9IjcwIiB5PSIxMTAiIHdpZHRoPSIzMzAiIGhlaWdodD0iMzMwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjIzNSIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVDQUNBIiBmb250LXNpemU9IjEyIj4iYWxsLWhvc3RzIiDigJQgb25lIGFtb3JwaG91cyBwb29sPC90ZXh0PgoKICA8IS0tIDIwIGp1bWJsZWQgaG9zdHMgLS0+CiAgPGc+CiAgICA8Y2lyY2xlIGN4PSIxMTAiIGN5PSIxNzAiIHI9IjEwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjciLz4KICAgIDxjaXJjbGUgY3g9IjE0NSIgY3k9IjE2NSIgcj0iMTAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuNyIvPgogICAgPGNpcmNsZSBjeD0iMTgwIiBjeT0iMTgwIiByPSIxMCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC43Ii8+CiAgICA8Y2lyY2xlIGN4PSIyMTUiIGN5PSIxNzAiIHI9IjEwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjciLz4KICAgIDxjaXJjbGUgY3g9IjI1MCIgY3k9IjE4NSIgcj0iMTAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuNyIvPgogICAgPGNpcmNsZSBjeD0iMjg1IiBjeT0iMTcwIiByPSIxMCIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC43Ii8+CiAgICA8Y2lyY2xlIGN4PSIzMjAiIGN5PSIxODAiIHI9IjEwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjciLz4KICAgIDxjaXJjbGUgY3g9IjM1NSIgY3k9IjE3MCIgcj0iMTAiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuNyIvPgoKICAgIDxjaXJjbGUgY3g9IjEyMCIgY3k9IjIxNSIgcj0iMTAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuNyIvPgogICAgPGNpcmNsZSBjeD0iMTYwIiBjeT0iMjMwIiByPSIxMCIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC43Ii8+CiAgICA8Y2lyY2xlIGN4PSIyMDAiIGN5PSIyMjAiIHI9IjEwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjciLz4KICAgIDxjaXJjbGUgY3g9IjI0MCIgY3k9IjIzMCIgcj0iMTAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuNyIvPgogICAgPGNpcmNsZSBjeD0iMjgwIiBjeT0iMjIwIiByPSIxMCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC43Ii8+CiAgICA8Y2lyY2xlIGN4PSIzMjAiIGN5PSIyMzAiIHI9IjEwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjciLz4KICAgIDxjaXJjbGUgY3g9IjM1NSIgY3k9IjIxNSIgcj0iMTAiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuNyIvPgoKICAgIDxjaXJjbGUgY3g9IjEwNSIgY3k9IjI2NSIgcj0iMTAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuNyIvPgogICAgPGNpcmNsZSBjeD0iMTQ1IiBjeT0iMjc1IiByPSIxMCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC43Ii8+CiAgICA8Y2lyY2xlIGN4PSIxODUiIGN5PSIyNjUiIHI9IjEwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjciLz4KICAgIDxjaXJjbGUgY3g9IjIyNSIgY3k9IjI3NSIgcj0iMTAiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuNyIvPgogICAgPGNpcmNsZSBjeD0iMjY1IiBjeT0iMjY1IiByPSIxMCIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC43Ii8+CiAgICA8Y2lyY2xlIGN4PSIzMDUiIGN5PSIyNzUiIHI9IjEwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjciLz4KICAgIDxjaXJjbGUgY3g9IjM0NSIgY3k9IjI2NSIgcj0iMTAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuNyIvPgogIDwvZz4KCiAgPGcgZm9udC1zaXplPSIxMSI+CiAgICA8cmVjdCB4PSI5MCIgeT0iMzE1IiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNCIvPgogICAgPHRleHQgeD0iMjM1IiB5PSIzMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtd2VpZ2h0PSI2MDAiPkNvbnNlcXVlbmNlczo8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDUiIHk9IjM1NSIgZmlsbD0iI0ZFQ0FDQSI+4pyXIE5vIG93bmVyc2hpcCBib3VuZGFyeTwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwNSIgeT0iMzczIiBmaWxsPSIjRkVDQUNBIj7inJcgQWxlcnRzIGxhY2sgdGVhbSBjb250ZXh0PC90ZXh0PgogICAgPHRleHQgeD0iMTA1IiB5PSIzOTEiIGZpbGw9IiNGRUNBQ0EiPuKclyBJQU0gaXMgYWxsLW9yLW5vdGhpbmc8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDUiIHk9IjQwOSIgZmlsbD0iI0ZFQ0FDQSI+4pyXIEF1dG9tYXRpb24gYmxhc3QgcmFkaXVzID0gMTAwJTwvdGV4dD4KICA8L2c+CgogIDwhLS0gUklHSFQ6IG11bHRpIC0tPgogIDx0ZXh0IHg9IjcxNSIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM3M0JFMjgiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPk11bHRpcGxlIGhvc3QgZ3JvdXBzPC90ZXh0PgogIDxyZWN0IHg9IjU1MCIgeT0iMTEwIiB3aWR0aD0iMzMwIiBoZWlnaHQ9IjMzMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KCiAgPCEtLSA0IGdyb3VwcyAtLT4KICA8ZyBmb250LXNpemU9IjEwIj4KICAgIDxyZWN0IHg9IjU2NSIgeT0iMTMwIiB3aWR0aD0iMTQ1IiBoZWlnaHQ9Ijg1IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjIiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjYzNyIgeT0iMTQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXdlaWdodD0iNzAwIj5wcm9kLWFwcDwvdGV4dD4KICAgIDxjaXJjbGUgY3g9IjU4MCIgY3k9IjE3NSIgcj0iNyIgZmlsbD0iIzE0OTZGRiIvPgogICAgPGNpcmNsZSBjeD0iNjA1IiBjeT0iMTc1IiByPSI3IiBmaWxsPSIjMTQ5NkZGIi8+CiAgICA8Y2lyY2xlIGN4PSI2MzAiIGN5PSIxNzUiIHI9IjciIGZpbGw9IiMxNDk2RkYiLz4KICAgIDxjaXJjbGUgY3g9IjY1NSIgY3k9IjE3NSIgcj0iNyIgZmlsbD0iIzE0OTZGRiIvPgogICAgPGNpcmNsZSBjeD0iNjgwIiBjeT0iMTc1IiByPSI3IiBmaWxsPSIjMTQ5NkZGIi8+CiAgICA8Y2lyY2xlIGN4PSI1OTUiIGN5PSIxOTgiIHI9IjciIGZpbGw9IiMxNDk2RkYiLz4KICAgIDxjaXJjbGUgY3g9IjYyMCIgY3k9IjE5OCIgcj0iNyIgZmlsbD0iIzE0OTZGRiIvPgogICAgPGNpcmNsZSBjeD0iNjQ1IiBjeT0iMTk4IiByPSI3IiBmaWxsPSIjMTQ5NkZGIi8+CgogICAgPHJlY3QgeD0iNzIwIiB5PSIxMzAiIHdpZHRoPSIxNDUiIGhlaWdodD0iODUiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNSIvPgogICAgPHRleHQgeD0iNzkyIiB5PSIxNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUYzQzciIGZvbnQtd2VpZ2h0PSI3MDAiPnByb2QtaW5mcmE8L3RleHQ+CiAgICA8Y2lyY2xlIGN4PSI3MzUiIGN5PSIxNzUiIHI9IjciIGZpbGw9IiNGRkI4MDAiLz4KICAgIDxjaXJjbGUgY3g9Ijc2MCIgY3k9IjE3NSIgcj0iNyIgZmlsbD0iI0ZGQjgwMCIvPgogICAgPGNpcmNsZSBjeD0iNzg1IiBjeT0iMTc1IiByPSI3IiBmaWxsPSIjRkZCODAwIi8+CiAgICA8Y2lyY2xlIGN4PSI4MTAiIGN5PSIxNzUiIHI9IjciIGZpbGw9IiNGRkI4MDAiLz4KICAgIDxjaXJjbGUgY3g9IjgzNSIgY3k9IjE3NSIgcj0iNyIgZmlsbD0iI0ZGQjgwMCIvPgogICAgPGNpcmNsZSBjeD0iNzUwIiBjeT0iMTk4IiByPSI3IiBmaWxsPSIjRkZCODAwIi8+CiAgICA8Y2lyY2xlIGN4PSI3NzUiIGN5PSIxOTgiIHI9IjciIGZpbGw9IiNGRkI4MDAiLz4KCiAgICA8cmVjdCB4PSI1NjUiIHk9IjIyNSIgd2lkdGg9IjE0NSIgaGVpZ2h0PSI4NSIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4yIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI2MzciIHk9IjI0MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC13ZWlnaHQ9IjcwMCI+bm9ucHJvZC1hcHA8L3RleHQ+CiAgICA8Y2lyY2xlIGN4PSI1ODAiIGN5PSIyNzAiIHI9IjciIGZpbGw9IiNBNzhCRkEiLz4KICAgIDxjaXJjbGUgY3g9IjYwNSIgY3k9IjI3MCIgcj0iNyIgZmlsbD0iI0E3OEJGQSIvPgogICAgPGNpcmNsZSBjeD0iNjMwIiBjeT0iMjcwIiByPSI3IiBmaWxsPSIjQTc4QkZBIi8+CiAgICA8Y2lyY2xlIGN4PSI2NTUiIGN5PSIyNzAiIHI9IjciIGZpbGw9IiNBNzhCRkEiLz4KICAgIDxjaXJjbGUgY3g9IjU5NSIgY3k9IjI5MyIgcj0iNyIgZmlsbD0iI0E3OEJGQSIvPgogICAgPGNpcmNsZSBjeD0iNjIwIiBjeT0iMjkzIiByPSI3IiBmaWxsPSIjQTc4QkZBIi8+CgogICAgPHJlY3QgeD0iNzIwIiB5PSIyMjUiIHdpZHRoPSIxNDUiIGhlaWdodD0iODUiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNSIvPgogICAgPHRleHQgeD0iNzkyIiB5PSIyNDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEOUY5OUQiIGZvbnQtd2VpZ2h0PSI3MDAiPnBheW1lbnQtcGNpPC90ZXh0PgogICAgPGNpcmNsZSBjeD0iNzM1IiBjeT0iMjcwIiByPSI3IiBmaWxsPSIjNzNCRTI4Ii8+CiAgICA8Y2lyY2xlIGN4PSI3NjAiIGN5PSIyNzAiIHI9IjciIGZpbGw9IiM3M0JFMjgiLz4KICAgIDxjaXJjbGUgY3g9Ijc4NSIgY3k9IjI3MCIgcj0iNyIgZmlsbD0iIzczQkUyOCIvPgogICAgPGNpcmNsZSBjeD0iODEwIiBjeT0iMjcwIiByPSI3IiBmaWxsPSIjNzNCRTI4Ii8+CiAgICA8Y2lyY2xlIGN4PSI3NTAiIGN5PSIyOTMiIHI9IjciIGZpbGw9IiM3M0JFMjgiLz4KICA8L2c+CgogIDxnIGZvbnQtc2l6ZT0iMTEiPgogICAgPHJlY3QgeD0iNTcwIiB5PSIzMjUiIHdpZHRoPSIyOTAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI0Ii8+CiAgICA8dGV4dCB4PSI3MTUiIHk9IjM0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC13ZWlnaHQ9IjYwMCI+Q29uc2VxdWVuY2VzOjwvdGV4dD4KICAgIDx0ZXh0IHg9IjU4NSIgeT0iMzY1IiBmaWxsPSIjRDlGOTlEIj7inJMgT3duZXJzaGlwIGlzIGV4cGxpY2l0PC90ZXh0PgogICAgPHRleHQgeD0iNTg1IiB5PSIzODMiIGZpbGw9IiNEOUY5OUQiPuKckyBBbGVydHMgcm91dGUgdG8gdGhlIHJpZ2h0IHRlYW08L3RleHQ+CiAgICA8dGV4dCB4PSI1ODUiIHk9IjQwMSIgZmlsbD0iI0Q5Rjk5RCI+4pyTIElBTSBjYW4gc2NvcGUgYnkgZ3JvdXA8L3RleHQ+CiAgICA8dGV4dCB4PSI1ODUiIHk9IjQxOSIgZmlsbD0iI0Q5Rjk5RCI+4pyTIEF1dG9tYXRpb24gc2NvcGVkIHBlciBncm91cDwvdGV4dD4KICA8L2c+CgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Ib3N0IGdyb3VwcyBhcmUgYSBsb2dpY2FsIGJvdW5kYXJ5LCBub3QgYSBsYWJlbC4gVGhleSBkcml2ZSBhY2Nlc3MsIGFsZXJ0aW5nLCBhbmQgYXV0b21hdGlvbiBzY29wZS48L3RleHQ+Cjwvc3ZnPgo=" alt="Single vs. Multiple Host Groups" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Aspect | Single Group | Multiple Groups |
+|--------|-------------|----------------|
+| Ownership | unclear | explicit |
+| Alerts | lack context | route to owning team |
+| IAM | all-or-nothing | scoped by group |
+| Automation | blast radius 100% | scoped per group |
+For environments where SVG doesn't render
+-->
+<h3>How Host Groups Shape the Topology</h3>
+<p>Dynatrace's entity model links these layers — host groups contain hosts, hosts run Process Group Instances, PGIs aggregate into Process Groups, and services associate with Process Groups. Host-group context propagates upward through the topology:</p>
+<p><strong>Host Group → Host → Process Group Instance → Process Group → Service</strong></p>
+<p>When OneAgent detects running processes on a host, it assigns each one to a <strong>Process Group</strong> (PG) based on technology, command line, working directory, and metadata. The per-host running instances are called <strong>Process Group Instances</strong> (PGIs). PGs and PGIs inherit context from the host they run on, and hosts roll up into the host group you assign. Services then associate with the process groups that handle their requests.</p>
+<p>The practical effect: <strong>the host group you choose determines how processes, services, and dependencies are scoped throughout Dynatrace</strong> — in Smartscape, dashboards, alerts and IAM policies, and, on Dynatrace Classic, in management zones. A flat single-group tenant means every process group and service shares the same coarse boundary regardless of which app or environment it belongs to. Properly grouped hosts mean that filters like &quot;all error-prone services in <code>app-pci</code>&quot; work without manual selection.</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Gets host-group context from</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host</td>
+<td>Direct assignment (at OneAgent install or via <code>oneagentctl</code>)</td>
+<td>The root of the chain — host group is a host-level attribute</td>
+</tr>
+<tr>
+<td>Process Group Instance</td>
+<td>The host it runs on</td>
+<td>PGI metadata carries host group identity through to spans/services</td>
+</tr>
+<tr>
+<td>Process Group</td>
+<td>Its member PGIs (which run on hosts)</td>
+<td>PG naming, grouping, and detection rules respect host group context</td>
+</tr>
+<tr>
+<td>Service</td>
+<td>The PGs that handle its requests</td>
+<td>Service ownership reflects the host group of the underlying processes</td>
+</tr>
+<tr>
+<td>Grail records</td>
+<td><code>dt.host_group.id</code>, a primary Grail field on each record</td>
+<td>Record-level permissions and DQL filters on Latest Dynatrace</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2UgVG9wb2xvZ3kgUm9sbHVwPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkhvc3QgZ3JvdXAgY29udGV4dCBwcm9wYWdhdGVzIHVwIHRocm91Z2ggZXZlcnkgZW50aXR5IGxheWVyPC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImcxdGFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM3M0JFMjgiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSA0LWxheWVyIGhpZXJhcmNoeSBvbiB0aGUgbGVmdCAtLT4KICA8IS0tIExheWVyIDE6IFByb2Nlc3MgKGJvdHRvbSkgLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjM4MCIgd2lkdGg9IjM4MCIgaGVpZ2h0PSI2NSIgZmlsbD0iIzMzNDE1NSIgc3Ryb2tlPSIjNjQ3NDhCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwIiB5PSI0MDMiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlByb2Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjQyMSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T1MtbGV2ZWwgcnVubmluZyBwcm9jZXNzIGRldGVjdGVkIGJ5IE9uZUFnZW50PC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSI0MzciIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPmphdmEgLWphciBjaGVja291dC5qYXIgIMK3ICBuZ2lueCAtZyBkYWVtb24gb2ZmICDCtyAgcG9zdGdyZXM8L3RleHQ+CgogIDwhLS0gTGF5ZXIgMjogUHJvY2VzcyBHcm91cCAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMjk1IiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjY1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwIiB5PSIzMTgiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlByb2Nlc3MgR3JvdXAgKFBHKSArIFByb2Nlc3MgR3JvdXAgSW5zdGFuY2UgKFBHSSk8L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjMzNiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+R3JvdXBlZCBieSB0ZWNobm9sb2d5LCBjb21tYW5kIGxpbmUsIHdvcmtpbmcgZGlyLCBtZXRhZGF0YTwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iMzUyIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIj5QR0kgaXMgdGhlIHBlci1ob3N0IHJ1bm5pbmcgaW5zdGFuY2Ugb2YgYSBQRzwvdGV4dD4KCiAgPCEtLSBMYXllciAzOiBIb3N0IC0tPgogIDxyZWN0IHg9IjYwIiB5PSIyMTAiIHdpZHRoPSIzODAiIGhlaWdodD0iNjUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODAiIHk9IjIzMyIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+SG9zdDwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iMjUxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BIG1vbml0b3JlZCBPUyBpbnN0YW5jZSAoVk0sIEVDMiwgYmFyZS1tZXRhbCwgSzhzIG5vZGUpPC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSIyNjciIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPmktMGFiYzEyMyAgwrcgIGlwLTEwLTEyLTQtODguZWMyLmludGVybmFsPC90ZXh0PgoKICA8IS0tIExheWVyIDQ6IEhvc3QgR3JvdXAgKHRvcCkgLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjExNSIgd2lkdGg9IjM4MCIgaGVpZ2h0PSI3NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODAiIHk9IjE0MCIgZmlsbD0iI0Q5Rjk5RCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+SG9zdCBHcm91cDwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iMTYwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Mb2dpY2FsIGJvdW5kYXJ5IHlvdSBhc3NpZ24g4oCUIHRoZSByb290IG9mIGNvbnRleHQgZm9yIGV2ZXJ5dGhpbmcgYmVsb3c8L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjE3OCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+cHJvZC1hcHAgIMK3ICBub25wcm9kLWFwcCAgwrcgIHBheW1lbnQtcGNpICDCtyAgcHJvZC1pbmZyYTwvdGV4dD4KCiAgPCEtLSBJbmhlcml0YW5jZSBhcnJvd3MgKHVwd2FyZCB0aHJvdWdoIGxheWVycykgLS0+CiAgPGcgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiPgogICAgPGxpbmUgeDE9IjI1MCIgeTE9IjM4MCIgeDI9IjI1MCIgeTI9IjM2NSIgbWFya2VyLWVuZD0idXJsKCNnMXRhcnIpIi8+CiAgICA8bGluZSB4MT0iMjUwIiB5MT0iMjk1IiB4Mj0iMjUwIiB5Mj0iMjgwIiBtYXJrZXItZW5kPSJ1cmwoI2cxdGFycikiLz4KICAgIDxsaW5lIHgxPSIyNTAiIHkxPSIyMTAiIHgyPSIyNTAiIHkyPSIxOTUiIG1hcmtlci1lbmQ9InVybCgjZzF0YXJyKSIvPgogIDwvZz4KICA8dGV4dCB4PSIyODAiIHk9IjM3MCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5pbmhlcml0czwvdGV4dD4KICA8dGV4dCB4PSIyODAiIHk9IjI4NSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5pbmhlcml0czwvdGV4dD4KICA8dGV4dCB4PSIyODAiIHk9IjIwMCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5pbmhlcml0czwvdGV4dD4KCiAgPCEtLSBSaWdodCBzaWRlOiB3aGF0IGNvbnN1bWVzIGhvc3QgZ3JvdXAgY29udGV4dCAtLT4KICA8dGV4dCB4PSI0OTAiIHk9IjEzNSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+V2hhdCBjb25zdW1lcyBob3N0IGdyb3VwIGNvbnRleHQ6PC90ZXh0PgoKICA8ZyBmb250LXNpemU9IjExIj4KICAgIDxyZWN0IHg9IjQ5MCIgeT0iMTU1IiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI1MTAiIHk9IjE3MiIgZmlsbD0iI0E1RjNGQyIgZm9udC13ZWlnaHQ9IjcwMCI+U21hcnRzY2FwZSB0b3BvbG9neTwvdGV4dD4KICAgIDx0ZXh0IHg9IjUxMCIgeT0iMTg3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5QR3MgYW5kIHNlcnZpY2VzIGRpc3BsYXkgdW5kZXIgdGhlaXIgaG9zdCBncm91cCBib3VuZGFyaWVzPC90ZXh0PgoKICAgIDxyZWN0IHg9IjQ5MCIgeT0iMjA1IiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI1MTAiIHk9IjIyMiIgZmlsbD0iI0E1RjNGQyIgZm9udC13ZWlnaHQ9IjcwMCI+RGFzaGJvYXJkcyAmYW1wOyBmaWx0ZXJzPC90ZXh0PgogICAgPHRleHQgeD0iNTEwIiB5PSIyMzciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkZpbHRlciAiYWxsIHNlcnZpY2VzIGluIHBheW1lbnQtcGNpIiB3aXRob3V0IG1hbnVhbCBob3N0IGVudW1lcmF0aW9uPC90ZXh0PgoKICAgIDxyZWN0IHg9IjQ5MCIgeT0iMjU1IiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI1MTAiIHk9IjI3MiIgZmlsbD0iI0E1RjNGQyIgZm9udC13ZWlnaHQ9IjcwMCI+QWxlcnRzICZhbXA7IHRocmVzaG9sZHM8L3RleHQ+CiAgICA8dGV4dCB4PSI1MTAiIHk9IjI4NyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UGVyLWhvc3QtZ3JvdXAgYWxlcnRpbmcgdGhyZXNob2xkczsgUEdzIGFuZCBzZXJ2aWNlcyBzcGxpdCBwZXIgZ3JvdXA8L3RleHQ+CgogICAgPHJlY3QgeD0iNDkwIiB5PSIzMDUiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjUxMCIgeT0iMzIyIiBmaWxsPSIjQTVGM0ZDIiBmb250LXdlaWdodD0iNzAwIj5JQU0gcG9saWNpZXM8L3RleHQ+CiAgICA8dGV4dCB4PSI1MTAiIHk9IjMzNyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+R3JhaWwgcmVjb3JkLWxldmVsIHBlcm1pc3Npb25zIG9uIGR0Lmhvc3RfZ3JvdXAuaWQ8L3RleHQ+CgogICAgPHJlY3QgeD0iNDkwIiB5PSIzNTUiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjUxMCIgeT0iMzcyIiBmaWxsPSIjQTVGM0ZDIiBmb250LXdlaWdodD0iNzAwIj5NYW5hZ2VtZW50IHpvbmVzIChDbGFzc2ljIG9ubHkpPC90ZXh0PgogICAgPHRleHQgeD0iNTEwIiB5PSIzODciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk1aIHJ1bGVzIGNvbW1vbmx5IGtleSBvZmYgaG9zdCBncm91cCBtZW1iZXJzaGlwPC90ZXh0PgogIDwvZz4KCiAgPHRleHQgeD0iNDY1IiB5PSI0NzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkNob29zZSB0aGUgaG9zdCBncm91cCB3ZWxsIOKAlCBldmVyeSBsYXllciBiZWxvdyBpdCBpbmhlcml0cyB0aGUgY2hvaWNlLjwvdGV4dD4KPC9zdmc+Cg==" alt="Dynatrace Topology Rollup" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | Gets host-group context from | What Consumes It |
+|-------|---------------|-------------------|
+| Host | Direct assignment | Root of the rollup |
+| PGI / Process Group | The host(s) they run on | Naming, grouping rules, thresholds |
+| Service | The PGs handling its requests | Dashboards, IAM scope |
+| Host Group context propagates to | Smartscape, dashboards, alerts/thresholds, IAM (record-level on dt.host_group.id), management zones (Classic only) |
+For environments where SVG doesn't render
+-->
+<blockquote>
+<p><strong>Concrete consequence — settings and thresholds:</strong> Dynatrace creates one process group per host group for the same process, and services are grouped per host group as well. With all hosts in a single host group, production and nonprod <code>nginx</code> become <strong>one</strong> process group and their services merge, so process-group and service settings, and the baselines learned for those services, are shared across environments. The alerting thresholds Dynatrace lets you define per host group likewise need separate groups to differ. Splitting hosts into meaningful groups is what lets each environment, tier or team be configured on its own.</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5UaHJlc2hvbGQgU2NvcGluZyBGb2xsb3dzIHRoZSBUb3BvbG9neTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5TYW1lIG5naW54IHdvcmtsb2FkOiBvbmUgbWVyZ2VkIHByb2Nlc3MgZ3JvdXAsIG9yIG9uZSBwZXIgaG9zdCBncm91cDwvdGV4dD4KCiAgPCEtLSBEaXZpZGVyIC0tPgogIDxsaW5lIHgxPSI0NjUiIHkxPSI4MCIgeDI9IjQ2NSIgeTI9IjQ5MCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KCiAgPCEtLSA9PT09PT09PT09IExFRlQ6IFNpbmdsZSBob3N0IGdyb3VwID09PT09PT09PT0gLS0+CiAgPHRleHQgeD0iMjM1IiB5PSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNERTM1MEIiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPlNpbmdsZSBob3N0IGdyb3VwPC90ZXh0PgogIDx0ZXh0IHg9IjIzNSIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5PbmUgbmdpbnggUEcgYW5kIHNlcnZpY2Ug4oaSIG9uZSBzZXR0aW5nIGZvciBhbGwgZW52czwvdGV4dD4KCiAgPCEtLSBPbmUgUEcgLS0+CiAgPHJlY3QgeD0iMTU1IiB5PSIxMzUiIHdpZHRoPSIxNjAiIGhlaWdodD0iNTUiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMjUiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjYiLz4KICA8dGV4dCB4PSIyMzUiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+UEc6IG5naW54PC90ZXh0PgogIDx0ZXh0IHg9IjIzNSIgeT0iMTc2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5zaW5nbGUgUEcgYWNyb3NzIHRoZSBlc3RhdGU8L3RleHQ+CgogIDwhLS0gVGhyZXNob2xkIGdhdWdlIChzaW5nbGUsIGZpeGVkKSAtLT4KICA8cmVjdCB4PSIxMzUiIHk9IjIwNSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI2NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjIzNSIgeT0iMjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5SZXNwb25zZS10aW1lIHRocmVzaG9sZDwvdGV4dD4KICA8IS0tIGdhdWdlIGJhciAtLT4KICA8cmVjdCB4PSIxNTUiIHk9IjI0MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxNCIgZmlsbD0iIzMzNDE1NSIgcng9IjMiLz4KICA8cmVjdCB4PSIxNTUiIHk9IjI0MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxNCIgZmlsbD0iI0RFMzUwQiIgcng9IjMiLz4KICA8dGV4dCB4PSIyMzUiIHk9IjI2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZFQ0FDQSIgZm9udC1zaXplPSIxMSI+NTAwIG1zIOKAlCBhcHBsaWVkIGV2ZXJ5d2hlcmU8L3RleHQ+CgogIDwhLS0gT25lIGFycm93IGZhbm5pbmcgdG8gYWxsIGVudnMgLS0+CiAgPGcgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgZmlsbD0ibm9uZSI+CiAgICA8bGluZSB4MT0iMTcwIiB5MT0iMjg1IiB4Mj0iMTAwIiB5Mj0iMzIwIi8+CiAgICA8bGluZSB4MT0iMjM1IiB5MT0iMjg1IiB4Mj0iMjM1IiB5Mj0iMzIwIi8+CiAgICA8bGluZSB4MT0iMzAwIiB5MT0iMjg1IiB4Mj0iMzcwIiB5Mj0iMzIwIi8+CiAgPC9nPgoKICA8IS0tIDMgZW52cyBhbGwgZmxhdCAtLT4KICA8ZyBmb250LXNpemU9IjEwIj4KICAgIDxyZWN0IHg9IjU1IiB5PSIzMjAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNTUiIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iIzY0NzQ4QiIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjEwNSIgeT0iMzM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXdlaWdodD0iNjAwIj5wcm9kIGhvc3RzPC90ZXh0PgogICAgPHRleHQgeD0iMTA1IiB5PSIzNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiPjUwMCBtcyB0aHJlc2hvbGQ8L3RleHQ+CgogICAgPHJlY3QgeD0iMTg1IiB5PSIzMjAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNTUiIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iIzY0NzQ4QiIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjIzNSIgeT0iMzM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXdlaWdodD0iNjAwIj5zdGFnaW5nIGhvc3RzPC90ZXh0PgogICAgPHRleHQgeD0iMjM1IiB5PSIzNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiPjUwMCBtcyB0aHJlc2hvbGQ8L3RleHQ+CgogICAgPHJlY3QgeD0iMzIwIiB5PSIzMjAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNTUiIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iIzY0NzQ4QiIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjM3MCIgeT0iMzM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXdlaWdodD0iNjAwIj5kZXYgaG9zdHM8L3RleHQ+CiAgICA8dGV4dCB4PSIzNzAiIHk9IjM1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSI+NTAwIG1zIHRocmVzaG9sZDwvdGV4dD4KICA8L2c+CgogIDwhLS0gQ29uc2VxdWVuY2UgYm94IC0tPgogIDxyZWN0IHg9IjU1IiB5PSIzOTUiIHdpZHRoPSIzNjUiIGhlaWdodD0iODAiIGZpbGw9IiMwRjE3MkEiIHN0cm9rZT0iI0RFMzUwQiIgcng9IjUiLz4KICA8dGV4dCB4PSIyMzciIHk9IjQxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Q29uc2VxdWVuY2U6PC90ZXh0PgogIDx0ZXh0IHg9IjIzNyIgeT0iNDMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVDQUNBIiBmb250LXNpemU9IjEwIj5EZXYgYW5kIHByb2Qgc2hhcmUgb25lIHNlcnZpY2Ugc2V0dGluZy48L3RleHQ+CiAgPHRleHQgeD0iMjM3IiB5PSI0NTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUNBQ0EiIGZvbnQtc2l6ZT0iMTAiPkVpdGhlciBwcm9kIHVuZGVyLWFsZXJ0cyAodG9vIGxheCkgb3IgZGV2IG92ZXItYWxlcnRzICh0b28gc3RyaWN0KS48L3RleHQ+CiAgPHRleHQgeD0iMjM3IiB5PSI0NjciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUNBQ0EiIGZvbnQtc2l6ZT0iMTAiPlNlcnZpY2UgYmFzZWxpbmVzIGJsZW5kIGFsbCBlbnZpcm9ubWVudHMuPC90ZXh0PgoKICA8IS0tID09PT09PT09PT0gUklHSFQ6IE11bHRpcGxlIGhvc3QgZ3JvdXBzID09PT09PT09PT0gLS0+CiAgPHRleHQgeD0iNzAwIiB5PSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM3M0JFMjgiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPk11bHRpcGxlIGhvc3QgZ3JvdXBzPC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5PbmUgbmdpbnggUEcgYW5kIHNlcnZpY2UgcGVyIGhvc3QgZ3JvdXA8L3RleHQ+CgogIDwhLS0gT25lIFBHIChzdGlsbCB0aGUgc2FtZSkgLS0+CiAgPHJlY3QgeD0iNjIwIiB5PSIxMzUiIHdpZHRoPSIxNjAiIGhlaWdodD0iNTUiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMjUiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MDAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+UEc6IG5naW54PC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMTc2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5vbmUgUEcgcGVyIGhvc3QgZ3JvdXA8L3RleHQ+CgogIDwhLS0gMyBzZXBhcmF0ZSB0aHJlc2hvbGQgZ2F1Z2VzIC0tPgogIDxnIGZvbnQtc2l6ZT0iMTAiPgogICAgPCEtLSBwcm9kIC0tPgogICAgPHJlY3QgeD0iNDk1IiB5PSIyMTAiIHdpZHRoPSIxMzAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjU2MCIgeT0iMjI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXdlaWdodD0iNzAwIj5wcm9kLWFwcCDCtyA0MDAgbXM8L3RleHQ+CiAgICA8cmVjdCB4PSI1MTAiIHk9IjIzNCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzMzNDE1NSIgcng9IjIiLz4KICAgIDxyZWN0IHg9IjUxMCIgeT0iMjM0IiB3aWR0aD0iNzAiIGhlaWdodD0iMTAiIGZpbGw9IiNERTM1MEIiIHJ4PSIyIi8+CgogICAgPCEtLSBub25wcm9kIC0tPgogICAgPHJlY3QgeD0iNjM1IiB5PSIyMTAiIHdpZHRoPSIxMzAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjcwMCIgeT0iMjI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVGM0M3IiBmb250LXdlaWdodD0iNzAwIj5ub25wcm9kLWFwcCDCtyAxIHM8L3RleHQ+CiAgICA8cmVjdCB4PSI2NTAiIHk9IjIzNCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzMzNDE1NSIgcng9IjIiLz4KICAgIDxyZWN0IHg9IjY1MCIgeT0iMjM0IiB3aWR0aD0iODUiIGhlaWdodD0iMTAiIGZpbGw9IiNGRkI4MDAiIHJ4PSIyIi8+CgogICAgPCEtLSBwYXltZW50IC0tPgogICAgPHJlY3QgeD0iNzc1IiB5PSIyMTAiIHdpZHRoPSIxMzAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjUiLz4KICAgIDx0ZXh0IHg9Ijg0MCIgeT0iMjI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDlGOTlEIiBmb250LXdlaWdodD0iNzAwIj5wYXltZW50LXBjaSDCtyAzMDAgbXM8L3RleHQ+CiAgICA8cmVjdCB4PSI3OTAiIHk9IjIzNCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzMzNDE1NSIgcng9IjIiLz4KICAgIDxyZWN0IHg9Ijc5MCIgeT0iMjM0IiB3aWR0aD0iNjAiIGhlaWdodD0iMTAiIGZpbGw9IiM3M0JFMjgiIHJ4PSIyIi8+CiAgPC9nPgoKICA8IS0tIEFycm93cyBmcm9tIFBHIHRvIGVhY2ggdGhyZXNob2xkIC0tPgogIDxnIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiPgogICAgPGxpbmUgeDE9IjY2MCIgeTE9IjE5MCIgeDI9IjU2MCIgeTI9IjIxMCIvPgogICAgPGxpbmUgeDE9IjcwMCIgeTE9IjE5MCIgeDI9IjcwMCIgeTI9IjIxMCIvPgogICAgPGxpbmUgeDE9Ijc0MCIgeTE9IjE5MCIgeDI9Ijg0MCIgeTI9IjIxMCIvPgogIDwvZz4KCiAgPCEtLSBIb3N0IGdyb3VwcyAtLT4KICA8ZyBmb250LXNpemU9IjEwIj4KICAgIDxyZWN0IHg9IjQ5NSIgeT0iMjg1IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjMzM0MTU1IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI1NjAiIHk9IjMwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC13ZWlnaHQ9IjYwMCI+SG9zdCBncm91cDo8L3RleHQ+CiAgICA8dGV4dCB4PSI1NjAiIHk9IjMyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSI+cHJvZC1hcHA8L3RleHQ+CgogICAgPHJlY3QgeD0iNjM1IiB5PSIyODUiIHdpZHRoPSIxMzAiIGhlaWdodD0iNTUiIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjcwMCIgeT0iMzAzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXdlaWdodD0iNjAwIj5Ib3N0IGdyb3VwOjwvdGV4dD4KICAgIDx0ZXh0IHg9IjcwMCIgeT0iMzIxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVGM0M3Ij5ub25wcm9kLWFwcDwvdGV4dD4KCiAgICA8cmVjdCB4PSI3NzUiIHk9IjI4NSIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzMzNDE1NSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utb3BhY2l0eT0iMC42IiByeD0iNSIvPgogICAgPHRleHQgeD0iODQwIiB5PSIzMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtd2VpZ2h0PSI2MDAiPkhvc3QgZ3JvdXA6PC90ZXh0PgogICAgPHRleHQgeD0iODQwIiB5PSIzMjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEOUY5OUQiPnBheW1lbnQtcGNpPC90ZXh0PgogIDwvZz4KCiAgPGcgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiIHN0cm9rZS1kYXNoYXJyYXk9IjIsMiI+CiAgICA8bGluZSB4MT0iNTYwIiB5MT0iMjYwIiB4Mj0iNTYwIiB5Mj0iMjg1Ii8+CiAgICA8bGluZSB4MT0iNzAwIiB5MT0iMjYwIiB4Mj0iNzAwIiB5Mj0iMjg1Ii8+CiAgICA8bGluZSB4MT0iODQwIiB5MT0iMjYwIiB4Mj0iODQwIiB5Mj0iMjg1Ii8+CiAgPC9nPgoKICA8IS0tIENvbnNlcXVlbmNlIGJveCAtLT4KICA8cmVjdCB4PSI0OTUiIHk9IjM2MCIgd2lkdGg9IjQxMCIgaGVpZ2h0PSIxMTUiIGZpbGw9IiMwRjE3MkEiIHN0cm9rZT0iIzczQkUyOCIgcng9IjUiLz4KICA8dGV4dCB4PSI3MDAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Q29uc2VxdWVuY2U6PC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMzk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDlGOTlEIiBmb250LXNpemU9IjEwIj5FYWNoIGVudmlyb25tZW50IGdldHMgYSB0aHJlc2hvbGQgdHVuZWQgdG8gaXRzIGFjdHVhbCBiZWhhdmlvci48L3RleHQ+CiAgPHRleHQgeD0iNzAwIiB5PSI0MTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEOUY5OUQiIGZvbnQtc2l6ZT0iMTAiPnByb2QgYWxlcnRzIG9uIHJlYWwgc2xvd2Rvd25zOyBkZXYgdG9sZXJhdGVzIG5vaXN5IENJIHJ1bnM7PC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iNDMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDlGOTlEIiBmb250LXNpemU9IjEwIj5wYXltZW50LXBjaSBhbGVydHMgZWFybHkgdG8gcHJvdGVjdCBjb21wbGlhbmNlIFNMT3MuPC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iNDU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIj5TZXJ2aWNlcyBhbmQgdGhlaXIgYmFzZWxpbmVzIGFyZSBzZXBhcmF0ZWQgcGVyIGdyb3VwIHRvby48L3RleHQ+Cjwvc3ZnPgo=" alt="Threshold Scoping by Host Group" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Setup | nginx service response-time threshold | Outcome |
+|-------|-------------------|---------|
+| Single host group | One merged PG and service; 500 ms applied to all envs | Dev and prod share one service setting and one blended baseline |
+| Multiple host groups | One PG and service per group: prod-app 400 ms / nonprod-app 1 s / payment-pci 300 ms | Each environment tuned to its actual behavior |
+For environments where SVG doesn't render
+-->
+<p>This rollup is also why retroactive restructuring is disruptive: changing a host's group recomputes topology context for every process group, service, and SLO downstream of it. The concrete cost — per the <code>oneagentctl</code> reference, <em>&quot;Using <code>--set-host-group</code> requires restart of OneAgent, as well as restart of all the monitored services&quot;</em> — means moving a host between groups is not just a metadata change; the agent and every monitored service on that host restart, and <em>&quot;Changing the host group assignments results in recalculation of process group IDs, which impacts data aggregation.&quot;</em> Defining good host groups up front means the entire entity tree is correctly scoped from day one.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/host-groups">Host groups (DT docs)</a> — a Dynatrace Classic page: <em>&quot;When the same process is running in two different host groups, Dynatrace will create one process group for each host group. This means you can also configure process groups differently depending on which host group they run in. Consequently, services are also grouped per host group.&quot;</em> and <em>&quot;You can define alerting thresholds and OneAgent update settings on a per-host-group basis.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/process-groups">Process groups and process group instances (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/oneagentctl">oneagentctl (DT docs)</a> — <em>&quot;Using <code>--set-host-group</code> requires restart of OneAgent, as well as restart of all the monitored services&quot;</em>; <em>&quot;Changing the host group assignments results in recalculation of process group IDs, which impacts data aggregation.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a> — <em>&quot;Define record-level and bucket-level access policies based on primary Grail fields such as dt.host_group.id&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic">Classic auto-tagging vs primary Grail tags (DT docs)</a> — <em>&quot;Management zones are not supported by any platform feature or Dynatrace app. They remain available only on classic pages for backward compatibility.&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> the shared service baseline in the single-group case follows from services being grouped per host group.</sub></li>
+</ul>
+</blockquote>
+<p><a id="ownership"></a></p>
+<h2>2. Consideration #1: Clear Ownership and Operational Accountability</h2>
+<p><strong>Without a strong naming strategy:</strong></p>
+<ul>
+<li>All infrastructure appears as a single shared pool</li>
+<li>Ownership boundaries are unclear</li>
+<li>Platform teams must manually interpret responsibility during incidents</li>
+</ul>
+<p><strong>With a strong naming strategy:</strong></p>
+<ul>
+<li>Ownership is explicitly defined</li>
+<li>Teams can quickly identify &quot;their&quot; hosts</li>
+<li>Operational accountability becomes clear and auditable</li>
+</ul>
+<p><strong>Impact:</strong> In community practice, the most consistent benefit teams report after moving off a single host group is faster incident triage and fewer ownership disputes — verify against your own MTTR data.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/host-groups">Host groups (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="access-control"></a></p>
+<h2>3. Consideration #2: Access Control and Visibility Boundaries</h2>
+<p>Dynatrace supports role-based visibility controls, but those controls require <strong>clear infrastructure scoping</strong>.</p>
+<p><strong>With a single host group or weak naming:</strong></p>
+<ul>
+<li>Users inevitably gain broader visibility than intended</li>
+<li>Least-privilege access becomes difficult to enforce</li>
+<li>Security and audit concerns increase</li>
+</ul>
+<p><strong>With multiple, deliberately named host groups:</strong></p>
+<ul>
+<li>Visibility can be aligned to teams, environments, or business units</li>
+<li>Platform admins are no longer forced into all-or-nothing access decisions</li>
+<li>Separation of duties is easier to demonstrate</li>
+</ul>
+<p><strong>Impact:</strong> Improved security posture and simplified audits.</p>
+<blockquote>
+<p><strong>Note on scoping mechanism choice:</strong> On Latest Dynatrace, the host group is itself a record-level permission boundary. <code>dt.host_group.id</code> is a stable, permission-relevant primary Grail field, and Dynatrace's permission guidance names host groups first: <em>&quot;We recommend setting up permissions along organizational lines and deployment scopes. Suitable concepts include host groups, Kubernetes clusters, and Kubernetes namespaces.&quot;</em> Add <code>dt.security_context</code> when one host group holds data that different audiences need to see separately — the security-context page itself says <em>&quot;If your organization can rely on deployment-level primary Grail fields such as k8s.namespace.name or dt.host_group.id for access control, you may not need dt.security_context at all.&quot;</em> A well-designed host group therefore serves both jobs: operational scoping (process detection, thresholds, alert routing, automation blast radius) and data access. See the IAM and ORGNZ topic series for the policy patterns.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/advanced-permission-setup">Advanced permission setup (DT docs)</a> — the recommendation quoted above</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/tags-security-context">Configure security context (DT docs)</a> — the security-context sentence quoted above</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/semantic-dictionary/tags/permission">Permission fields — semantic dictionary (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management">Identity &amp; access management (DT docs)</a></sub></li>
+<li><sub><strong>Dictionary:</strong> <code>dt.host_group.id</code> (<code>stable</code>, tags <code>permission</code>, <code>primary-field</code>), read 10/02/2026.</sub></li>
+</ul>
+</blockquote>
+<p><a id="alerting"></a></p>
+<h2>4. Consideration #3: Alerting Accuracy and Notification Routing</h2>
+<p>Alerting effectiveness depends on correctly scoping <strong>who owns what</strong>.</p>
+<p><strong>Without a strong naming strategy:</strong></p>
+<ul>
+<li>Alerts lack clear ownership context</li>
+<li>Notification rules become complex and error-prone</li>
+<li>Teams may receive alerts for systems they do not own</li>
+</ul>
+<p><strong>With a strong naming strategy:</strong></p>
+<ul>
+<li>Alerts can be routed to responsible teams on the host-group structure — through a problem-triggered workflow on Latest Dynatrace, or through management zones and alerting profiles on Dynatrace Classic</li>
+<li>Notification logic is simpler and more reliable</li>
+<li>Alert fatigue is reduced</li>
+</ul>
+<p><strong>Mechanic clarification:</strong> the two platforms reach the host group differently.</p>
+<ul>
+<li><strong>Latest Dynatrace:</strong> problem notifications are sent by <strong>problem-triggered workflows</strong>. Davis problems carry <code>dt.host_group.id</code> as a primary Grail field, so the trigger's custom DQL filter can match the host group directly. On problem records the field is an <strong>array</strong> (for example <code>[&quot;integration-probs&quot;]</code>), so write the matcher for an array; this entry has not tested such a matcher on a live workflow trigger. The alternative is to route on an ownership tag or primary tag. FAQ-21 covers the routing design; ALERT-03 covers destinations.</li>
+<li><strong>Dynatrace Classic:</strong> alerting profiles scope on management zone filters and severity-rule tag matching. Per-host-group routing is achieved by building management zones on top of the host-group structure. MZ2POL-09 covers moving that alerting job to workflows.</li>
+</ul>
+<p><strong>Impact:</strong> Better signal-to-noise ratio and faster response times.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5BbGVydCBSb3V0aW5nOiBGbGF0IFBvb2wgdnMuIFNjb3BlZCBHcm91cHM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+Q2xlYXIgb3duZXJzaGlwIGlzIHRoZSBkaWZmZXJlbmNlIGJldHdlZW4gc2lnbmFsIGFuZCBmYXRpZ3VlPC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImczYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIExFRlQ6IGZsYXQgLS0+CiAgPHRleHQgeD0iMjM1IiB5PSI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RFMzUwQiIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+U2luZ2xlIGhvc3QgZ3JvdXA8L3RleHQ+CiAgPHRleHQgeD0iMjM1IiB5PSIxMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkFsZXJ0cyBmYW4gb3V0IHRvIGV2ZXJ5b25lPC90ZXh0PgoKICA8IS0tIEFsZXJ0IHNvdXJjZSAtLT4KICA8cmVjdCB4PSIxODAiIHk9IjEzNSIgd2lkdGg9IjExMCIgaGVpZ2h0PSI1MCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjIzNSIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVDQUNBIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj7imqAgQWxlcnQgZmlyZXM8L3RleHQ+CiAgPHRleHQgeD0iMjM1IiB5PSIxNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiPiJzb21lIGhvc3QgaXMgZGVncmFkZWQiPC90ZXh0PgoKICA8IS0tIGZhbi1vdXQgLS0+CiAgPGcgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgZmlsbD0ibm9uZSIgb3BhY2l0eT0iMC43Ij4KICAgIDxsaW5lIHgxPSIyMDAiIHkxPSIxODUiIHgyPSI5MCIgeTI9IjI2MCIgbWFya2VyLWVuZD0idXJsKCNnM2FycikiLz4KICAgIDxsaW5lIHgxPSIyMjAiIHkxPSIxODUiIHgyPSIxNjAiIHkyPSIyNzAiIG1hcmtlci1lbmQ9InVybCgjZzNhcnIpIi8+CiAgICA8bGluZSB4MT0iMjQwIiB5MT0iMTg1IiB4Mj0iMjM1IiB5Mj0iMjcwIiBtYXJrZXItZW5kPSJ1cmwoI2czYXJyKSIvPgogICAgPGxpbmUgeDE9IjI2MCIgeTE9IjE4NSIgeDI9IjMxMCIgeTI9IjI3MCIgbWFya2VyLWVuZD0idXJsKCNnM2FycikiLz4KICAgIDxsaW5lIHgxPSIyNzUiIHkxPSIxODUiIHgyPSIzODUiIHkyPSIyNjAiIG1hcmtlci1lbmQ9InVybCgjZzNhcnIpIi8+CiAgPC9nPgoKICA8IS0tIDUgdGVhbXMsIGFsbCBwaW5nZWQgLS0+CiAgPGcgZm9udC1zaXplPSIxMCI+CiAgICA8cmVjdCB4PSI1MCIgeT0iMjY1IiB3aWR0aD0iNzUiIGhlaWdodD0iNDUiIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iI0ZDQTVBNSIgcng9IjUiLz4KICAgIDx0ZXh0IHg9Ijg3IiB5PSIyODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUNBQ0EiIGZvbnQtd2VpZ2h0PSI2MDAiPlNSRTwvdGV4dD4KICAgIDx0ZXh0IHg9Ijg3IiB5PSIyOTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUNBQ0EiIGZvbnQtc2l6ZT0iMTgiPvCfk588L3RleHQ+CgogICAgPHJlY3QgeD0iMTMwIiB5PSIyNzUiIHdpZHRoPSI3NSIgaGVpZ2h0PSI0NSIgZmlsbD0iIzMzNDE1NSIgc3Ryb2tlPSIjRkNBNUE1IiByeD0iNSIvPgogICAgPHRleHQgeD0iMTY3IiB5PSIyOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUNBQ0EiIGZvbnQtd2VpZ2h0PSI2MDAiPkFwcCB0ZWFtPC90ZXh0PgogICAgPHRleHQgeD0iMTY3IiB5PSIzMDkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUNBQ0EiIGZvbnQtc2l6ZT0iMTgiPvCfk588L3RleHQ+CgogICAgPHJlY3QgeD0iMjEwIiB5PSIyNzUiIHdpZHRoPSI3NSIgaGVpZ2h0PSI0NSIgZmlsbD0iIzMzNDE1NSIgc3Ryb2tlPSIjRkNBNUE1IiByeD0iNSIvPgogICAgPHRleHQgeD0iMjQ3IiB5PSIyOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUNBQ0EiIGZvbnQtd2VpZ2h0PSI2MDAiPkZyb250ZW5kPC90ZXh0PgogICAgPHRleHQgeD0iMjQ3IiB5PSIzMDkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUNBQ0EiIGZvbnQtc2l6ZT0iMTgiPvCfk588L3RleHQ+CgogICAgPHJlY3QgeD0iMjkwIiB5PSIyNzUiIHdpZHRoPSI3NSIgaGVpZ2h0PSI0NSIgZmlsbD0iIzMzNDE1NSIgc3Ryb2tlPSIjRkNBNUE1IiByeD0iNSIvPgogICAgPHRleHQgeD0iMzI3IiB5PSIyOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUNBQ0EiIGZvbnQtd2VpZ2h0PSI2MDAiPlBheW1lbnQ8L3RleHQ+CiAgICA8dGV4dCB4PSIzMjciIHk9IjMwOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZFQ0FDQSIgZm9udC1zaXplPSIxOCI+8J+TnzwvdGV4dD4KCiAgICA8cmVjdCB4PSIzNzAiIHk9IjI2NSIgd2lkdGg9IjY1IiBoZWlnaHQ9IjQ1IiBmaWxsPSIjMzM0MTU1IiBzdHJva2U9IiNGQ0E1QTUiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI0MDIiIHk9IjI4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZFQ0FDQSIgZm9udC13ZWlnaHQ9IjYwMCI+RGF0YTwvdGV4dD4KICAgIDx0ZXh0IHg9IjQwMiIgeT0iMjk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVDQUNBIiBmb250LXNpemU9IjE4Ij7wn5OfPC90ZXh0PgogIDwvZz4KCiAgPHJlY3QgeD0iNTAiIHk9IjM0MCIgd2lkdGg9IjM4MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNSIvPgogIDx0ZXh0IHg9IjI0MCIgeT0iMzYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5BbGVydCBmYXRpZ3VlIMK3IG5vIGNsZWFyIG93bmVyPC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iMzgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVDQUNBIiBmb250LXNpemU9IjEwIj40IHRlYW1zIGRpZyBpbnRvIGxvZ3M7IDMgYXJlIHdhc3RpbmcgdGltZTwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjM5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZFQ0FDQSIgZm9udC1zaXplPSIxMCI+TVRUUiBpbmNyZWFzZXM7IHRlYW1zIG9wdCBvdXQgb2YgcGFnaW5nPC90ZXh0PgoKICA8IS0tIERpdmlkZXIgLS0+CiAgPGxpbmUgeDE9IjQ2NSIgeTE9Ijk1IiB4Mj0iNDY1IiB5Mj0iNDQwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgoKICA8IS0tIFJJR0hUOiBncm91cGVkIC0tPgogIDx0ZXh0IHg9IjcwMCIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM3M0JFMjgiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPkhvc3QgZ3JvdXBzPC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMTEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BbGVydCByb3V0ZXMgdG8gb3duaW5nIHRlYW0gb25seTwvdGV4dD4KCiAgPHJlY3QgeD0iNjQwIiB5PSIxMzUiIHdpZHRoPSIxMjAiIGhlaWdodD0iNTAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMjUiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICA8dGV4dCB4PSI3MDAiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Q5Rjk5RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+4pqgIEFsZXJ0IGZpcmVzPC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMTc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIj5ob3N0IGluICJwYXltZW50LXBjaSIgZ3JvdXA8L3RleHQ+CgogIDwhLS0gQ29udGV4dDogaG9zdCBncm91cCBsb29rdXAgLS0+CiAgPHJlY3QgeD0iNjQwIiB5PSIyMDUiIHdpZHRoPSIxMjAiIGhlaWdodD0iNDUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgcng9IjUiLz4KICA8dGV4dCB4PSI3MDAiIHk9IjIyMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCI+aG9zdF9ncm91cCA9PC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5wYXltZW50LXBjaTwvdGV4dD4KCiAgPGxpbmUgeDE9IjcwMCIgeTE9IjE4NSIgeDI9IjcwMCIgeTI9IjIwNSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNnM2FycikiLz4KICA8bGluZSB4MT0iNzAwIiB5MT0iMjUwIiB4Mj0iNzAwIiB5Mj0iMjc1IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2czYXJyKSIvPgoKICA8IS0tIFRlYW0gcm91dGluZyAtLT4KICA8ZyBmb250LXNpemU9IjEwIj4KICAgIDxyZWN0IHg9IjUyNSIgeT0iMjc1IiB3aWR0aD0iODAiIGhlaWdodD0iNDUiIGZpbGw9IiMzMzQxNTUiIG9wYWNpdHk9IjAuNCIgc3Ryb2tlPSIjNjQ3NDhCIiByeD0iNSIvPgogICAgPHRleHQgeD0iNTY1IiB5PSIyOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtd2VpZ2h0PSI2MDAiPlNSRTwvdGV4dD4KICAgIDx0ZXh0IHg9IjU2NSIgeT0iMzA5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj4odW5wYWdlZCk8L3RleHQ+CgogICAgPHJlY3QgeD0iNjE1IiB5PSIyNzUiIHdpZHRoPSI4MCIgaGVpZ2h0PSI0NSIgZmlsbD0iIzMzNDE1NSIgb3BhY2l0eT0iMC40IiBzdHJva2U9IiM2NDc0OEIiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI2NTUiIHk9IjI5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC13ZWlnaHQ9IjYwMCI+QXBwIHRlYW08L3RleHQ+CiAgICA8dGV4dCB4PSI2NTUiIHk9IjMwOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+KHVucGFnZWQpPC90ZXh0PgoKICAgIDxyZWN0IHg9IjcwNSIgeT0iMjc1IiB3aWR0aD0iODAiIGhlaWdodD0iNDUiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMzUiIHN0cm9rZT0iIzczQkUyOCIgcng9IjUiLz4KICAgIDx0ZXh0IHg9Ijc0NSIgeT0iMjkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDlGOTlEIiBmb250LXdlaWdodD0iNzAwIj5QYXltZW50PC90ZXh0PgogICAgPHRleHQgeD0iNzQ1IiB5PSIzMDkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEOUY5OUQiIGZvbnQtc2l6ZT0iMTgiPvCfk588L3RleHQ+CgogICAgPHJlY3QgeD0iNzk1IiB5PSIyNzUiIHdpZHRoPSI4MCIgaGVpZ2h0PSI0NSIgZmlsbD0iIzMzNDE1NSIgb3BhY2l0eT0iMC40IiBzdHJva2U9IiM2NDc0OEIiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI4MzUiIHk9IjI5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC13ZWlnaHQ9IjYwMCI+RGF0YTwvdGV4dD4KICAgIDx0ZXh0IHg9IjgzNSIgeT0iMzA5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj4odW5wYWdlZCk8L3RleHQ+CiAgPC9nPgoKICA8cmVjdCB4PSI1MjUiIHk9IjM0MCIgd2lkdGg9IjM1NSIgaGVpZ2h0PSI4MCIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNSIvPgogIDx0ZXh0IHg9IjcwMiIgeT0iMzYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5PbmUgdGVhbSBwYWdlZCDCtyBjbGVhciBvd25lcjwvdGV4dD4KICA8dGV4dCB4PSI3MDIiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Q5Rjk5RCIgZm9udC1zaXplPSIxMCI+UGF5bWVudCB0ZWFtIGhhcyBmdWxsIGNvbnRleHQgZnJvbSB0aGUgZ3JvdXAgbmFtZTwvdGV4dD4KICA8dGV4dCB4PSI3MDIiIHk9IjM5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Q5Rjk5RCIgZm9udC1zaXplPSIxMCI+RmFzdGVyIE1UVFIsIHplcm8gYWxlcnQgZmF0aWd1ZSBvbiB1bnJlbGF0ZWQgdGVhbXM8L3RleHQ+CgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Ob3RpZmljYXRpb24gcnVsZXMgYmVjb21lIHNpbXBsZXIgYW5kIG1vcmUgcmVsaWFibGUgd2hlbiBob3N0IGdyb3VwcyByZWZsZWN0IG93bmVyc2hpcC48L3RleHQ+Cjwvc3ZnPgo=" alt="Alert Routing: Flat Pool vs. Scoped Groups" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Approach | Who Gets Paged |
+|----------|---------------|
+| Single group | All teams (most waste time) |
+| Host groups | Owning team only (e.g., `app-pci` → app team) |
+For environments where SVG doesn't render
+-->
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a> — <em>&quot;Dynatrace also enriches them on all derived signals, including Davis events and problems&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic">Classic auto-tagging vs primary Grail tags (DT docs)</a> — <em>&quot;Route alerts on the primary fields and tags carried by the alert events themselves.&quot;</em>; <a href="https://docs.dynatrace.com/docs/shortlink/alerting-profiles">Alerting profiles (DT docs)</a> — <em>&quot;Problem notification is a Dynatrace Classic concept. Use simple workflows to send notifications about problems.&quot;</em>; alerting profile scope is management-zone filter + severity-rule tag matching, <a href="https://docs.dynatrace.com/docs/shortlink/host-groups">Host groups (DT docs)</a>. Live check 10/02/2026: <code>fetch dt.davis.problems, from:-7d | filter isNotNull(dt.host_group.id)</code> returned problems whose <code>type(dt.host_group.id)</code> is <code>array</code>.</sub></p>
+</blockquote>
+<p><a id="operations"></a></p>
+<h2>5. Consideration #4: Operational Efficiency and Troubleshooting</h2>
+<p>As environments grow, simplicity becomes critical.</p>
+<p><strong>Without a strong naming strategy:</strong></p>
+<ul>
+<li>Investigations require manual filtering and tribal knowledge</li>
+<li>Dashboards and views become cluttered</li>
+<li>Onboarding new engineers takes longer</li>
+</ul>
+<p><strong>With a strong naming strategy:</strong></p>
+<ul>
+<li>Engineers can quickly narrow scope to relevant hosts</li>
+<li>Views and dashboards remain readable and purposeful</li>
+<li>New team members orient faster</li>
+</ul>
+<p><strong>Impact:</strong> In community practice, lower operational overhead and reduced cognitive load — the magnitude depends heavily on host count, team count, and how tightly dashboards are scoped today.</p>
+<p><a id="automation"></a></p>
+<h2>6. Consideration #5: Automation Scope and Risk Containment</h2>
+<p>Dynatrace automation and integrations assume <strong>controlled targeting</strong>.</p>
+<p><strong>With a single host group or weak naming:</strong></p>
+<ul>
+<li>Automation rules often apply globally by default</li>
+<li>A misconfiguration can affect the entire estate</li>
+<li>Testing automation safely is challenging</li>
+</ul>
+<p><strong>With a strong naming strategy:</strong></p>
+<ul>
+<li>Automation can be safely scoped (by team, environment, or workload)</li>
+<li>New rules can be introduced incrementally</li>
+<li>Blast radius is intentionally controlled</li>
+</ul>
+<p><strong>Impact:</strong> In community practice, safer automation adoption and reduced operational risk — scoping automation by host group is a team convention rather than a documented platform feature.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5BdXRvbWF0aW9uIEJsYXN0IFJhZGl1czwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5BIG1pc2NvbmZpZ3VyZWQgcnVsZSBpcyBhIHRlc3Qgb2YgaG93IHdlbGwgeW91IHNjb3BlZCBpdDwvdGV4dD4KCiAgPCEtLSBMRUZUOiBmbGF0LCBmdWxsIGJsYXN0IC0tPgogIDx0ZXh0IHg9IjIzNSIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNERTM1MEIiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPlNpbmdsZSBob3N0IGdyb3VwPC90ZXh0PgogIDx0ZXh0IHg9IjIzNSIgeT0iMTEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SdWxlIGFwcGxpZXMgdG8gZW50aXJlIGVzdGF0ZTwvdGV4dD4KCiAgPCEtLSBCbGFzdCByaW5nIC0tPgogIDxjaXJjbGUgY3g9IjIzNSIgY3k9IjI3NSIgcj0iMTUwIiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjEyIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNCwzIi8+CiAgPGNpcmNsZSBjeD0iMjM1IiBjeT0iMjc1IiByPSIxMTAiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMiIvPgogIDxjaXJjbGUgY3g9IjIzNSIgY3k9IjI3NSIgcj0iNzAiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMyIvPgoKICA8IS0tIEFsbCBob3N0cyBhZmZlY3RlZCAoYWxsIHJlZCkgLS0+CiAgPGc+CiAgICA8Y2lyY2xlIGN4PSIxODAiIGN5PSIyMzAiIHI9IjgiIGZpbGw9IiNERTM1MEIiLz4KICAgIDxjaXJjbGUgY3g9IjIxNSIgY3k9IjIyNSIgcj0iOCIgZmlsbD0iI0RFMzUwQiIvPgogICAgPGNpcmNsZSBjeD0iMjUwIiBjeT0iMjMwIiByPSI4IiBmaWxsPSIjREUzNTBCIi8+CiAgICA8Y2lyY2xlIGN4PSIyODUiIGN5PSIyMjUiIHI9IjgiIGZpbGw9IiNERTM1MEIiLz4KICAgIDxjaXJjbGUgY3g9IjE2NSIgY3k9IjI2NSIgcj0iOCIgZmlsbD0iI0RFMzUwQiIvPgogICAgPGNpcmNsZSBjeD0iMjA1IiBjeT0iMjc1IiByPSI4IiBmaWxsPSIjREUzNTBCIi8+CiAgICA8Y2lyY2xlIGN4PSIyNDUiIGN5PSIyNjUiIHI9IjgiIGZpbGw9IiNERTM1MEIiLz4KICAgIDxjaXJjbGUgY3g9IjI4NSIgY3k9IjI3NSIgcj0iOCIgZmlsbD0iI0RFMzUwQiIvPgogICAgPGNpcmNsZSBjeD0iMTgwIiBjeT0iMzA1IiByPSI4IiBmaWxsPSIjREUzNTBCIi8+CiAgICA8Y2lyY2xlIGN4PSIyMjAiIGN5PSIzMTUiIHI9IjgiIGZpbGw9IiNERTM1MEIiLz4KICAgIDxjaXJjbGUgY3g9IjI2MCIgY3k9IjMwNSIgcj0iOCIgZmlsbD0iI0RFMzUwQiIvPgogICAgPGNpcmNsZSBjeD0iMjk1IiBjeT0iMzE1IiByPSI4IiBmaWxsPSIjREUzNTBCIi8+CiAgPC9nPgoKICA8IS0tIHJ1bGUgLS0+CiAgPHJlY3QgeD0iMTM1IiB5PSIxMzUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgcng9IjUiLz4KICA8dGV4dCB4PSIyMzUiIHk9IjE1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+QXV0b21hdGlvbiBydWxlPC90ZXh0PgogIDx0ZXh0IHg9IjIzNSIgeT0iMTczIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVDQUNBIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj50YXJnZXQ6IGFsbCBob3N0czwvdGV4dD4KCiAgPHRleHQgeD0iMjM1IiB5PSI0NDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkJsYXN0IHJhZGl1czogMTAwJTwvdGV4dD4KICA8dGV4dCB4PSIyMzUiIHk9IjQ2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZFQ0FDQSIgZm9udC1zaXplPSIxMSI+QSBtaXNjb25maWcgY2FuIGFmZmVjdCBldmVyeSBob3N0PC90ZXh0PgogIDx0ZXh0IHg9IjIzNSIgeT0iNDc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVDQUNBIiBmb250LXNpemU9IjExIj5ObyBzYWZlIHdheSB0byB0ZXN0IGluIHByb2R1Y3Rpb248L3RleHQ+CgogIDwhLS0gRGl2aWRlciAtLT4KICA8bGluZSB4MT0iNDY1IiB5MT0iOTUiIHgyPSI0NjUiIHkyPSI0OTAiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CgogIDwhLS0gUklHSFQ6IHNjb3BlZCAtLT4KICA8dGV4dCB4PSI3MDAiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNzNCRTI4IiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5Ib3N0IGdyb3VwczwvdGV4dD4KICA8dGV4dCB4PSI3MDAiIHk9IjExMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UnVsZSBzY29wZWQgdG8gb25lIGdyb3VwPC90ZXh0PgoKICA8IS0tIDQgZ3JvdXBzIC0tPgogIDxnIGZvbnQtc2l6ZT0iMTAiPgogICAgPHJlY3QgeD0iNTMwIiB5PSIyMDAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI3MCIgZmlsbD0iIzMzNDE1NSIgb3BhY2l0eT0iMC40IiBzdHJva2U9IiM2NDc0OEIiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI1NzAiIHk9IjIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC13ZWlnaHQ9IjYwMCI+cHJvZC1hcHA8L3RleHQ+CiAgICA8Y2lyY2xlIGN4PSI1NTAiIGN5PSIyNDUiIHI9IjYiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuNSIvPgogICAgPGNpcmNsZSBjeD0iNTcwIiBjeT0iMjQ1IiByPSI2IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjUiLz4KICAgIDxjaXJjbGUgY3g9IjU5MCIgY3k9IjI0NSIgcj0iNiIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC41Ii8+CgogICAgPHJlY3QgeD0iNjIwIiB5PSIyMDAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI3MCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4zIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMiIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjY2MCIgeT0iMjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkVDQUNBIiBmb250LXdlaWdodD0iNzAwIj5ub25wcm9kLWFwcDwvdGV4dD4KICAgIDxjaXJjbGUgY3g9IjY0MCIgY3k9IjI0NSIgcj0iNiIgZmlsbD0iI0RFMzUwQiIvPgogICAgPGNpcmNsZSBjeD0iNjYwIiBjeT0iMjQ1IiByPSI2IiBmaWxsPSIjREUzNTBCIi8+CiAgICA8Y2lyY2xlIGN4PSI2ODAiIGN5PSIyNDUiIHI9IjYiIGZpbGw9IiNERTM1MEIiLz4KCiAgICA8cmVjdCB4PSI3MTAiIHk9IjIwMCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjMzM0MTU1IiBvcGFjaXR5PSIwLjQiIHN0cm9rZT0iIzY0NzQ4QiIgcng9IjUiLz4KICAgIDx0ZXh0IHg9Ijc1MCIgeT0iMjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXdlaWdodD0iNjAwIj5wcm9kLWluZnJhPC90ZXh0PgogICAgPGNpcmNsZSBjeD0iNzMwIiBjeT0iMjQ1IiByPSI2IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjUiLz4KICAgIDxjaXJjbGUgY3g9Ijc1MCIgY3k9IjI0NSIgcj0iNiIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC41Ii8+CiAgICA8Y2lyY2xlIGN4PSI3NzAiIGN5PSIyNDUiIHI9IjYiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuNSIvPgoKICAgIDxyZWN0IHg9IjgwMCIgeT0iMjAwIiB3aWR0aD0iODAiIGhlaWdodD0iNzAiIGZpbGw9IiMzMzQxNTUiIG9wYWNpdHk9IjAuNCIgc3Ryb2tlPSIjNjQ3NDhCIiByeD0iNSIvPgogICAgPHRleHQgeD0iODQwIiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtd2VpZ2h0PSI2MDAiPnBheW1lbnQtcGNpPC90ZXh0PgogICAgPGNpcmNsZSBjeD0iODIwIiBjeT0iMjQ1IiByPSI2IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjUiLz4KICAgIDxjaXJjbGUgY3g9Ijg0MCIgY3k9IjI0NSIgcj0iNiIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC41Ii8+CiAgICA8Y2lyY2xlIGN4PSI4NjAiIGN5PSIyNDUiIHI9IjYiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuNSIvPgogIDwvZz4KCiAgPCEtLSBTY29wZWQgYmxhc3QgY2lyY2xlIC0tPgogIDxjaXJjbGUgY3g9IjY2MCIgY3k9IjIzNSIgcj0iNTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI0LDMiLz4KCiAgPCEtLSBydWxlIHdpdGggc2NvcGUgLS0+CiAgPHJlY3QgeD0iNTQwIiB5PSIxMzUiIHdpZHRoPSIzMjAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjUiLz4KICA8dGV4dCB4PSI3MDAiIHk9IjE1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+QXV0b21hdGlvbiBydWxlPC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMTczIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRDlGOTlEIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj50YXJnZXQ6IGhvc3RfZ3JvdXAgPT0gIm5vbnByb2QtYXBwIjwvdGV4dD4KCiAgPCEtLSBQcm9ncmVzc2l2ZSByb2xsb3V0IG5vdGUgLS0+CiAgPHJlY3QgeD0iNTI1IiB5PSIzMTAiIHdpZHRoPSIzNTUiIGhlaWdodD0iOTUiIGZpbGw9IiMwRjE3MkEiIHN0cm9rZT0iIzczQkUyOCIgcng9IjUiLz4KICA8dGV4dCB4PSI3MDIiIHk9IjMzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Qmxhc3QgcmFkaXVzOiBvbmUgZ3JvdXAgb25seTwvdGV4dD4KICA8dGV4dCB4PSI3MDIiIHk9IjM1MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Q5Rjk5RCIgZm9udC1zaXplPSIxMCI+VGVzdCBpbiBub25wcm9kLWFwcCBmaXJzdCDihpI8L3RleHQ+CiAgPHRleHQgeD0iNzAyIiB5PSIzNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEOUY5OUQiIGZvbnQtc2l6ZT0iMTAiPnByb21vdGUgdG8gcHJvZC1hcHAg4oaSIHRoZW4gcHJvZC1pbmZyYSDihpI8L3RleHQ+CiAgPHRleHQgeD0iNzAyIiB5PSIzODciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEOUY5OUQiIGZvbnQtc2l6ZT0iMTAiPnBheW1lbnQtcGNpIGxhc3QgKHdpdGggY2hhbmdlIHJldmlldyk8L3RleHQ+CgogIDx0ZXh0IHg9IjcwMiIgeT0iNDQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5CbGFzdCByYWRpdXM6IH4yNSU8L3RleHQ+CiAgPHRleHQgeD0iNzAyIiB5PSI0NjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEOUY5OUQiIGZvbnQtc2l6ZT0iMTEiPlNhZmUgaW5jcmVtZW50YWwgcm9sbG91dDwvdGV4dD4KICA8dGV4dCB4PSI3MDIiIHk9IjQ3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Q5Rjk5RCIgZm9udC1zaXplPSIxMSI+TWlzY29uZmlncyBhcmUgY29udGFpbmVkPC90ZXh0Pgo8L3N2Zz4K" alt="Automation Blast Radius" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Approach | Blast Radius | Rollout |
+|----------|--------------|---------|
+| Single group | 100% (all hosts) | No safe test in prod |
+| Host groups | Bounded per group | Incremental: nonprod → prod → regulated last |
+For environments where SVG doesn't render
+-->
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/host-groups">Host groups (DT docs)</a> — <em>&quot;You can define alerting thresholds and OneAgent update settings on a per-host-group basis.&quot;</em></sub></p>
+</blockquote>
+<p><a id="scalability"></a></p>
+<h2>7. Consideration #6: Tenant Scalability and Long-Term Maintainability</h2>
+<p>A flat structure does not scale.</p>
+<p><strong>Without a strong naming strategy:</strong></p>
+<ul>
+<li>Configuration complexity grows disproportionately</li>
+<li>Naming conventions replace architecture</li>
+<li>Retrofitting structure later becomes disruptive</li>
+</ul>
+<p><strong>With a strong naming strategy:</strong></p>
+<ul>
+<li>Structure scales naturally as hosts and teams increase</li>
+<li>New hosts land in the right group as long as the installer command or deployment template sets <code>--set-host-group</code> — assignment is static and per host</li>
+<li>The tenant remains maintainable over time</li>
+</ul>
+<p><strong>Impact:</strong> Lower technical debt and reduced future rework.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/host-groups">Host groups (DT docs)</a> — <em>&quot;The host group is statically assigned to the host.&quot;</em>; <em>&quot;You can assign a host to a host group during or after OneAgent installation&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="tradeoffs-weak"></a></p>
+<h2>8. Trade-offs of a Weak or Single-Group Strategy</h2>
+<p>If the tenant remains on a single host group or relies on ad-hoc naming:</p>
+<ul>
+<li>Access control will remain coarse and inflexible</li>
+<li>Alert ownership will stay ambiguous</li>
+<li>Automation risk will increase over time</li>
+<li>Operational complexity will grow with scale</li>
+<li>Structural remediation will eventually be required — and painful</li>
+</ul>
+<p>In community practice, these issues compound roughly with host count and team count — verify the slope in your own environment, since it depends on how many automation rules, alerting profiles, and policies the tenant carries.</p>
+<p><a id="benefits-strong"></a></p>
+<h2>9. Benefits of a Strong Naming Strategy</h2>
+<p>Implementing a deliberate host group naming strategy early provides immediate and lasting benefits:</p>
+<ul>
+<li>Clear ownership and responsibility boundaries</li>
+<li>Improved security and access control alignment</li>
+<li>Cleaner alerting and faster incident response</li>
+<li>Safer automation enablement</li>
+<li>Easier onboarding of new teams and workloads</li>
+<li>Alignment with Dynatrace platform best practices</li>
+</ul>
+<p>Most importantly, this avoids <strong>retroactive restructuring</strong>, which is significantly more disruptive than choosing well up front.</p>
+<p><a id="scaling"></a></p>
+<h2>10. How a Strong Strategy Compounds as Your Environment Grows</h2>
+<p>Whether a tenant carries a single application or many, the host group naming strategy you adopt today becomes the template every future workload follows. Treating the strategy as a <strong>tenant-wide convention</strong> from day one — rather than an app-specific decision — is what makes future onboarding cheap. The naming pattern, the alert-routing logic, the automation-scoping pattern, and the IAM scoping approach all become repeatable rather than re-negotiated each time a new app arrives.</p>
+<h3>What Compounds As the Footprint Grows</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>With a strong strategy in place</th>
+<th>Without it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ownership</strong></td>
+<td>New app lands in its own groups (e.g., <code>prod-&lt;app&gt;</code>, <code>nonprod-&lt;app&gt;</code>). Ownership is obvious from day 1.</td>
+<td>Ownership is ambiguous; every incident requires tribal knowledge to answer &quot;whose host is this?&quot;</td>
+</tr>
+<tr>
+<td><strong>Alert routing</strong></td>
+<td>Each new app's alerts route to its owning team from the moment hosts register.</td>
+<td>Alerts fan out to everyone; adding apps multiplies the noise, not the signal.</td>
+</tr>
+<tr>
+<td><strong>IAM scope</strong></td>
+<td>New team gets access scoped to its groups. Existing teams' access is untouched.</td>
+<td>Access remains all-or-nothing; each new team either sees everything or sees nothing.</td>
+</tr>
+<tr>
+<td><strong>Automation rollout</strong></td>
+<td>Changes pilot in <code>nonprod-&lt;app&gt;</code> → <code>prod-&lt;app&gt;</code>. Blast radius is bounded per app.</td>
+<td>Rules applied globally affect every app; a safe rollout pattern has to be reinvented each time.</td>
+</tr>
+<tr>
+<td><strong>Onboarding time</strong></td>
+<td>New app is paged-and-monitored in hours (naming convention already defined).</td>
+<td>New app takes days to figure out what naming scheme fits without breaking earlier ones.</td>
+</tr>
+<tr>
+<td><strong>Compliance boundary</strong></td>
+<td>Regulated workloads get their own <code>*-pci</code> / <code>*-pii</code> / <code>*-regulated</code> groups with dedicated access controls.</td>
+<td>Regulated workloads co-mingle with operational hosts; audit becomes expensive.</td>
+</tr>
+</tbody>
+</table>
+<h3>Why This Matters Even for a Single-Application Tenant</h3>
+<p>The effort to define a good naming strategy is the same whether the tenant carries one application or ten. Even if the footprint never grows beyond a single app, the tenant still gains clearer ownership, safer automation, and better alert routing. If additional applications do arrive, the groundwork is already in place and each new team inherits a proven pattern — none of the up-front effort is wasted.</p>
+<p><a id="design-principles"></a></p>
+<h2>11. Recommended Design Principles</h2>
+<p>Host groups should:</p>
+<ul>
+<li>Reflect <strong>real organizational or operational boundaries</strong></li>
+<li>Be <strong>stable over time</strong> — name for things that don't change frequently</li>
+<li>Represent ownership, not temporary metadata</li>
+<li>Support access, alerting, and automation use cases simultaneously</li>
+</ul>
+<h3>Common Grouping Dimensions</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>When to use it as the primary axis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Environment</strong> (prod / nonprod / dev)</td>
+<td>Universal — almost every tenant should encode this</td>
+</tr>
+<tr>
+<td><strong>Application or service ownership</strong></td>
+<td>Strong fit when teams are organized around products</td>
+</tr>
+<tr>
+<td><strong>Platform or workload type</strong> (database, web, batch)</td>
+<td>Strong fit when ops teams are technology-aligned</td>
+</tr>
+<tr>
+<td><strong>Business unit or tenant</strong></td>
+<td>Strong fit in shared-platform / multi-BU environments</td>
+</tr>
+<tr>
+<td><strong>Compliance / regulatory</strong> (<code>*-pci</code>, <code>*-pii</code>, <code>*-regulated</code>)</td>
+<td>Strong fit anywhere a hard audit boundary exists</td>
+</tr>
+</tbody>
+</table>
+<h3>Naming Pattern Guidance</h3>
+<p>Exact naming conventions are less critical than <strong>consistency and intent</strong>. A few patterns that work:</p>
+<ul>
+<li><code>&lt;env&gt;-&lt;app&gt;</code> (e.g., <code>prod-checkout</code>, <code>nonprod-checkout</code>)</li>
+<li><code>&lt;env&gt;-&lt;workload-type&gt;</code> (e.g., <code>prod-database</code>, <code>prod-web</code>, <code>prod-batch</code>)</li>
+<li><code>&lt;env&gt;-&lt;bu&gt;-&lt;app&gt;</code> for shared-platform tenants (e.g., <code>prod-finance-ledger</code>)</li>
+<li>Compliance suffix: <code>&lt;env&gt;-&lt;app&gt;-pci</code> to make the regulatory boundary explicit at a glance</li>
+</ul>
+<p>The multi-part patterns (<code>&lt;env&gt;-&lt;bu&gt;-&lt;app&gt;</code>, the compliance suffix) are sound only when each part is <strong>also</strong> set as a primary tag — see the next subsection.</p>
+<h3>Host Groups and Primary Tags</h3>
+<p>Dynatrace now describes packing several attributes into the host-group name as the Classic pattern: <em>&quot;A common pattern in Dynatrace Classic was to encode organizational context directly in the host group name, for example, onprem_billing_prod&quot;</em>, where <em>&quot;the individual attributes embedded in the name, such as environment, application, and team, were not possible to query as separate fields.&quot;</em> On Latest Dynatrace those dimensions belong in primary Grail tags, and SaaS 1.347 replaced the Infrastructure app's Datacenter grouping with them: <em>&quot;the prior Datacenter concept has been removed from the app in favor of using Primary Tags, which gives you more flexibility in host grouping.&quot;</em></p>
+<p>The practical split:</p>
+<ul>
+<li><strong>Host group:</strong> one stable boundary — typically environment plus the owning platform or app. It still drives process-group and service separation, per-group settings and the <code>dt.host_group.id</code> permission field.</li>
+<li><strong>Primary tags:</strong> team, business unit, compliance class, cost centre and any other dimension you want to query, route or charge back on — as <code>primary_tags.*</code> or the reserved <code>dt.cost.*</code> fields (see FAQ-02).</li>
+<li><strong>Bridging an existing naming scheme:</strong> an Ingest enrichment configuration rule can derive primary tags from the parts of the host-group name or host name, without touching hosts (FAQ-02 § 3.3).</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic">Classic auto-tagging vs primary Grail tags (DT docs)</a> — the host-group-name passage quoted above; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in Dynatrace SaaS 1.347 (DT docs)</a> — the Datacenter sentence quoted above; <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Anti-Patterns</h3>
+<ul>
+<li><strong><code>all-hosts</code> / <code>default</code></strong> — defeats the purpose; keeps you flat</li>
+<li><strong>Single-host groups per host</strong> — over-fragments the boundary; makes filters unusable</li>
+<li><strong>Naming by hardware traits</strong> (e.g., <code>4cpu-hosts</code>) — encodes a property that changes; rename burden as workloads scale</li>
+<li><strong>Naming by datacenter/region only</strong> — usually too coarse for ownership; combine with env or app</li>
+<li><strong>Naming by individual or short-lived team name</strong> — tied to org churn, not to the workload</li>
+<li><strong>Names starting with <code>dt.</code></strong> — reserved for Dynatrace-internal properties; explicitly forbidden by the host-groups documentation</li>
+<li><strong>Names exceeding 100 characters</strong> — exceeds the documented host-group name maximum (<em>&quot;Maximum length is 100 characters.&quot;</em>)</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/host-groups">Host groups (DT docs)</a> — naming constraints (alphanumeric, hyphens, underscores, periods; cannot start with <code>dt.</code>; 100-character maximum); assignment via <code>oneagentctl --set-host-group=&lt;name&gt;</code>.</sub></p>
+</blockquote>
+<p><a id="final-recommendation"></a></p>
+<h2>12. Final Recommendation</h2>
+<p>Host group naming should be treated as a <strong>foundational architectural decision</strong>, not an optional convenience.</p>
+<p>Staying on a single host group or accepting an ad-hoc naming pattern:</p>
+<ul>
+<li>Limits platform value</li>
+<li>Increases operational and security risk</li>
+<li>Forces disruptive restructuring later</li>
+</ul>
+<p>Implementing a deliberate naming strategy now is:</p>
+<ul>
+<li>Low effort</li>
+<li>High impact</li>
+<li>Essential for a scalable, governable Dynatrace tenant</li>
+</ul>
+<p><strong>The longer this is deferred, the more costly it becomes to correct.</strong></p>
+<h2>Summary</h2>
+<p>Host groups are the root of context for everything Dynatrace observes — process detection, services, alerts, IAM scope, automation blast radius. A strong naming strategy is the cheapest way to lock in that context correctly from day one. The six considerations covered here — ownership, access control, alerting, operations, automation, scalability — all compound; getting the boundary right early pays back continuously.</p>
+<h2>Next Steps</h2>
+<ul>
+<li>Review your current host group inventory and ownership map</li>
+<li>Define the naming convention before the next host onboarding wave</li>
+<li>Document the convention alongside your IAM policy patterns (see IAM topic series) and bucket strategy (see ORGNZ topic series)</li>
+<li>Pilot any structural changes in nonprod groups first</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

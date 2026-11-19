@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SYNTH-01: Synthetic Monitoring Fundamentals</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SYNTH — Synthetic Monitoring</a><span class="sep">/</span><span aria-current="page">SYNTH-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SYNTH-01: Synthetic Monitoring Fundamentals</h1>
+<blockquote>
+<p><strong>Series:</strong> SYNTH — Synthetic Monitoring | <strong>Notebook:</strong> 1 of 6 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/18/2026</p>
+</blockquote>
+<h2>Understanding Proactive Availability and Performance Testing</h2>
+<p>This notebook introduces Dynatrace Synthetic Monitoring, which enables proactive testing of application availability, functionality, and performance from locations around the world.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-is-synthetic-monitoring">What is Synthetic Monitoring?</a></li>
+<li><a href="#monitor-types">Monitor Types</a></li>
+<li><a href="#key-concepts">Key Concepts</a></li>
+<li><a href="#synthetic-data-in-grail">Synthetic Data in Grail</a></li>
+<li><a href="#your-first-synthetic-query">Your First Synthetic Query</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with Synthetic Monitoring enabled</li>
+<li>✅ DQL query permissions (viewer role minimum)</li>
+<li>✅ Basic understanding of web applications and APIs</li>
+</ul>
+<h3>Sprint 1.337 (April 2026) Updates</h3>
+<p>Two sprint-1.337 changes touch synthetic monitoring:</p>
+<ul>
+<li><strong>Primary Grail tags on monitors</strong> (Latest Dynatrace) — set per monitor; every event and metric the monitor produces is then enriched with <code>primary_tags.*</code>. The tags come from the <strong>monitor</strong>, not from the host a private-location ActiveGate runs on: <em>&quot;Tags aren't inherited from the Synthetic location, host group, or any other entity.&quot;</em> Private locations need <strong>ActiveGate 1.331+</strong> for the enrichment (SYNTH-04). Useful for cost-attribution dashboards that want to bill synthetic execution by team or product line. <strong>FAQ-26</strong> places monitor tags and security context in an environment-wide metadata strategy.</li>
+<li><strong>Configuration API → Settings v2 + Platform tokens</strong> for new automation. Synthetic settings are split across per-aspect Settings schemas under <code>builtin:synthetic.*</code> — for example <code>builtin:synthetic.http.outage-handling</code>, <code>builtin:synthetic.browser.scheduling</code>, <code>builtin:synthetic.primary-grail-tags</code> and <code>builtin:synthetic.security-context</code>. There is no single <code>builtin:synthetic_test</code> schema; monitor definitions themselves go through the Synthetic API. Note the v1.88.0 Terraform provider boundary still requires API tokens for synthetic monitors specifically (see AUTOM-04 § Authentication Boundary). For new automation on Latest Dynatrace, <em>&quot;Dynatrace recommends migrating to the Synthetic platform permissions and the Synthetic Platform API to manage Synthetic in Latest Dynatrace&quot;</em> — it authenticates with a bearer platform token.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/primary-grail-tags-synthetic">Primary Grail tags for Synthetic (DT docs)</a> — <em>&quot;After that, all events and metrics generated by the monitor are enriched with these primary Grail tags.&quot;</em> and <em>&quot;If you're using private Synthetic locations, install ActiveGate version 1.331+. Earlier versions don't enrich the metrics and events produced by Synthetic monitor executions with the monitor's primary Grail tags.&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas">Settings API schemas (DT docs)</a> — 22 <code>builtin:synthetic.*</code> schema IDs listed and none named <code>builtin:synthetic_test</code>, read 09/18/2026; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control">Access control (DT docs)</a> — the Synthetic Platform API recommendation, read 10/02/2026.</sub></p>
+</blockquote>
+<hr />
+<p><a id="what-is-synthetic-monitoring"></a></p>
+<h2>1. What is Synthetic Monitoring?</h2>
+<p><strong>Synthetic Monitoring</strong> simulates user interactions with your applications from external locations, providing:</p>
+<ul>
+<li><strong>Proactive Detection</strong>: Find issues before real users encounter them</li>
+<li><strong>24/7 Availability Testing</strong>: Monitor even when no users are active</li>
+<li><strong>Global Performance Baseline</strong>: Measure response times from multiple locations</li>
+<li><strong>SLA Validation</strong>: Verify service level agreements are being met</li>
+<li><strong>Third-Party Dependency Monitoring</strong>: Test external APIs and services</li>
+</ul>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZHRFbmdpbmVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYXBwR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxMGI5ODE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzA1OTY2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJlc3VsdHNHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icHVibGljR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InByaXZhdGVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VjNDg5OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZGIyNzc3O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InN5bnRoU2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJzeW50aEFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TeW50aGV0aWMgTW9uaXRvcmluZyBGbG93PC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJvYWN0aXZlIG1vbml0b3JpbmcgZnJvbSB1c2VyIHBlcnNwZWN0aXZlPC90ZXh0PgoKICA8IS0tIER5bmF0cmFjZSBTeW50aGV0aWMgRW5naW5lIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI3NSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxMDAiIHJ4PSIxMCIgZmlsbD0idXJsKCNkdEVuZ2luZUdyYWQpIiBmaWx0ZXI9InVybCgjc3ludGhTaGFkb3cpIi8+CiAgPHRleHQgeD0iMTIwIiB5PSIxMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2U8L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIxMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TeW50aGV0aWMgRW5naW5lPC90ZXh0PgogIDx0ZXh0IHg9IjEyMCIgeT0iMTU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2NoZWR1bGVkIGV4ZWN1dGlvbjwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjE2OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmZyb20gZ2xvYmFsIGxvY2F0aW9uczwvdGV4dD4KCiAgPCEtLSBBcnJvdyAxIC0tPgogIDxwYXRoIGQ9Ik0yMTAsMTI1IEwyODAsMTI1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNzeW50aEFycm93KSIvPgogIDx0ZXh0IHg9IjI0NSIgeT0iMTE1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJ1bnMgdGVzdHM8L3RleHQ+CgogIDwhLS0gWW91ciBBcHBsaWNhdGlvbiAtLT4KICA8cmVjdCB4PSIyOTAiIHk9Ijc1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjEwMCIgcng9IjEwIiBmaWxsPSJ1cmwoI2FwcEdyYWQpIiBmaWx0ZXI9InVybCgjc3ludGhTaGFkb3cpIi8+CiAgPHRleHQgeD0iMzgwIiB5PSIxMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Zb3VyIEFwcGxpY2F0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjM4MCIgeT0iMTI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+LyBBUEk8L3RleHQ+CiAgPHRleHQgeD0iMzgwIiB5PSIxNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XZWJzaXRlcywgQVBJczwvdGV4dD4KICA8dGV4dCB4PSIzODAiIHk9IjE2OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkludGVybmFsIHNlcnZpY2VzPC90ZXh0PgoKICA8IS0tIEFycm93IDIgLS0+CiAgPHBhdGggZD0iTTQ3MCwxMjUgTDU0MCwxMjUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI3N5bnRoQXJyb3cpIi8+CiAgPHRleHQgeD0iNTA1IiB5PSIxMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q29sbGVjdHM8L3RleHQ+CgogIDwhLS0gUmVzdWx0cyAmIE1ldHJpY3MgLS0+CiAgPHJlY3QgeD0iNTUwIiB5PSI3NSIgd2lkdGg9IjIyMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxMCIgZmlsbD0idXJsKCNyZXN1bHRzR3JhZCkiIGZpbHRlcj0idXJsKCNzeW50aFNoYWRvdykiLz4KICA8dGV4dCB4PSI2NjAiIHk9IjEwNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJlc3VsdHMgJmFtcDsgTWV0cmljczwvdGV4dD4KICA8dGV4dCB4PSI2NjAiIHk9IjEyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkF2YWlsYWJpbGl0eSwgUmVzcG9uc2UgdGltZTwvdGV4dD4KICA8dGV4dCB4PSI2NjAiIHk9IjE0NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVycm9ycywgU2NyZWVuc2hvdHM8L3RleHQ+CiAgPHRleHQgeD0iNjYwIiB5PSIxNjIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QZXJmb3JtYW5jZSBicmVha2Rvd248L3RleHQ+CgogIDwhLS0gRXhlY3V0aW9uIExvY2F0aW9ucyBTZWN0aW9uIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIxOTUiIHdpZHRoPSI3NDAiIGhlaWdodD0iOTAiIHJ4PSIxMCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjIyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RXhlY3V0aW9uIExvY2F0aW9uczwvdGV4dD4KCiAgPHJlY3QgeD0iNTAiIHk9IjIzNSIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9InVybCgjcHVibGljR3JhZCkiIGZpbHRlcj0idXJsKCNzeW50aFNoYWRvdykiLz4KICA8dGV4dCB4PSIyMTAiIHk9IjI1MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlB1YmxpYyBMb2NhdGlvbnM8L3RleHQ+CiAgPHRleHQgeD0iMjEwIiB5PSIyNjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BV1MsIEF6dXJlLCBHQ1AgLSA2MCsgZ2xvYmFsIGxvY2F0aW9uczwvdGV4dD4KCiAgPHJlY3QgeD0iMzkwIiB5PSIyMzUiIHdpZHRoPSIzNjAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSJ1cmwoI3ByaXZhdGVHcmFkKSIgZmlsdGVyPSJ1cmwoI3N5bnRoU2hhZG93KSIvPgogIDx0ZXh0IHg9IjU3MCIgeT0iMjUyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJpdmF0ZSBMb2NhdGlvbnM8L3RleHQ+CiAgPHRleHQgeD0iNTcwIiB5PSIyNjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Zb3VyIGluZnJhc3RydWN0dXJlIC0gSW50ZXJuYWwgYXBwcywgc3RhZ2luZywgVlBOczwvdGV4dD4KPC9zdmc+Cg==" alt="Synthetic Monitoring Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Component | Description |
+|-------|-----------|-------------|
+| 1 | Synthetic Engine | Executes monitors on schedule |
+| 2 | Public Locations | AWS, Azure, GCP worldwide |
+| 3 | Private Locations | Your infrastructure (ActiveGate) |
+| 4 | Your Application | Target being monitored |
+| 5 | Results in Grail | Metrics, availability, performance |
+-->
+<h3>Synthetic vs Real User Monitoring (RUM)</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Synthetic Monitoring</th>
+<th>Real User Monitoring</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data Source</td>
+<td>Simulated transactions</td>
+<td>Actual user sessions</td>
+</tr>
+<tr>
+<td>Coverage</td>
+<td>24/7, consistent</td>
+<td>Only when users active</td>
+</tr>
+<tr>
+<td>Locations</td>
+<td>Controlled, specific</td>
+<td>Wherever users are</td>
+</tr>
+<tr>
+<td>Use Case</td>
+<td>Baseline, SLA, proactive</td>
+<td>Actual experience</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>By synthetic usage (see your rate card)</td>
+<td>Per session</td>
+</tr>
+</tbody>
+</table>
+<p><a id="monitor-types"></a></p>
+<h2>2. Monitor Types</h2>
+<p>Dynatrace offers three kinds of synthetic monitor, plus ingestion of results from third-party tools:</p>
+<h3>Browser Monitors (Single-URL and Browser Clickpath)</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single-URL</strong></td>
+<td>Load a single page</td>
+<td>Homepage availability</td>
+</tr>
+<tr>
+<td><strong>Browser Clickpath</strong></td>
+<td>Multi-step user journey</td>
+<td>Login flows, checkout</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Capabilities:</strong></p>
+<ul>
+<li>Full browser rendering (Chromium)</li>
+<li>JavaScript execution</li>
+<li>Content validation per step</li>
+<li>Duration per monitor and per step (SYNTH-02 § 5)</li>
+</ul>
+<h3>HTTP Monitors</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single Request</strong></td>
+<td>One HTTP call</td>
+<td>API health check</td>
+</tr>
+<tr>
+<td><strong>Multi-step</strong></td>
+<td>Chained requests</td>
+<td>API workflow validation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Capabilities:</strong></p>
+<ul>
+<li>Any HTTP method (GET, POST, PUT, DELETE)</li>
+<li>Custom headers and authentication</li>
+<li>Response validation (status code, text/regex, SSL certificate expiry)</li>
+<li>Lightweight and fast execution</li>
+</ul>
+<h3>Network Availability Monitors (NAM)</h3>
+<p>ICMP, TCP and DNS checks of hosts and services that have no HTTP endpoint. <em>&quot;Network availability monitors are supported only on private Synthetic locations.&quot;</em> See SYNTH-05.</p>
+<h3>Third-party results</h3>
+<p>Results from external test runners can be ingested as <strong>external synthetic tests</strong>, through a dedicated platform ingest endpoint. The Classic third-party Synthetic API is being retired. This series does not cover either.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/network-availability-monitors/network-availability-monitoring">Network availability monitoring (DT docs)</a> — <em>&quot;Network availability monitors are supported only on private Synthetic locations.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/external-synthetic-tests">External synthetic tests (DT docs)</a> — <em>&quot;External synthetic tests let you ingest results from test runners outside Dynatrace&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/upgrade/upgrade-digital-experience-monitoring/upgrade-synthetic-monitoring/upgrade-third-party-integrations">Replace third-party Synthetic integrations (DT docs)</a> — <em>&quot;The Classic third-party Synthetic API is being retired.&quot;</em></sub></p>
+</blockquote>
+<p><a id="key-concepts"></a></p>
+<h2>3. Key Concepts</h2>
+<h3>Execution Locations</h3>
+<table>
+<thead>
+<tr>
+<th>Location Type</th>
+<th>Description</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Public</strong></td>
+<td>Dynatrace-hosted worldwide</td>
+<td>External-facing apps</td>
+</tr>
+<tr>
+<td><strong>Private</strong></td>
+<td>Your infrastructure</td>
+<td>Internal apps, security</td>
+</tr>
+</tbody>
+</table>
+<h3>Execution Frequency</h3>
+<p>How often the monitor runs:</p>
+<ul>
+<li><strong>Browser</strong>: every 5, 10, 15 or 30 minutes; every 1, 2 or 4 hours; or on demand only</li>
+<li><strong>HTTP</strong>: the same options, plus 1- and 2-minute frequencies (both observed on the validation tenant, 10/25/2026)</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-configure-browser-monitors">Create and configure a browser monitor (DT docs)</a> — <em>&quot;You can choose a frequency of every 5 , 10 , 15 , or 30 minutes; or 1 , 2 , or 4 hours. You can also set up your monitor to be executed On demand only .&quot;</em></sub></p>
+</blockquote>
+<h3>Outage Detection</h3>
+<p>Dynatrace detects outages based on:</p>
+<ul>
+<li>Consecutive failures from single location</li>
+<li>Failures from multiple locations simultaneously</li>
+<li>Local outage vs global outage classification</li>
+</ul>
+<h3>Key Metrics</h3>
+<p>Synthetic measurements are surfaced two ways in Grail (see §4): as <strong>metric keys</strong> queried with <code>timeseries</code>, and as fields on execution <strong>events</strong> queried with <code>fetch dt.synthetic.events</code>. The table maps each concept to both.</p>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Metric key (<code>timeseries</code>)</th>
+<th>Event field (<code>fetch dt.synthetic.events</code>)</th>
+<th>Monitor Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Availability (%)</td>
+<td><code>dt.synthetic.http.availability</code> / <code>dt.synthetic.browser.availability</code></td>
+<td>derived from <code>result.state == &quot;SUCCESS&quot;</code></td>
+<td>All</td>
+</tr>
+<tr>
+<td>Total duration</td>
+<td><code>dt.synthetic.http.duration</code> / <code>dt.synthetic.browser.duration</code></td>
+<td><code>result.statistics.duration</code></td>
+<td>All</td>
+</tr>
+<tr>
+<td>DNS lookup</td>
+<td><code>dt.synthetic.http.dns</code></td>
+<td><code>result.statistics.host_name_resolution_time</code></td>
+<td>HTTP</td>
+</tr>
+<tr>
+<td>TCP connect</td>
+<td><code>dt.synthetic.http.tcp_connect_time</code></td>
+<td><code>result.statistics.tcp_connect_time</code></td>
+<td>HTTP</td>
+</tr>
+<tr>
+<td>TLS handshake</td>
+<td><code>dt.synthetic.http.tls_handshake_time</code></td>
+<td><code>result.statistics.tls_handshake_time</code></td>
+<td>HTTP</td>
+</tr>
+<tr>
+<td>Time to first byte</td>
+<td><code>dt.synthetic.http.time_to_first_byte</code></td>
+<td><code>result.statistics.time_to_first_byte</code></td>
+<td>HTTP</td>
+</tr>
+<tr>
+<td>Executions (count)</td>
+<td><code>dt.synthetic.http.executions</code> / <code>dt.synthetic.browser.executions</code></td>
+<td><code>count()</code> over the events</td>
+<td>All</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note on units:</strong> the <code>dt.synthetic.*.duration</code> <em>metric</em> is already expressed in milliseconds. The <code>result.statistics.*</code> <em>event</em> fields are <code>duration</code>-typed (nanoseconds) — divide by <code>1ms</code> to get milliseconds, e.g. <code>result.statistics.duration / 1ms</code>.</p>
+</blockquote>
+<p><a id="synthetic-data-in-grail"></a></p>
+<h2>4. Synthetic Data in Grail</h2>
+<p>With <strong>Synthetic on Grail</strong>, execution results are stored as <strong>synthetic events</strong> in Grail and are also rolled up into <strong>synthetic metrics</strong>. There are two complementary query paths:</p>
+<h3>Path 1 — Execution events (<code>fetch dt.synthetic.events</code>)</h3>
+<p>One record per execution (and per step). This is where per-failure diagnostics, status messages, SSL certificate data, and per-step timings live.</p>
+<table>
+<thead>
+<tr>
+<th>Data object</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.synthetic.events</code></td>
+<td>Monitor- and step-level execution results (HTTP, browser, multi-protocol)</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.detailed_events</code></td>
+<td>Request-level detail for HTTP steps (<code>event.type == &quot;http_step_execution_details&quot;</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Records are distinguished by <code>event.type</code>:</p>
+<table>
+<thead>
+<tr>
+<th><code>event.type</code></th>
+<th>Monitor</th>
+<th>Granularity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>http_monitor_execution</code></td>
+<td>HTTP</td>
+<td>One per execution (carries <code>result.state</code>)</td>
+</tr>
+<tr>
+<td><code>http_step_execution</code></td>
+<td>HTTP</td>
+<td>One per request/step</td>
+</tr>
+<tr>
+<td><code>browser_monitor_execution</code></td>
+<td>Browser</td>
+<td>One per execution</td>
+</tr>
+<tr>
+<td><code>browser_monitor_step_execution</code></td>
+<td>Browser</td>
+<td>One per clickpath step</td>
+</tr>
+<tr>
+<td><code>multiprotocol_monitor_execution</code></td>
+<td>Network (ICMP/DNS/TCP)</td>
+<td>One per execution</td>
+</tr>
+</tbody>
+</table>
+<h3>Path 2 — Metrics (<code>timeseries</code>)</h3>
+<p>Pre-aggregated series for dashboards and trends — already scaled to milliseconds / percent.</p>
+<table>
+<thead>
+<tr>
+<th>Metric key</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.synthetic.http.availability</code> / <code>dt.synthetic.browser.availability</code></td>
+<td>Availability rate (%)</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.http.duration</code> / <code>dt.synthetic.browser.duration</code></td>
+<td>Total duration (ms)</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.http.dns</code>, <code>.tcp_connect_time</code>, <code>.tls_handshake_time</code>, <code>.time_to_first_byte</code></td>
+<td>HTTP timing breakdown (ms)</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.multi_protocol.executions</code></td>
+<td>Network monitor execution count</td>
+</tr>
+</tbody>
+</table>
+<h3>Key fields on <code>dt.synthetic.events</code></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.synthetic.monitor.id</code></td>
+<td>string</td>
+<td>Monitor ID</td>
+</tr>
+<tr>
+<td><code>monitor.name</code></td>
+<td>string</td>
+<td>Monitor display name</td>
+</tr>
+<tr>
+<td><code>step.name</code></td>
+<td>string</td>
+<td>Step display name</td>
+</tr>
+<tr>
+<td><code>dt.entity.http_check</code></td>
+<td>string</td>
+<td>HTTP monitor entity</td>
+</tr>
+<tr>
+<td><code>dt.entity.synthetic_location</code></td>
+<td>string</td>
+<td>Location entity (resolve with <code>entityName()</code>)</td>
+</tr>
+<tr>
+<td><code>result.state</code></td>
+<td>string</td>
+<td><code>SUCCESS</code> / <code>FAIL</code> (on monitor-execution events)</td>
+</tr>
+<tr>
+<td><code>result.status.message</code></td>
+<td>string</td>
+<td>e.g. <code>HEALTHY</code>, <code>UNKNOWN_HOST</code></td>
+</tr>
+<tr>
+<td><code>result.status.code</code></td>
+<td>long</td>
+<td><code>0</code> = success; non-zero = failure</td>
+</tr>
+<tr>
+<td><code>result.statistics.duration</code></td>
+<td>duration</td>
+<td>Total execution time</td>
+</tr>
+<tr>
+<td><code>result.statistics.response_status_code</code></td>
+<td>long</td>
+<td>HTTP response code</td>
+</tr>
+</tbody>
+</table>
+<h3>Path 3 — Entity definitions (classic tables and their Smartscape equivalents)</h3>
+<p><strong>Entity tables</strong> (<code>fetch dt.entity.synthetic_test</code>, <code>fetch dt.entity.http_check</code>, <code>fetch dt.entity.synthetic_location</code>) hold monitor and location <em>definitions</em> — use them to enumerate configured monitors and resolve names. They still exist and still return rows, but DQL queries against them are now documented as deprecated: <em>&quot;Queries against classic synthetic entities in DQL are deprecated. They remain supported for as long as Dynatrace Classic is supported, so you can adopt the new model at your own pace.&quot;</em></p>
+<p>Each of them now also has a <strong>Smartscape node type</strong>, and that is the preferred surface. SaaS 1.344 (released 07/27/2026, with a <strong>staged tenant rollout from 07/29/2026</strong>) moved the Digital Experience apps — Synthetic among them — so their queries and filters &quot;primarily use <code>dt.smartscape.*</code> entities, instead of <code>dt.entity.*</code>&quot;. Verify 1.344 has reached your tenant before relying on the app-side change; the node types themselves are already queryable via DQL regardless, and cost nothing to read (Smartscape queries scan 0 bytes).</p>
+<table>
+<thead>
+<tr>
+<th>Classic entity</th>
+<th>Smartscape node type</th>
+<th>Smartscape model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.entity.synthetic_test</code> (browser monitors)</td>
+<td><code>BROWSER_MONITOR</code> <strong>plus <code>BROWSER_MONITOR_STEP</code></strong></td>
+<td><code>dt.smartscape.browser_monitor</code> / <code>..._step</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.http_check</code></td>
+<td><code>HTTP_MONITOR</code> <strong>plus <code>HTTP_MONITOR_STEP</code></strong></td>
+<td><code>dt.smartscape.http_monitor</code> / <code>..._step</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.multiprotocol_monitor</code></td>
+<td><strong><code>NETWORK_AVAILABILITY_MONITOR</code></strong></td>
+<td><code>dt.smartscape.network_availability_monitor</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.synthetic_location</code></td>
+<td><code>SYNTHETIC_LOCATION</code></td>
+<td><code>dt.smartscape.synthetic_location</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two rows in that table cannot be guessed from the classic name, and both fail silently if you guess wrong:</p>
+<ul>
+<li><strong><code>multiprotocol_monitor</code> was renamed, not transliterated.</strong> The node type is <code>NETWORK_AVAILABILITY_MONITOR</code>. <code>smartscapeNodes &quot;MULTIPROTOCOL_MONITOR&quot;</code> does <strong>not</strong> raise an error — it returns zero rows, which reads exactly like &quot;this environment has no network monitors&quot;.</li>
+<li><strong><code>synthetic_test</code> splits into two node types.</strong> Clickpath steps are their own nodes (<code>BROWSER_MONITOR_STEP</code>), joined to the monitor by a <code>contains</code> edge (or <code>belongs_to</code> from the step's side) — they are not attributes of the monitor record. Any query that treated <code>step.name</code> as a field of the test needs a <code>traverse</code> on Smartscape. The same applies to <code>HTTP_MONITOR_STEP</code>.</li>
+</ul>
+<p>Two smaller conveniences: the node's <strong><code>name</code> field is already the display name</strong>, so the <code>entityName()</code> resolution step that classic entity queries needed disappears; and every node carries <strong><code>id_classic</code></strong> (<code>SYNTHETIC_TEST-*</code>, <code>HTTP_CHECK-*</code>, <code>SYNTHETIC_LOCATION-*</code>), which is the join key between migrated and unmigrated queries during the transition.</p>
+<blockquote>
+<p><strong>Migration mechanics</strong> — for the general rules on classifying a query before migrating it (dimension-first for mass data, <code>smartscapeNodes</code> only for entity-list queries), the type and construct mapping, <code>traverse</code>, and the <code>id_classic</code> bridge, see <strong>FAQ-16: Migrating Classic Entity Selectors to Smartscape</strong>.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">Dynatrace SaaS release notes 1.344 (DT docs)</a> — &quot;All latest Dynatrace queries and filters in the above apps now primarily use <code>dt.smartscape.*</code> entities, instead of <code>dt.entity.*</code> and <code>dt.rum.application.*</code>&quot;; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-smartscape">Synthetic monitors in Smartscape (DT docs)</a> — the deprecation quoted above. <strong>Dictionary:</strong> <code>dt.smartscape.browser_monitor</code> (<code>BROWSER_MONITOR</code> ← <code>dt.entity.synthetic_test</code>), <code>dt.smartscape.http_monitor</code> (<code>HTTP_MONITOR</code> ← <code>dt.entity.http_check</code>), <code>dt.smartscape.network_availability_monitor</code> (<code>NETWORK_AVAILABILITY_MONITOR</code> ← <code>dt.entity.multiprotocol_monitor</code>), <code>dt.smartscape.synthetic_location</code> (<code>SYNTHETIC_LOCATION</code> ← <code>dt.entity.synthetic_location</code>), plus <code>dt.smartscape.browser_monitor_step</code> / <code>dt.smartscape.http_monitor_step</code>, read from <code>dt.semantic_dictionary.models</code> (<code>data_object == &quot;smartscape.nodes&quot;</code>, <code>classic_models</code> expanded) 09/28/2026. Observed on a live tenant 09/28/2026: <code>smartscapeNodes &quot;MULTIPROTOCOL_MONITOR&quot;</code> returned 0 rows with no error, while <code>smartscapeNodes &quot;NETWORK_AVAILABILITY_MONITOR&quot;</code> returned 4 — the two &quot;cannot be guessed&quot; traps are observed consequences of that mapping, not documented warnings.</sub></p>
+</blockquote>
+<h3>Access scoping: security context on monitors</h3>
+<p>Synthetic access in Latest Dynatrace is scoped by <strong>security context</strong> values set on monitors — the role management zones played in Classic. <em>&quot;A monitor supports a maximum of 10 security context values.&quot;</em> IAM policies then condition Synthetic permissions on those values, and the data permissions on the same values:</p>
+<pre><code class="language-text">ALLOW synthetic:monitors:read, synthetic:monitors:write, synthetic:monitors:execute WHERE synthetic:dt.security_context IN (&quot;team-a&quot;);
+ALLOW storage:metrics:read, storage:events:read, storage:user.events:read, storage:smartscape:read WHERE storage:dt.security_context MATCH (&quot;team-a&quot;);
+ALLOW storage:buckets:read WHERE storage:table-name IN (&quot;metrics&quot;, &quot;events&quot;, &quot;user.events&quot;);
+</code></pre>
+<p>Four things to know:</p>
+<ul>
+<li><strong>Classic permissions are not scoped by it.</strong> <em>&quot;Classic permissions remain functional, but they always apply tenant-wide. You can't scope classic permissions to a subset of monitors, and security contexts don't affect users who have only classic permissions.&quot;</em></li>
+<li><strong>Table reads need the bucket permission.</strong> <code>storage:buckets:read</code> is <em>&quot;Required additionally to a table permission&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>), hence the third statement.</li>
+<li><strong>Private locations need ActiveGate 1.331+</strong> for execution data to carry the monitor's security context (SYNTH-04 § 3).</li>
+<li><strong><code>dt.security_context</code> is an array.</strong> <code>dt.security_context == &quot;team-a&quot;</code> matches nothing; use <code>in(&quot;team-a&quot;, dt.security_context)</code> (next cell). The same applies in IAM — <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a>: <em>&quot;Using <code>=</code>, <code>STARTSWITH</code> or <code>IN</code> when the field holds an array will always return <code>false</code>.&quot;</em>, so the storage statement above uses <code>MATCH</code>. On the validation tenant (10/13/2026) every synthetic event that carried a security context held it as an array. On the validation tenant (10/02/2026) the <code>==</code> form matched 0 of 9,311 executions and the <code>in()</code> form matched 4,703.</li>
+</ul>
+<p>SaaS 1.343 migrated each monitor's management zones to security-context values once; later MZ changes are not synchronized (SYNTH-04 § 3).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control">Access control (DT docs)</a> — <em>&quot;A monitor supports a maximum of 10 security context values.&quot;</em> and <em>&quot;Classic permissions remain functional, but they always apply tenant-wide.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Executions for one security context — dt.security_context is an array, so use in(), not ==
+// Replace &quot;team-a&quot; with one of your values; the second query shows which values exist.
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter in(&quot;team-a&quot;, dt.security_context)
+| summarize {executions = count(), failed = countIf(result.state == &quot;FAIL&quot;)}, by:{monitor.name, dt.synthetic.monitor.id}
+
+// Which security-context values your executions carry:
+// fetch dt.synthetic.events, from: now() - 24h
+// | filter endsWith(event.type, &quot;_monitor_execution&quot;)
+// | summarize {n = count()}, by:{dt.security_context}
+</code></pre>
+<h3>Restricting public locations</h3>
+<p>Security context scopes <strong>monitors</strong>, not locations: <code>synthetic:locations:read</code> takes no IAM condition, so every user who can see locations sees all of them. To keep teams off public locations you don't use, change each location's status for the whole environment:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ENABLED</code></td>
+<td>Shown, and monitors can be assigned</td>
+</tr>
+<tr>
+<td><code>DISABLED</code></td>
+<td>Shown as inactive; no new assignments — monitors already assigned keep running from it, so move them first</td>
+</tr>
+<tr>
+<td><code>HIDDEN</code></td>
+<td>Not shown in the UI; allowed only when no monitor is assigned</td>
+</tr>
+</tbody>
+</table>
+<p>A separate switch turns <strong>all</strong> public locations on or off at once (<code>PUT …/locations/status</code> with <code>{&quot;enabled&quot;: false}</code>). Changing either needs <code>synthetic:locations:write</code>, which also takes no condition — grant it to Synthetic admins only.</p>
+<p>Two APIs do this:</p>
+<ul>
+<li><strong>Environment API v2</strong> — <code>PUT /api/v2/synthetic/locations/{locationId}</code> with <code>{&quot;type&quot;: &quot;PUBLIC&quot;, &quot;status&quot;: &quot;DISABLED&quot;}</code>, classic access token. It keeps working, with classic permissions that always apply tenant-wide.</li>
+<li><strong>Platform Synthetic API</strong> — <code>PUT /platform/synthetic/v1/locations/{location-id}</code>, platform or OAuth token. Its permissions are the ones security-context boundaries apply to; classic permissions always apply tenant-wide. Dynatrace recommends migrating to it, and documents all of its endpoints as Early Adopter — they <em>&quot;can change in non-compatible ways&quot;</em>.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-location-id-put">PUT synthetic location — platform API (DT docs)</a> — <em>&quot;for public locations you can only change the location status&quot;</em>; <em>&quot;You can only set location as HIDDEN when no monitor is assigned to it.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control">Access control — Synthetic (DT docs)</a> — <em>&quot;Dynatrace recommends migrating to the Synthetic platform permissions and the Synthetic Platform API&quot;</em>; <em>&quot;All Synthetic Platform API endpoints are currently in Early Adopter maturity.&quot;</em>; <em>&quot;can change in non-compatible ways&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-status-put">PUT locations status — platform API (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic-v2/synthetic-locations-v2/put-a-location">PUT a synthetic location (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — <code>synthetic:locations:read</code> / <code>:write</code> list no conditions</sub></li>
+</ul>
+</blockquote>
+<h3>Primary Grail tags on monitors</h3>
+<p>Ingest enrichment rules don't apply to Synthetic. <em>&quot;The enrichment rules from the earlier steps don't reach Synthetic, so a monitor uses only the tags you set on it.&quot;</em> Set them per monitor — <strong>Edit &gt; Primary Grail tags</strong> in the Synthetic app, or <code>primaryGrailTags</code> in the monitor's API request body. Every execution then carries them on its events and metrics, and the monitor's Smartscape node carries them too. All three monitor types support them.</p>
+<ul>
+<li><strong>Nothing is inherited.</strong> <em>&quot;Tags aren't inherited from the Synthetic location, host group, or any other entity.&quot;</em></li>
+<li><strong>Private locations need ActiveGate 1.331+.</strong> <em>&quot;Earlier versions don't enrich the metrics and events produced by Synthetic monitor executions with the monitor's primary Grail tags.&quot;</em></li>
+<li><strong>Limits.</strong> <em>&quot;There is a limit of 10 primary Grail tags per monitor.&quot;</em> One value per key; keys up to 50 characters, values up to 200.</li>
+</ul>
+<p>Primary tags filter, group and route Synthetic data. Access stays with the monitor's security context (above). FAQ-26 § 5.6 places monitors in the wider tagging model.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-synthetic">Primary Grail tags for Synthetic (DT docs)</a> — <em>&quot;Tags aren't inherited from the Synthetic location, host group, or any other entity.&quot;</em>, <em>&quot;Earlier versions don't enrich the metrics and events produced by Synthetic monitor executions with the monitor's primary Grail tags.&quot;</em> and <em>&quot;There is a limit of 10 primary Grail tags per monitor.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws">Apply primary Grail tags across an example AWS estate (DT docs)</a> — <em>&quot;The enrichment rules from the earlier steps don't reach Synthetic, so a monitor uses only the tags you set on it.&quot;</em></sub></p>
+</blockquote>
+<p><a id="your-first-synthetic-query"></a></p>
+<h2>5. Your First Synthetic Query</h2>
+<p>Let's explore synthetic monitoring data in your environment.</p>
+<blockquote>
+<p><strong>Count each scheduled run once.</strong> A browser monitor that retries on error writes the failed attempt <em>and</em> a re-run (<code>execution.type</code> <code>RE_RUN</code>) for the same scheduled run. The Synthetic events model describes <code>execution.retry_on_error</code> as <em>&quot;Should we ignore this execution attempt (which was a failure) - will there be retry.&quot;</em> Counting both inflates failures: on the validation tenant, 2,015 of 4,701 browser executions in 24 hours were re-runs. The aggregating queries in this notebook drop the superseded attempt with <code>filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)</code>. The <code>coalesce</code> matters: HTTP executions carry no value for the field, and without it their failures would be filtered out as well.</p>
+<p><strong>Monitor names are not unique.</strong> A browser monitor and an HTTP monitor can share a name, so per-monitor queries group by <code>dt.synthetic.monitor.id</code> as well as <code>monitor.name</code>.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/synthetic">Synthetic events model (DT docs)</a> — <em>&quot;execution.type MUST be one of the following&quot;</em> (the list includes <code>re-run</code> and <code>standard</code>; the tenant returned <code>RE_RUN</code> / <code>STANDARD</code> for browser and <code>standard</code> for HTTP, read 10/02/2026).</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Discover configured synthetic monitors in your environment
+// PREFERRED -- Smartscape. Browser monitors are BROWSER_MONITOR; the node's `name`
+// field IS the display name, so no entityName() resolution is needed.
+smartscapeNodes &quot;BROWSER_MONITOR&quot;
+| fields name, id, id_classic, url, enabled, frequency
+| sort name asc
+| limit 50
+
+// Other monitor types:
+//   HTTP monitors                  -&gt; smartscapeNodes &quot;HTTP_MONITOR&quot;
+//   Network availability monitors  -&gt; smartscapeNodes &quot;NETWORK_AVAILABILITY_MONITOR&quot;
+// NOT &quot;MULTIPROTOCOL_MONITOR&quot; -- that node type does not exist and returns zero rows
+// rather than an error, which is indistinguishable from having no network monitors.
+
+// FALLBACK (classic surface -- deprecated in DQL, supported for as long as
+// Dynatrace Classic is supported):
+// fetch dt.entity.synthetic_test
+// | fields id, entity.name
+// | sort entity.name asc
+// | limit 50
+</code></pre>
+<pre><code class="language-dql">// Count executions by monitor type (from synthetic events)
+// event.type distinguishes HTTP / browser / multi-protocol executions.
+// This counts every execution, re-runs included (see the note above), which is what you want for volume.
+fetch dt.synthetic.events, from: now() - 24h
+| summarize count = count(), by: {event.type}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// List available synthetic locations
+// PREFERRED -- Smartscape. location_type, stage, cloud.provider and geo.* are all
+// available on the SYNTHETIC_LOCATION node. The classic entity genuinely has none of
+// them, which is why the old guidance said these fields &quot;are not available&quot;.
+smartscapeNodes &quot;SYNTHETIC_LOCATION&quot;, from: now() - 7d  // the default 2 h window hides locations that reported earlier
+| fields name, location_type, stage, cloud.provider, geo.country.name, geo.city.name
+| sort name asc
+| limit 50
+
+// See SYNTH-04 for the private-vs-public breakdown and a verification caveat on the
+// exact location_type literals your tenant returns.
+
+// FALLBACK (classic surface -- deprecated in DQL, and name-only: cloudPlatform, city
+// and countryCode really are absent from dt.entity.synthetic_location):
+// fetch dt.entity.synthetic_location
+// | fields id, entity.name
+// | sort entity.name asc
+// | limit 50
+</code></pre>
+<pre><code class="language-dql">// Recent synthetic execution results (last 24 hours)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+// Monitor-level events carry result.state; one row per execution
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| fields timestamp,
+         monitor = monitor.name,
+         type = event.type,
+         location = getNodeName(dt.smartscape.synthetic_location),
+         state = result.state,
+         status = result.status.message,
+         response_ms = result.statistics.duration / 1ms
+| sort timestamp desc
+| limit 100
+</code></pre>
+<pre><code class="language-dql">// Synthetic availability summary (last 24 hours)
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| summarize {
+    total_executions = count(),
+    successful = countIf(result.state == &quot;SUCCESS&quot;),
+    failed = countIf(result.state == &quot;FAIL&quot;)
+  }
+| fieldsAdd availability_pct = round((successful * 100.0) / total_executions, decimals: 2)
+</code></pre>
+<pre><code class="language-dql">// Response time by monitor (last 24 hours)
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter isNotNull(result.statistics.duration)
+| summarize {
+    avg_response_ms = avg(result.statistics.duration / 1ms),
+    max_response_ms = max(result.statistics.duration / 1ms),
+    executions = count()
+  }, by: {monitor.name, dt.synthetic.monitor.id}
+| fieldsAdd avg_response_ms = round(avg_response_ms, decimals: 1)
+| fieldsAdd max_response_ms = round(max_response_ms, decimals: 1)
+| sort avg_response_ms desc
+| limit 20
+</code></pre>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>What Synthetic Monitoring is</strong> and how it differs from RUM<br />
+✅ <strong>Monitor types</strong> - Browser (single-URL, clickpath), HTTP, and network availability monitors (private locations only)<br />
+✅ <strong>Access scoping</strong> - security context on monitors, and the array trap<br />
+✅ <strong>Key concepts</strong> - Locations, frequency, outage detection<br />
+✅ <strong>Grail data model</strong> - <code>fetch dt.synthetic.events</code> for execution detail and <code>timeseries dt.synthetic.*</code> for metrics<br />
+✅ <strong>Basic DQL queries</strong> - Discover monitors, locations, and results with <code>result.state</code> / <code>result.statistics.*</code></p>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>SYNTH-02: Browser Monitors</strong> to learn how to create and optimize browser-based synthetic tests.</p>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic">Synthetic on Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app">Synthetic app (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-metrics">Synthetic on Grail metrics (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/browser-monitors">Browser monitors (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor">Create and configure an HTTP monitor (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

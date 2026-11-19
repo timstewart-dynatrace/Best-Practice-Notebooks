@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-02: Cluster Configuration Best Practices</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-02: Cluster Configuration Best Practices</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 02 — Cluster Configuration Best Practices | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/10/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A new Managed cluster runs on defaults, and several of them are worth changing before anyone depends on the cluster. This notebook covers the cluster-level settings in the Cluster Management Console (CMC) and on the nodes that shape how the cluster is supported, how it reaches people, who can sign in, and how it survives its own updates. Where another notebook in the series already covers a setting in depth, this one states the decision and points there.</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>How to keep custom properties through updates</li>
+<li>How to make cluster email reliable and encrypted</li>
+<li>What the Mission Control preferences and remote-access settings trade off</li>
+<li>Which sign-in and session settings to tighten</li>
+<li>How the cluster gains root privileges, and what breaks it</li>
+<li>When to dedicate nodes to UI or OneAgent traffic</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#custom-properties">Keep Custom Properties Through Updates</a></li>
+<li><a href="#email">Make Cluster Email Reliable</a></li>
+<li><a href="#mission-control">The Mission Control Relationship</a></li>
+<li><a href="#internet-proxy">The Internet Proxy</a></li>
+<li><a href="#sign-in">Sign-in and Session Security</a></li>
+<li><a href="#elevated-permissions">Elevated Operating System Permissions</a></li>
+<li><a href="#node-roles">Node Traffic Roles</a></li>
+<li><a href="#backups">Backups From Day One</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A running Dynatrace Managed cluster</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>CMC cluster administrator; shell access to the nodes for §2 and §7</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong></td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 10/21/2026</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p>Put every node-level property change in <strong><code>custom.settings</code></strong>, not <code>config.properties</code>. Use <strong>your own SMTP server with an encrypted connection</strong> and Mission Control as the fallback, and fill in the <strong>emergency contacts</strong>. Choose the <strong>remote-access scope</strong> and the <strong>Mission Control reporting</strong> settings deliberately. Prefer <strong>LDAP or SSO</strong> for users; for any local accounts keep a <strong>12-character minimum</strong> and <strong>limit concurrent sessions</strong>. Watch the <strong>Dynatrace service user's password expiry</strong>, which can break privilege elevation. Turn <strong>backups</strong> on before you need them.</p>
+<p><a id="custom-properties"></a></p>
+<h2>2. Keep Custom Properties Through Updates</h2>
+<p>Node-level properties live in <code>/opt/dynatrace-managed/server/conf/config.properties</code>, but that file is the wrong place to change them: <em>&quot;The file is overwritten during an update.&quot;</em> So <em>&quot;your custom configuration won't be preserved during an update.&quot;</em></p>
+<p>The documented way is a <code>custom.settings</code> file in <code>/opt/dynatrace-managed/installer/</code> on <strong>each node</strong>: <em>&quot;During an upgrade, the installer reads custom.settings and modifies config.properties accordingly.&quot;</em> It is re-applied on restarts too: <em>&quot;Dynatrace Managed also executes this custom configuration action with each restart of the Dynatrace service.&quot;</em></p>
+<p><strong>Best practice:</strong> keep the same <code>custom.settings</code> on every node, and keep a copy under change control. A new node or a restored cluster needs it too, and the file is easy to forget.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-properties">Configure Cluster properties (DT docs)</a> — <em>&quot;Place this custom.settings file on all Cluster nodes in the /opt/dynatrace-managed/installer directory.&quot;</em></sub></p>
+</blockquote>
+<p><a id="email"></a></p>
+<h2>3. Make Cluster Email Reliable</h2>
+<p>Cluster event notifications are only as good as the mail path. Three delivery methods are documented under <strong>Settings &gt; Emails &gt; SMTP server</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Behavior</th>
+<th>When to use it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SMTP server with Mission Control fallback</strong> (default)</td>
+<td>Your server sends; <em>&quot;If your SMTP server becomes unavailable and MC email fallback is available for your cluster, MC attempts to deliver the email.&quot;</em></td>
+<td>Most clusters</td>
+</tr>
+<tr>
+<td><strong>SMTP server</strong></td>
+<td><em>&quot;If your SMTP server becomes unavailable, your email won't be sent.&quot;</em></td>
+<td>When mail must never leave through Mission Control</td>
+</tr>
+<tr>
+<td><strong>Mission Control</strong></td>
+<td>Mission Control sends all email</td>
+<td>Clusters with no internal mail server</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Encrypt the connection.</strong> The default is unencrypted: <em>&quot;The default is No encryption on port 25.&quot;</em> Two options are labelled <em>Secure</em>: <strong>SSL/TLS required</strong> and <strong>STARTTLS required</strong>. <strong>STARTTLS optional</strong> is labelled <em>Not secure</em>: <em>&quot;If a STARTTLS connection cannot be established, send email without encryption.&quot;</em></p>
+<p><strong>Prove it works.</strong> Send the test message and check the inbox; the page describes what to expect: <em>&quot;Check the inbox of the Email test address account to make sure it received a &quot;Dynatrace Managed: Mail server setup&quot; message with the expected sender email address.&quot;</em></p>
+<p><strong>Fill in both recipient lists.</strong> Under <strong>Settings &gt; Emails &gt; Email notifications</strong>, set the notification recipients to a monitored, shared mailbox, and set the <strong>emergency contacts</strong>, who <em>&quot;receive notifications from Dynatrace product experts in the event of catastrophic Managed Cluster states or critical security vulnerabilities that you must address.&quot;</em> Which cluster events to route, and which never email, is in DTM-10 §6–§7.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-smtp-server-connection">Configure SMTP server connection (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications">Configure Cluster event notifications (DT docs)</a> — <em>&quot;Optional: Turn on Also notify all active users with cluster admin rights .&quot;</em></sub></p>
+</blockquote>
+<p><a id="mission-control"></a></p>
+<h2>4. The Mission Control Relationship</h2>
+<p><strong>What always goes to Mission Control.</strong> Two reports can't be switched off. Usage and billing data <em>&quot;cannot be changed to ensure proper billing and license verification of your deployment.&quot;</em> Cluster health reporting <em>&quot;cannot be changed to ensure Dynatrace support of your deployment.&quot;</em></p>
+<p><strong>What is your choice, and what it costs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Preference (Settings &gt; Preferences)</th>
+<th>If you turn it off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Report cluster and OneAgent events to Mission Control</td>
+<td><em>&quot;When turned off, your organization is responsible for monitoring system events and collecting log files necessary for problem resolution prior to contacting Dynatrace product experts.&quot;</em></td>
+</tr>
+<tr>
+<td>Send information about monitored technologies and feature usage</td>
+<td>You lose the proactive alerts it feeds: <em>&quot;Dynatrace proactively sends alerts for incompatibilities or technology-specific risks related to your environment.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Remote access: choose the scope and the role.</strong> The scopes are described in DTM-14 §8. The trade-off in one line each:</p>
+<ul>
+<li><strong>All</strong> is the scope <em>&quot;for full proactive support and Managed Cluster settings optimization&quot;</em>.</li>
+<li><strong>Read-only access to all</strong>: <em>&quot;only the Viewer role is available; significantly limits proactive support&quot;</em>.</li>
+<li><strong>Approved</strong> <em>&quot;gives you maximum control over who can access the Managed Cluster but significantly limits proactive support&quot;</em>.</li>
+</ul>
+<p>Each remote-access user gets the <strong>Admin</strong>, <strong>User</strong> or <strong>Viewer</strong> role. Review what the role allows before granting it: the permissions include <em>&quot;Run diagnostic operations&quot;</em>, which <em>&quot;Allows the user to run diagnostic operations such as service restarts, run diagnostic scripts on Cluster node hosts, and access the database.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-preferences">Configure Cluster preferences (DT docs)</a> — <em>&quot;All Managed Cluster preference settings are turned on by default.&quot;</em>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-remote-access">Configure Cluster remote access (DT docs)</a> — <em>&quot;Your cluster administrators receive email notifications about pending remote access requests.&quot;</em>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-remote-access-reference">Remote access reference (DT docs)</a></sub></p>
+</blockquote>
+<p><a id="internet-proxy"></a></p>
+<h2>5. The Internet Proxy</h2>
+<p>The proxy carries more than Mission Control traffic. The page describes it as <em>&quot;an internet connection that allows Mission Control (MC) proactive support , MC updates, and external problem notifications via tools such as ServiceNow, Jira, and webhooks&quot;</em>. What the proxy itself must support (WebSockets, SNI) is in DTM-14 §6.</p>
+<p>Three settings decide whether it keeps working:</p>
+<ul>
+<li><strong>Authentication.</strong> <em>&quot;Configure Basic authentication together with TLS.&quot;</em> NTLMv1 is listed as <em>Deprecated</em>.</li>
+<li><strong>Exclusions for internal targets.</strong> When problem notifications go to internal systems, <em>&quot;add them to the exclusion list.&quot;</em> Otherwise internal webhooks are sent to the proxy.</li>
+<li><strong>Inspecting proxies are supported</strong> if the cluster trusts the proxy's root certificate: <em>&quot;Configure Dynatrace Managed to trust a root certificate whose private key is known to the proxy.&quot;</em> When that certificate changes, the cluster has to be told (the page gives the <code>reconfigure.sh --update-cert</code> command).</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-internet-proxy">Configure internet proxy (DT docs)</a> — <em>&quot;Yes, Dynatrace supports transparent proxy configuration.&quot;</em></sub></p>
+</blockquote>
+<p><a id="sign-in"></a></p>
+<h2>6. Sign-in and Session Security</h2>
+<p><strong>Use a central directory where you can.</strong> The password policy only covers local accounts: password complexity rules <em>&quot;which apply only to the embedded administrator account and internal user accounts&quot;</em>.</p>
+<p><strong>Check the minimum length on older clusters.</strong> The default depends on when the cluster was installed: 8 characters <em>&quot;for existing Managed Clusters installed before 1.206&quot;</em>, 12 for newer ones, and 12 is the recommended value. A cluster that has been upgraded for years may still be on 8. A policy change takes effect at the next sign-in: <em>&quot;When the password policy changes, Dynatrace prompts all users to update their passwords the next time they sign in.&quot;</em></p>
+<p><strong>Limit sessions.</strong> <em>&quot;Limit concurrent sessions per user account to the minimum required to perform job duties.&quot;</em> Limits can differ for regular and admin users, under <strong>User authentication &gt; User sessions</strong>. The same view lists active sessions by sign-in type, including <em>&quot;DEVOPSTOKEN - Sign-in from Mission Control proactive support&quot;</em>, and lets you end any of them.</p>
+<p><strong>Set an automatic sign-out.</strong> There is none by default for pages that refresh themselves: <em>&quot;By default, there's no automatic sign-out for users who stay on pages that automatically refresh.&quot;</em> It is set through the REST API.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/password-complexity-rules">Password complexity rules (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/manage-user-sessions">Manage user sessions (DT docs)</a> — <em>&quot;Use the REST API to update the automatic sign-out policy.&quot;</em></sub></p>
+</blockquote>
+<p><a id="elevated-permissions"></a></p>
+<h2>7. Elevated Operating System Permissions</h2>
+<p>Maintenance needs root. The Dynatrace service user needs elevated permissions to <em>&quot;Run the installation or reconfiguration script&quot;</em>, <em>&quot;Add or remove a cluster node&quot;</em>, and <em>&quot;Start, stop, restart, or check the status of services&quot;</em>. It gets them through the <code>dtrun</code> wrapper, which uses <code>sudo</code> by default or the alternative chosen at installation (for example <code>pbrun</code>). <code>dtrun</code> can only run what <code>/opt/dtrun/dtrun.conf</code> lists, and <em>&quot;The root user owns the /opt/dtrun directory and all files inside it for security reasons.&quot;</em></p>
+<p><strong>Best practices:</strong></p>
+<ul>
+<li><strong>Agree the elevation method with your security team before installing.</strong> Changing it later means running the reconfiguration script on every node.</li>
+<li><strong>Watch the service user's password expiry.</strong> The troubleshooting checks include <code>chage -l dynatrace</code>, because <em>&quot;Password expiration can cause issues with sudo access.&quot;</em> An expired password can block node operations at the worst moment, such as during an update.</li>
+<li><strong>Keep <code>dtrun.conf</code> as installed.</strong> It is the allow-list of what the cluster may run as root.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-elevated-permissions">Configure elevated permissions (DT docs)</a> — <em>&quot;By default, Dynatrace Managed uses sudo to elevate permissions for maintenance operations.&quot;</em></sub></p>
+</blockquote>
+<p><a id="node-roles"></a></p>
+<h2>8. Node Traffic Roles</h2>
+<p>Each node can serve web UI traffic, OneAgent traffic, or both. Splitting them is a documented option for larger clusters: <em>&quot;By configuring one or the other of these options, you can achieve higher stability, better cache behavior, and faster UI response times.&quot;</em> Large clusters already split by default: <em>&quot;starting with Dynatrace Managed 1.214, web UI traffic is by default turned off when installing the thirteenth and subsequent nodes (or the seventh and subsequent nodes in a data center for Premium High Availability).&quot;</em></p>
+<p>For a small cluster, leave every node serving both: a three-node cluster that dedicates a node to the UI has fewer nodes left to absorb a failure. In community practice, splitting roles starts to pay off only on larger clusters — verify against your own UI and ingest load. Disabling OneAgent traffic is also the first step before removing a node (DTM-11 §5).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-capabilities">Configure Cluster capabilities (DT docs)</a> — <em>&quot;Certain deployments may require that specific nodes only serve UI traffic and not process OneAgent data.&quot;</em></sub></p>
+</blockquote>
+<p><a id="backups"></a></p>
+<h2>9. Backups From Day One</h2>
+<p>Backups are configured in the CMC (<strong>Settings &gt; Backup</strong>), and they are not something to add after the first incident. The decisions to make at configuration time:</p>
+<ul>
+<li><strong>Scope.</strong> <em>&quot;User sessions might contain sensitive information. Exclude user sessions from the backup to remain compliant with the General Data Protection Regulation.&quot;</em> Log Monitoring events are included only if you choose them.</li>
+<li><strong>Location.</strong> <em>&quot;To maximize resilience, save your backup files to an off-site location.&quot;</em> Use NFSv4; <em>&quot;CIFS is not recommended, due to its low performance and resilience.&quot;</em></li>
+<li><strong>The boot-time mount.</strong> <em>&quot;If the shared file system mount point isn't available on system boot, Dynatrace won't start on that node.&quot;</em> Make the mount persistent.</li>
+</ul>
+<p>What a backup does and doesn't protect, sizing, and restore are in DTM-16 §2–§4.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a> — <em>&quot;The shared file system mount must be available at system restart.&quot;</em></sub></p>
+</blockquote>
+<p><a id="doc-gaps"></a></p>
+<h2>10. What the Documentation Does Not Say</h2>
+<p><strong>Not found</strong>, in the Managed documentation read 10/21/2026:</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Working assumption in this notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A recommended automatic sign-out value</td>
+<td>Set one that matches your organization's session policy (§6)</td>
+</tr>
+<tr>
+<td>When to start splitting node traffic roles below the 13-node default</td>
+<td>Keep both roles on every node in small clusters (§8)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-preferences">Configure Cluster preferences (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-remote-access">Configure Cluster remote access (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>11. Recommended Approach</h2>
+<ol>
+<li><strong>Create <code>custom.settings</code> on every node</strong> before the first property change, and keep a copy under change control (§2).</li>
+<li><strong>Configure your SMTP server with SSL/TLS required or STARTTLS required</strong>, keep Mission Control as the fallback, send the test message, and set both the notification recipients and the emergency contacts (§3).</li>
+<li><strong>Decide the Mission Control preferences and the remote-access scope and role on purpose</strong>, and record why (§4).</li>
+<li><strong>Set up the internet proxy</strong> with Basic authentication over TLS, and add internal webhook targets to the exclusion list (§5).</li>
+<li><strong>Connect LDAP or SSO.</strong> For the remaining local accounts, set a 12-character minimum, limit concurrent sessions, and set an automatic sign-out (§6).</li>
+<li><strong>Agree the privilege-elevation method before installing</strong>, and monitor the service user's password expiry (§7).</li>
+<li><strong>Leave node traffic roles alone on small clusters</strong> (§8).</li>
+<li><strong>Turn on backups</strong> to an off-site NFSv4 location with a persistent mount, excluding user sessions if GDPR applies (§9).</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>12. Summary and Next Steps</h2>
+<p>Most of a Managed cluster's configuration risk sits in a few defaults: unencrypted email, a short password minimum on old clusters, no automatic sign-out, property changes that vanish on update, and backups that were never turned on. Each takes minutes to fix and is expensive to discover during an incident.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-10: Managed Cluster Architecture and Health Model</td>
+<td>Which cluster events to route on day one</td>
+</tr>
+<tr>
+<td>DTM-14: Cluster ActiveGates and Mission Control Connectivity</td>
+<td>The Mission Control link, proxies and remote-access scopes</td>
+</tr>
+<tr>
+<td>DTM-16: Backup, Upgrade, and Disaster Recovery</td>
+<td>Backup scope, restore and update policy</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Series map:</strong> DTM-00: The Dynatrace Managed Journey routes every notebook in this series.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

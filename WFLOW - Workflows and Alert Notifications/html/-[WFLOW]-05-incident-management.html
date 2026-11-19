@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WFLOW-05: PagerDuty &amp; ServiceNow Integration</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WFLOW — Workflows and Alert Notifications</a><span class="sep">/</span><span aria-current="page">WFLOW-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WFLOW-05: PagerDuty &amp; ServiceNow Integration</h1>
+<blockquote>
+<p><strong>Series:</strong> WFLOW — Workflows and Alert Notifications | <strong>Notebook:</strong> 5 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Incident Management Automation</h2>
+<p>Integrate Dynatrace workflows with enterprise incident management platforms. This notebook covers PagerDuty and ServiceNow integration patterns, bi-directional sync, and incident lifecycle management.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#integration-overview">Integration Overview</a></li>
+<li><a href="#pagerduty-setup">PagerDuty Setup</a></li>
+<li><a href="#pagerduty-workflow-tasks">PagerDuty Workflow Tasks</a></li>
+<li><a href="#servicenow-setup">ServiceNow Setup</a></li>
+<li><a href="#servicenow-workflow-tasks">ServiceNow Workflow Tasks</a></li>
+<li><a href="#bi-directional-sync">Bi-Directional Sync</a></li>
+<li><a href="#incident-lifecycle-patterns">Incident Lifecycle Patterns</a></li>
+<li><a href="#production-hardening">Production Hardening</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Platform subscription</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>automation:workflows:write</code>; <code>storage:events:read</code> for the workflow actor (Problem trigger). To create connections: <code>settings:objects:read</code>, <code>settings:objects:write</code> and <code>settings:schemas:read</code> on the connector's schema (for example <code>app:dynatrace.pagerduty:events-connection</code>). In <strong>Workflows &gt; Settings &gt; Authorization settings</strong>: <code>app-settings:objects:read</code> (both connectors), plus <code>state:app-states:read</code>, <code>state:app-states:write</code> and <code>state:app-states:delete</code> for PagerDuty</td>
+</tr>
+<tr>
+<td><strong>PagerDuty</strong></td>
+<td>Admin access to create services and integrations</td>
+</tr>
+<tr>
+<td><strong>ServiceNow</strong></td>
+<td>Admin access or integration user credentials</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup">Set up PagerDuty Connector (DT docs)</a> — <em>&quot;ALLOW settings:objects:read, settings:objects:write, settings:schemas:read WHERE settings:schemaId&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/set-up-servicenow-connector">Set up ServiceNow Connector (DT docs)</a> — <em>&quot;Permissions needed for ServiceNow workflow actions: app-settings:objects:read&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="integration-overview"></a></p>
+<h2>1. Integration Overview</h2>
+<h3>Why Integrate?</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single pane of glass</strong></td>
+<td>Incidents tracked in one system</td>
+</tr>
+<tr>
+<td><strong>On-call management</strong></td>
+<td>Leverage PagerDuty/ServiceNow schedules</td>
+</tr>
+<tr>
+<td><strong>Audit trail</strong></td>
+<td>Complete incident history</td>
+</tr>
+<tr>
+<td><strong>Escalation</strong></td>
+<td>Built-in escalation policies</td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td>MTTR, incident frequency reporting</td>
+</tr>
+</tbody>
+</table>
+<h3>Integration Flow</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZFdGNSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwRjE3MkEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMUUyOTNCIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJkYXZpc0dyYWQ1IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNERTM1MEIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojYjkxYzFjIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ3b3JrZmxvd0dyYWQ1IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNBNzhCRkEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN0MzQUVEIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJpdHNtR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjJEM0VFIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzA4OTFiMiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGVhbUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0ZGQjgwMCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJlc29sdmVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3M0JFMjgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93V0Y1IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2Qtb3BhY2l0eT0iMC4zIi8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93V0Y1IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM5NEEzQjgiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dXRjVHcmVlbiIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNzNCRTI4Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iOTMwIiBoZWlnaHQ9IjUwMCIgZmlsbD0idXJsKCNiZ0dyYWRXRjUpIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+SW5jaWRlbnQgTWFuYWdlbWVudCBJbnRlZ3JhdGlvbiBGbG93PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkRhdmlzIHByb2JsZW0g4oaSIFdvcmtmbG93IOKGkiBJVFNNIHRpY2tldCDihpIgVGVhbSBpbnZlc3RpZ2F0aW9uIOKGkiBSZXNvbHV0aW9uIOKGkiBBdXRvLWNsb3NlPC90ZXh0PgoKICA8IS0tIDUtc3RlcCBwaXBlbGluZSArIGF1dG8tY2xvc2UgcmV0dXJuIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIxMDAiIHdpZHRoPSIxNTUiIGhlaWdodD0iMTAwIiByeD0iMTAiIGZpbGw9InVybCgjZGF2aXNHcmFkNSkiIGZpbHRlcj0idXJsKCNzaGFkb3dXRjUpIi8+CiAgPHRleHQgeD0iMTE3IiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjEuIERhdmlzPC90ZXh0PgogIDx0ZXh0IHg9IjExNyIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEyIj5EZXRlY3RzIHByb2JsZW08L3RleHQ+CiAgPHRleHQgeD0iMTE3IiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPnJvb3QgY2F1c2UgKyBlbnRpdGllczwvdGV4dD4KCiAgPGxpbmUgeDE9IjIwMCIgeTE9IjE1MCIgeDI9IjIyNSIgeTI9IjE1MCIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXRjUpIi8+CgogIDxyZWN0IHg9IjIzMCIgeT0iMTAwIiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjEwMCIgcng9IjEwIiBmaWxsPSJ1cmwoI3dvcmtmbG93R3JhZDUpIiBmaWx0ZXI9InVybCgjc2hhZG93V0Y1KSIvPgogIDx0ZXh0IHg9IjMwNyIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4yLiBXb3JrZmxvdzwvdGV4dD4KICA8dGV4dCB4PSIzMDciIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiI+QnJhbmNoZXMgYnkgc2V2ZXJpdHk8L3RleHQ+CiAgPHRleHQgeD0iMzA3IiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiPmVucmljaGVzIHdpdGggY29udGV4dDwvdGV4dD4KCiAgPGxpbmUgeDE9IjM5MCIgeTE9IjE1MCIgeDI9IjQxNSIgeTI9IjE1MCIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXRjUpIi8+CgogIDxyZWN0IHg9IjQyMCIgeT0iMTAwIiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjEwMCIgcng9IjEwIiBmaWxsPSJ1cmwoI2l0c21HcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1dGNSkiLz4KICA8dGV4dCB4PSI0OTciIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+My4gSVRTTTwvdGV4dD4KICA8dGV4dCB4PSI0OTciIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMiI+Q3JlYXRlcyBpbmNpZGVudDwvdGV4dD4KICA8dGV4dCB4PSI0OTciIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMSI+UDEgLyBQMiAvIFAzPC90ZXh0PgoKICA8bGluZSB4MT0iNTgwIiB5MT0iMTUwIiB4Mj0iNjA1IiB5Mj0iMTUwIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1dGNSkiLz4KCiAgPHJlY3QgeD0iNjEwIiB5PSIxMDAiIHdpZHRoPSIxNTUiIGhlaWdodD0iMTAwIiByeD0iMTAiIGZpbGw9InVybCgjdGVhbUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93V0Y1KSIvPgogIDx0ZXh0IHg9IjY4NyIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj40LiBUZWFtPC90ZXh0PgogIDx0ZXh0IHg9IjY4NyIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIj5JbnZlc3RpZ2F0ZXMgKyBmaXhlczwvdGV4dD4KICA8dGV4dCB4PSI2ODciIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+cnVucyByZW1lZGlhdGlvbjwvdGV4dD4KCiAgPGxpbmUgeDE9IjY4NyIgeTE9IjIwNSIgeDI9IjY4NyIgeTI9IjI0MCIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXRjUpIi8+CgogIDxyZWN0IHg9IjYxMCIgeT0iMjQ1IiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjEwMCIgcng9IjEwIiBmaWxsPSJ1cmwoI3Jlc29sdmVHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1dGNSkiLz4KICA8dGV4dCB4PSI2ODciIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+NS4gUmVzb2x2ZWQ8L3RleHQ+CiAgPHRleHQgeD0iNjg3IiB5PSIzMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkRhdmlzIGNsb3NlczwvdGV4dD4KICA8dGV4dCB4PSI2ODciIHk9IjMyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+V29ya2Zsb3cgY2xvc2VzIHRpY2tldDwvdGV4dD4KCiAgPCEtLSBBdXRvLWNsb3NlIHJldHVybiBsb29wIChncmVlbiBkYXNoZWQpIC0tPgogIDxsaW5lIHgxPSI2MDUiIHkxPSIyOTUiIHgyPSI0OTciIHkyPSIyOTUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDQiLz4KICA8bGluZSB4MT0iNDk3IiB5MT0iMjk1IiB4Mj0iNDk3IiB5Mj0iMjA1IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNiA0IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V0Y1R3JlZW4pIi8+CiAgPHRleHQgeD0iNTA1IiB5PSIyMjIiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPkF1dG8tY2xvc2Ugb248L3RleHQ+CiAgPHRleHQgeD0iNTA1IiB5PSIyMzYiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPmV2ZW50LnN0YXR1cyAiQ0xPU0VEIjwvdGV4dD4KCiAgPCEtLSBTdXBwb3J0ZWQgSVRTTSBJbnRlZ3JhdGlvbnMgcGFuZWwgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjI0NSIgd2lkdGg9IjU0MCIgaGVpZ2h0PSIyMjAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNTUiIHk9IjI3MiIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+U3VwcG9ydGVkIElUU00gSW50ZWdyYXRpb25zPC90ZXh0PgoKICA8cmVjdCB4PSI1NSIgeT0iMjkwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjcwIiByeD0iNiIgZmlsbD0iIzMzNDE1NSIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxMzUiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U2VydmljZU5vdzwvdGV4dD4KICA8dGV4dCB4PSIxMzUiIHk9IjMzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMSI+aW5jaWRlbnQgLyBjaGFuZ2UgLzwvdGV4dD4KICA8dGV4dCB4PSIxMzUiIHk9IjM1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMSI+cHJvYmxlbSByZWNvcmRzPC90ZXh0PgoKICA8cmVjdCB4PSIyMjUiIHk9IjI5MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI3MCIgcng9IjYiIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzA1IiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlBhZ2VyRHV0eTwvdGV4dD4KICA8dGV4dCB4PSIzMDUiIHk9IjMzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+aW5jaWRlbnRzICs8L3RleHQ+CiAgPHRleHQgeD0iMzA1IiB5PSIzNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiPm9uLWNhbGwgcGFnaW5nPC90ZXh0PgoKICA8cmVjdCB4PSIzOTUiIHk9IjI5MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI3MCIgcng9IjYiIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDc1IiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkppcmE8L3RleHQ+CiAgPHRleHQgeD0iNDc1IiB5PSIzMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiPmlzc3VlcyArIGNvbW1lbnRzLDwvdGV4dD4KICA8dGV4dCB4PSI0NzUiIHk9IjM1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSI+dHJhbnNpdGlvbnMsIGxpbmtzPC90ZXh0PgoKICA8cmVjdCB4PSI1NSIgeT0iMzc1IiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iIzMzNDE1NSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzMDUiIHk9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+SFRUUCByZXF1ZXN0IHRhc2sg4oCUIGFueSBSRVNUIEFQSSAoWmVuZGVzaywgRnJlc2hzZXJ2aWNlLCBjdXN0b20pPC90ZXh0PgoKICA8dGV4dCB4PSI1NSIgeT0iNDM3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Xb3JrZmxvdyBjcmVhdGVzL3VwZGF0ZXMvcmVzb2x2ZXM7IElUU00gY2xvc2UgZXZlbnRzIGNhbiBzdGFydCBhbiBFdmVudC10cmlnZ2VyIHdvcmtmbG93LjwvdGV4dD4KICA8dGV4dCB4PSI1NSIgeT0iNDUzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TZWUgV0ZMT1ctMDUgwqcyL8KnNCBjb25uZWN0aW9uIHNldHVwLCDCpzcgZGVkdXAga2V5cywgwqc2IHJlc29sdmUtYmFjayByb3VuZCB0cmlwLjwvdGV4dD4KCiAgPCEtLSBSaWdodC1zaWRlIG5vdGVzIC0tPgogIDxyZWN0IHg9IjYwMCIgeT0iMzcwIiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjEwNSIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI2MTUiIHk9IjM5NSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RGVkdXAgcGF0dGVybjwvdGV4dD4KICA8dGV4dCB4PSI2MTUiIHk9IjQxNiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+VXNlIGBldmVudCgpWyJkaXNwbGF5X2lkIl1gIGFzIHRoZTwvdGV4dD4KICA8dGV4dCB4PSI2MTUiIHk9IjQzMiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+SVRTTSBjb3JyZWxhdGlvbiBrZXkg4oCUIERhdmlzPC90ZXh0PgogIDx0ZXh0IHg9IjYxNSIgeT0iNDQ4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5yZXRhaW5zIGl0IGFjcm9zcyBVUERBVEUgZXZlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjYxNSIgeT0iNDY0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPlBhZ2VyRHV0eSBkZWR1cHM7IFNlcnZpY2VOb3c6IHNlYXJjaCBmaXJzdDwvdGV4dD4KPC9zdmc+Cg==" alt="Incident Management Integration Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Component | Action |
+|------|-----------|--------|
+| 1 | Dynatrace Intelligence | Detects problem |
+| 2 | Workflow | Processes event |
+| 3 | ITSM | Creates incident |
+| 4 | Team | Investigates & fixes |
+| 5 | Resolution | Problem closed (`event.status` CLOSED), workflow resolves the ticket |
+Supported: ServiceNow (incident / change / problem records), PagerDuty (incidents + on-call paging), Jira (issues + comments, transitions, links), HTTP request task for any REST API
+Bidirectional sync: the workflow creates / updates / resolves; the ITSM can send a close event that an Event trigger matches. See WFLOW-05 §2/§4 for connection setup, §7 for dedup keys, §6 for the resolve-back round trip.
+Dedup: use the problem's display_id as the correlation key. PagerDuty dedups on it; for ServiceNow, search for it before creating.
+For environments where SVG doesn't render
+-->
+<h3>Why a Workflow (vs a Direct Webhook)</h3>
+<p>Davis can post to a webhook directly, but routing problems through a <strong>workflow</strong> buys four things a raw webhook cannot:</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>What the workflow adds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Payload shaping</strong></td>
+<td>Map Dynatrace fields to the exact incident schema the target expects, including required and custom fields</td>
+</tr>
+<tr>
+<td><strong>Retry + dead-letter</strong></td>
+<td>Re-attempt on transient failures; quarantine permanent failures instead of losing them (see §8)</td>
+</tr>
+<tr>
+<td><strong>Filtering</strong></td>
+<td>Decide which problems become incidents — drop informational events before they reach the ITSM queue</td>
+</tr>
+<tr>
+<td><strong>Link-back</strong></td>
+<td>Capture the returned incident number and write it onto the Dynatrace problem as a comment (§6)</td>
+</tr>
+</tbody>
+</table>
+<p>Reach for the native action first; drop to a raw HTTP action only when you need a field the action doesn't expose.</p>
+<p><a id="pagerduty-setup"></a></p>
+<h2>2. PagerDuty Setup</h2>
+<h3>Creating PagerDuty Integration</h3>
+<ol>
+<li>
+<p><strong>In PagerDuty:</strong></p>
+<ul>
+<li>Go to <strong>Services</strong> → Select or create service</li>
+<li><strong>Integrations</strong> tab → <strong>Add Integration</strong></li>
+<li>Select <strong>Events API v2</strong></li>
+<li>Copy the <strong>Integration Key</strong> (routing key)</li>
+</ul>
+</li>
+<li>
+<p><strong>In Dynatrace:</strong></p>
+<ul>
+<li>Go to <strong>Settings</strong> → <strong>Connections</strong> → <strong>PagerDuty</strong> and select the <strong>Events API</strong> tab</li>
+<li>Select <strong>Connection</strong></li>
+<li>Paste the Integration Key into <strong>Routing key</strong></li>
+<li>Name: <code>pagerduty-production</code></li>
+</ul>
+</li>
+</ol>
+<blockquote>
+<p><strong>Two connection types.</strong> The steps above create an <strong>Events</strong> connection (a routing key), which is what <strong>Send event</strong> uses: <em>&quot;The Send event action uses the PagerDuty Events API v2 and requires a separate Events connection configured with a routing key.&quot;</em> <strong>Create an incident</strong> and the list actions use a different connection that holds a PagerDuty REST API key. Neither connection can stand in for the other.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup">Set up PagerDuty Connector (DT docs)</a> — <em>&quot;Use the PagerDuty Connector with a PagerDuty API key to automate incident creation and retrieve on-call information via the PagerDuty REST API.&quot;</em></sub></p>
+</blockquote>
+<h3>Multiple Services Pattern</h3>
+<p>Create separate connections for different routing:</p>
+<table>
+<thead>
+<tr>
+<th>Connection Name</th>
+<th>PagerDuty Service</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pagerduty-prod-critical</code></td>
+<td>Production-Critical</td>
+<td>P1 incidents</td>
+</tr>
+<tr>
+<td><code>pagerduty-prod-standard</code></td>
+<td>Production-Standard</td>
+<td>P2-P4 incidents</td>
+</tr>
+<tr>
+<td><code>pagerduty-platform</code></td>
+<td>Platform-Infrastructure</td>
+<td>Infra issues</td>
+</tr>
+</tbody>
+</table>
+<p><a id="pagerduty-workflow-tasks"></a></p>
+<h2>3. PagerDuty Workflow Tasks</h2>
+<p>PagerDuty has no separate resolve or acknowledge action. One action, <strong>Send event</strong> (<code>dynatrace.pagerduty:send-event</code>), covers the whole alert lifecycle: its <strong>Event action</strong> input is <code>trigger</code>, <code>acknowledge</code> or <code>resolve</code>. Send every event about one problem with the same deduplication key, through the same Events connection, so PagerDuty updates the existing alert instead of opening a new one.</p>
+<h3>Trigger an Alert</h3>
+<p>Input keys below follow an exported workflow (the editor labels them Event action, Severity, Summary, Source, Component, Group, Class, Custom details, Deduplication key); export your own workflow once to confirm them.</p>
+<pre><code class="language-yaml">name: trigger_pagerduty_alert
+action: dynatrace.pagerduty:send-event
+input:
+  connectionId: &quot;{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-production') }}&quot;
+  eventAction: trigger
+  severity: '{{ {1: &quot;critical&quot;, 2: &quot;error&quot;, 3: &quot;warning&quot;, 4: &quot;info&quot;}.get(event().get(&quot;event.severity&quot;) | int(5), &quot;info&quot;) }}'
+  summary: &quot;[{{ event()['event.category'] }}] {{ event()['event.name'] }}&quot;
+  source: &quot;dynatrace&quot;
+  # Root-cause name from the Smartscape field, falling back to the classic ID
+  component: &gt;-
+    {% set rc = event().get(&quot;root_cause.smartscape_entity&quot;) %}{{ rc[&quot;name&quot;] if rc else (event().get(&quot;root_cause_entity_id&quot;) or &quot;unknown&quot;) }}
+  group: &quot;&quot;                    # left empty, as in Dynatrace's template; problems carry no management_zones
+  eventClass: &quot;{{ event()['event.category'] }}&quot;
+  customDetails: |             # a JSON object, written as text
+    {
+      &quot;problem_id&quot;: &quot;{{ event()['display_id'] }}&quot;,
+      &quot;problem_url&quot;: &quot;{{ problem_link() }}&quot;,
+      &quot;affected_entities&quot;: &quot;{{ (event().get('smartscape.affected_entities') or []) | map(attribute='name') | join(', ') or event()['affected_entity_ids'] | join(', ') }}&quot;,
+      &quot;root_cause&quot;: &quot;{{ event().get('root_cause_entity_id', 'N/A') }}&quot;,
+      &quot;start_time&quot;: &quot;{{ event()['event.start'] }}&quot;
+    }
+  dedupKey: &quot;dynatrace-{{ event()['display_id'] }}&quot;
+</code></pre>
+<blockquote>
+<p><strong>Deprecated problem fields.</strong> <em>&quot;root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity , and affected_entity_ids in favor of smartscape.affected_entities .&quot;</em> The classic fields still work and are better populated today: over 7 days on the validation tenant (10/06/2026), <code>affected_entity_ids</code> was set on 4,244 of 4,244 problems and <code>smartscape.affected_entities</code> on 3,332; <code>root_cause_entity_id</code> on 850 and <code>root_cause.smartscape_entity</code> on 150. The mapping above therefore reads the Smartscape field first and falls back to the classic one. Dynatrace's own PagerDuty template reads only the Smartscape fields and leaves Group empty.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alert notification (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-problem-notification-template">Send problem as event to PagerDuty template (DT docs)</a> — <em>&quot;Group : The template leaves this field empty.&quot;</em></sub></p>
+</blockquote>
+<h3>Resolve the Alert</h3>
+<p>Run when the problem closes:</p>
+<pre><code class="language-yaml">name: resolve_pagerduty_alert
+action: dynatrace.pagerduty:send-event
+input:
+  connectionId: &quot;{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-production') }}&quot;
+  eventAction: resolve
+  severity: info
+  summary: &quot;Resolved in Dynatrace: {{ event()['event.name'] }}&quot;
+  source: &quot;dynatrace&quot;
+  dedupKey: &quot;dynatrace-{{ event()['display_id'] }}&quot;
+</code></pre>
+<h3>Acknowledge the Alert</h3>
+<pre><code class="language-yaml">name: acknowledge_pagerduty_alert
+action: dynatrace.pagerduty:send-event
+input:
+  connectionId: &quot;{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-production') }}&quot;
+  eventAction: acknowledge
+  severity: info
+  summary: &quot;Acknowledged from Dynatrace: {{ event()['event.name'] }}&quot;
+  source: &quot;dynatrace&quot;
+  dedupKey: &quot;dynatrace-{{ event()['display_id'] }}&quot;
+</code></pre>
+<p>Dynatrace's own <em>Send problem as event to PagerDuty</em> template does the same in a single task: it sets the event action to <code>resolve</code> when the problem's status is <code>CLOSED</code>.</p>
+<h3>Opening an Incident Instead of an Alert</h3>
+<p>When you need a PagerDuty <em>incident</em> opened directly, with a service ID, priority or assignee, use <strong>Create an incident</strong> (<code>dynatrace.pagerduty:create-incident</code>) with the REST API connection. Its inputs differ from Send event (From, Title, Service ID, Priority ID, Urgency, Incident key), and it has no resolve counterpart in the connector.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-actions">PagerDuty Connector actions (DT docs)</a> — <em>&quot;Trigger, acknowledge, or resolve an alert in PagerDuty using the Events API v2&quot;</em>, <em>&quot;Creates an incident in your PagerDuty environment for a service.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-problem-notification-template">Send problem as event to PagerDuty template (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="servicenow-setup"></a></p>
+<h2>4. ServiceNow Setup</h2>
+<h3>Creating ServiceNow Connection</h3>
+<ol>
+<li>
+<p><strong>In ServiceNow:</strong></p>
+<ul>
+<li>Create an integration user, or an OAuth app</li>
+<li>Give it the rights the connector's actions use: <em>&quot;Search, create and update incidents (table incident )&quot;</em>, read categories and subcategories (table <code>sys_choice</code>, elements <code>category</code> and <code>subcategory</code>), read assignment groups (table <code>sys_user_group</code>), and read resolution codes (table <code>sys_choice</code>, element <code>close_code</code>)</li>
+<li>Note instance URL: <code>https://your-instance.service-now.com</code></li>
+</ul>
+</li>
+<li>
+<p><strong>In Dynatrace:</strong></p>
+<ul>
+<li>Go to <strong>Settings</strong> → <strong>Connections</strong> → <strong>ServiceNow</strong></li>
+<li>Select <strong>Connection</strong></li>
+<li>Enter:
+<ul>
+<li>Instance URL</li>
+<li>Basic-auth username/password <strong>or</strong> OAuth client ID/secret</li>
+</ul>
+</li>
+<li>Name: <code>servicenow-production</code></li>
+</ul>
+</li>
+<li>
+<p><strong>Allow the outbound calls.</strong> If the actions fail with <code>Blocked request to '…' (host not in allowlist)</code>, add the instance host under <strong>Settings</strong> → <strong>General</strong> → <strong>External requests</strong>. That is the error the ServiceNow actions returned on the validation tenant (10/06/2026) for a host that was not listed. If the instance accepts only allow-listed source IPs, <strong>WFLOW-94</strong> covers sending connector calls from a static egress IP through EdgeConnect.</p>
+</li>
+</ol>
+<h3>Authentication Options</h3>
+<p>The ServiceNow connection supports two authentication methods — these are the only two the native connector accepts:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Credentials</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Basic Authentication</strong></td>
+<td>Username + password of a ServiceNow integration user</td>
+<td>Quick setup, development</td>
+</tr>
+<tr>
+<td><strong>OAuth Client Credentials</strong></td>
+<td>Client ID + client secret</td>
+<td>Production — avoids storing a user password</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>There is no API-key option for this connector. Store the chosen credential in the connection, never inline in a workflow task.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/set-up-servicenow-connector">Set up ServiceNow Connector (DT docs)</a> — <em>&quot;Read resolution codes (table sys_choice , element close_code )&quot;</em>, <em>&quot;Either use basic authentication or OAuth client credentials.&quot;</em></sub></p>
+</blockquote>
+<p><a id="servicenow-workflow-tasks"></a></p>
+<h2>5. ServiceNow Workflow Tasks</h2>
+<p>The native ServiceNow connector exposes these operations, selected <strong>by name</strong> in the workflow builder. Create Incident is <code>dynatrace.servicenow:snow-create-incident</code>, Search incidents is <code>dynatrace.servicenow:snow-search-incidents</code>, and Comment on an incident is <code>dynatrace.servicenow:snow-comment-on-incident</code>, in Dynatrace's workflow samples. The other operations are shown by name only (<code># Operation:</code>): export a workflow that uses one to read its identifier and input names, rather than guessing them:</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Create Incident</strong></td>
+<td>Open an incident from a Davis problem</td>
+</tr>
+<tr>
+<td><strong>Resolve incident</strong></td>
+<td>Close the incident when the problem closes</td>
+</tr>
+<tr>
+<td><strong>Comment on an incident</strong></td>
+<td>Append work notes / status updates</td>
+</tr>
+<tr>
+<td><strong>Update record</strong></td>
+<td>Change fields on any table record (incidents included)</td>
+</tr>
+<tr>
+<td><strong>Search incidents</strong></td>
+<td>Look up an existing incident (e.g., by correlation ID)</td>
+</tr>
+<tr>
+<td><strong>Get Groups</strong></td>
+<td>Resolve assignment-group sys_ids</td>
+</tr>
+<tr>
+<td><strong>Create a vulnerability item</strong></td>
+<td>Open a VR item (security workflows)</td>
+</tr>
+<tr>
+<td><strong>Create Comment</strong></td>
+<td>Create a comment on an entry in any table</td>
+</tr>
+<tr>
+<td><strong>Create Record</strong></td>
+<td>Create a new record in a specified table</td>
+</tr>
+<tr>
+<td><strong>Search</strong></td>
+<td>Generic search of any table</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>SaaS 1.350 (rollout start 11/04/2026, staged tenant rollout): Send ITOM Event.</strong> <em>&quot;ServiceNow Connector now includes the Send ITOM Event workflow action. Use it to send Dynatrace problems to ServiceNow IT Operations Management (ITOM) as events. A ready-made workflow template, Send problem as ITOM event to ServiceNow, helps you get started.&quot;</em> The action <em>&quot;Send an event to ServiceNow Event Management using the ITOM inbound web service. Requires an ITOM events connection.&quot;</em> Verify the action has reached your tenant; until it does, the incident operations above and the ALERT-04 ladder remain the working path.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/automation-workflows-service-now-actions">ServiceNow Connector actions (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-350">What's new in Dynatrace SaaS 1.350 (DT docs)</a> — <em>&quot;The template creates a ServiceNow alert when a problem opens and closes that alert when the problem closes.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Required fields for Create Incident:</strong> <code>Category</code>, <code>Subcategory</code>, <code>Impact</code>, <code>Urgency</code>, and <code>Assignment Group</code> are <strong>required</strong> — a create call missing any of them fails. <code>Correlation ID</code> is optional but strongly recommended: set it to the Dynatrace problem ID so a <strong>Search incidents</strong> task can find the incident again. Create Incident does not check for an existing incident (it is a plain <code>POST /api/now/v2/table/incident</code>), so the deduplication is yours: search first, and create only when nothing is found.</p>
+</blockquote>
+<h3>Find or Create the Incident</h3>
+<p>Search for the problem's correlation ID first, then create only if the search came back empty. This is the pattern Dynatrace's own ServiceNow sample uses.</p>
+<pre><code class="language-yaml">search_incident:
+  name: search_incident
+  action: dynatrace.servicenow:snow-search-incidents
+  predecessors: []
+  input:
+    connectionId: &quot;{{ connection('app:dynatrace.servicenow:connection', 'servicenow-production') }}&quot;
+    sysparmQuery: &quot;correlation_id=DT-{{ event()['display_id'] }}&quot;
+    sysparmLimit: &quot;1&quot;
+</code></pre>
+<pre><code class="language-yaml">name: create_snow_incident
+action: dynatrace.servicenow:snow-create-incident
+predecessors:
+  - search_incident
+conditions:
+  states:
+    search_incident: OK
+  custom: '{{ event()[&quot;event.status&quot;] == &quot;ACTIVE&quot; and result(&quot;search_incident&quot;) | length == 0 }}'
+  else: SKIP
+input:
+  connectionId: &quot;{{ connection('app:dynatrace.servicenow:connection', 'servicenow-production') }}&quot;
+  shortDescription: &quot;[Dynatrace] {{ event()['event.name'] }}&quot;
+  description: |
+    A problem has been detected by Davis.
+
+    Problem Details:
+    ================
+    Problem ID: {{ event()['display_id'] }}
+    Category: {{ event()['event.category'] }}
+    Status: {{ event()['event.status'] }}
+    Start Time: {{ event()['event.start'] }}
+
+    Affected Entities:
+    {{ event()['affected_entity_ids'] | join('\n') }}{# deprecated field; see §3 #}
+
+    Root Cause Entity:
+    {{ event().get('root_cause_entity_id', 'Pending analysis') }}
+
+    View in Dynatrace:
+    {{ problem_link() }}
+  impact: '{{ {1: 1, 2: 1, 3: 2, 4: 3}.get(event().get(&quot;event.severity&quot;) | int(5), 3) }}'
+  urgency: '{{ {1: 1, 2: 1, 3: 2, 4: 3}.get(event().get(&quot;event.severity&quot;) | int(5), 3) }}'
+  category: &quot;software&quot;           # a choice value from your instance's sys_choice list
+  subCategory: &quot;application&quot;
+  group:                         # the assignment group, picked in the editor
+    id: &quot;&lt;sys_id of Platform Engineering&gt;&quot;
+    displayName: &quot;Platform Engineering&quot;
+  caller: &quot;dynatrace.integration&quot;
+  correlationId: &quot;DT-{{ event()['display_id'] }}&quot;
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/automation-workflows-service-now-actions">ServiceNow Connector actions (DT docs)</a> — <em>&quot;Creates an incident in your ServiceNow instance.&quot;</em>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml">wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)</a> — <em>&quot;action: dynatrace.servicenow:snow-create-incident&quot;</em>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/red%20hat%20ansible%20automation%20platform/wftpl_core_journey_auto-remediation.yaml">wftpl_core_journey_auto-remediation.yaml (Dynatrace GitHub)</a> — <em>&quot;action: dynatrace.servicenow:snow-comment-on-incident&quot;</em>.</sub></p>
+</blockquote>
+<p><strong>Severity → Impact / Urgency.</strong> Dynatrace's unified <code>event.severity</code> is an integer <strong>1–5</strong> (1 Critical, 2 Major, 3 Minor, 4 Warning, 5 Informational; see WFLOW-04 §3 and AIOPS-03), and it is what the Davis problem and <code>fetch events</code> carry. ServiceNow <code>Impact</code>/<code>Urgency</code> run <strong>1 (High) … 3 (Low)</strong>, so the Dynatrace scale compresses:</p>
+<table>
+<thead>
+<tr>
+<th><code>event.severity</code></th>
+<th>ServiceNow Impact / Urgency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 (Critical)</td>
+<td>1 (High)</td>
+</tr>
+<tr>
+<td>2 (Major)</td>
+<td>1 (High)</td>
+</tr>
+<tr>
+<td>3 (Minor)</td>
+<td>2 (Medium)</td>
+</tr>
+<tr>
+<td>4 (Warning) — events only, never on a problem</td>
+<td>3 (Low)</td>
+</tr>
+<tr>
+<td>5 (Informational)</td>
+<td>skip — usually no incident</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>What <code>event()</code> actually carries.</strong> The problem record has <code>event.severity</code> on the 1–5 scale, not <code>&quot;CRITICAL&quot;</code>-style labels. Grail stores it as a number; in the <code>event()</code> payload it may arrive as a string, which is why the mappings above convert it with <code>| int</code>. It is <code>stable</code> in the semantic dictionary (read 11/11/2026), and from SaaS 1.348 it is no longer defaulted (WFLOW-04 §3), so <code>int(5)</code> sends an unset severity to the lowest tier. The same applies to the PagerDuty severity mapping in §3.</p>
+</blockquote>
+<h3>Comment on an Incident</h3>
+<pre><code class="language-yaml">name: comment_snow_incident
+action: dynatrace.servicenow:snow-comment-on-incident
+predecessors:
+  - search_incident
+conditions:
+  states:
+    search_incident: OK
+  custom: '{{ result(&quot;search_incident&quot;) | length &gt; 0 }}'
+  else: SKIP
+input:
+  connectionId: &quot;{{ connection('app:dynatrace.servicenow:connection', 'servicenow-production') }}&quot;
+  # The incident number (INC...), not the correlation ID or the sys_id
+  number: '{{ result(&quot;search_incident&quot;)[0].number }}'
+  comment: |
+    [Automated Update from Dynatrace]
+    Problem updated at {{ now() }}
+    Current status: {{ event()['event.status'] }}
+</code></pre>
+<h3>Resolve Incident</h3>
+<p><strong>Resolve incident</strong> targets an incident by number, not by correlation ID, and all three of its inputs are required: <em>&quot;Incident Number The number of the incident to resolve.&quot;</em>, <em>&quot;Resolution Notes Add notes for the resolution of the incident.&quot;</em>, <em>&quot;Resolution Code The close code for the resolution.&quot;</em> Pick the resolution code from the editor's list: the codes are read from your instance (<code>sys_choice</code>, element <code>close_code</code>), so a hard-coded <code>&quot;Resolved&quot;</code> may not exist there.</p>
+<pre><code class="language-yaml">name: resolve_snow_incident
+# Operation: &quot;Resolve incident&quot; (export a workflow to read its action identifier)
+predecessors:
+  - search_incident
+conditions:
+  states:
+    search_incident: OK
+  custom: '{{ event()[&quot;event.status&quot;] == &quot;CLOSED&quot; and result(&quot;search_incident&quot;) | length &gt; 0 }}'
+  else: SKIP
+input:
+  connectionId: &quot;{{ connection('app:dynatrace.servicenow:connection', 'servicenow-production') }}&quot;
+  number: '{{ result(&quot;search_incident&quot;)[0].number }}'   # Incident Number
+  resolutionNotes: |                                     # Resolution Notes
+    Problem automatically resolved in Dynatrace.
+    Resolution time: {{ event().get('event.end', now()) }}
+  resolutionCode: &quot;&lt;a close code from the editor's list&gt;&quot;   # Resolution Code
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/automation-workflows-service-now-actions">ServiceNow Connector actions (DT docs)</a>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/red%20hat%20ansible%20automation%20platform/wftpl_core_journey_auto-remediation.yaml">wftpl_core_journey_auto-remediation.yaml (Dynatrace GitHub)</a> — reads the incident number from <code>result(&quot;search_incident&quot;)[0].number</code>.</sub></p>
+</blockquote>
+<p><a id="bi-directional-sync"></a></p>
+<h2>6. Bi-Directional Sync</h2>
+<p>The native ServiceNow <strong>workflow action is one-way</strong> — it creates, comments on, resolves, and updates ServiceNow records, but ServiceNow-side changes do not flow back automatically. There are two ways to close the loop:</p>
+<ul>
+<li><strong>DIY polling (shown below)</strong> — a scheduled workflow queries ServiceNow for Dynatrace-correlated incidents and writes their status back onto the Dynatrace problem. Portable and works today, but you own the polling cadence and rate budget.</li>
+<li><strong>Native bi-directional (ITOM)</strong> — the ServiceNow-side Dynatrace app / ITOM Event Management ingests Dynatrace events and synchronises incident state both ways. This is the richest option for ITOM-centric shops; the <strong>ALERT-04</strong> notebook lays out the full maturity ladder and when to climb to it.</li>
+</ul>
+<h3>Sync Status from ServiceNow to Dynatrace (DIY polling)</h3>
+<p>Use a scheduled workflow to check incident status:</p>
+<pre><code class="language-javascript">import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+const SNOW_URL = 'https://your-instance.service-now.com';   // add to Settings &gt; External requests
+
+export default async function () {
+  // A JavaScript task does not receive a connection object; keep the credential in the Credential Vault.
+  // Required: the workflow actor has the credential-vault:entries:read permission (for an actor that is
+  // not a service user, also turned on under Secondary permissions in the Workflows authorization settings),
+  // the AppEngine scope selected, &quot;Allow access without app context&quot; turned on, and access for the
+  // workflow actor - otherwise this call is denied.
+  const cred = await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' });
+  // Query ServiceNow for Dynatrace-related incidents. Encoded queries join field, operator
+  // and value with no spaces: correlation_idSTARTSWITHDT-
+  const response = await fetch(
+    `${SNOW_URL}/api/now/table/incident?` +
+    `sysparm_query=${encodeURIComponent('correlation_idSTARTSWITHDT-^state!=6')}`,
+    {
+      headers: {
+        'Authorization': `Basic ${btoa(cred.username + ':' + cred.password)}`,
+        'Accept': 'application/json'
+      }
+    }
+  );
+
+  const incidents = await response.json();
+
+  // Process each incident
+  for (const incident of incidents.result) {
+    const displayId = incident.correlation_id.replace('DT-', '');   // P-..., the display ID
+    // problemsClient.createComment needs the problem ID (event.id), not the display ID:
+    // look it up in dt.davis.problems by display_id, then post the SNOW status as a comment
+    // ...
+  }
+
+  return { processed: incidents.result.length };
+}
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a> — <em>&quot;The workflow actor has the credential-vault:entries:read permission. If the actor isn't a service user, credential-vault:entries:read is also turned on under Secondary permissions in the Workflows authorization settings&quot;</em> and <em>&quot;The AppEngine scope is selected for the credential. Allow access without app context is turned on for the credential. The workflow actor has access to the credential.&quot;</em></sub></p>
+</blockquote>
+<h3>Write the Incident Number onto the Problem (link-back)</h3>
+<p>Create Incident returns the new incident's number. A downstream task can read it directly as <code>{{ result(&quot;create_snow_incident&quot;).number }}</code>, so no extra task is needed just to store it. To give responders a path from the Dynatrace problem to the ticket, post the number as a problem comment:</p>
+<pre><code class="language-yaml">link_back:
+  name: link_back
+  action: dynatrace.automations:run-javascript
+  predecessors:
+    - create_snow_incident
+  conditions:
+    states:
+      create_snow_incident: SUCCESS
+    else: SKIP
+  input:
+    script: |
+      import { execution, result } from '@dynatrace-sdk/automation-utils';
+      import { problemsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+      export default async function () {
+        const ev = (await execution()).event();                 // the Problem trigger payload
+        if (!ev) throw new Error('No event context - run this from a Problem trigger');
+        const incident = await result('create_snow_incident');
+        await problemsClient.createComment({
+          problemId: ev['event.id'],
+          body: { message: `ServiceNow incident ${incident.number}`, context: 'ServiceNow' },
+        });
+        return { incident_number: incident.number };
+      }
+</code></pre>
+<p>Dynatrace's own ServiceNow sample passes <code>event()[&quot;event.id&quot;]</code> as the <code>problemId</code> of the problems API in a Problem-triggered workflow; the comment call takes the same ID.</p>
+<blockquote>
+<p><strong>Deprecation — Dynatrace API 1.349 (staged tenant rollout from 10/27/2026).</strong> The <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-349">API 1.349 changelog (DT docs)</a> marks the Environment API v2 <code>/problems</code> endpoints deprecated, including <em>&quot;POST /problems/{problemId}/comments Deprecated&quot;</em>, and names no successor. Verify it has reached your tenant; until then the current guidance remains the working path.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml">wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)</a> — <em>&quot;{problemId: davisEvent['event.id'], fields: 'impactAnalysis'}&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="incident-lifecycle-patterns"></a></p>
+<h2>7. Incident Lifecycle Patterns</h2>
+<h3>Complete Lifecycle Workflow</h3>
+<p>Handle open, update, and close events:</p>
+<p>In the editor, set the Problem trigger's <strong>Problem state</strong> to <em>active or closed</em>: <em>&quot;active or closed : Starts when the problem opens and again when it closes.&quot;</em> Without it the workflow never runs on close, and the resolve task never fires. Exported, the trigger and tasks look like this:</p>
+<pre><code class="language-yaml">title: incident-lifecycle-management
+trigger:
+  eventTrigger:
+    isActive: true
+    triggerConfiguration:
+      type: davis-problem
+      value:
+        triggerOn: open-and-close     # UI: Problem state = active or closed
+        categories:
+          availability: true
+          error: true
+          slowdown: true
+          resource: true
+          custom: true
+        entityTagsMatch: all
+        entityTags:
+          env:
+            - prod
+
+tasks:
+  # CREATE: when the problem opens
+  trigger_alert:
+    name: trigger_alert
+    action: dynatrace.pagerduty:send-event
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ event()[&quot;event.status&quot;] == &quot;ACTIVE&quot; }}'
+      else: SKIP
+    input:
+      connectionId: &quot;{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-production') }}&quot;
+      eventAction: trigger
+      source: dynatrace
+      severity: critical
+      summary: &quot;{{ event()['event.name'] }}&quot;
+      dedupKey: &quot;dynatrace-{{ event()['display_id'] }}&quot;
+
+  # RESOLVE: when the problem closes
+  resolve_alert:
+    name: resolve_alert
+    action: dynatrace.pagerduty:send-event
+    predecessors: []
+    conditions:
+      states: {}
+      custom: '{{ event()[&quot;event.status&quot;] == &quot;CLOSED&quot; }}'
+      else: SKIP
+    input:
+      connectionId: &quot;{{ connection('app:dynatrace.pagerduty:events-connection', 'pagerduty-production') }}&quot;
+      eventAction: resolve
+      source: dynatrace
+      severity: info
+      summary: &quot;Resolved in Dynatrace: {{ event()['event.name'] }}&quot;
+      dedupKey: &quot;dynatrace-{{ event()['display_id'] }}&quot;
+</code></pre>
+<p><code>triggerOn</code> is the current key in the <code>@dynatrace-sdk/client-automation</code> typings, where <code>onProblemClose</code> is marked deprecated; older exports, including Dynatrace's ServiceNow sample, still carry <code>onProblemClose</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml">wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)</a> — the exported <code>triggerConfiguration</code> shape.</sub></p>
+</blockquote>
+<h3>Deduplication Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Dedup Field</th>
+<th>Pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PagerDuty</td>
+<td><code>dedupKey</code></td>
+<td><code>dynatrace-{problem_id}</code></td>
+</tr>
+<tr>
+<td>ServiceNow</td>
+<td><code>correlation_id</code></td>
+<td><code>DT-{problem_id}</code> — run <strong>Search incidents</strong> on it first and create only if none is found (§5)</td>
+</tr>
+</tbody>
+</table>
+<p>PagerDuty deduplicates on the key itself, so a repeated <code>trigger</code> updates the open alert. ServiceNow's Create Incident does not: the search-before-create step is what prevents a duplicate.</p>
+<p><a id="production-hardening"></a></p>
+<h2>8. Production Hardening</h2>
+<p>An incident integration sits on the critical path: when it silently fails, problems open in Dynatrace but never reach the on-call queue. Harden it before you depend on it.</p>
+<h3>Failure Handling</h3>
+<p>Decide explicitly what happens on each failure mode rather than letting the workflow fail open:</p>
+<table>
+<thead>
+<tr>
+<th>Failure</th>
+<th>Handling</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ServiceNow <strong>5xx</strong> (server error)</td>
+<td>Turn on the task's <strong>Retry on error</strong> (fixed count and delay, e.g. 3 × 60 s)</td>
+</tr>
+<tr>
+<td>ServiceNow <strong>4xx</strong> (bad payload / auth)</td>
+<td>Retry cannot tell it apart from a 5xx; a follow-up task with state condition <strong>error</strong> writes the payload to a dead-letter store and alerts the team</td>
+</tr>
+<tr>
+<td><strong>Timeout</strong> (slow response)</td>
+<td>Covered by Retry on error; surface a final failure on the Dynatrace problem as a comment</td>
+</tr>
+<tr>
+<td><strong>Rate limit reached</strong></td>
+<td>Log dropped events and continue; alert if the sustained drop rate crosses a threshold</td>
+</tr>
+<tr>
+<td><strong>DNS / connection failure</strong></td>
+<td>Retry; if persistent, alert via a secondary channel (e.g., a Slack action)</td>
+</tr>
+<tr>
+<td><strong>Auth token expired</strong></td>
+<td>Re-fetch the credential once per run from the connection/secret store; alert ops if it recurs</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Retry on error</strong> has a fixed count and a fixed delay, with no backoff, and it retries every failure regardless of status code: <em>&quot;Number of retries , by default, is set to two. Delay between retries (seconds) , by default, is set to 30.&quot;</em> <em>&quot;If none of the action retries are successful, the task will end in an error state.&quot;</em> Branch on that error state for the dead-letter path.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows — Task options (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Dead-Letter Queue</h3>
+<p>Retries cover transient failures; <strong>permanent</strong> failures (4xx, schema mismatch) must not vanish. Write the failed payload to a durable store — a dedicated Grail bucket or an external queue — with a retention window (e.g., 30 days) so an operator can inspect and <strong>replay</strong> it after fixing the root cause. Without a dead-letter store, a malformed-payload bug means silently lost incidents with no audit trail.</p>
+<h3>Link Back to the Dynatrace Problem</h3>
+<p>Capture the ServiceNow incident number from the create response and write it onto the originating problem as a comment (the link-back task in §6). This gives responders a one-click path from the Dynatrace problem to the ServiceNow ticket. The correlation ID is what lets a later <strong>Search incidents</strong> task find the incident number that <strong>Comment</strong> and <strong>Resolve</strong> require (§5).</p>
+<p>The integration is itself a production dependency, so monitor it like one — the queries below track execution volume, success rate, and failures so a broken connection surfaces as a metric, not as a silent gap in the incident queue.</p>
+<h3>Monitor Incident Integration</h3>
+<pre><code class="language-dql">// Incident-management connector task executions
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;ACTION_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| filter contains(dt.automation_engine.action.app, &quot;servicenow&quot;) or contains(dt.automation_engine.action.app, &quot;pagerduty&quot;) or contains(dt.automation_engine.action.app, &quot;jira&quot;)
+| summarize executions = count(), by:{dt.automation_engine.action.app, dt.automation_engine.action.function, dt.automation_engine.state}
+| sort executions desc
+</code></pre>
+<pre><code class="language-dql">// Failed incident management tasks
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;ACTION_EXECUTION&quot;
+| filter dt.automation_engine.state == &quot;ERROR&quot;
+| filter contains(dt.automation_engine.action.app, &quot;servicenow&quot;) or contains(dt.automation_engine.action.app, &quot;pagerduty&quot;)
+| fields timestamp, dt.automation_engine.action.function, dt.automation_engine.state_info
+| sort timestamp desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Connector activity per day
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;ACTION_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| filter contains(dt.automation_engine.action.app, &quot;servicenow&quot;) or contains(dt.automation_engine.action.app, &quot;pagerduty&quot;)
+| makeTimeseries executions = count(), interval:24h
+</code></pre>
+<h2>Next Steps</h2>
+<p>With incident management configured, customize message templates:</p>
+<h3>Recommended Path</h3>
+<ol>
+<li><strong>WFLOW-06: Custom Notification Templates</strong> - Rich formatting</li>
+<li><strong>WFLOW-07: Problem-Triggered Remediation</strong> - Auto-remediation</li>
+<li><strong>WFLOW-08: JavaScript &amp; HTTP Actions</strong> - Custom integrations</li>
+</ol>
+<h3>Key Takeaways</h3>
+<ul>
+<li><strong>PagerDuty</strong>: <strong>Send event</strong> triggers, acknowledges and resolves through Events API v2 (routing key); <strong>Create an incident</strong> uses the REST API (API key)</li>
+<li><strong>ServiceNow</strong> uses a native connection (Basic or OAuth Client Credentials) with operations selected by name; <code>Category</code>, <code>Subcategory</code>, <code>Impact</code>, <code>Urgency</code>, <code>Assignment Group</code> are required on create</li>
+<li><strong>Deduplication</strong>: PagerDuty dedups on <code>dedupKey</code>; for ServiceNow, <strong>Search incidents</strong> on the correlation ID before creating, because Create Incident does not dedupe</li>
+<li><strong>Lifecycle workflows</strong> handle open/update/close events</li>
+<li><strong>Bi-directional</strong>: the native action is one-way; true state sync comes from the ServiceNow-side Dynatrace app / ITOM (see ALERT-04)</li>
+<li><strong>Production hardening</strong> — retry, dead-letter, link-back, and monitoring keep the integration trustworthy</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Integration benefits and architecture</li>
+<li>PagerDuty connection setup and tasks</li>
+<li>ServiceNow connection setup and tasks</li>
+<li>Bi-directional sync patterns</li>
+<li>Incident lifecycle management</li>
+<li>Deduplication strategies</li>
+<li>Production hardening (failure handling, dead-letter, monitoring)</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now">ServiceNow action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup">Set up PagerDuty Connector (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows — task conditions and options (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty">PagerDuty action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/problem-notifications/servicenow-classic">Send Dynatrace notifications to ServiceNow (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions">Notification actions umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action">HTTP request action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Davis Problems app (DT docs)</a></li>
+<li><a href="https://docs.pagerduty.com/developer/events-api-v2-overview">PagerDuty Events API v2 (PagerDuty Developer)</a></li>
+<li><a href="https://developer.servicenow.com/dev.do#!/reference/api">ServiceNow REST API reference (ServiceNow Developer)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APPSEC-10: Dashboards, Reporting and Governance</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">APPSEC — Application Security</a><span class="sep">/</span><span aria-current="page">APPSEC-10</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>APPSEC-10: Dashboards, Reporting and Governance</h1>
+<blockquote>
+<p><strong>Series:</strong> APPSEC — Application Security | <strong>Notebook:</strong> 10 of 10 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 10/12/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>AppSec produces signal continuously — dashboards and governance turn that signal into decisions. This closing notebook covers the executive-facing dashboard composition, the cadence of the governance review, and the FinOps angle (RVA and RAP are DPS-billed per monitored GiB-hour, so cost follows where they are enabled).</p>
+<p>This is the final notebook in the series. The other nine cover the data sources; this one covers what to do with them at the leadership and program level.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5BcHBTZWMgR292ZXJuYW5jZSBhbmQgUmVwb3J0aW5nPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPk9wZW4gdnVsbmVyYWJpbGl0aWVzIGJ5IERTUyBsZXZlbCArIE1UVFIgKyBjb21wbGlhbmNlPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSI5NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMwNkI2RDQiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzA2QjZENCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk9wZW4gdnVsbnMgYnkgRFNTIGxldmVsPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIxNjUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzA2QjZENCIgcng9IjYiLz4KICA8dGV4dCB4PSIxODAiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+OTAtZGF5IHRyZW5kIG9mIGNvdW50czwvdGV4dD4KICA8cmVjdCB4PSIzMzUiIHk9Ijk1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iIzA2QjZENCIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjMDZCNkQ0IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+T3BlbiB2dWxucyBieSByaXNrIGxldmVsPC90ZXh0PgogIDxyZWN0IHg9IjM1NSIgeT0iMTY1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMwNkI2RDQiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDc1IiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPkNyaXRpY2FsIC8gSGlnaCAvIE1lZCAvIExvdzwvdGV4dD4KICA8cmVjdCB4PSI2MzAiIHk9Ijk1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iIzA2QjZENCIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjMDZCNkQ0IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+TVRUUiBieSB0ZWFtPC90ZXh0PgogIDxyZWN0IHg9IjY1MCIgeT0iMTY1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMwNkI2RDQiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzcwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPmZhaXJuZXNzICsgYWNjb3VudGFiaWxpdHk8L3RleHQ+CiAgPHJlY3QgeD0iNDAiIHk9IjI3NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMwNkI2RDQiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzA2QjZENCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkV4cG9zdXJlIG1peDwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzQ1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMwNkI2RDQiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPnB1YmxpYyB2cyBpbnRlcm5hbDwvdGV4dD4KICA8cmVjdCB4PSIzMzUiIHk9IjI3NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMwNkI2RDQiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzA2QjZENCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDc1IiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkNvbXBsaWFuY2UgY292ZXJhZ2U8L3RleHQ+CiAgPHJlY3QgeD0iMzU1IiB5PSIzNDUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzA2QjZENCIgcng9IjYiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+Q0lTIC8gUENJIC8gTklTVCAlPC90ZXh0PgogIDxyZWN0IHg9IjYzMCIgeT0iMjc1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iIzA2QjZENCIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjMDZCNkQ0IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+R292ZXJuYW5jZSBjYWRlbmNlPC90ZXh0PgogIDxyZWN0IHg9IjY1MCIgeT0iMzQ1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMwNkI2RDQiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzcwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPm1vbnRobHkgcmV2aWV3PC90ZXh0Pgo8L3N2Zz4K" alt="AppSec governance dashboard composition" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| View | Audience | Cadence |
+|------|----------|---------|
+| Open vulnerabilities by DSS level (trend) | Exec / CISO | Quarterly |
+| Severity mix | Security eng | Weekly |
+| MTTR by team | Program lead | Monthly |
+| Compliance % | Auditor / CISO | Quarterly |
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#dss-trend">1. Open Vulnerabilities by DSS Level — the Trend</a></li>
+<li><a href="#severity-mix">2. Open Problems by Severity</a></li>
+<li><a href="#mttr">3. MTTR by Team</a></li>
+<li><a href="#compliance-coverage">4. Compliance Framework Coverage</a></li>
+<li><a href="#cadence">5. Governance Cadence</a></li>
+<li><a href="#dps-cost">6. DPS Cost Awareness</a></li>
+<li><a href="#series-wrap">7. Series Wrap</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Gen3 SaaS with Grail; AppSec entitlement enabled</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Full-Stack mode (or code-module attached) on monitored hosts</td>
+</tr>
+<tr>
+<td><strong>Read access</strong></td>
+<td>To run the DQL: <code>storage:security.events:read</code> <strong>plus</strong> <code>storage:buckets:read</code> (a table permission alone reads nothing). The Vulnerabilities and Threats &amp; Exploits apps have their own requirements — see APPSEC-09 for the full model</td>
+</tr>
+<tr>
+<td><strong>Background</strong></td>
+<td>APPSEC-01 (fundamentals + three-pillar framing)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dss-trend"></a></p>
+<h2>1. Open Vulnerabilities by DSS Level — the Trend</h2>
+<p>DSS is a per-vulnerability score (APPSEC-01 § 4), so there is no single tenant-wide &quot;DSS&quot; to chart. The board-facing metric is the <strong>count of open vulnerabilities at each DSS level</strong>, trended over a 90-day window — § 2's query, run on a schedule. In community practice the trend is read directionally:</p>
+<ul>
+<li><strong>More open vulnerabilities at CRITICAL / HIGH</strong> = posture deteriorating. Investigate which applications or libraries added them.</li>
+<li><strong>Flat</strong> = posture stable. Could mean no new risk, or could mean stalled remediation — pair with backlog burn-rate from APPSEC-08 to disambiguate.</li>
+<li><strong>Fewer open vulnerabilities at CRITICAL / HIGH</strong> = remediation is outpacing new findings.</li>
+</ul>
+<p>Do <strong>not</strong> compare these counts across tenants or business units without normalizing for estate size and monitoring-mode coverage (per APPSEC-01 § 3–4) — Infrastructure-mode hosts keep DSS at the CVSS base score, which shifts the level mix. Use within-tenant deltas.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/vulnerabilities/concepts">Vulnerabilities concepts (DT docs)</a> — <em>&quot;This scoring system forms the foundation for the Dynatrace Security Score (DSS), which adds environmental context to help prioritize remediation.&quot;</em>; <a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a> — <em>&quot;the DSS will be the same as the CVSS base score&quot;</em> in Infrastructure Monitoring deployments (both re-read 09/18/2026). <strong>Derived:</strong> the cross-tenant caution follows from DSS falling back to the CVSS base score in Infrastructure Monitoring.</sub></p>
+</blockquote>
+<p><a id="severity-mix"></a></p>
+<h2>2. Open Problems by Severity</h2>
+<p>The underlying view: how many vulnerabilities are open right now, by DSS level? The query keeps the latest vulnerability-level snapshot per vulnerability, so each open vulnerability counts once however often RVA re-reports it.</p>
+<table>
+<thead>
+<tr>
+<th>Severity</th>
+<th>Treatment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Critical</td>
+<td>Daily review; SLA 7 days</td>
+</tr>
+<tr>
+<td>High</td>
+<td>Weekly review; SLA 30 days</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>Sprint review; SLA 90 days</td>
+</tr>
+<tr>
+<td>Low</td>
+<td>Quarterly cleanup</td>
+</tr>
+</tbody>
+</table>
+<p>A healthy mix has Critical near zero, High in single digits, Medium and Low forming the long tail. A growing Critical count is the strongest early-warning signal.</p>
+<pre><code class="language-dql">// Current open vulnerabilities by risk level (latest snapshot per vulnerability)
+fetch security.events, from:-7d
+| filter event.provider == &quot;Dynatrace&quot;
+| filter event.category == &quot;VULNERABILITY_MANAGEMENT&quot;
+| filter event.type == &quot;VULNERABILITY_STATE_REPORT_EVENT&quot;
+| filter event.level == &quot;VULNERABILITY&quot;
+| dedup {vulnerability.display_id}, sort:{timestamp desc}
+| filter vulnerability.resolution.status == &quot;OPEN&quot;
+| filter vulnerability.mute.status == &quot;NOT_MUTED&quot;
+| summarize open = count(), by:{vulnerability.risk.level}
+| sort open desc
+
+</code></pre>
+<blockquote>
+<p><strong>Validation note:</strong> validated for syntax and field names on 09/18/2026 and executes cleanly; the validation tenant has no RVA data, so it returned 0 rows there.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability">Vulnerability events (DT semantic dictionary)</a> — <em>&quot;A vulnerability state event is a periodic snapshot, emitted by Dynatrace Runtime Vulnerability Analytics (RVA), of a vulnerability's current status and risk aggregated across every entity it affects.&quot;</em> (re-read 09/18/2026). <strong>Dictionary:</strong> <code>vulnerability.risk.level</code> (<code>stable</code>), <code>vulnerability.resolution.status</code> (<code>stable</code>), <code>vulnerability.mute.status</code> (<code>stable</code>), <code>vulnerability.display_id</code> (<code>stable</code>), read 09/18/2026. <strong>Softened:</strong> the SLA day counts (7/30/90) are common but should be set per your governance regime, not adopted blindly.</sub></p>
+</blockquote>
+<p><a id="mttr"></a></p>
+<h2>3. MTTR by Team</h2>
+<p>In SRE and incident-management practice, Mean Time To Remediate by team is used as the fairness metric — the AppSec docs do not prescribe it. It tells you which teams are keeping up and which need help (engineering capacity, blocked dependencies, prioritization conflict).</p>
+<p>In community practice, accountability dashboards group by team or by namespace owner — not by individual developer, which tends to create the wrong incentives and surface noise.</p>
+<p><a id="compliance-coverage"></a></p>
+<h2>4. Compliance Framework Coverage</h2>
+<p>For organizations subject to specific compliance regimes (PCI DSS, HIPAA, ISO 27001, DORA — all SPM standards; SOC 2 is not one, so map it through your own control matrix), in community practice the dashboard view that matters is <em>percent of controls in compliance</em> by framework, not total finding counts.</p>
+<p>Pick the primary framework (one) for governance reporting and use the others as secondary views — community guidance is that cross-framework rollups mislead because the same finding lands in multiple frameworks; verify against your audit regime.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/application-security/spm">Security Posture Management (DT docs)</a> — <em>&quot;Automated assessments against supported compliance standards&quot;</em> (re-read 09/28/2026).</sub></p>
+</blockquote>
+<p><a id="cadence"></a></p>
+<h2>5. Governance Cadence</h2>
+<p>In community practice, a workable cadence for most organizations looks like this — adapt it to your existing security-governance rhythm:</p>
+<table>
+<thead>
+<tr>
+<th>Cadence</th>
+<th>Audience</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Daily</td>
+<td>Security on-call</td>
+<td>New Critical vulnerabilities, RAP detection spikes</td>
+</tr>
+<tr>
+<td>Weekly</td>
+<td>Security engineering</td>
+<td>Open backlog by team, MTTR trend, burn-rate</td>
+</tr>
+<tr>
+<td>Monthly</td>
+<td>AppSec program lead + AppDev leadership</td>
+<td>Open-vulnerability trend by DSS level, compliance coverage, IAM access review</td>
+</tr>
+<tr>
+<td>Quarterly</td>
+<td>CISO + exec staff</td>
+<td>90-day trend of open vulnerabilities by DSS level, compliance posture by framework, capacity asks</td>
+</tr>
+</tbody>
+</table>
+<p>The artifacts above (open-vulnerability trend by DSS level, severity mix, MTTR, compliance) feed all four cadences — what differs is the aggregation level and the audience-appropriate framing.</p>
+<p><a id="dps-cost"></a></p>
+<h2>6. DPS Cost Awareness</h2>
+<p>Runtime Vulnerability Analytics and Runtime Application Protection are DPS-billed in <strong>GiB-hours</strong> — per monitored host or container, based on its memory — not per <code>security.events</code> record. Cost is therefore driven by <em>which hosts have RVA and RAP enabled</em>, not by how many findings or detections they produce. Three FinOps practices:</p>
+<ol>
+<li><strong>Scope enablement, not events.</strong> Use monitoring rules to enable RVA and RAP where the risk justifies it; dropping or sampling detection records saves nothing and discards attack evidence.</li>
+<li><strong>Track consumption per capability and host</strong> — in community practice AppSec is tracked as one tenant-wide consumer among many; FINOPS-01 § 5 covers the host-based capability queries, and FINOPS-02 the forecasting model. Rolling out with SaaS 1.347 (staged tenant rollout from 09/16/2026): RVA and RAP billing usage events key on <code>dt.smartscape.host</code> instead of <code>dt.entity.host</code>, and SPM gains <code>dt.smartscape.k8s_cluster</code>. Verify which identifier your tenant emits — <code>dt.entity.host</code> remains the working path until the change arrives.</li>
+<li><strong>Watch detection volume as a signal-quality metric, not a cost metric.</strong> In community practice, a spike in RAP detections with no matching incident is read as rules generating false positives — tune them (APPSEC-04 § 3) for the analysts' sake.</li>
+</ol>
+<p>Don't sacrifice security signal for cost savings without an explicit risk acceptance. But don't ignore cost either — it's a budget reality.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-vulnerability-analytics">Runtime Vulnerability Analytics (DPS) (DT docs)</a> — <em>&quot;The unit of measure for Runtime Vulnerability Analytics is the GiB-hour&quot;</em>; <a href="https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-application-protection">Runtime Application Protection (DPS) (DT docs)</a> — <em>&quot;The unit of measure for Runtime Application Protection is a GiB hour&quot;</em> (both re-read 09/18/2026); <a href="https://docs.dynatrace.com/docs/secure/application-security/vulnerability-analytics">Runtime Vulnerability Analytics (DT docs)</a> — <em>&quot;You can also define custom monitoring rules based on certain criteria.&quot;</em>; <a href="https://docs.dynatrace.com/docs/secure/application-security/application-protection">Runtime Application Protection (DT docs)</a> — <em>&quot;If you define custom monitoring rules based on certain process groups or vulnerability types, the custom rules override the global attack control&quot;</em> (both re-read 09/28/2026). <strong>Derived:</strong> practice 1 follows from the GiB-hour unit plus rule-based enablement. <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in SaaS 1.347 (DT docs)</a> — <em>&quot;Runtime Vulnerability Analytics dt.entity.host dt.smartscape.host&quot;</em> (read 10/02/2026; re-read 10/12/2026).</sub></p>
+</blockquote>
+<p><a id="series-wrap"></a></p>
+<h2>7. Series Wrap</h2>
+<p>The series in one paragraph: AppSec in Gen3 SaaS is <strong>three pillars</strong> (RVA + RAP + SPM) over <strong>one Grail data plane</strong> (security.events + vulnerability-service), with <strong>IAM split across Grail and the vulnerability-service</strong> (classic environment roles only for the deprecated classic apps), consumed via <strong>dashboards / workflows / Dynatrace Assist</strong>, and governed at the <strong>monthly + quarterly</strong> cadence with <strong>open vulnerabilities by DSS level</strong> as the headline metric. The OneAgent code module is the load-bearing dependency under RVA and RAP; SPM runs without it.</p>
+<p>Where to go from here:</p>
+<ul>
+<li>Open APPSEC-01 again with the rest of the series fresh and confirm the mental map.</li>
+<li>Stand up the persona policies from APPSEC-09 before granting broad access.</li>
+<li>Wire one end-to-end workflow per APPSEC-08 to prove the loop closes.</li>
+<li>Set the governance cadence and the first review date for the open-vulnerability trend.</li>
+</ul>
+<p><a id="references"></a></p>
+<h2>References</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a></td>
+<td>DSS + posture framing</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/vulnerabilities/concepts">Vulnerabilities concepts (DT docs)</a></td>
+<td>DSS as a per-vulnerability score</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability">Vulnerability events (DT semantic dictionary)</a></td>
+<td>Fields used in § 2</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-vulnerability-analytics">Runtime Vulnerability Analytics (DPS) (DT docs)</a></td>
+<td>RVA billing unit</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/license/capabilities/application-security/runtime-application-protection">Runtime Application Protection (DPS) (DT docs)</a></td>
+<td>RAP billing unit</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><sub><strong>⚠️ DISCLAIMER</strong>: This information was AI generated and is provided &quot;as-is&quot; without warranty. It was produced as an independent, community-driven project and <strong>not supported by Dynatrace</strong>. Always refer to official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> for the most current information.</sub></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WEBRUM-05: Error Analysis</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WEBRUM — Web Real User Monitoring</a><span class="sep">/</span><span aria-current="page">WEBRUM-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WEBRUM-05: Error Analysis</h1>
+<blockquote>
+<p><strong>Series:</strong> WEBRUM — Web Real User Monitoring | <strong>Notebook:</strong> 5 of 10 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>JavaScript errors are among the most impactful issues affecting web application user experience. A single unhandled exception can break page functionality, prevent form submissions, or cause entire features to stop working. Dynatrace RUM captures JavaScript errors, XHR/fetch errors, and custom errors in real-time, enabling you to quantify error impact on real users.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#error-types">Error Types in RUM</a></li>
+<li><a href="#error-volume">Error Volume and Trends</a></li>
+<li><a href="#error-grouping">Error Grouping and Top Errors</a></li>
+<li><a href="#error-impact">Error Impact Analysis</a></li>
+<li><a href="#xhr-errors">XHR and Fetch Errors</a></li>
+<li><a href="#rage-clicks">Rage Click Detection</a></li>
+<li><a href="#error-session">Error-to-Session Correlation</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>RUM Enabled</strong></td>
+<td>Web applications with error capture active</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:user.sessions:read</code></td>
+</tr>
+<tr>
+<td><strong>Previous Notebook</strong></td>
+<td>WEBRUM-01: RUM Fundamentals</td>
+</tr>
+</tbody>
+</table>
+<p><a id="error-types"></a></p>
+<h2>1. Error Types in RUM</h2>
+<p>Dynatrace captures several categories of browser-side errors:</p>
+<table>
+<thead>
+<tr>
+<th>Error Type</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>JavaScript error</strong></td>
+<td>Unhandled exception or runtime error</td>
+<td><code>TypeError: Cannot read property 'x' of undefined</code></td>
+</tr>
+<tr>
+<td><strong>XHR error</strong></td>
+<td>Failed XHR/fetch request (HTTP 4xx/5xx or network error)</td>
+<td><code>HTTP 500 on POST /api/checkout</code></td>
+</tr>
+<tr>
+<td><strong>Custom error</strong></td>
+<td>Errors reported via the RUM API (<code>dtrum.reportError()</code>)</td>
+<td><code>Payment validation failed</code></td>
+</tr>
+<tr>
+<td><strong>CSP violation</strong></td>
+<td>Content Security Policy blocking a resource</td>
+<td><code>Refused to load script from 'http://evil.com'</code></td>
+</tr>
+<tr>
+<td><strong>Resource error</strong></td>
+<td>Failed resource loading (images, scripts, stylesheets)</td>
+<td><code>Failed to load /assets/app.js</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Error Data Model</h3>
+<p>Error events are <code>user.events</code> records with <code>characteristics.has_error == true</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>error.reason</code></td>
+<td>The error reason — RUM JavaScript reports a pre-defined set of values</td>
+</tr>
+<tr>
+<td><code>error.type</code></td>
+<td>Error classification: <code>exception</code>, <code>request</code> (failed request), <code>csp</code>, <code>reported</code> (custom reported error)</td>
+</tr>
+<tr>
+<td><code>error.source</code></td>
+<td>The error source, e.g. <code>fetch</code>, <code>console</code></td>
+</tr>
+<tr>
+<td><code>page.detected_name</code></td>
+<td>Page on which the error occurred</td>
+</tr>
+<tr>
+<td><code>dt.rum.session.id</code></td>
+<td>Session containing the error</td>
+</tr>
+<tr>
+<td><code>start_time</code></td>
+<td>When the error occurred — <code>user.events</code> has no populated <code>timestamp</code></td>
+</tr>
+</tbody>
+</table>
+<p>The classic names <code>error.message</code>, <code>action.name</code> and <code>sessionId</code> read null on New RUM data.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/errors">Errors — semantic dictionary (DT docs)</a> — <em>&quot;The error reason. RUM JavaScript reports a pre-defined set of values.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Error / navigation vocabulary corrected 08/12/2026 (New RUM):
+//   filter type == &quot;Error&quot;  -&gt; filter characteristics.has_error == true  (11,909 events; identical
+//                              population to isNotNull(error.type), whose values are request/csp/exception)
+//   error.message           -&gt; error.reason
+//   user_action.type: &quot;Load&quot; -&gt; &quot;hard_navigation&quot;, &quot;RouteChange&quot; -&gt; &quot;soft_navigation&quot;,
+//                     &quot;Xhr&quot; -&gt; &quot;same_view&quot;, &quot;Custom&quot; -&gt; &quot;api&quot; (documented values, corrected 10/05/2026)
+//   connection.type         -&gt; no web RUM equivalent (network.connection.type is OneAgent for Mobile
+//                              only; network.protocol.name is the OSI protocol, e.g. &quot;http&quot;)
+// THE EVENT CHARACTERISTIC MATTERS AS MUCH AS THE FIELD: navigation-timing fields
+// (performance.dom_interactive, performance.load_event_end) live on navigation events
+// (characteristics.has_navigation) and are unpopulated on page summaries
+// (characteristics.has_page_summary), so a page-summary filter silently empties them.
+// ttfb.* is the opposite — it lives on page summaries. Select with the stable has_* flags, not
+// characteristics.classifier (corrected 09/28/2026): the docs call classifier &quot;not intended for
+// query usage&quot; and Semantic Dictionary 1.349 removes it from the user-event models (re-listed in SD 1.350, still not for query use).
+// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -&gt; dt.rum.user_type      userActionCount -&gt; user_action_count
+//   totalErrorCount -&gt; error.count    sessionId -&gt; dt.rum.session.id
+//   hasSessionReplay -&gt; characteristics.has_replay
+//   browserFamily -&gt; browser.name     osFamily -&gt; os.name
+//   application -&gt; frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
+//   country/city/continent -&gt; geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -&gt; browser.window.width|height
+//   dom.interactive.time -&gt; performance.dom_interactive
+//   load.event.time -&gt; performance.load_event_end
+//   server.time -&gt; ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == &quot;synthetic&quot;, so a real-user filter matches nothing —
+//     the documented values are &quot;real_user&quot; / &quot;robot&quot; / &quot;synthetic&quot; (lowercase);
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
+// Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
+// against names that are null on New RUM data, so these cells returned nothing while erroring
+// nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
+//   action.type == &quot;Load&quot;              -&gt; characteristics.has_navigation == true
+//                                        (was characteristics.classifier — &quot;not intended for query usage&quot;, SD 1.349)
+//   action.type                        -&gt; user_action.type      (hard_navigation | soft_navigation | same_view | api)
+//   action.name                        -&gt; page.detected_name
+//   LCP / CLS                          -&gt; web_vitals.largest_contentful_paint / web_vitals.cumulative_layout_shift
+//                                        (stable — the fields Dynatrace's own DQL examples use), falling back to
+//                                        the experimental lcp.start_time / cls.value (corrected 10/14/2026)
+//   app.name                           -&gt; frontend.name (stable; an array on user.sessions)
+// UNITS DIFFER BETWEEN THE TWO FAMILIES. web_vitals.largest_contentful_paint is a DURATION, so
+// `/ 1ms` turns it into milliseconds; lcp.start_time is a PLAIN NUMBER already in milliseconds,
+// and dividing it by 1ms yields null. The CWV cells therefore read
+// coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time) and
+// coalesce(web_vitals.cumulative_layout_shift, cls.value), against the 2500/4000 ms and 0.1/0.25 thresholds.
+// Why both: on the validation tenant every user event comes from the synthetic engine, which fills
+// lcp.* / cls.* but not web_vitals.* (0 of 243,494 page summaries in 30 days, 10/14/2026). That
+// is a property of synthetic-monitor data, not a sign that web_vitals.* is rarely populated.
+// Recent RUM errors — explore the data structure
+fetch user.events, from:-1h
+| filter characteristics.has_error == true
+| fieldsKeep start_time, error.reason, error.type, error.source, page.detected_name, frontend.name, dt.rum.session.id
+| sort start_time desc   // user.events has no populated timestamp; sorting on it does not order rows
+| limit 20
+</code></pre>
+<p><a id="error-volume"></a></p>
+<h2>2. Error Volume and Trends</h2>
+<p>Start by understanding overall error volume and how it changes over time.</p>
+<pre><code class="language-dql">// Error count by type over last 24 hours
+fetch user.events, from:-24h
+| filter characteristics.has_error == true
+| summarize error_count = count(), by:{error.type}
+| sort error_count desc
+</code></pre>
+<pre><code class="language-dql">// Error trend over 24 hours — hourly bucketed by error type
+fetch user.events, from:-24h
+| filter characteristics.has_error == true
+| makeTimeseries error_count = count(), interval:1h, by:{error.type}
+</code></pre>
+<pre><code class="language-dql">// Error volume by application — which apps have the most errors?
+fetch user.events, from:-24h
+| filter characteristics.has_error == true
+| summarize {error_count = count(),
+    unique_errors = countDistinct(error.reason),
+    affected_sessions = countDistinct(dt.rum.session.id)},
+    by:{frontend.name}
+| sort error_count desc
+</code></pre>
+<p><a id="error-grouping"></a></p>
+<h2>3. Error Grouping and Top Errors</h2>
+<p>Error messages often contain variable data (stack traces, URLs, IDs). Grouping by error message helps identify the most frequent issues.</p>
+<blockquote>
+<p><strong>Error grouping changed in SaaS 1.348 (rollout from 10/12/2026, staged).</strong> The grouping logic for RUM errors, pages, views and user actions now follows an updated specification. Existing error groups may be reorganized after the upgrade. <code>error.display_name</code> is no longer written for web or mobile, and for mobile events an <code>error.name</code> reported through the API now drives grouping. The queries below group by <code>error.reason</code> and <code>error.type</code>, so they are not affected. Review your own dashboards, alerts and queries that filter on specific error-group names or on <code>error.display_name</code>. If the new grouping does not fit, the same release adds OpenPipeline custom grouping processors for the error, page, view and user_action namespaces.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in SaaS 1.348 (DT docs)</a> — <em>&quot;Additionally error.display_name won’t be written for web and mobile anymore.&quot;</em>, <em>&quot;Existing error groups may be reorganized after the upgrade, because volatile or previously restricted name fields are now processed differently.&quot;</em>; re-read 11/11/2026.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Top 15 errors by frequency — the most common error messages
+fetch user.events, from:-24h
+| filter characteristics.has_error == true
+| summarize {error_count = count(),
+    affected_sessions = countDistinct(dt.rum.session.id)},
+    by:{error.reason, error.type}
+| sort error_count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Errors by page — which pages generate the most errors?
+fetch user.events, from:-24h
+| filter characteristics.has_error == true
+| filter isNotNull(page.detected_name)
+| summarize {error_count = count(),
+    unique_errors = countDistinct(error.reason)},
+    by:{page.detected_name}
+| sort error_count desc
+| limit 10
+</code></pre>
+<p><a id="error-impact"></a></p>
+<h2>4. Error Impact Analysis</h2>
+<p>Not all errors are equal. An error affecting 1 session is different from one affecting 10,000. Impact analysis quantifies the blast radius of each error.</p>
+<pre><code class="language-dql">// Error impact — errors ranked by number of affected sessions
+fetch user.events, from:-24h
+| filter characteristics.has_error == true
+| summarize {total_occurrences = count(),
+    affected_sessions = countDistinct(dt.rum.session.id)},
+    by:{error.reason}
+| sort affected_sessions desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Error rate per application — percentage of sessions with errors
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
+| summarize {total_sessions = count(),
+    error_sessions = countIf(error.count &gt; 0)},
+    by:{frontend.name}
+| fieldsAdd error_rate_pct = round(toDouble(error_sessions) / toDouble(total_sessions) * 100.0, decimals: 2)
+| sort error_rate_pct desc
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> Focus on errors with high session impact rather than high occurrence count. A single user hitting a retry loop can generate thousands of occurrences from one session.</p>
+</blockquote>
+<p><a id="xhr-errors"></a></p>
+<h2>5. XHR and Fetch Errors</h2>
+<p>XHR/fetch errors indicate backend API failures impacting the frontend. These are particularly critical in SPAs where the UI depends entirely on API responses.</p>
+<pre><code class="language-dql">// Unit trap (08/12/2026): New RUM timing fields such as lcp.start_time and ttfb.value
+// are PLAIN NUMBERS already in milliseconds, not durations. `field / 1ms` yields null on them —
+// silently, so a chart of nulls looks like &quot;no data&quot;. Compare and aggregate them directly.
+// XHR errors by action — identify failing API calls
+fetch user.events, from:-24h
+| filter characteristics.has_error == true
+| filter error.type == &quot;request&quot;
+| summarize {error_count = count(),
+    affected_sessions = countDistinct(dt.rum.session.id)},
+    by:{error.reason, page.detected_name}
+| sort error_count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// XHR error trend — are backend errors increasing?
+fetch user.events, from:-24h
+| filter characteristics.has_error == true
+| filter error.type == &quot;request&quot;
+| makeTimeseries error_count = count(), interval:1h
+</code></pre>
+<p><a id="rage-clicks"></a></p>
+<h2>6. Rage Click Detection</h2>
+<p>A <strong>rage click</strong> occurs when a user rapidly clicks the same element multiple times — a strong signal of frustration. This usually indicates:</p>
+<ul>
+<li>A button that appears clickable but is not responding</li>
+<li>A form submission that is silently failing</li>
+<li>A UI element that is loading too slowly</li>
+<li>A dead link or broken navigation element</li>
+</ul>
+<p>RUM Classic records rage clicks on the user session (USQL <code>numberOfRageClicks</code>). <strong>New RUM documents no rage-click field.</strong> The Semantic Dictionary has no field named for rage clicks or frustration, and <code>type</code> — which older versions of this notebook filtered as <code>type == &quot;RageClick&quot;</code> — is the <em>entity</em> type, empty on user events, so that filter returned nothing on every tenant. Until Dynatrace documents a New RUM rage-click signal, use Session Replay (WEBRUM-07) and the error-session correlation below to find frustrated users.</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> no field matching <code>contains(name, &quot;rage_click&quot;)</code>, <code>&quot;rageclick&quot;</code>, <code>&quot;rage.click&quot;</code> or <code>&quot;frustrat&quot;</code> in <code>dt.semantic_dictionary.fields</code>, read 10/05/2026 (control: the same query returned <code>network.connection.type</code> and <code>network.connection.subtype</code>); <code>type</code> (<code>stable</code>) — <em>&quot;The entity type.&quot;</em></sub></p>
+</blockquote>
+<p><a id="error-session"></a></p>
+<h2>7. Error-to-Session Correlation</h2>
+<p>Understanding how errors correlate with session outcomes (bounce, low engagement, failed conversion) helps prioritize fixes.</p>
+<pre><code class="language-dql">// Compare sessions with and without errors — engagement impact
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| fieldsAdd has_errors = if(error.count &gt; 0, &quot;With Errors&quot;, else: &quot;No Errors&quot;)
+| summarize {session_count = count(),
+    avg_actions = avg(user_action_count),
+    avg_duration_sec = avg(duration / 1s),
+    bounce_rate = countIf(user_action_count == 1)},
+    by:{has_errors}
+| fieldsAdd bounce_pct = round(toDouble(bounce_rate) / toDouble(session_count) * 100.0, decimals: 1)
+</code></pre>
+<pre><code class="language-dql">// Errors by browser — are certain browsers more error-prone?
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| filter isNotNull(browser.name)
+| summarize {total = count(),
+    with_errors = countIf(error.count &gt; 0)},
+    by:{browser.name}
+| fieldsAdd error_rate = round(toDouble(with_errors) / toDouble(total) * 100.0, decimals: 1)
+| filter total &gt; 10
+| sort error_rate desc
+| limit 10
+</code></pre>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook, we covered:</p>
+<ul>
+<li><strong>Error types</strong> — JavaScript errors, XHR errors, custom errors, resource errors</li>
+<li><strong>Error volume and trends</strong> — Tracking error rates over time</li>
+<li><strong>Error grouping</strong> — Identifying the most frequent error messages</li>
+<li><strong>Impact analysis</strong> — Measuring how many sessions each error affects</li>
+<li><strong>XHR/fetch errors</strong> — Backend API failures visible from the frontend</li>
+<li><strong>Rage clicks</strong> — a RUM Classic signal with no documented New RUM field; use Session Replay instead</li>
+<li><strong>Error-session correlation</strong> — How errors impact engagement and bounce rates</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>WEBRUM-06: Performance Analysis</strong> — Page load waterfall and performance bottleneck identification</li>
+<li><strong>WEBRUM-07: Session Replay</strong> — Visually investigate error-impacted sessions</li>
+</ul>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/additional-configuration/configure-errors">Configure error detection for web applications (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/rum-concepts/user-actions">User actions in RUM Classic (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events — semantic dictionary (DT docs)</a> — <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349">Semantic Dictionary changelog 1.349 (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-17: Running a Cluster Health Assessment</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-17</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-17: Running a Cluster Health Assessment</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 17 — Running a Cluster Health Assessment | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>DTM-99 is the routine a cluster's own team runs every day, week and month. This notebook is for a different occasion: a <strong>one-off review</strong> of a Managed cluster, by someone from outside the team or by the team itself before a decision. Typical triggers are a hardware purchase, a licence renewal, a move to Managed-to-SaaS, a new site, or a run of incidents nobody can explain.</p>
+<p>A review like that needs things the routine doesn't: a way to rate each check, a rule for what to do when the evidence is missing, a list of what to ask for before starting, and a summary someone else can act on. This notebook supplies those, and an ID'd checklist that points each line back to the notebook holding its detail and sources.</p>
+<p><strong>What you'll find here:</strong></p>
+<ul>
+<li>How an assessment differs from the routine checks, and why it is read-only</li>
+<li>A four-value rating scale, and the rule against guessing</li>
+<li>Where each kind of evidence comes from, and what to request up front</li>
+<li>A checklist of nine areas with stable IDs (T1, D8, L2 …), each mapped to the five health layers</li>
+<li>How to roll the findings up into something a cluster owner can act on</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#assessment-vs-routine">Assessment or Routine?</a></li>
+<li><a href="#ratings">Rating Each Check</a></li>
+<li><a href="#evidence">Evidence Sources</a></li>
+<li><a href="#request">What to Request Before You Start</a></li>
+<li><a href="#checklist">The Assessment Checklist</a></li>
+<li><a href="#roll-up">Rolling Up the Findings</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A self-hosted <strong>Dynatrace Managed</strong> cluster. Nothing in this series applies to Dynatrace SaaS.</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Cluster Management Console (CMC) access for the reviewer; root (or <code>sudo</code>) on the nodes for whoever runs the node commands; a cluster API token with <code>ServiceProviderAPI</code> for the node-list call</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong></td>
+</tr>
+<tr>
+<td><strong>Read first</strong></td>
+<td>DTM-10 (the five-layer health model) and DTM-99 (the routine checklist this one extends)</td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 10/29/2026</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<ol>
+<li><strong>Work read-only.</strong> Every check below reads a CMC page, an event list, an API response, a node command's output or a document. None of them changes the cluster.</li>
+<li><strong>Rate every check:</strong> <em>Pass</em>, <em>Pass with Risk</em>, <em>Gap</em>, or <em>Not Assessed</em>. Use <strong>Not Assessed</strong> whenever the evidence is missing, and say what would settle it. Never fill a gap with a guess.</li>
+<li><strong>Trend, don't snapshot.</strong> Capacity and disk checks need weeks of history. One reading taken on a quiet afternoon proves very little.</li>
+<li><strong>Ask for the evidence before you start.</strong> CMC access, node command output, self-monitoring access, the backup and restore records, and the owner's answers on recovery objectives take longest to arrive.</li>
+<li><strong>Roll up by area and fix bottom-up.</strong> A count per area, one headline each, and every <em>Not Assessed</em> listed with what it needs. Fix the lowest failing layer first (DTM-10 §5).</li>
+</ol>
+<p><a id="assessment-vs-routine"></a></p>
+<h2>2. Assessment or Routine?</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Routine checks (DTM-99)</th>
+<th>Assessment (this notebook)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Who runs it</strong></td>
+<td>The cluster's own operators</td>
+<td>A reviewer, often from outside the team, with the owner answering questions</td>
+</tr>
+<tr>
+<td><strong>When</strong></td>
+<td>Daily, weekly, monthly, after every change</td>
+<td>Once, before a decision or after a run of incidents</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Full administrator and root</td>
+<td>As little as the review needs; node commands run by the owner and shared</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td>A fixed problem, or nothing</td>
+<td>A rated checklist and a summary someone else acts on</td>
+</tr>
+<tr>
+<td><strong>Missing evidence</strong></td>
+<td>Go and look</td>
+<td>Rate it <em>Not Assessed</em> and list what is needed</td>
+</tr>
+<tr>
+<td><strong>Design questions</strong></td>
+<td>Assumed settled</td>
+<td>Re-opened: is the availability model, the retention, the recovery plan still right?</td>
+</tr>
+</tbody>
+</table>
+<p>The two share most of their checks. An assessment adds the questions the routine assumes are settled: the availability model, recovery objectives, a second cluster if there is one, and whether the sizing still matches the load.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5Ib3cgYSBDbHVzdGVyIEhlYWx0aCBBc3Nlc3NtZW50IFJ1bnM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+UmVhZC1vbmx5IGZyb20gc3RhcnQgdG8gZmluaXNoIOKAlCBldmlkZW5jZSBmaXJzdCwgYSByYXRpbmcgZm9yIGV2ZXJ5IGNoZWNrLCBmaXhlcyBmcm9tIHRoZSBib3R0b20gbGF5ZXIgdXA8L3RleHQ+CgogIDwhLS0gU3RlcCAxIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI5MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIyMzAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTEwIiB5PSIxMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPjE8L3RleHQ+CiAgPHRleHQgeD0iMTEwIiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPlJlcXVlc3Q8L3RleHQ+CiAgPHRleHQgeD0iMTEwIiB5PSIxNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkNNQyBhY2Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iMTEwIiB5PSIxOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPk5vZGUgY29tbWFuZCBvdXRwdXQ8L3RleHQ+CiAgPHRleHQgeD0iMTEwIiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPlNlbGYtbW9uaXRvcmluZywgMzAgZGF5czwvdGV4dD4KICA8dGV4dCB4PSIxMTAiIHk9IjIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+QmFja3VwIGFuZCByZXN0b3JlIHJlY29yZHM8L3RleHQ+CiAgPHRleHQgeD0iMTEwIiB5PSIyNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPk93bmVyJ3MgYW5zd2VyczwvdGV4dD4KICA8dGV4dCB4PSIxMTAiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+wqc1PC90ZXh0PgoKICA8IS0tIFN0ZXAgMiAtLT4KICA8cmVjdCB4PSIyMDciIHk9IjkwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjIzMCIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIyODciIHk9IjEyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+MjwvdGV4dD4KICA8dGV4dCB4PSIyODciIHk9IjE0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+Q29sbGVjdDwvdGV4dD4KICA8dGV4dCB4PSIyODciIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+Q01DIHBhZ2VzIGFuZCBFdmVudHM8L3RleHQ+CiAgPHRleHQgeD0iMjg3IiB5PSIxOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkF1ZGl0IGxvZywgY2FwdHVyZWQgZWFybHk8L3RleHQ+CiAgPHRleHQgeD0iMjg3IiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkNsdXN0ZXIgQVBJIG5vZGUgbGlzdDwvdGV4dD4KICA8dGV4dCB4PSIyODciIHk9IjIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+VHJlbmRzLCBub3Qgc25hcHNob3RzPC90ZXh0PgogIDx0ZXh0IHg9IjI4NyIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj4oMTTigJMzMCBkYXlzKTwvdGV4dD4KICA8dGV4dCB4PSIyODciIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+wqc0PC90ZXh0PgoKICA8IS0tIFN0ZXAgMyAtLT4KICA8cmVjdCB4PSIzODQiIHk9IjkwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjIzMCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjQiIHk9IjEyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+MzwvdGV4dD4KICA8dGV4dCB4PSI0NjQiIHk9IjE0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+UmF0ZTwvdGV4dD4KICA8dGV4dCB4PSI0NjQiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+UGFzczwvdGV4dD4KICA8dGV4dCB4PSI0NjQiIHk9IjE5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+UGFzcyB3aXRoIFJpc2s8L3RleHQ+CiAgPHRleHQgeD0iNDY0IiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkdhcDwvdGV4dD4KICA8dGV4dCB4PSI0NjQiIHk9IjIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm90IEFzc2Vzc2VkPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NCIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5OZXZlciBndWVzczwvdGV4dD4KICA8dGV4dCB4PSI0NjQiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+wqczLCDCpzY8L3RleHQ+CgogIDwhLS0gU3RlcCA0IC0tPgogIDxyZWN0IHg9IjU2MSIgeT0iOTAiIHdpZHRoPSIxNjAiIGhlaWdodD0iMjMwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjY0MSIgeT0iMTIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj40PC90ZXh0PgogIDx0ZXh0IHg9IjY0MSIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5Sb2xsIHVwPC90ZXh0PgogIDx0ZXh0IHg9IjY0MSIgeT0iMTc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5Db3VudCBwZXIgYXJlYTwvdGV4dD4KICA8dGV4dCB4PSI2NDEiIHk9IjE5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+T25lIGhlYWRsaW5lIGVhY2g8L3RleHQ+CiAgPHRleHQgeD0iNjQxIiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkV2ZXJ5IE5vdCBBc3Nlc3NlZDwvdGV4dD4KICA8dGV4dCB4PSI2NDEiIHk9IjIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+bGlzdGVkIHdpdGggd2hhdCBpdCBuZWVkczwvdGV4dD4KICA8dGV4dCB4PSI2NDEiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+Umlza3MgYXMgZGF0ZXMgb3IgdHJpZ2dlcnM8L3RleHQ+CiAgPHRleHQgeD0iNjQxIiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPsKnNzwvdGV4dD4KCiAgPCEtLSBTdGVwIDUgLS0+CiAgPHJlY3QgeD0iNzM4IiB5PSI5MCIgd2lkdGg9IjE2MiIgaGVpZ2h0PSIyMzAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iODE5IiB5PSIxMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPjU8L3RleHQ+CiAgPHRleHQgeD0iODE5IiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPkZpeCBib3R0b20tdXA8L3RleHQ+CiAgPHRleHQgeD0iODE5IiB5PSIxNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjEgTm9kZSBhbmQgcHJvY2VzczwvdGV4dD4KICA8dGV4dCB4PSI4MTkiIHk9IjE5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+MiBTdG9yYWdlPC90ZXh0PgogIDx0ZXh0IHg9IjgxOSIgeT0iMjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj4zIENhcGFjaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjgxOSIgeT0iMjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj40IENvbm5lY3Rpdml0eTwvdGV4dD4KICA8dGV4dCB4PSI4MTkiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+NSBMaWZlY3ljbGU8L3RleHQ+CiAgPHRleHQgeD0iODE5IiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRUTS0xMCDCpzU8L3RleHQ+CgogIDwhLS0gYXJyb3dzIC0tPgogIDxwYXRoIGQ9Ik0xOTAgMjA1IEwyMDUgMjA1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik0zNjcgMjA1IEwzODIgMjA1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik01NDQgMjA1IEw1NTkgMjA1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik03MjEgMjA1IEw3MzYgMjA1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMiIvPgoKICA8IS0tIGZvb3RlciBiYW5kIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIzNTAiIHdpZHRoPSI4NzAiIGhlaWdodD0iMTEwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNTAiIHk9IjM3OCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+TmluZSBhcmVhcywgZWFjaCBtYXBwZWQgdG8gdGhlIGZpdmUgaGVhbHRoIGxheWVyczwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iNDAyIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEyIj5UIFRvcG9sb2d5IMK3IFUgVmVyc2lvbiBhbmQgY2VydGlmaWNhdGVzIMK3IEQgQmFja3VwIGFuZCBEUiDCtyBIIFJlZHVuZGFuY3kgwrcgQyBDYXBhY2l0eTwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iNDI0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEyIj5SIFJldGVudGlvbiDCtyBMIExvZyBNb25pdG9yaW5nIMK3IEEgQWN0aXZlR2F0ZXMgYW5kIE9uZUFnZW50cyDCtyBHIExpY2Vuc2luZyBhbmQgZ292ZXJuYW5jZTwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iNDQ2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5FdmVyeSBmaW5kaW5nIGVuZHMgYXMgYSBEVE0tOTkgcm91dGluZSBjaGVjaywgc28gdGhlIG5leHQgcmV2aWV3IHN0YXJ0cyBmcm9tIGEgY2xlYW5lciBiYXNlbGluZTwvdGV4dD4KPC9zdmc+Cg==" alt="How a Cluster Health Assessment Runs" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | What happens | Output |
+|------|--------------|--------|
+| 1 Request | Ask for access, node output, self-monitoring, backup and restore records, owner answers | Evidence in hand before the review window opens |
+| 2 Collect | Read CMC pages, Events, Audit log, Cluster API, node commands; trend 14–30 days | One evidence note per check |
+| 3 Rate | Pass / Pass with Risk / Gap / Not Assessed — never guess | A rated checklist (§6) |
+| 4 Roll up | Count per area, one headline each, list every Not Assessed with what it needs | A summary the owner can act on (§7) |
+| 5 Fix bottom-up | Lowest failing layer first: node, storage, capacity, connectivity, lifecycle | An ordered fix list |
+For environments where SVG doesn't render
+-->
+<p><a id="ratings"></a></p>
+<h2>3. Rating Each Check</h2>
+<table>
+<thead>
+<tr>
+<th>Rating</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pass</strong></td>
+<td>Evidence is present and within the healthy range</td>
+</tr>
+<tr>
+<td><strong>Pass with Risk</strong></td>
+<td>Within range today, but a trend, a peak, an unowned item or an unverified assumption puts it at risk</td>
+</tr>
+<tr>
+<td><strong>Gap</strong></td>
+<td>Outside the healthy range, or a required capability is missing</td>
+</tr>
+<tr>
+<td><strong>Not Assessed</strong></td>
+<td>The evidence wasn't available in the review window, or needs the owner's input. Name what is needed</td>
+</tr>
+</tbody>
+</table>
+<p>Three rules keep the ratings honest:</p>
+<ul>
+<li><strong>Not Assessed is a finding, not a failure.</strong> It tells the owner what to produce. Hiding it, or turning it into a <em>Pass</em> because nothing looked wrong, is how a backup that has never been restored ends up rated healthy.</li>
+<li><strong>A rating rests on evidence you can point to.</strong> A screenshot, a command's output, an event list or the owner's written answer. A verbal &quot;yes, that's fine&quot; moves a check from <em>Not Assessed</em> to <em>Pass with Risk</em>, not to <em>Pass</em>.</li>
+<li><strong>Read the threshold off the current documentation page</strong> before quoting it in a report. The values in §6 come from the notebooks they point to, which record the date they were read. Limits change between releases.</li>
+</ul>
+<p>The rating scale and these rules are this series' method. Dynatrace doesn't publish an assessment method for Managed clusters (§8).</p>
+<p><a id="evidence"></a></p>
+<h2>4. Evidence Sources</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>What it gives you</th>
+<th>Where the detail is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CMC</strong></td>
+<td><em>Home</em> (including the last backup), <em>Deployment status</em> (nodes, ActiveGates, network zones), <em>Environments</em>, <em>Events</em>, <em>Settings</em>, <em>Licensing</em>, <em>Audit log</em></td>
+<td>DTM-10 §6.1</td>
+</tr>
+<tr>
+<td><strong>CMC Events</strong></td>
+<td>Every cluster event, including the ones that never email</td>
+<td>DTM-99 §4</td>
+</tr>
+<tr>
+<td><strong>CMC Audit log</strong></td>
+<td><em>&quot;Audit log lists events triggered by the cluster and selected configuration changes for all environments.&quot;</em> Only <em>&quot;changes related to cluster-wide configuration, licensing, storage quota, and permissions&quot;</em>; environment-level entries come from the Audit Logs API</td>
+<td>DTM-10 §6.1</td>
+</tr>
+<tr>
+<td><strong>CMC environment export</strong></td>
+<td>Each environment's page has an <strong>Export configuration</strong> action: <em>&quot;To export the configuration of the selected Dynatrace environment&quot;</em>. Useful for comparing two clusters (D8)</td>
+<td>DTM-16 §8.1</td>
+</tr>
+<tr>
+<td><strong>Cluster API v1</strong></td>
+<td><code>onpremise/cluster</code>: every node's <code>operationState</code> and build version; <code>onpremise/cluster/configuration</code>: roles and data-center assignment</td>
+<td>DTM-10 §6.4, DTM-11 §2</td>
+</tr>
+<tr>
+<td><strong>Node commands</strong></td>
+<td><code>dynatrace.sh status</code> / <code>check</code>, <code>cassandra-nodetool.sh status</code>, <code>_cluster/health</code>, <code>du</code> per store. They need root, so in a read-only review the owner runs them and shares the output</td>
+<td>DTM-11 §3, DTM-12 §5, DTM-13 §5</td>
+</tr>
+<tr>
+<td><strong>Self-monitoring</strong></td>
+<td>Local self-monitoring (<code>dsfm:</code> metrics and the capacity indicator), hosted, or private, depending on licensing. Private self-monitoring adds host CPU, memory and disk from OneAgents on the nodes</td>
+<td>DTM-10 §6.3, DTM-15 §5.3</td>
+</tr>
+<tr>
+<td><strong>Mission Control</strong></td>
+<td>Dynatrace's view of the cluster. The owner sees connection status in the CMC; for anything more, ask Dynatrace</td>
+<td>DTM-10 §6.5, DTM-14 §6</td>
+</tr>
+<tr>
+<td><strong>Diagnostic archive</strong></td>
+<td>Per-node logs and configuration, for questions the CMC can't answer</td>
+<td>DTM-11 §9</td>
+</tr>
+<tr>
+<td><strong>The owner</strong></td>
+<td>Recovery objectives, restore records, the off-site copy, planned changes, the reason behind any held update</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Documentation</strong></td>
+<td>The thresholds, read on the day of the review</td>
+<td>The notebook each row in §6 points to</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Which self-monitoring you can use depends on licensing</strong> (DTM-10 §6.3). Local self-monitoring is documented as DDU-only on one page and as on by default on another. Hosted self-monitoring is Dynatrace's, and private self-monitoring consumes licences. Find out which one exists before you plan a check that needs it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console">Cluster Management Console (DT docs)</a> — <em>&quot;For all environment audit log entries, use the Audit Logs API.&quot;</em></sub></p>
+</blockquote>
+<p><a id="request"></a></p>
+<h2>5. What to Request Before You Start</h2>
+<p>The checks that stall a review are almost always waiting on evidence. Ask for it before the review window opens:</p>
+<ol>
+<li><strong>CMC access</strong> for the reviewer, and a Mission Control remote-access grant if Dynatrace will take part, covering the whole review window (DTM-14 §8).</li>
+<li><strong>Self-monitoring access</strong>, or exports from it, covering at least the last 30 days.</li>
+<li><strong>Node command output</strong> from every node: <code>dynatrace.sh status</code> and <code>check</code>, <code>cassandra-nodetool.sh status</code>, <code>_cluster/health</code>, and <code>du</code> for each store. If a question needs more, a diagnostic archive from the affected node.</li>
+<li><strong>The node-list API response</strong> (<code>onpremise/cluster</code> and <code>onpremise/cluster/configuration</code>).</li>
+<li><strong>The backup and recovery file:</strong> the restore runbook, the date and result of the last rehearsal, where the off-site copy is, and the recovery objectives the business has agreed.</li>
+<li><strong>The change calendar</strong> for the review window: patches, upgrades, reboots, hardware changes.</li>
+<li><strong>Planned changes:</strong> new log volume, new sites, new retention requirements, new environments.</li>
+<li><strong>For a second cluster:</strong> the same items for it, and an <em>Export configuration</em> of each environment on both sides.</li>
+</ol>
+<p>In community practice, a review window of two to four weeks fits most clusters: long enough to collect trends and wait for answers, short enough that the CMC Events and Audit log still cover it. Verify the window against your own cluster's event history.</p>
+<p><a id="checklist"></a></p>
+<h2>6. The Assessment Checklist</h2>
+<p>Each area maps to one or more of the five layers from DTM-10 (1 node and process, 2 storage, 3 capacity, 4 connectivity, 5 lifecycle) or to the design and configuration review in DTM-99 §3. <strong>Healthy</strong> gives the documented value where there is one. The <strong>Detail</strong> column names the notebook that quotes the source. Rows marked <strong>(owner)</strong> need the owner's input and are rated <em>Not Assessed</em> until it arrives.</p>
+<h3>6.1 T — Topology and design (layer 1, design review)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Check</th>
+<th>Evidence</th>
+<th>Healthy</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1</td>
+<td>Node count and hardware</td>
+<td>CMC <em>Deployment status</em>; <code>onpremise/cluster</code></td>
+<td>At least three nodes, at most 42 (Managed 1.348 and later; 30 before), every node the same hardware configuration</td>
+<td>DTM-01 §3, DTM-15 §3</td>
+</tr>
+<tr>
+<td>T2</td>
+<td>Node size against its class</td>
+<td>CMC node detail; the sizing table</td>
+<td>Each node meets its class minimum; at least 64 GB RAM on every node if Log Monitoring is on</td>
+<td>DTM-15 §2, DTM-13 §3</td>
+</tr>
+<tr>
+<td>T3</td>
+<td>Availability model <strong>(owner)</strong></td>
+<td><code>onpremise/cluster/configuration</code> (data centers); the owner</td>
+<td>Chosen and written down: single cluster, rack awareness, Premium HA, or a second cluster, each with the failure it covers</td>
+<td>DTM-01 §4</td>
+</tr>
+<tr>
+<td>T4</td>
+<td>Premium HA prerequisites (if used)</td>
+<td>CMC; the owner</td>
+<td>Three or more nodes per data center, both sized the same, round trip at most 100 ms, online</td>
+<td>DTM-16 §7.1</td>
+</tr>
+<tr>
+<td>T5</td>
+<td>Latency, time and operating system</td>
+<td>Node output; host monitoring</td>
+<td>Latency between nodes 10 ms or less; NTP and one time zone; every node on the same supported OS version</td>
+<td>DTM-01 §3, §6; DTM-11 §7, §8</td>
+</tr>
+</tbody>
+</table>
+<h3>6.2 U — Version, updates and certificates (layers 4 and 5)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Check</th>
+<th>Evidence</th>
+<th>Healthy</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>U1</td>
+<td>Installed version</td>
+<td><code>onpremise/cluster</code> (<code>buildVersion</code>); the release-notes table</td>
+<td>The same build on every node, inside &quot;Currently supported&quot;</td>
+<td>DTM-11 §2, DTM-16 §6</td>
+</tr>
+<tr>
+<td>U2</td>
+<td>Update mode and holds <strong>(owner)</strong></td>
+<td>CMC <em>Settings &gt; Automatic update</em>; the owner</td>
+<td>Automatic updates in a maintenance window, or a manual routine that keeps up; any hold has an owner and a reason</td>
+<td>DTM-16 §5</td>
+</tr>
+<tr>
+<td>U3</td>
+<td>Install partition</td>
+<td>Node <code>df</code> output</td>
+<td>At least 5 GB free on the partition where Managed is installed</td>
+<td>DTM-16 §5.2</td>
+</tr>
+<tr>
+<td>U4</td>
+<td>Certificates <strong>(owner)</strong></td>
+<td>CMC node detail; the owner's certificate inventory</td>
+<td>Expiry tracked outside the cluster, with a named owner. The expiry events never email</td>
+<td>DTM-14 §5</td>
+</tr>
+<tr>
+<td>U5</td>
+<td>Mission Control link</td>
+<td>CMC <em>Licensing</em> &gt; <em>Check Mission Control connection</em></td>
+<td>Connected</td>
+<td>DTM-14 §6, §7</td>
+</tr>
+<tr>
+<td>U6</td>
+<td>Remote access</td>
+<td>CMC <em>Settings &gt; Remote access permissions</em></td>
+<td>Scope and role chosen deliberately; review access limited to the review window</td>
+<td>DTM-02 §4, DTM-14 §8</td>
+</tr>
+</tbody>
+</table>
+<h3>6.3 D — Backup and disaster recovery (layer 5)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Check</th>
+<th>Evidence</th>
+<th>Healthy</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D1</td>
+<td>Backup enabled, scope chosen</td>
+<td>CMC <em>Settings &gt; Backup</em></td>
+<td>Enabled; user sessions and log events included or excluded on purpose</td>
+<td>DTM-16 §2, §3</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>Backups succeeding</td>
+<td>CMC <em>Home</em> (last backup); Events</td>
+<td>A recent last backup; no <em>Cassandra backup problem</em> or <em>ElasticSearch backup problem</em> events in the window</td>
+<td>DTM-16 §3</td>
+</tr>
+<tr>
+<td>D3</td>
+<td>Scope understood <strong>(owner)</strong></td>
+<td>The owner</td>
+<td>The owner knows transaction storage is never backed up and recent 1- and 5-minute metrics are not either</td>
+<td>DTM-16 §2</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>Backup target</td>
+<td>Node mounts; CMC <em>Settings &gt; Backup</em></td>
+<td>Shared storage at the same path on every node, NFSv4 recommended, mounted persistently, with space for the backup size estimate</td>
+<td>DTM-16 §3</td>
+</tr>
+<tr>
+<td>D5</td>
+<td>Off-site copy <strong>(owner)</strong></td>
+<td>The owner</td>
+<td>A copy kept off-site</td>
+<td>DTM-16 §3</td>
+</tr>
+<tr>
+<td>D6</td>
+<td>Restore readiness <strong>(owner)</strong></td>
+<td>The restore kit and runbook</td>
+<td>Installer version, node inventory, seed choice and matching UID:GID ready; a rehearsal on record</td>
+<td>DTM-16 §4</td>
+</tr>
+<tr>
+<td>D7</td>
+<td>Recovery objectives <strong>(owner)</strong></td>
+<td>The owner</td>
+<td>RTO and RPO agreed per data type, and compared with what a backup restore gives (the docs' comparison table: <em>RPO = 24h; RTO = 24h</em>)</td>
+<td>DTM-16 §2</td>
+</tr>
+<tr>
+<td>D8</td>
+<td>Second cluster (if any) <strong>(owner)</strong></td>
+<td>Both CMCs; <em>Export configuration</em> from each environment on both sides</td>
+<td>Configuration kept in step, retention long enough, a documented way for agents and users to reach it, and the capacity to take the load</td>
+<td>DTM-16 §8.1</td>
+</tr>
+</tbody>
+</table>
+<h3>6.4 H — Redundancy and failure tolerance (layers 1 and 2)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Check</th>
+<th>Evidence</th>
+<th>Healthy</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>H1</td>
+<td>Copy counts understood</td>
+<td>The documentation</td>
+<td>Three copies of metrics, configuration and user sessions; two of log events; transaction storage distributed, not replicated</td>
+<td>DTM-10 §4</td>
+</tr>
+<tr>
+<td>H2</td>
+<td>Failures the plan assumes</td>
+<td>The owner's plan</td>
+<td>Plans for one lost node. The docs keep three copies at every size; a Dynatrace blog allows two from five nodes</td>
+<td>DTM-10 §4</td>
+</tr>
+<tr>
+<td>H3</td>
+<td>Capacity with one node gone</td>
+<td>Self-monitoring trend; the arithmetic</td>
+<td>Survivors stay below full load after one loss; on three nodes that means typical load at or below about two-thirds</td>
+<td>DTM-15 §4.1</td>
+</tr>
+<tr>
+<td>H4</td>
+<td>Outage history</td>
+<td>CMC Events; Audit log</td>
+<td>Few node or host outages, each with a known cause</td>
+<td>DTM-11 §6</td>
+</tr>
+<tr>
+<td>H5</td>
+<td>Cassandra</td>
+<td><code>cassandra-nodetool.sh status</code></td>
+<td>Every node <code>UN</code>; <code>Load</code> roughly even</td>
+<td>DTM-12 §5</td>
+</tr>
+<tr>
+<td>H6</td>
+<td>Elasticsearch</td>
+<td><code>_cluster/health</code></td>
+<td><code>green</code></td>
+<td>DTM-13 §5</td>
+</tr>
+<tr>
+<td>H7</td>
+<td>Cluster ActiveGates</td>
+<td>CMC <em>Deployment status &gt; ActiveGates</em></td>
+<td>None <em>Unknown</em>; none flagged as more than five versions behind</td>
+<td>DTM-14 §9</td>
+</tr>
+</tbody>
+</table>
+<h3>6.5 C — Capacity and sizing (layers 2 and 3)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Check</th>
+<th>Evidence</th>
+<th>Healthy</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C1</td>
+<td>Load against headroom</td>
+<td>Self-monitoring, 14–30 days</td>
+<td>Typical load leaves one-third headroom</td>
+<td>DTM-15 §4, §5.3</td>
+</tr>
+<tr>
+<td>C2</td>
+<td>Adaptive load reduction</td>
+<td>CMC Events</td>
+<td>None, or brief; never 15 minutes or more</td>
+<td>DTM-15 §5.1</td>
+</tr>
+<tr>
+<td>C3</td>
+<td>Memory pressure</td>
+<td>CMC Events</td>
+<td>No heap memory emergency mode or hard cleanup events</td>
+<td>DTM-15 §5.2, DTM-11 §7</td>
+</tr>
+<tr>
+<td>C4</td>
+<td>Cluster traffic control</td>
+<td>CMC Events</td>
+<td>None. It stops monitoring new hosts, and it never emails</td>
+<td>DTM-15 §5.2</td>
+</tr>
+<tr>
+<td>C5</td>
+<td>Metrics store size</td>
+<td><code>du</code> per node</td>
+<td>Below 2 TB per node, and even across nodes</td>
+<td>DTM-12 §3</td>
+</tr>
+<tr>
+<td>C6</td>
+<td>Disk space</td>
+<td>CMC Events; <code>du</code> per store</td>
+<td>No <em>Insufficient disk space</em> events; Elasticsearch sizes even across nodes; growth trended</td>
+<td>DTM-12 §6, DTM-13 §5.2</td>
+</tr>
+<tr>
+<td>C7</td>
+<td>Load against the node class</td>
+<td>CMC licensing figures; the sizing table</td>
+<td>Host units and Full-Stack OneAgents within the per-node limits, whichever is reached first</td>
+<td>DTM-15 §2</td>
+</tr>
+<tr>
+<td>C8</td>
+<td>Ingest limit after hardware changes <strong>(owner)</strong></td>
+<td>CMC <em>Environments</em> &gt; <em>Cluster overload prevention</em>; change calendar</td>
+<td>Reviewed after the last hardware change</td>
+<td>DTM-15 §6</td>
+</tr>
+<tr>
+<td>C9</td>
+<td>Throughput</td>
+<td><code>dsfm:server.*</code> self-monitoring metrics</td>
+<td>Steady or growing; no unexplained drop</td>
+<td>DTM-15 §5.3</td>
+</tr>
+</tbody>
+</table>
+<h3>6.6 R — Retention (layer 2)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Check</th>
+<th>Evidence</th>
+<th>Healthy</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R1</td>
+<td>Retention per environment <strong>(owner)</strong></td>
+<td>CMC <em>Environments &gt; Storage settings</em></td>
+<td>Every user-session retention above the 35-day default, and every custom log retention, is a decision someone owns</td>
+<td>DTM-13 §4</td>
+</tr>
+<tr>
+<td>R2</td>
+<td>Retention being cut</td>
+<td>CMC Events</td>
+<td>No <em>Transaction storage retention period truncation</em>: adaptive retention isn't trimming history</td>
+<td>DTM-10 §7</td>
+</tr>
+<tr>
+<td>R3</td>
+<td>Quotas</td>
+<td>CMC <em>Environments</em></td>
+<td>Set on purpose; none hit unexpectedly</td>
+<td>DTM-03 §3, DTM-15 §6</td>
+</tr>
+</tbody>
+</table>
+<h3>6.7 L — Log Monitoring (layers 2 and 3; skip if not used)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Check</th>
+<th>Evidence</th>
+<th>Healthy</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L1</td>
+<td>Hardware for logs</td>
+<td>CMC node detail</td>
+<td>64 GB RAM or more on every node</td>
+<td>DTM-13 §3</td>
+</tr>
+<tr>
+<td>L2</td>
+<td>Rejected log events</td>
+<td><code>dsfm:server.log_and_events_monitoring.events_rejected_count</code></td>
+<td>Zero, or rarely above zero</td>
+<td>DTM-13 §6</td>
+</tr>
+<tr>
+<td>L3</td>
+<td>Incoming volume</td>
+<td><code>dsfm:server.log_and_events_monitoring.events_incoming_count</code></td>
+<td>Trend known; peaks known</td>
+<td>DTM-13 §6</td>
+</tr>
+<tr>
+<td>L4</td>
+<td>Log pressure</td>
+<td>CMC Events</td>
+<td>No <em>Ingested log data is trimmed</em>, <em>Log ingest queue is full</em>, <em>Elasticsearch log queue is full</em> or <em>Elasticsearch log storing failed</em></td>
+<td>DTM-13 §6</td>
+</tr>
+<tr>
+<td>L5</td>
+<td>Two copies understood <strong>(owner)</strong></td>
+<td>The owner</td>
+<td>The owner knows a second node failure makes some log events unavailable</td>
+<td>DTM-13 §2</td>
+</tr>
+<tr>
+<td>L6</td>
+<td>Volume forecast <strong>(owner)</strong></td>
+<td>L3 and the owner's plans</td>
+<td>Planned volume converted to daily storage and compared with the store's size (below)</td>
+<td>DTM-13 §3</td>
+</tr>
+<tr>
+<td>L7</td>
+<td>Logs in the backup <strong>(owner)</strong></td>
+<td>CMC <em>Settings &gt; Backup</em></td>
+<td>Included or excluded on purpose</td>
+<td>DTM-13 §8</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Converting a log rate to daily volume.</strong> Planned log volume usually arrives as events per minute, while storage is sized in bytes. Measure the average event size rather than assuming it, then:</p>
+<blockquote>
+<p>GB per day ≈ events per minute × average bytes per event × 1,440 ÷ 1,000,000,000</p>
+</blockquote>
+<p>For example, 50,000 events a minute at 600 bytes each is about 43 GB a day before copies. Multiply by two for the two copies Log Monitoring keeps (DTM-13 §2).</p>
+<h3>6.8 A — ActiveGates and OneAgents (layer 4, design review)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Check</th>
+<th>Evidence</th>
+<th>Healthy</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1</td>
+<td>ActiveGate roles</td>
+<td>CMC <em>Deployment status &gt; ActiveGates</em></td>
+<td>Each ActiveGate has one purpose; Environment ActiveGates next to the OneAgents they serve</td>
+<td>DTM-04 §2, §3</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>ActiveGate redundancy and load</td>
+<td>CMC; host monitoring of the ActiveGate hosts</td>
+<td>Two or more per data center per job; CPU at or below 50% and memory at or below 80%, so the others can take over</td>
+<td>DTM-04 §4</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>ActiveGate updates</td>
+<td>CMC</td>
+<td>Environment ActiveGates on a set update mode; Cluster ActiveGates within five versions</td>
+<td>DTM-04 §7</td>
+</tr>
+<tr>
+<td>A4</td>
+<td>ActiveGate tokens</td>
+<td>CMC Events</td>
+<td>No <em>ActiveGate Token(s) will expire soon.</em> left unhandled</td>
+<td>DTM-14 §9</td>
+</tr>
+<tr>
+<td>A5</td>
+<td>Network zones</td>
+<td>CMC <em>Deployment status &gt; Network zones</em></td>
+<td>Zones follow the network layout; a fallback mode chosen for each</td>
+<td>DTM-04 §5, DTM-05 §4</td>
+</tr>
+<tr>
+<td>A6</td>
+<td>OneAgent versions and policy</td>
+<td>CMC; environment settings</td>
+<td>Update policy set by host group; versions within support; hosts below the x86-64-v2 baseline identified</td>
+<td>DTM-05 §5, §6</td>
+</tr>
+<tr>
+<td>A7</td>
+<td>OneAgent coverage <strong>(owner)</strong></td>
+<td>The owner's host inventory</td>
+<td>Monitored hosts match the expected inventory</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>In community practice, reviewers take the agent total from one place, not by adding up the per-ActiveGate connection counts. Those counts can overlap. Verify against your own CMC before reporting a number.</p>
+<h3>6.9 G — Licensing and governance (design review)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Check</th>
+<th>Evidence</th>
+<th>Healthy</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G1</td>
+<td>Licence consumption and expiry <strong>(owner)</strong></td>
+<td>CMC <em>Licensing</em>; the owner</td>
+<td>Consumption below the licence at peak, not only today; expiry date known</td>
+<td>—</td>
+</tr>
+<tr>
+<td>G2</td>
+<td>Licensing and the Mission Control link</td>
+<td>CMC <em>Licensing</em></td>
+<td>On classic licensing, no outage near 14 days</td>
+<td>DTM-14 §7</td>
+</tr>
+<tr>
+<td>G3</td>
+<td>Events read</td>
+<td>CMC Events, the whole window</td>
+<td>Every warning and severe event explained; none of the never-emailed events left unread</td>
+<td>DTM-99 §4</td>
+</tr>
+<tr>
+<td>G4</td>
+<td>Audit log</td>
+<td>CMC <em>Audit log</em>; Audit Logs API per environment</td>
+<td>Cluster-wide configuration, licensing, storage-quota and permission changes in the window explained</td>
+<td>§4</td>
+</tr>
+<tr>
+<td>G5</td>
+<td>Notifications reach people</td>
+<td>CMC <em>Settings &gt; Emails</em>; the notification settings object</td>
+<td>SMTP working, recipients and emergency contacts set, configurable events set explicitly</td>
+<td>DTM-02 §3, DTM-10 §6.2</td>
+</tr>
+<tr>
+<td>G6</td>
+<td>Sign-in and access</td>
+<td>CMC <em>User authentication</em></td>
+<td>LDAP or SSO; the installation administrator kept as a break-glass account; a small cluster-admin group</td>
+<td>DTM-02 §6, DTM-03 §4–§6</td>
+</tr>
+<tr>
+<td>G7</td>
+<td>Host hardening <strong>(owner)</strong></td>
+<td>The owner</td>
+<td>Nodes patched to one level and hardened to the organisation's standard</td>
+<td>DTM-01 §6</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console">Cluster Management Console (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics">Self-monitoring metrics (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/upgrade/up-information">Pre-upgrade information (DT docs)</a>. Every other value is quoted, with its source, in the notebook named in the Detail column. <strong>Derived:</strong> the daily-volume formula is unit arithmetic; the doubling applies the two-copy rule in DTM-13 §2.</sub></p>
+</blockquote>
+<p><a id="roll-up"></a></p>
+<h2>7. Rolling Up the Findings</h2>
+<p>A checklist of nearly sixty lines isn't a result. Roll it up so the owner can see where to start:</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Pass</th>
+<th>Pass with Risk</th>
+<th>Gap</th>
+<th>Not Assessed</th>
+<th>Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T — Topology and design</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>U — Version, updates, certificates</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>D — Backup and disaster recovery</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>H — Redundancy</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>C — Capacity</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>R — Retention</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>L — Log Monitoring</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>A — ActiveGates and OneAgents</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>G — Licensing and governance</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Then:</p>
+<ol>
+<li><strong>List every <em>Not Assessed</em> check with what would settle it.</strong> This is the owner's to-do list, and often the most useful page of the report.</li>
+<li><strong>Order the gaps bottom-up</strong> by the DTM-10 layers: node and process, storage, capacity, connectivity, lifecycle. A storage gap can surface as a capacity symptom, so fix the lower layer first.</li>
+<li><strong>Write each <em>Pass with Risk</em> as a date or a trigger.</strong> &quot;Metrics store reaches 2 TB on node 2 in about four months at the current rate&quot; can be acted on. &quot;Disk is getting full&quot; can't.</li>
+<li><strong>Hand the routine back.</strong> Most findings turn into a DTM-99 check that keeps them from coming back. Point to the line.</li>
+</ol>
+<p><a id="doc-gaps"></a></p>
+<h2>8. What the Documentation Does Not Say</h2>
+<p><strong>Not found</strong>, in the Managed documentation read 10/29/2026:</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Working assumption in this notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A Dynatrace method for assessing a Managed cluster: ratings, evidence, a scored result</td>
+<td>The rating scale in §3 and the roll-up in §7 are this series' own</td>
+</tr>
+<tr>
+<td><code>dsfm:</code> self-monitoring metrics for Server garbage collection, queue overflows or sampling</td>
+<td>Use the events (C2–C4) and, with private self-monitoring, the host and process metrics from the nodes' OneAgents</td>
+</tr>
+<tr>
+<td>Where the per-environment log ingest limit is set, and how it relates to any cluster-wide figure</td>
+<td>Read the rejected-events metric (L2). The Log Monitoring troubleshooting page answers <em>&quot;Who can increase the ingestion limit per tenant?&quot;</em> by pointing to a Dynatrace product expert</td>
+</tr>
+<tr>
+<td>What <em>Export configuration</em> contains, and in what format</td>
+<td>Export both sides and compare (D8); don't assume it covers every setting</td>
+</tr>
+<tr>
+<td>How long the CMC Audit log and Events are kept</td>
+<td>Capture both at the start of the review window</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Thresholds this checklist leaves to judgment.</strong> The documentation gives no value for these. In community practice, reviewers use the following, so state them as practice in a report rather than as limits, and verify them against your own cluster:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Value used in community practice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Disk on a data volume (C6)</td>
+<td>Warn at 85% used. It is the lowest of Elasticsearch's upstream watermarks (DTM-13 §5.2)</td>
+</tr>
+<tr>
+<td>Certificate expiry (U4)</td>
+<td>Renewal planned 90 days out; a <em>Gap</em> within 30 days</td>
+</tr>
+<tr>
+<td>Restore rehearsal (D6)</td>
+<td>Within the last 12 months</td>
+</tr>
+<tr>
+<td>Licence expiry (G1)</td>
+<td>More than six months away</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics">Self-monitoring metrics (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/analyze-explore-automate/log-monitoring-classic/lmc-troubleshooting">Log Monitoring troubleshooting (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console">Cluster Management Console (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments">Manage your monitoring environments (DT docs)</a>. <strong>Observed 10/29/2026:</strong> the self-monitoring metrics page lists no garbage-collection, queue or sampling metric; the environments page describes log quotas and Log Monitoring storage, but no per-minute ingest limit; the CMC page gives no retention for the Audit log or Events.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>9. Recommended Approach</h2>
+<ol>
+<li><strong>Send the request list (§5) a week before the review starts</strong>, and agree who runs the node commands.</li>
+<li><strong>Capture CMC Events and the Audit log on day one</strong>, before anything ages out.</li>
+<li><strong>Rate every check in §6</strong>, with the evidence beside it. When the evidence is missing, rate <em>Not Assessed</em> and write down what is needed.</li>
+<li><strong>Ask the owner the (owner) questions in one sitting</strong>, in writing. Recovery objectives (D7) and the second cluster (D8) take the longest to answer.</li>
+<li><strong>Roll up by area (§7)</strong>, order the gaps bottom-up, and turn each <em>Pass with Risk</em> into a date or a trigger.</li>
+<li><strong>Hand the cluster back to the routine.</strong> Each finding should end as a DTM-99 check, so the next review starts from a cleaner baseline.</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>10. Summary and Next Steps</h2>
+<p>A cluster health assessment is DTM-99's checklist run once, by a reviewer, with three additions: a rating for every check, an honest <em>Not Assessed</em> where evidence is missing, and the design questions the routine takes as settled. Ask for the evidence early, trend rather than snapshot, roll the results up by area, and fix from the bottom layer up.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Use it for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-99: Best Practice Summary and Health-Check Checklist</td>
+<td>The routine checks a finding should turn into</td>
+</tr>
+<tr>
+<td>DTM-10: Managed Cluster Architecture and Health Model</td>
+<td>The five layers and where health is surfaced</td>
+</tr>
+<tr>
+<td>DTM-16: Backup, Upgrade, and Disaster Recovery</td>
+<td>Recovery objectives, restore readiness and a second cluster</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

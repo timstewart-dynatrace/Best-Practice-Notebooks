@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SL2DT-08: Automation &amp; GitOps</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SL2DT — Sumo Logic to Dynatrace</a><span class="sep">/</span><span aria-current="page">SL2DT-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SL2DT-08: Automation &amp; GitOps</h1>
+<blockquote>
+<p><strong>Series:</strong> SL2DT — Sumo Logic to Dynatrace | <strong>Notebook:</strong> 8 of 11 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> automate the promotion path for dashboards, monitors, workflows, IAM, OpenPipeline, and bucket configs. Migration is only sustainable if post-cutover changes go through the same CI/CD discipline — not via UI clickops that drift out of source control.</p>
+<p>Automation applies both to the migration itself (programmatically import 8,000 dashboards faster than clicking) and to ongoing operations (every config change is a PR).</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#outputs">What You'll Produce</a></li>
+<li><a href="#tools">Tool Selection — Terraform vs Monaco vs the Future Migration Tool</a></li>
+<li><a href="#terraform">Terraform — Bucket, IAM, Settings 2.0 Config</a></li>
+<li><a href="#monaco">Monaco — Bulk Config Promotion</a></li>
+<li><a href="#ci">CI/CD Pipeline Patterns</a></li>
+<li><a href="#import-pipeline">Automating the Sumo Extract → DT Import Flow</a></li>
+<li><a href="#cloud-integration">Ansible / CloudFormation / Cloud-Specific Handoffs</a></li>
+<li><a href="#change-mgmt">Post-Migration: Change Management</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform engineering, DevOps, SRE</td>
+</tr>
+<tr>
+<td><strong>Tools</strong></td>
+<td>Git, Terraform ≥1.6, Monaco ≥2.x, Python 3, cloud CLIs (AWS/GCP/Azure)</td>
+</tr>
+<tr>
+<td><strong>Dynatrace access</strong></td>
+<td>Platform token for platform resources; OAuth client for IAM and Grail bucket definitions (SL2DT-03 §2, SL2DT-07 prerequisites); separate service identities for CI</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>AUTOM-01 (Configuration automation overview), K8S-07 (GitOps for Dynatrace), <code>Dynatrace-NewRelic</code> for migration-tool patterns</td>
+</tr>
+</tbody>
+</table>
+<p><a id="outputs"></a></p>
+<h2>1. What You'll Produce</h2>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>terraform/</code></td>
+<td>All IaC for buckets, IAM, OpenPipeline, Workflows</td>
+</tr>
+<tr>
+<td><code>monaco/</code></td>
+<td>Bulk configs (dashboards, monitors, settings)</td>
+</tr>
+<tr>
+<td><code>.github/workflows/</code> (or equivalent CI)</td>
+<td>Pipelines for validate → plan → apply</td>
+</tr>
+<tr>
+<td><code>scripts/extract-and-import/</code></td>
+<td>Sumo → DT migration pipeline scripts</td>
+</tr>
+<tr>
+<td><code>runbooks/rollback.md</code></td>
+<td>How to revert a bad config change</td>
+</tr>
+</tbody>
+</table>
+<p><a id="tools"></a></p>
+<h2>2. Tool Selection — Terraform vs Monaco vs the Future Migration Tool</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Use for</th>
+<th>Avoid for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Terraform</strong> (Dynatrace provider)</td>
+<td>Buckets, IAM groups/policies, Settings 2.0 schemas, some Workflows</td>
+<td>Bulk dashboards (slow), complex dashboard JSON</td>
+</tr>
+<tr>
+<td><strong>Monaco</strong></td>
+<td>Dashboards, monitors, settings in bulk; promotion across environments</td>
+<td>IAM (use Terraform)</td>
+</tr>
+<tr>
+<td><strong>Purpose-built migration tool</strong> (not yet published)</td>
+<td>Sumo extract + translate + import</td>
+<td>Ongoing change management</td>
+</tr>
+<tr>
+<td><strong>Direct API (scripts)</strong></td>
+<td>One-offs, custom orchestration, Document API for notebooks</td>
+<td>Anything that needs state tracking</td>
+</tr>
+<tr>
+<td><strong>Dynatrace UI</strong></td>
+<td>Investigation, exploration — never for config changes post-cutover</td>
+<td>Migration execution</td>
+</tr>
+</tbody>
+</table>
+<h3>Principles</h3>
+<ul>
+<li><strong>One tool per concern.</strong> Don't manage the same asset in both Terraform and Monaco.</li>
+<li><strong>State reviewable.</strong> Every config change goes through PR with <code>terraform plan</code> or <code>monaco deploy --dry-run</code> output.</li>
+<li><strong>Idempotency.</strong> Every pipeline must be safe to re-run.</li>
+</ul>
+<p><a id="terraform"></a></p>
+<h2>3. Terraform — Bucket, IAM, Settings 2.0 Config</h2>
+<h3>Provider Setup</h3>
+<pre><code class="language-hcl">terraform {
+  required_providers {
+    dynatrace = {
+      source  = &quot;dynatrace-oss/dynatrace&quot;
+      version = &quot;~&gt; 1.60&quot;
+    }
+  }
+}
+
+provider &quot;dynatrace&quot; {
+  dt_env_url     = var.dt_env_url         # https://&lt;env-id&gt;.apps.dynatrace.com
+  platform_token = var.dt_platform_token  # platform resources (dt0s16)
+
+  # IAM (Account Management) resources need an OAuth client
+  client_id     = var.dt_client_id        # dt0s02.…
+  client_secret = var.dt_client_secret
+  account_id    = var.dt_account_id
+}
+</code></pre>
+<p>The argument is <code>platform_token</code>. A platform token does not cover everything this notebook manages: <em>&quot;Platform tokens can't be used for IAM (Account Management) or classic resources.&quot;</em> IAM groups, policies and bindings run on the OAuth client, and the <code>dynatrace_platform_bucket</code> resource's own documentation asks for an OAuth client as well (SL2DT-03 §2).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md">Dynatrace Terraform provider — argument reference (Dynatrace GitHub)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_bucket.md">dynatrace_platform_bucket (Dynatrace GitHub)</a>.</sub></p>
+</blockquote>
+<h3>Organizing Modules</h3>
+<pre><code>terraform/
+├── modules/
+│   ├── bucket/             # Grail buckets
+│   ├── iam-group-policy/   # Group + policy + binding
+│   ├── openpipeline/       # Pipelines + processors
+│   └── workflow/           # Workflow configs
+├── envs/
+│   ├── prod/
+│   │   └── main.tf
+│   ├── preprod/
+│   └── dev/
+└── variables.tf
+</code></pre>
+<h3>Example — Bucket Module Call</h3>
+<pre><code class="language-hcl">module &quot;bucket_prod_logs&quot; {
+  source       = &quot;../../modules/bucket&quot;
+  name         = &quot;custom_logs_prod&quot;
+  display_name = &quot;Production Logs&quot;
+  retention    = 90
+}
+
+module &quot;iam_prod_readers&quot; {
+  source      = &quot;../../modules/iam-group-policy&quot;
+  group_name  = &quot;g_prod_readers&quot;
+  description = &quot;Read-only prod logs&quot;
+  policy_statements = [
+    &quot;ALLOW storage:buckets:read WHERE storage:bucket-name = \&quot;custom_logs_prod\&quot;;&quot;,
+    &quot;ALLOW storage:logs:read WHERE storage:bucket-name = \&quot;custom_logs_prod\&quot;;&quot;
+  ]
+}
+</code></pre>
+<h3>State Management</h3>
+<p>Use a remote backend (S3 + DynamoDB lock, or GCS, or Terraform Cloud):</p>
+<pre><code class="language-hcl">terraform {
+  backend &quot;s3&quot; {
+    bucket         = &quot;tfstate-dynatrace-migration&quot;
+    key            = &quot;prod/dynatrace.tfstate&quot;
+    region         = &quot;us-east-1&quot;
+    dynamodb_table = &quot;tfstate-lock&quot;
+  }
+}
+</code></pre>
+<p><strong>Never</strong> commit <code>.tfstate</code> files to git.</p>
+<p><a id="monaco"></a></p>
+<h2>4. Monaco — Bulk Config Promotion</h2>
+<p>Monaco is the right tool for dashboards/monitors in bulk. It excels at multi-tenant promotion (dev → preprod → prod).</p>
+<h3>Project Structure</h3>
+<pre><code class="language-text">monaco/
+├── manifest.yaml           # Projects + environment groups + auth
+├── projects/
+│   ├── dashboards/
+│   │   ├── config.yaml
+│   │   └── payments-api.json   # One JSON template per dashboard
+│   ├── monitors/
+│   └── openpipeline/
+</code></pre>
+<h3>manifest.yaml (non-secret)</h3>
+<pre><code class="language-yaml">manifestVersion: &quot;1.0&quot;
+
+projects:
+  - name: dashboards
+    path: projects/dashboards
+
+environmentGroups:
+  - name: production
+    environments:
+      - name: prod
+        url:
+          type: environment
+          value: DT_PROD_URL            # https://&lt;env-id&gt;.apps.dynatrace.com
+        auth:
+          token:
+            name: DT_PROD_API_TOKEN     # access token — Settings 2.0 and classic configs
+          platformToken:
+            name: DT_PROD_PLATFORM_TOKEN  # documents, workflows, buckets, segments
+  - name: preprod
+    environments:
+      - name: preprod
+        ...
+</code></pre>
+<p>Every <code>auth</code> entry names an environment variable; Monaco reads the secret from it at run time. Dashboards are platform documents, so the environment needs <code>platformToken</code> (or an <code>oAuth</code> client) as well as the access token — <em>&quot;Access tokens and platform tokens are not interchangeable.&quot;</em></p>
+<h3>Deploying Dashboards</h3>
+<pre><code class="language-bash">monaco deploy monaco/manifest.yaml --group production --dry-run
+monaco deploy monaco/manifest.yaml --group production
+</code></pre>
+<p><code>--group</code> (<code>-g</code>) selects an environment group and <code>--environment</code> (<code>-e</code>) a single environment, both by <strong>name</strong> from the manifest. The dry-run is a structural check only: <em>&quot;A dry-run doesn't connect to Dynatrace and can't validate the content of the JSON sent to Dynatrace.&quot;</em></p>
+<h3>Template Parameters</h3>
+<p>Each config names its template and passes parameters into it:</p>
+<pre><code class="language-yaml">configs:
+  - id: dashboard_payments_api
+    config:
+      name: Payments API
+      template: payments-api.json
+      parameters:
+        prod_bucket: &quot;custom_logs_prod&quot;
+    type:
+      document:
+        kind: dashboard
+</code></pre>
+<p>The template references <code>{{ .name }}</code> and <code>{{ .prod_bucket }}</code>. Values that differ per environment are set with overrides — see <strong>AUTOM-03</strong> for the full configuration format.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco commands (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources">Manage resources with Monaco (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Migration Use Case — Bulk Dashboard Import</h3>
+<p>If you have 2,000 translated dashboards, iterating via Terraform's <code>dynatrace_document</code> is slow (one API call per resource, sequential apply). Monaco batches and deploys in parallel — typical 5–10x faster for bulk work.</p>
+<p><a id="ci"></a></p>
+<h2>5. CI/CD Pipeline Patterns</h2>
+<h3>Typical Pipeline Stages</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q0kvQ0QgUGlwZWxpbmUgRmxvdzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5QUiBvcGVuZWQg4oaSIHZhbGlkYXRlIOKGkiBwbGFuIOKGkiByZXZpZXcg4oaSIGFwcGx5PC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFN0YWdlIDEg4oCUIFBSIG9wZW5lZCAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjAwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjExNSIgeT0iMjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5QUiBvcGVuZWQ8L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSIyNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZlYXR1cmUgYnJhbmNoPC90ZXh0PgogIDx0ZXh0IHg9IjExNSIgeT0iMjY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hZ2FpbnN0IG1haW48L3RleHQ+CgogIDxsaW5lIHgxPSIxOTAiIHkxPSIyNDAiIHgyPSIyMTUiIHkyPSIyNDAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gU3RhZ2UgMiDigJQgVmFsaWRhdGUgLS0+CiAgPHJlY3QgeD0iMjE1IiB5PSIyMDAiIHdpZHRoPSIxNTAiIGhlaWdodD0iODAiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjkwIiB5PSIyMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlZhbGlkYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjI5MCIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5MaW50IMK3IHNjaGVtYTwvdGV4dD4KICA8dGV4dCB4PSIyOTAiIHk9IjI2MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RFFMIHN5bnRheDwvdGV4dD4KICA8dGV4dCB4PSIyOTAiIHk9IjI3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RmFpbC1mYXN0IGdhdGU8L3RleHQ+CgogIDxsaW5lIHgxPSIzNjUiIHkxPSIyNDAiIHgyPSIzOTAiIHkyPSIyNDAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gU3RhZ2UgMyDigJQgUGxhbiAtLT4KICA8cmVjdCB4PSIzOTAiIHk9IjIwMCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+UGxhbjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dGVycmFmb3JtIHBsYW48L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyNjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm1vbmFjbyBkcnktcnVuPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5QUiBjb21tZW50PC90ZXh0PgoKICA8bGluZSB4MT0iNTQwIiB5MT0iMjQwIiB4Mj0iNTY1IiB5Mj0iMjQwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8IS0tIFN0YWdlIDQg4oCUIFJldmlldyAtLT4KICA8cmVjdCB4PSI1NjUiIHk9IjIwMCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI2NDAiIHk9IjIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+UmV2aWV3PC90ZXh0PgogIDx0ZXh0IHg9IjY0MCIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5IdW1hbiBhcHByb3ZhbDwvdGV4dD4KICA8dGV4dCB4PSI2NDAiIHk9IjI2MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Zm9yIHByb2Q8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIyNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkNPREVPV05FUlM8L3RleHQ+CgogIDxsaW5lIHgxPSI3MTUiIHkxPSIyNDAiIHgyPSI3NDAiIHkyPSIyNDAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gU3RhZ2UgNSDigJQgQXBwbHkgLS0+CiAgPHJlY3QgeD0iNzQwIiB5PSIyMDAiIHdpZHRoPSIxNTAiIGhlaWdodD0iODAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODE1IiB5PSIyMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkFwcGx5PC90ZXh0PgogIDx0ZXh0IHg9IjgxNSIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50ZXJyYWZvcm0gYXBwbHk8L3RleHQ+CiAgPHRleHQgeD0iODE1IiB5PSIyNjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm1vbmFjbyBkZXBsb3k8L3RleHQ+CiAgPHRleHQgeD0iODE1IiB5PSIyNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk9uIG1haW4gcHVzaDwvdGV4dD4KCiAgPCEtLSBGYWlsdXJlIHBhdGggY2FsbG91dCAtLT4KICA8bGluZSB4MT0iMjkwIiB5MT0iMjgwIiB4Mj0iMjkwIiB5Mj0iMzMwIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0LDMiLz4KICA8bGluZSB4MT0iMjkwIiB5MT0iMzMwIiB4Mj0iMTE1IiB5Mj0iMzMwIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0LDMiLz4KICA8bGluZSB4MT0iMTE1IiB5MT0iMzMwIiB4Mj0iMTE1IiB5Mj0iMjgwIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0LDMiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHRleHQgeD0iMjAwIiB5PSIzNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtc3R5bGU9Iml0YWxpYyI+T24gZmFpbHVyZTogYmFjayB0byBhdXRob3I8L3RleHQ+CgogIDwhLS0gTGVnZW5kIGJhbmQgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjM5NSIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSI2NSIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+UHJpbmNpcGxlczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UGxhbiByZXZpZXdhYmxlIMK3IElkZW1wb3RlbnQgwrcgU3RhdGUgcmVtb3RlIMK3IFNlY3JldHMgb3V0c2lkZSBnaXQgwrcgUmVxdWlyZWQgcmV2aWV3cyBmb3IgcHJvZDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+R2l0SHViIEFjdGlvbnMgLyBHaXRMYWIgQ0kgLyBKZW5raW5zIC8gQ2lyY2xlQ0kgYWxsIGltcGxlbWVudCB0aGlzIHNhbWUgZmxvdzwvdGV4dD4KCiAgPGxpbmUgeDE9IjQwIiB5MT0iNDgwIiB4Mj0iODkwIiB5Mj0iNDgwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgo8L3N2Zz4K" alt="CI/CD Pipeline Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Trigger | What runs | Output |
+|-------|---------|-----------|--------|
+| 1 PR opened | Developer pushes feature branch | — | PR created |
+| 2 Validate | PR event | Lint + schema check + DQL syntax | Pass/fail gate |
+| 3 Plan | After validate passes | terraform plan + monaco dry-run | Posted as PR comment |
+| 4 Review | Plan posted | Human approval required for prod | CODEOWNERS + required reviews |
+| 5 Apply | Push to main | terraform apply + monaco deploy | Deployed to target env |
+For environments where SVG doesn't render
+-->
+<h3>GitHub Actions Example</h3>
+<pre><code class="language-yaml">name: dynatrace-config
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/validate-dql.py terraform/
+      - run: monaco deploy monaco/manifest.yaml --dry-run   # structural check; no tenant contact
+      - uses: hashicorp/setup-terraform@v3
+      - run: |
+          cd terraform/envs/prod
+          terraform init -backend=false
+          terraform validate
+
+  plan:
+    if: github.event_name == 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: |
+          cd terraform/envs/prod
+          terraform init
+          terraform plan -no-color &gt; plan.txt
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('terraform/envs/prod/plan.txt','utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner, repo: context.repo.repo,
+              body: '```\n' + plan + '\n```'
+            });
+
+  apply:
+    if: github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: |
+          cd terraform/envs/prod
+          terraform init
+          terraform apply -auto-approve
+      - run: monaco deploy monaco/manifest.yaml --group production
+</code></pre>
+<h3>Secrets Management</h3>
+<p>Platform Tokens and API keys live in:</p>
+<ul>
+<li><strong>GitHub Actions:</strong> repository secrets</li>
+<li><strong>GitLab CI:</strong> protected variables</li>
+<li><strong>Jenkins:</strong> Credentials plugin</li>
+<li><strong>CircleCI:</strong> contexts</li>
+</ul>
+<p>Never commit tokens. Every <code>*.env</code> file goes in <code>.gitignore</code>.</p>
+<p><strong>Workload identity federation (SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout)).</strong> A CI job or other workload that already has its own identity — a GitHub Actions job, an Azure VM with a managed identity, a Kubernetes pod with a projected service account token — can call the Dynatrace API with a short-lived token from its own identity provider, which Dynatrace maps to a service user through a trust policy. That removes the stored Dynatrace secret altogether. The feature page carries a <em>Preview</em> label and says <em>&quot;Workload identity federation is an Early Access feature.&quot;</em> — access is requested through the Preview program. Check that 1.348 has reached your tenant and that your tenant has Early Access; until then, the CI secret stores above remain the working path.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — <em>&quot;so no Dynatrace client secret or platform token is ever stored alongside your workload, baked into an image, or saved in a CI secret.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation">Workload identity federation (DT docs)</a> — <em>&quot;Workload identity federation is an Early Access feature.&quot;</em></sub></p>
+</blockquote>
+<p><a id="import-pipeline"></a></p>
+<h2>6. Automating the Sumo Extract → DT Import Flow</h2>
+<p>For bulk migration work (Waves 3 and 4), scripts automate the extract + translate + import loop. A purpose-built migration tool (not yet published) would be the destination; until one exists, scripts.</p>
+<h3>Minimal Python Pipeline</h3>
+<pre><code class="language-python">#!/usr/bin/env python3
+&quot;&quot;&quot;Extract Sumo dashboards, translate, import to Dynatrace.&quot;&quot;&quot;
+import os, json, requests, base64
+from pathlib import Path
+
+SUMO_AUTH = base64.b64encode(
+    f&quot;{os.environ['SUMO_ACCESS_ID']}:{os.environ['SUMO_ACCESS_KEY']}&quot;.encode()
+).decode()
+DT_TOKEN = os.environ['DT_TOKEN']   # dt0s16.XXX
+DT_URL   = os.environ['DT_TENANT']
+SUMO_REGION = os.environ.get('SUMO_REGION', 'us1')
+SUMO_URL = (&quot;https://api.sumologic.com&quot; if SUMO_REGION == &quot;us1&quot;   # us1 has no region label
+            else f&quot;https://api.{SUMO_REGION}.sumologic.com&quot;)
+
+def sumo_get(path):
+    r = requests.get(f&quot;{SUMO_URL}{path}&quot;,
+                     headers={&quot;Authorization&quot;: f&quot;Basic {SUMO_AUTH}&quot;})
+    r.raise_for_status()
+    return r.json()
+
+def dt_post(path, body):
+    r = requests.post(f&quot;{DT_URL}{path}&quot;, json=body,
+                      headers={&quot;Authorization&quot;: f&quot;Bearer {DT_TOKEN}&quot;})
+    r.raise_for_status()
+    return r.json()
+
+def sumo_list(path, key):
+    &quot;&quot;&quot;Follow Sumo's `token` / `next` pagination until the list is exhausted.&quot;&quot;&quot;
+    items, token = [], None
+    while True:
+        page = sumo_get(f&quot;{path}?limit=100&quot; + (f&quot;&amp;token={token}&quot; if token else &quot;&quot;))
+        items.extend(page[key])
+        token = page.get(&quot;next&quot;)
+        if not token:
+            return items
+
+def translate_dashboard(sumo_dashboard):
+    # Uses sumoql-to-dql skill mapping tables
+    # Returns DT notebook/dashboard JSON
+    ...
+
+def validate_dashboard(dt_config) -&gt; list[str]:
+    &quot;&quot;&quot;Local structural preflight on a translated dashboard document.
+
+    Returns a list of problem strings; empty list means the document passed.
+    Cheap, offline, and catches the faults a machine translator actually makes.
+    &quot;&quot;&quot;
+    problems = []
+
+    if dt_config.get(&quot;version&quot;) != 13:
+        problems.append(f&quot;version is {dt_config.get('version')!r}, expected 13&quot;)
+
+    tiles = dt_config.get(&quot;tiles&quot;)
+    layouts = dt_config.get(&quot;layouts&quot;)
+    if not isinstance(tiles, dict):
+        problems.append(&quot;tiles is missing or not an object&quot;)
+    if not isinstance(layouts, dict):
+        problems.append(&quot;layouts is missing or not an object&quot;)
+    if not isinstance(tiles, dict) or not isinstance(layouts, dict):
+        return problems          # nothing further is checkable
+
+    for tile_id, tile in tiles.items():
+        for key in (&quot;type&quot;, &quot;query&quot;, &quot;visualization&quot;):
+            if not tile.get(key):
+                problems.append(f&quot;tile {tile_id}: missing {key}&quot;)
+        if tile_id not in layouts:
+            problems.append(f&quot;tile {tile_id}: no matching layouts entry&quot;)
+
+    for layout_id in layouts:
+        if layout_id not in tiles:
+            problems.append(f&quot;layouts {layout_id}: no matching tile&quot;)
+
+    return problems
+
+
+def main():
+    out = Path(&quot;./translated&quot;)
+    out.mkdir(exist_ok=True)
+    skipped = []
+    for dash in sumo_list(&quot;/api/v2/dashboards&quot;, &quot;dashboards&quot;):
+        dt_config = translate_dashboard(sumo_get(f&quot;/api/v2/dashboards/{dash['id']}&quot;))
+        (out / f&quot;{dash['id']}.json&quot;).write_text(json.dumps(dt_config, indent=2))
+
+        problems = validate_dashboard(dt_config)
+        if problems:
+            skipped.append((dash[&quot;id&quot;], dash.get(&quot;title&quot;), problems))
+            continue             # never POST a document that failed preflight
+
+        # Dry-run by default; --apply flag pushes to DT
+        # dt_post(&quot;/platform/document/v1/documents&quot;, dt_config)
+
+    for dash_id, title, problems in skipped:
+        print(f&quot;SKIPPED {dash_id} ({title}):&quot;)
+        for p in problems:
+            print(f&quot;  - {p}&quot;)
+    print(f&quot;{len(skipped)} dashboard(s) skipped on preflight failure&quot;)
+
+main()
+</code></pre>
+<p>Hook <code>validate_dashboard</code> into the <strong>PreflightCheck</strong> structure below as a per-document check, so a translation defect is reported in the same shape as a token or scope problem rather than as a stack trace mid-loop.</p>
+<h3>Preflight Check (before bulk import)</h3>
+<p>Use a <strong>PreflightCheck</strong> structure for script-level migrations:</p>
+<pre><code class="language-python">@dataclass
+class PreflightCheck:
+    name: str
+    status: str               # pass / warn / fail
+    scopes_min: list[str]
+    scopes_recommended: list[str]
+    diagnosis: str
+    remediation: str
+
+def preflight():
+    checks = []
+    # Check token prefix determines auth scheme
+    prefix = DT_TOKEN[:7]
+    if prefix.startswith(&quot;dt0s16&quot;):
+        auth_scheme = &quot;Bearer&quot;
+    elif prefix.startswith(&quot;dt0c01&quot;):
+        auth_scheme = &quot;Api-Token&quot;
+    else:
+        checks.append(PreflightCheck(
+            &quot;token_prefix&quot;, &quot;fail&quot;,
+            [], [],
+            f&quot;Unrecognized token prefix: {prefix}&quot;,
+            &quot;Generate a Platform Token (prefix dt0s16) or Classic API Token (prefix dt0c01)&quot;
+        ))
+    # ... more checks
+    return checks
+</code></pre>
+<h3>Auth Scheme by Token Prefix</h3>
+<p>Critical pattern — every HTTP call must pick the right header:</p>
+<table>
+<thead>
+<tr>
+<th>Token Prefix</th>
+<th>Scheme</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt0s16.</code> (platform token)</td>
+<td><code>Authorization: Bearer &lt;token&gt;</code></td>
+</tr>
+<tr>
+<td><code>dt0s02.</code> (OAuth client)</td>
+<td>Not sent directly — exchange the client ID and secret for an access token, then <code>Authorization: Bearer &lt;access-token&gt;</code></td>
+</tr>
+<tr>
+<td><code>dt0c01.</code> (access token)</td>
+<td><code>Authorization: Api-Token &lt;token&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>dt0s01.</code> is not an OAuth token: it is the account SCIM token — <em>&quot;This is an API token. It's used as an authorization method: a valid token allows the user to make changes within the Dynatrace account through SCIM.&quot;</em> The OAuth prefix is <code>dt0s02</code>: <em>&quot;OAuth2 Clients created by users through Account Management to be used with Dynatrace Apps and Account Management API.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication">Dynatrace API authentication (DT docs)</a>.</sub></p>
+</blockquote>
+<p>Wrong scheme → <code>401 Unsupported authorization scheme</code>, even with every scope.</p>
+<h3>What the Local Gate Does and Does Not Cover</h3>
+<p><code>validate_dashboard</code> is a cheap offline filter, not a substitute for the platform's own validation. It catches the structural faults a machine translator actually produces — a wrong <code>version</code>, a tile the translator emitted without a <code>visualization</code>, a <code>tiles</code> entry with no matching <code>layouts</code> entry — at zero API cost and before anything reaches a tenant. It cannot tell you whether the document <em>renders</em>.</p>
+<p>Two limits to be explicit about:</p>
+<ul>
+<li><strong>A <code>2xx</code> from the Documents API does not mean the dashboard renders.</strong> The API confirms the document was accepted for storage. Whether the Dashboards app can draw every tile is a separate question, answered only by opening it.</li>
+<li><strong>The local gate has no model of the dashboard schema.</strong> It knows the handful of invariants written into it. A tile with a valid-looking but wrong <code>visualization</code> value, or a <code>visualizationSettings</code> block shaped for a different chart type, passes the local check and fails in the app.</li>
+</ul>
+<p>So keep the ladder: local preflight on every document → open a <strong>sample</strong> in the Dashboards app on a non-production tenant → then bulk-apply. The sample is what closes the gap, and on a bulk run it is the only thing that catches a systematic translator defect before it multiplies across the whole wave.</p>
+<blockquote>
+<p><strong>Forthcoming/rolling out (SaaS 1.344): a dashboard that fails validation will no longer load.</strong> Published 07/27/2026, staged tenant rollout from 07/29/2026 — verify whether it has reached your tenant. Before 1.344 a failing dashboard still loaded and surfaced validation warnings; after, it does not load at all, and Dynatrace names <strong>API- and AI-authored</strong> dashboards as the most affected population — which is exactly what this pipeline emits. This raises the stakes on a bulk loop specifically: a translator defect that used to ship N dashboards with a warning banner now ships N dashboards that do not open. Treat the warning state as a grace period, not a supported state. Full gate: <strong>DASH-07 §5</strong>.</p>
+</blockquote>
+<p>Keep the dry-run default. <code>--apply</code> should be an explicit, deliberate act on a wave that has already passed preflight and had a sample opened.</p>
+<p><a id="cloud-integration"></a></p>
+<h2>7. Ansible / CloudFormation / Cloud-Specific Handoffs</h2>
+<p>Many customers run existing automation for infrastructure. Integrate rather than replace.</p>
+<h3>Ansible (host-based automation)</h3>
+<p>OneAgent installation via Ansible playbook:</p>
+<pre><code class="language-yaml">- name: Install Dynatrace OneAgent
+  hosts: all
+  become: true
+  tasks:
+    - name: Download OneAgent installer
+      get_url:
+        url: &quot;{{ dt_installer_url }}&quot;
+        dest: /tmp/oneagent.sh
+        headers:
+          Authorization: &quot;Api-Token {{ dt_pass_token }}&quot;
+    - name: Install OneAgent
+      shell: /bin/sh /tmp/oneagent.sh --set-host-group=&quot;{{ dt_host_group }}&quot;
+      args: { creates: /opt/dynatrace/oneagent/agent/lib64/liboneagentloader.so }
+</code></pre>
+<h3>CloudFormation / AWS</h3>
+<p>Use the Dynatrace AWS Clouds app (native integration) rather than custom lambdas. Clouds app push path is settled practice — no ActiveGate needed for most AWS metrics.</p>
+<p>Terraform for AWS role creation:</p>
+<pre><code class="language-hcl">resource &quot;aws_iam_role&quot; &quot;dynatrace_monitoring&quot; {
+  name = &quot;DynatraceMonitoringRole&quot;
+  assume_role_policy = jsonencode({
+    Version = &quot;2012-10-17&quot;
+    Statement = [{
+      Effect    = &quot;Allow&quot;
+      Principal = { AWS = &quot;arn:aws:iam::509560245411:role/dynatrace-monitoring-role&quot; }
+      Action    = &quot;sts:AssumeRole&quot;
+      Condition = { StringEquals = { &quot;sts:ExternalId&quot; = var.external_id } }
+    }]
+  })
+}
+</code></pre>
+<h3>Azure / GCP</h3>
+<p>Native cloud integrations via Dynatrace tenant UI or API. Avoid custom exporters unless absolutely needed.</p>
+<h3>Decision Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Source Platform</th>
+<th>Ingest Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>On-prem Linux/Windows hosts</td>
+<td>OneAgent via Ansible</td>
+</tr>
+<tr>
+<td>AWS EC2 + services</td>
+<td>OneAgent (from host) + AWS Clouds app (for services)</td>
+</tr>
+<tr>
+<td>AWS Lambda</td>
+<td>Dynatrace Lambda extension</td>
+</tr>
+<tr>
+<td>Azure VM + services</td>
+<td>OneAgent + Azure integration</td>
+</tr>
+<tr>
+<td>GCP GCE + services</td>
+<td>OneAgent + GCP integration</td>
+</tr>
+<tr>
+<td>Kubernetes</td>
+<td>DynaKube operator</td>
+</tr>
+<tr>
+<td>CloudWatch / EventBridge</td>
+<td>AWS Clouds app</td>
+</tr>
+</tbody>
+</table>
+<p><a id="change-mgmt"></a></p>
+<h2>8. Post-Migration: Change Management</h2>
+<p>Once Sumo is decommissioned (SL2DT-09), every Dynatrace config change must go through the same pipeline.</p>
+<h3>The New Baseline</h3>
+<ul>
+<li>All monitors, dashboards, buckets, IAM, OpenPipeline configs in git</li>
+<li>Every change is a PR</li>
+<li>No UI clickops for production changes (UI for exploration only)</li>
+</ul>
+<h3>Enforcement</h3>
+<ul>
+<li>CI blocks any PR with invalid DQL, schema errors, or bucket misconfig</li>
+<li>Required reviews: 1 engineer + 1 platform-team approver for prod</li>
+<li>Settings 2.0 schema drift detection: weekly automated diff between tenant state and git state</li>
+</ul>
+<h3>Drift Detection Workflow</h3>
+<pre><code class="language-yaml"># .github/workflows/drift-detect.yml
+name: drift-detect
+on:
+  schedule:
+    - cron: &quot;0 6 * * 1&quot;  # Weekly Monday
+permissions:
+  contents: read
+  issues: write
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform/envs/prod
+    env:                                   # same credentials the deploy pipeline uses
+      DT_ENV_URL: ${{ secrets.DT_ENV_URL }}
+      DT_API_TOKEN: ${{ secrets.DT_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init -input=false
+      - id: plan
+        run: terraform plan -detailed-exitcode -input=false -no-color
+        continue-on-error: true            # exit 2 (drift) must not stop the job
+      - if: steps.plan.outputs.exitcode == '1'
+        run: exit 1                        # plan itself failed: fail the run, open no issue
+      - if: steps.plan.outputs.exitcode == '2'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'Dynatrace config drift detected',
+              body: `terraform plan reported changes. Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+</code></pre>
+<p><code>terraform plan -detailed-exitcode</code> exits <strong>0</strong> for no changes, <strong>1</strong> for an error and <strong>2</strong> for changes. Branch on the code: <code>if: failure()</code> would open a drift issue for a broken plan too, and would never see drift once <code>continue-on-error</code> is set. Point <code>env:</code> at the same credential variables your provider block reads.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.hashicorp.com/terraform/cli/commands/plan">terraform plan (HashiCorp)</a> — <em>&quot;0 = Succeeded with empty diff (no changes) 1 = Error 2 = Succeeded with non-empty diff (changes present)&quot;</em>.</sub></p>
+</blockquote>
+<p><code>terraform plan -detailed-exitcode</code> is the drift signal here: it compares state with the tenant and exits <code>2</code> when they differ. Monaco has no equivalent — it has no <code>--report</code> flag, and a dry-run never contacts the tenant. For Monaco-managed configs, schedule a <code>monaco download</code> of production into a scratch folder and review it against git; the downloaded folder layout differs from a hand-built project, so compare per config rather than with a blind recursive diff.</p>
+<p><a id="gate"></a></p>
+<h2>9. Step Exit Criteria</h2>
+<p><strong>G8 — Automation Ready</strong></p>
+<ul>
+<li>[ ] All buckets + IAM + OpenPipeline managed via Terraform</li>
+<li>[ ] Dashboards + monitors managed via Monaco</li>
+<li>[ ] CI pipeline runs on every PR: validate → plan → apply</li>
+<li>[ ] Secrets managed outside git (CI vault, not <code>.env</code> in repo)</li>
+<li>[ ] Preflight-check pattern used in all migration scripts</li>
+<li>[ ] Ansible / CloudFormation integration documented per source platform</li>
+<li>[ ] Drift detection scheduled + alerting on failure</li>
+<li>[ ] Rollback runbook in <code>runbooks/rollback.md</code></li>
+</ul>
+<p><strong>Next step:</strong> <strong>SL2DT-09 — Cutover, Validation &amp; Decommission</strong> (parallel run, validation gates, Sumo teardown).</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>10. References</h2>
+<h3>Dynatrace automation and configuration-as-code</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code">Configuration as code (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform">Terraform configuration (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco">Monaco configuration (DT docs)</a></li>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs">Dynatrace Terraform provider (Terraform Registry)</a></li>
+<li><a href="https://github.com/Dynatrace/dynatrace-configuration-as-code">Monaco (Dynatrace GitHub)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/api-authentication">API authentication (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/platform-tokens">Platform tokens (DT docs)</a></li>
+</ul>
+<h3>Sumo Logic automation (source)</h3>
+<ul>
+<li><a href="https://registry.terraform.io/providers/SumoLogic/sumologic/latest/docs">Sumo Logic Terraform provider (Terraform Registry)</a></li>
+<li><a href="https://www.sumologic.com:443/help/docs/api/">Sumo Logic API (Sumo Logic docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://www.sumologic.com:443/help/docs/">Sumo Logic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

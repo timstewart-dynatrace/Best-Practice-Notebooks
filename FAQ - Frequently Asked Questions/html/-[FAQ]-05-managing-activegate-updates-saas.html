@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-05: How to manage ActiveGate updates on Dynatrace SaaS</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-05: How to manage ActiveGate updates on Dynatrace SaaS</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 05 — Managing ActiveGate Updates (SaaS) | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>ActiveGate updates differ from OneAgent updates in a way that matters operationally: ActiveGates are infrastructure, not endpoints. A single ActiveGate sits in the path of many OneAgents, hosts a set of extensions, and may run a synthetic browser engine. When an ActiveGate updates, the impact is concentrated — not distributed across thousands of hosts the way a OneAgent restart is.</p>
+<p>That concentration is the reason ActiveGate update management deserves a separate decision than OneAgent update management. The mechanics look similar (auto-update toggle, version checking, install and reconnect), but the operating practices around sequencing, HA pairs, role-specific validation, and rollback are distinct. It is also why the decision is not purely operational: an ActiveGate is in-path infrastructure with a broad network footprint, and AG security fixes ship inside ordinary version updates — so update policy is a security-posture decision as much as a change-management one (§3).</p>
+<p>This FAQ covers: the update mechanism, the auto-update vs manual decision, sequencing (let auto-update handle it; ActiveGates before OneAgents when you update manually), HA-pair rolling updates, role-specific considerations (routing, synthetic, Extension Framework 2.0, cloud monitoring), validation, rollback, and the most common pitfalls.</p>
+<blockquote>
+<p><strong>Scope:</strong> SaaS only. Managed Cluster ActiveGates and the Cluster ActiveGate update model are out of scope here (DTM-04: ActiveGate Deployment on Managed covers both ActiveGate types' updates on Managed in §7) — with one exception: §2 covers the ActiveGate <code>autoUpdate</code> API change, because the same two properties were added to both the SaaS Environment API v2 and the Managed Cluster API v2 and then removed again from six Cluster API endpoints — but not from the SaaS API.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why">Why ActiveGate Updates Need Attention</a></li>
+<li><a href="#mechanism">How ActiveGate Updates Work on SaaS</a></li>
+<li><a href="#modes">The Auto-Update vs Manual Decision</a></li>
+<li><a href="#sequencing">Sequencing — ActiveGates Before OneAgents</a></li>
+<li><a href="#ha">HA Pairs and Rolling Updates</a></li>
+<li><a href="#roles">Roles and Update Implications</a></li>
+<li><a href="#validation">Validation After Update</a></li>
+<li><a href="#rollback">Rollback Considerations</a></li>
+<li><a href="#pitfalls">Common Pitfalls</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform team, SRE leads, network/proxy owners, change-management stakeholders</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Decision-support document — presents trade-offs and recommendations, no hands-on lab</td>
+</tr>
+<tr>
+<td><strong>Deployment</strong></td>
+<td>Dynatrace SaaS Environment ActiveGates. Managed Cluster ActiveGate is out of scope.</td>
+</tr>
+<tr>
+<td><strong>Related topic series</strong></td>
+<td>ONBRD (Dynatrace Onboarding), SYNTH (Synthetic Monitoring), CLOUD (Cloud Provider Integrations)</td>
+</tr>
+<tr>
+<td><strong>Related FAQ</strong></td>
+<td><strong>FAQ-04: How to manage OneAgent updates on Dynatrace SaaS</strong> — sequencing depends on AG version</td>
+</tr>
+</tbody>
+</table>
+<p><a id="why"></a></p>
+<h2>1. Why ActiveGate Updates Need Attention</h2>
+<p>OneAgent updates are distributed — thousands of hosts, each with its own restart, no single one affecting much. ActiveGate updates are concentrated — one component in the path of many flows, and the update gap touches every flow it serves.</p>
+<p>The practical consequences:</p>
+<ul>
+<li><strong>Connectivity gap during the update.</strong> OneAgents and other clients route through the ActiveGate, and an updating ActiveGate installs the new version and then re-connects to the server. In community practice that gap is short, but a single AG cannot hide it; HA pairs absorb it.</li>
+<li><strong>Components that move with the AG.</strong> The Extension Execution Controller that runs EF 2.0 extensions is installed and managed with the ActiveGate, and the cloud-monitoring modules (AWS, Azure) run inside it. The extensions themselves are versioned separately. On a synthetic AG the Synthetic engine and browser move too — on Windows the browser always updates with the engine; on Linux a per-location switch decides (§6).</li>
+<li><strong>Version compatibility downstream.</strong> A OneAgent can only report through the ActiveGate in front of it. Dynatrace publishes no general version-compatibility matrix between the two, but it has set a minimum ActiveGate version for a OneAgent change before (§4) — which is why an AG left behind is the component to worry about.</li>
+<li><strong>What the update touches depends on the role.</strong> The components above come back on the new version, so the checks after an update depend on what the AG is configured to do (§6, §7).</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Without active management</th>
+<th>With active management</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AGs on manual updates drift behind auto-updating OneAgents</td>
+<td>Auto-update on both tiers, or AGs updated first where manual</td>
+<td>No OneAgent arrives at a version its AG has not seen</td>
+</tr>
+<tr>
+<td>Synthetic monitors fail unexpectedly after a browser change</td>
+<td>Browser version held with the location switch, or validated post-update</td>
+<td>Monitor false-failures are caught quickly</td>
+</tr>
+<tr>
+<td>An extension stops ingesting after an update and nobody notices</td>
+<td>Extension status and ingest are part of post-update validation</td>
+<td>Silent ingest gaps are caught quickly</td>
+</tr>
+<tr>
+<td>Single-AG architectures take observability gaps during every update</td>
+<td>HA pair, rolled one at a time</td>
+<td>No observability gap during update</td>
+</tr>
+</tbody>
+</table>
+<p>In community practice, the most visible benefit of disciplined AG update management is fewer unexplained synthetic monitor failures after updates — the symptom of a browser change nobody tracked. Verify against your own monitor history.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate-classic/operation/update-activegate-classic">Update ActiveGate (Dynatrace Classic) (DT docs)</a> — <em>&quot;The ActiveGate has requested and downloaded the new installation package from the server, and is currently in the process of installing it or re-connecting to the server.&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/concepts">About Extensions (DT docs)</a> — <em>&quot;EEC is automatically installed and managed with each OneAgent and ActiveGate configuration.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations">Private Synthetic locations (DT docs)</a> — <em>&quot;on Windows-based ActiveGates, Chromium is always updated during Synthetic engine updates.&quot;</em> (re-read 09/28/2026; the Classic update page re-read 10/27/2026)</sub></p>
+</blockquote>
+<p><a id="mechanism"></a></p>
+<h2>2. How ActiveGate Updates Work on SaaS</h2>
+<p>ActiveGate update flow on SaaS:</p>
+<ol>
+<li>A new version becomes available — to a Classic-path ActiveGate through an availability check that runs every 30 minutes.</li>
+<li>If the AG's update mode allows it now (auto-update, or an open update window), the installation package is downloaded.</li>
+<li>The AG installs the new version and re-connects to the server.</li>
+<li>The AG resumes serving traffic; whatever it hosts (extensions, synthetic engine, cloud-monitoring modules) comes back on the new version.</li>
+</ol>
+<p>A few mechanics worth knowing:</p>
+<ul>
+<li><strong>Where you control updates depends on the platform surface.</strong> On <strong>Latest Dynatrace</strong>, update control is set centrally: <strong>Settings &gt; Fleet management &gt; ActiveGate version and updates</strong> holds a <strong>target version</strong> (pinned, or a rolling policy such as N-1) and an <strong>update mode</strong> — auto-update as soon as Dynatrace releases, auto-update only during update windows you define, or auto-update disabled. On <strong>Dynatrace Classic</strong>, the older path remains: <strong>Settings &gt; Updates &gt; ActiveGate updates</strong>, a per-ActiveGate <em>Automatic updates at earliest convenience</em> toggle. The Classic version of the Update ActiveGate page documents only that toggle, but the SaaS 1.343 notes describe ActiveGate update modes by their Classic names — including <em>Automatic during update window</em> — and say ActiveGates <em>&quot;share the same update windows you already use for OneAgent&quot;</em>. Check your Classic settings before assuming windows are unavailable there. Since <strong>SaaS 1.343</strong> (rollout from 07/14/2026), per-ActiveGate settings can override the environment defaults, so a role-specific schedule is expressed by giving those AGs their own update mode or window.</li>
+<li><strong>Auto-update can be disabled.</strong> On the Classic path, a one-click <strong>Update</strong> control appears in the AG's settings when a new version is available and the toggle is off; on Latest Dynatrace, manually managed ActiveGates get an <strong>Update now to target version</strong> button (steps in §4). <em>Auto-update disabled</em> is an update mode the docs mark as not recommended.</li>
+<li><strong>Containerized ActiveGates are outside all of this.</strong> Auto-update and one-click update apply only to installer-based ActiveGates; containerized ones are updated with your container tooling (on Kubernetes, the Dynatrace Operator).</li>
+<li><strong>The check interval.</strong> The docs give 30 minutes for the Classic path and document no setting to change it.</li>
+<li><strong>The update gap is short.</strong> In community practice, tens of seconds while the AG installs and re-connects. HA pair architectures absorb this; single-AG architectures briefly drop traffic.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/update-activegate">Update ActiveGate (DT docs)</a> — Latest Dynatrace: <em>&quot;Go to Settings &gt; Fleet management &gt; ActiveGate version and updates&quot;</em>; <em>&quot;Use the Target version dropdown to set the version that serves as the default for new deployments and as the update target for existing ActiveGates.&quot;</em>; <em>&quot;Auto-update during an update window —ActiveGates update automatically, but only during the update windows you configure on the Manage update windows tab.&quot;</em>; <em>&quot;Auto-update disabled —not recommended as it may put your ActiveGates at risk of falling out of the supported version range.&quot;</em> (re-read 09/28/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate-classic/operation/update-activegate-classic">Update ActiveGate (Dynatrace Classic) (DT docs)</a> — <em>&quot;Go to Settings &gt; Updates &gt; ActiveGate updates&quot;</em>; <em>&quot;The availability check runs at 30-minute intervals.&quot;</em>; <em>&quot;This option is available only when the Automatic updates at earliest convenience toggle is turned off.&quot;</em> (read 10/27/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/fleet-management">Fleet Management (DT docs)</a> — <em>&quot;Plan and control updates with target versions and update windows.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">SaaS 1.343 release notes (DT docs)</a> — <em>&quot;Per-ActiveGate settings can override environment defaults, and manually managed ActiveGates expose an Update now to target version button.&quot;</em> (re-read 09/28/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/update-activegate">Update ActiveGate (DT docs)</a> — <em>&quot;Auto-update and One-click update functionalities are limited to host-based—using installer—deployment only.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<h3>A cautionary note on <code>targetVersion</code> and <code>updateWindows</code></h3>
+<p><strong>API 1.342</strong> added <code>targetVersion</code> (the version AGs update to) and <code>updateWindows</code> (when updates may run) to the ActiveGate auto-update endpoints of <strong>both</strong> API families — the SaaS <strong>Environment API v2</strong> and the Managed <strong>Cluster API v2</strong>.</p>
+<p><strong>API 1.344</strong> (published 07/15/2026, rollout from 07/29/2026) then <strong>removed both properties from six Cluster API v2 endpoints</strong> — the global and per-AG <code>/activeGates/autoUpdate</code> endpoints and their validators — marking four of them <em>&quot;Broken compatibility&quot;</em>, and changed the read-only status of properties on the per-AG endpoints. The changelog lists <strong>no</strong> removal for the per-environment <code>/activeGates/autoUpdate/{envId}</code> endpoints that 1.342 also extended; check your cluster's API reference for those. If you automate <strong>Dynatrace Managed</strong> ActiveGate updates, drop both properties from the affected request bodies once your cluster is on 1.344 or later — go by your own cluster's API version, not the rollout date.</p>
+<p><strong>API 1.350</strong> (published 11/02/2026, staged rollout from 11/04/2026) lists both properties again — <em>&quot;Added properties: targetVersion updateWindows&quot;</em> — on the same six endpoints: <code>GET</code> / <code>PUT /activeGates/autoUpdate</code> and its validator, and <code>GET</code> / <code>PUT /activeGates/{agId}/autoUpdate</code> and its validator. Until your cluster is on 1.350, the 1.344 removal above is the working state. The same changelog flags a <em>&quot;Breaking change&quot;</em> on the per-environment <code>/activeGates/autoUpdate/{envId}</code> endpoints and on <code>GET /activeGates</code> / <code>GET /activeGates/{agId}</code>: under <code>updateWindows</code> → <code>windows</code>, <em>&quot;Min items changed from 0 to null Max items changed from 1 to null&quot;</em>.</p>
+<p>On <strong>SaaS</strong>, nothing was removed: the Environment API v2 reference for <code>PUT /api/v2/activeGates/autoUpdate</code> still documents <code>targetVersion</code> and <code>updateWindows</code> (read 09/28/2026), alongside the Fleet management settings page. An earlier revision of this document said the properties were never part of the SaaS API; that was wrong.</p>
+<p>Separately, <strong>ActiveGate 1.343</strong> deprecated the SaaS ActiveGate <em>listing</em> endpoints — <code>GET /api/v2/activeGates</code>, <code>GET /api/v2/activeGates/{agId}</code> and <code>GET /api/v2/activeGates/groups</code> — in favor of the <code>ACTIVEGATE</code> Smartscape node (§7). The auto-update endpoints are not on that list. <strong>API 1.350</strong> (published 11/02/2026, staged tenant rollout from 11/04/2026) then deprecates the Environment API v2 <strong>update-job</strong> endpoints — <em>&quot;The following endpoints are deprecated: GET /activeGates/updateJobs&quot;</em>, together with <code>GET</code> / <code>POST /activeGates/{agId}/updateJobs</code>, its validator, and <code>GET</code> / <code>DELETE /activeGates/{agId}/updateJobs/{jobId}</code>. The changelog names no replacement, and the <code>autoUpdate</code> endpoints are again not on the list.</p>
+<p>The general lesson: a capability announced in one sprint can be withdrawn in the next, and a change to one API family says nothing about the other. That is why this series names the version on every release-tied claim and keeps the pre-version guidance in place.</p>
+<blockquote>
+<p><strong>Fleet Management.</strong> The Fleet Management app is the central place for OneAgent and ActiveGate inventory, health, and update planning — available since <strong>SaaS 1.343</strong> (<em>&quot;Fleet Management is now available.&quot;</em>). It documents inventory of all OneAgents and ActiveGates, health issues with recommendations, and planning updates with <strong>target versions</strong> (a rolling version policy such as N-1, or a pinned version) and <strong>update windows</strong>. Fleets beyond a handful of AGs should plan updates from Fleet management settings rather than per-AG settings pages. If your tenant still shows only the Classic per-ActiveGate toggle, that path remains valid — use it until the Fleet management settings appear.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-342">API changelog 1.342 (DT docs)</a> — under both <em>Environment API v2</em> and <em>Cluster API v2</em>: <em>&quot;Added properties: targetVersion, updateWindows&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/activegates/auto-update-config/put-global">ActiveGate auto-update configuration API — PUT global (DT docs)</a> — SaaS <code>PUT /api/v2/activeGates/autoUpdate</code> request body lists <code>targetVersion</code> and <code>updateWindows</code> (read 09/28/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343">ActiveGate 1.343 release notes (DT docs)</a> — <em>&quot;These are replaced by the ACTIVEGATE Smartscape node.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-344">API changelog 1.344 (DT docs)</a> — lists <em>&quot;Removed properties: targetVersion , updateWindows&quot;</em> on six Cluster API v2 <code>/activeGates/autoUpdate</code> endpoints, four marked <em>&quot;Broken compatibility&quot;</em>; no removal is listed for <code>/activeGates/autoUpdate/{envId}</code>, which 1.342 also extended (both changelogs re-read 09/28/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-350">API changelog 1.350 (DT docs)</a> — <em>&quot;Rollout start on Nov 4, 2026&quot;</em>; under <em>Cluster API v2</em> <code>/activeGates/autoUpdate</code> and <code>/activeGates/{agId}/autoUpdate</code> (each with its validator): <em>&quot;Added properties: targetVersion updateWindows&quot;</em> (read 11/04/2026); under <em>Environment API v2</em> <code>/activeGates</code>: <em>&quot;The following endpoints are deprecated: GET /activeGates/updateJobs&quot;</em>; Cluster API v2 <code>/activeGates/autoUpdate/{envId}</code>: <em>&quot;Min items changed from 0 to null Max items changed from 1 to null&quot;</em> (re-read 11/11/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">SaaS 1.343 release notes (DT docs)</a> — <em>&quot;Fleet Management is now available.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/fleet-management">Fleet Management (DT docs)</a> — <em>&quot;Plan and control updates with target versions and update windows.&quot;</em>; <em>&quot;Define an update window to control when updates are applied.&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> the &quot;drop both properties once the cluster is on 1.344&quot; instruction follows from the 1.344 Cluster API schema removal plus the staged-rollout model</sub></li>
+</ul>
+</blockquote>
+<p><a id="modes"></a></p>
+<h2>3. The Auto-Update vs Manual Decision</h2>
+<p>Two effective modes per ActiveGate as the Classic Update ActiveGate page documents them (the SaaS 1.343 notes also describe a windowed mode — §2). On Latest Dynatrace the same decision is the <strong>update mode</strong> in Fleet management settings (§2), with a third option — <em>auto-update during an update window</em> — that gives the &quot;deliberately scheduled&quot; behavior below without leaving updates to a manual reminder:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>What it does</th>
+<th>When to pick it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Auto-update enabled</strong> (default for new environments; existing environments keep their earlier setting)</td>
+<td>AG downloads and installs new versions as they become available.</td>
+<td><strong>The recommended mode for every ActiveGate.</strong> HA pairs absorb the update gap; update windows (Latest Dynatrace) control <em>when</em> without switching updates off.</td>
+</tr>
+<tr>
+<td><strong>Auto-update disabled</strong></td>
+<td>AG does not install new versions on its own. A one-click <strong>Update</strong> (Classic) or <strong>Update now to target version</strong> (Latest Dynatrace) control appears when a new version is available (steps in §4).</td>
+<td>Only where change control forbids unscheduled restarts <strong>and</strong> an update window cannot satisfy it — and then with a named owner (see the security factor below). The docs mark this mode <em>&quot;not recommended&quot;</em>.</td>
+</tr>
+</tbody>
+</table>
+<h3>Decision factors</h3>
+<ul>
+<li>
+<p><strong>HA pair vs single AG.</strong> HA pairs make auto-update low-risk: roll one at a time, the partner absorbs the load. Single AGs cause a connectivity gap during the update — an update window lets you schedule that gap without disabling updates. In community practice, single-AG architectures are usually a temporary state on the path to HA — the right long-term answer is <em>deploy a second AG</em>, not <em>disable auto-update</em>.</p>
+</li>
+<li>
+<p><strong>Security releases and your vulnerability-remediation SLA.</strong> This is the factor most often missing from the conversation, because the rest of the decision reads as purely operational. An ActiveGate is <strong>in-path infrastructure with a broad network footprint</strong> — it terminates OneAgent connections, holds credentials for cloud connectors and extensions, reaches into monitored networks, and often sits in a DMZ or a routable segment by design. That footprint is why an AG security fix is not the same class of change as a feature update. And AG security fixes do ship inside ordinary version updates rather than on a separate channel: <strong>ActiveGate 1.343 backported a fix for CVE-2026-40984 and CVE-2026-40983 in the ActiveGate for Kubernetes image</strong>, so a containerized AG stays exposed to those CVEs until it takes an image that carries the fix (the notes do not name the affected image range). (The same release added a vSphere certificate-validation fix, but that one is <strong>opt-in</strong>: the new <code>vsphere.strict.tls.validation</code> property defaults to <code>false</code>, so taking the update alone changes nothing — you have to turn it on.)</p>
+<p>The test to apply: <strong>every AG on manual updates needs a demonstrable path to apply a security release inside your organization's vulnerability-remediation SLA.</strong> Not a hope that someone notices — a named owner, a trigger, and a window that fits inside the SLA clock. If the manual process cannot meet that SLA — and for a single AG whose restart requires a change ticket, it usually cannot — <strong>the answer is HA plus auto-update, not manual updates.</strong> HA is what removes the update-gap objection that motivated manual mode in the first place, which makes it the fix for both problems at once. Manual mode is defensible for a scheduled feature update; it is much harder to defend for a security release.</p>
+</li>
+<li>
+<p><strong>Synthetic load — use the browser switch, not the AG switch.</strong> The browser on a synthetic AG is updated <em>during</em> ActiveGate and Synthetic engine updates. On Linux, whether that happens is a <strong>per-private-location</strong> switch, <em>Enable Chrome(-ium) auto-update</em>, on by default; to hold a specific browser version, turn it off <strong>before</strong> the ActiveGate update and update the browser by hand on each AG in the location. On Windows the browser always updates with the engine. Either way, Dynatrace supports browser versions no more than two behind the latest supported one for the ActiveGate release. Disabling ActiveGate auto-update to freeze the browser also freezes the AG's security fixes, which is the worse trade.</p>
+</li>
+<li>
+<p><strong>EF 2.0 extension load.</strong> The Extension Execution Controller that runs extensions is installed and managed with the AG, so extensions come back up on the new version after an update. If you have many or complex extensions, an update window gives the update a known time.</p>
+</li>
+<li>
+<p><strong>Cloud monitoring.</strong> AGs running the AWS or Azure monitoring modules are, in community practice, uneventful to auto-update; a connector-heavy AG still benefits from a known update time for the same reason.</p>
+</li>
+<li>
+<p><strong>Network change-control.</strong> Some networks treat any in-path infrastructure restart as a change requiring a ticket. An update window is usually the way to satisfy that model while keeping updates automatic; pick manual only if it cannot — but read the security factor above before settling there, because change-control and a remediation SLA usually come from the same governance function and are supposed to be reconciled rather than traded off.</p>
+</li>
+</ul>
+<h3>The other clock: operating-system support end dates</h3>
+<p>Auto-update keeps an ActiveGate current on <em>Dynatrace</em> versions. It does nothing about the <strong>host OS falling out of support</strong> — a date Dynatrace sets, after which the ActiveGate is running on an unsupported platform. The ActiveGate 1.349 notes (published 11/05/2026) publish the current runway:</p>
+<table>
+<thead>
+<tr>
+<th>ActiveGate support ends</th>
+<th>Operating systems</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>December 1, 2026</strong></td>
+<td>RHEL 9.7 / 10.1, Oracle Linux 9.7 / 10.1, Rocky Linux 9.7 / 10.1</td>
+</tr>
+<tr>
+<td><strong>January 1, 2027</strong></td>
+<td>Amazon Linux 2</td>
+</tr>
+<tr>
+<td><strong>June 1, 2027</strong></td>
+<td>Oracle Linux 9.8 / 10.2, Rocky Linux 9.8 / 10.2</td>
+</tr>
+</tbody>
+</table>
+<p>Already unsupported, per the same notes: Windows 10 (since May 1, 2026), Oracle Linux and Rocky Linux 9.6 / 10.0 (since June 1, 2026), SUSE Enterprise Linux 15.6 (since July 1, 2026), and RHEL 9.4 and Ubuntu 16.04 (since November 1, 2026).</p>
+<p>Read the December row carefully — it retires <strong>9.7 and 10.1 point releases across three distributions at once</strong>, which is the row most likely to catch a fleet that standardized on a single minor version. Inventory the OS behind each ActiveGate against these dates now. Most rows are <strong>minor</strong> releases (RHEL / Oracle Linux / Rocky Linux 9.7, 10.1), where the fix is normally an OS minor update on the same host — ActiveGate 1.343 added support for Oracle Linux and Rocky Linux 9.8 and 10.2. Note the June 2027 row: those 9.8 / 10.2 targets buy time only until then, so plan the next minor update as part of the same move. <strong>Amazon Linux 2</strong> — and any host still on Ubuntu 16.04, already unsupported since November 1, 2026 — is different: it needs a new OS major version, which in community practice usually means a rebuilt host and a fresh ActiveGate install, so it needs the most lead time. That is where HA pairs (§5) pay off — a partner carries traffic while one host is rebuilt.</p>
+<blockquote>
+<p><strong>Also in ActiveGate 1.345 — a transport change under the hood.</strong> Verbatim: <em>&quot;ActiveGate watchdog communication switches from TCP sockets to named pipes, aligning with OneAgent.&quot;</em> The notes require no action; if you had your own monitoring on the watchdog's local TCP socket, expect it to stop matching on ActiveGates that have taken 1.345. The same release moves the containerized base image from <strong>Red Hat UBI 9 Micro to UBI 10 Micro</strong> — a change worth flagging to whoever scans your container images, since the scan baseline shifts with it.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate-classic/operation/update-activegate-classic">Update ActiveGate (Dynatrace Classic) (DT docs)</a> — one-click update <em>&quot;is available only when the Automatic updates at earliest convenience toggle is turned off&quot;</em>, <a href="https://docs.dynatrace.com/docs/shortlink/update-activegate">Update ActiveGate (DT docs)</a> — Latest Dynatrace: <em>&quot;Auto-update during an update window —ActiveGates update automatically, but only during the update windows you configure on the Manage update windows tab.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343">ActiveGate 1.343 release notes (DT docs)</a> — <em>&quot;Backported a security fix that addresses CVE-2026-40984 and CVE-2026-40983 in the ActiveGate for Kubernetes image&quot;</em>; <em>&quot;When set to false, which is the default, it accepts any certificate and skips hostname verification&quot;</em>; <em>&quot;Added support for Oracle Linux 9.8&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations">Private Synthetic locations (DT docs)</a> — <em>&quot;If you don't want Chromium to be updated automatically, for example, to use a specific version of Chromium, or if you have offline environments, turn off the switch before triggering an ActiveGate update.&quot;</em>; <em>&quot;Dynatrace supports Chromium versions that are no more than two versions behind the the latest Dynatrace-supported version for a specific ActiveGate release.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345">ActiveGate 1.345 release notes (DT docs)</a> — the watchdog named-pipes switch and the UBI 9 → UBI 10 Micro base-image change, <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347">ActiveGate 1.347 release notes (DT docs)</a> — the earlier publication of the same OS support end dates, including <em>&quot;The following operating systems will no longer be supported starting 01 June 2027 Linux: Oracle Linux 9.8, 10.2 x86-64&quot;</em>, and the past-support list (re-read 10/02/2026), <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349">ActiveGate 1.349 release notes (DT docs)</a> — published 11/05/2026; the runway tabulated above (re-read 11/11/2026), including <em>&quot;The following operating systems are no longer supported since 01 November 2026 Linux: Red Hat Enterprise Linux 9.4&quot;</em>. <strong>Derived:</strong> the &quot;if the manual process cannot meet the SLA, the answer is HA plus auto-update&quot; conclusion combines the security-fix delivery model with the per-AG restart behavior that HA absorbs.</sub></p>
+</blockquote>
+<p><a id="sequencing"></a></p>
+<h2>4. Sequencing — ActiveGates Before OneAgents</h2>
+<blockquote>
+<p><strong>Leave automatic updates on for both ActiveGates and OneAgents, and let Dynatrace keep them current.</strong> That is the recommended configuration, and with it in place there is no update order for you to manage.</p>
+</blockquote>
+<p>Both tiers auto-update by default on SaaS. ActiveGate, per the Classic update page: <em>&quot;When a new version is available, the installation package is downloaded and installed automatically. This is the default setting for new environments; existing environments retain their current setting.&quot;</em> OneAgent: <em>&quot;By default, global automatic OneAgent updates are turned on, but this is configurable at the global, host group, and host level.&quot;</em></p>
+<p>Note the ActiveGate caveat in that quote: the default applies to <strong>new</strong> environments. An older tenant may still have ActiveGates on manual updates from an earlier decision — check before assuming the default is in force.</p>
+<h3>If either tier is not on automatic updates</h3>
+<p>Once you disable auto-update, pin a target version, or confine updates to windows on either side, the ordering becomes your job. Then:</p>
+<blockquote>
+<p><strong>Update ActiveGates first. Then update OneAgents.</strong></p>
+</blockquote>
+<h4>How to run a manual update, in order</h4>
+<p><strong>1. ActiveGates — one at a time where they run in HA pairs (§5).</strong></p>
+<ul>
+<li><strong>Latest Dynatrace.</strong> Go to <strong>Settings &gt; Fleet management &gt; ActiveGate version and updates</strong>. Rather than <em>Auto-update disabled</em>, prefer <strong>Auto-update during an update window</strong>: set the <strong>Target version</strong>, then create the window on the <strong>Manage update windows</strong> tab (name, recurrence, start time, timezone, duration). You keep control of <em>when</em>, and Dynatrace still does the installing. For an AG you manage manually, use its <strong>Update now to target version</strong> button (SaaS 1.343+); per-AG settings override the environment default.</li>
+<li><strong>Dynatrace Classic.</strong> Go to <strong>Settings &gt; Updates &gt; ActiveGate updates</strong>, expand the ActiveGate, and select <strong>Update</strong>. The button is there only while that ActiveGate's <em>Automatic updates at earliest convenience</em> toggle is off. Status moves through <em>Update pending</em> and <em>Update in progress</em> to <em>Up to date</em>; <em>Update problem</em> means the old version is still running — check the auto-updater and installer logs.</li>
+<li><strong>Without the UI.</strong> Run the new ActiveGate installer over the existing install; no uninstall is needed and the configuration is migrated. Back up <code>custom.properties</code> and <code>launcheruserconfig.conf</code> first — they are not overwritten, but Dynatrace recommends the backup.</li>
+<li><strong>Containerized ActiveGates</strong> are outside all of the above: auto-update and one-click update apply only to installer-based ActiveGates. Update container images through your own tooling (on Kubernetes, the Dynatrace Operator — see the K8S series). <em>&quot;ActiveGate is updated automatically on pod restart whenever there is a new version available, unless the image already specifies a certain version.&quot;</em> The remote configuration page, labelled Dynatrace Classic, excludes them too, so change their network zone and group in the deployment. (<a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/activegate-in-container/differences">Differences between containerized and host-based ActiveGates (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/bulk-configuration-classic">Remote configuration management (DT docs)</a>). For choosing between the two deployments, see FAQ-28.</li>
+</ul>
+<p><strong>2. Validate the ActiveGates</strong> (§7) before moving on. The ActiveGate list flags any ActiveGate more than five versions behind with a yellow warning icon.</p>
+<p><strong>3. OneAgents.</strong></p>
+<ul>
+<li><strong>Advance the target version.</strong> On <strong>Settings &gt; Fleet management &gt; OneAgent version and updates</strong>, the <strong>Target version</strong> is the version existing OneAgents update to; the <strong>Update mode</strong> decides when. The OneAgent update page (10/13/2026) documents no separate <em>Update now</em> control for OneAgents.</li>
+<li><strong>Canary first.</strong> Open <strong>Configure updates</strong> from a host group's details in Fleet Management to advance one group before the rest (FAQ-04 §7).</li>
+<li><strong>Then restart monitored processes.</strong> Components of OneAgent run inside monitored processes (Java, .NET, Apache, IIS); those processes keep reporting on the old version until they restart.</li>
+<li><strong>Kubernetes</strong> is different: update windows do not apply there, and OneAgent versions are driven through the Dynatrace Operator (see FAQ-04).</li>
+</ul>
+<p><strong>4. Validate the OneAgents</strong> — hosts reporting on the new version, and deep-monitored processes restarted.</p>
+<p><strong>Why this order.</strong> Dynatrace does not publish a general rule that an ActiveGate must be at or above the version of the OneAgents behind it. What it has done is set a minimum ActiveGate version for a OneAgent change: ahead of OneAgent's move to 64-bit host IDs, <em>&quot;all ActiveGates earlier than version 1.154 must be upgraded to newer releases in order to properly support OneAgent 64-bit IDs. Failure to do this will result in OneAgent being unable to communicate with the Dynatrace Cluster via these earlier versions of ActiveGate.&quot;</em> That is a floor tied to one feature, not a rule that the ActiveGate must match or lead the OneAgent version — the notice asks for ActiveGate 1.154 or later ahead of OneAgent 1.179, not for matching versions. In community practice teams generalise such cases into a standing order — update the ActiveGate tier first so no OneAgent arrives at a change the ActiveGate in front of it is not ready for. The documented failure in that case ran in that direction: OneAgents in front of ActiveGates that had not been upgraded.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+TWFudWFsIFVwZGF0ZSBTZXF1ZW5jaW5nIOKAlCBBY3RpdmVHYXRlcyBCZWZvcmUgT25lQWdlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkF1dG8tdXBkYXRlIG9uIGJvdGggdGllcnMgaXMgcmVjb21tZW5kZWQg4oCUIHRoaXMgb3JkZXIgYXBwbGllcyB3aGVuIGVpdGhlciBpcyBtYW51YWw8L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXJyb3ctMDVhIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFRpbWVsaW5lIGJhciAtLT4KICA8cmVjdCB4PSI4MCIgeT0iMTU1IiB3aWR0aD0iNzcwIiBoZWlnaHQ9IjQiIGZpbGw9IiMzMzQxNTUiIHJ4PSIyIi8+CgogIDwhLS0gU3RhZ2UgMTogQUcgdXBkYXRlIC0tPgogIDxjaXJjbGUgY3g9IjE3MCIgY3k9IjE1NyIgcj0iOSIgZmlsbD0iIzE0OTZGRiIvPgogIDxyZWN0IHg9IjgwIiB5PSIxODUiIHdpZHRoPSIxODAiIGhlaWdodD0iMTI1IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE3MCIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4xLiBBY3RpdmVHYXRlczwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VXBkYXRlIGZpcnN0OyByb2xsIG9uZTwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjI0OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YXQgYSB0aW1lIGluIEhBIHBhaXJzPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMjc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Sb3V0aW5nIEFHcyBpbiB0aGU8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIyOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk9uZUFnZW50IHBhdGg8L3RleHQ+CgogIDwhLS0gQXJyb3cgMeKGkjIgLS0+CiAgPGxpbmUgeDE9IjI2NSIgeTE9IjI0OCIgeDI9IjMzNSIgeTI9IjI0OCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdy0wNWEpIi8+CgogIDwhLS0gU3RhZ2UgMjogVmFsaWRhdGUgQUcgLS0+CiAgPGNpcmNsZSBjeD0iMzk1IiBjeT0iMTU3IiByPSI5IiBmaWxsPSIjRkZCODAwIi8+CiAgPHJlY3QgeD0iMzA1IiB5PSIxODUiIHdpZHRoPSIxODAiIGhlaWdodD0iMTI1IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjM5NSIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4yLiBWYWxpZGF0ZSBBR3M8L3RleHQ+CiAgPHRleHQgeD0iMzk1IiB5PSIyMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkNvbm5lY3Rpdml0eSwgcm91dGVzLDwvdGV4dD4KICA8dGV4dCB4PSIzOTUiIHk9IjI0OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZXh0ZW5zaW9uIHJlbG9hZCBzdGF0dXM8L3RleHQ+CiAgPHRleHQgeD0iMzk1IiB5PSIyNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlN5bnRoZXRpYyBleGVjdXRpb248L3RleHQ+CiAgPHRleHQgeD0iMzk1IiB5PSIyOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmhlYWx0aGNoZWNrcyBwYXNzPC90ZXh0PgoKICA8IS0tIEFycm93IDLihpIzIC0tPgogIDxsaW5lIHgxPSI0OTAiIHkxPSIyNDgiIHgyPSI1NjAiIHkyPSIyNDgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3ctMDVhKSIvPgoKICA8IS0tIFN0YWdlIDM6IE9uZUFnZW50IHVwZGF0ZSAtLT4KICA8Y2lyY2xlIGN4PSI2MjAiIGN5PSIxNTciIHI9IjkiIGZpbGw9IiM3M0JFMjgiLz4KICA8cmVjdCB4PSI1MzAiIHk9IjE4NSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxMjUiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjIwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjMuIE9uZUFnZW50czwvdGV4dD4KICA8dGV4dCB4PSI2MjAiIHk9IjIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Um9sbCBPbmVBZ2VudCB1cGRhdGVzPC90ZXh0PgogIDx0ZXh0IHg9IjYyMCIgeT0iMjQ5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hY3Jvc3MgaG9zdCBncm91cHM8L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSIyNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlJlc3BlY3QgdXBkYXRlIHdpbmRvd3M8L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSIyOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPihub3QgbWFpbnRlbmFuY2Ugd2luZG93cyk8L3RleHQ+CgogIDwhLS0gQXJyb3cgM+KGkjQgLS0+CiAgPGxpbmUgeDE9IjcxNSIgeTE9IjI0OCIgeDI9Ijc4NSIgeTI9IjI0OCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdy0wNWEpIi8+CgogIDwhLS0gU3RhZ2UgNDogVmFsaWRhdGUgT0EgLS0+CiAgPGNpcmNsZSBjeD0iODQwIiBjeT0iMTU3IiByPSI5IiBmaWxsPSIjQTc4QkZBIi8+CiAgPHJlY3QgeD0iNzU1IiB5PSIxODUiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTI1IiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijg0MCIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj40LiBWYWxpZGF0ZSBPQXM8L3RleHQ+CiAgPHRleHQgeD0iODQwIiB5PSIyMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRlZXAgbW9uaXRvcmluZzwvdGV4dD4KICA8dGV4dCB4PSI4NDAiIHk9IjI0OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cmUtaW5qZWN0aW9uIGNvbXBsZXRlPC90ZXh0PgogIDx0ZXh0IHg9Ijg0MCIgeT0iMjc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Ib3N0cyByZXBvcnRpbmcgb248L3RleHQ+CiAgPHRleHQgeD0iODQwIiB5PSIyOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm5ldyB2ZXJzaW9uPC90ZXh0PgoKICA8IS0tIFdoeSBib3ggLS0+CiAgPHJlY3QgeD0iODAiIHk9IjM1MCIgd2lkdGg9Ijc3MCIgaGVpZ2h0PSIxMDUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjEwMCIgeT0iMzc1IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5XaHkgdGhpcyBvcmRlciAod2hlbiB1cGRhdGluZyBtYW51YWxseSk6PC90ZXh0PgogIDx0ZXh0IHg9IjEwMCIgeT0iMzk3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj7igKIgT25lQWdlbnRzIHJlYWNoIER5bmF0cmFjZSB0aHJvdWdoIHRoZSBBY3RpdmVHYXRlcyBpbiB0aGVpciBwYXRoLiBEeW5hdHJhY2UgaGFzIHNldCBhIG1pbmltdW0gQUcgdmVyc2lvbiBmb3IgYTwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjQxNCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+ICBPbmVBZ2VudCBjaGFuZ2UgKEFHIDEuMTU0KyBmb3IgNjQtYml0IGhvc3QgSURzKSDigJQgYSBmbG9vciBmb3Igb25lIGZlYXR1cmUsIG5vdCBhbiBBRyDiiaUgT25lQWdlbnQgcnVsZS48L3RleHQ+CiAgPHRleHQgeD0iMTAwIiB5PSI0MzEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPuKAoiBTeW50aGV0aWMgQUdzIGFyZSBub3QgaW4gdGhlIE9uZUFnZW50IHBhdGgg4oCUIHRoZWlyIG9yZGVyIGRvZXMgbm90IG1hdHRlcjsgdGhlIGJyb3dzZXIgaGFzIGl0cyBvd24gc3dpdGNoICjCpzYpLjwvdGV4dD4KICA8dGV4dCB4PSIxMDAiIHk9IjQ0OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+4oCiIFZhbGlkYXRpbmcgQUdzIGJlZm9yZSB0b3VjaGluZyBPbmVBZ2VudHMga2VlcHMgb25lIHZhcmlhYmxlIGNoYW5naW5nIGF0IGEgdGltZS48L3RleHQ+Cjwvc3ZnPgo=" alt="Update Sequencing — ActiveGates Before OneAgents" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Action |
+|-------|--------|
+| 1 | (Manual updates only — with auto-update on both tiers there is no order to manage) Update ActiveGates first; roll one at a time in HA pairs |
+| 2 | Validate AGs: connectivity, routes, extension reload, synthetic engine healthchecks |
+| 3 | Update OneAgents across host groups; respect update windows |
+| Note | Dynatrace has required a minimum AG version for a OneAgent change (AG 1.154+ for 64-bit host IDs) — a floor tied to one feature, not an AG ≥ OneAgent rule |
+| 4 | Validate OneAgents: deep monitoring re-injection, hosts reporting on new version |
+For environments where SVG doesn't render
+-->
+<h3>What &quot;first&quot; means in practice</h3>
+<ul>
+<li><strong>Both tiers on auto-update:</strong> nothing to do — this is the configuration to aim for.</li>
+<li><strong>OneAgents automatic, ActiveGates manual:</strong> the riskiest combination. Every OneAgent update can land in front of an AG that has not moved. Put the AGs back on auto-update, or on an update window that runs <em>before</em> the OneAgent window.</li>
+<li><strong>Releases that change both tiers:</strong> when a release note ties a OneAgent capability to an ActiveGate version, the order is explicit: schedule the AG update window first, complete it, validate, then schedule the OneAgent window.</li>
+<li><strong>Mixed environments:</strong> If you have both auto-updating and manually-updated AGs, the manual ones are the constraint — they bound how fast the AG tier as a whole advances.</li>
+</ul>
+<p>If your tenant uses no private ActiveGates (OneAgents connect directly to Dynatrace SaaS), this sequencing concern doesn't apply. The ordering question is about the OneAgent path only; for AGs that don't route OneAgent traffic — a synthetic AG, which cannot (§6), or a dedicated extension or cloud-monitoring AG — use the role guidance in §6 instead.</p>
+<p><strong>Cross-reference: FAQ-04: How to manage OneAgent updates on Dynatrace SaaS</strong> for the OneAgent-side of the same problem.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate-classic/operation/update-activegate-classic">Update ActiveGate (Dynatrace Classic) (DT docs)</a> — <em>&quot;When a new version is available, the installation package is downloaded and installed automatically. This is the default setting for new environments; existing environments retain their current setting.&quot;</em> (read 10/27/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/oneagent-update">OneAgent update (DT docs)</a> — <em>&quot;By default, global automatic OneAgent updates are turned on, but this is configurable at the global, host group, and host level.&quot;</em> (re-read 09/28/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End-of-support announcements (DT docs)</a> — <em>&quot;all ActiveGates earlier than version 1.154 must be upgraded to newer releases in order to properly support OneAgent 64-bit IDs. Failure to do this will result in OneAgent being unable to communicate with the Dynatrace Cluster via these earlier versions of ActiveGate.&quot;</em> (re-read 09/28/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/update-activegate">Update ActiveGate (DT docs)</a> — <em>&quot;Auto-update and One-click update functionalities are limited to host-based—using installer—deployment only.&quot;</em>; <em>&quot;You don't need to uninstall your current version of ActiveGate. Just install the new version over the old one, and the ActiveGate configuration will be migrated.&quot;</em> (re-read 10/27/2026); <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate-classic/operation/update-activegate-classic">Update ActiveGate (Dynatrace Classic) (DT docs)</a> — <em>&quot;One-click update—to update immediately, select Update. This option is available only when the Automatic updates at earliest convenience toggle is turned off.&quot;</em>; <em>&quot;The yellow warning icon indicates that your ActiveGate is behind by more than five versions.&quot;</em> (read 10/27/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/oneagent-update">OneAgent update (DT docs)</a> — <em>&quot;Use the Target version dropdown to set the version that serves as the default for new deployments and as the update target for existing OneAgents.&quot;</em>; <em>&quot;For host-group- or host-level overrides, open Configure updates from the entity's details in Fleet Management&quot;</em>; <em>&quot;Update windows currently do not apply in Kubernetes environments.&quot;</em> (re-read 10/22/2026)</sub></li>
+<li><sub>Neither update page states an ActiveGate-before-OneAgent order, and no general ActiveGate/OneAgent compatibility rule is documented — the What's new hub gives only support windows (<em>&quot;OneAgent 9 months 12 months ActiveGate 9 months 12 months&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new">What's new (DT docs)</a>, re-read 10/02/2026). The standing rule is community practice generalised from the 1.154 case, and is marked as such in the body.</sub></li>
+</ul>
+</blockquote>
+<p><a id="ha"></a></p>
+<h2>5. HA Pairs and Rolling Updates</h2>
+<p>In community practice, HA pairs are the norm for any ActiveGate role serving OneAgent traffic, synthetic, or cloud monitoring in production. The update pattern is:</p>
+<ol>
+<li><strong>Roll one AG at a time.</strong> Update the first AG; wait for it to re-connect and resume serving traffic.</li>
+<li><strong>Validate</strong> before touching the second AG. Routes registered, extensions reloaded, no error spikes on the AG itself or on dependents.</li>
+<li><strong>Update the second AG.</strong></li>
+</ol>
+<p>With auto-update on, each AG updates on its own schedule (on the Classic path, an availability check every 30 minutes), so in community practice the two restarts usually land at different times. Usually is not always: nothing in the documented mechanism staggers them, so if a simultaneous update is unacceptable, put the pair members in different update windows (§2). The pattern needs to be deliberate when:</p>
+<ul>
+<li>You've disabled auto-update on both AGs and are running manual updates → roll them yourself, one at a time.</li>
+<li>You use update windows → give the two pair members different windows (per-AG settings override the environment default since SaaS 1.343).</li>
+<li>You're rolling out a known-risky update (one whose release notes flag a breaking change) → validate the first AG fully before the second.</li>
+</ul>
+<p><strong>Why not both at once:</strong> while an AG installs and re-connects, it isn't serving traffic. If both update simultaneously, you have a connectivity gap. HA pairs only deliver no-gap operation when at least one of them is up.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate-classic/operation/update-activegate-classic">Update ActiveGate (Dynatrace Classic) (DT docs)</a> — <em>&quot;The availability check runs at 30-minute intervals.&quot;</em> <em>&quot;…currently in the process of installing it or re-connecting to the server.&quot;</em> <strong>Derived:</strong> staggering an HA pair follows from each AG going through that install-and-reconnect step plus the reason for running a pair; the docs describe per-AG updates, not the staggering.</sub></p>
+</blockquote>
+<p><a id="roles"></a></p>
+<h2>6. Roles and Update Implications</h2>
+<p>ActiveGate roles bundle different components — and the update affects each role's components differently.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+QWN0aXZlR2F0ZSBSb2xlcyDigJQgVXBkYXRlIENvbnNpZGVyYXRpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkVhY2ggcm9sZSBidW5kbGVzIGRpZmZlcmVudCBjb21wb25lbnRzIOKAlCB0aGUgQUcgdmVyc2lvbiBjaGFuZ2VzIG1vcmUgdGhhbiBqdXN0IHJvdXRpbmc8L3RleHQ+CgogIDwhLS0gUm91dGluZyBBRyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMTAwIiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxNDUiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Um91dGluZyAvIE9BIHRyYWZmaWM8L3RleHQ+CiAgPHRleHQgeD0iMTQ1IiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZvcndhcmRzIE9uZUFnZW50IHRyYWZmaWM8L3RleHQ+CiAgPHRleHQgeD0iMTQ1IiB5PSIxNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRvIER5bmF0cmFjZSBTYWFTPC90ZXh0PgogIDx0ZXh0IHg9IjE0NSIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5VcGRhdGUgaW1wYWN0OjwvdGV4dD4KICA8dGV4dCB4PSIxNDUiIHk9IjIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QnJpZWYgZ2FwIHdoaWxlIHRoZSBBRzwvdGV4dD4KICA8dGV4dCB4PSIxNDUiIHk9IjIzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+aW5zdGFsbHMgYW5kIHJlLWNvbm5lY3RzPC90ZXh0PgogIDx0ZXh0IHg9IjE0NSIgeT0iMjU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5IQSBwYWlyIOKGkiByb2xsIG9uZSBhdCBhIHRpbWU8L3RleHQ+CgogIDwhLS0gU3ludGhldGljIEFHIC0tPgogIDxyZWN0IHg9IjI2NSIgeT0iMTAwIiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIzNzAiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+U3ludGhldGljIChwcml2YXRlKTwvdGV4dD4KICA8dGV4dCB4PSIzNzAiIHk9IjE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UnVucyBIVFRQIGFuZCBicm93c2VyPC90ZXh0PgogIDx0ZXh0IHg9IjM3MCIgeT0iMTcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5tb25pdG9ycyBmcm9tIHlvdXIgbmV0d29yazwvdGV4dD4KICA8dGV4dCB4PSIzNzAiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+VXBkYXRlIGltcGFjdDo8L3RleHQ+CiAgPHRleHQgeD0iMzcwIiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkVuZ2luZSArIGJyb3dzZXIgdXBkYXRlIHRvbzwvdGV4dD4KICA8dGV4dCB4PSIzNzAiIHk9IjIzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+KExpbnV4OiBwZXItbG9jYXRpb24gc3dpdGNoKSDigJQ8L3RleHQ+CiAgPHRleHQgeD0iMzcwIiB5PSIyNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnZhbGlkYXRlIG1vbml0b3JzIHBvc3QtdXBkYXRlPC90ZXh0PgoKICA8IS0tIEV4dGVuc2lvbi9FRjIgQUcgLS0+CiAgPHJlY3QgeD0iNDkwIiB5PSIxMDAiIHdpZHRoPSIyMTAiIGhlaWdodD0iMTcwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjU5NSIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5FeHRlbnNpb24gRnJhbWV3b3JrPC90ZXh0PgogIDx0ZXh0IHg9IjU5NSIgeT0iMTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Ib3N0cyBFRiAyLjAgZXh0ZW5zaW9ucyDigJQ8L3RleHQ+CiAgPHRleHQgeD0iNTk1IiB5PSIxNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNOTVAsIGN1c3RvbSwgdmVuZG9yPC90ZXh0PgogIDx0ZXh0IHg9IjU5NSIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5VcGRhdGUgaW1wYWN0OjwvdGV4dD4KICA8dGV4dCB4PSI1OTUiIHk9IjIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RXh0ZW5zaW9uIEV4ZWN1dGlvbiBDb250cm9sbGVyPC90ZXh0PgogIDx0ZXh0IHg9IjU5NSIgeT0iMjM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj51cGRhdGVzIHdpdGggdGhlIEFHIOKAlCB2ZXJpZnk8L3RleHQ+CiAgPHRleHQgeD0iNTk1IiB5PSIyNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmFsbCBleHRlbnNpb25zIHJlc3VtZSBpbmdlc3Q8L3RleHQ+CgogIDwhLS0gQ2xvdWQgbW9uaXRvcmluZyBBRyAtLT4KICA8cmVjdCB4PSI3MTUiIHk9IjEwMCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iODIwIiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkNsb3VkIG1vbml0b3Jpbmc8L3RleHQ+CiAgPHRleHQgeD0iODIwIiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkFXUyAvIEF6dXJlPC90ZXh0PgogIDx0ZXh0IHg9IjgyMCIgeT0iMTcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5tb25pdG9yaW5nIG1vZHVsZXM8L3RleHQ+CiAgPHRleHQgeD0iODIwIiB5PSIyMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlVwZGF0ZSBpbXBhY3Q6PC90ZXh0PgogIDx0ZXh0IHg9IjgyMCIgeT0iMjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BV1MgLyBBenVyZSBtb2R1bGVzIHJ1bjwvdGV4dD4KICA8dGV4dCB4PSI4MjAiIHk9IjIzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+aW4gdGhlIEFHIOKAlCBjaGVjayBjb25uZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iODIwIiB5PSIyNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnN0YXR1cyBwYWdlcyBhZnRlciB1cGRhdGU8L3RleHQ+CgogIDwhLS0gQ29tbW9uIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIzMDUiIHdpZHRoPSI4ODUiIGhlaWdodD0iMTU1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI2MCIgeT0iMzMwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5Db21tb24gdG8gYWxsIHJvbGVzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIzNTUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPuKAoiBUYXJnZXQgdmVyc2lvbiBhbmQgdXBkYXRlIG1vZGUgYXJlIHNldCBmb3IgdGhlIGVudmlyb25tZW50IGluIEZsZWV0IG1hbmFnZW1lbnQ7IHBlci1BRyBzZXR0aW5ncyBvdmVycmlkZSB0aGVtIChTYWFTIDEuMzQzKykuPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIzNzIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPiAgR2l2ZSBIQSBwYWlyIG1lbWJlcnMgZGlmZmVyZW50IHVwZGF0ZSB3aW5kb3dzIHNvIHRoZXkgbmV2ZXIgdXBkYXRlIGF0IHRoZSBzYW1lIHRpbWUuPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIzOTQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPuKAoiBDbGFzc2ljOiBhdmFpbGFiaWxpdHkgY2hlY2sgZXZlcnkgMzAgbWludXRlczsgd2l0aCBhdXRvLXVwZGF0ZSBvZmYsIGEgb25lLWNsaWNrIFVwZGF0ZSBhcHBlYXJzIHdoZW4gYSBuZXcgdmVyc2lvbiBhcnJpdmVzLjwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNDE2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj7igKIgQ29udGFpbmVyaXplZCBBY3RpdmVHYXRlcyAoYW55IHJvbGUpIGFyZSB1cGRhdGVkIHRocm91Z2ggeW91ciBjb250YWluZXIgdG9vbGluZyDigJQgbm90IHRoZXNlIHNldHRpbmdzLjwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNDM4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj7igKIgT24gTWFuYWdlZDogQ2x1c3RlciBBY3RpdmVHYXRlcyBleGlzdCBhbmQgaGF2ZSB0aGVpciBvd24gdXBkYXRlIHBhdGguIFRoaXMgRkFRIGlzIFNhYVMgb25seSDigJQgQ2x1c3RlciBBRyBpc24ndCByZWxldmFudCBoZXJlLjwvdGV4dD4KPC9zdmc+Cg==" alt="ActiveGate Roles — Update Considerations" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Role | Update impact |
+|------|---------------|
+| Routing / OA traffic | Brief gap while the AG installs and re-connects; roll HA pair one at a time |
+| Synthetic (private) | Synthetic engine and browser update too (Linux: per-location browser switch; Windows: always) — validate monitors post-update |
+| Extension Framework 2.0 | Extension Execution Controller updates with the AG — verify all extensions resume ingest |
+| Cloud monitoring | AWS/Azure monitoring modules run in the AG — check connector status after update |
+For environments where SVG doesn't render
+-->
+<h3>Routing / OneAgent traffic</h3>
+<p>The &quot;default&quot; role. The update causes a brief gap while the AG installs and re-connects. In an HA pair the partner absorbs the traffic. For single AGs, this is the role most affected by the update gap.</p>
+<h3>Synthetic (private locations)</h3>
+<p>Private synthetic locations are hosted by Synthetic-enabled ActiveGates. That is a dedicated purpose: <em>&quot;A clean ActiveGate installation for the purpose of synthetic monitoring disables all other ActiveGate features, including communication with OneAgents&quot;</em> — so a synthetic AG is <strong>not in the OneAgent path</strong>, and the ActiveGates-before-OneAgents order in §4 does not apply to it.</p>
+<p>What differs is what updates alongside it:</p>
+<ul>
+<li><strong>The Synthetic engine and the browser</strong> (Chromium on RHEL and Rocky Linux; Chrome for Testing on Ubuntu, Amazon Linux 2023 and Oracle Linux, and bundled with the Windows installer). The browser is updated during ActiveGate and Synthetic engine updates. On <strong>Windows</strong> it always is. On <strong>Linux</strong> it depends on the private location's <em>Enable Chrome(-ium) auto-update</em> switch — on by default, set <strong>per location</strong>, not per AG. To hold a browser version, turn that switch off <em>before</em> triggering the AG update, then update the browser by hand on every AG in the location.</li>
+<li><strong>A browser support window.</strong> Dynatrace supports browser versions no more than two behind the latest supported one for the ActiveGate release.</li>
+<li><strong>Extra network paths.</strong> Browser updates need <code>synthetic-packages.s3.amazonaws.com</code> plus the OS package repositories; offline sites update the browser manually, and a custom repository works only with the auto-update switch on.</li>
+<li><strong>One version per location.</strong> <em>&quot;We strongly recommend updating all ActiveGates per location to the same version.&quot;</em> Roll them one at a time, but do not leave a location on mixed versions.</li>
+<li><strong>An OS ceiling.</strong> Dynatrace announced plans, from version 1.326, to stop Synthetic-enabled AGs on Red Hat / Oracle Linux / Rocky Linux 8 from updating beyond 1.325 — plan the OS move for any synthetic AG still on a version-8 OS rather than relying on updates.</li>
+<li><strong>A lagging status.</strong> Deployment Status refreshes browser versions hourly, so the displayed version can trail the real one by up to an hour.</li>
+</ul>
+<p>Post-update validation: re-run a representative sample of browser monitors before the next scheduled execution, and check that HTTP monitors continue to pass. In community practice, synthetic flake immediately after an AG update is more often a browser change than a problem with the monitored site — check that first.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations">Private Synthetic locations (DT docs)</a> — <em>&quot;A clean ActiveGate installation for the purpose of synthetic monitoring disables all other ActiveGate features, including communication with OneAgents.&quot;</em>; <em>&quot;Chromium autoupdate takes place during manual as well as automatic ActiveGate and Synthetic engine updates.&quot;</em>; <em>&quot;on Windows-based ActiveGates, Chromium is always updated during Synthetic engine updates.&quot;</em>; <em>&quot;we plan to introduce mechanisms preventing Synthetic-enabled ActiveGates on Red Hat/Oracle Linux/Rocky Linux 8 from being updated beyond version 1.325.&quot;</em> (re-read 09/28/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345">ActiveGate 1.345 release notes (DT docs)</a> — <em>&quot;Chrome for Testing 151 is bundled with the Windows ActiveGate installer.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/private-synthetic-locations/manage-private-synthetic-locations">Manage private Synthetic locations in Classic (DT docs)</a> — <em>&quot;We strongly recommend updating all ActiveGates per location to the same version.&quot;</em>; <em>&quot;the status is updated once every hour, so it may take up to an hour to refresh the browser version displayed for your ActiveGate in Deployment Status.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<h3>Extension Framework 2.0</h3>
+<p>Remote EF 2.0 extensions run in the ActiveGate's Extension Execution Controller (EEC), which is <em>&quot;automatically installed and managed with each OneAgent and ActiveGate configuration&quot;</em> — so it moves with the AG version, while the extensions themselves keep their own versions. In community practice the extensions come back cleanly after an update; when one does not, it is usually a configuration problem that the reload surfaced rather than the new version. The exception is a release that changes the runtime underneath the extensions, which 1.349 does.</p>
+<blockquote>
+<p><strong>Breaking (ActiveGate and OneAgent 1.349 — published 11/05/2026, staged rollout from 11/09/2026): Python extensions move to Python 3.14.</strong> Verbatim: <em>&quot;With the end of support, Extensions Framework will use Python 3.14 to run Python-based extensions.&quot;</em> and <em>&quot;Python 3.10 will no longer be distributed starting with OneAgent version 1.349+ and ActiveGate version 1.349+.&quot;</em> The release notes' action plan is to <em>&quot;Update your Python-based extensions to a version built with a Python 3.14-compatible dt-extensions-sdk before you update OneAgent and ActiveGate to version 1.349&quot;</em>, because <em>&quot;Extensions that are bundled with an older SDK might fail to start after the upgrade.&quot;</em> For official Dynatrace extensions, the Python 3.10 end-of-support page lists the minimum compatible version per extension. Do this before 1.349 reaches the ActiveGates that run them — on auto-update, that is a matter of weeks — and make the extension check in the post-update validation below explicit for this release. The same page warns that Python 3.14 <em>&quot;can use more memory because of runtime and garbage-collection changes&quot;</em>, which matters on an ActiveGate already near its memory guideline.</p>
+</blockquote>
+<p>Post-update validation: check that every expected extension reports a healthy status after the update and that their ingest streams (custom metrics, logs, events) resume within the expected interval.</p>
+<h3>Cloud monitoring</h3>
+<p>The AWS and Azure monitoring capabilities run as ActiveGate modules (they appear as <code>AWS_MONITORING</code> / <code>AZURE_MONITORING</code> in the node's <code>modules</code> list — §7). Whether you need one at all depends on the cloud: for AWS, <em>&quot;to monitor more than 2,000 AWS resources, you must install an ActiveGate&quot;</em>; for Azure, <em>&quot;a dedicated ActiveGate is required to poll metadata and metrics from Azure APIs&quot;</em>. In community practice their behavior is stable across versions. Post-update validation: the cloud integration's status page shows healthy connections, and the data lag for cloud-imported metrics matches the pre-update baseline.</p>
+<h3>Common across all roles</h3>
+<ul>
+<li>On Latest Dynatrace, target version and update mode are set in Fleet management settings, and per-AG settings override them (SaaS 1.343+) — that is how a role-specific schedule is expressed. On Dynatrace Classic, the toggle is per-AG.</li>
+<li>The Classic-path availability check runs every 30 minutes.</li>
+<li>Containerized AGs (any role) are updated through your container tooling, not these settings.</li>
+</ul>
+<p><em>In community practice the per-role validation in §7 is the checklist teams converge on; Dynatrace documents each role's setup but publishes no post-update validation list, so treat it as a starting point.</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate-classic/operation/update-activegate-classic">Update ActiveGate (Dynatrace Classic) (DT docs)</a> — <em>&quot;The availability check runs at 30-minute intervals.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">SaaS 1.343 release notes (DT docs)</a> — <em>&quot;Per-ActiveGate settings can override environment defaults&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/concepts">About Extensions (DT docs)</a> — <em>&quot;EEC is automatically installed and managed with each OneAgent and ActiveGate configuration.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349">ActiveGate 1.349 release notes (DT docs)</a> — <em>&quot;Rollout start on Nov 09, 2026&quot;</em>; the Python 3.14 breaking change quoted above, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/end-of-support/python-extension-runtime-update">Python 3.10 end of support (DT docs)</a> — updated 10/16/2026; the distribution and memory quotes above, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/capabilities/routing-monitoring-purpose">ActiveGate purposes (DT docs)</a> — AWS and Azure monitoring requirements quoted above (read 09/28/2026). The <code>modules</code> values were read from a live <code>ACTIVEGATE</code> node, 09/28/2026.</sub></p>
+</blockquote>
+<p><a id="validation"></a></p>
+<h2>7. Validation After Update</h2>
+<p>Post-update validation for ActiveGates is more concentrated than for OneAgents — fewer entities, but more roles bundled into each.</p>
+<h3>Core validation set</h3>
+<ol>
+<li>
+<p><strong>AG version reported.</strong> The AG status page reflects the new version. To check the whole fleet at once in DQL, query the Smartscape node — this is the only working DQL path, because <strong>there is no classic ActiveGate entity type</strong>: <code>dt.entity.active_gate</code>, <code>dt.entity.environment_active_gate</code>, and <code>dt.entity.environment_activegate</code> do not error — they return zero rows with only a WARNING notification (<code>ENTITY_DATA_OBJECT_UNDEFINED</code>: <code>The entity type dt.entity.active_gate wasn't found.</code>), which is what makes them dangerous. Use the Smartscape node, with an explicit window:</p>
+<pre><code class="language-dql">smartscapeNodes &quot;ACTIVEGATE&quot;, from:-7d
+| fieldsAdd stale = lifetime[end] &lt; now() - 30m
+| fields name, dt.active_gate.version, is_containerized, stale, lifetime
+</code></pre>
+<p>The <code>from:</code> matters. The Classic update page names a failure where an ActiveGate <em>&quot;downloaded the new installer but then failed to re-connect to the server (was lost)&quot;</em>. A lost AG stops refreshing its node, and without <code>from:</code> the query sees only the default two-hour window — so the lost AG drops out of the result and the inventory looks clean exactly when one is missing. Nodes not seen inside the timeframe are not returned at all. A <code>stale</code> row is an AG that stopped reporting; for a containerized AG it may simply be a pod that was replaced, so check the name for a fresh twin.</p>
+<p>The node also carries <code>dt.active_gate.group.name</code>, <code>dt.network_zone.id</code>, <code>is_containerized</code>, <code>is_fips</code>, <code>modules[]</code>, and <code>os.type</code> — enough to segment the fleet by role and topology in the same query. The SaaS ActiveGate listing endpoints (<code>GET /api/v2/activeGates</code> and friends) were deprecated in ActiveGate 1.343 in favor of this node, so automation that inventories AGs should move here too. See FAQ-16 §2 for the full classic-to-Smartscape mapping and why ActiveGate is the odd row in it.</p>
+</li>
+<li>
+<p><strong>Routes registered.</strong> Traffic resumes flowing through the AG, and the hosts routed through it keep reporting.</p>
+</li>
+<li>
+<p><strong>Extensions reloaded.</strong> Every expected EF 2.0 extension reports a healthy status. Ingest streams from each extension resume within their expected interval.</p>
+</li>
+<li>
+<p><strong>Synthetic monitors functioning.</strong> If the AG hosts a private synthetic location, run a representative monitor manually and confirm pass. Watch the next scheduled execution.</p>
+</li>
+<li>
+<p><strong>Cloud connectors connected.</strong> If the AG runs cloud monitoring, the connector status pages show healthy and the data lag for cloud metrics has returned to baseline.</p>
+</li>
+<li>
+<p><strong>Synthetic browser version.</strong> On a synthetic AG, the browser version matches what you expect for the location — allowing for the hourly status refresh (§6).</p>
+</li>
+</ol>
+<h3>Validation timing</h3>
+<p><em>In community practice — Dynatrace publishes no post-update timing guidance:</em></p>
+<ul>
+<li><strong>Routing-only AGs:</strong> validation can be near-instant — traffic either flows or it doesn't.</li>
+<li><strong>Synthetic AGs:</strong> allow at least one full monitor execution cycle before declaring success. Some browser regressions only appear under load.</li>
+<li><strong>EF 2.0 AGs:</strong> allow at least one full extension scrape cycle (typically 1 minute for fast extensions, 5–15 minutes for slow ones) before declaring success.</li>
+<li><strong>Cloud monitoring AGs:</strong> allow at least one cloud-API poll cycle (typically 1–5 minutes) plus normal ingestion lag.</li>
+</ul>
+<p>For change-controlled environments, document the validation set and timing as part of the change ticket so the post-update verification is auditable.</p>
+<p><strong>A note on what the version query will show you.</strong> Running the query above across a fleet is the fastest way to see version skew and deployment mix. On the validation tenant on 10/02/2026 the default two-hour window returned 5 ActiveGates, while <code>from:-7d</code> returned 15 nodes — 10 of them stale, mixing <code>1.345.56</code> and <code>1.347.34</code>, and all but one containerized (<code>is_containerized == true</code>), i.e. updated through the Dynatrace Operator rather than any setting in this FAQ. Read the result as a fleet inventory, not a pass/fail check.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate-classic/operation/update-activegate-classic">Update ActiveGate (Dynatrace Classic) (DT docs)</a> — <em>&quot;ActiveGate downloaded the new installer but then failed to re-connect to the server (was lost).&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343">ActiveGate 1.343 release notes (DT docs)</a> — <em>&quot;These are replaced by the ACTIVEGATE Smartscape node.&quot;</em> The <code>smartscapeNodes &quot;ACTIVEGATE&quot;</code> query, the listed node fields, and the three <code>dt.entity.*active_gate*</code> spellings (each returns an <code>ENTITY_DATA_OBJECT_UNDEFINED</code> warning from <code>dtctl verify query</code>) were re-run against a live Dynatrace tenant 09/28/2026; the windowed query above was executed 10/02/2026 (15 nodes, no notifications), and <code>fetch dt.entity.active_gate</code> re-checked the same day — <code>records: []</code> with an <code>ENTITY_DATA_OBJECT_UNDEFINED</code> WARNING. <strong>Derived:</strong> the validation checklist combines the documented update mechanic with role-specific operating practice; it is not a single documented checklist.</sub></p>
+</blockquote>
+<p><a id="rollback"></a></p>
+<h2>8. Rollback Considerations</h2>
+<p>ActiveGate rollback is less common than OneAgent rollback (fewer AGs, more deliberate updates), but the mechanic is similar:</p>
+<ul>
+<li><strong>The docs describe going forward, not back.</strong> The update page documents installing a new version over the old one; it does not describe a downgrade. Plan a rollback as uninstall plus a clean install of the older version, and confirm the path with Dynatrace support first.</li>
+<li><strong>Capture configuration first.</strong> The update page names <code>custom.properties</code> and <code>launcheruserconfig.conf</code> as where the configuration lives; back them up, along with any custom certificates, before uninstalling.</li>
+<li><strong>Auto-update will undo your rollback.</strong> An older AG with auto-update on will move forward again. On Latest Dynatrace, pin that AG's <strong>target version</strong>; on Classic, turn its toggle off — and put it back as soon as the issue is resolved.</li>
+<li><strong>HA partner consideration.</strong> If you're rolling back one AG in an HA pair because of a version-specific issue, the partner is still on the new version. In community practice a mixed-version pair is a short-lived state, not a long-term one; for synthetic locations Dynatrace recommends one version per location (§6).</li>
+<li><strong>Extensions and synthetic monitors may need re-validation.</strong> Rolling back the AG version rolls back the Extension Execution Controller and the Synthetic engine — same considerations as forward updates apply in reverse.</li>
+</ul>
+<p>In community practice, rollback is usually a containment move while the underlying issue is investigated. The expected resolution path is <em>fix forward</em> — patch from Dynatrace, configuration adjustment, or extension fix — rather than long-term rollback. Plan rollback as a short-lived state, not a steady state.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/update-activegate">Update ActiveGate (DT docs)</a> — <em>&quot;These two files will not be overwritten during an update, but it's good practice to back them up before updating the ActiveGate.&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/operation/uninstall-activegate">Uninstall ActiveGate (DT docs)</a>. The rollback sequence itself is community practice, marked as such in the body.</sub></p>
+</blockquote>
+<p><a id="pitfalls"></a></p>
+<h2>9. Common Pitfalls</h2>
+<table>
+<thead>
+<tr>
+<th>Pitfall</th>
+<th>Why it happens</th>
+<th>What to do instead</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Taking ActiveGates off auto-update while OneAgents stay on it.</strong></td>
+<td>AG restarts feel riskier than agent restarts, so the AG tier gets frozen first.</td>
+<td>Put the AGs back on auto-update, or on an update window that runs before the OneAgent window. Where both are manual, AGs first, OneAgents second (§4).</td>
+</tr>
+<tr>
+<td><strong>Updating both AGs in an HA pair simultaneously.</strong></td>
+<td>Auto-update on both, no staggering enforced; or one update window applied to both.</td>
+<td>Give the pair members different update windows, or roll manual updates one at a time. Validate before touching the second.</td>
+</tr>
+<tr>
+<td><strong>Treating a synthetic failure right after an update as a site outage.</strong></td>
+<td>A monitor that relied on specific browser behavior fails after the browser version changes.</td>
+<td>Check the browser version first (§6) before declaring an outage; in community practice it is the usual cause of failures immediately after an update.</td>
+</tr>
+<tr>
+<td><strong>Not checking extensions after an AG update.</strong></td>
+<td>The Extension Execution Controller moves with the AG, so every extension on it comes back on the new version; a problem shows up as missing data, not an error.</td>
+<td>Treat extension status and ingest as part of the AG-update change window (§7).</td>
+</tr>
+<tr>
+<td><strong>Disabling auto-update on a single AG and forgetting — leaving a known vulnerability unpatched on in-path infrastructure.</strong></td>
+<td>&quot;We'll update manually.&quot; Nobody does. The cost is usually described as version drift, which understates it: AG security fixes ship <em>inside</em> ordinary version updates (ActiveGate 1.343 backported the fix for CVE-2026-40984 and CVE-2026-40983 into the ActiveGate for Kubernetes image), so a forgotten AG is not merely behind on features — it holds an open vulnerability window on a component that terminates agent connections and holds connector credentials, for as long as nobody notices.</td>
+<td>Either run HA so you can leave auto-update on — the recommended answer — or pair manual mode with a named owner, a calendar mechanism, <strong>and</strong> a check that the manual path fits inside your vulnerability-remediation SLA (§3). If it does not fit, that is the signal to deploy the second AG rather than to tighten the reminder.</td>
+</tr>
+<tr>
+<td><strong>Disabling ActiveGate auto-update to freeze the synthetic browser.</strong></td>
+<td>The browser changes during AG updates, so the AG switch looks like the control.</td>
+<td>Use the private location's <em>Enable Chrome(-ium) auto-update</em> switch (Linux) instead, and keep the AG itself updating (§6).</td>
+</tr>
+<tr>
+<td><strong>Not validating cloud connectors after an update.</strong></td>
+<td>Connector behavior is usually stable; teams skip the check.</td>
+<td>Glance at connector status pages and ingest-lag for cloud metrics post-update — a quick check that catches the rare regression.</td>
+</tr>
+<tr>
+<td><strong>Automating Managed AG auto-update against <code>targetVersion</code> / <code>updateWindows</code>.</strong></td>
+<td>Both properties were added to the Cluster API v2 <code>autoUpdate</code> endpoints in 1.342 and read as a stable capability.</td>
+<td>API 1.344 removes both from six Cluster API endpoints (§2). Strip them from those Managed request bodies once your cluster is on 1.344. API 1.350 (staged rollout from 11/04/2026) lists them again on the same endpoints (§2). On SaaS the Environment API v2 still documents both (§2).</td>
+</tr>
+</tbody>
+</table>
+<p><em>These pitfalls are community practice, observed across fleets often enough to flag; Dynatrace does not document them as anti-patterns.</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/update-activegate">Update ActiveGate (DT docs)</a> — update mechanic, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate-classic/operation/update-activegate-classic">Update ActiveGate (Dynatrace Classic) (DT docs)</a> — check interval, <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343">ActiveGate 1.343 release notes (DT docs)</a> — <em>&quot;Backported a security fix that addresses CVE-2026-40984 and CVE-2026-40983 in the ActiveGate for Kubernetes image&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-344">API changelog 1.344 (DT docs)</a> — Cluster API v2 <code>/activeGates/autoUpdate</code>: <em>&quot;Removed properties: targetVersion , updateWindows&quot;</em>, flagged <em>&quot;Broken compatibility&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>10. Recommended Approach</h2>
+<p>For most SaaS tenants with private ActiveGates, the right configuration is:</p>
+<ol>
+<li><strong>Deploy ActiveGates in HA pairs</strong> for any role that is in the path of OneAgent traffic, synthetic monitors, or cloud monitoring. Single-AG architectures are a transitional state, not a target — and HA is what makes leaving auto-update on defensible, which is why it is item 1 rather than a nice-to-have.</li>
+<li><strong>Leave auto-update enabled on every ActiveGate.</strong> Where a role needs a known update time (synthetic, EF 2.0-heavy, change-controlled), give those AGs an <strong>update window</strong> rather than switching updates off — per-AG settings override the environment default.</li>
+<li><strong>On synthetic AGs, control the browser separately.</strong> If a browser version must be held, turn off the private location's browser auto-update switch (Linux) and keep within the two-version support window; do not freeze the AG to freeze the browser.</li>
+<li><strong>Update containerized AGs through the Dynatrace Operator</strong>, on the same cadence — none of the settings above reach them.</li>
+<li><strong>For any AG you do set to manual, name an owner and confirm the manual path fits inside your vulnerability-remediation SLA</strong> — security fixes arrive inside ordinary AG version updates, so a manual AG with no owner is an open vulnerability window, not just a stale version (§3, §9). Where the SLA cannot be met, the answer is HA plus auto-update, not a tighter reminder.</li>
+<li><strong>Keep both tiers on automatic updates wherever you can; where either is manual, update ActiveGates before OneAgents</strong> (§4). See FAQ-04 for the OneAgent-side discussion.</li>
+<li><strong>Roll HA pairs one at a time.</strong> Validate the first AG before touching the second.</li>
+<li><strong>Validate per-role after every update</strong> — routes, extensions, synthetic monitors, cloud connectors — at the right cadence for each role. <code>smartscapeNodes &quot;ACTIVEGATE&quot;, from:-7d</code> gives you the fleet-wide version inventory in one query (§7) — keep the <code>from:</code>, or a lost AG drops out of it.</li>
+<li><strong>Plan rollback as a short containment</strong>, not a steady state. Pin the target version (or turn off the toggle) on a rolled-back AG to prevent it moving forward — and put the rollback on the same SLA clock as item 5, since a rolled-back AG is by definition on an older version.</li>
+</ol>
+<p><strong>On Latest Dynatrace</strong>, item 2 is the update mode in Fleet management settings: <em>auto-update during an update window</em> gives a known update time without leaving updates to a manual reminder, which answers most of the item 5 concern. On Dynatrace Classic, the Classic Update ActiveGate page documents only the per-AG toggle and the one-click <strong>Update</strong> — so there, leaving the toggle on is the automatic path; check whether your Classic settings also offer the windowed mode described in the SaaS 1.343 notes (§2).</p>
+<p>For tenants where OneAgents connect directly to Dynatrace SaaS (no routing ActiveGates):</p>
+<ul>
+<li>The sequencing concern doesn't apply for routing.</li>
+<li>The role-specific concerns still apply for any specialized AGs (synthetic, EF 2.0, cloud monitoring) you do run.</li>
+<li>The HA-pair pattern still applies to specialized AGs in the same way.</li>
+</ul>
+<h2>Summary</h2>
+<p>ActiveGate update management is operationally distinct from OneAgent update management — fewer AGs, more roles bundled into each, more concentrated update impact. The right default is the same for every role — auto-update, with update windows where a role needs a known time and the private-location browser switch where a synthetic browser version must be held; automatic updates on both tiers remove the sequencing question, and where either tier is manual, ActiveGates go first. The most common failure modes are simultaneous updates of HA pair members, OneAgents auto-updating ahead of manually-updated AGs, and disabled auto-update without a calendar mechanism — the last of which is a security exposure, not merely version drift, because AG security fixes ship inside ordinary version updates.</p>
+<h2>Next Steps</h2>
+<ul>
+<li>Inventory your ActiveGates by role, HA topology, and current version — <code>smartscapeNodes &quot;ACTIVEGATE&quot;, from:-7d | fields name, dt.active_gate.version, lifetime</code> (§7).</li>
+<li>Convert any single-AG architectures serving production roles to HA pairs.</li>
+<li>Leave auto-update on for every AG; use update windows (not &quot;off&quot;) where a role needs a known time, and record an owner for any AG left on manual.</li>
+<li>Check the manual-mode AGs against your vulnerability-remediation SLA; where the SLA cannot be met, plan the second AG.</li>
+<li>If you automate Dynatrace Managed AG auto-update, check your request bodies against the API 1.344 change — <code>targetVersion</code> and <code>updateWindows</code> are gone from six Cluster API endpoints (§2), and API 1.350 (staged rollout from 11/04/2026) lists them again on the same six.</li>
+<li>Confirm auto-update is actually on for your ActiveGates — existing environments keep their earlier setting. Where it is off, confirm AG versions are at or ahead of the OneAgents behind them.</li>
+<li>Read <strong>FAQ-04</strong> for the OneAgent-side of the same problem, and <strong>FAQ-16 §2</strong> for why ActiveGate is the odd row in the classic-to-Smartscape mapping.</li>
+<li>Document AG roles, HA topology, and update policy alongside your host-group naming (see <strong>FAQ-01</strong>) and tagging strategy (see <strong>FAQ-02</strong>).</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

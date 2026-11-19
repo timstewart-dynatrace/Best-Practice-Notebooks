@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALERT-04: ITSM Integration: ServiceNow</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ALERT — Alerting Strategy and Design</a><span class="sep">/</span><span aria-current="page">ALERT-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ALERT-04: ITSM Integration: ServiceNow</h1>
+<blockquote>
+<p><strong>Series:</strong> ALERT — Alerting Strategy and Design | <strong>Notebook:</strong> 04 of 05 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>For many enterprises, an alert is not &quot;done&quot; until it is an incident in ServiceNow. This notebook covers the integration as a <strong>maturity ladder</strong> — from dependable one-way incident creation you can stand up today, to ServiceNow-side event management, where incidents resolve when the problem closes — and shows the worked Table API path so you are never blocked waiting on a connector's availability.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#ladder">The Integration Ladder</a></li>
+<li><a href="#http">Rung 1 — HTTP to the Table API</a></li>
+<li><a href="#connector">Rung 2 — Native ServiceNow Connector</a></li>
+<li><a href="#bidirectional">Rung 3 — ServiceNow-Side Event Management</a></li>
+<li><a href="#fields">What ServiceNow Needs From the Problem</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3 with AutomationEngine (Workflows)</td>
+</tr>
+<tr>
+<td><strong>ServiceNow</strong></td>
+<td>An instance + a service account with rights to create incidents (Table API) or the Dynatrace-side connector configured</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>ALERT-01 (enrichment), ALERT-03 (routing)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="ladder"></a></p>
+<h2>1. The Integration Ladder</h2>
+<p>There are several current ways to integrate, and they form a maturity ladder. Start at the rung you can stand up reliably today and climb as your needs grow.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2Ug4oaSIFNlcnZpY2VOb3c6IGEgbWF0dXJpdHkgbGFkZGVyPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlN0YXJ0IHdpdGggcmVsaWFibGUgb25lLXdheSBpbmNpZGVudCBjcmVhdGlvbjsgZ3JvdyB0b3dhcmQgU2VydmljZU5vdy1zaWRlIGV2ZW50IG1hbmFnZW1lbnQ8L3RleHQ+CgogIDwhLS0gUnVuZyAxIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI4NCIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSI4NCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2NCIgeT0iMTEwIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj4xIMK3IEhUVFAgdG8gdGhlIFRhYmxlIEFQSTwvdGV4dD4KICA8dGV4dCB4PSI2NCIgeT0iMTMyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5Xb3JrZmxvdyBIVFRQIGFjdGlvbiDihpIgUE9TVCAvYXBpL25vdy90YWJsZS9pbmNpZGVudC4gQWx3YXlzIGF2YWlsYWJsZSwgbm8gZXh0cmEgbGljZW5zaW5nLjwvdGV4dD4KICA8dGV4dCB4PSI2NCIgeT0iMTUyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5GdWxseSBjdXN0b20gcGF5bG9hZC4gVGhlIGRlcGVuZGFibGUgYmFzZWxpbmUg4oCUIHN0YXJ0IGhlcmUgaWYgYW55dGhpbmcgZWxzZSBpcyB1bmNlcnRhaW4uPC90ZXh0PgogIDx0ZXh0IHg9Ijg2NCIgeT0iMTIwIiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5vbmUtd2F5IMK3IG5vdzwvdGV4dD4KCiAgPCEtLSBSdW5nIDIgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjE4MCIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSI4NCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2NCIgeT0iMjA2IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj4yIMK3IE5hdGl2ZSBTZXJ2aWNlTm93IHdvcmtmbG93IGNvbm5lY3RvcjwvdGV4dD4KICA8dGV4dCB4PSI2NCIgeT0iMjI4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5CdWlsdC1pbiBhY3Rpb246IGNyZWF0ZSAvIHVwZGF0ZSAvIGNvbW1lbnQgLyByZXNvbHZlIGluY2lkZW50cy4gTGVzcyB3aXJpbmcgdGhhbiByYXcgSFRUUC48L3RleHQ+CiAgPHRleHQgeD0iNjQiIHk9IjI0OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+R2VuZXJhbGx5IGF2YWlsYWJsZSBzaW5jZSBIdWIgYXBwIDEuMC4wLCBub3cgbGlzdGVkIGluIHRoZSBIdWIgYXMgdGhlIFNlcnZpY2VOb3cgYXBwLjwvdGV4dD4KICA8dGV4dCB4PSI4NjQiIHk9IjIxNiIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+b25lLXdheSsgwrcgbm93PC90ZXh0PgoKICA8IS0tIFJ1bmcgMyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjc2IiB3aWR0aD0iODUwIiBoZWlnaHQ9Ijg0IiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjY0IiB5PSIzMDIiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPjMgwrcgU2VydmljZU5vdyBzdG9yZSBhcHBzIC8gSVRPTSBFdmVudCBNYW5hZ2VtZW50PC90ZXh0PgogIDx0ZXh0IHg9IjY0IiB5PSIzMjQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPlN0b3JlIGFwcHMgb24gdGhlIFNlcnZpY2VOb3cgc2lkZTogZXZlbnRzIGludG8gZW1fZXZlbnQsIHByb2JsZW1zIGludG8gaW5jaWRlbnRzLCBDTURCIHN5bmMuPC90ZXh0PgogIDx0ZXh0IHg9IjY0IiB5PSIzNDQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPlJpY2hlc3Qgb25lLXdheTogdGhlIGluY2lkZW50IHJlc29sdmVzIHdoZW4gdGhlIHByb2JsZW0gY2xvc2VzLiBGb3IgSVRPTS1jZW50cmljIHNob3BzLjwvdGV4dD4KICA8dGV4dCB4PSI4NjQiIHk9IjMxMiIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+b25lLXdheSDCtyBJVE9NPC90ZXh0PgoKICA8IS0tIExlZ2FjeSBub3RlIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIzNzIiIHdpZHRoPSI4NTAiIGhlaWdodD0iNjAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjQiIHk9IjM5NiIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+TGVnYWN5OiBjbGFzc2ljIHByb2JsZW0tbm90aWZpY2F0aW9ucyAoYWxlcnRpbmctcHJvZmlsZSBiYXNlZCk8L3RleHQ+CiAgPHRleHQgeD0iNjQiIHk9IjQxNiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+U3RpbGwgd29ya3MsIG5vIHdvcmtmbG93IG5lZWRlZCDigJQgYnV0IGxlc3MgZmxleGlibGUuIFByZWZlciB3b3JrZmxvd3MgZm9yIG5ldyBpbnRlZ3JhdGlvbnMuPC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9InVwIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjUiIHJlZlk9IjEiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0byI+PHBhdGggZD0iTTAgMTAgTDUgMCBMMTAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPjwvbWFya2VyPgogIDwvZGVmcz4KICA8bGluZSB4MT0iOTA1IiB5MT0iMzYwIiB4Mj0iOTA1IiB5Mj0iOTYiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIwIiAvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5FYWNoIHJ1bmcgY2FycmllcyB0aGUgc2FtZSB1cHN0cmVhbSByZXF1aXJlbWVudDogdGhlIERhdmlzIHByb2JsZW0gbXVzdCBhbHJlYWR5IGhvbGQgdGhlIG1ldGFkYXRhIFNlcnZpY2VOb3cgbmVlZHMgKGFzc2lnbm1lbnQgZ3JvdXAsIHByaW9yaXR5KTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ3NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+U2V0IGl0IGluIHRoZSBkZXRlY3RvcidzIGV2ZW50IHRlbXBsYXRlIGFuZCB0aGUgd29ya2Zsb3cncyBmaWVsZCBtYXBwaW5nIOKAlCBjb3ZlcmVkIGluIEFMRVJULTAxIGFuZCBBSU9QUy0wMjwvdGV4dD4KPC9zdmc+Cg==" alt="Dynatrace to ServiceNow maturity ladder" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Rung | Mechanism | Direction | When |
+|------|-----------|-----------|------|
+| 1 | Workflow HTTP → Table API (POST /api/now/table/incident) | one-way | now — the dependable baseline |
+| 2 | Native ServiceNow workflow connector (create/update/comment/resolve) | one-way+ | now — GA (Hub app 1.0.0+) |
+| 3 | ServiceNow store apps (Dynatrace Incident Integration, Event Management Connector) / ITOM Event Management (em_event) | one-way; the incident resolves when the problem closes | ITOM-centric shops |
+| Legacy | Classic problem-notifications (alerting-profile based) | one-way | works, less flexible — prefer workflows |
+For environments where SVG doesn't render
+-->
+<h3>Adjacent, and deliberately not a rung: issue-tracker deep-links</h3>
+<p>Dynatrace documents a pattern (published 06/30/2026) that looks adjacent enough to belong on this ladder but does not: <strong>dedicated issue-tracking dashboard tiles that build a deep link into the tracker's own native search UI</strong>, pre-filtered with the selected release context. The URL is assembled in DQL with <code>concat()</code>. It is documented for <strong>Jira Cloud and Jira on-premises, GitHub, GitLab, and ServiceNow</strong> — and works for any tracker that offers a URL — and per the docs, <em>&quot;to configure the links, you don't need to store credentials in Dynatrace.&quot;</em> The link is followed in the operator's own authenticated browser session.</p>
+<p><strong>It is not Rung 0, and it does not substitute for Rung 1 even temporarily.</strong> The distinction is not maturity or effort — it is that <strong>the pattern creates no ServiceNow record at all.</strong> It navigates an operator to the right query; it does not open, update, comment on, or resolve an incident. Nothing downstream of ServiceNow — assignment, SLA clocks, CAB visibility, reporting — sees anything happen. So it cannot stand in for the ladder while you build Rung 1, and a team that adopts it believing otherwise has an &quot;integration&quot; that produces no incidents.</p>
+<p>What it <em>is</em> good for is pairing with whichever rung you are on: once an incident exists, the deep link is the fastest way for whoever picks it up to reach the related issue records without hand-assembling a query.</p>
+<p><strong>Its one real prerequisite is data discipline.</strong> The link is built from process version metadata — <code>DT_RELEASE_STAGE</code>, <code>DT_RELEASE_PRODUCT</code>, <code>DT_RELEASE_VERSION</code> — and the docs require <strong>slug-style values</strong> for <code>DT_RELEASE_PRODUCT</code> and <code>DT_RELEASE_VERSION</code> (e.g. <code>cart-service</code>, <code>1.2.1</code>), warning that <em>&quot;values with spaces, quotes, or special characters will produce broken URLs.&quot;</em> Note how that fails: the tile still renders a link and the link still opens — it just lands on the wrong query or an error page. Set those values deliberately at deploy time rather than letting them inherit a human-readable product name.</p>
+<p>The <strong>dashboard mechanics</strong> — building the tile, the <code>concat()</code> URL expression, and where it sits on a dashboard — belong to the <strong>DASH</strong> series, not here. This section's only claim about the pattern is where it sits relative to the ladder.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/release-monitoring/issue-tracking-integration-latest">Issue-tracking integration (DT docs)</a> — dedicated issue-tracking dashboard tiles deep-linking to the tracker's native search UI pre-filtered with release context; Jira Cloud/on-premises, GitHub, GitLab, ServiceNow; <em>&quot;you don't need to store credentials in Dynatrace&quot;</em>; slug-style <code>DT_RELEASE_PRODUCT</code> / <code>DT_RELEASE_VERSION</code> values, and <em>&quot;values with spaces, quotes, or special characters will produce broken URLs.&quot;</em> <strong>Derived:</strong> the &quot;adjacent, not a rung&quot; placement follows from the pattern creating no ServiceNow record — every rung on this ladder does.</sub></p>
+</blockquote>
+<p><a id="http"></a></p>
+<h2>2. Rung 1 — HTTP to the Table API</h2>
+<p>The most portable approach, available regardless of connector status: a problem-trigger workflow whose HTTP action POSTs to the ServiceNow Table API.</p>
+<p>Preview which problems the trigger would act on before configuring it. <code>dt.davis.problems</code> is one row per problem (validated on a live tenant 09/24/2026):</p>
+<pre><code class="language-dql">// Preview the problems a Problem trigger would act on: one row per problem.
+// The trigger itself is configured in the workflow (state, category, severity, entity tags,
+// DQL matcher) and applies its own de-duplication. Filter on enriched team metadata in production.
+fetch dt.davis.problems, from:-1h
+| filter event.status == &quot;ACTIVE&quot;
+| fields display_id, event.name, event.category, event.status
+| limit 5
+</code></pre>
+<p>The workflow's HTTP action then creates the incident. Map Dynatrace fields to ServiceNow incident fields in the payload:</p>
+<pre><code class="language-json">// Workflow HTTP action → ServiceNow Table API
+// POST https://&lt;instance&gt;.service-now.com/api/now/table/incident
+// Auth: Basic (service account) set in the action's Authentication field from a Credential Vault
+// entry, never a static Authorization header. OAuth client credentials need a Run JavaScript task,
+// which makes the workflow a standard one.
+// Problem-record fields have dotted names — use bracket access: event()['event.name'].
+{
+  &quot;short_description&quot;: &quot;{{ event()['event.name'] }} ({{ event()['display_id'] }})&quot;,
+  &quot;description&quot;: &quot;Dynatrace problem {{ event()['display_id'] }} — category {{ event()['event.category'] }}.\nDetails: {{ problem_link() }}&quot;,
+  &quot;urgency&quot;: &quot;2&quot;,
+  &quot;impact&quot;: &quot;2&quot;,
+  &quot;assignment_group&quot;: &quot;&lt;this workflow's team group&gt;&quot;,
+  &quot;u_dynatrace_problem_id&quot;: &quot;{{ event()['display_id'] }}&quot;
+}
+</code></pre>
+<p>Carry the Dynatrace problem id into a ServiceNow field (<code>u_dynatrace_problem_id</code> above) — it is what lets a later update or resolve find the same incident instead of creating a duplicate. The <code>assignment_group</code> is a constant per workflow. One routing workflow per team (ALERT-03 §2), filtered on the team tag you enriched upstream (ALERT-01 §4), sets that team's group. Don't template it from the problem: a problem's tag fields hold the deduplicated union across every affected entity, so a single value is not guaranteed.</p>
+<p><a id="connector"></a></p>
+<h2>3. Rung 2 — Native ServiceNow Connector</h2>
+<p>Dynatrace provides a native ServiceNow action for workflows that handles <strong>Create Incident / Resolve incident / Comment on an incident / Update record</strong> (plus Search incidents, a generic Search, Create Record, Create Comment, Get Groups, and Create a vulnerability item) without hand-building HTTP calls — less wiring. De-duplication comes from <em>Search incidents</em>: look for an existing incident before <em>Create Incident</em> opens a new one. Closing comes from <em>Resolve incident</em>, which needs <em>&quot;The number of the incident to resolve.&quot;</em>, so run it in a workflow whose trigger also fires on close (Problem state <em>active or closed</em>) and look the incident up first.</p>
+<p>The connection authenticates with <strong>Basic Authentication</strong> or <strong>OAuth Client Credentials</strong> (there is no API-key option). On Create Incident, <code>Category</code>, <code>Subcategory</code>, <code>Impact</code>, <code>Urgency</code>, and <code>Assignment Group</code> are required, and <code>Correlation ID</code> is optional (the docs describe it as a <em>&quot;Unique identifier, usually the Dynatrace event ID.&quot;</em>), but set it anyway. It is what a ServiceNow-side rule, or a <em>Search incidents</em> step before <em>Create Incident</em>, can match on to avoid a duplicate. <strong>WFLOW-05</strong> walks the worked workflow setup — connection, each operation, the severity→Impact/Urgency mapping, and production hardening.</p>
+<blockquote>
+<p><strong>Availability.</strong> The native connector left preview at app version 1.0.0 (Hub release notes: <em>&quot;Improve wording and remove preview label&quot;</em>) and is now listed as the <em>ServiceNow</em> app. Rung 1 remains the fallback where the app is not installed or the connection cannot be approved, and the most portable option across tenants.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now">ServiceNow for Workflows action (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/automation-workflows-service-now-actions">ServiceNow Connector actions (DT docs)</a> — <em>&quot;The number of the incident to resolve.&quot;</em>; <em>&quot;Unique identifier, usually the Dynatrace event ID.&quot;</em>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/set-up-servicenow-connector">Set up ServiceNow Connector (DT docs)</a> — <em>&quot;Either use basic authentication or OAuth client credentials.&quot;</em>, <a href="https://www.dynatrace.com/hub/detail/servicenow-for-workflows-preview">ServiceNow for Workflows (Dynatrace Hub)</a> — version history, release 1.0.0: <em>&quot;Improve wording and remove preview label&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="bidirectional"></a></p>
+<h2>4. Rung 3 — ServiceNow-Side Event Management</h2>
+<p>For ITOM-centric organisations, the apps installed on the ServiceNow side are the richest option. Dynatrace names two that do the incident work: the <strong>Dynatrace Incident Integration</strong> application, which creates incidents from Dynatrace problems, and the <strong>Event Management Connector</strong>, which takes Dynatrace problem events into ITOM Event Management as alerts and incidents. Dynatrace's ServiceNow integration page describes what the integration fills: problems go to the <code>incident</code> table, the events correlated with a problem go to the ITOM event table (<code>em_event</code>), affected CIs go to <code>task_ci</code>, and, if enabled, discovered services go to the CMDB. When the problem closes in Dynatrace, the incident is marked <em>Resolved</em> in ServiceNow.</p>
+<blockquote>
+<p><strong>SaaS 1.350 (rollout start 11/04/2026, staged tenant rollout): a workflow route into Event Management.</strong> The ServiceNow Connector gains a <strong>Send ITOM Event</strong> action, which <em>&quot;sends a single event to ServiceNow Event Management using the ITOM inbound web service&quot;</em>, and a workflow template, <em>Send problem as ITOM event to ServiceNow</em>, that opens a ServiceNow alert when a problem opens and closes it when the problem closes. ServiceNow then correlates the events into alerts with its own rules, and deduplicates them on the Message Key. Setup has two sides: a Dynatrace Monitor push connector in ServiceNow, and an ITOM events connection in Dynatrace. An alert binds to a CMDB configuration item only when one matches. With the Service Graph Connector for Dynatrace SaaS it matches on the Dynatrace ID; without it, on entity name, ID and type, and unmatched alerts stay unbound. Verify the action has reached your tenant; until it does, the ServiceNow-side apps above remain the Rung 3 path. WFLOW-05 lists the action alongside the incident operations.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-350">What's new in Dynatrace SaaS 1.350 (DT docs)</a> — <em>&quot;The template creates a ServiceNow alert when a problem opens and closes that alert when the problem closes.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/automation-workflows-service-now-actions">ServiceNow Connector actions (DT docs)</a> — <em>&quot;ServiceNow uses the Message Key to deduplicate incoming events and correlate them into the same alert.&quot;</em> and <em>&quot;Alerts that don't match any CI remain unbound.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/set-up-servicenow-connector">Set up ServiceNow Connector (DT docs)</a> — <em>&quot;ITOM integration: Dynatrace sends raw events to ServiceNow Event Management, which correlates them into alerts based on your own ServiceNow configuration.&quot;</em></sub></p>
+</blockquote>
+<p>Everything those pages describe flows from Dynatrace to ServiceNow. Neither describes incident state or work notes flowing back onto the Dynatrace problem. If you need that direction, check the documentation of the ServiceNow app version you install, or build it as a workflow that polls ServiceNow and comments on the problem (WFLOW-05 §6).</p>
+<p>This is configured largely on the ServiceNow side and suits shops already running ITOM Event Management. It is the destination of the maturity ladder, not the starting point — reach for it when one-way incident creation is no longer enough and you want ITOM event correlation and CMDB context on every incident.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/problem-notifications/servicenow-classic">Send Dynatrace notifications to ServiceNow (DT docs)</a> — <em>&quot;When a problem is closed in Dynatrace, the incident is marked as Resolved in ServiceNow.&quot;</em>, <a href="https://www.dynatrace.com/news/blog/accelerate-your-autonomous-it-operations-journey-with-dynatrace-and-servicenow-integrations/">Dynatrace + ServiceNow integrations (Dynatrace News)</a> — <em>&quot;The Incident App will create incidents based on Dynatrace-identified problems&quot;</em>; <em>&quot;The Event Management integration accepts Dynatrace problem events and transforms infrastructure events into actionable alerts and incidents&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="fields"></a></p>
+<h2>5. What ServiceNow Needs From the Problem</h2>
+<p>Every rung shares one requirement: the Davis problem must already carry the metadata ServiceNow incidents need. Decide these upstream (detector event template per AIOPS-02 §4, or entity tags/ownership):</p>
+<table>
+<thead>
+<tr>
+<th>ServiceNow field</th>
+<th>Source in Dynatrace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>assignment_group</code></td>
+<td>enriched <code>team</code> property / Smartscape ownership</td>
+</tr>
+<tr>
+<td><code>urgency</code> / <code>impact</code> / priority</td>
+<td><code>event.severity</code> (the 1–5 unified severity) compressed to ServiceNow's 1 (High)–3 (Low) — mapping table in WFLOW-05 §5</td>
+</tr>
+<tr>
+<td><code>short_description</code></td>
+<td><code>event.name</code> + <code>display_id</code></td>
+</tr>
+<tr>
+<td>correlation key (de-dup)</td>
+<td><code>display_id</code> carried into a custom field</td>
+</tr>
+</tbody>
+</table>
+<p>If the problem fires without these, the incident lands in a default queue with no priority — the ITSM equivalent of &quot;everything goes to one channel.&quot; Enrich upstream.</p>
+<blockquote>
+<p><strong>Breaking — SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout): <code>event.severity</code> is no longer defaulted.</strong> <em>&quot;Davis events and problems no longer default <code>event.severity</code> to <code>3</code>.&quot;</em> The priority row above assumes every problem carries a severity. Once 1.348 reaches your tenant, a problem whose events never set one arrives without it, so decide what the mapping does for a missing severity rather than letting it fall through; and if the trigger also filters on severity: <em>&quot;Workflows with a Davis event/problem trigger that filter on <code>event.severity=3</code> expecting it to be defaulted, might need to be changed to filter for <code>Any</code> severity to keep being triggered.&quot;</em> Until 1.348 reaches your tenant, the defaulting behavior still applies.</p>
+</blockquote>
+<blockquote>
+<p><strong>Harden whichever rung you pick.</strong> One-way creation that silently fails is worse than no integration — problems open in Dynatrace but never reach the queue. Retry transient failures, dead-letter permanent ones (don't retry a 4xx), link the incident number back onto the problem, and monitor the workflow itself. WFLOW-05 §8 has the patterns.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/problem-notifications/servicenow-classic">Send Dynatrace notifications to ServiceNow (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/automation-workflows-service-now-actions">ServiceNow Connector actions (DT docs)</a> — native-connector operations, required fields (Category/Subcategory/Impact/Urgency/Assignment Group), and Basic/OAuth-Client-Credentials auth confirmed 06/17/2026; <em>Resolve incident</em> requires <em>&quot;The number of the incident to resolve.&quot;</em> (re-read 11/09/2026)</sub></li>
+<li><sub><a href="https://www.dynatrace.com/hub/detail/servicenow-for-workflows-preview">ServiceNow for Workflows (Dynatrace Hub)</a> — <em>&quot;Search for available incidents to prevent duplicates from being created.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action">HTTP request action for Workflows (DT docs)</a> — <em>&quot;Use the credential vault to store your credentials for Basic or Token authentication, or a Run JavaScript action to implement any other authentication.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow">Create a simple workflow (DT docs)</a> — a simple workflow allows <em>&quot;Any action (except Run JavaScript, Run Workflow, Approval Request)&quot;</em></sub></li>
+<li><sub><a href="https://www.dynatrace.com/news/blog/accelerate-your-autonomous-it-operations-journey-with-dynatrace-and-servicenow-integrations/">Dynatrace + ServiceNow integrations (Dynatrace News)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;In a workflow, you reference Grail problem record fields through Jinja instead&quot;</em> (its example is <code>{{ event()[&quot;event.name&quot;] }}</code>); <code>{{ problem_link() }}</code> <em>&quot;Evaluates only in workflows with a Davis problem trigger&quot;</em>; on multi-entity problems, <em>&quot;The problem carries the deduplicated union.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a> — <em>&quot;To browse past occurrences, explore available fields, and test filter conditions before configuring the trigger, run this query in a notebook&quot;</em> (the query is <code>fetch dt.davis.problems</code>). Problem-trigger preview query validated on a live tenant 09/24/2026</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — GA, rollout start 10/12/2026; re-read 10/23/2026</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

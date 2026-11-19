@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SL2DT-01: Overview &amp; Migration Strategy</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SL2DT — Sumo Logic to Dynatrace</a><span class="sep">/</span><span aria-current="page">SL2DT-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SL2DT-01: Overview &amp; Migration Strategy</h1>
+<blockquote>
+<p><strong>Series:</strong> SL2DT — Sumo Logic to Dynatrace | <strong>Notebook:</strong> 1 of 11 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/14/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this notebook:</strong> establish the strategy, mental model, and vocabulary for migrating from Sumo Logic to Dynatrace. Every decision in the following nine notebooks ladders up to a choice made here.</p>
+<p>This is not a how-to. It is the <em>why</em> — why Gen3, why Anomaly Detection over lift-and-shift thresholds, why train-the-trainer, why a bucket-plus-attribute <code>_sourceCategory</code> strategy, why OpenPipeline at ingest rather than parsing at query time.</p>
+<p><strong>Scope:</strong> logs, dashboards, monitors, scheduled searches, Field Extraction Rules. Metrics and traces are addressed where they intersect log migration. Cloud SIEM migration is explicitly out of scope — it is a separate workstream.</p>
+<h3>Sprint 1.337 (April 2026) Updates Affecting SL2DT</h3>
+<p>Three sprint-1.337 changes simplify the Sumo Logic → Dynatrace migration:</p>
+<ol>
+<li>
+<p><strong>Primary fields on AWS Lambda (OneAgent 1.337).</strong> Primary fields set via <code>DT_TAGS</code> are now added to logs and spans in AWS Lambda deployments of OneAgent, along with <code>aws.arn</code>, <code>aws.region</code> and <code>aws.account.id</code>. If Sumo collected Lambda logs, that enrichment can come from the agent instead of an OpenPipeline processor. The change is specific to Lambda; it does not change how primary fields reach host-level logs.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337">What's new in OneAgent 1.337 (DT docs)</a> — <em>&quot;are now added to logs and spans in AWS Lambda deployments of OneAgent.&quot;</em></sub></p>
+</blockquote>
+</li>
+<li>
+<p><strong>OpenPipeline extraction processor recommended-field suggestions.</strong> When converting Sumo Field Extraction Rules (FERs) to OpenPipeline DPL processors (SL2DT-03), the UI now flags permission-relevant fields and Smartscape identifiers — preventing the most common misconfiguration: promoting sensitive content into a permission-relevant position.</p>
+</li>
+<li>
+<p><strong>Configuration API → Settings v2 acceleration + Platform tokens.</strong> New automation (SL2DT-08) should target Settings v2 paths and use Platform tokens (<code>dt0s16</code>, <code>Authorization: Bearer</code>). Classic <code>dt0c01</code> still works for legacy paths but is not the default for new pipelines.</p>
+</li>
+</ol>
+<p>These changes reinforce — they don't change — the Gen3-first migration baseline documented in this series.</p>
+<hr />
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why">Why This Series Exists</a></li>
+<li><a href="#mental-model">Platform Mental Model — Sumo vs Dynatrace</a></li>
+<li><a href="#waves">The Five-Wave Migration Pattern</a></li>
+<li><a href="#train-trainer">Train-the-Trainer Delivery Model</a></li>
+<li><a href="#mvp">MVP vs Full Fidelity — The Cut-Scope Decision</a></li>
+<li><a href="#anti-patterns">Anti-Patterns to Avoid</a></li>
+<li><a href="#success">Success Criteria</a></li>
+<li><a href="#next">What to Read Next</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead + architects scoping the engagement</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Orientation — read before any hands-on work</td>
+</tr>
+<tr>
+<td><strong>Prior knowledge</strong></td>
+<td>Sumo Logic search experience (helpful); Dynatrace fundamentals (ONBRD-01)</td>
+</tr>
+<tr>
+<td><strong>Tenant</strong></td>
+<td>Not required for this notebook</td>
+</tr>
+</tbody>
+</table>
+<p><a id="why"></a></p>
+<h2>1. Why This Series Exists</h2>
+<p>Sumo-to-Dynatrace migrations fail for predictable reasons:</p>
+<table>
+<thead>
+<tr>
+<th>Failure mode</th>
+<th>Why it happens</th>
+<th>Mitigation (which notebook addresses it)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1:1 lift-and-shift of static thresholds</td>
+<td>Teams treat Dynatrace as &quot;Sumo with a different UI&quot;</td>
+<td>SL2DT-05 anomaly detection framework</td>
+</tr>
+<tr>
+<td><code>_sourceCategory</code> chaos post-migration</td>
+<td>No upfront taxonomy decision</td>
+<td>SL2DT-02 inventory, SL2DT-03 ingest design</td>
+</tr>
+<tr>
+<td>Dashboards migrate but nobody uses them</td>
+<td>Dashboard inventory wasn't audit-log-pruned</td>
+<td>SL2DT-02 cut-scope analysis</td>
+</tr>
+<tr>
+<td>Monitors fire too much</td>
+<td>DQL anomaly baseline needs different tuning than Sumo thresholds</td>
+<td>SL2DT-05 tuning playbook</td>
+</tr>
+<tr>
+<td>Governance gap at cutover</td>
+<td>Sumo role model doesn't map 1:1 to IAM</td>
+<td>SL2DT-07 role mapping</td>
+</tr>
+<tr>
+<td>Parallel-run runs too long</td>
+<td>No validation exit criteria defined</td>
+<td>SL2DT-09 cutover runbook</td>
+</tr>
+</tbody>
+</table>
+<p>This series is the procedural spine that prevents those failures.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5TTDJEVCA5LVN0ZXAgTWlncmF0aW9uIEZyYW1ld29yazwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5TdW1vIExvZ2ljIOKGkiBEeW5hdHJhY2Ug4oCUIGZyb20gb3JpZW50YXRpb24gdG8gZGVjb21taXNzaW9uPC90ZXh0PgoKICA8IS0tIEFycm93IG1hcmtlciAtLT4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImZsb3ctYXJyb3ciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gU3RlcCBib3hlcyDigJQgNSBhY3Jvc3MsIDIgcm93cyAtLT4KICA8IS0tIFJvdyAxOiBTdGVwcyAxLTUgLS0+CiAgPGc+CiAgICA8cmVjdCB4PSIzMCIgeT0iMTAwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogICAgPHRleHQgeD0iMTEwIiB5PSIxMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjAxIOKAlCBPdmVydmlldzwvdGV4dD4KICAgIDx0ZXh0IHg9IjExMCIgeT0iMTQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TdHJhdGVneSAmYW1wOyBtZW50YWwgbW9kZWw8L3RleHQ+CiAgICA8dGV4dCB4PSIxMTAiIHk9IjE2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QW50aS1wYXR0ZXJuczwvdGV4dD4KICAgIDx0ZXh0IHg9IjExMCIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5HZW4zLWZpcnN0IGJhc2VsaW5lPC90ZXh0PgogIDwvZz4KCiAgPGc+CiAgICA8cmVjdCB4PSIyMTAiIHk9IjEwMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI5MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICAgIDx0ZXh0IHg9IjI5MCIgeT0iMTIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4wMiDigJQgSW52ZW50b3J5PC90ZXh0PgogICAgPHRleHQgeD0iMjkwIiB5PSIxNDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkF1ZGl0LWxvZyBjdXQgc2NvcGU8L3RleHQ+CiAgICA8dGV4dCB4PSIyOTAiIHk9IjE2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VGF4b25vbXkgbWFwPC90ZXh0PgogICAgPHRleHQgeD0iMjkwIiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk93bmVyIHNpZ25vZmZzPC90ZXh0PgogIDwvZz4KCiAgPGc+CiAgICA8cmVjdCB4PSIzOTAiIHk9IjEwMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI5MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICAgIDx0ZXh0IHg9IjQ3MCIgeT0iMTIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4wMyDigJQgSW5nZXN0PC90ZXh0PgogICAgPHRleHQgeD0iNDcwIiB5PSIxNDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk9uZUFnZW50ICsgT1RlbDwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ3MCIgeT0iMTYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5PcGVuUGlwZWxpbmUgKyBidWNrZXRzPC90ZXh0PgogICAgPHRleHQgeD0iNDcwIiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZFUiBjb252ZXJzaW9uczwvdGV4dD4KICA8L2c+CgogIDxnPgogICAgPHJlY3QgeD0iNTcwIiB5PSIxMDAiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgICA8dGV4dCB4PSI2NTAiIHk9IjEyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MDQg4oCUIFRyYW5zbGF0ZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjY1MCIgeT0iMTQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TdW1vUUwg4oaSIERRTDwvdGV4dD4KICAgIDx0ZXh0IHg9IjY1MCIgeT0iMTYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Db25maWRlbmNlLXNjb3JlZDwvdGV4dD4KICAgIDx0ZXh0IHg9IjY1MCIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5CYXRjaCArIHJldmlldzwvdGV4dD4KICA8L2c+CgogIDxnPgogICAgPHJlY3QgeD0iNzUwIiB5PSIxMDAiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgICA8dGV4dCB4PSI4MzAiIHk9IjEyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MDUg4oCUIE1vbml0b3JzPC90ZXh0PgogICAgPHRleHQgeD0iODMwIiB5PSIxNDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkR5bmF0cmFjZSBJbnRlbGxpZ2VuY2UgdnMgV29ya2Zsb3c8L3RleHQ+CiAgICA8dGV4dCB4PSI4MzAiIHk9IjE2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+TWV0cmljIEV2ZW50czwvdGV4dD4KICAgIDx0ZXh0IHg9IjgzMCIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TZXJ2aWNlTm93IHdlYmhvb2s8L3RleHQ+CiAgPC9nPgoKICA8IS0tIEFycm93cyByb3cgMSAtLT4KICA8bGluZSB4MT0iMTkwIiB5MT0iMTQ1IiB4Mj0iMjEwIiB5Mj0iMTQ1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Zsb3ctYXJyb3cpIi8+CiAgPGxpbmUgeDE9IjM3MCIgeTE9IjE0NSIgeDI9IjM5MCIgeTI9IjE0NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmbG93LWFycm93KSIvPgogIDxsaW5lIHgxPSI1NTAiIHkxPSIxNDUiIHgyPSI1NzAiIHkyPSIxNDUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmxvdy1hcnJvdykiLz4KICA8bGluZSB4MT0iNzMwIiB5MT0iMTQ1IiB4Mj0iNzUwIiB5Mj0iMTQ1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Zsb3ctYXJyb3cpIi8+CgogIDwhLS0gQ29ubmVjdG9yIGRvd24gLS0+CiAgPHBhdGggZD0iTSA4MzAgMTkwIEwgODMwIDIxNSBMIDExMCAyMTUgTCAxMTAgMjQwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2Zsb3ctYXJyb3cpIi8+CgogIDwhLS0gUm93IDI6IFN0ZXBzIDYtOSArIDk5IC0tPgogIDxnPgogICAgPHJlY3QgeD0iMzAiIHk9IjI0MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI5MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICAgIDx0ZXh0IHg9IjExMCIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4wNiDigJQgRGFzaGJvYXJkczwvdGV4dD4KICAgIDx0ZXh0IHg9IjExMCIgeT0iMjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Ob3RlYm9va3MgKyBEYXNoYm9hcmRzPC90ZXh0PgogICAgPHRleHQgeD0iMTEwIiB5PSIzMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlBhbmVsIHRyYW5zbGF0aW9uPC90ZXh0PgogICAgPHRleHQgeD0iMTEwIiB5PSIzMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkFwcC10ZWFtIHBsYXlib29rPC90ZXh0PgogIDwvZz4KCiAgPGc+CiAgICA8cmVjdCB4PSIyMTAiIHk9IjI0MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI5MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICAgIDx0ZXh0IHg9IjI5MCIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4wNyDigJQgR292ZXJuYW5jZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjI5MCIgeT0iMjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5QbGF0Zm9ybSBJQU08L3RleHQ+CiAgICA8dGV4dCB4PSIyOTAiIHk9IjMwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QnVja2V0LXNjb3BlZCBwb2xpY2llczwvdGV4dD4KICAgIDx0ZXh0IHg9IjI5MCIgeT0iMzIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TU08gbWFwcGluZzwvdGV4dD4KICA8L2c+CgogIDxnPgogICAgPHJlY3QgeD0iMzkwIiB5PSIyNDAiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgICA8dGV4dCB4PSI0NzAiIHk9IjI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MDgg4oCUIEF1dG9tYXRpb248L3RleHQ+CiAgICA8dGV4dCB4PSI0NzAiIHk9IjI4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VGVycmFmb3JtICsgTW9uYWNvPC90ZXh0PgogICAgPHRleHQgeD0iNDcwIiB5PSIzMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkNJL0NEIHBpcGVsaW5lczwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ3MCIgeT0iMzIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EcmlmdCBkZXRlY3Rpb248L3RleHQ+CiAgPC9nPgoKICA8Zz4KICAgIDxyZWN0IHg9IjU3MCIgeT0iMjQwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogICAgPHRleHQgeD0iNjUwIiB5PSIyNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjA5IOKAlCBDdXRvdmVyPC90ZXh0PgogICAgPHRleHQgeD0iNjUwIiB5PSIyODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjMtdGllciB2YWxpZGF0aW9uPC90ZXh0PgogICAgPHRleHQgeD0iNjUwIiB5PSIzMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlBhcmFsbGVsIHJ1biArIGdhdGVzPC90ZXh0PgogICAgPHRleHQgeD0iNjUwIiB5PSIzMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlN1bW8gZGVjb21taXNzaW9uPC90ZXh0PgogIDwvZz4KCiAgPGc+CiAgICA8cmVjdCB4PSI3NTAiIHk9IjI0MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI5MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICAgIDx0ZXh0IHg9IjgzMCIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj45OSDigJQgU3VtbWFyeTwvdGV4dD4KICAgIDx0ZXh0IHg9IjgzMCIgeT0iMjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SdW5ib29rIGluZGV4PC90ZXh0PgogICAgPHRleHQgeD0iODMwIiB5PSIzMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlF1aWNrIHJlZmVyZW5jZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjgzMCIgeT0iMzIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UaW1lbGluZSB0ZW1wbGF0ZTwvdGV4dD4KICA8L2c+CgogIDwhLS0gQXJyb3dzIHJvdyAyIC0tPgogIDxsaW5lIHgxPSIxOTAiIHkxPSIyODUiIHgyPSIyMTAiIHkyPSIyODUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmxvdy1hcnJvdykiLz4KICA8bGluZSB4MT0iMzcwIiB5MT0iMjg1IiB4Mj0iMzkwIiB5Mj0iMjg1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Zsb3ctYXJyb3cpIi8+CiAgPGxpbmUgeDE9IjU1MCIgeTE9IjI4NSIgeDI9IjU3MCIgeTI9IjI4NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmbG93LWFycm93KSIvPgogIDxsaW5lIHgxPSI3MzAiIHkxPSIyODUiIHgyPSI3NTAiIHkyPSIyODUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmxvdy1hcnJvdykiLz4KCiAgPCEtLSBHYXRlcyBiYW5kIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIzNjUiIHdpZHRoPSI4NTAiIGhlaWdodD0iNTUiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkV4aXQgR2F0ZXMg4oCUIGVhY2ggc3RlcCBoYXMgZXhwbGljaXQgYWNjZXB0YW5jZSBjcml0ZXJpYTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RzEgRGlzY292ZXJ5IHwgRzIgSW52ZW50b3J5IHwgRzMgSW5nZXN0IHwgRzQgVHJhbnNsYXRpb24gfCBHNSBNb25pdG9ycyB8IEc2IERhc2hib2FyZHMgfCBHNyBHb3Zlcm5hbmNlIHwgRzggQXV0b21hdGlvbiB8IEc5IE1pZ3JhdGlvbiBDb21wbGV0ZTwvdGV4dD4KCiAgPCEtLSBGb290ZXIgcHJpbmNpcGxlcyAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjQ1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+R2VuMy1maXJzdCDCtyBUcmFpbi10aGUtdHJhaW5lciDCtyBEeW5hdHJhY2UgSW50ZWxsaWdlbmNlIG92ZXIgc3RhdGljIHRocmVzaG9sZHMgwrcgQnVja2V0LXNjb3BlZCBnb3Zlcm5hbmNlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5UeXBpY2FsIGR1cmF0aW9uOiAz4oCTNiBtb250aHMgZm9yIDJr4oCTOGsgYXNzZXQgZGVwbG95bWVudHM8L3RleHQ+CgogIDwhLS0gQm90dG9tIGRpdmlkZXIgLS0+CiAgPGxpbmUgeDE9IjQwIiB5MT0iNDg1IiB4Mj0iODkwIiB5Mj0iNDg1IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgo8L3N2Zz4K" alt="SL2DT 9-Step Framework" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Notebook | Output |
+|------|----------|--------|
+| 1 Orient | SL2DT-01 | Strategy, mental model |
+| 2 Inventory | SL2DT-02 | Asset inventory + cut scope |
+| 3 Ingest | SL2DT-03 | OpenPipeline + bucket design |
+| 4 Translate | SL2DT-04 | SumoQL → DQL translation |
+| 5 Monitors | SL2DT-05 | Alerts + anomaly detection framework |
+| 6 Dashboards | SL2DT-06 | Dashboard conversion |
+| 7 Governance | SL2DT-07 | IAM + bucket-scoped policies |
+| 8 Automation | SL2DT-08 | Monaco/Terraform/CI |
+| 9 Cutover | SL2DT-09 | Parallel run, validation, decommission |
+| Summary | SL2DT-99 | Runbook index + timeline template |
+For environments where SVG doesn't render
+-->
+<p><a id="mental-model"></a></p>
+<h2>2. Platform Mental Model — Sumo vs Dynatrace</h2>
+<p>The platforms solve the same problem differently. Mapping the concepts is the first job.</p>
+<table>
+<thead>
+<tr>
+<th>Sumo Logic Concept</th>
+<th>Dynatrace Equivalent</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_sourceCategory</code> (taxonomy)</td>
+<td>Grail bucket + optional attribute</td>
+<td>Plan in SL2DT-03</td>
+</tr>
+<tr>
+<td>Hosted Collector</td>
+<td>OneAgent / OTel Collector / OpenPipeline endpoint</td>
+<td>Per-source choice</td>
+</tr>
+<tr>
+<td>Installed Collector</td>
+<td>OneAgent on host</td>
+<td>Auto-instrumented</td>
+</tr>
+<tr>
+<td>Source (file/stream config)</td>
+<td>OneAgent log source config or OTel receiver</td>
+<td>Ingest-side</td>
+</tr>
+<tr>
+<td>Partition</td>
+<td>Bucket (Grail)</td>
+<td>Retention + IAM boundary</td>
+</tr>
+<tr>
+<td>Index (field index)</td>
+<td>— (Grail is index-free)</td>
+<td>No index management (§6.3)</td>
+</tr>
+<tr>
+<td>Field Extraction Rule</td>
+<td>OpenPipeline processor</td>
+<td>DPL pattern</td>
+</tr>
+<tr>
+<td>Saved Search</td>
+<td>Notebook section or Workflow DQL task</td>
+<td></td>
+</tr>
+<tr>
+<td>Scheduled Search</td>
+<td>Workflow with cron trigger + DQL + action</td>
+<td></td>
+</tr>
+<tr>
+<td>Monitor (threshold)</td>
+<td>Workflow with DQL + threshold, or anomaly detection</td>
+<td>Prefer Dynatrace Intelligence</td>
+</tr>
+<tr>
+<td>Monitor (outlier/anomaly)</td>
+<td>Anomaly Detection</td>
+<td>Native</td>
+</tr>
+<tr>
+<td>Dashboard</td>
+<td>Notebook or Dashboard (DT)</td>
+<td>1:1 in most cases</td>
+</tr>
+<tr>
+<td>Dashboard Panel</td>
+<td>DQL section within notebook/dashboard</td>
+<td></td>
+</tr>
+<tr>
+<td>Lookup Table</td>
+<td>Grail Lookup Table (Resource Store API)</td>
+<td></td>
+</tr>
+<tr>
+<td>Role (RBAC)</td>
+<td>Platform IAM Group + Policy</td>
+<td></td>
+</tr>
+<tr>
+<td>Role Search Filter</td>
+<td>Policy with bucket filter</td>
+<td></td>
+</tr>
+<tr>
+<td>Data Volume Alert</td>
+<td>Bucket retention + cost per bucket</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Load-bearing concept:</strong> <code>_sourceCategory</code>. Everything downstream depends on how it's mapped. SL2DT-03 walks through the three strategies (bucket / attribute / entity tag) with a decision framework.</p>
+<p><a id="waves"></a></p>
+<h2>3. The Five-Wave Migration Pattern</h2>
+<p>Migrate in waves, not a single big-bang. Each wave has entry criteria, exit criteria, and owners.</p>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Asset Class</th>
+<th>Entry Criteria</th>
+<th>Exit Criteria</th>
+<th>Typical Duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Wave 0</strong></td>
+<td>Inventory + cut scope</td>
+<td>Sumo audit-log pulled</td>
+<td>Cut scope signed off by owners</td>
+<td>2 weeks</td>
+</tr>
+<tr>
+<td><strong>Wave 1</strong></td>
+<td>Ingest + OpenPipeline + buckets</td>
+<td>Wave 0 complete; taxonomy chosen</td>
+<td>All high-volume sources dual-writing</td>
+<td>3–4 weeks</td>
+</tr>
+<tr>
+<td><strong>Wave 2</strong></td>
+<td>Core monitors (top-10 business-critical)</td>
+<td>Wave 1 complete; dual ingest running</td>
+<td>First 10 monitors validated</td>
+<td>2 weeks</td>
+</tr>
+<tr>
+<td><strong>Wave 3</strong></td>
+<td>Dashboards (high-usage only)</td>
+<td>Wave 2 complete</td>
+<td>Top-N dashboards live + users trained</td>
+<td>3–4 weeks</td>
+</tr>
+<tr>
+<td><strong>Wave 4</strong></td>
+<td>Remaining monitors + dashboards (app teams)</td>
+<td>Wave 3 complete; train-the-trainer done</td>
+<td>Signoff per team</td>
+<td>6–8 weeks</td>
+</tr>
+<tr>
+<td><strong>Wave 5</strong></td>
+<td>Cutover + Sumo decommission</td>
+<td>All waves validated; parallel run window elapsed</td>
+<td>Sumo contract terminated</td>
+<td>2–3 weeks</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Critical waves:</strong> Wave 0 (inventory) and Wave 1 (ingest parity). These are gating — nothing downstream works without them.</p>
+<p><strong>Parallelizable:</strong> Waves 2 and 3 can overlap with Wave 4 for app teams who are ready early. Coordinate through the migration PM.</p>
+<p><a id="train-trainer"></a></p>
+<h2>4. Train-the-Trainer Delivery Model</h2>
+<p>For engagements with 50+ teams and 100+ power users, direct delivery doesn't scale. Use train-the-trainer:</p>
+<ol>
+<li><strong>Core migration team</strong> (typically SREs, 4–8 engineers) learns Dynatrace deeply — SL2DT-04 through SL2DT-08.</li>
+<li><strong>Core team demonstrates</strong> by migrating 5 representative real-world assets per domain:
+<ul>
+<li>1–2 dashboards</li>
+<li>2–3 monitors (mix of static + anomaly)</li>
+<li>1 scheduled search</li>
+<li>1 FER → OpenPipeline processor</li>
+</ul>
+</li>
+<li><strong>Core team documents</strong> the translation as a worked example, commits to a shared repo.</li>
+<li><strong>App teams convert their own assets</strong> using the examples as templates. Each team delivers a PR for core-team review.</li>
+<li><strong>Core team reviews + approves</strong> — becomes the gate for decommissioning the Sumo-side asset.</li>
+</ol>
+<p>This pattern is proven in the NR2DT migrations (NRLC-01 through NRLC-09 apply the same model). Don't skip the review step — it is where best-practice violations get caught before they proliferate.</p>
+<h3>Why App Teams Resist (and How to Handle It)</h3>
+<p>Ownership matters. App teams see monitor conversion as &quot;more work without new value.&quot; Common patterns:</p>
+<ul>
+<li><strong>&quot;Just recreate my static threshold&quot;</strong> — App team wants to copy the number from Sumo without evaluating if anomaly detection would reduce noise. Push back with data (SL2DT-05 provides the framework).</li>
+<li><strong>&quot;I'll do it later&quot;</strong> — App team defers, risking cutover date. Migration PM tracks team-by-team progress in a shared burn-down.</li>
+<li><strong>&quot;The translation tool got it wrong&quot;</strong> — App team dismisses low-confidence output without engaging. Core team's review role includes translation debugging (SL2DT-04).</li>
+</ul>
+<p><a id="mvp"></a></p>
+<h2>5. MVP vs Full Fidelity — The Cut-Scope Decision</h2>
+<p>Migrations fail when the scope is &quot;everything in Sumo.&quot; A typical Sumo deployment has 5,000–10,000 dashboards and monitors; audit logs routinely show that 70–80% of them haven't been accessed in 90+ days.</p>
+<p><strong>The cut-scope decision is a project-plan make-or-break.</strong> Get it wrong in either direction:</p>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Symptom</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Too aggressive</td>
+<td>Cut assets that are actually used quarterly</td>
+<td>Escalations post-cutover; trust damaged</td>
+</tr>
+<tr>
+<td>Too permissive</td>
+<td>Everything migrates</td>
+<td>Budget overrun; team burnout; low-value assets dominate review cycles</td>
+</tr>
+</tbody>
+</table>
+<h3>Decision Framework</h3>
+<p>Pull the Sumo audit log. For each asset, record:</p>
+<ul>
+<li><strong>Last accessed date</strong> — if &gt; 90 days, candidate for cut</li>
+<li><strong>Unique users</strong> — if 1 user, candidate for &quot;personal&quot; (migrate only if owner requests)</li>
+<li><strong>Team ownership</strong> — if team is dissolved / reorg'd, re-assign or retire</li>
+<li><strong>Complexity</strong> — scripts/schedules add migration cost; weigh against usage</li>
+</ul>
+<p>Present the cut list to each team owner. Require explicit signoff on cut vs migrate vs retire.</p>
+<p><strong>Output:</strong> <code>cut-scope.md</code> — your audit trail for every retired asset. Commit it.</p>
+<p><a id="anti-patterns"></a></p>
+<h2>6. Anti-Patterns to Avoid</h2>
+<p>Six anti-patterns recur in every Sumo-to-Dynatrace migration. Watch for them from day one.</p>
+<h3>6.1 Lift-and-Shift Static Thresholds</h3>
+<p>App teams' first instinct is to copy the <code>&gt; 100</code> threshold from Sumo to Dynatrace. This is wrong in two ways:</p>
+<ol>
+<li><strong>Baseline differs.</strong> Dynatrace's ingest path (OneAgent + OpenPipeline) may produce slightly different metric values than Sumo. 100 in Sumo ≠ 100 in DT.</li>
+<li><strong>Dynatrace Intelligence is better.</strong> For 80%+ of static-threshold monitors, Anomaly Detection produces fewer false positives and catches real anomalies that static thresholds miss.</li>
+</ol>
+<p><strong>Fix:</strong> SL2DT-05 has a decision framework — &quot;when does static win vs Dynatrace Intelligence.&quot;</p>
+<h3>6.2 <code>_sourceCategory</code> Flat-Mapped to a Single Field</h3>
+<p>Tempting: &quot;just put <code>_sourceCategory</code> as a custom attribute, queries work the same.&quot; Problems:</p>
+<ul>
+<li>No bucket isolation → one noisy team's logs bloat your high-retention bucket</li>
+<li>IAM can't use the attribute for policy filtering (some versions)</li>
+<li>Cost allocation is per-bucket, not per-attribute</li>
+</ul>
+<p><strong>Fix:</strong> SL2DT-03 covers the mixed bucket + attribute strategy.</p>
+<h3>6.3 Parsing at Query Time Instead of Ingest Time</h3>
+<p>Sumo's FERs parse at ingest. Teams sometimes skip this step in DT and use <code>parse content, ...</code> in every dashboard query.</p>
+<ul>
+<li>Ingest-time parsing = fields stored once and queried directly</li>
+<li>Query-time parsing = re-parsed on every execution and billed on the scanned content</li>
+</ul>
+<p>Neither path builds an index — <em>&quot;Grail doesn't need any index, removing the costly overhead and inflexibility of predefined schemas.&quot;</em> The difference is where the parsing work is paid for.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-grail">Dynatrace Grail (DT docs)</a>.</sub></p>
+</blockquote>
+<p><strong>Fix:</strong> SL2DT-03 + SL2DT-04 — FER equivalents go into OpenPipeline.</p>
+<h3>6.4 Dashboard Sprawl</h3>
+<p>Cutting 8,000 dashboards to 2,000 is still too many. Target is under 500 for most organizations, with clear ownership per dashboard.</p>
+<p><strong>Fix:</strong> SL2DT-02 cut scope + SL2DT-06 dashboard consolidation.</p>
+<h3>6.5 &quot;We'll Figure Out IAM at the End&quot;</h3>
+<p>Bucket and policy decisions made late force re-ingest. IAM is Wave 1, not Wave 5.</p>
+<p><strong>Fix:</strong> SL2DT-07 is intentionally placed mid-series to cue you: don't defer governance.</p>
+<h3>6.6 Running Sumo + DT in Parallel Forever</h3>
+<p>&quot;Parallel run&quot; is a validation window, not an architecture. Cost doubles. Teams bifurcate. The cutover date must be a commitment, not aspirational.</p>
+<p><strong>Fix:</strong> SL2DT-09 defines explicit exit criteria for the parallel-run window.</p>
+<p><a id="success"></a></p>
+<h2>7. Success Criteria for the Migration</h2>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Metric</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Monitor fidelity</strong></td>
+<td>% of Sumo monitors with Dynatrace equivalent (validated)</td>
+<td>≥ 95%</td>
+</tr>
+<tr>
+<td><strong>Dashboard fidelity</strong></td>
+<td>% of in-scope dashboards recreated and validated</td>
+<td>≥ 90%</td>
+</tr>
+<tr>
+<td><strong>Query translation confidence</strong></td>
+<td>% of SumoQL translated at HIGH confidence</td>
+<td>≥ 75%</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Intelligence adoption</strong></td>
+<td>% of new monitors that use anomaly detection (vs static)</td>
+<td>≥ 40%</td>
+</tr>
+<tr>
+<td><strong>Alert noise reduction</strong></td>
+<td>DT alert count during parallel-run vs Sumo baseline</td>
+<td>≤ Sumo baseline</td>
+</tr>
+<tr>
+<td><strong>Team signoff</strong></td>
+<td>% of app teams signed off by cutover date</td>
+<td>100%</td>
+</tr>
+<tr>
+<td><strong>Cost target</strong></td>
+<td>DT + parallel Sumo cost tracking vs budget</td>
+<td>within 110%</td>
+</tr>
+<tr>
+<td><strong>Cutover date</strong></td>
+<td>Sumo contract termination</td>
+<td>on or before target date</td>
+</tr>
+</tbody>
+</table>
+<p>Track these on a weekly dashboard during Waves 2–4. Use Anomaly Detection on the alert-count metric itself to catch regressions.</p>
+<p><a id="next"></a></p>
+<h2>8. What to Read Next</h2>
+<ul>
+<li><strong>SL2DT-02 — Assessment &amp; Inventory</strong> — pull the Sumo audit log, produce cut scope</li>
+<li><strong>SL2DT-03 — Log Ingest Architecture</strong> — <code>_sourceCategory</code> mapping, bucket design, OneAgent + OTel + OpenPipeline</li>
+</ul>
+<p>If you're just here for a specific question:</p>
+<ul>
+<li>Query translation? → SL2DT-04 and the <code>sumoql-to-dql</code> skill</li>
+<li>Monitor conversion? → SL2DT-05</li>
+<li>Automation? → SL2DT-08</li>
+</ul>
+<h3>Companion assets</h3>
+<ul>
+<li><code>sumoql-to-dql</code> skill — translation tables (internal authoring aid, not a published asset)</li>
+<li><strong>NR2DT</strong> series — parallel pattern for New Relic migrations</li>
+<li><strong>S2D</strong> series — parallel pattern for Splunk migrations</li>
+</ul>
+<hr />
+<p><a id="references"></a></p>
+<h2>9. References</h2>
+<h3>Dynatrace platform overview</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail">Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Reference (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection">Anomaly detection (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management">Identity and access management (DT docs)</a></li>
+</ul>
+<h3>Sumo Logic platform reference</h3>
+<ul>
+<li><a href="https://www.sumologic.com:443/help/docs/search/search-query-language/search-operators/">Sumo Logic search operators (Sumo Logic docs)</a></li>
+<li><a href="https://www.sumologic.com:443/help/docs/alerts/monitors/">Sumo Logic monitors (Sumo Logic docs)</a></li>
+<li><a href="https://www.sumologic.com:443/help/docs/dashboards/">Sumo Logic dashboards (Sumo Logic docs)</a></li>
+<li><a href="https://www.sumologic.com:443/help/docs/manage/users-roles/">Sumo Logic users and roles (Sumo Logic docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://www.sumologic.com:443/help/docs/">Sumo Logic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

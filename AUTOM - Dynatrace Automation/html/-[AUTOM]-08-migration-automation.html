@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-08: Migration Automation</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-08: Migration Automation</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 8 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/22/2026</p>
+</blockquote>
+<p>Configuration migration is the process of transferring Dynatrace settings from one environment to another. This is common in tenant consolidation, Managed-to-SaaS migration, and disaster recovery scenarios.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#migration-scenarios">Migration Scenarios</a></li>
+<li><a href="#monaco-migration">Monaco Migration</a></li>
+<li><a href="#terraform-export">Terraform Export</a></li>
+<li><a href="#saas-upgrade-assistant">SaaS Upgrade Assistant</a></li>
+<li><a href="#validation-and-verification">Validation and Verification</a></li>
+<li><a href="#summary">Summary</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this notebook, ensure you have:</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Source tenant access</td>
+<td>Admin access to source environment</td>
+</tr>
+<tr>
+<td>Target tenant access</td>
+<td>Admin access to target environment</td>
+</tr>
+<tr>
+<td>Credentials</td>
+<td>On both source and target: an access token <strong>and</strong> a platform token (or OAuth client) — platform types (SLOs, workflows, documents, segments) need the latter</td>
+</tr>
+<tr>
+<td>Monaco or Terraform</td>
+<td>Migration tool installed</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Understand common migration scenarios</li>
+<li>Know how to export and import configurations</li>
+<li>Be able to handle non-portable configurations</li>
+<li>Validate migration completeness</li>
+</ul>
+<hr />
+<p><a id="introduction"></a></p>
+<h2>1. Introduction</h2>
+<h3>Common Migration Scenarios</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Managed to SaaS</strong></td>
+<td>Moving from self-hosted to Dynatrace SaaS</td>
+</tr>
+<tr>
+<td><strong>Tenant Consolidation</strong></td>
+<td>Merging multiple tenants into one</td>
+</tr>
+<tr>
+<td><strong>Environment Cloning</strong></td>
+<td>Creating dev/staging from production</td>
+</tr>
+<tr>
+<td><strong>Disaster Recovery</strong></td>
+<td>Restoring config to a new tenant</td>
+</tr>
+<tr>
+<td><strong>Config Backup</strong></td>
+<td>Periodic export for safekeeping</td>
+</tr>
+</tbody>
+</table>
+<h3>Where the Effort Goes</h3>
+<p>In community practice, most configuration migrates with tooling, and the remainder — credentials, integrations, entity references — takes most of the effort.</p>
+<p>Plan extra time for:</p>
+<ul>
+<li>Credentials and secrets</li>
+<li>Custom integrations</li>
+<li>Entity ID references</li>
+<li>Network-specific settings</li>
+</ul>
+<hr />
+<p><a id="migration-scenarios"></a></p>
+<h2>2. Migration Scenarios</h2>
+<h3>What Can Be Migrated</h3>
+<table>
+<thead>
+<tr>
+<th>Configuration Type</th>
+<th>Portable</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Segments</td>
+<td>Yes</td>
+<td>Filter trees migrate; deploy before anything that references them</td>
+</tr>
+<tr>
+<td>Workflows</td>
+<td>Partial</td>
+<td>Portable, but actors, connections and credentials are tenant-specific — re-point them</td>
+</tr>
+<tr>
+<td>Dashboards and notebooks (documents)</td>
+<td>Partial</td>
+<td>Entity IDs and segment IDs inside queries need updating</td>
+</tr>
+<tr>
+<td>SLOs — modern (<code>slo-v2</code>)</td>
+<td>Yes</td>
+<td>DQL SLI; replace entity IDs with tags, and reference segments through Monaco rather than by ID</td>
+</tr>
+<tr>
+<td>Davis anomaly detectors</td>
+<td>Yes</td>
+<td>DQL query; the <code>actor</code> service user is tenant-specific</td>
+</tr>
+<tr>
+<td><em>Classic:</em> Management Zones</td>
+<td>Yes, to a classic target</td>
+<td>Rules migrate, entity IDs don't — blocked at upgrade, so migrate the <em>successor</em> (segments + IAM) into a Latest Dynatrace target</td>
+</tr>
+<tr>
+<td><em>Classic:</em> Auto-tagging Rules</td>
+<td>Yes, to a classic target</td>
+<td>Blocked at upgrade — see FAQ-02 for the primary-tags successor</td>
+</tr>
+<tr>
+<td><em>Classic:</em> Alerting Profiles</td>
+<td>Yes, to a classic target</td>
+<td>May need zone ID updates — blocked at upgrade; successor is a problem-triggered workflow</td>
+</tr>
+<tr>
+<td><em>Classic:</em> Dashboards</td>
+<td>Partial</td>
+<td>Entity IDs need updating</td>
+</tr>
+<tr>
+<td><em>Classic:</em> SLOs (<code>builtin:monitoring.slo</code>)</td>
+<td>Yes, to a classic target</td>
+<td>Metric expressions portable — blocked at upgrade; rewrite as <code>slo-v2</code> (SLO-05)</td>
+</tr>
+<tr>
+<td>Synthetic Monitors</td>
+<td>Partial</td>
+<td>Location IDs may differ</td>
+</tr>
+<tr>
+<td>Request Attributes</td>
+<td>Yes</td>
+<td>Fully portable</td>
+</tr>
+<tr>
+<td>Calculated Services</td>
+<td>Yes</td>
+<td>Fully portable</td>
+</tr>
+</tbody>
+</table>
+<h3>What Cannot Be Migrated</h3>
+<table>
+<thead>
+<tr>
+<th>Configuration Type</th>
+<th>Why Not</th>
+<th>Action Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Credentials Vault</td>
+<td>Security isolation</td>
+<td>Re-enter manually</td>
+</tr>
+<tr>
+<td>API Tokens</td>
+<td>Tenant-specific</td>
+<td>Generate new tokens</td>
+</tr>
+<tr>
+<td>Historic Data</td>
+<td>Not transferable</td>
+<td>Accept baseline gap</td>
+</tr>
+<tr>
+<td>Cloud Integrations</td>
+<td>Credential-dependent</td>
+<td>Reconfigure</td>
+</tr>
+<tr>
+<td>SSL Certificates</td>
+<td>Tenant-specific</td>
+<td>Re-upload</td>
+</tr>
+<tr>
+<td>Private Locations</td>
+<td>Infrastructure-specific</td>
+<td>Redeploy</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Migration Tool Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Best For</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Monaco</strong></td>
+<td>Config-as-code teams</td>
+<td>YAML-based, Git-friendly</td>
+<td>Manual entity ID handling</td>
+</tr>
+<tr>
+<td><strong>Terraform Export</strong></td>
+<td>IaC environments</td>
+<td>Full HCL output</td>
+<td>Large state files</td>
+</tr>
+<tr>
+<td><strong>SaaS Upgrade Assistant</strong></td>
+<td>M2S migration</td>
+<td>Guided, UI-based</td>
+<td>Limited to M2S</td>
+</tr>
+<tr>
+<td><strong>Settings API</strong></td>
+<td>Custom scripts</td>
+<td>Full control</td>
+<td>Most manual effort</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="monaco-migration"></a></p>
+<h2>3. Monaco Migration</h2>
+<h3>Step 1: Download from Source</h3>
+<pre><code class="language-bash"># Set source environment
+export DT_SOURCE_URL=&quot;https://source-tenant.live.dynatrace.com&quot;
+export DT_SOURCE_TOKEN=&quot;&lt;your-source-api-token&gt;&quot;
+export DT_SOURCE_PLATFORM_TOKEN=&quot;&lt;your-source-platform-token&gt;&quot;
+
+# Download all configurations — settings, classic APIs AND platform types
+# --token / --platform-token take the NAME of the variable holding the token, not the token itself
+monaco download \
+  --url &quot;$DT_SOURCE_URL&quot; \
+  --token DT_SOURCE_TOKEN \
+  --platform-token DT_SOURCE_PLATFORM_TOKEN \
+  --output-folder ./migration-export
+</code></pre>
+<p>The platform token is what brings SLOs (<code>slo-v2</code>), workflows, documents, Grail buckets and segments into the export — the <code>--oauth-client-id</code> / <code>--oauth-client-secret</code> pair is the alternative. <strong>Drop it and the export skips every platform type</strong>: an access token alone does not reach the Platform APIs. Monaco prints one <code>WARN</code> line per skipped type (<code>Skipped downloading … due to missing OAuth credentials</code>) and the download still succeeds, so the gap is easy to miss in a long log. Only a download that requests a <em>single</em> platform type with one <code>--only-*</code> flag fails outright.</p>
+<p>The download writes a <code>manifest.yaml</code> at the top of <code>migration-export/</code> and the configs into a <code>project/</code> sub-folder (the default <code>--project</code> name).</p>
+<p>Sources: <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/download/download_configs.go">download_configs.go @ v2.30.0 (Dynatrace GitHub)</a>, <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/download/download_command.go">download_command.go @ v2.30.0 (Dynatrace GitHub)</a>.</p>
+<h3>Step 2: Review and Clean</h3>
+<p>After download, review the exported configs:</p>
+<pre><code class="language-bash"># List exported configuration types
+ls -la migration-export/
+
+# Count configurations per type
+find migration-export -name &quot;config.yaml&quot; | wc -l
+</code></pre>
+<h3>Configuration Cleanup</h3>
+<p>Remove or update:</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Entity IDs</td>
+<td>Replace with selectors or names</td>
+</tr>
+<tr>
+<td>Location IDs</td>
+<td>Map to target locations</td>
+</tr>
+<tr>
+<td>Credential references</td>
+<td>Update to target vault entries</td>
+</tr>
+<tr>
+<td>Environment-specific URLs</td>
+<td>Update endpoints</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Step 3: Create Target Manifest</h3>
+<p><strong>manifest.yaml:</strong></p>
+<pre><code class="language-yaml">manifestVersion: 1.0
+
+projects:
+  - name: migration
+    path: migration-export/project   # the configs — not the download root, which also holds a manifest.yaml
+
+environmentGroups:
+  - name: default
+    environments:
+      - name: target
+        url:
+          type: environment
+          value: DT_TARGET_URL
+        auth:
+          token:
+            name: DT_TARGET_TOKEN
+          platformToken:
+            name: DT_TARGET_PLATFORM_TOKEN
+</code></pre>
+<p>Keep this manifest <strong>outside</strong> <code>migration-export/</code>. The project path points at the <code>project/</code> sub-folder the download created; pointing it at the download root makes Monaco read the downloaded <code>manifest.yaml</code> as if it were a config file.</p>
+<p>The target needs <strong>both</strong> credentials. Without <code>platformToken</code> (or an <code>oAuth</code> client), Monaco refuses to deploy the platform configs the download brought along — <code>slo-v2</code>, workflows, documents, segments and buckets — with <em>&quot;requires platform credentials&quot;</em>, and <code>--dry-run</code> fails the same way.</p>
+<p>Sources: <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources">Manage resources — auth section (DT docs)</a> — <em>&quot;Access tokens and platform tokens are not interchangeable.&quot;</em>; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/deploy/deploy.go">deploy.go @ v2.30.0 (Dynatrace GitHub)</a>.</p>
+<h3>Step 4: Validate and Deploy</h3>
+<pre><code class="language-bash"># Set target environment
+export DT_TARGET_URL=&quot;https://target-tenant.live.dynatrace.com&quot;
+export DT_TARGET_TOKEN=&quot;&lt;your-target-api-token&gt;&quot;
+export DT_TARGET_PLATFORM_TOKEN=&quot;&lt;your-target-platform-token&gt;&quot;
+
+# Dry run — Monaco has no separate &quot;validate&quot; command; this parses the YAML,
+# checks template JSON and resolves references without contacting the tenant
+monaco deploy manifest.yaml --environment target --dry-run
+
+# Deploy
+monaco deploy manifest.yaml --environment target
+</code></pre>
+<hr />
+<h3>Handling Entity ID References</h3>
+<p>Dashboards and alerting profiles often contain entity IDs. These need special handling:</p>
+<p><strong>Option 1: Use an entity selector — only where the schema has one</strong></p>
+<p>Some configuration schemas accept an <code>entitySelector</code> field instead of a fixed ID. Where the target schema defines one, a selector survives the move:</p>
+<pre><code class="language-json">// Before (hardcoded ID)
+{
+  &quot;entityId&quot;: &quot;HOST-ABC123DEF456&quot;
+}
+
+// After (selector)
+{
+  &quot;entitySelector&quot;: &quot;type(HOST),entityName(\&quot;web-server-01\&quot;)&quot;
+}
+</code></pre>
+<p>This is not a generic transform. Renaming the key in a payload whose schema has no <code>entitySelector</code> field fails at deploy with an HTTP 400, and <code>monaco deploy --dry-run</code> does not catch it, because the dry run does not validate payload content. Everywhere else, map IDs (Option 2) or, in Monaco, parameterise the ID per environment.</p>
+<p><strong>Option 2: Entity Mapping Script</strong></p>
+<pre><code class="language-python">import json
+import re
+
+def replace_entity_ids(config: dict, mapping: dict) -&gt; dict:
+    &quot;&quot;&quot;Replace entity IDs using a source-&gt;target mapping.&quot;&quot;&quot;
+    config_str = json.dumps(config)
+    
+    for source_id, target_id in mapping.items():
+        config_str = config_str.replace(source_id, target_id)
+    
+    return json.loads(config_str)
+
+# Build mapping from entity names
+entity_mapping = {
+    &quot;HOST-ABC123&quot;: &quot;HOST-XYZ789&quot;,
+    &quot;SERVICE-DEF456&quot;: &quot;SERVICE-UVW012&quot;
+}
+</code></pre>
+<hr />
+<p><a id="terraform-export"></a></p>
+<h2>4. Terraform Export</h2>
+<h3>Using the Export Utility</h3>
+<p>The export utility is <strong>not a separate download</strong> — it is the provider binary itself, invoked with <code>-export</code>. After <code>terraform init</code> the executable sits under <code>.terraform/providers/registry.terraform.io/dynatrace-oss/dynatrace/&lt;version&gt;/&lt;os_arch&gt;/</code>.</p>
+<pre><code class="language-bash"># Linux / macOS
+./terraform-provider-dynatrace -export [-ref] [-migrate] [-import-state] [-id] [-flat] [-exclude] [&lt;resourcename&gt;[=&lt;id&gt;]]
+
+# Windows
+terraform-provider-dynatrace.exe -export [options] [&lt;resourcename&gt;[=&lt;id&gt;]]
+</code></pre>
+<p>Credentials are supplied through <strong>environment variables</strong>, not command-line arguments:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DYNATRACE_ENV_URL</code></td>
+<td>Yes</td>
+<td>Source tenant endpoint</td>
+</tr>
+<tr>
+<td><code>DYNATRACE_API_TOKEN</code></td>
+<td>Yes</td>
+<td>API token for the source tenant</td>
+</tr>
+<tr>
+<td><code>DT_CLIENT_ID</code> / <code>DT_CLIENT_SECRET</code> / <code>DT_ACCOUNT_ID</code> (OAuth client), or <code>DYNATRACE_PLATFORM_TOKEN</code></td>
+<td>For platform resources</td>
+<td>Workflows, segments, documents and platform SLOs are read through the platform APIs, which an API token alone does not reach</td>
+</tr>
+<tr>
+<td><code>DYNATRACE_TARGET_FOLDER</code></td>
+<td>No</td>
+<td>Output directory (default: <code>./configuration</code>)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash">export DYNATRACE_ENV_URL=&quot;https://source-tenant.live.dynatrace.com&quot;
+export DYNATRACE_API_TOKEN=&quot;&lt;your-source-api-token&gt;&quot;
+export DYNATRACE_TARGET_FOLDER=&quot;./terraform-export&quot;
+
+./terraform-provider-dynatrace -export -ref -id
+</code></pre>
+<blockquote>
+<p><strong>Never pass the token as a command-line argument.</strong> Anything on the command line is visible to every user who can run <code>ps</code> on that host, and it lands in shell history and CI job logs. The utility reads credentials from the environment for exactly this reason. AUTOM-04 §3 covers the provider auth model in full.</p>
+</blockquote>
+<h3>Migrating Between Tenants — the <code>-migrate</code> Flag</h3>
+<p>For tenant-to-tenant moves (Managed to SaaS, or consolidation) use <code>-migrate</code> rather than <code>-ref</code>. The two are mutually exclusive: <code>-ref</code> emits data-source references for a tenant you will keep managing in place, while <code>-migrate</code> resolves dependencies for recreating configuration in a <em>different</em> tenant.</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Command</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bulk</strong></td>
+<td><code>./terraform-provider-dynatrace -export -migrate</code></td>
+<td>Target tenant is fresh, with no configuration to preserve</td>
+</tr>
+<tr>
+<td><strong>Iterative</strong></td>
+<td><code>./terraform-provider-dynatrace -export -migrate -datasources &lt;resourcename&gt;</code></td>
+<td>Target already holds configuration you must not overwrite</td>
+</tr>
+</tbody>
+</table>
+<p>Export with the environment pointed at the source, then repoint it at the target to apply. The migration guide also documents source-scoped variables (<code>DYNATRACE_SOURCE_ENV_URL</code>, <code>DYNATRACE_SOURCE_API_TOKEN</code>) so both endpoints can be held at once.</p>
+<blockquote>
+<p><strong>Entity IDs do not survive the move.</strong> A migrated OneAgent can register as a <em>new</em> entity in the target, which silently breaks any configuration pinned to an entity ID. Re-check everything that references a specific entity after apply — this is the single most common post-migration surprise.</p>
+</blockquote>
+<h3>Export Output Structure</h3>
+<p>Output defaults to a <strong>module structure</strong> — one directory per resource family — written to <code>DYNATRACE_TARGET_FOLDER</code>, or <code>./configuration</code> if unset. Pass <code>-flat</code> to put everything in a single directory instead.</p>
+<pre><code class="language-text">configuration/
+├── main.tf
+├── providers.tf
+├── dynatrace_automation_workflow/   # only when named explicitly — excluded by default
+│   └── *.tf
+├── dynatrace_segment/              # only when named explicitly — excluded by default
+│   └── *.tf
+├── dynatrace_document/             # only when named explicitly — excluded by default
+│   └── *.tf
+├── dynatrace_management_zone_v2/   # classic — present only while the source still has them
+│   └── *.tf
+├── .flawed/              # deprecated configs requiring modification before apply
+└── .requires_attention/  # items missing essentials (e.g. credential payloads the API cannot return)
+</code></pre>
+<p>Triage <code>.flawed/</code> and <code>.requires_attention/</code> before committing anything — the second directory is where secrets that the source API refuses to return end up, and they must be re-entered by hand.</p>
+<p><strong>Dashboards, workflows, segments, documents and platform SLOs are all excluded by default.</strong> A bulk <code>-export -migrate</code> leaves them behind without an error, so a migration that stops there loses them. Export them in a separate run that names them (naming resources limits the export to those resources), with the platform credentials above set:</p>
+<pre><code class="language-bash">DYNATRACE_TARGET_FOLDER=./terraform-export-platform \
+  ./terraform-provider-dynatrace -export -migrate \
+  dynatrace_automation_workflow dynatrace_segment dynatrace_document dynatrace_platform_slo
+</code></pre>
+<p>Run <code>-list-exclusions</code> to see the full default-exclusion list, and add anything else on it that you need.</p>
+<h3>Importing to the Target</h3>
+<pre><code class="language-bash">cd configuration
+
+# Repoint the provider at the target tenant
+export DYNATRACE_ENV_URL=&quot;https://target-tenant.apps.dynatrace.com&quot;
+export DYNATRACE_API_TOKEN=&quot;&lt;your-target-api-token&gt;&quot;
+
+terraform init
+terraform plan     # expect a large first plan — review it before applying
+terraform apply
+</code></pre>
+<p>Adding <code>-import-state</code> to the original export runs <code>terraform init</code> and imports the exported resources into state automatically, if you want a bootstrapped workspace rather than HCL files alone.</p>
+<p>The full <code>-export</code> flag reference lives in <strong>AUTOM-04 §8</strong>. The end-to-end Managed-to-SaaS Terraform walkthrough — export, triage, repoint, apply, verify — is in <strong>M2S-95 LAB</strong>, and is not repeated here.</p>
+<p>Sources: <a href="https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/export-utility">Terraform export utility (DT docs)</a> — <em>&quot;These files are moved to .requires_attention&quot;</em>; <a href="https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/migration">Terraform migration guide (DT docs)</a>; <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/automation_workflow.md">automation_workflow resource (Dynatrace GitHub)</a> — <em>&quot;This resource is excluded by default in the export utility&quot;</em> (the <code>segment</code>, <code>document</code> and <code>platform_slo</code> pages say the same); <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md">Provider configuration (Dynatrace GitHub)</a> — <em>&quot;The Dynatrace platform token used for platform APIs.&quot;</em></p>
+<hr />
+<p><a id="saas-upgrade-assistant"></a></p>
+<h2>5. SaaS Upgrade Assistant</h2>
+<p>For Managed-to-SaaS migrations, Dynatrace provides a guided tool.</p>
+<h3>Accessing the Assistant</h3>
+<p>The Assistant is an app in the <strong>target SaaS environment</strong>, fed by an export taken on the Managed side:</p>
+<ol>
+<li><strong>Install the app.</strong> In the target SaaS environment, open <strong>Dynatrace Hub</strong>, select <strong>SaaS Upgrade Assistant</strong>, then <strong>Install</strong>.</li>
+<li><strong>Export from Managed.</strong> Sign in to the Managed <strong>Cluster Management Console</strong>, go to <strong>Environments</strong>, select the environment to migrate from, and select <strong>Export configuration</strong>. Store the archive locally.</li>
+<li><strong>Upload the archive in the app</strong> and work through the imported configurations.</li>
+</ol>
+<p>Upload the archive the Cluster Management Console produces. The docs describe no manual repackaging step and no archive layout to build by hand. They do recommend exporting from a Managed cluster on the same major version as the SaaS environment, to avoid false-positive failed configurations.</p>
+<h3>What the Assistant Does</h3>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Progress tracking</strong></td>
+<td>Track configuration migration progress</td>
+</tr>
+<tr>
+<td><strong>Review failures</strong></td>
+<td>Browse imported configurations; failed ones are marked in red, with error messages for failed and skipped configurations</td>
+</tr>
+<tr>
+<td><strong>Edit and bulk edit</strong></td>
+<td>Fix one configuration in an edit form, or update hundreds at once in bulk mode, with a change preview</td>
+</tr>
+<tr>
+<td><strong>Partial deployment</strong></td>
+<td>Choose which configurations to migrate and deploy only those</td>
+</tr>
+<tr>
+<td><strong>Dashboard owners</strong></td>
+<td>Automatically update dashboard owners</td>
+</tr>
+</tbody>
+</table>
+<p>Sources: <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT docs)</a> — <em>&quot;Choose which configurations you want to migrate and run partial deployment.&quot;</em>; <a href="https://docs.dynatrace.com/managed/upgrade/up-execute-upgrade/up-migrate-cfg">Migrate configuration (DT docs)</a> — <em>&quot;you export the Dynatrace Managed environment's configuration in the Cluster Management Console and upload it to the app.&quot;</em></p>
+<h3>When to Use</h3>
+<p>Dynatrace sanctions <strong>three</strong> approaches for Managed-to-SaaS configuration migration. The Assistant is the recommended default, but it is not the only supported path — if you already run config-as-code, use the tool you already run.</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommended Tool</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Managed to SaaS — no config-as-code today</td>
+<td><strong>SaaS Upgrade Assistant</strong></td>
+<td>Recommended default. Guided UI, progress tracking, bulk edit, partial deployment.</td>
+</tr>
+<tr>
+<td>Managed to SaaS — already running Monaco</td>
+<td><strong>Monaco</strong></td>
+<td>Download from Managed, deploy to SaaS with a retargeted manifest (§3 above).</td>
+</tr>
+<tr>
+<td>Managed to SaaS — already running Terraform</td>
+<td><strong>Terraform</strong> (<code>-export -migrate</code>)</td>
+<td>Repoint the provider at the SaaS tenant. Full walkthrough in <strong>M2S-95 LAB</strong>.</td>
+</tr>
+<tr>
+<td>SaaS to SaaS</td>
+<td>Monaco</td>
+<td></td>
+</tr>
+<tr>
+<td>Backup/Restore</td>
+<td>Monaco or Terraform</td>
+<td></td>
+</tr>
+<tr>
+<td>GitOps workflow</td>
+<td>Monaco or Terraform</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Whichever path you pick, one set of settings <strong>never</strong> migrates automatically and must be recreated by hand: extension and cloud credential configurations (AWS, Azure, GCP, Cloud Foundry, Kubernetes), access tokens and personal access tokens, problem-notification integrations (Jira, OpsGenie, PagerDuty, and the rest), mobile symbolication and JavaScript error settings, request naming and merged services, multi-dimensional analysis saved views, account management (users, groups, permissions), tags and custom entity names, and process-grouping rules — which must be migrated <em>before</em> the upgrade, not after. Budget for this explicitly: it is the remainder from §1 that takes most of the effort.</p>
+<p>Source: <a href="https://docs.dynatrace.com/managed/shortlink/up-migrate-cfg#settings-that-require-manual-migration">Migrate configuration (DT docs)</a>.</p>
+<hr />
+<p><a id="validation-and-verification"></a></p>
+<h2>6. Validation and Verification</h2>
+<h3>Pre-Migration Checklist</h3>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[ ] Source inventory</td>
+<td>Document all configurations</td>
+</tr>
+<tr>
+<td>[ ] Credential list</td>
+<td>Identify all secrets to re-enter</td>
+</tr>
+<tr>
+<td>[ ] Entity dependencies</td>
+<td>Map entity ID references</td>
+</tr>
+<tr>
+<td>[ ] Network requirements</td>
+<td>Verify target connectivity</td>
+</tr>
+<tr>
+<td>[ ] Token scopes</td>
+<td>Ensure sufficient permissions</td>
+</tr>
+</tbody>
+</table>
+<h3>Post-Migration Validation</h3>
+<p>Run these DQL queries on the target tenant to verify entity counts:</p>
+<blockquote>
+<p><strong>Note:</strong> <code>fetch dt.settings</code> is NOT a valid DQL data object. Settings objects must be queried via the Settings API (<code>GET /api/v2/settings/objects</code>), not DQL. The cells below document the correct approach.</p>
+</blockquote>
+<pre><code class="language-dql">// Count management zones
+// NOTE: fetch dt.settings is NOT a valid DQL data object.
+// Settings objects cannot be queried via DQL.
+// Use the Settings API instead:
+//   GET /api/v2/settings/objects?schemaIds=&lt;schemaId&gt;
+// Example:
+//   GET /api/v2/settings/objects?schemaIds=builtin:management-zones
+//   GET /api/v2/settings/objects?schemaIds=builtin:tags.auto-tagging
+
+</code></pre>
+<pre><code class="language-dql">// Count auto-tagging rules
+// NOTE: fetch dt.settings is NOT a valid DQL data object.
+// Settings objects cannot be queried via DQL.
+// Use the Settings API instead:
+//   GET /api/v2/settings/objects?schemaIds=&lt;schemaId&gt;
+// Example:
+//   GET /api/v2/settings/objects?schemaIds=builtin:management-zones
+//   GET /api/v2/settings/objects?schemaIds=builtin:tags.auto-tagging
+
+</code></pre>
+<pre><code class="language-dql">// Verify synthetic monitors — all three monitor types, Smartscape form (preferred for new queries)
+smartscapeNodes &quot;BROWSER_MONITOR&quot;, &quot;HTTP_MONITOR&quot;, &quot;NETWORK_AVAILABILITY_MONITOR&quot;
+| summarize total = count(), by:{type}
+
+// Counting BROWSER_MONITOR alone misses HTTP and network-availability monitors, so a
+// migration check could pass with half the monitors missing. Compare per type.
+// A type with no monitors produces NO row (not a 0) — treat a missing row as 0 when
+// comparing source and target.
+//
+// Classic form — still functional, and a genuine fallback (one query per type):
+//   fetch dt.entity.synthetic_test        // browser
+//   | summarize total = count()
+//
+// dt.entity.synthetic_test maps to the BROWSER_MONITOR Smartscape node type. Both forms
+// returned the same monitor count when live-verified 07/30/2026, so either works today;
+// dt.entity.* is deprecated, so prefer the Smartscape form for anything new. Note that
+// dt.entity.* is a lookback view: with a wide window (from:-30d) it also counts monitors
+// deleted inside that window, while smartscapeNodes counts current nodes (re-verified 09/18/2026).
+//
+// Two things to know before porting a synthetic query:
+//   - Clickpath steps are a SEPARATE node type (BROWSER_MONITOR_STEP), not fields of the
+//     monitor. A query that reads per-step data must traverse to those nodes rather than
+//     expect step attributes on the monitor node.
+//   - The other synthetic types map too: dt.entity.http_check -&gt; HTTP_MONITOR,
+//     dt.entity.multiprotocol_monitor -&gt; NETWORK_AVAILABILITY_MONITOR,
+//     dt.entity.synthetic_location -&gt; SYNTHETIC_LOCATION.
+</code></pre>
+<h3>Validation Script</h3>
+<p>Compare source and target configuration counts. Do it by <strong>config type across two Monaco downloads</strong> — one from each tenant, with the same flags — so platform types (SLOs, segments, workflows, documents) are counted the same way as Settings 2.0:</p>
+<pre><code class="language-python">from collections import Counter
+from pathlib import Path
+
+import yaml  # pip install pyyaml
+
+
+def count_configs(download_root: Path) -&gt; Counter:
+    &quot;&quot;&quot;Count configs per Monaco config-type folder in a `monaco download` output.&quot;&quot;&quot;
+    counts: Counter = Counter()
+    for config_file in download_root.rglob(&quot;config.yaml&quot;):
+        doc = yaml.safe_load(config_file.read_text()) or {}
+        counts[config_file.parent.name] += len(doc.get(&quot;configs&quot;, []))
+    return counts
+
+
+def validate_migration(source_export: Path, target_export: Path) -&gt; list[dict]:
+    &quot;&quot;&quot;Compare per-type config counts between two downloads.&quot;&quot;&quot;
+    source, target = count_configs(source_export), count_configs(target_export)
+    return [
+        {&quot;type&quot;: t, &quot;source&quot;: source[t], &quot;target&quot;: target[t], &quot;match&quot;: source[t] == target[t]}
+        for t in sorted(set(source) | set(target))
+    ]
+
+
+# Both downloads must use the same credentials shape: a download without a platform
+# token has no slo-v2 / segment / workflow / document folders at all, and would
+# &quot;match&quot; on zero for every platform type.
+for row in validate_migration(Path(&quot;source-export&quot;), Path(&quot;target-export&quot;)):
+    print(row)
+</code></pre>
+<p>A type that appears on only one side shows up with a zero on the other, rather than being skipped — which is the failure the classic script below could not see.</p>
+<p><strong>Classic — Settings API count, for classic schemas only:</strong></p>
+<blockquote>
+<p><strong>Two things to know before running this.</strong> The SLO schema is <code>builtin:monitoring.slo</code> — <strong>not</strong> <code>builtin:slo</code>, which does not exist. Querying a nonexistent schema returns <code>totalCount: 0</code> rather than an error, so a count-comparison script using the wrong ID reports <code>0 == 0</code> and a cheerful match for a domain it never actually checked. This script previously carried that bug.</p>
+<p>All four schemas below are also marked <strong>Blocked at upgrade</strong> in AUTOM-02's catalog. After a tenant upgrades to the latest Dynatrace they return zero on both sides, and this script will again report a clean match — for configuration that no longer exists. Count-parity validation is only meaningful while both tenants are on the same generation; across a Classic → Gen3 boundary you need to compare the <em>replacement</em> constructs instead.</p>
+</blockquote>
+<pre><code class="language-python">import requests
+
+def count_settings(url: str, token: str, schema_id: str) -&gt; int:
+    &quot;&quot;&quot;Count settings objects of a given schema.&quot;&quot;&quot;
+    response = requests.get(
+        f&quot;{url}/api/v2/settings/objects&quot;,
+        params={&quot;schemaIds&quot;: schema_id},
+        headers={&quot;Authorization&quot;: f&quot;Api-Token {token}&quot;}
+    )
+    return response.json().get(&quot;totalCount&quot;, 0)
+
+def validate_migration(source_url, source_token, target_url, target_token):
+    &quot;&quot;&quot;Compare configuration counts between tenants.&quot;&quot;&quot;
+    schemas = [
+        &quot;builtin:management-zones&quot;,
+        &quot;builtin:tags.auto-tagging&quot;,
+        &quot;builtin:alerting.profile&quot;,
+        &quot;builtin:monitoring.slo&quot;
+    ]
+    
+    results = []
+    for schema in schemas:
+        source_count = count_settings(source_url, source_token, schema)
+        target_count = count_settings(target_url, target_token, schema)
+        
+        results.append({
+            &quot;schema&quot;: schema,
+            &quot;source&quot;: source_count,
+            &quot;target&quot;: target_count,
+            &quot;match&quot;: source_count == target_count
+        })
+    
+    return results
+</code></pre>
+<hr />
+<h3>Troubleshooting Common Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Missing configs</td>
+<td>Schema not exported, or platform types skipped for lack of platform credentials</td>
+<td>Export the specific schema; check the download log for <code>Skipped downloading</code> warnings</td>
+</tr>
+<tr>
+<td>Deploy errors</td>
+<td>Entity ID invalid</td>
+<td>Map IDs to the target (§3 Option 2), or use an entity selector where the schema accepts one</td>
+</tr>
+<tr>
+<td>Dashboard empty</td>
+<td>Data not migrated</td>
+<td>Expected (historic data doesn't migrate)</td>
+</tr>
+<tr>
+<td>Alerts not firing</td>
+<td>Credential issues</td>
+<td>Re-enter webhook credentials</td>
+</tr>
+<tr>
+<td>Synthetic failing</td>
+<td>Location mismatch</td>
+<td>Update location IDs</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="summary"></a></p>
+<h2>7. Summary</h2>
+<h3>Migration Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Plan thoroughly</strong></td>
+<td>Document everything before starting</td>
+</tr>
+<tr>
+<td><strong>Export first</strong></td>
+<td>Keep a backup of source config</td>
+</tr>
+<tr>
+<td><strong>Validate often</strong></td>
+<td>Check counts after each step</td>
+</tr>
+<tr>
+<td><strong>Test in dev</strong></td>
+<td>Validate in non-production first</td>
+</tr>
+<tr>
+<td><strong>Document exceptions</strong></td>
+<td>Note what needed manual work</td>
+</tr>
+</tbody>
+</table>
+<h3>Quick Reference: Migration Commands</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Monaco Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Download all</td>
+<td><code>monaco download --manifest manifest.yaml --environment &lt;env&gt; --output-folder ./export</code></td>
+</tr>
+<tr>
+<td>Download platform types</td>
+<td><code>monaco download --manifest manifest.yaml --environment &lt;env&gt; --only-slo-v2 --only-segments --only-automation --only-documents</code> (needs <code>auth.platformToken</code> or <code>auth.oAuth</code>)</td>
+</tr>
+<tr>
+<td>Download specific (classic inventory)</td>
+<td><code>monaco download --manifest manifest.yaml --environment &lt;env&gt; --settings-schema builtin:management-zones</code> (<code>--api</code> is for classic Configuration APIs only)</td>
+</tr>
+<tr>
+<td>Validate</td>
+<td><code>monaco deploy manifest.yaml --dry-run</code> — Monaco ships no standalone <code>validate</code> subcommand (see AUTOM-03 §5)</td>
+</tr>
+<tr>
+<td>Dry run</td>
+<td><code>monaco deploy manifest.yaml --dry-run</code></td>
+</tr>
+<tr>
+<td>Deploy</td>
+<td><code>monaco deploy manifest.yaml</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Series So Far</h3>
+<p>AUTOM-09 (Terraform GitOps setup recipe) and the appendix LABs (95–98) follow. Here's what the main sequence covered:</p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Key Takeaway</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AUTOM-01</td>
+<td>Choose the right tool for your use case</td>
+</tr>
+<tr>
+<td>AUTOM-02</td>
+<td>Settings API is the foundation</td>
+</tr>
+<tr>
+<td>AUTOM-03</td>
+<td>Monaco for GitOps-style management</td>
+</tr>
+<tr>
+<td>AUTOM-04</td>
+<td>Terraform for state management</td>
+</tr>
+<tr>
+<td>AUTOM-05</td>
+<td>Workflows for event-driven automation</td>
+</tr>
+<tr>
+<td>AUTOM-06</td>
+<td>SDKs for custom applications</td>
+</tr>
+<tr>
+<td>AUTOM-07</td>
+<td>CI/CD for automated deployments</td>
+</tr>
+<tr>
+<td>AUTOM-08</td>
+<td>Migration patterns and validation</td>
+</tr>
+</tbody>
+</table>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://github.com/dynatrace/dynatrace-configuration-as-code">Monaco Documentation</a></li>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace">Terraform Provider</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api">Dynatrace API Reference</a></li>
+<li><a href="https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/export-utility">Terraform export utility (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/managed/deliver/configuration-as-code/terraform/guides/migration">Terraform migration guide (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/managed/shortlink/up-migrate-cfg">Migrate configuration — Managed to SaaS (DT docs)</a></li>
+<li><strong>M2S series</strong> — for Managed-to-SaaS specific guidance, including the <strong>M2S-95 LAB</strong> Terraform migration walkthrough</li>
+<li><strong>DTM series</strong> — the Managed source cluster: run the DTM-99 health-check checklist before exporting configuration from it</li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco commands reference (DT docs)</a></li>
+</ul>
+<hr />
+<blockquote>
+<p><strong>Key Takeaway:</strong> Successful migration requires planning, the right tools, and thorough validation. Use Monaco or Terraform for bulk export/import, but always plan for manual work on credentials and entity references.</p>
+</blockquote>
+<hr />
+<p><em>Next: <strong>AUTOM-09: Terraform GitOps Setup Recipe</strong> for the operational architecture of standing up a Terraform GitOps shop (repo layout, state backends, lifecycle protections, team onboarding). For Managed-to-SaaS migrations, see the <strong>M2S series</strong>.</em></p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

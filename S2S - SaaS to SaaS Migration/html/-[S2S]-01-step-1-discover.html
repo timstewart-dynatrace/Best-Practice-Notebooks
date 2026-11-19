@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2S-01: Step 1 — Discover: Migration Scenarios and Inventory</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2S — SaaS to SaaS Migration</a><span class="sep">/</span><span aria-current="page">S2S-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2S-01: Step 1 — Discover: Migration Scenarios and Inventory</h1>
+<blockquote>
+<p><strong>Series:</strong> S2S — SaaS to SaaS Migration | <strong>Notebook:</strong> 1 of 9 | <strong>Phase:</strong> Plan | <strong>Step:</strong> Discover | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/24/2026</p>
+</blockquote>
+<p>The first step in any SaaS-to-SaaS migration is understanding <em>why</em> you are migrating between tenants, inventorying what you have, and confirming what migrates automatically versus what requires manual effort. This notebook guides you through discovery, scenario identification, and tool selection.</p>
+<blockquote>
+<p><strong>S2S Migration Journey — 3 Phases / 9 Steps</strong></p>
+<p><strong>Plan:</strong> <strong>1. Discover</strong> | 2. Strategize | 3. Design</p>
+<p><strong>Upgrade:</strong> 4. Prepare | 5. Execute | 6. Integrate</p>
+<p><strong>Run:</strong> 7. Expand | 8. Enable | 9. Optimize</p>
+</blockquote>
+<h3>Platform Changes That Affect an S2S Migration</h3>
+<ol>
+<li><strong>Primary Grail fields and tags enriched at the source</strong> (OneAgent 1.333+) — when redesigning the post-migration tag taxonomy in S2S-03 (Design), prefer OneAgent primary fields and tags (<code>dt.security_context</code>, <code>dt.cost.costcenter</code>, <code>dt.cost.product</code>, <code>primary_tags.*</code>) over OpenPipeline parsing where possible. They arrive on every signal without ingest-time processors, and can be set in the same <code>oneagentctl</code> call that redirects each agent (S2S-05).</li>
+<li><strong>Platform tokens</strong> for new automation in S2S-04/05/10 — this is the right time to retire classic <code>dt0c01</code> token use in migration tooling where a platform token or OAuth client is accepted. Use the right scheme: platform tokens go in <code>Authorization: Bearer …</code>, classic API tokens in <code>Authorization: Api-Token …</code>.</li>
+<li><strong>Extensions review</strong> — if either tenant carries custom <strong>Extensions Framework 1.0</strong> extensions, rebuild them as <strong>Extensions 2.0</strong>. Extensions Framework 1.0 reached end of support on 2025-03-31 (its Python 3.8 variant on 2024-10-31); JMX and PMI extensions on Framework 1.0 have their own end-of-support date, <strong>July 1, 2027</strong>.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent (DT docs)</a> — <em>&quot;OneAgent version 1.333&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End of support announcements (DT docs)</a> — <em>&quot;EF1 JMX and PMI extensions reach end of support on July 1, 2027.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-migrate-between-saas-tenants">Why Migrate Between SaaS Tenants</a></li>
+<li><a href="#what-migrates-and-what-does-not">What Migrates and What Does Not</a></li>
+<li><a href="#entity-inventory">Entity Inventory</a></li>
+<li><a href="#configuration-inventory">Configuration Inventory</a></li>
+<li><a href="#davis-problem-triage">Detected Problem Triage and Configuration Debt</a></li>
+<li><a href="#migration-tools-comparison">Migration Tools Comparison</a></li>
+<li><a href="#the-90-10-rule">The 90/10 Rule</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Source Tenant</strong></td>
+<td>Active Dynatrace SaaS environment with administrator access</td>
+</tr>
+<tr>
+<td><strong>Target Tenant</strong></td>
+<td>Provisioned Dynatrace SaaS environment (or planning to provision)</td>
+</tr>
+<tr>
+<td><strong>API Tokens</strong></td>
+<td>Tokens with <code>entities.read</code>, <code>settings.read</code> scopes on source tenant</td>
+</tr>
+<tr>
+<td><strong>CLI Tools</strong></td>
+<td>Monaco CLI v2.x, Terraform v1.5+ (for IAM only)</td>
+</tr>
+<tr>
+<td><strong>Stakeholder Access</strong></td>
+<td>Ability to document and share findings with decision-makers</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmdHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBmMTcyYSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTI5M2IiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNvdXJjZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImV4cG9ydEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InRyYW5zZm9ybUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImltcG9ydEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InRhcmdldEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2NjkiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImF1dG9CYXJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxMGI5ODEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI5MCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxMGI5ODEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI5MCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjU5ZTBiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMCIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2QtY29sb3I9IiMwMDAiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgICA8ZmlsdGVyIGlkPSJnbG93Ij4KICAgICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMiIgcmVzdWx0PSJibHVyIi8+CiAgICAgIDxmZU1lcmdlPjxmZU1lcmdlTm9kZSBpbj0iYmx1ciIvPjxmZU1lcmdlTm9kZSBpbj0iU291cmNlR3JhcGhpYyIvPjwvZmVNZXJnZT4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3MDAiIGhlaWdodD0iNDAwIiBmaWxsPSJ1cmwoI2JnR3JhZCkiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjFmNWY5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSJib2xkIj5TYWFTLXRvLVNhYVMgTWlncmF0aW9uIEZsb3c8L3RleHQ+CgogIDwhLS0gUGlwZWxpbmUgYm94ZXMgLS0+CiAgPCEtLSBTb3VyY2UgVGVuYW50IC0tPgogIDxyZWN0IHg9IjIwIiB5PSIxMDAiIHdpZHRoPSIxMTAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3NvdXJjZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9Ijc1IiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiPlNvdXJjZTwvdGV4dD4KICA8dGV4dCB4PSI3NSIgeT0iMTQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZGJlYWZlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPlNhYVMgVGVuYW50PC90ZXh0PgogIDxyZWN0IHg9IjM1IiB5PSIxNTUiIHdpZHRoPSI4MCIgaGVpZ2h0PSIxMCIgcng9IjMiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xNSkiLz4KICA8cmVjdCB4PSIzNSIgeT0iMTU1IiB3aWR0aD0iNjAiIGhlaWdodD0iMTAiIHJ4PSIzIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMykiLz4KCiAgPCEtLSBBcnJvdyAxIC0tPgogIDxsaW5lIHgxPSIxMzQiIHkxPSIxMzUiIHgyPSIxNTgiIHkyPSIxMzUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93SGVhZCkiLz4KICA8cG9seWdvbiBwb2ludHM9IjE1OCwxMzAgMTY4LDEzNSAxNTgsMTQwIiBmaWxsPSIjOTRhM2I4Ii8+CgogIDwhLS0gRXhwb3J0IC0tPgogIDxyZWN0IHg9IjE3MCIgeT0iMTAwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0idXJsKCNleHBvcnRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIyMjUiIHk9IjEyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCI+RXhwb3J0PC90ZXh0PgogIDx0ZXh0IHg9IjIyNSIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZWRlOWZlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPk1vbmFjbyBEb3dubG9hZDwvdGV4dD4KICA8dGV4dCB4PSIyMjUiIHk9IjE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2VkZTlmZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5UZXJyYWZvcm0gSW1wb3J0PC90ZXh0PgoKICA8IS0tIEFycm93IDIgLS0+CiAgPGxpbmUgeDE9IjI4NCIgeTE9IjEzNSIgeDI9IjMwOCIgeTI9IjEzNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cG9seWdvbiBwb2ludHM9IjMwOCwxMzAgMzE4LDEzNSAzMDgsMTQwIiBmaWxsPSIjOTRhM2I4Ii8+CgogIDwhLS0gVHJhbnNmb3JtIC0tPgogIDxyZWN0IHg9IjMyMCIgeT0iMTAwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0idXJsKCN0cmFuc2Zvcm1HcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIzNzUiIHk9IjEyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCI+VHJhbnNmb3JtPC90ZXh0PgogIDx0ZXh0IHg9IjM3NSIgeT0iMTM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmVmM2M3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkVudGl0eSBJRCBSZW1hcDwvdGV4dD4KICA8dGV4dCB4PSIzNzUiIHk9IjE1MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZlZjNjNyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5Db25maWcgQWRqdXN0PC90ZXh0PgogIDx0ZXh0IHg9IjM3NSIgeT0iMTYzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmVmM2M3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+VVJML1Rva2VuIFVwZGF0ZTwvdGV4dD4KCiAgPCEtLSBBcnJvdyAzIC0tPgogIDxsaW5lIHgxPSI0MzQiIHkxPSIxMzUiIHgyPSI0NTgiIHkyPSIxMzUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI0NTgsMTMwIDQ2OCwxMzUgNDU4LDE0MCIgZmlsbD0iIzk0YTNiOCIvPgoKICA8IS0tIEltcG9ydCAtLT4KICA8cmVjdCB4PSI0NzAiIHk9IjEwMCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI3MCIgcng9IjgiIGZpbGw9InVybCgjaW1wb3J0R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNTI1IiB5PSIxMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiPkltcG9ydDwvdGV4dD4KICA8dGV4dCB4PSI1MjUiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2VkZTlmZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5UZXJyYWZvcm0gQXBwbHk8L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlZGU5ZmUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+VmFsaWRhdGlvbjwvdGV4dD4KCiAgPCEtLSBBcnJvdyA0IC0tPgogIDxsaW5lIHgxPSI1ODQiIHkxPSIxMzUiIHgyPSI2MDgiIHkyPSIxMzUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI2MDgsMTMwIDYxOCwxMzUgNjA4LDE0MCIgZmlsbD0iIzk0YTNiOCIvPgoKICA8IS0tIFRhcmdldCBUZW5hbnQgLS0+CiAgPHJlY3QgeD0iNjIwIiB5PSIxMDAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI3MCIgcng9IjgiIGZpbGw9InVybCgjdGFyZ2V0R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNjUwIiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiPlRhcmdldDwvdGV4dD4KICA8dGV4dCB4PSI2NTAiIHk9IjE0NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2QxZmFlNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5TYWFTPC90ZXh0PgogIDx0ZXh0IHg9IjY1MCIgeT0iMTU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZDFmYWU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPlRlbmFudDwvdGV4dD4KCiAgPCEtLSBEaXZpZGVyIC0tPgogIDxsaW5lIHgxPSI0MCIgeTE9IjIwNSIgeDI9IjY2MCIgeTI9IjIwNSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjQsNCIvPgoKICA8IS0tIDkwLzEwIFNwbGl0IFNlY3Rpb24gLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIyMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmMWY1ZjkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPkF1dG9tYXRpb24gU3BsaXQ8L3RleHQ+CgogIDwhLS0gOTAlIEF1dG9tYXRlZCBiYXIgLS0+CiAgPHJlY3QgeD0iNzAiIHk9IjI1MCIgd2lkdGg9IjU2MCIgaGVpZ2h0PSIzNiIgcng9IjYiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHJlY3QgeD0iNzAiIHk9IjI1MCIgd2lkdGg9IjUwNCIgaGVpZ2h0PSIzNiIgcng9IjYiIGZpbGw9IiMxMGI5ODEiIG9wYWNpdHk9IjAuODUiLz4KICA8cmVjdCB4PSI1NzQiIHk9IjI1MCIgd2lkdGg9IjU2IiBoZWlnaHQ9IjM2IiByeD0iNiIgZmlsbD0iI2Y1OWUwYiIgb3BhY2l0eT0iMC44NSIvPgogIDwhLS0gRml4IGNvcm5lcnMgb24gdGhlIGdyZWVuIGJhciByaWdodCBzaWRlIC0tPgogIDxyZWN0IHg9IjU2MCIgeT0iMjUwIiB3aWR0aD0iMTQiIGhlaWdodD0iMzYiIGZpbGw9IiMxMGI5ODEiIG9wYWNpdHk9IjAuODUiLz4KCiAgPCEtLSBMYWJlbHMgb24gYmFyIC0tPgogIDx0ZXh0IHg9IjMyMiIgeT0iMjczIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIj45MCUgQXV0b21hdGVkPC90ZXh0PgogIDx0ZXh0IHg9IjYwMiIgeT0iMjczIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIj4xMCU8L3RleHQ+CgogIDwhLS0gTGVnZW5kIC0tPgogIDxyZWN0IHg9IjEyMCIgeT0iMzAyIiB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIHJ4PSIzIiBmaWxsPSIjMTBiOTgxIi8+CiAgPHRleHQgeD0iMTQwIiB5PSIzMTQiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+QXV0b21hdGVkIHZpYSBUZXJyYWZvcm0vTW9uYWNvPC90ZXh0PgoKICA8cmVjdCB4PSIzNzAiIHk9IjMwMiIgd2lkdGg9IjE0IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iI2Y1OWUwYiIvPgogIDx0ZXh0IHg9IjM5MCIgeT0iMzE0IiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPk1hbnVhbCBFZmZvcnQgKHZhbGlkYXRpb24sIHRlc3RpbmcpPC90ZXh0PgoKICA8IS0tIEF1dG9tYXRlZCBpdGVtcyAtLT4KICA8dGV4dCB4PSIxMDAiIHk9IjM0NSIgZmlsbD0iIzEwYjk4MSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5EYXNoYm9hcmRzPC90ZXh0PgogIDx0ZXh0IHg9IjE4NSIgeT0iMzQ1IiBmaWxsPSIjMTBiOTgxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkFsZXJ0aW5nPC90ZXh0PgogIDx0ZXh0IHg9IjI1MyIgeT0iMzQ1IiBmaWxsPSIjMTBiOTgxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPlNMT3M8L3RleHQ+CiAgPHRleHQgeD0iMzAyIiB5PSIzNDUiIGZpbGw9IiMxMGI5ODEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+UG9saWNpZXM8L3RleHQ+CiAgPHRleHQgeD0iMzcwIiB5PSIzNDUiIGZpbGw9IiMxMGI5ODEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+V29ya2Zsb3dzPC90ZXh0PgoKICA8IS0tIE1hbnVhbCBpdGVtcyAtLT4KICA8dGV4dCB4PSI0NjAiIHk9IjM0NSIgZmlsbD0iI2Y1OWUwYiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5BZ2VudCBUb2tlbnM8L3RleHQ+CiAgPHRleHQgeD0iNTU1IiB5PSIzNDUiIGZpbGw9IiNmNTllMGIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+T0F1dGggQ2xpZW50czwvdGV4dD4KCiAgPCEtLSBTdWJ0aXRsZSB1bmRlciBwaXBlbGluZSAtLT4KICA8dGV4dCB4PSI3NSIgeT0iMTg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+RXhpc3RpbmcgRW52PC90ZXh0PgogIDx0ZXh0IHg9IjIyNSIgeT0iMTg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+QnVsayBFeHRyYWN0PC90ZXh0PgogIDx0ZXh0IHg9IjM3NSIgeT0iMTg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+QWRhcHQgQ29uZmlnPC90ZXh0PgogIDx0ZXh0IHg9IjUyNSIgeT0iMTg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+RGVwbG95IHRvIFRhcmdldDwvdGV4dD4KICA8dGV4dCB4PSI2NTAiIHk9IjE4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiPk5ldyBFbnY8L3RleHQ+CgogIDwhLS0gRm9vdGVyIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNDc1NTY5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+UzJTIE1pZ3JhdGlvbiBQaXBlbGluZSAtIENvbmZpZ3VyYXRpb24gYXMgQ29kZTwvdGV4dD4KPC9zdmc+" alt="S2S Migration Overview" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Steps | Focus |
+|-------|-------|-------|
+| Plan | 1. Discover, 2. Strategize, 3. Design | Understand scope, select approach, architect target |
+| Upgrade | 4. Prepare, 5. Execute, 6. Integrate | Export config, migrate agents, reconnect integrations |
+| Run | 7. Expand, 8. Enable, 9. Optimize | Scale coverage, activate features, tune performance |
+For environments where SVG doesn't render
+-->
+<p><a id="why-migrate-between-saas-tenants"></a></p>
+<h2>1. Why Migrate Between SaaS Tenants</h2>
+<p>Migrating between Dynatrace SaaS tenants is fundamentally different from migrating from Managed to SaaS. There is no Managed-to-SaaS architecture change, but do not assume the two environments are identical: either one can still be on Dynatrace Classic surfaces (classic cloud integrations, management zones, classic dashboards) or already on Latest Dynatrace, and a SaaS environment can be hosted on a different cloud and region. Record each environment's platform state during discovery rather than assuming parity. S2S also brings its own challenges: entity ID remapping, historical data gaps, and a per-wave overlap while agents move.</p>
+<h3>Migration Scenarios</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tenant Consolidation</strong></td>
+<td>Multiple SaaS tenants merged into a single tenant</td>
+<td>Merging 5 regional tenants into 1 global tenant after M&amp;A</td>
+</tr>
+<tr>
+<td><strong>Account Restructuring</strong></td>
+<td>Redistribute environments across different account structures</td>
+<td>Spinning off a business unit into its own Dynatrace account</td>
+</tr>
+<tr>
+<td><strong>Regional Relocation</strong></td>
+<td>Move to a different SaaS region for compliance or performance</td>
+<td>Moving from US-hosted to EU-hosted SaaS cluster for GDPR</td>
+</tr>
+<tr>
+<td><strong>License Restructuring</strong></td>
+<td>Restructure DPS allocation across tenants</td>
+<td>Moving from multiple small tenants to a single enterprise agreement</td>
+</tr>
+<tr>
+<td><strong>Hosting-Cloud Change</strong></td>
+<td>Move the Dynatrace SaaS environment itself to a cluster on a different cloud provider</td>
+<td>An AWS-hosted environment replaced by an Azure-hosted one</td>
+</tr>
+<tr>
+<td><strong>Workload Cloud Change</strong></td>
+<td>The <em>monitored</em> workloads move to a different cloud provider</td>
+<td>Applications rebuilt from AWS onto Azure, with new cloud connections</td>
+</tr>
+<tr>
+<td><strong>Environment Promotion</strong></td>
+<td>Promote a staging or POC tenant to production</td>
+<td>Converting a successful POC into the production monitoring tenant</td>
+</tr>
+</tbody>
+</table>
+<h3>The Combined Case: Retiring a Cloud</h3>
+<p>The two cloud rows above are independent decisions, and they are easy to conflate. A <strong>hosting-cloud change</strong> is a tenant move: a new SaaS environment is provisioned on the other cloud and everything in this series applies. A <strong>workload cloud change</strong> is a monitoring change: agents follow the workloads and new cloud connections are created, but it can happen inside one tenant.</p>
+<p>When an organization <strong>retires a cloud provider entirely</strong>, both happen at once. Dynatrace documents that <em>&quot;Data is stored in Amazon Web Services (AWS), Microsoft Azure, or Google Cloud data centers&quot;</em>, and lists its Azure regions as <em>&quot;Available on request. Talk to your Dynatrace sales contact.&quot;</em> — so an Azure-hosted target is a commercial conversation before it is a technical one. The consequence for planning is a <strong>dual-cloud window</strong>: the new Azure-hosted environment monitors workloads still running on AWS <em>and</em> workloads already moved to Azure, and only once the last AWS workload is gone are the AWS connections and the AWS-hosted source environment retired.</p>
+<p>The appendix LAB <strong>S2S-94 (Retiring AWS for Azure)</strong> is the ordered runbook for that case. Two FAQ entries frame it: <strong>FAQ-25</strong> (what carries over to a new tenant — configuration, identity, accumulated state) and <strong>FAQ-17</strong> (the cutover invariants — Go/No-Go gate, parallel-run window, rollback triggers, decommission).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls">Data security controls (DT docs)</a> — <em>&quot;Data is stored in Amazon Web Services (AWS), Microsoft Azure, or Google Cloud data centers.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Key Difference from M2S:</strong> In a Managed-to-SaaS migration, the SaaS Upgrade Assistant handles most of the heavy lifting. For SaaS-to-SaaS, no assistant is documented — you export with Monaco (or Terraform) and import with <code>monaco deploy</code>, or optionally through the SaaS Upgrade Assistant as a field practice (<strong>S2S-10</strong> §1).</p>
+</blockquote>
+<h3>S2S-Specific Order of Operations</h3>
+<p>The S2S migration follows an 11-step order of operations within the 9-step framework:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Phase</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Assess</strong> — Inventory source tenant</td>
+<td>Plan</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Provision</strong> — Target SaaS tenant and access (SSO/IAM)</td>
+<td>Plan</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Export</strong> — Configuration from source tenant</td>
+<td>Upgrade</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Migrate</strong> — Configuration to target tenant</td>
+<td>Upgrade</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Rebuild</strong> — Dashboards, SLOs, alerts</td>
+<td>Upgrade</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Redirect</strong> — OneAgents and operators to target</td>
+<td>Upgrade</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Reconnect</strong> — Cloud integrations and extensions</td>
+<td>Upgrade</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Migrate</strong> — Any remaining configuration</td>
+<td>Upgrade</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Validate</strong> — Data flow and performance</td>
+<td>Run</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>Cutover</strong> — Full switch to target tenant</td>
+<td>Run</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Decommission</strong> — Source tenant</td>
+<td>Run</td>
+</tr>
+</tbody>
+</table>
+<p><a id="what-migrates-and-what-does-not"></a></p>
+<h2>2. What Migrates and What Does Not</h2>
+<p>Understanding portability constraints upfront prevents surprises during execution.</p>
+<h3>Configuration That CAN Be Migrated (with tooling)</h3>
+<table>
+<thead>
+<tr>
+<th>Configuration Type</th>
+<th>Tool</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gen3 settings (Settings 2.0)</td>
+<td>Monaco, Terraform</td>
+<td>Bulk export/import via <code>monaco download</code></td>
+</tr>
+<tr>
+<td>Dashboards and notebooks</td>
+<td>Monaco (documents type), Terraform</td>
+<td>Entity ID references must be updated in target</td>
+</tr>
+<tr>
+<td>Workflows and automations</td>
+<td>Monaco (automations type), Terraform</td>
+<td>Requires OAuth client credentials</td>
+</tr>
+<tr>
+<td>OpenPipeline rules</td>
+<td>Monaco (<code>settings</code> type, <code>builtin:openpipeline.*</code> schemas — Monaco 2.31.0 removed the <code>openpipeline</code> type), Terraform</td>
+<td>Bucket references must match target</td>
+</tr>
+<tr>
+<td>Grail bucket configuration</td>
+<td>Monaco (bucket type), Terraform</td>
+<td>Retention policies may differ</td>
+</tr>
+<tr>
+<td>SLO definitions</td>
+<td>Monaco (<code>slo-v2</code> type — Grail/DQL SLOs, Monaco 2.22.0+), Terraform (<code>dynatrace_platform_slo</code>; classic SLOs: <code>dynatrace_slo_v2</code>)</td>
+<td>DQL SLIs and classic entity-selector filters may hard-code entity IDs; classic SLOs are rewritten as DQL SLIs, not copied (S2S-07 §3)</td>
+</tr>
+<tr>
+<td>Management zones</td>
+<td>Monaco, Terraform</td>
+<td>Zone rules and entity assignments</td>
+</tr>
+<tr>
+<td>Auto-tagging rules</td>
+<td>Monaco, Terraform</td>
+<td>Tag rules and conditions</td>
+</tr>
+<tr>
+<td>Service detection rules</td>
+<td>Monaco, Terraform</td>
+<td>Custom service naming and merging</td>
+</tr>
+<tr>
+<td>Request attributes</td>
+<td>Monaco, Terraform</td>
+<td>Capture rules for request metadata</td>
+</tr>
+<tr>
+<td>Synthetic monitors</td>
+<td>Monaco, Terraform</td>
+<td>Requires classic API token (v1.88.0+)</td>
+</tr>
+<tr>
+<td>Segments</td>
+<td>Monaco, Terraform</td>
+<td>Download, deploy, and delete</td>
+</tr>
+<tr>
+<td>Classic dashboards</td>
+<td>Monaco, Terraform</td>
+<td>JSON export/import; entity IDs must be updated</td>
+</tr>
+</tbody>
+</table>
+<h3>What CANNOT Be Migrated</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Reason</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Historical metrics, logs, traces</strong></td>
+<td>Stored in source tenant's Grail</td>
+<td>Run parallel tenants during transition</td>
+</tr>
+<tr>
+<td><strong>Entity IDs</strong></td>
+<td>Unique per tenant, auto-generated</td>
+<td>Remap references in dashboards/SLOs</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Intelligence baselines</strong></td>
+<td>Learned from source data</td>
+<td>Relearned from target data — measure each host's history depth instead of assuming a fixed period (<strong>FAQ-25</strong> §5)</td>
+</tr>
+<tr>
+<td><strong>Session replay recordings</strong></td>
+<td>Bound to source tenant</td>
+<td>Accept gap or extend parallel period</td>
+</tr>
+<tr>
+<td><strong>Problem history</strong></td>
+<td>Stored in source tenant</td>
+<td>Export key problems as documentation</td>
+</tr>
+<tr>
+<td><strong>Credential Vault secrets</strong></td>
+<td>Security — secrets cannot be exported</td>
+<td>Recreate in target Credentials Vault</td>
+</tr>
+<tr>
+<td><strong>API tokens</strong></td>
+<td>Security — environment-specific</td>
+<td>Generate new tokens in target</td>
+</tr>
+<tr>
+<td><strong>OAuth client secrets</strong></td>
+<td>Security — cannot be exported</td>
+<td>Create new OAuth clients in target</td>
+</tr>
+<tr>
+<td><strong>Synthetic execution history</strong></td>
+<td>Bound to source tenant</td>
+<td>Execution data starts fresh</td>
+</tr>
+<tr>
+<td><strong>Smartscape topology history</strong></td>
+<td>Computed per-tenant</td>
+<td>Rebuilds automatically in target</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Historic data does <strong>not</strong> migrate. Plan for an overlap in which the source stays readable while the target accumulates its own history. A host's OneAgent reports to one tenant at a time, so the overlap is <strong>per wave</strong>, not a period in which both tenants receive the same agent data. Size it from measured history depth in the target (<strong>FAQ-25</strong> §5), not from a fixed number of weeks.</p>
+</blockquote>
+<p><a id="entity-inventory"></a></p>
+<h2>3. Entity Inventory</h2>
+<p>Run these DQL queries against the <strong>source</strong> tenant to understand the full monitoring footprint. This inventory identifies migration complexity and serves as the validation baseline after cutover.</p>
+<blockquote>
+<p><strong>Compare like with like.</strong> The three host surfaces do not agree. Over the same 24 hours on a validation tenant (10/01/2026), <code>smartscapeNodes &quot;HOST&quot;</code> returned <strong>7</strong> hosts, <code>fetch dt.entity.host</code> returned <strong>33</strong>, and the billing usage events named <strong>39</strong>. FAQ-16 explains why Smartscape and the classic entity store differ. Pick one surface, use it in both the source and the target, and run the same query on both. For license sizing, read host consumption from the billing usage events (ADOPT-02 § 6) rather than from either entity count.</p>
+</blockquote>
+<h3>Host Inventory</h3>
+<pre><code class="language-dql">// Host inventory by cloud provider and OS (Smartscape)
+// cloud.provider is aws / azure / gcp on cloud-hosted hosts and null otherwise.
+// from:-7d includes hosts that reported at any time in the last week, not only in the
+// default window (see the stale-node rule in the DQL syntax table).
+smartscapeNodes &quot;HOST&quot;, from:-7d
+| fieldsAdd provider = coalesce(cloud.provider, &quot;none (on-premises or undetected)&quot;)
+| summarize hosts = count(), by:{provider, os.type}
+| sort hosts desc
+
+// Classic fallback: fetch dt.entity.host reads the classic entity store, which can retain
+// hosts Smartscape no longer lists (validation tenant, 09/28/2026: 11 classic vs 9 Smartscape
+// hosts). Its cloud-tag fields (awsNameTag / azureResourceGroupName) do not exist on the
+// Smartscape node, so the tag-presence if-chain the earlier version used is not portable.
+</code></pre>
+<h3>Kubernetes Cluster Inventory</h3>
+<pre><code class="language-dql">// Kubernetes cluster inventory (Smartscape)
+smartscapeNodes &quot;K8S_CLUSTER&quot;, from:-7d
+| fields name, id
+| sort name asc
+
+// Classic fallback: fetch dt.entity.kubernetes_cluster | fields entity.name, id
+// It reads the classic entity store, which can list clusters Smartscape no longer does —
+// cross-check if the two counts disagree.
+</code></pre>
+<h3>Service Inventory</h3>
+<pre><code class="language-dql">// Service inventory (Smartscape)
+smartscapeNodes &quot;SERVICE&quot;, from:-7d
+| summarize services = count()
+
+// Technology breakdown: the SERVICE node carries no populated service-type field — on the
+// validation tenant dt.service.sdv1_type was null for all 38 services (09/28/2026). For a
+// by-technology breakdown, use the classic fallback:
+//   fetch dt.entity.service | summarize count = count(), by:{serviceType}
+</code></pre>
+<h3>Application and Synthetic Inventory</h3>
+<pre><code class="language-dql">// Application and synthetic monitor counts
+smartscapeNodes &quot;FRONTEND&quot;
+| filter frontend.type == &quot;web&quot;
+| summarize app_count = count()
+| append [smartscapeNodes &quot;BROWSER_MONITOR&quot; | summarize browser_monitor_count = count()]
+| append [smartscapeNodes &quot;HTTP_MONITOR&quot; | summarize http_monitor_count = count()]
+| append [smartscapeNodes &quot;NETWORK_AVAILABILITY_MONITOR&quot; | summarize network_monitor_count = count()]
+
+// Smartscape (preferred, verified 07/2026): dt.entity.application maps to the FRONTEND node,
+// filtered on frontend.type == &quot;web&quot; (mobile apps are the same node with frontend.type ==
+// &quot;mobile&quot;). This corrects an earlier note here that claimed no Smartscape equivalent existed.
+// FRONTEND also carries id_classic holding the APPLICATION-* id, for joining migrated and
+// unmigrated queries. Unlike ActiveGate, `fetch dt.entity.application` does still work and remains
+// a genuine fallback — but it reads the classic entity store, which can retain entities Smartscape
+// (live topology) no longer lists, so cross-check if the two counts disagree.
+// Smartscape (preferred, verified 07/2026): dt.entity.synthetic_test maps to the BROWSER_MONITOR
+// node (individual steps are a separate BROWSER_MONITOR_STEP node). HTTP monitors are HTTP_MONITOR,
+// multi-protocol monitors NETWORK_AVAILABILITY_MONITOR, private locations SYNTHETIC_LOCATION. This
+// corrects an earlier note here that claimed no Smartscape equivalent existed. Unlike ActiveGate,
+// `fetch dt.entity.synthetic_test` does still work and remains a genuine fallback — it reads the
+// classic entity store, which can retain entities Smartscape (live topology) no longer lists.
+// Add the three monitor counts together for the &quot;Synthetic Tests&quot; row — browser monitors alone
+// undercount it.
+</code></pre>
+<h3>ActiveGate Inventory</h3>
+<pre><code class="language-dql">// ActiveGate inventory
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| summarize activeGateCount = count()
+
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from &quot;no ActiveGates deployed&quot;. `smartscapeNodes &quot;ACTIVEGATE&quot;` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+// This cell previously fell back to counting `fetch dt.entity.host`, which returns the HOST count,
+// not the ActiveGate count — a workaround for the missing entity type that silently reported the
+// wrong number. The ACTIVEGATE node makes the workaround unnecessary.
+// ActiveGate 1.343 (published 07/15/2026, staged tenant rollout from 07/28/2026) deprecates
+// GET /api/v2/activeGates, /api/v2/activeGates/{agId} and /api/v2/activeGates/groups in favour of
+// this same Smartscape node — the classic entity and the classic REST endpoints were retired as one
+// move. If you need a REST surface in the meantime, the classic Entities API v2 selector
+// (GET /api/v2/entities?entitySelector=type(&quot;ENVIRONMENT_ACTIVE_GATE&quot;)) is a different surface and
+// may still respond; the DQL `fetch dt.entity.*` form does not.
+</code></pre>
+<h3>Configuration Change Audit</h3>
+<p>Understanding what has been actively changed in the last 30 days helps prioritize which configurations are actively managed versus stale.</p>
+<pre><code class="language-dql">// Audit log: recent Settings 2.0 configuration changes by schema (last 30 days)
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == &quot;AUDIT_EVENT&quot;.
+// Settings changes carry the schema in details.dt.settings.schema_id.
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.provider == &quot;SETTINGS&quot;
+| filter in(event.type, {&quot;CREATE&quot;, &quot;UPDATE&quot;, &quot;DELETE&quot;})
+| summarize changes = count(), by:{details.dt.settings.schema_id}
+| sort changes desc
+| limit 20
+</code></pre>
+<h3>Entity Summary Table</h3>
+<p>Record your findings in this table:</p>
+<table>
+<thead>
+<tr>
+<th>Entity Type</th>
+<th>Count</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosts</td>
+<td>___</td>
+<td>Include OS and cloud provider breakdown</td>
+</tr>
+<tr>
+<td>Kubernetes Clusters</td>
+<td>___</td>
+<td>Cluster names and versions</td>
+</tr>
+<tr>
+<td>Services</td>
+<td>___</td>
+<td>Include technology breakdown</td>
+</tr>
+<tr>
+<td>Applications</td>
+<td>___</td>
+<td>Web and mobile</td>
+</tr>
+<tr>
+<td>Synthetic Tests</td>
+<td>___</td>
+<td>HTTP, browser, scripted</td>
+</tr>
+<tr>
+<td>ActiveGates</td>
+<td>___</td>
+<td>Environment AGs and cluster AGs</td>
+</tr>
+<tr>
+<td>Process Groups</td>
+<td>___</td>
+<td>Total monitored process groups</td>
+</tr>
+</tbody>
+</table>
+<p><a id="configuration-inventory"></a></p>
+<h2>4. Configuration Inventory</h2>
+<p>Beyond entities, you need a count of configuration objects to estimate migration effort. Use the tables below as a checklist — the <em>Typical Range</em> column is an illustrative order of magnitude from community practice, not a benchmark.</p>
+<h3>Gen2 (Classic) Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>API</th>
+<th>Your Count</th>
+<th>Typical Range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Management zones</td>
+<td>Config API v1: <code>/managementZones</code></td>
+<td>___</td>
+<td>5–30</td>
+</tr>
+<tr>
+<td>Auto-tags</td>
+<td>Config API v1: <code>/autoTags</code> or Settings 2.0</td>
+<td>___</td>
+<td>10–50</td>
+</tr>
+<tr>
+<td>Alerting profiles</td>
+<td>Config API v1: <code>/alertingProfiles</code></td>
+<td>___</td>
+<td>5–20</td>
+</tr>
+<tr>
+<td>Notification rules</td>
+<td>Config API v1: <code>/notifications</code> or Settings 2.0</td>
+<td>___</td>
+<td>5–50</td>
+</tr>
+<tr>
+<td>Calculated service metrics</td>
+<td>Config API v1: <code>/calculatedMetrics/service</code></td>
+<td>___</td>
+<td>10–50</td>
+</tr>
+<tr>
+<td>Request attributes</td>
+<td>Config API v1: <code>/requestAttributes</code> or Settings 2.0</td>
+<td>___</td>
+<td>5–30</td>
+</tr>
+<tr>
+<td>Custom services</td>
+<td>Config API v1: <code>/service/customServices</code></td>
+<td>___</td>
+<td>5–20</td>
+</tr>
+<tr>
+<td>Application detection rules</td>
+<td>Config API v1 or Settings 2.0</td>
+<td>___</td>
+<td>5–20</td>
+</tr>
+<tr>
+<td>Conditional naming rules ¹</td>
+<td>Config API v1 or Settings 2.0</td>
+<td>___</td>
+<td>5–15</td>
+</tr>
+<tr>
+<td>Maintenance windows</td>
+<td>Config API v1 or Settings 2.0</td>
+<td>___</td>
+<td>3–10</td>
+</tr>
+<tr>
+<td>Classic dashboards</td>
+<td>Dashboard API v1</td>
+<td>___</td>
+<td>20–200</td>
+</tr>
+<tr>
+<td>Credential vault entries</td>
+<td>Environment API v2: <code>/credentials</code> (secrets are never returned)</td>
+<td>___</td>
+<td>5–20</td>
+</tr>
+</tbody>
+</table>
+<p>¹ Classic only. <a href="https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/upgrade-guide-service-naming">Service naming upgrade guide (DT docs)</a>: <em>&quot;In Latest Dynatrace with Smartscape on Grail, service naming rules (builtin:naming.services) no longer apply.&quot;</em> Inventory them to migrate a Classic target; don't plan to recreate them on a Latest Dynatrace one.</p>
+<h3>Gen3 (Grail) Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>API</th>
+<th>Your Count</th>
+<th>Typical Range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settings 2.0 schemas (total)</td>
+<td>Settings API</td>
+<td>___</td>
+<td>50–500</td>
+</tr>
+<tr>
+<td>Dashboards (modern)</td>
+<td>Document API</td>
+<td>___</td>
+<td>20–200</td>
+</tr>
+<tr>
+<td>Notebooks</td>
+<td>Document API</td>
+<td>___</td>
+<td>5–50</td>
+</tr>
+<tr>
+<td>SLO definitions</td>
+<td>SLO API / slo-v2</td>
+<td>___</td>
+<td>10–100</td>
+</tr>
+<tr>
+<td>Synthetic monitors</td>
+<td>Synthetic API</td>
+<td>___</td>
+<td>10–100</td>
+</tr>
+<tr>
+<td>Workflows</td>
+<td>Automation API</td>
+<td>___</td>
+<td>5–30</td>
+</tr>
+<tr>
+<td>OpenPipeline rules</td>
+<td>OpenPipeline API</td>
+<td>___</td>
+<td>1–10</td>
+</tr>
+<tr>
+<td>Grail buckets</td>
+<td>Bucket API</td>
+<td>___</td>
+<td>1–10</td>
+</tr>
+<tr>
+<td>Segments</td>
+<td>Segment API</td>
+<td>___</td>
+<td>1–20</td>
+</tr>
+<tr>
+<td>K8s enrichment rules</td>
+<td>Settings API: <code>builtin:kubernetes.generic.metadata.enrichment</code></td>
+<td>___</td>
+<td>1–20</td>
+</tr>
+</tbody>
+</table>
+<p><a id="davis-problem-triage"></a></p>
+<h2>5. Detected Problem Triage and Configuration Debt</h2>
+<p>Discovery is not just about counting what you have — it is also about identifying what you should <strong>not</strong> migrate. Active detected problems and stale configuration carry over to the target tenant if not triaged, creating noise that obscures real issues during the critical parallel operation period.</p>
+<h3>Detected Problem Inventory</h3>
+<p>Run these queries against the source tenant to understand the current problem landscape. Large numbers of active, short-lived or duplicate problems indicate configuration debt that should be resolved <em>before</em> migration — not after.</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Active problems &gt; 500</td>
+<td>Triage before migration — most are likely noise or duplicates</td>
+</tr>
+<tr>
+<td>A large share of problems closing within 5 minutes</td>
+<td>Tune the detectors behind those types before export (ADOPT-03 § 5)</td>
+</tr>
+<tr>
+<td>Problems older than 30 days</td>
+<td>Investigate — likely stale or auto-resolved but not closed</td>
+</tr>
+</tbody>
+</table>
+<h3>Configuration Debt Cleanup Opportunity</h3>
+<p>Migration is the best time to leave legacy behind. Stale configuration inflates the export, slows Monaco deploy, and creates confusion in the target tenant.</p>
+<table>
+<thead>
+<tr>
+<th>Candidate</th>
+<th>How to Identify</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Disabled notification rules</strong></td>
+<td><code>settings.read</code> audit — any notification with <code>enabled: false</code></td>
+<td>Do not migrate</td>
+</tr>
+<tr>
+<td><strong>Inactive synthetic monitors</strong></td>
+<td>Monitors with no executions in 30+ days</td>
+<td>Triage — migrate only active monitors</td>
+</tr>
+<tr>
+<td><strong>Stale maintenance windows</strong></td>
+<td>Windows with past end dates or no recurrence</td>
+<td>Do not migrate</td>
+</tr>
+<tr>
+<td><strong>Unused management zones</strong></td>
+<td>Zones with zero entity matches</td>
+<td>Do not migrate</td>
+</tr>
+<tr>
+<td><strong>Legacy auto-tag rules</strong></td>
+<td>Tags that duplicate OneAgent attribute enrichment</td>
+<td>Replace with primary tags at agent level</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Lesson from real migrations:</strong> One engagement discovered 366 maintenance windows in the source tenant — all with expired dates. Migrating them would have cluttered the target tenant with useless configuration. Triaging before export saved significant cleanup effort later.</p>
+</blockquote>
+<pre><code class="language-dql">fetch dt.davis.problems, from:-30d
+| summarize {
+    total = count(),
+    active = countIf(event.status == &quot;ACTIVE&quot;),
+    closed_within_5min = countIf(resolved_problem_duration &lt; 5m),
+    duplicate = countIf(dt.davis.is_duplicate == true)
+  }
+| fieldsAdd triage_recommendation = if(active &gt; 500,
+    then: &quot;TRIAGE BEFORE MIGRATION — tune short-lived and duplicate sources&quot;,
+    else: &quot;Manageable — review active problems during parallel period&quot;)
+
+// The frequent-issue flag is not used here: frequent issue detection is being phased out and
+// was set on 0 of 15,227 problems on the validation tenant (ADOPT-03 § 5).
+</code></pre>
+<p><a id="migration-tools-comparison"></a></p>
+<h2>6. Migration Tools Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Best For</th>
+<th>Strengths</th>
+<th>Limitations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Monaco</strong></td>
+<td>Bulk config export/import: settings, documents, automations, buckets, segments, slo-v2, classic API (OpenPipeline as <code>builtin:openpipeline.*</code> settings — Monaco 2.31.0 removed the <code>openpipeline</code> type); account IAM through <code>monaco account</code></td>
+<td><code>monaco download</code> bulk export, <code>monaco deploy</code> with automatic dependency resolution, no HCL knowledge needed</td>
+<td>No state management, no drift detection; account commands need an OAuth client</td>
+</tr>
+<tr>
+<td><strong>Terraform</strong></td>
+<td>IAM (policies, groups, bindings), ongoing infrastructure-as-code management</td>
+<td>State tracking, drift detection via <code>terraform plan</code>, cross-platform resource references, bulk export with the provider's <code>-export</code> utility</td>
+<td>Requires HCL knowledge; some resources are excluded from a default export and must be named</td>
+</tr>
+<tr>
+<td><strong>Settings API</strong></td>
+<td>Targeted, surgical changes to specific settings</td>
+<td>Fine-grained programmatic control</td>
+<td>Custom scripting required for large-scale migration</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> The SaaS Upgrade Assistant is documented for a Managed source only — <em>&quot;SaaS Upgrade Assistant imports your Dynatrace Managed environment configuration&quot;</em> (<a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT docs)</a>). No SaaS-source path is documented, so this series deploys with Monaco and Terraform directly (<strong>S2S-10</strong>). Uploading a packaged Monaco export to the assistant on a SaaS target is a field practice — S2S-10 builds the package as an option; rehearse it before relying on it.</p>
+</blockquote>
+<h3>Where the Two Tools Differ</h3>
+<ul>
+<li><strong>Account IAM</strong> (groups, policies, boundaries, users) — both can do it. Monaco uses dedicated <code>monaco account download</code> / <code>monaco account deploy</code> commands with an OAuth client; Terraform uses the <code>dynatrace_iam_*</code> resources.</li>
+<li><strong>State and drift</strong> — Terraform keeps state and <code>terraform plan</code> shows drift; Monaco deploys are stateless, so drift checking is a download-and-diff you script yourself.</li>
+</ul>
+<p>Choose based on your team's existing expertise. A common split, and the one this series follows, is Monaco for bulk environment configuration and Terraform for account IAM, because IAM is the part teams most want under state.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/account-configuration">Monaco account configuration (DT docs)</a> — <em>&quot;Using Monaco, you can define users, service users, groups, policies, and boundaries as dedicated types in YAML configuration files.&quot;</em>; <em>&quot;Account management requires OAuth credentials.&quot;</em></sub></p>
+</blockquote>
+<h3>Recommended Approach</h3>
+<p>Use <strong>Monaco for bulk configuration</strong> and <strong>Terraform (or <code>monaco account</code>) for IAM</strong>:</p>
+<pre><code class="language-bash"># Step 1: Monaco download from source tenant
+monaco download --manifest manifest.yaml --environment source-tenant
+
+# Step 2: Update manifest to point at target tenant
+# Step 3: Validate and deploy
+monaco deploy manifest.yaml --environment target-tenant --dry-run
+monaco deploy manifest.yaml --environment target-tenant
+
+# Step 4: Use Terraform only for IAM
+terraform apply -target=dynatrace_iam_policy.example
+</code></pre>
+<blockquote>
+<p><strong>Download limitations:</strong> Cloud provider credentials (AWS, Azure, K8s) can be deployed by Monaco but <strong>not exported</strong> via <code>monaco download</code>. These must be recreated manually in the target tenant regardless of tool choice.</p>
+</blockquote>
+<p><a id="the-90-10-rule"></a></p>
+<h2>7. The 90/10 Rule</h2>
+<p>In community practice, migration teams describe the same shape every time — treat the numbers as a planning heuristic, not a measured ratio:</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Effort</th>
+<th>What It Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tooled export/import</strong> (most of the configuration)</td>
+<td>A small share of total effort</td>
+<td>Settings 2.0, dashboards, SLOs, notification rules, enrichment rules, OpenPipeline</td>
+</tr>
+<tr>
+<td><strong>Manual remediation</strong> (a small remainder)</td>
+<td>Most of the effort</td>
+<td>Entity ID remapping, webhook URL updates, IAM redesign, cloud integration reconfiguration, parallel validation</td>
+</tr>
+</tbody>
+</table>
+<h3>Why Manual Effort Dominates</h3>
+<ul>
+<li><strong>Entity IDs change</strong> between tenants — every dashboard filter, SLO metric expression, and notification rule that references an entity ID must be updated</li>
+<li><strong>Integrations are tenant-specific</strong> — webhook URLs, cloud provider connections, and SSO configurations must be reconfigured</li>
+<li><strong>Historical data cannot move</strong> — parallel operation is required to maintain continuity</li>
+<li><strong>Dynatrace Intelligence must relearn</strong> — baselines rebuild from target data; measure per-host history depth rather than assuming a fixed period (<strong>FAQ-25</strong> §5)</li>
+</ul>
+<h3>Items That Require Manual Attention</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Why It Cannot Be Automated</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Entity ID references in dashboards</td>
+<td>IDs are auto-generated per tenant</td>
+</tr>
+<tr>
+<td>Entity ID references in SLO expressions</td>
+<td>Metric selectors embed entity IDs</td>
+</tr>
+<tr>
+<td>Webhook notification URLs</td>
+<td>Network paths differ between tenants</td>
+</tr>
+<tr>
+<td>Cloud provider credentials</td>
+<td>Secrets cannot be exported</td>
+</tr>
+<tr>
+<td>SSO/SAML configuration</td>
+<td>Identity provider settings are tenant-specific</td>
+</tr>
+<tr>
+<td>Synthetic private locations</td>
+<td>ActiveGate-bound, environment-specific</td>
+</tr>
+<tr>
+<td>Extensions 2.0</td>
+<td>Monaco does not export extension installations; Terraform can install/activate (<code>dynatrace_hub_extension_active_version</code>) and configure (<code>dynatrace_hub_extension_v2_config</code>) Hub extensions — otherwise reinstall from Hub</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-completion-checklist"></a></p>
+<h2>8. Step Completion Checklist</h2>
+<p>Before proceeding to <strong>Step 2 — Strategize</strong>, confirm that you have completed each item:</p>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Migration scenario identified (consolidation, split, regional relocation, hosting-cloud change, workload cloud change — or both, when retiring a cloud)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Platform state of source and target recorded (hosting cloud and region; Classic vs Latest surfaces in use)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Entity inventory complete (hosts, services, K8s clusters, applications, synthetics, ActiveGates)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Configuration inventory complete (Gen2 counts + Gen3 counts)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>detected problem triage complete — frequent/duplicate events suppressed or tuned</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Configuration debt identified — stale maintenance windows, disabled rules, inactive monitors cataloged</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Non-portable items identified (credentials, tokens, entity IDs, historical data)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Migration tools selected (Monaco for bulk config + Terraform for IAM)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>90/10 manual items documented</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Stakeholders informed of historical data limitation and parallel-run requirement</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h2>Next Step</h2>
+<blockquote>
+<p><strong>S2S-02: Step 2 — Strategize</strong> — Define your migration approach, timeline, and risk assessment. Choose between big-bang and phased migration, plan your parallel-run period, and identify dependencies and risks.</p>
+</blockquote>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco">Monaco Configuration as Code</a></li>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest">Dynatrace Terraform Provider</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings">Settings API</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail">Grail Data Lakehouse</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Reference</a></li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In Step 1, you:</p>
+<ul>
+<li>Identified your migration scenario (consolidation, split, regional relocation, hosting-cloud change, workload cloud change, or environment promotion)</li>
+<li>Documented what configuration migrates with tooling versus what requires manual recreation</li>
+<li>Completed an entity inventory (hosts, services, K8s clusters, applications, synthetics, ActiveGates)</li>
+<li>Completed a configuration inventory (Gen2 classic + Gen3 Grail counts)</li>
+<li>Selected migration tools (Monaco for bulk config, Terraform for IAM)</li>
+<li>Understood the 90/10 shape: most configuration moves with tooling, but the small remainder takes most of the effort</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-04: How to manage OneAgent updates on Dynatrace SaaS</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-04: How to manage OneAgent updates on Dynatrace SaaS</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 04 — Managing OneAgent Updates (SaaS) | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>OneAgent updates are one of the few estate-wide changes Dynatrace performs continuously — most tenants run them silently, on a default that was set at standup and rarely revisited. That default works for the majority of fleets. It does not work for every fleet.</p>
+<p>This FAQ is a decision-support entry for the question: <em>&quot;How should our organization manage OneAgent updates on SaaS?&quot;</em> It covers the update mechanism, the three available modes, where settings live (tenant / host group / per host), how update windows and maintenance windows interact, the special case for Kubernetes-deployed OneAgents (where DynaKube's <code>autoUpdate</code> field is now deprecated in favor of pinning the OneAgent version on the tenant), validation, rollback, and the most common pitfalls.</p>
+<p>The intent is not to talk anyone out of auto-update. For most fleets, <strong>auto-update as soon as Dynatrace releases</strong> remains the right answer. The intent is to make the decision deliberate — and to surface the few cases where a different mode is correct.</p>
+<blockquote>
+<p><strong>Scope:</strong> SaaS-only. If you run Dynatrace Managed, the Cluster ActiveGate has its own update path and the OneAgent update model is similar but version-pinned at the cluster level; consult Managed-specific docs.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#cadence">Why OneAgent Update Cadence Matters</a></li>
+<li><a href="#mechanism">How OneAgent Updates Work on SaaS</a></li>
+<li><a href="#precedence">Update Setting Precedence — Tenant → Host Group → Host</a></li>
+<li><a href="#modes">The Three Update Modes — Decision Framework</a></li>
+<li><a href="#windows">Update Windows vs Maintenance Windows</a></li>
+<li><a href="#k8s">Containerized OneAgent — The DynaKube Special Case</a></li>
+<li><a href="#sequencing">Sequencing Relative to ActiveGate</a></li>
+<li><a href="#validation">Validation After Update</a></li>
+<li><a href="#rollback">Rollback Considerations</a></li>
+<li><a href="#pitfalls">Common Pitfalls</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform team, SRE leads, change-management owners, security stakeholders</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Decision-support document — presents trade-offs and recommendations, no hands-on lab</td>
+</tr>
+<tr>
+<td><strong>Deployment</strong></td>
+<td>Dynatrace SaaS (Managed is briefly noted; not the focus)</td>
+</tr>
+<tr>
+<td><strong>Related topic series</strong></td>
+<td>ONBRD (Dynatrace Onboarding), K8S (Kubernetes Monitoring), AUTOM (Configuration Automation)</td>
+</tr>
+<tr>
+<td><strong>Related FAQ</strong></td>
+<td><strong>FAQ-05: How to manage ActiveGate updates on Dynatrace SaaS</strong> — sequencing depends on AG version</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cadence"></a></p>
+<h2>1. Why OneAgent Update Cadence Matters</h2>
+<blockquote>
+<p><strong>Breaking (SaaS 1.347 — staged tenant rollout from 09/16/2026): very old agents are disconnected, not merely unsupported.</strong> Verbatim: <em>&quot;Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier.&quot;</em></p>
+<p>This is a different kind of floor from the support window. Dynatrace supports a OneAgent version for 9 months after rollout under Standard Support and 12 months under Enterprise Success and Support; as of OneAgent 1.349 (staged rollout from 11/09/2026) the oldest supported versions are 1.331 and 1.325 respectively (1.329 and 1.323 as of 1.347). <strong>Falling outside that support window means you stop receiving fixes; being at or below 1.241 means the host stops reporting.</strong> A fleet on &quot;Auto-update disabled&quot; (§4) is the population this reaches first, because it is the one that can sit still for years — and the symptom is a monitoring gap, not an error a reader would attribute to a version policy.</p>
+<p><strong>Inventory before the rollout reaches you</strong>, not after. Give the query an explicit window longer than any host's expected downtime — <code>fetch dt.entity.host</code> without <code>from:</code> sees only the default two hours, so a host that is offline, or has already been rejected and gone silent, is not returned at all and the check reads clean. Compare the minor version as a number, because <code>installerVersion</code> is a string and sorts lexically:</p>
+<pre><code class="language-dql">fetch dt.entity.host, from:-30d
+| fieldsAdd minor = toLong(splitString(installerVersion, &quot;.&quot;)[1])
+| filter minor &lt;= 241
+| fields entity.name, installerVersion, minor
+</code></pre>
+<p>On Smartscape, the <code>ONEAGENT</code> node carries the version: <code>smartscapeNodes &quot;ONEAGENT&quot;, from:-30d | fields name, dt.agent.module.version</code>. Do not use <code>smartscapeNodes &quot;HOST&quot;</code> for this: HOST nodes carry no OneAgent version, so a <code>oneagent.version</code> column comes back empty and the check finds nothing. The <code>ONEAGENT</code> node does not cover application-only agents, though: on the validation tenant (10/15/2026) there were 25 <code>ONEAGENT</code> nodes against 156 <code>dt.entity.host</code> records over 30 days, and the 25 Smartscape hosts matched exactly the 25 hosts with no <code>paasVendorType</code>. The other 131 were application-only agents on Kubernetes (127) and AWS Fargate (4), which appear only in <code>dt.entity.host</code>. Use the <code>fetch dt.entity.host</code> query above for the ≤ 1.241 check, and the Smartscape node only for host-level agents. The Deployment Status screen shows the same thing interactively. There is no grace path once the rejection lands — the fix is an upgrade.</p>
+</blockquote>
+<blockquote>
+<p><strong>Breaking (OneAgent 1.347 — published 10/01/2026, staged rollout from 09/30/2026): updating ends monitoring of Java 23.</strong> Verbatim: <em>&quot;Starting from OneAgent version 1.347, Java 23 is no longer monitored.&quot;</em> Support now covers <em>&quot;LTS versions plus the last four Java versions (24, 25, 26 and 27).&quot;</em></p>
+<p>This is the reverse of the floor above: here it is the <strong>update</strong> that drops coverage. On a fleet with auto-update on, Java 23 processes stop being monitored the day a host takes 1.347, with no error to explain the gap. The documented choices: <em>&quot;If you are running Java 23, you can either update to Java 24+ and monitor your processes with OneAgent version 1.347, or you can keep using Java 23 with OneAgent version 1.345 and earlier.&quot;</em> The staged rollout reaches tenants and hosts over several weeks, so check which version your hosts are on. Find your Java 23 processes before 1.347 reaches them, and if you must hold them, pin those hosts' target version (§4) rather than disabling updates fleet-wide. The same release also stops monitoring the <code>composefs</code> filesystem, which always reported 100% usage.</p>
+</blockquote>
+<blockquote>
+<p><strong>Breaking (OneAgent and ActiveGate 1.349 — published 11/05/2026, staged rollout from 11/09/2026): updating changes the runtime under Python extensions.</strong> Verbatim: <em>&quot;With the end of support, Extensions Framework will use Python 3.14 to run Python-based extensions.&quot;</em> and <em>&quot;Python 3.10 will no longer be distributed starting with OneAgent version 1.349+ and ActiveGate version 1.349+.&quot;</em> An extension bundled with an older SDK <em>&quot;might fail to start after the upgrade&quot;</em>, and a stopped extension shows up as missing data, not as an update error. Before 1.349 reaches the hosts that run local Python extensions, move each one to a version built with a Python 3.14-compatible <code>dt-extensions-sdk</code> — for official Dynatrace extensions, the minimum compatible version is listed per extension on the Python 3.10 end-of-support page. The same page warns that Python 3.14 <em>&quot;can use more memory because of runtime and garbage-collection changes&quot;</em>, so check host memory headroom on hosts that run many extensions.</p>
+</blockquote>
+<p>OneAgent is the data-collection layer of the platform. Update cadence directly affects:</p>
+<ul>
+<li><strong>Coverage parity with newly-supported technologies.</strong> New runtime versions, frameworks, and infrastructure types arrive in OneAgent releases. A fleet running an older OneAgent loses coverage on whatever was added since.</li>
+<li><strong>Bug and CVE remediation.</strong> Fixes for parsing, instrumentation, and security issues ship through normal OneAgent releases. Deferring updates indefinitely defers those fixes.</li>
+<li><strong>Telemetry feature parity.</strong> New span attributes, K8s metadata, log enrichment fields, and Davis inputs depend on the OneAgent producing them. A lagging fleet produces a thinner data stream.</li>
+<li><strong>Operator workload.</strong> Every manual coordination cycle — pick a version, schedule a window, validate, repeat — consumes engineering time that auto-update absorbs.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Without active management</th>
+<th>With active management</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fleet drifts across versions silently</td>
+<td>Version distribution stays bounded</td>
+<td>Coverage and telemetry stay consistent across hosts</td>
+</tr>
+<tr>
+<td>New tech support arrives months late</td>
+<td>Coverage matches what teams actually run</td>
+<td>No &quot;we don't see service X yet&quot; surprises</td>
+</tr>
+<tr>
+<td>CVEs sit unpatched on host agents</td>
+<td>Fixes propagate with the next release wave</td>
+<td>Reduces vulnerability window</td>
+</tr>
+<tr>
+<td>Change-management view of &quot;what's deployed&quot; is unclear</td>
+<td>Update mode is an intentional, auditable choice</td>
+<td>Aligns Dynatrace with the rest of your change governance</td>
+</tr>
+</tbody>
+</table>
+<p>In community practice, the most consistent benefit teams report from leaving auto-update on is &quot;we stopped having a OneAgent-version inventory problem.&quot; Verify against your own change-control framework.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in Dynatrace SaaS 1.347 (DT docs)</a> — the OneAgent 1.241 connection-rejection quoted above, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-347">What's new in Dynatrace OneAgent 1.347 (DT docs)</a> — <em>&quot;Rollout start on Sep 30, 2026&quot;</em>; oldest supported versions <em>&quot;Standard Support 1.329 Enterprise Success and Support 1.323&quot;</em>; the Java 23 and <code>composefs</code> changes quoted above, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349">What's new in Dynatrace OneAgent 1.349 (DT docs)</a> — <em>&quot;Rollout start on Nov 09, 2026&quot;</em>; oldest supported versions <em>&quot;Standard Support 1.331 Enterprise Success and Support 1.325&quot;</em>; <em>&quot;Update your Python-based extensions to a version built with a Python 3.14-compatible dt-extensions-sdk before you update OneAgent and ActiveGate to version 1.349.&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions/end-of-support/python-extension-runtime-update">Python 3.10 end of support (DT docs)</a> — updated 10/16/2026; the Python 3.10 distribution and memory quotes above, <a href="https://docs.dynatrace.com/docs/whats-new">What's new hub (DT docs)</a> — the 9-month / 12-month OneAgent support windows (<em>&quot;How long are versions supported following rollout?&quot;</em>), <a href="https://docs.dynatrace.com/docs/shortlink/oneagent-update">OneAgent update (DT docs)</a> — <em>&quot;With auto-update enabled, you don't have to worry about manually updating the OneAgents running in your environment.&quot;</em> Both inventory queries executed against a live tenant 10/02/2026 (the 30-day window returned 126 hosts where the default window returned 15).</sub></p>
+</blockquote>
+<p><a id="mechanism"></a></p>
+<h2>2. How OneAgent Updates Work on SaaS</h2>
+<p>On SaaS, the update flow is straightforward:</p>
+<ol>
+<li>A new OneAgent version is published to the Dynatrace download infrastructure.</li>
+<li>Each OneAgent periodically checks whether it should update, based on the effective setting at its scope (per-host → host-group → tenant default).</li>
+<li>If the effective setting permits, the OneAgent downloads the new installer in the background.</li>
+<li>On the next eligible moment (immediately, or within the next update window), the OneAgent restarts on the new version.</li>
+<li>Processes that OneAgent monitors keep running the previous version's in-process components until they restart.</li>
+</ol>
+<p>A few mechanics that surprise teams new to the platform:</p>
+<ul>
+<li><strong>The OneAgent service updates without restarting your applications — but the monitored processes stay on the old version until they do.</strong> The docs are explicit: <em>&quot;Following OneAgent automatic updates, you do need to restart all server processes. This is because some components of OneAgent keep running in processes that are monitored by Dynatrace (for example, Java, .NET, Apache, and IIS). Before restart, these processes will continue to be monitored with the previous version of OneAgent.&quot;</em> Plan process restarts into your normal deployment cadence rather than treating them as optional.</li>
+<li><strong>A brand-new host does not update straight away.</strong> <em>&quot;OneAgent won't automatically be updated when first installed. By default, Dynatrace waits 45 minutes before updating hosts.&quot;</em></li>
+<li><strong>Installers are verified before they run.</strong> <em>&quot;If the verification fails, the auto-update attempt is aborted.&quot;</em></li>
+<li>In community practice, an offline or network-isolated host catches up when it can reach Dynatrace again, and a host whose update does not complete keeps reporting on its previous version — verify both on your own fleet; the update page does not describe them.</li>
+<li><strong>The target version is also how you move agents on purpose.</strong> It <em>&quot;serves as the default for new deployments and as the update target for existing OneAgents&quot;</em>, so advancing it (at the environment, a host group or one host) is the lever for a deliberate update — see §7.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/oneagent-update">OneAgent update (DT docs)</a> — the process-restart, 45-minute and installer-verification quotes above (re-read 10/02/2026), plus the update strategies, the per-scope precedence and <em>&quot;Use the Target version dropdown to set the version that serves as the default for new deployments and as the update target for existing OneAgents.&quot;</em> (re-read 10/22/2026).</sub></p>
+</blockquote>
+<p><a id="precedence"></a></p>
+<h2>3. Update Setting Precedence — Tenant → Host Group → Host</h2>
+<p>Three scopes, in increasing specificity:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+T25lQWdlbnQgVXBkYXRlIFNldHRpbmcgUHJlY2VkZW5jZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5Nb3N0IHNwZWNpZmljIHNjb3BlIHdpbnMg4oCUIG5hcnJvd2VzdCBvdmVycmlkZSBhcHBsaWVzPC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93LTA0YSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBUZW5hbnQgZGVmYXVsdCAoYnJvYWRlc3QpIC0tPgogIDxyZWN0IHg9IjgwIiB5PSIxMDAiIHdpZHRoPSI3NzAiIGhlaWdodD0iOTAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPlRlbmFudCBkZWZhdWx0PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5FbnZpcm9ubWVudC13aWRlIGJhc2VsaW5lIOKAlCBhcHBsaWVzIHRvIGV2ZXJ5IGhvc3QgdW5sZXNzIG92ZXJyaWRkZW4gYmVsb3c8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNldHRpbmdzIOKGkiBGbGVldCBtYW5hZ2VtZW50IOKGkiBPbmVBZ2VudCB2ZXJzaW9uIGFuZCB1cGRhdGVzPC90ZXh0PgoKICA8IS0tIEhvc3QgZ3JvdXAgb3ZlcnJpZGUgLS0+CiAgPHJlY3QgeD0iMTYwIiB5PSIyMjUiIHdpZHRoPSI2MTAiIGhlaWdodD0iOTAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIyNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPkhvc3QgZ3JvdXAgb3ZlcnJpZGU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyNzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPk92ZXJyaWRlcyB0ZW5hbnQgZGVmYXVsdCBmb3IgYWxsIGhvc3RzIGluIHRoZSBncm91cDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI5NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RmxlZXQgTWFuYWdlbWVudCDihpIgaG9zdCBncm91cCBkZXRhaWxzIOKGkiBDb25maWd1cmUgdXBkYXRlczwvdGV4dD4KCiAgPCEtLSBJbmRpdmlkdWFsIGhvc3Qgb3ZlcnJpZGUgLS0+CiAgPHJlY3QgeD0iMjYwIiB5PSIzNTAiIHdpZHRoPSI0MTAiIGhlaWdodD0iOTAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPkluZGl2aWR1YWwgaG9zdCBvdmVycmlkZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+UGVyLWhvc3Qgc2V0dGluZyDigJQgd2lucyBvdmVyIGhvc3QgZ3JvdXAgYW5kIHRlbmFudDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RmxlZXQgTWFuYWdlbWVudCDihpIgaG9zdCBkZXRhaWxzIOKGkiBDb25maWd1cmUgdXBkYXRlczwvdGV4dD4KCiAgPCEtLSBBcnJvd3Mgc2hvd2luZyBvdmVycmlkZSBmbG93IC0tPgogIDxsaW5lIHgxPSI0NjUiIHkxPSIxOTAiIHgyPSI0NjUiIHkyPSIyMjAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3ctMDRhKSIvPgogIDxsaW5lIHgxPSI0NjUiIHkxPSIzMTUiIHgyPSI0NjUiIHkyPSIzNDUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3ctMDRhKSIvPgoKICA8IS0tIEZvb3RlciBub3RlIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5PdXRzaWRlIGFsbCB0aHJlZTogb25lYWdlbnRjdGwgLS1zZXQtYXV0by11cGRhdGUtZW5hYmxlZD1mYWxzZSBvbiBhIGhvc3QgcmVtb3ZlcyBpdCBmcm9tIER5bmF0cmFjZSB1cGRhdGUgY29udHJvbDwvdGV4dD4KPC9zdmc+Cg==" alt="OneAgent Update Setting Precedence" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Scope | Where set | Wins over |
+|-------|-----------|-----------|
+| Tenant default | Settings → Fleet management → OneAgent version and updates | (baseline) |
+| Host group override | Fleet Management → host group details → Configure updates | Tenant default |
+| Per-host override | Fleet Management → host details → Configure updates | Host group + tenant default |
+| Host-local switch | `oneagentctl --set-auto-update-enabled=false` on the host | All three scopes — Dynatrace settings no longer control that host |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tenant default</strong></td>
+<td>The fleet-wide policy. For most tenants this is auto-update as soon as Dynatrace releases or auto-update during update windows (mode names in §4), depending on change-control culture.</td>
+</tr>
+<tr>
+<td><strong>Host group override</strong></td>
+<td>Different cadences for different host groups — e.g., <code>production</code> updates during a Saturday window, <code>nonprod</code> updates as soon as Dynatrace releases, <code>pci-prod</code> holds a pinned target version that the change board advances. This is the most common reason to deviate from the tenant default.</td>
+</tr>
+<tr>
+<td><strong>Per-host override</strong></td>
+<td>Exceptional cases — a specific host running a workload with strict version-pinning needs, or a host on extended quarantine after an incident. Per-host overrides are powerful but invisible at the fleet-management level; document them.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A fourth, host-local switch sits outside all three.</strong> <code>oneagentctl --set-auto-update-enabled=false</code> turns auto-update off on that host, and <em>&quot;After you use this command to disable auto-updates, you won't be able to control any OneAgent updates using Dynatrace at Settings &gt; Updates &gt; OneAgent updates.&quot;</em> The docs offer it for <em>&quot;very strict software rollout rules&quot;</em>, and it is invisible in the settings above. When a host ignores the policy you set, check it there first: <code>oneagentctl --get-auto-update-enabled</code>.</p>
+<p><strong>Where this lives operationally:</strong> the host-group setting is the right granularity for almost every real-world policy. Per-host overrides are escape hatches. If you find yourself setting per-host overrides repeatedly across the same group of hosts, that group is telling you it wants to be its own host group.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/oneagent-update">OneAgent update (DT docs)</a> — <em>&quot;Host settings override host group settings, and host group settings override global settings.&quot;</em>; <em>&quot;go to Settings &gt; Fleet management &gt; OneAgent version and updates&quot;</em> and <em>&quot;For host-group- or host-level overrides, open Configure updates from the entity's details in Fleet Management&quot;</em> (re-read 10/22/2026; the page no longer documents a Classic settings path)., <a href="https://docs.dynatrace.com/docs/shortlink/host-groups">Host groups (DT docs)</a> — host-group as the canonical scoping boundary for update settings, alerting overrides, and thresholds., <a href="https://docs.dynatrace.com/docs/shortlink/oneagentctl">oneagentctl (DT docs)</a> — <em>&quot;After you use this command to disable auto-updates, you won't be able to control any OneAgent updates using Dynatrace at Settings &gt; Updates &gt; OneAgent updates.&quot;</em>; the update page: <em>&quot;If you have very strict software rollout rules, however, you can disable auto-updates permanently with the OneAgent command-line interface.&quot;</em></sub></p>
+</blockquote>
+<p><a id="modes"></a></p>
+<h2>4. The Three Update Modes — Decision Framework</h2>
+<p>Two settings work together at every scope. The <strong>target version</strong> decides <em>which</em> version OneAgents move to — a rolling policy (<em>Latest</em>, <em>Previous</em> or <em>Older</em> version) or a pinned version. The <strong>update mode</strong> decides <em>when</em>. The update page names three modes:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>What it does</th>
+<th>When to pick it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Auto-update as soon as Dynatrace releases</strong></td>
+<td>OneAgent updates to the target version as soon as it is available.</td>
+<td>Default for nonprod, dev, lab fleets; default for most production fleets without explicit change-control requirements.</td>
+</tr>
+<tr>
+<td><strong>Auto-update during update windows</strong></td>
+<td>OneAgent updates only within a configured update window (one-time, daily, weekly, or monthly recurrence).</td>
+<td>Fleets with peak-period sensitivity (retail freeze, end-of-month batch jobs) where the update mechanic is fine but the <em>timing</em> needs to be predictable. Combined with a <strong>pinned target version</strong>, it is also the fit for strict change control (PCI, regulated industries): Fleet Management describes target versions and update windows as the way to <em>&quot;keep your components on a controlled version while still benefiting from automatic updates&quot;</em> — the change board advances the pinned version, and the window controls when it lands.</td>
+</tr>
+<tr>
+<td><strong>Auto-update disabled</strong></td>
+<td>OneAgent never auto-updates. The docs mark it <em>&quot;not recommended, as it may put your OneAgents at risk of falling out of the supported version range&quot;</em>, and with it <em>&quot;we don't notify you when instances of OneAgent are outdated.&quot;</em></td>
+<td>Last resort — hosts where change control cannot accept even a pinned, windowed update. Give it a named owner and a review cadence.</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+T25lQWdlbnQgQXV0by1VcGRhdGUg4oCUIERlY2lzaW9uIFRyZWU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+RGVmYXVsdCB0byBhdXRvLXVwZGF0ZTsgb3ZlcnJpZGUgb25seSB3aXRoIGV4cGxpY2l0IGp1c3RpZmljYXRpb248L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXJyb3ctMDRiIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFExIC0tPgogIDxyZWN0IHg9IjM0MCIgeT0iOTAiIHdpZHRoPSIyNTAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlJlZ3VsYXRlZCBjaGFuZ2UgY29udHJvbDo8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnVwZGF0ZXMgbXVzdCBsYW5kIGluIGEgc2V0IHdpbmRvdz88L3RleHQ+CgogIDwhLS0gWWVzIGJyYW5jaCAobGVmdCwgdG8gbWFudWFsICsgd2luZG93cykgLS0+CiAgPHRleHQgeD0iMjQwIiB5PSIxNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlllczwvdGV4dD4KICA8bGluZSB4MT0iMzQwIiB5MT0iMTUwIiB4Mj0iMjQwIiB5Mj0iMTk1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93LTA0YikiLz4KCiAgPHJlY3QgeD0iODAiIHk9IjIwMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIyNDAiIHk9IjIyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+UGluIHRhcmdldCArIHVwZGF0ZSB3aW5kb3dzPC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iMjQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Cb2FyZCBhZHZhbmNlcyB0aGUgcGlubmVkIHZlcnNpb247PC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iMjY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5pdCBsYW5kcyBvbmx5IGluc2lkZSB0aGUgd2luZG93PC90ZXh0PgoKICA8IS0tIE5vIGJyYW5jaCAocmlnaHQsIHRvIFEyKSAtLT4KICA8dGV4dCB4PSI2OTAiIHk9IjE3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm88L3RleHQ+CiAgPGxpbmUgeDE9IjU5MCIgeTE9IjE1MCIgeDI9IjY5MCIgeTI9IjE5NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdy0wNGIpIi8+CgogIDxyZWN0IHg9IjU0MCIgeT0iMjAwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjY5MCIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5NdXN0IGhvbGQgYSBzcGVjaWZpYyB2ZXJzaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjY5MCIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4oc2VjdXJpdHkgYmFzZWxpbmUgLyBjZXJ0aWZpZWQgYnVpbGQpPzwvdGV4dD4KCiAgPCEtLSBRMiBZZXMgKGRvd24sIHRvIE5vIGF1dG9tYXRpYyB1cGRhdGVzKSAtLT4KICA8dGV4dCB4PSI1NDAiIHk9IjI4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+WWVzPC90ZXh0PgogIDxsaW5lIHgxPSI2MDAiIHkxPSIyNjAiIHgyPSI1MDAiIHkyPSIzMDUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3ctMDRiKSIvPgoKICA8cmVjdCB4PSIzNDAiIHk9IjMxMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI1MDAiIHk9IjMzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+UGlubmVkIHRhcmdldCB2ZXJzaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iMzU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BdXRvLXVwZGF0ZSB0byB0aGUgcGlubmVkIHZlcnNpb248L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIzNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPihob3N0IGdyb3VwLCBob3N0IG9yIHRlbmFudCk8L3RleHQ+CgogIDwhLS0gUTIgTm8gKGRvd24sIHRvIGRlZmF1bHQgYXV0bykgLS0+CiAgPHRleHQgeD0iODMwIiB5PSIyODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vPC90ZXh0PgogIDxsaW5lIHgxPSI3ODAiIHkxPSIyNjAiIHgyPSI4MzAiIHkyPSIzMDUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3ctMDRiKSIvPgoKICA8cmVjdCB4PSI3MDAiIHk9IjMxMCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI4MTAiIHk9IjMzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QXV0by11cGRhdGUgYXMgc29vbjwvdGV4dD4KICA8dGV4dCB4PSI4MTAiIHk9IjM1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+YXMgRHluYXRyYWNlIHJlbGVhc2VzPC90ZXh0PgogIDx0ZXh0IHg9IjgxMCIgeT0iMzc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EZWZhdWx0IGZvciBtb3N0IGZsZWV0czwvdGV4dD4KCiAgPCEtLSBGb290ZXIgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSI0MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlRhcmdldCB2ZXJzaW9uIGFuZCB1cGRhdGUgbW9kZSBhcHBseSBhdCB0ZW5hbnQsIGhvc3QtZ3JvdXAgYW5kIGhvc3Qgc2NvcGUuIFVzZSB1cGRhdGUgd2luZG93cyBmb3IgcGVhay1wZXJpb2Q8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmRlZmVycmFsczsgbWFpbnRlbmFuY2Ugd2luZG93cyBvbmx5IHN1cHByZXNzIGFsZXJ0cy4gQXV0by11cGRhdGUgZGlzYWJsZWQ6IG5vdCByZWNvbW1lbmRlZCwgbGFzdCByZXNvcnQuPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIiBmb250LXN0eWxlPSJpdGFsaWMiPlVwZGF0ZSB3aW5kb3dzIGRvIG5vdCBhcHBseSB0byBLdWJlcm5ldGVzLWRlcGxveWVkIE9uZUFnZW50cyDigJQgcGluIE9uZUFnZW50IHZlcnNpb24gb24gdGVuYW50IGluc3RlYWQuPC90ZXh0Pgo8L3N2Zz4K" alt="OneAgent Auto-Update — Decision Tree" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Question | Yes → | No → |
+|----------|------|------|
+| Regulated change control: updates must land in a scheduled window? | Pin target version + Auto-update during update windows | (continue) |
+| Must hold a specific version (security baseline / certified build)? | Pinned target version (auto-update to the pinned version) | Auto-update as soon as Dynatrace releases |
+| Footer | Update windows handle peak-period deferrals — maintenance windows only suppress alerts. Auto-update disabled is not recommended (last resort). | |
+For environments where SVG doesn't render
+-->
+<h3>Trade-offs</h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Operator cost</th>
+<th>Lag from latest</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Auto-update as soon as Dynatrace releases</td>
+<td>Lowest</td>
+<td>Hours-to-days</td>
+<td>Background — most fleets pick this and never revisit</td>
+</tr>
+<tr>
+<td>Auto-update during update windows</td>
+<td>Low</td>
+<td>Days-to-weeks (window-dependent)</td>
+<td>Predictable; aligns with established maintenance cadences</td>
+</tr>
+<tr>
+<td>Auto-update disabled</td>
+<td>Highest</td>
+<td>Until manually applied — potentially long</td>
+<td>Every transition is a ticket; no outdated-version notification, so the fleet can drift silently</td>
+</tr>
+</tbody>
+</table>
+<p>In community practice, the &quot;Auto-update disabled&quot; mode is often picked defensively at tenant standup (&quot;we'll turn it on later&quot;) and then forgotten. If you adopt this mode, pair it with a recurring calendar reminder to evaluate available versions, or you will discover that the fleet is six months behind a year later.</p>
+<blockquote>
+<p><strong>Breaking (OneAgent 1.345): on hosts where auto-update <em>and</em> process auto-injection are both disabled, versioned directories are no longer cleaned up.</strong> Verbatim: <em>&quot;Due to security concerns, versioned directories will no longer be removed automatically on hosts where auto-updates and process auto-injection are disabled.&quot;</em> This lands directly on the mode above. Previously, a host on <strong>Auto-update disabled</strong> still had old versioned directories reclaimed by a legacy migration mechanism; from 1.345 that mechanism is gone, so on hosts where auto-update <strong>and</strong> process auto-injection are both disabled, each retained version's directory persists until someone removes it. The cost is disk, and it accrues quietly on exactly the fleet this mode creates — long-lived hosts that update rarely and are rarely looked at. <strong>If you run &quot;Auto-update disabled&quot; at any scale, add OneAgent installation-directory growth to what you monitor, and give the cleanup an owner.</strong> OneAgent 1.345 began its <strong>staged rollout on 08/25/2026</strong>, and OneAgent fleets lag tenant version — check the version your hosts are actually on before assuming either behavior. The mode itself is unchanged and remains a legitimate choice; only its housekeeping side effect changed.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/oneagent-update">OneAgent update (DT docs)</a> — Latest Dynatrace modes <em>&quot;Auto-update as soon as Dynatrace releases&quot;</em>, <em>&quot;Auto-update during update windows&quot;</em>, <em>&quot;Auto-update disabled —not recommended, as it may put your OneAgents at risk of falling out of the supported version range.&quot;</em>; <em>&quot;Choose a rolling version policy ( Latest version , Previous version , or Older version ) or pin a specific version.&quot;</em>; <em>&quot;Do not automatically update. With this option, we don't notify you when instances of OneAgent are outdated.&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/fleet-management">Fleet Management (DT docs)</a> — <em>&quot;Target versions and update windows let you keep your components on a controlled version while still benefiting from automatic updates.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-345">OneAgent 1.345 release notes (DT docs)</a> — <em>&quot;Removed legacy migration mechanism of versioned directories&quot;</em>, quoted above. <strong>Derived:</strong> the disk-growth consequence for long-lived manually-updated hosts follows from the removal applying precisely to hosts with auto-update disabled.</sub></p>
+</blockquote>
+<p><a id="windows"></a></p>
+<h2>5. Update Windows vs Maintenance Windows</h2>
+<p>Two related-but-distinct mechanisms are easy to confuse:</p>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>What it does</th>
+<th>Where to set</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Update window</strong></td>
+<td>Defines <em>when</em> automatic OneAgent updates may execute. Only applies when the update mode is <em>Auto-update during update windows</em>.</td>
+<td>Latest Dynatrace: Settings → Fleet management → OneAgent version and updates → <em>Manage update windows</em> tab</td>
+</tr>
+<tr>
+<td><strong>Maintenance window</strong></td>
+<td>Suppresses <em>alerting</em> on monitored entities during the window. Does <strong>not</strong> govern OneAgent updates.</td>
+<td>Settings → Maintenance windows</td>
+</tr>
+</tbody>
+</table>
+<p>In community practice, the confusion goes both directions: teams set a Maintenance Window expecting it to delay OneAgent updates (it does not), or they set an Update Window expecting alerts to be suppressed during it (they are not). Maintenance windows govern alerting; update windows govern the update mechanic itself. They are independent tools and often used together.</p>
+<p>A useful pairing: schedule update windows during your normal maintenance cadence, <em>and</em> create a maintenance window over the same period — so OneAgent updates happen quietly without generating &quot;OneAgent restart detected&quot; event noise downstream.</p>
+<p><strong>Recurrence patterns</strong> for update windows: one-time, daily (every N days), weekly (a day of the week, every N weeks), monthly (a day of the month, every N months). Pick the pattern that matches your existing change calendar — there is no built-in advantage to weekly over monthly, just operational fit.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/oneagent-update">OneAgent update (DT docs)</a> — <em>&quot;Update windows are used to schedule automatic OneAgent updates when the Update mode is set to Auto-update during update windows&quot;</em>; recurrence <em>&quot;Once&quot;</em>, <em>&quot;Daily&quot;</em>, <em>&quot;Weekly&quot;</em>, <em>&quot;Monthly&quot;</em> (re-read 10/22/2026), <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/maintenance-windows">Maintenance windows (DT docs)</a> — <em>&quot;Defining maintenance windows during times of abnormal operation helps you reduce alert spam and keep your baselines clean for accurate monitoring and alerting.&quot;</em> <strong>Derived:</strong> maintenance windows do not govern updates — the update page ties update timing to update windows only, and the maintenance-window page covers alerting and baselines only.</sub></p>
+</blockquote>
+<p><a id="k8s"></a></p>
+<h2>6. Containerized OneAgent — The DynaKube Special Case</h2>
+<p>OneAgent in Kubernetes is managed by the Dynatrace Operator through a DynaKube custom resource. The update model here differs from host-based OneAgent in important ways:</p>
+<ul>
+<li><strong>Update windows do not apply to Kubernetes-deployed OneAgents.</strong> The OneAgent update windows mechanic is host-based.</li>
+<li><strong>The DynaKube <code>autoUpdate</code> parameter is deprecated.</strong> The DynaKube parameters reference now documents <code>autoUpdate</code> as <em>&quot;Deprecated field to be removed in a future release. Pin the OneAgent version on your tenant to configure auto-update. Auto-update is disabled when the <code>version</code> or <code>image</code> fields are set.&quot;</em></li>
+<li><strong><code>version</code> on the DynaKube is deprecated too.</strong> In the current DynaKube API (<code>v1beta6</code>, Operator 1.8.0+), the reference marks it deprecated in all four OneAgent modes, for example <em>&quot;( deprecated ) Deprecated field to be removed in a future release. Pin the OneAgent version on your tenant to configure auto-update.&quot;</em> <code>image</code> is not marked deprecated.</li>
+<li><strong>The documented pattern is to pin the OneAgent version on the tenant.</strong> Setting <code>version</code> or <code>image</code> on the DynaKube CR opts that workload out of auto-update (<em>&quot;Auto-update is disabled when the version or image fields are set.&quot;</em>).</li>
+</ul>
+<p>In practice this means: for Kubernetes workloads, the policy choice is not &quot;auto-update yes/no&quot; at the DynaKube level — it is &quot;pin a specific OneAgent version on the tenant, or leave it floating&quot; Pinning the version on the tenant gives you a single, auditable artifact for what is deployed across all clusters using that DynaKube.</p>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Mechanism on K8s</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Auto-update OneAgent in cluster</td>
+<td>Leave version / image unset on DynaKube; let the tenant default flow</td>
+</tr>
+<tr>
+<td>Pin a specific OneAgent version</td>
+<td>Pin on the tenant (the documented path)</td>
+</tr>
+<tr>
+<td>Different version per cluster</td>
+<td>A digest-pinned <code>image</code> on that cluster's DynaKube — not the deprecated <code>version</code> field. Whether a host-group target version can do this instead is not documented; verify on one cluster</td>
+</tr>
+</tbody>
+</table>
+<p>For deeper coverage of DynaKube modes (<code>classicFullStack</code>, <code>cloudNativeFullStack</code>, <code>applicationMonitoring</code>, <code>hostMonitoring</code>), see the <strong>K8S</strong> topic series. This FAQ stays at the update-policy level.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters for Dynatrace Operator (DT docs)</a> — <em>&quot;Deprecated field to be removed in a future release. Pin the OneAgent version on your tenant to configure auto-update.&quot;</em> (the text on both <code>autoUpdate</code> and <code>version</code>, re-read 10/02/2026), <a href="https://docs.dynatrace.com/docs/shortlink/oneagent-update">OneAgent update (DT docs)</a> — <em>&quot;Update windows currently do not apply in Kubernetes environments.&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="sequencing"></a></p>
+<h2>7. Sequencing Relative to ActiveGate</h2>
+<p>When ActiveGates sit in the OneAgent → Dynatrace path (private ActiveGates for routing, or AGs in network-restricted environments):</p>
+<blockquote>
+<p><strong>Leave automatic updates on for both OneAgents and ActiveGates.</strong> Both are on by default, and with both left on there is no update order for you to manage.</p>
+</blockquote>
+<p>If either tier is off automatic updates — disabled, pinned, or confined to update windows — then <strong>update ActiveGates first, then OneAgents.</strong> Dynatrace publishes no general version-compatibility rule between the two, but it has enforced this dependency once: ahead of OneAgent's move to 64-bit host IDs, <em>&quot;all ActiveGates earlier than version 1.154 must be upgraded to newer releases in order to properly support OneAgent 64-bit IDs.&quot;</em> In community practice that case is generalised into a standing order. The combination to avoid is OneAgents on auto-update in front of ActiveGates that are not — and note that ActiveGate auto-update is the default only for new environments, so an older tenant may be in that state without anyone having chosen it.</p>
+<p>If your tenant uses no private ActiveGates (OneAgents connect directly to Dynatrace SaaS), this sequencing concern doesn't apply — but most enterprise deployments include at least one AG tier for network reasons, so the rule effectively applies.</p>
+<p><strong>Moving OneAgents to a new version deliberately</strong> (after the ActiveGates are done). The current update page (10/13/2026) documents no separate <em>Update now</em> control; you move agents with the two settings on <strong>Settings &gt; Fleet management &gt; OneAgent version and updates</strong>:</p>
+<ul>
+<li><strong>Target version</strong> — the version OneAgents update to, and the default for new deployments. Choose a rolling policy or pin a version; advancing a pin is the deliberate step.</li>
+<li><strong>Update mode</strong> — when the move happens: as soon as Dynatrace releases, during your update windows, or not at all.</li>
+<li><strong>Scope it.</strong> Open <strong>Configure updates</strong> from a host group's or host's details in Fleet Management to advance one canary group before the rest.</li>
+<li><strong>Then restart monitored processes.</strong> Components of OneAgent run inside monitored processes (Java, .NET, Apache, IIS); those processes keep reporting on the old version until they restart.</li>
+<li><strong>Kubernetes</strong> is different: update windows do not apply there, and OneAgent versions are driven through the Dynatrace Operator (§6).</li>
+</ul>
+<p><strong>See FAQ-05 §4 for the ActiveGate update steps, and FAQ-05: How to manage ActiveGate updates on Dynatrace SaaS for the full AG-side discussion, including HA pair rolling updates, role-specific considerations (synthetic, EF 2.0, cloud monitoring), and validation steps.</strong></p>
+<p>In community practice, mixed-version environments (AGs lagging behind OneAgents) tend to surface first as <em>&quot;some hosts intermittently aren't reporting&quot;</em> or <em>&quot;this new feature didn't light up on these hosts&quot;</em> — by then the diagnostic path is long. Keeping AGs on auto-update, or updating them first where they are manual, avoids the failure mode.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/oneagent-update">OneAgent update (DT docs)</a> — <em>&quot;Use the Target version dropdown to set the version that serves as the default for new deployments and as the update target for existing OneAgents.&quot;</em>; <em>&quot;For host-group- or host-level overrides, open Configure updates from the entity's details in Fleet Management&quot;</em>; <em>&quot;Update windows currently do not apply in Kubernetes environments.&quot;</em> (re-read 10/22/2026), <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate-classic/operation/update-activegate-classic">Update ActiveGate (Dynatrace Classic) (DT docs)</a> — <em>&quot;When a new version is available, the installation package is downloaded and installed automatically. This is the default setting for new environments; existing environments retain their current setting.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End-of-support announcements (DT docs)</a> — <em>&quot;all ActiveGates earlier than version 1.154 must be upgraded to newer releases in order to properly support OneAgent 64-bit IDs.&quot;</em> Neither update page states an ActiveGate-before-OneAgent order; the standing rule is community practice generalised from the 1.154 case.</sub></p>
+</blockquote>
+<p><a id="validation"></a></p>
+<h2>8. Validation After Update</h2>
+<p>For most fleets on <code>Automatic updates at earliest convenience</code>, post-update validation is implicit — the platform itself reports OneAgent health, version, and process injection status. The check usually doesn't need a separate workflow.</p>
+<p>For change-controlled fleets, in community practice the validation set looks like the list below — no Dynatrace page enumerates it, so adapt it to your own change process:</p>
+<ol>
+<li><strong>Version reported.</strong> Confirm the OneAgent is reporting the target version (Deployment status page; or DQL: <code>fetch dt.entity.host | fields entity.name, osVersion, installerVersion</code>).</li>
+<li><strong>Deep monitoring re-injected.</strong> Process Groups and PGIs for the host show the new agent version. New process starts after the update inherit the new agent.</li>
+<li><strong>Smartscape topology intact.</strong> No unexpected gaps — services, processes, and hosts still link as before.</li>
+<li><strong>No new ingestion errors.</strong> Spans, logs, and metrics from the host continue to land; no spike in dropped events.</li>
+<li><strong>Application functioning normally.</strong> If a deep-injection-relevant change shipped (Java agent library swap, .NET profiler change), validate the apps themselves restart cleanly.</li>
+</ol>
+<p>For fleets running <code>Automatic updates during update windows</code>, build this checklist into the post-window review so any anomalies get caught before the next window's batch.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/oneagent-update">OneAgent update (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="rollback"></a></p>
+<h2>9. Rollback Considerations</h2>
+<p>Rollback of a OneAgent version is uncommon on SaaS, but it does happen — most often when a new version introduces an unexpected interaction with a specific runtime or framework on a specific host.</p>
+<p>The operating reality:</p>
+<ul>
+<li><strong>Rollback = install older version.</strong> The update page lets you choose an <em>Older version</em> or a pinned version as the target, but it does not say an installed OneAgent moves back to it, and it documents no downgrade. In community practice rollback is <code>Uninstall current OneAgent → install older installer → confirm host re-registers on the older version</code>, and the reinstalled host re-registers under its existing host entity — verify both on one host before relying on them.</li>
+<li><strong>Pin the rolled-back host's target version (or its host group's) so auto-update does not undo the rollback.</strong> Without a pin, the host will auto-update back to current on its next cycle. <em>&quot;Host settings override host group settings, and host group settings override global settings&quot;</em>, so a host-level pin holds; pinning the environment instead would also change the version every new host installs, because the target version is <em>&quot;the default for new deployments&quot;</em>.</li>
+<li><strong>For Kubernetes</strong>, pin the OneAgent version on the tenant, or set a digest-pinned <code>image</code> on the DynaKube CR (<code>version</code> is deprecated, §6). Whether the Operator moves already-running OneAgent pods back to an older pinned version is not documented — verify on one cluster before relying on it.</li>
+<li><strong>Capture configuration before rollback.</strong> Host group assignment, host tags, host properties — <code>oneagentctl --get-host-group</code>, <code>oneagentctl --get-host-tags</code>, etc. — survive reinstall if you reapply on the new install. Document them first.</li>
+</ul>
+<p>The playbook above is community practice, not a documented procedure. In community practice, the right time to plan rollback is <em>before</em> enabling a broad rollout — pick a canary host group, validate there, then expand. Rollback as a routine response to a fleet-wide issue is expensive and rarely the best answer; rollback as a contained response within a canary is cheap.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/oneagent-update">OneAgent update (DT docs)</a> — <em>&quot;Choose a rolling version policy ( Latest version , Previous version , or Older version ) or pin a specific version.&quot;</em>; <em>&quot;Host settings override host group settings, and host group settings override global settings.&quot;</em> (re-read 10/22/2026; the page no longer carries a downgrade statement), <a href="https://docs.dynatrace.com/docs/shortlink/oneagentctl">oneagentctl (DT docs)</a> — <em>&quot;./oneagentctl --get-host-tags&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="pitfalls"></a></p>
+<h2>10. Common Pitfalls</h2>
+<p><em>These pitfalls are community practice, observed often enough across fleets to be worth flagging; Dynatrace does not document them as anti-patterns, so weigh them against your own fleet.</em></p>
+<table>
+<thead>
+<tr>
+<th>Pitfall</th>
+<th>Why it happens</th>
+<th>What to do instead</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>&quot;We'll disable auto-update for safety, then forget about it.&quot;</strong></td>
+<td><em>Auto-update disabled</em> is set at standup as a precaution and never revisited — and Dynatrace does not notify you that agents are outdated. Fleet drifts months behind.</td>
+<td>Pin a target version and use <em>Auto-update during update windows</em> instead; if updates must stay disabled, pair it with a named owner and a recurring version review.</td>
+</tr>
+<tr>
+<td><strong>Maintenance window expected to delay an update.</strong></td>
+<td>Maintenance windows suppress <em>alerts</em>, not updates. Setting a maintenance window and expecting OneAgent to wait is a common confusion.</td>
+<td>Use <strong>update windows</strong> for update timing; use maintenance windows for alert suppression. The two are independent.</td>
+</tr>
+<tr>
+<td><strong>Per-host overrides accumulating invisibly.</strong></td>
+<td>One-off per-host changes pile up; the host-group setting is no longer the effective policy across the group.</td>
+<td>If multiple hosts in a group need different behavior, that's a signal the group should be split — not a signal to multiply per-host overrides.</td>
+</tr>
+<tr>
+<td><strong>DynaKube <code>autoUpdate: false</code> as the K8s pinning mechanism.</strong></td>
+<td>The DynaKube field is deprecated; many older blog posts still recommend it.</td>
+<td>Pin the OneAgent version on the tenant instead. <code>version</code> on the DynaKube is deprecated too; use a digest-pinned <code>image</code> only where a per-cluster override is unavoidable.</td>
+</tr>
+<tr>
+<td><strong>OneAgents on auto-update in front of ActiveGates on manual updates.</strong></td>
+<td>AG restarts feel riskier, so the AG tier gets frozen first — or an older tenant never had AG auto-update on.</td>
+<td>Put the AGs on auto-update; where they must stay manual, update them before the OneAgents — see FAQ-05 §4.</td>
+</tr>
+<tr>
+<td><strong>No post-update validation discipline.</strong></td>
+<td>&quot;It auto-updated, so it must be fine.&quot;</td>
+<td>Spot-check version, deep monitoring re-injection, and topology integrity after any non-routine update. Most fleets need this only for major versions.</td>
+</tr>
+<tr>
+<td><strong>A host that ignores every update setting.</strong></td>
+<td><code>oneagentctl --set-auto-update-enabled=false</code> was run on it, which takes it out of Dynatrace control entirely.</td>
+<td>Check <code>oneagentctl --get-auto-update-enabled</code> on the host (§3).</td>
+</tr>
+<tr>
+<td><strong>Treating OneAgent update like an OS patch.</strong></td>
+<td>OS patch programs assume &quot;all hosts patched on Tuesday.&quot; OneAgent updates run on Dynatrace's release cadence, not your OS calendar.</td>
+<td>Decouple OneAgent update policy from OS patch policy. Update windows can align the two if needed, but they are not the same process.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/oneagent-update">OneAgent update (DT docs)</a> — mechanics of the three update modes, the target version and update windows., <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a> — the parameter table marks it <em>&quot;(deprecated)&quot;</em> — <em>&quot;Deprecated field to be removed in a future release. Pin the OneAgent version on your tenant to configure auto-update.&quot;</em> (on both <code>autoUpdate</code> and <code>version</code>), <a href="https://docs.dynatrace.com/docs/shortlink/oneagentctl">oneagentctl (DT docs)</a> — <em>&quot;After you use this command to disable auto-updates, you won't be able to control any OneAgent updates using Dynatrace at Settings &gt; Updates &gt; OneAgent updates.&quot;</em></sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>11. Recommended Approach</h2>
+<p>For most SaaS tenants, the right configuration is:</p>
+<ol>
+<li><strong>Tenant default: <em>Auto-update as soon as Dynatrace releases</em> (Classic: <em>Automatic updates at earliest convenience</em>).</strong> Lowest operator cost; fleet stays current automatically.</li>
+<li><strong>Host-group overrides for production: <em>Auto-update during update windows</em></strong> if your change-control culture wants predictable timing. Pair with a recurring update window (e.g., Sunday 02:00–04:00 local).</li>
+<li><strong>Host-group override for regulated tiers (PCI, FedRAMP equivalent, etc.): a pinned target version (or a rolling <em>Previous version</em> policy) with <em>Auto-update during update windows</em>,</strong> advanced by the change board on a documented cadence. Reserve <em>Auto-update disabled</em> — which the docs mark not recommended — for hosts where change control cannot accept even a pinned, windowed update. For K8s workloads, pin the version on the tenant.</li>
+<li><strong>Per-host overrides only in exceptional cases</strong> — and only when you've documented why elsewhere (DECISIONS.md, change ticket, host-group naming convention).</li>
+<li><strong>Keep ActiveGates on automatic updates too; where they are manual, update them before OneAgents.</strong> See FAQ-05.</li>
+<li><strong>Validate version, deep injection, and topology after major-version updates.</strong> Routine minor updates rarely need this.</li>
+<li><strong>Plan rollback within canary scope, not fleet-wide.</strong> Pick a canary host group, validate, expand.</li>
+</ol>
+<p>For Kubernetes-only tenants, the recommended pattern is:</p>
+<ol>
+<li><strong>Leave DynaKube <code>version</code>/<code>image</code> unset</strong> unless you have a reason to pin.</li>
+<li><strong>Pin OneAgent version on the tenant</strong> when you need a controlled rollout cadence.</li>
+<li><strong>Treat <code>autoUpdate</code> and <code>version</code> on DynaKube as deprecated</strong> — don't author new DynaKube CRs that rely on them.</li>
+</ol>
+<h2>Summary</h2>
+<p>OneAgent update management on SaaS is a four-axis decision: mode (auto / windowed / off), scope (tenant / host group / host), Kubernetes special case (version pin on tenant), and sequencing (a non-issue with both tiers on auto-update; after ActiveGates where either is manual). The default — auto-update as soon as Dynatrace releases — is the right answer for most fleets; the few cases where it isn't are change-controlled production, regulated tiers, and explicit canary patterns, and those are served by a pinned target version plus update windows. The most common failure is disabling auto-update defensively at standup and letting the fleet drift — pin and window instead, or give the disabled hosts an owner and a review cadence.</p>
+<h2>Next Steps</h2>
+<ul>
+<li>Review your current tenant-level OneAgent update setting and confirm it is intentional (not a leftover from standup).</li>
+<li>Audit per-host-group overrides; collapse any that have drifted into &quot;per-host overrides everywhere&quot; patterns.</li>
+<li>For Kubernetes workloads, migrate away from DynaKube <code>autoUpdate</code> and <code>version</code> toward tenant-level version pinning.</li>
+<li>Run the 30-day ≤ 1.241 inventory in §1, and check <code>oneagentctl --get-auto-update-enabled</code> on any host that ignores its update setting.</li>
+<li>Read <strong>FAQ-05</strong> for the ActiveGate side of the same problem, and check that your ActiveGates are on auto-update too.</li>
+<li>Document your update policy alongside your host-group naming convention (see <strong>FAQ-01</strong>) and tagging strategy (see <strong>FAQ-02</strong>).</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

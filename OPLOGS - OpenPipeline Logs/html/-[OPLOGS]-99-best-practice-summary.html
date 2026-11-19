@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPLOGS-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPLOGS — OpenPipeline Logs</a><span class="sep">/</span><span aria-current="page">OPLOGS-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPLOGS-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> OPLOGS — OpenPipeline Logs | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/06/2026</p>
+</blockquote>
+<p>Definitive best practice settings for OpenPipeline log processing. Each entry specifies the exact configuration — no hedging, no options.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#pipeline-configuration">Pipeline Configuration</a></li>
+<li><a href="#bucket-design-retention">Bucket Design &amp; Retention</a></li>
+<li><a href="#data-masking">Data Masking</a></li>
+<li><a href="#dql-query-patterns">DQL Query Patterns</a></li>
+<li><a href="#metric-extraction">Metric Extraction</a></li>
+<li><a href="#cost-optimization">Cost Optimization</a></li>
+<li><a href="#security-access-control">Security &amp; Access Control</a></li>
+<li><a href="#monitoring-alerting">Monitoring &amp; Alerting</a></li>
+<li><a href="#dql-cookbook">DQL Cookbook</a></li>
+</ol>
+<hr />
+<p><a id="pipeline-configuration"></a></p>
+<h2>1. Pipeline Configuration</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Process data at ingestion, not query time</td>
+<td>Configure parsing, enrichment, masking, and routing as OpenPipeline processors</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Processor order within the Processing stage</td>
+<td>Place masking processors before any processor that copies or parses the sensitive field (e.g., mask <code>content</code> before a DQL <code>parse</code> that extracts from it); order within a stage is the order you configure — each processor's output is the next one's input</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>First-match order</td>
+<td>Routes (which pick the <strong>pipeline</strong>) and Bucket assignment processors (which pick the <strong>bucket</strong>) are both first-match: most specific first, catch-all last</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Drop health check logs at ingestion</td>
+<td>Drop record processor: <code>matchesValue(content, &quot;*health*&quot;) AND loglevel == &quot;INFO&quot;</code> — <code>contains()</code> is not enabled in OpenPipeline matchers</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Drop DEBUG logs in production</td>
+<td>Drop processor: <code>loglevel == &quot;DEBUG&quot;</code> — or, to keep extraction from DEBUG records, a <strong>No storage assignment</strong> processor in the Bucket assignment stage (there is no log-sampling processor)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Parse NONE-level logs</td>
+<td>DQL processor with matcher <code>loglevel == &quot;NONE&quot;</code>: <code>fieldsAdd parsed_levels = parseAll(content, &quot;'[' LD:l ']'&quot;)</code>, then set <code>loglevel</code> to the first element whose <code>upper()</code> is a supported level (EMERGENCY, ALERT, CRITICAL, SEVERE, ERROR, FATAL, WARN, NOTICE, INFO, DEBUG, TRACE) — a leading <code>[timestamp][thread]</code> does not hide the level, and anything else leaves the record unchanged. Not <code>DATA? '[' LD ']'</code>, which captures a later bracket</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Add computed environment attribute</td>
+<td><code>fieldsAdd environment = if(contains(k8s.namespace.name, &quot;prod&quot;), &quot;production&quot;, else: &quot;development&quot;)</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Confirm nothing is left on the classic pipeline</td>
+<td><code>countIf(in(dt.openpipeline.pipelines, &quot;logs:default&quot;))</code> must be 0 — <code>isNotNull(dt.openpipeline.pipelines)</code> is true for classic records too, so it proves nothing</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Compare hourly volume before/after migration</td>
+<td><code>makeTimeseries count(), by:{dt.openpipeline.source}, interval:1h</code> — volume must be consistent</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="bucket-design-retention"></a></p>
+<h2>2. Bucket Design &amp; Retention</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Create purpose-driven buckets</td>
+<td>Minimum: <code>default_logs</code>, <code>debug_logs</code>, <code>error_logs</code>, <code>audit_logs</code>, <code>security_logs</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Bucket naming convention</td>
+<td><code>&lt;purpose&gt;_logs</code> or <code>&lt;environment&gt;_&lt;purpose&gt;_logs</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>DEBUG/TRACE log retention</td>
+<td>7 days</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Standard INFO log retention</td>
+<td>35 days</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>ERROR log retention</td>
+<td>90 days</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Audit log retention</td>
+<td>365 days (730 for regulated industries)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Security log retention</td>
+<td>180 days</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Verify retention compliance</td>
+<td><code>fetch dt.system.buckets | filter dt.system.table == &quot;logs&quot; | fields name, retention_days</code> — audit buckets must show <code>retention_days &gt;= 365</code></td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="data-masking"></a></p>
+<h2>3. Data Masking</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mask in the Processing stage, before anything copies the field</td>
+<td>OpenPipeline masking is a DQL processor in the first stage (Processing); records reach Bucket assignment and storage only after it — but a processor placed <em>before</em> the masking processor sees the raw value</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Mask email addresses</td>
+<td>Pattern: <code>[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+</code> in a DQL processor (<code>replacePattern</code>) → <code>[EMAIL-MASKED]</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Mask credit card numbers</td>
+<td>Pattern: <code>!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]</code> (bounded — unbounded <code>CREDITCARD</code> rewrites digit runs inside UUIDs) in a DQL processor (<code>replacePattern</code>) → <code>[CC-MASKED]</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Mask SSNs</td>
+<td>Pattern: <code>[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}</code> in a DQL processor (<code>replacePattern</code>) → <code>[SSN-MASKED]</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Mask API keys and tokens</td>
+<td>Pattern: <code>&lt;&lt;(('api_key' | 'API_KEY' | 'apikey' | 'APIKEY' | 'key' | 'KEY' | 'token' | 'TOKEN') '=') [A-Za-z0-9_-]{20,}</code>, plus a second statement for JSON-quoted keys — DPL literals are case-sensitive, so list each casing; include <code>_</code> and <code>-</code>, or keys like <code>sk_live_…</code> stay in clear in a DQL processor (<code>replacePattern</code>) → <code>[KEY-MASKED]</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Mask JWT tokens</td>
+<td>Search for <code>eyJ</code> prefix, mask full token value</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Mask passwords</td>
+<td>Pattern: <code>password=</code>, <code>passwd=</code>, <code>pwd=</code> in content</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Hash instead of mask when correlation is needed</td>
+<td>DQL processor: <code>fieldsAdd user_hash = hashSha256(user.email) | fieldsRemove user.email</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Run sensitive data discovery weekly</td>
+<td>Search for <code>@</code>, <code>key=</code>, <code>token=</code>, <code>password</code>, <code>eyJ</code>, <code>card</code> patterns</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Run a leak check after every masking change</td>
+<td><code>countIf(replacePattern(content, &quot;&lt;masking pattern&gt;&quot;, &quot;&quot;) != content)</code> must be 0 — it finds a value the masking pattern would still catch, anywhere in the line</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Run monthly PII exposure audit</td>
+<td>Track <code>email_exposure_pct</code>, <code>key_exposure_pct</code>, <code>password_exposure_pct</code> — all must trend toward 0%</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p>Masking patterns are DPL, not regex (FAQ-15 §3) — regex syntax such as <code>\b</code>, <code>\d</code> or <code>$1</code> is rejected when the processor is saved.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples#op-mask-data">OpenPipeline processing examples (DT docs)</a> — <em>&quot;You can mask parts of an attribute by leveraging replacePattern in combination with other DQL functions.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — <em>&quot;each processor output becomes the input for the next one&quot;</em></sub></p>
+</blockquote>
+<p><a id="dql-query-patterns"></a></p>
+<h2>4. DQL Query Patterns</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Always specify time range</td>
+<td><code>fetch logs, from:-1h</code> — never bare <code>fetch logs</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Filter early, sort/limit last</td>
+<td><code>filter</code> immediately after <code>fetch</code>; <code>sort</code> and <code>limit</code> as final commands</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Target specific buckets</td>
+<td><code>fetch logs, bucket:{&quot;error_logs&quot;}, from:-7d</code> — an unscoped query reads every log bucket. Use the <code>{...}</code> set form: a bare string runs but raises an INFO notice asking for curly braces</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <code>==</code> for exact matches</td>
+<td><code>filter field == &quot;value&quot;</code> — reserve <code>~</code> for wildcards only</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Always alias aggregations</td>
+<td><code>summarize count = count()</code> then <code>sort count desc</code> — anonymous aggregations cannot be referenced</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <code>isNull()</code>/<code>isNotNull()</code></td>
+<td>Never <code>== null</code> — DQL uses three-valued logic</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <code>in()</code> with curly-brace arrays</td>
+<td><code>in(status, {&quot;ERROR&quot;, &quot;WARN&quot;})</code> — values are uppercase; never SQL-style <code>IN ('a', 'b')</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <code>coalesce()</code> for fallbacks</td>
+<td><code>coalesce(k8s.workload.name, k8s.namespace.name, &quot;UNKNOWN&quot;)</code> — falls back where a field is null; <code>loglevel</code> is never null (missing levels are <code>&quot;NONE&quot;</code>), so it is a poor first argument</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use <code>entityName()</code> for display names</td>
+<td><code>entityName(dt.entity.host, type:&quot;dt.entity.host&quot;)</code> — a readable name instead of an ID; note <code>dt.entity.*</code> fields are <code>deprecated</code> in favour of <code>dt.smartscape.*</code> (OPLOGS-06)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Filter <code>isNotNull</code> before aggregating optional fields</td>
+<td>Prevents null group-by values in aggregations</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use <code>samplingRatio</code> for exploration</td>
+<td><code>fetch logs, from:-1d, samplingRatio:10</code> then multiply back</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Bound one query's scan with <code>scanLimitGBytes</code></td>
+<td><code>fetch logs, scanLimitGBytes:100</code> — whole GB only. The query stops at the limit and may return partial results (<code>SCAN_LIMIT_GBYTES</code> warning); it is a safety stop, not a budget. Avoid <code>-1</code> (no limit)</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<p><a id="metric-extraction"></a></p>
+<h2>5. Metric Extraction</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Extract dimensional metrics at ingestion</td>
+<td>Create <code>log.request.count</code>, <code>log.response.duration</code>, <code>log.error.count</code> with service/method/status dimensions</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Minimum metric dimensions</td>
+<td><code>k8s.namespace.name</code>, <code>k8s.workload.name</code>, <code>loglevel</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use reverse-DNS for business event types</td>
+<td><code>com.example.payment.completed</code> format</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>Generate business events from log patterns</td>
+<td>Order completion, user signup, deployment events</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cost-optimization"></a></p>
+<h2>6. Cost Optimization</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Calculate droppable log percentage weekly</td>
+<td>Health check + heartbeat + debug as % of total — the share you can drop is specific to your estate; measure before setting a target</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Measure storage by log level daily</td>
+<td><code>fieldsAdd content_bytes = stringLength(content)</code> then <code>summarize sum(content_bytes)/1048576.0, by:{loglevel}</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Track bucket volume distribution weekly</td>
+<td>Query all buckets showing total logs, unique sources, debug %, error % per bucket</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="security-access-control"></a></p>
+<h2>7. Security &amp; Access Control</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bucket-level IAM policies</td>
+<td><code>ALLOW storage:buckets:read WHERE storage:bucket-name=&quot;audit_logs&quot;; ALLOW storage:logs:read WHERE storage:bucket-name=&quot;audit_logs&quot;;</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Default bucket: all-authenticated read</td>
+<td>Grant <code>storage:logs:read</code> on <code>default_logs</code> to all authenticated users</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Audit bucket: restricted access</td>
+<td><code>storage:logs:read</code> on <code>audit_logs</code> exclusively to audit team group</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Classify IPs as internal vs external</td>
+<td>Extract IPv4 with <code>parseAll(content, &quot;!&lt;&lt;[A-Za-z0-9.] IPV4ADDR:ip !&gt;&gt;[A-Za-z0-9.]&quot;)</code> — bare <code>IPADDR</code> also matches IPv6 fragments (<code>::0000</code>) and version strings (<code>rv:1.9.2.20</code>), which then read as external — classify with <code>ipIn(ip, {&quot;10.0.0.0/8&quot;, &quot;172.16.0.0/12&quot;, &quot;192.168.0.0/16&quot;})</code>, and list the top EXTERNAL values before trusting that count (OPLOGS-08 §3)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Monitor failed auth attempts</td>
+<td><code>(contains(content, &quot;failed&quot;) OR contains(content, &quot;denied&quot;)) AND (contains(content, &quot;login&quot;) OR contains(content, &quot;auth&quot;))</code> at 30-min intervals</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="monitoring-alerting"></a></p>
+<h2>8. Monitoring &amp; Alerting</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Error rate alert threshold</td>
+<td>&gt;5% per entity over 15-minute window, minimum 100 records</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Error count threshold</td>
+<td>&gt;10 per namespace per 15 minutes</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Pod crash loop detection</td>
+<td><code>dt.kubernetes.container.restarts</code> summed per pod, alert when &gt;3 in 1 hour — log lines saying &quot;started&quot; do not count restarts</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Security error trends</td>
+<td><code>makeTimeseries count(), interval:30m</code> filtered on unauthorized/forbidden/denied</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Weekly bucket health check</td>
+<td>Total logs, unique sources, debug %, error % per bucket over 7 days</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="dql-cookbook"></a></p>
+<h2>9. DQL Cookbook</h2>
+<p>Reference queries consolidated from across the OPLOGS series — copy / paste into your tenant for dashboard tiles, monitoring widgets, or SLO calculations. These were previously embedded in OPLOGS-07 (Analytics &amp; Dashboards); they live here so the main analytics notebook stays focused on the <em>how</em> of building queries rather than serving as a query repository.</p>
+<h3>9.1 Dashboard-Ready Queries</h3>
+<p>Single-value, time-series, breakdown, and percentile queries optimized for dashboard tiles. Drop them directly into a Dashboard tile or Notebook visualization.</p>
+<pre><code class="language-dql">// Single Value: Total Logs (Last Hour)
+fetch logs, from: now() - 1h
+| summarize {total_logs = count()}
+</code></pre>
+<pre><code class="language-dql">// Single Value: Error Count (Last Hour)
+// status == &quot;ERROR&quot; covers every error-class level (ERROR, SEVERE, CRITICAL, FATAL, …);
+// loglevel == &quot;ERROR&quot; alone misses SEVERE and the rest
+fetch logs, from: now() - 1h
+| filter status == &quot;ERROR&quot;
+| summarize {error_count = count()}
+</code></pre>
+<pre><code class="language-dql">// Pie Chart: Log Level Distribution
+fetch logs, from: now() - 1h
+| summarize {count = count()}, by: {loglevel}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// Bar Chart: Top Error Sources
+fetch logs, from: now() - 1h
+| filter status == &quot;ERROR&quot;
+| summarize {error_count = count()}, by: {k8s.namespace.name}
+| sort error_count desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Line Chart: Log Trend (6 Hours)
+fetch logs, from: now() - 6h
+| makeTimeseries {
+    errors = countIf(status == &quot;ERROR&quot;),
+    warnings = countIf(status == &quot;WARN&quot;),
+    info = countIf(status == &quot;INFO&quot; AND NOT in(loglevel, {&quot;DEBUG&quot;, &quot;TRACE&quot;}))
+  }, interval: 5m
+</code></pre>
+<pre><code class="language-dql">// Table: Top Error Messages
+fetch logs, from: now() - 1h
+| filter status == &quot;ERROR&quot;
+| fieldsAdd error_preview = substring(content, from: 0, to: 100)
+| summarize {
+    occurrences = count(),
+    first_seen = min(timestamp),
+    last_seen = max(timestamp)
+  }, by: {error_preview, k8s.namespace.name}
+| sort occurrences desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Heat Map: Errors by Hour and Namespace
+fetch logs, from: now() - 24h
+| filter status == &quot;ERROR&quot;
+| fieldsAdd hour_bucket = bin(timestamp, 1h)
+| summarize {error_count = count()}, by: {hour_bucket, k8s.namespace.name}
+| sort hour_bucket asc
+</code></pre>
+<h3>9.2 Operational Dashboard Queries</h3>
+<p>SLO and operational queries: error budgets, top-N services by log volume, per-host log distribution. Designed for an ops-on-call dashboard.</p>
+<pre><code class="language-dql">// Operations Summary (last 1h)
+fetch logs, from: now() - 1h
+| summarize {
+    total_logs = count(),
+    error_count = countIf(status == &quot;ERROR&quot;),
+    warn_count = countIf(status == &quot;WARN&quot;),
+    unique_hosts = countDistinct(dt.entity.host),
+    unique_pods = countDistinct(k8s.pod.name)
+  }
+| fieldsAdd error_rate = round((error_count * 100.0) / total_logs, decimals: 2)
+</code></pre>
+<pre><code class="language-dql">// Health scorecard by namespace
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.namespace.name)
+| summarize {
+    total = count(),
+    errors = countIf(status == &quot;ERROR&quot;),
+    warnings = countIf(status == &quot;WARN&quot;)
+  }, by: {k8s.namespace.name}
+| fieldsAdd error_rate = round((errors * 100.0) / total, decimals: 2)
+| fieldsAdd health_status = if(error_rate &gt; 10, &quot;CRITICAL&quot;,
+                            else: if(error_rate &gt; 5, &quot;WARNING&quot;,
+                            else: &quot;HEALTHY&quot;))
+| sort error_rate desc
+</code></pre>
+<pre><code class="language-dql">// Ingestion pipeline summary
+fetch logs, from: now() - 1h
+| summarize {
+    log_count = count(),
+    unique_pipelines = countDistinct(dt.openpipeline.pipelines)
+  }, by: {dt.openpipeline.source, dt.system.bucket}
+| sort log_count desc
+</code></pre>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-24: Can We Trust Dynatrace With Our Data?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-24</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-24: Can We Trust Dynatrace With Our Data?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 24 — Trusting the Platform With Your Data | <strong>Created:</strong> September 2026 | <strong>Last Updated:</strong> 10/29/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This FAQ is decision support for the question: <strong>how do we know our observability data is handled the way our obligations require — what gets collected, where it is kept, who can see it, and how we prove it?</strong></p>
+<p>It is the platform counterpart to <strong>FAQ-06: Can We Trust Davis AI?</strong>, which answers the same question for the AI features. This entry covers the data itself.</p>
+<p>The question usually arrives as one worry — &quot;is our data safe in Dynatrace?&quot; — but it is four separate questions, each answered by a different control in a different place on the platform. Most designs that go wrong ask one control to do another's job: access rules standing in for masking, or segments standing in for access rules.</p>
+<h3>The four axes</h3>
+<table>
+<thead>
+<tr>
+<th>Axis</th>
+<th>Question it answers</th>
+<th>Mechanism</th>
+<th>Failure mode if wrong</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Captured</strong></td>
+<td>What should never arrive?</td>
+<td>Masking at capture (OneAgent) or at ingest (OpenPipeline)</td>
+<td>Access control can only decide who sees the leak</td>
+</tr>
+<tr>
+<td><strong>Stored</strong></td>
+<td>Where does it live, and for how long?</td>
+<td>Hosting region, encryption, bucket retention</td>
+<td>Kept longer, or elsewhere, than your obligations allow</td>
+</tr>
+<tr>
+<td><strong>Accessed</strong></td>
+<td>Who can see which records?</td>
+<td>IAM policies and boundaries on <code>dt.security_context</code></td>
+<td>Silent — the wrong people see it, or no one does</td>
+</tr>
+<tr>
+<td><strong>Proven</strong></td>
+<td>Can you show the controls held?</td>
+<td>Audit logs and audit events</td>
+<td>Controls that held, but that you cannot demonstrate</td>
+</tr>
+</tbody>
+</table>
+<p>This entry routes rather than restates. The mechanics live in the ORGNZ, IAM, OPLOGS and OPMIG series, and are better there; what this entry adds is the map between them and the three failures that sit in the gaps.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#the-four-axes-of-data-trust">The Four Axes of Data Trust</a></li>
+<li><a href="#where-each-element-is-documented">Where Each Element Is Documented</a></li>
+<li><a href="#captured">Captured — Mask Before You Restrict</a></li>
+<li><a href="#stored">Stored — Region, Encryption, Retention</a></li>
+<li><a href="#accessed">Accessed — Buckets, Security Context, Boundaries</a></li>
+<li><a href="#proven">Proven — Audit and Governance</a></li>
+<li><a href="#three-ways-this-goes-wrong">Three Ways This Goes Wrong</a></li>
+<li><a href="#recommended-approach">Recommended Approach</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<p><a id="prerequisites"></a></p>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Applies to</strong></td>
+<td>Any Dynatrace SaaS environment on Grail</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform owners, security and compliance reviewers, and anyone answering a customer's or an auditor's &quot;can we trust it&quot; questionnaire</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Decision support and routing — the mechanics live in the topic series listed below</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:buckets:read</code> and <code>storage:logs:read</code> for the checks in section 6. For section 7: <code>storage:system:read</code> scoped to <code>event.kind = &quot;AUDIT_EVENT&quot;</code> with <code>storage:buckets:read</code> on the <code>dt_system_events</code> bucket (environment audit events), and the Account Management <code>account-company-info</code> role (account audit log)</td>
+</tr>
+<tr>
+<td><strong>Related topic series</strong></td>
+<td>ORGNZ (buckets, security context, permissions, segments) · IAM (governance, policies, boundaries, audit) · OPLOGS / OPMIG (masking and processing) · MZ2POL (migrating from management zones) · MOBL / WEBRUM (end-user privacy)</td>
+</tr>
+<tr>
+<td><strong>Related FAQs</strong></td>
+<td><strong>FAQ-06</strong> (can we trust Davis AI) · <strong>FAQ-15</strong> (how DPL works — the pattern language OpenPipeline masking uses) · <strong>FAQ-21</strong> (the right alerts to the right people — the same access model, seen from the alerting side)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Validation status.</strong> The three DQL queries in <a href="#accessed">section 6</a> were executed against a live Dynatrace tenant on 09/10/2026 and again on 10/02/2026. Quotations were checked against the pages they cite on 09/10/2026; those in sections 6 and 7 were re-checked on 10/02/2026.</p>
+</blockquote>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p><strong>Trust is four separate controls, and each one only protects what the one before it let through.</strong></p>
+<ul>
+<li><strong>Captured — mask before you restrict.</strong> Mask sensitive data at capture with OneAgent where you can, so the clear-text value never leaves your environment. Mask at ingest in OpenPipeline for data that never passes through OneAgent. Access control applied to data that should never have arrived only decides who sees the leak.</li>
+<li><strong>Stored — residency is an environment decision.</strong> Dynatrace SaaS stores data in AWS, Azure or Google Cloud data centers, encrypted at rest and in transit, with backups kept in the same region, and deletes it when its retention period ends.</li>
+<li><strong>Accessed — scope on <code>dt.security_context</code>.</strong> Use buckets to separate storage, retention and cost; use <code>dt.security_context</code> for who sees which records. Check two things first: how many records carry a security context at all, and whether it ever holds more than one value — on an array-valued record field, <code>=</code> and <code>IN</code> conditions match nothing.</li>
+<li><strong>Proven — audit is where you show it.</strong> Account-level IAM changes are audited and kept for up to ten years; activity inside the environment is recorded as audit events in <code>dt.system.events</code>, kept for one year.</li>
+<li><strong>Segments restrict nothing.</strong> They change what a screen shows. Every query already runs inside the IAM permissions of the person running it.</li>
+</ul>
+<p><a id="the-four-axes-of-data-trust"></a></p>
+<h2>2. The Four Axes of Data Trust</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Rm91ciBBeGVzIG9mIERhdGEgVHJ1c3Q8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMi41Ij5FdmVyeSBxdWVzdGlvbiBhYm91dCB0cnVzdGluZyB0aGUgcGxhdGZvcm0gd2l0aCB5b3VyIGRhdGEgbGFuZHMgb24gb25lIG9mIHRoZXNlIOKAlCBlYWNoIHdpdGggaXRzIG93biBtZWNoYW5pc20gYW5kIGZhaWx1cmUgbW9kZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9Ijc3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEyIj5SZWFkIGxlZnQgdG8gcmlnaHQ6IGVhY2ggYXhpcyBjYW4gb25seSBwcm90ZWN0IHdoYXQgdGhlIHByZXZpb3VzIG9uZSBsZXQgdGhyb3VnaDwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gQ29sdW1uIDEg4oCUIENBUFRVUkVEID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iOTYiIHdpZHRoPSIxODYiIGhlaWdodD0iMzU4IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA3IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjEyMyIgeT0iMTI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE3IiBmb250LXdlaWdodD0iNzAwIj5DQVBUVVJFRDwvdGV4dD4KICA8dGV4dCB4PSIxMjMiIHk9IjE0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2hhdCBzaG91bGQgbmV2ZXIgYXJyaXZlPzwvdGV4dD4KCiAgPHJlY3QgeD0iNDYiIHk9IjE2NCIgd2lkdGg9IjE1NCIgaGVpZ2h0PSI2NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9IjEyMyIgeT0iMTg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5NRUNIQU5JU008L3RleHQ+CiAgPHRleHQgeD0iMTIzIiB5PSIyMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPk1hc2tpbmc8L3RleHQ+CiAgPHRleHQgeD0iMTIzIiB5PSIyMjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmJlZm9yZSBzdG9yYWdlPC90ZXh0PgoKICA8cmVjdCB4PSI0NiIgeT0iMjQ0IiB3aWR0aD0iMTU0IiBoZWlnaHQ9IjkwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTIzIiB5PSIyNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPkNPTlRST0xMRUQgQVQ8L3RleHQ+CiAgPHRleHQgeD0iMTIzIiB5PSIyODEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiPk9uZUFnZW50IOKAlCByZWdleDwvdGV4dD4KICA8dGV4dCB4PSIxMjMiIHk9IjI5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+T1RlbCBDb2xsZWN0b3Ig4oCUIHJlZ2V4PC90ZXh0PgogIDx0ZXh0IHg9IjEyMyIgeT0iMzExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj4ocmVkYWN0aW9uIC8gdHJhbnNmb3JtKTwvdGV4dD4KICA8dGV4dCB4PSIxMjMiIHk9IjMyNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+T3BlblBpcGVsaW5lIOKAlCBEUEw8L3RleHQ+CgogIDxyZWN0IHg9IjQ2IiB5PSIzNDYiIHdpZHRoPSIxNTQiIGhlaWdodD0iOTQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjYiLz4KICA8dGV4dCB4PSIxMjMiIHk9IjM2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+SUYgV1JPTkc8L3RleHQ+CiAgPHRleHQgeD0iMTIzIiB5PSIzODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkFjY2VzcyBjb250cm9sIGNhbjwvdGV4dD4KICA8dGV4dCB4PSIxMjMiIHk9IjQwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+b25seSBkZWNpZGUgd2hvPC90ZXh0PgogIDx0ZXh0IHg9IjEyMyIgeT0iNDE5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5zZWVzIHRoZSBsZWFrLjwvdGV4dD4KCiAgPHRleHQgeD0iMjM3IiB5PSIyODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM0NzU1NjkiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiPuKAujwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gQ29sdW1uIDIg4oCUIFNUT1JFRCA9PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iMjU4IiB5PSI5NiIgd2lkdGg9IjE4NiIgaGVpZ2h0PSIzNTgiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDciIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMzUxIiB5PSIxMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTciIGZvbnQtd2VpZ2h0PSI3MDAiPlNUT1JFRDwvdGV4dD4KICA8dGV4dCB4PSIzNTEiIHk9IjE0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2hlcmUsIGFuZCBmb3IgaG93IGxvbmc/PC90ZXh0PgoKICA8cmVjdCB4PSIyNzQiIHk9IjE2NCIgd2lkdGg9IjE1NCIgaGVpZ2h0PSI2NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjM1MSIgeT0iMTg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5NRUNIQU5JU008L3RleHQ+CiAgPHRleHQgeD0iMzUxIiB5PSIyMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPlJlZ2lvbiArIGJ1Y2tldHM8L3RleHQ+CiAgPHRleHQgeD0iMzUxIiB5PSIyMjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmVuY3J5cHRlZCBhdCByZXN0PC90ZXh0PgoKICA8cmVjdCB4PSIyNzQiIHk9IjI0NCIgd2lkdGg9IjE1NCIgaGVpZ2h0PSI5MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9IjM1MSIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5DT05UUk9MTEVEIEJZPC90ZXh0PgogIDx0ZXh0IHg9IjM1MSIgeT0iMjkzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIj5ob3N0aW5nIHJlZ2lvbjwvdGV4dD4KICA8dGV4dCB4PSIzNTEiIHk9IjMxMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSI+YnVja2V0IHJldGVudGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iMjc0IiB5PSIzNDYiIHdpZHRoPSIxNTQiIGhlaWdodD0iOTQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjYiLz4KICA8dGV4dCB4PSIzNTEiIHk9IjM2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+SUYgV1JPTkc8L3RleHQ+CiAgPHRleHQgeD0iMzUxIiB5PSIzODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPktlcHQgbG9uZ2VyLCBvcjwvdGV4dD4KICA8dGV4dCB4PSIzNTEiIHk9IjQwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZWxzZXdoZXJlLCB0aGFuIHlvdXI8L3RleHQ+CiAgPHRleHQgeD0iMzUxIiB5PSI0MTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm9ibGlnYXRpb25zIGFsbG93LjwvdGV4dD4KCiAgPHRleHQgeD0iNDY1IiB5PSIyODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM0NzU1NjkiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiPuKAujwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gQ29sdW1uIDMg4oCUIEFDQ0VTU0VEID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI0ODYiIHk9Ijk2IiB3aWR0aD0iMTg2IiBoZWlnaHQ9IjM1OCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wNyIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI1NzkiIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNyIgZm9udC13ZWlnaHQ9IjcwMCI+QUNDRVNTRUQ8L3RleHQ+CiAgPHRleHQgeD0iNTc5IiB5PSIxNDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPldobyBzZWVzIHdoaWNoIHJlY29yZHM/PC90ZXh0PgoKICA8cmVjdCB4PSI1MDIiIHk9IjE2NCIgd2lkdGg9IjE1NCIgaGVpZ2h0PSI2NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjU3OSIgeT0iMTg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5NRUNIQU5JU008L3RleHQ+CiAgPHRleHQgeD0iNTc5IiB5PSIyMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPklBTSBwb2xpY3kgKyBib3VuZGFyeTwvdGV4dD4KICA8dGV4dCB4PSI1NzkiIHk9IjIyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+YSBXSEVSRSBjbGF1c2Ugb3IgYm91bmRhcnk8L3RleHQ+CgogIDxyZWN0IHg9IjUwMiIgeT0iMjQ0IiB3aWR0aD0iMTU0IiBoZWlnaHQ9IjkwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTc5IiB5PSIyNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPlNDT1BFRCBCWTwvdGV4dD4KICA8dGV4dCB4PSI1NzkiIHk9IjI5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+ZHQuc2VjdXJpdHlfY29udGV4dDwvdGV4dD4KICA8dGV4dCB4PSI1NzkiIHk9IjMxMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+KyBidWNrZXQgbmFtZTwvdGV4dD4KCiAgPHJlY3QgeD0iNTAyIiB5PSIzNDYiIHdpZHRoPSIxNTQiIGhlaWdodD0iOTQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjYiLz4KICA8dGV4dCB4PSI1NzkiIHk9IjM2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+SUYgV1JPTkc8L3RleHQ+CiAgPHRleHQgeD0iNTc5IiB5PSIzODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNpbGVudC4gVGhlIHdyb25nPC90ZXh0PgogIDx0ZXh0IHg9IjU3OSIgeT0iNDAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5wZW9wbGUgc2VlIGl0IOKAlCBvcjwvdGV4dD4KICA8dGV4dCB4PSI1NzkiIHk9IjQxOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bm8gb25lIGRvZXMuPC90ZXh0PgoKICA8dGV4dCB4PSI2OTMiIHk9IjI4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzQ3NTU2OSIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCI+4oC6PC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBDb2x1bW4gNCDigJQgUFJPVkVOID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI3MTQiIHk9Ijk2IiB3aWR0aD0iMTg2IiBoZWlnaHQ9IjM1OCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wNyIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI4MDciIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNyIgZm9udC13ZWlnaHQ9IjcwMCI+UFJPVkVOPC90ZXh0PgogIDx0ZXh0IHg9IjgwNyIgeT0iMTQ3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5DYW4geW91IHNob3cgaXQgaGVsZD88L3RleHQ+CgogIDxyZWN0IHg9IjczMCIgeT0iMTY0IiB3aWR0aD0iMTU0IiBoZWlnaHQ9IjY2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODA3IiB5PSIxODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPk1FQ0hBTklTTTwvdGV4dD4KICA8dGV4dCB4PSI4MDciIHk9IjIwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+QXVkaXQgZXZlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjgwNyIgeT0iMjIxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5kdC5zeXN0ZW0uZXZlbnRzPC90ZXh0PgoKICA8cmVjdCB4PSI3MzAiIHk9IjI0NCIgd2lkdGg9IjE1NCIgaGVpZ2h0PSI5MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwNyIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5SRUNPUkRFRCBBUzwvdGV4dD4KICA8dGV4dCB4PSI4MDciIHk9IjI5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMSI+ZXZlbnQua2luZCA9PTwvdGV4dD4KICA8dGV4dCB4PSI4MDciIHk9IjMxMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMSI+IkFVRElUX0VWRU5UIjwvdGV4dD4KCiAgPHJlY3QgeD0iNzMwIiB5PSIzNDYiIHdpZHRoPSIxNTQiIGhlaWdodD0iOTQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjYiLz4KICA8dGV4dCB4PSI4MDciIHk9IjM2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+SUYgV1JPTkc8L3RleHQ+CiAgPHRleHQgeD0iODA3IiB5PSIzODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkNvbnRyb2xzIHRoYXQgaGVsZCw8L3RleHQ+CiAgPHRleHQgeD0iODA3IiB5PSI0MDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmJ1dCB0aGF0IHlvdSBjYW5ub3Q8L3RleHQ+CiAgPHRleHQgeD0iODA3IiB5PSI0MTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnNob3cgYW4gYXVkaXRvci48L3RleHQ+CgogIDwhLS0gRm9vdGVyIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5TZWdtZW50cyBjaGFuZ2Ugd2hhdCBhIHNjcmVlbiBzaG93cyBvbiBldmVyeSBheGlzIOKAlCB0aGV5IGdyYW50IGFuZCByZXN0cmljdCBub3RoaW5nPC90ZXh0Pgo8L3N2Zz4K" alt="Four axes of data trust and the control each one uses" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Axis | Mechanism | Controlled by | Failure mode |
+|------|-----------|---------------|--------------|
+| Captured | Masking before storage | OneAgent (regex), OTel Collector redaction/transform (regex), OpenPipeline (DPL) | Access control can only decide who sees the leak |
+| Stored | Region and buckets, encrypted at rest | Hosting region, bucket retention | Kept longer, or elsewhere, than obligations allow |
+| Accessed | IAM policy and boundary — a WHERE clause or boundary | dt.security_context, bucket name | Silent: the wrong people see it, or no one does |
+| Proven | Audit events | event.kind == "AUDIT_EVENT" in dt.system.events | Controls that held, but cannot be demonstrated |
+For environments where SVG doesn't render
+-->
+<p>Read the axes left to right as a dependency chain rather than a menu. Each one can only protect what the previous one let through:</p>
+<ul>
+<li><strong>Captured before Stored.</strong> Whatever arrives is stored. Retention and region decide how long and where — not whether it should be there at all.</li>
+<li><strong>Stored before Accessed.</strong> Access control governs data that exists. It cannot remove a card number from a log line; it can only choose who may read the line.</li>
+<li><strong>Accessed before Proven.</strong> An audit trail records what the controls did. It cannot make a missing control exist after the fact.</li>
+</ul>
+<p>The pair most often conflated is <strong>Captured</strong> and <strong>Accessed</strong>, because both sound like &quot;protecting sensitive data&quot;:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Captured</th>
+<th>Accessed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Question</td>
+<td>Should this ever be stored?</td>
+<td>Who may read what is stored?</td>
+</tr>
+<tr>
+<td>Mechanism</td>
+<td>Masking rule</td>
+<td>IAM policy and boundary</td>
+</tr>
+<tr>
+<td>Acts on</td>
+<td>The value inside a record</td>
+<td>Whole records</td>
+</tr>
+<tr>
+<td>Fails as</td>
+<td>A sensitive value stored in clear text</td>
+<td>The right record, read by the wrong person</td>
+</tr>
+<tr>
+<td>Takes effect</td>
+<td>On data captured or ingested after the rule exists</td>
+<td>On the next query</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Derived:</strong> the dependency-chain reading and the Captured-versus-Accessed contrast combine the masking methods in section 4 with the permission model in section 6.</sub></p>
+</blockquote>
+<p><a id="where-each-element-is-documented"></a></p>
+<h2>3. Where Each Element Is Documented</h2>
+<p>This entry is a decision layer. The mechanics live in the topic series, and are better there:</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Read this first</th>
+<th>Also see</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Masking at capture (OneAgent)</td>
+<td>OPLOGS-08</td>
+<td>FAQ-15 (pattern languages)</td>
+</tr>
+<tr>
+<td>Masking at ingest (OpenPipeline)</td>
+<td>OPMIG-08</td>
+<td>OPLOGS-03 (processing)</td>
+</tr>
+<tr>
+<td>End-user privacy in RUM and Session Replay</td>
+<td>MOBL-09</td>
+<td>WEBRUM-07</td>
+</tr>
+<tr>
+<td>Buckets and retention</td>
+<td>ORGNZ-02, ORGNZ-03</td>
+<td>ORGNZ-05 (bucket-level access)</td>
+</tr>
+<tr>
+<td>The Grail permission model</td>
+<td>ORGNZ-04</td>
+<td>ORGNZ-07 (combining mechanisms)</td>
+</tr>
+<tr>
+<td>Security context</td>
+<td>ORGNZ-06</td>
+<td>IAM-05 (boundary design)</td>
+</tr>
+<tr>
+<td>Policy authoring and boundaries</td>
+<td>IAM-04, IAM-05</td>
+<td>IAM-10 (templated policies)</td>
+</tr>
+<tr>
+<td>Governance model and ownership</td>
+<td>IAM-01</td>
+<td>IAM-03 (groups), IAM-06 (user lifecycle)</td>
+</tr>
+<tr>
+<td>Audit and compliance reporting</td>
+<td>IAM-07</td>
+<td>IAM-09 (troubleshooting access)</td>
+</tr>
+<tr>
+<td>Segments — what they scope and what they do not</td>
+<td>ORGNZ-08</td>
+<td>ORGNZ-10</td>
+</tr>
+<tr>
+<td>Migrating from management zones</td>
+<td>MZ2POL-02, MZ2POL-04</td>
+<td>MZ2POL-05 (segments)</td>
+</tr>
+<tr>
+<td>Trusting the AI features</td>
+<td>FAQ-06</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>If the question in front of you sits in one row, go to that series. Come back here when it spans several.</p>
+<p><a id="captured"></a></p>
+<h2>4. Captured — Mask Before You Restrict</h2>
+<p>Dynatrace offers two places to mask, and the difference between them is a trust decision rather than a technical preference. From the masking methods page:</p>
+<ul>
+<li><strong>Masking at capture</strong> — <em>&quot;This approach allows masking sensitive data in your environment, hosts, or processes before it's transferred to the Dynatrace SaaS environment.&quot;</em></li>
+<li><strong>Masking at ingest</strong> — <em>&quot;This approach allows masking sensitive data once it arrives in the Dynatrace SaaS environment, and before it's stored in Grail.&quot;</em> Its advantage, in the same page's words: <em>&quot;The key advantage of this method is that it works across log ingest channels.&quot;</em></li>
+</ul>
+<p>The trade-off is stated plainly on the OneAgent masking page: <em>&quot;if you choose to mask your data during Log processing, your data will leave your environment as log processing occurs on the Dynatrace side.&quot;</em> Capture-time masking keeps the clear-text value inside your infrastructure. Ingest-time masking reaches data OneAgent never touched.</p>
+<p>That second point is the one that catches teams out. A OneAgent rule applies only to what OneAgent captures: <em>&quot;If you import your data to Dynatrace via generic ingest, you need to mask the sensitive data on the source level, before ingestion.&quot;</em> Logs arriving over the API, from an OpenTelemetry Collector, or through a log shipper never meet the OneAgent rule. For those, the choice is between masking at the source and masking in OpenPipeline.</p>
+<p><strong>For data that passes through an OpenTelemetry Collector, &quot;the source&quot; has a concrete form.</strong> The Collector's <code>redaction</code> and <code>transform</code> processors mask values before they leave your network. Dynatrace documents both with sample configurations for card numbers and email addresses, and both are included in the Dynatrace OTel Collector. <strong>OTEL-02 § 4 (Masking Sensitive Data)</strong> has the configuration. Their patterns are regular expressions, like OneAgent's, but they are a separate rule set: a pattern added to the OneAgent rule is not added to the Collector.</p>
+<p><strong>The two layers use different pattern languages.</strong> A OneAgent rule's search expression is <em>&quot;A regular expression to match the string that you want to mask.&quot;</em> OpenPipeline masking runs in the processing stage — the stage where, per the OpenPipeline docs, <em>&quot;Fields are edited, and sensitive data is masked.&quot;</em> Its pattern functions take DPL, not regular expressions. A rule written once is therefore not a rule applied everywhere; <strong>FAQ-15</strong> covers the translation, including the places where regular-expression habits give the wrong answer in DPL.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Without a masking plan</th>
+<th>With one</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Where clear text exists</td>
+<td>Wherever the data first lands</td>
+<td>Only inside your environment, for captured data</td>
+<td>Fewer places to defend</td>
+</tr>
+<tr>
+<td>Non-OneAgent channels</td>
+<td>Masked by nothing</td>
+<td>Masked at the source (for Collector data, its <code>redaction</code> / <code>transform</code> processors) or in OpenPipeline</td>
+<td>Closes the silent gap</td>
+</tr>
+<tr>
+<td>Rule maintenance</td>
+<td>One rule assumed to cover everything</td>
+<td>One rule per layer, in that layer's language</td>
+<td>Coverage you can actually state</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-use-cases/methods-of-masking-sensitive-data">Methods of masking sensitive data (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-sensitive-data-masking">Sensitive data masking in OneAgent (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/redact">Mask sensitive data with the OTel Collector (DT docs)</a> — <em>&quot;One of the following Collector distributions with the transform and/or redaction processors:&quot;</em>, with the Dynatrace OTel Collector listed</sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-otel-collector/blob/v0.59.0/manifest.yaml">Dynatrace OTel Collector manifest (Dynatrace GitHub)</a> — <code>redactionprocessor</code> and <code>transformprocessor</code> both listed in v0.59.0</sub></li>
+<li><sub><strong>Derived:</strong> that OpenPipeline's pattern functions take DPL rather than regular expressions rests on FAQ-15's reading of those functions; that the Collector processors take regular expressions rests on the sources in FAQ-15 § 3.5.</sub></li>
+</ul>
+</blockquote>
+<p><a id="stored"></a></p>
+<h2>5. Stored — Region, Encryption, Retention</h2>
+<p><strong>Where it lives.</strong> <em>&quot;Data is stored in Amazon Web Services (AWS), Microsoft Azure, or Google Cloud data centers.&quot;</em> The region belongs to the environment, so residency is decided when the environment is provisioned — it is not a setting you change on data that already exists. If you carry residency obligations, they are an input to environment design, alongside the account and tenant layout in <strong>IAM-01</strong>.</p>
+<p><strong>How it is protected.</strong> Encryption covers both states:</p>
+<ul>
+<li>At rest: <em>&quot;All Dynatrace SaaS monitoring data is encrypted at rest using AES-256.&quot;</em></li>
+<li>In transit: <em>&quot;All data exchanged between OneAgent, ActiveGate, and Dynatrace Cluster is encrypted in transit.&quot;</em></li>
+</ul>
+<p>Backups stay in the region. For AWS: <em>&quot;Every 24 hours, Dynatrace SaaS on AWS performs data backups to a different AWS account in the same AWS region.&quot;</em> That is the AWS wording — check the page for the provider your environment runs on. As of 09/10/2026 the page makes no broader statement about data leaving a region; if your obligations turn on that question, take it to Dynatrace directly rather than inferring an answer.</p>
+<p><strong>What it keeps, and for how long.</strong> Dynatrace <em>&quot;retains only the data that you elect to share and stores it in your Dynatrace Cluster&quot;</em> and <em>&quot;automatically deletes data that is older than the configured retention periods.&quot;</em> Retention is configured on Grail buckets, which makes bucket design the retention design — <strong>ORGNZ-02</strong> and <strong>ORGNZ-03</strong> cover it, including when a separate bucket is the right answer for a compliance-driven retention period.</p>
+<p><strong>Dynatrace's own certifications</strong> are published in its Trust Center: <em>&quot;Learn more about the certifications and compliance frameworks Dynatrace supports in our Trust Portal&quot;</em> — the list includes SOC 2 Type II and ISO 27001:2022. Those describe Dynatrace as a vendor. They do not make your configuration compliant; the other three axes do that.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls">Data security controls (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-protection">Data protection at Dynatrace (DT docs)</a></sub></li>
+<li><sub><a href="https://www.dynatrace.com/company/trust-center/">Trust Center (Dynatrace)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security">Data privacy and security (DT docs)</a></sub></li>
+<li><sub><strong>Derived:</strong> that residency is decided at provisioning follows from data being stored in the environment's cloud region, with backups kept in the same region</sub></li>
+</ul>
+</blockquote>
+<p><a id="accessed"></a></p>
+<h2>6. Accessed — Buckets, Security Context, Boundaries</h2>
+<p><strong>Two mechanisms, two jobs.</strong> Buckets separate storage — retention, cost, and hard compliance boundaries. <code>dt.security_context</code> scopes access to individual records, and is the field IAM policies and boundaries filter on. Default to security context for general access control, and reach for a separate bucket only when the storage itself must be separate; <strong>ORGNZ-05</strong> sets out when that is the case.</p>
+<p><strong>Setting it.</strong> In OpenPipeline, <em>&quot;The value of this attribute can be a literal value, for example <code>TeamA</code>, or a value copied from another field present on the record.&quot;</em> OneAgent, Kubernetes metadata enrichment and host tags can set it at the source instead — <strong>ORGNZ-06</strong> walks through each path.</p>
+<p><strong>Writing the condition.</strong> A policy scopes on it in a <code>WHERE</code> clause or a boundary:</p>
+<pre><code class="language-text">ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;TeamA&quot;;
+</code></pre>
+<p>The operators available for <code>storage:dt.security_context</code> depend on the permission. On the record permissions (<code>storage:logs:read</code>, <code>storage:spans:read</code> and the other record tables) and on <code>storage:smartscape:read</code> they are <code>=</code>, <code>IN</code>, <code>startsWith</code> and <code>MATCH</code>. On <code>storage:entities:read</code> — classic entities — they are <code>=</code>, <code>IN</code> and <code>startsWith</code> only. The syntax reference is explicit that operator support varies: <em>&quot;Not every operator applies to every service attribute.&quot;</em> Check the policy reference for the attribute you are scoping before assuming an operator works.</p>
+<h3>Two checks before you write the first policy</h3>
+<p><strong>1. How many records carry a security context at all?</strong> A record without the field cannot be matched by a condition on it. It stays visible to anyone whose access is not scoped by security context, and invisible to everyone whose access is. Measure the gap:</p>
+<pre><code class="language-dql">// Share of log records carrying a security context (last hour).
+// Records without it cannot be matched by any security-context policy or boundary.
+fetch logs, from:-1h
+| summarize total = count(), with_sc = countIf(isNotNull(dt.security_context))
+| fieldsAdd coverage_pct = round(100.0 * with_sc / total, decimals: 1)
+</code></pre>
+<p>On the validation tenant this returned <strong>73.7%</strong> on 09/10/2026 and <strong>65.7%</strong> on 10/02/2026. The figure moves with the ingest mix; on both dates between a quarter and a third of log records carried no security context, so no security-context policy could reach them. The fix is enrichment, not policy: <strong>ORGNZ-06</strong> covers setting the field at the source and in OpenPipeline.</p>
+<p><strong>2. Does it ever hold more than one value?</strong> On record permissions, this decides which operator you may use. From the Grail permissions reference: <em>&quot;Using <code>=</code>, <code>STARTSWITH</code> or <code>IN</code> when the field holds an array will always return <code>false</code>.&quot;</em> And: <em>&quot;If you expect your record filters might contain an array, use the <code>MATCH</code> operator in your IAM statements.&quot;</em> Nothing errors when you get this wrong — the policy is valid, it evaluates, and it matches nothing. Check before choosing:</p>
+<pre><code class="language-dql">// Does dt.security_context ever hold an array? Any &quot;array&quot; row means
+// = and IN conditions silently miss those records — use MATCH instead.
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| fieldsAdd sc_type = type(dt.security_context)
+| summarize records = count(), by:{sc_type}
+</code></pre>
+<p>On the validation tenant every value was a <code>string</code> — about half a million log records in an hour and a similar number of spans over two hours on 09/10/2026, and about 667,000 log records in an hour on 10/02/2026 — so <code>=</code> and <code>IN</code> were safe there for logs. That is a property of that tenant's enrichment, not of the platform: an enrichment rule that copies an array-valued field into <code>dt.security_context</code> changes the answer for every record it touches.</p>
+<p>A zero-array result is only worth trusting if the check can see an array at all. This costs nothing to run, and proves it can:</p>
+<pre><code class="language-dql">// Positive control: prove type() reports &quot;array&quot; before trusting a zero-array result.
+// Scans no data.
+data record(sc = array(&quot;team-a&quot;, &quot;team-b&quot;)), record(sc = &quot;team-a&quot;)
+| fieldsAdd sc_type = type(sc)
+| fields sc, sc_type
+</code></pre>
+<p>It returns <code>array</code> for the first record and <code>string</code> for the second. If it ever returns <code>string</code> for both, the type check above is telling you nothing.</p>
+<p><strong>The rule depends on the permission.</strong> The array rule above covers record tables such as logs and spans. Classic entities follow a different rule. The security-context use-case page describes <code>storage:entities:read</code>, and says the field <em>&quot;Can be a multi-value field and startsWith will evaluate for any matching value.&quot;</em> The IAM policy reference lists only <code>=</code>, <code>IN</code> and <code>startsWith</code> for <code>storage:dt.security_context</code> under <code>storage:entities:read</code>, so <code>MATCH</code> is not available there. Smartscape nodes differ again: <code>storage:smartscape:read</code> does accept <code>MATCH</code>, and on the validation tenant every host node carried <code>dt.security_context</code> as an <code>array</code> (7 of 7, 10/02/2026).</p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th><code>dt.security_context</code> operators</th>
+<th>When the value is an array</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Record tables (<code>storage:logs:read</code>, <code>storage:spans:read</code>, …)</td>
+<td><code>=</code>, <code>IN</code>, <code>startsWith</code>, <code>MATCH</code></td>
+<td>Use <code>MATCH</code> — <code>=</code>, <code>STARTSWITH</code> and <code>IN</code> return <code>false</code></td>
+</tr>
+<tr>
+<td><code>storage:smartscape:read</code></td>
+<td><code>=</code>, <code>IN</code>, <code>startsWith</code>, <code>MATCH</code></td>
+<td>Use <code>MATCH</code></td>
+</tr>
+<tr>
+<td><code>storage:entities:read</code> (classic entities)</td>
+<td><code>=</code>, <code>IN</code>, <code>startsWith</code></td>
+<td><code>MATCH</code> is not available; <code>startsWith</code> evaluates each value</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Entity permissions do not cascade to data.</strong> This is the assumption that follows people out of management zones. Verbatim: <em>&quot;Unlike management zones, an IAM policy that is set up to filter entities (allow <code>storage:entities:read</code>) will not filter related metrics, logs, or traces.&quot;</em> Scoping which hosts a team can see does not scope those hosts' logs — each data type needs its own permission. <strong>MZ2POL-02</strong> covers the model change in full.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/advanced-permission-setup">Configure advanced permissions with security context (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax">IAM policy statement syntax and examples (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context">Grant access to entities with security context (DT docs)</a></sub></li>
+<li><sub><strong>Derived:</strong> using <code>MATCH</code> on Smartscape nodes combines the array-typed node values above with <code>storage:smartscape:read</code> accepting <code>MATCH</code> in the IAM policy reference</sub></li>
+<li><sub><strong>Derived:</strong> that a record without a security context is invisible to security-context-scoped access and visible to unscoped access follows from a condition on an absent field never matching</sub></li>
+</ul>
+</blockquote>
+<p><a id="proven"></a></p>
+<h2>7. Proven — Audit and Governance</h2>
+<p>Controls that held are only half of trust. The other half is being able to show it.</p>
+<p><strong>Changes to access are audited at the account level.</strong> <em>&quot;Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings&quot;</em> — group permissions and memberships, policies and boundaries among them — and <em>&quot;Audit log data is stored for up to 10 years (3650 days).&quot;</em> It is where to look first for who changed who can see what, and when — but not a complete record: <em>&quot;The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded. Don't treat it as a complete record of account activity.&quot;</em></p>
+<p><strong>Activity inside the environment is a separate record.</strong> <em>&quot;In Latest Dynatrace, audit events are stored in Grail as dt.system.events, queryable with Dynatrace Query Language (DQL)&quot;</em>. Every audit query filters to <code>event.kind == &quot;AUDIT_EVENT&quot;</code>, because the same object also holds non-audit system events — and an audit query against <code>logs</code> finds nothing. <em>&quot;Audit events are retained for one year in Grail, compared to 30 days in the classic API.&quot;</em> The two records do not overlap: <em>&quot;The Account Management audit log (IAM changes, SSO configuration, budget changes) stays a separate system in both models. Neither v2/auditlogs nor dt.system.events captures it.&quot;</em> Reading environment audit events needs <code>storage:system:read</code> scoped to <code>AUDIT_EVENT</code> plus <code>storage:buckets:read</code> on <code>dt_system_events</code>; reading the account audit log needs the <code>account-company-info</code> role. <strong>IAM-07</strong> has the queries, and the SOC 2, SOX and HIPAA report patterns built on them; <strong>IAM-09</strong> covers turning a failed-access record into a diagnosis.</p>
+<p><strong>Governance is who owns each control.</strong> An audit trail shows what happened; it does not say whose job it was to prevent it. <strong>IAM-01</strong> sets out the governance model — centralized or federated ownership, and who administers which layer — and <strong>IAM-06</strong> covers the user lifecycle, where most access drift starts.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/account-management/audit-logs">Account Management audit logs (DT docs)</a> — <em>&quot;To view the Audit logs page, you need the account-company-info role.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-audit-logs-classic">Upgrade from classic audit logs (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="three-ways-this-goes-wrong"></a></p>
+<h2>8. Three Ways This Goes Wrong</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+VGhyZWUgV2F5cyBEYXRhIFRydXN0IEZhaWxzIFNpbGVudGx5PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+RWFjaCBwYXNzZXMgZXZlcnkgdmFsaWRhdG9yIOKAlCB0aGUgcG9saWN5IGlzIHZhbGlkLCB0aGUgc2VnbWVudCB3b3JrcywgdGhlIG1hc2sgcnVuczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9Ijc3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEyIj5Pbmx5IGEgdGVzdCBhZ2FpbnN0IHJlYWwgcmVjb3JkcyBzaG93cyB0aGUgZ2FwPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSAxIOKAlCBTZWdtZW50cyBhcyBhY2Nlc3MgY29udHJvbCA9PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iMzAiIHk9Ijk2IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjM1OCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wNyIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxNzAiIHk9IjEyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+MSDCtyBTZWdtZW50cyBhcyBhY2Nlc3MgY29udHJvbDwvdGV4dD4KCiAgPHJlY3QgeD0iNDYiIHk9IjE0MiIgd2lkdGg9IjI0OCIgaGVpZ2h0PSI3MiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjE3MCIgeT0iMTYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5MT09LUyBMSUtFPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMTg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5BIHNlZ21lbnQgaGlkZXMgdGhlPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMjAxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5vdGhlciB0ZWFtcycgZGF0YS48L3RleHQ+CgogIDxyZWN0IHg9IjQ2IiB5PSIyMjYiIHdpZHRoPSIyNDgiIGhlaWdodD0iMTEyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTcwIiB5PSIyNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPldIWSBJVCdTIFNJTEVOVDwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjI2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RXZlcnkgcXVlcnkgYWxyZWFkeSByZXNwZWN0czwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjI4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+SUFNIHBlcm1pc3Npb25zLiBBIHNlZ21lbnQ8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIzMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmZpbHRlcnMgdGhlIHZpZXcgYW5kIGhvbGRzPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMzE5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ubyBkYXRhIG9mIGl0cyBvd24uPC90ZXh0PgoKICA8cmVjdCB4PSI0NiIgeT0iMzUwIiB3aWR0aD0iMjQ4IiBoZWlnaHQ9Ijg4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzNEQzOTkiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTcwIiB5PSIzNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPkZJWDwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjM5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E3RjNEMCIgZm9udC1zaXplPSIxMiI+U2NvcGUgYWNjZXNzIGluIElBTTwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjQxMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E3RjNEMCIgZm9udC1zaXplPSIxMiI+d2l0aCBkdC5zZWN1cml0eV9jb250ZXh0LjwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gMiDigJQgPSAvIElOIG9uIGFuIGFycmF5ID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIzMjUiIHk9Ijk2IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjM1OCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wNyIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjEyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+MiDCtyA9IG9yIElOIG9uIGFuIGFycmF5PC90ZXh0PgoKICA8cmVjdCB4PSIzNDEiIHk9IjE0MiIgd2lkdGg9IjI0OCIgaGVpZ2h0PSI3MiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5MT09LUyBMSUtFPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5BIHZhbGlkIGJvdW5kYXJ5OjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjIwMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+c2VjdXJpdHlfY29udGV4dCBJTiAo4oCmKTwvdGV4dD4KCiAgPHJlY3QgeD0iMzQxIiB5PSIyMjYiIHdpZHRoPSIyNDgiIGhlaWdodD0iMTEyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIyNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPldIWSBJVCdTIFNJTEVOVDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2hlbiBhIHJlY29yZCBmaWVsZCBpcyBhbiBhcnJheSw8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPj0sIFNUQVJUU1dJVEggYW5kIElOIGFsd2F5czwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjMwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cmV0dXJuIGZhbHNlLiBUaGUgcG9saWN5IHN0aWxsPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzE5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ldmFsdWF0ZXMuIE5vdGhpbmcgZXJyb3JzLjwvdGV4dD4KCiAgPHJlY3QgeD0iMzQxIiB5PSIzNTAiIHdpZHRoPSIyNDgiIGhlaWdodD0iODgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzM0RDM5OSIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+RklYPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzkxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTdGM0QwIiBmb250LXNpemU9IjEyIj5SZWNvcmRzLCBTbWFydHNjYXBlOiBNQVRDSC48L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0MDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBN0YzRDAiIGZvbnQtc2l6ZT0iMTIiPkNsYXNzaWMgZW50aXRpZXM6IHN0YXJ0c1dpdGguPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTdGM0QwIiBmb250LXNpemU9IjEyIj5DaGVjayB0eXBlKCkgZmlyc3QuPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSAzIOKAlCBPbmUgbWFza2luZyBsYXllciBvbmx5ID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI2MjAiIHk9Ijk2IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjM1OCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wNyIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NjAiIHk9IjEyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+MyDCtyBPbmUgbWFza2luZyBsYXllciBvbmx5PC90ZXh0PgoKICA8cmVjdCB4PSI2MzYiIHk9IjE0MiIgd2lkdGg9IjI0OCIgaGVpZ2h0PSI3MiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc2MCIgeT0iMTYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5MT09LUyBMSUtFPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMTg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5QSUkgaXMgbWFza2VkIGF0IGNhcHR1cmUsPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMjAxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5zbyB0aGUgam9iIGxvb2tzIGRvbmUuPC90ZXh0PgoKICA8cmVjdCB4PSI2MzYiIHk9IjIyNiIgd2lkdGg9IjI0OCIgaGVpZ2h0PSIxMTIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NjAiIHk9IjI0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+V0hZIElUJ1MgU0lMRU5UPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMjY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5PbmVBZ2VudCBhbmQgdGhlIENvbGxlY3RvciBtYXNrPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMjg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5pbiByZWdleDsgT3BlblBpcGVsaW5lIGluIERQTC48L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIzMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRhdGEgaW5nZXN0ZWQgYW5vdGhlciB3YXk8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIzMTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm5ldmVyIG1lZXRzIHRoZSBPbmVBZ2VudCBydWxlLjwvdGV4dD4KCiAgPHJlY3QgeD0iNjM2IiB5PSIzNTAiIHdpZHRoPSIyNDgiIGhlaWdodD0iODgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzM0RDM5OSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NjAiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+RklYPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMzkzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTdGM0QwIiBmb250LXNpemU9IjEyIj5EZWNpZGUsIHBlciBzb3VyY2UsPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iNDExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTdGM0QwIiBmb250LXNpemU9IjEyIj53aGljaCBsYXllciBtYXNrcyBpdC48L3RleHQ+CgogIDwhLS0gRm9vdGVyIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5TZWdtZW50cyBzY29wZSB0aGUgc2NyZWVuIMK3IE1BVENIIGNvdmVycyBhbnkgdmFsdWUgb24gcmVjb3JkcyDCtyBtYXNraW5nIHJ1bnMgd2hlcmUgdGhlIGRhdGEgYWN0dWFsbHkgZW50ZXJzPC90ZXh0Pgo8L3N2Zz4K" alt="Three ways data trust fails silently" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Failure | Looks like | Why it is silent | Fix |
+|---------|------------|------------------|-----|
+| Segments as access control | A segment hides other teams' data | Every query already respects IAM permissions; a segment filters the view and holds no data of its own | Scope access in IAM on dt.security_context |
+| = or IN on an array | A valid boundary using security_context IN (...) | When a record field is an array, =, STARTSWITH and IN always return false; nothing errors | Records and Smartscape: MATCH. Classic entities: startsWith (MATCH is not available). Check with type() first |
+| One masking layer only | PII masked at capture, so the job looks done | OneAgent and the Collector mask with regular expressions, OpenPipeline with DPL; data ingested another way never meets the OneAgent rule | Decide, per source, which layer masks it |
+For environments where SVG doesn't render
+-->
+<p>All three pass every validator. The policy is valid, the segment works, the mask runs. Only a test against real records shows the gap.</p>
+<p><strong>1. Segments used as access control.</strong> A segment that shows a team only its own services looks like a permission. It is not one. From the segments documentation: <em>&quot;All queries, with or without segments, always respect data access permissions enforced by IAM policies.&quot;</em> A segment narrows a view inside the access a person already has; it grants nothing and restricts nothing. Even a segment's own visibility setting is not a control: <em>&quot;Regardless of configured visibility, any segment can be accessed with storage:filter-segments:read permission.&quot;</em> Scope access in IAM, on <code>dt.security_context</code> — <strong>ORGNZ-08</strong> covers what segments are for.</p>
+<p><strong>2. <code>=</code> or <code>IN</code> on an array-valued security context.</strong> The boundary is valid and the policy evaluates — but, per the Grail permissions reference, <em>&quot;Using <code>=</code>, <code>STARTSWITH</code> or <code>IN</code> when the field holds an array will always return <code>false</code>.&quot;</em> The result is a team that cannot see its own data, with no error anywhere to say why. Run the type check in section 6, and use <code>MATCH</code> on record and Smartscape permissions wherever an array is possible. On <code>storage:entities:read</code>, <code>MATCH</code> is not available; <code>startsWith</code> already evaluates each value there.</p>
+<p><strong>3. One masking layer treated as complete.</strong> A OneAgent masking rule covers what OneAgent captures, and nothing else: <em>&quot;If you import your data to Dynatrace via generic ingest, you need to mask the sensitive data on the source level, before ingestion.&quot;</em> Data from the API, an OpenTelemetry Collector or a log shipper reaches Grail without meeting that rule. Inventory your ingest channels, and decide for each one which layer masks it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility">Visibility of segments (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-sensitive-data-masking">Sensitive data masking in OneAgent (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="recommended-approach"></a></p>
+<h2>9. Recommended Approach</h2>
+<p>Work the axes in order. Each step assumes the one before it is done.</p>
+<ol>
+<li><strong>Decide what should never arrive.</strong> List the sensitive values in your data — card numbers, credentials, personal data — before any access design. Mask at capture wherever OneAgent collects the data, so clear text never leaves your environment.</li>
+<li><strong>Inventory your ingest channels.</strong> For every channel OneAgent does not collect — API, OpenTelemetry, log shippers — decide whether to mask at the source or in OpenPipeline, and write that rule in that layer's language. For OpenTelemetry data, the source is the Collector's <code>redaction</code> and <code>transform</code> processors (OTEL-02 § 4).</li>
+<li><strong>Settle residency before you provision.</strong> The region belongs to the environment. If residency is an obligation, it is an input to environment design, not a later setting.</li>
+<li><strong>Design buckets for storage, not for access.</strong> Use separate buckets for retention, cost, and hard compliance boundaries. Default to <code>dt.security_context</code> for who sees what.</li>
+<li><strong>Measure security-context coverage.</strong> Run the coverage check in section 6. Every record without the field sits outside every security-context policy — fix it with enrichment.</li>
+<li><strong>Check for arrays, then choose the operator.</strong> On record and Smartscape permissions, use <code>MATCH</code> if <code>dt.security_context</code> can ever hold more than one value, or if you are unsure. On <code>storage:entities:read</code>, <code>MATCH</code> is not available: use <code>=</code>, <code>IN</code> or <code>startsWith</code>, which evaluates each value of a multi-value context.</li>
+<li><strong>Scope entities and data separately.</strong> An entity permission does not scope that entity's logs, metrics or traces.</li>
+<li><strong>Keep segments out of the access design.</strong> Use them to narrow views, never to restrict them.</li>
+<li><strong>Prove it.</strong> Review the account audit log for access changes and <code>AUDIT_EVENT</code> records (kept for one year) for activity, and give each control a named owner.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Derived:</strong> the ordering follows the dependency chain in section 2; each step is sourced in the section it summarizes.</sub></p>
+</blockquote>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>10. Summary and Next Steps</h2>
+<p>&quot;Can we trust Dynatrace with our data?&quot; is four questions: what arrives, where it lives, who sees it, and whether you can prove it. Each has its own control, and each only protects what the one before it let through. The failures that matter are the silent ones — segments standing in for access control, a condition that matches nothing on an array, and a masking rule that never meets the data it was written for.</p>
+<p><strong>Next steps:</strong></p>
+<ul>
+<li><strong>ORGNZ-06</strong> — set up <code>dt.security_context</code>, then run the two checks in section 6 against your own tenant.</li>
+<li><strong>IAM-05</strong> — design boundaries on it, using <code>MATCH</code> on record and Smartscape permissions wherever an array is possible (classic-entity permissions do not accept <code>MATCH</code>).</li>
+<li><strong>OPLOGS-08</strong> and <strong>OPMIG-08</strong> — build the masking plan for each ingest channel.</li>
+<li><strong>IAM-07</strong> — put the audit queries on a schedule.</li>
+<li><strong>FAQ-06</strong> — the same questions, asked of the AI features.</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

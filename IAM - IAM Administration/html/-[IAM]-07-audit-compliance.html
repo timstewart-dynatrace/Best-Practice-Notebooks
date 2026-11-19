@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IAM-07: Audit Logging and Compliance</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">IAM — IAM Administration</a><span class="sep">/</span><span aria-current="page">IAM-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>IAM-07: Audit Logging and Compliance</h1>
+<blockquote>
+<p><strong>Series:</strong> IAM — IAM Administration | <strong>Notebook:</strong> 7 of 12 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Meeting Regulatory and Security Requirements</h2>
+<p>Audit logging is essential for compliance (SOC2, SOX, HIPAA, PCI-DSS) and security operations. This notebook covers querying audit logs, building compliance reports, and conducting access reviews.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#audit-log-fundamentals">Audit Log Fundamentals</a></li>
+<li><a href="#authentication-event-monitoring">Authentication Event Monitoring</a></li>
+<li><a href="#authorization-and-access-events">Authorization and Access Events</a></li>
+<li><a href="#configuration-change-tracking">Configuration Change Tracking</a></li>
+<li><a href="#compliance-reporting-patterns">Compliance Reporting Patterns</a></li>
+<li><a href="#access-review-workflows">Access Review Workflows</a></li>
+<li><a href="#building-compliance-dashboards">Building Compliance Dashboards</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail — Grail-based audit logging is active by default in every environment</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>ALLOW storage:system:read WHERE storage:event.kind = &quot;AUDIT_EVENT&quot;;</code> and <code>ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;dt_system_events&quot;;</code> — plus <code>ALLOW iam:users:read;</code> to resolve the <code>user.id</code> UUIDs in audit records to user details through the IAM API</td>
+</tr>
+<tr>
+<td><strong>Account audit log</strong></td>
+<td>The <code>account-company-info</code> account permission, to review account-level IAM changes in Account Management</td>
+</tr>
+<tr>
+<td><strong>Data Retention</strong></td>
+<td>Environment audit events are kept for one year; plan exports if a framework needs longer</td>
+</tr>
+</tbody>
+</table>
+<p><a id="audit-log-fundamentals"></a></p>
+<h2>1. Audit Log Fundamentals</h2>
+<p>Dynatrace audit logs capture all security-relevant events in your environment.</p>
+<h3>What Gets Logged</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Events</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Authentication</strong></td>
+<td>Sign-ins (<code>event.type == &quot;LOGIN&quot;</code>), including SSO sign-ins — MFA itself happens in your IdP</td>
+</tr>
+<tr>
+<td><strong>Authorization</strong></td>
+<td>Access attempts, permission checks</td>
+</tr>
+<tr>
+<td><strong>User Management</strong></td>
+<td>User creation, modification, deletion</td>
+</tr>
+<tr>
+<td><strong>Group Management</strong></td>
+<td>Group changes, membership updates</td>
+</tr>
+<tr>
+<td><strong>Policy Changes</strong></td>
+<td>Policy creation, modification, deletion</td>
+</tr>
+<tr>
+<td><strong>Token Operations</strong></td>
+<td>Token creation, revocation, usage</td>
+</tr>
+<tr>
+<td><strong>Configuration</strong></td>
+<td>Settings changes, API calls</td>
+</tr>
+</tbody>
+</table>
+<h3>Audit Log Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>timestamp</code></td>
+<td>Event time</td>
+<td><code>2026-01-26T14:30:00Z</code></td>
+</tr>
+<tr>
+<td><code>event.kind</code></td>
+<td>Always <code>AUDIT_EVENT</code> for audit records</td>
+<td><code>AUDIT_EVENT</code></td>
+</tr>
+<tr>
+<td><code>event.type</code></td>
+<td>Action</td>
+<td><code>LOGIN</code>, <code>GET</code>, <code>POST</code>, <code>CREATE</code>, <code>DELETE</code></td>
+</tr>
+<tr>
+<td><code>event.outcome</code></td>
+<td>Result — <code>success</code> / <code>failure</code>, or an HTTP status</td>
+<td><code>success</code>, <code>403</code></td>
+</tr>
+<tr>
+<td><code>event.provider</code></td>
+<td>Component that recorded the event</td>
+<td><code>API_GATEWAY</code>, <code>SETTINGS</code>, <code>API_TOKEN</code></td>
+</tr>
+<tr>
+<td><code>user.id</code></td>
+<td>Acting user (a UUID, not an email address)</td>
+<td><code>37e52d7a-…</code></td>
+</tr>
+<tr>
+<td><code>user.organization</code></td>
+<td>Organization of the acting user</td>
+<td><code>DYNATRACE</code></td>
+</tr>
+<tr>
+<td><code>authentication.type</code> / <code>authentication.grant.type</code></td>
+<td>How the caller authenticated</td>
+<td><code>OAUTH2</code>, <code>TOKEN</code></td>
+</tr>
+<tr>
+<td><code>resource</code></td>
+<td>The API path or object acted on</td>
+<td><code>/platform/document/v1/…</code></td>
+</tr>
+<tr>
+<td><code>origin.address</code></td>
+<td>Client IP address</td>
+<td><code>203.0.113.10</code></td>
+</tr>
+<tr>
+<td><code>request.source</code></td>
+<td>Where the request came from</td>
+<td><code>BROWSER</code>, <code>DT_SERVERLESS</code>, <code>OTHER</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Two audit records, two places.</strong> Activity <em>inside this environment</em> — sign-ins, API calls, settings and token changes — is recorded as <code>AUDIT_EVENT</code> records in <code>dt.system.events</code>, which every query in this notebook reads. <strong>Account-level IAM changes</strong> — groups, memberships, policies, boundaries — are recorded in the account audit log (Account Management &gt; Settings &gt; Audit log), not here.</p>
+<p><strong>Not every action is recorded yet.</strong> Dynatrace states that audit events from inside platform services are not recorded yet — its examples are an app installed by AppEngine and a document being shared. An evidence report that needs those actions cannot be built from <code>dt.system.events</code> today; say so in the report rather than presenting an empty result as &quot;no activity&quot;.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail">Audit logs on Grail (DT docs)</a> — <em>&quot;Grail-based audit logging is active by default in all Dynatrace environments.&quot;</em>; <em>&quot;Audit events from within platform services, such as an app being installed by AppEngine or a document being shared, aren't recorded yet.&quot;</em>; <em>&quot;Audit events are stored as dt.system.events in the dt_system_events bucket, retained for one year&quot;</em>; the page lists <code>ALLOW iam:users:read;</code> for looking up user details from the user ID. <a href="https://docs.dynatrace.com/docs/manage/account-management/audit-logs">Account Management audit logs (DT docs)</a> — <em>&quot;Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings&quot;</em>.</sub></p>
+</blockquote>
+<h3>Retention Requirements</h3>
+<p>Environment audit events are kept for one year. Whether that is enough depends on the framework and on how your auditors read it. In community practice, teams commonly plan around figures like the ones below — confirm the period that applies to you with your compliance or legal team before sizing an export.</p>
+<table>
+<thead>
+<tr>
+<th>Compliance</th>
+<th>Commonly planned retention (community practice)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SOC2</td>
+<td>1 year</td>
+</tr>
+<tr>
+<td>SOX</td>
+<td>7 years</td>
+</tr>
+<tr>
+<td>HIPAA</td>
+<td>6 years</td>
+</tr>
+<tr>
+<td>PCI-DSS</td>
+<td>1 year, with recent months immediately available</td>
+</tr>
+<tr>
+<td>GDPR</td>
+<td>As long as necessary</td>
+</tr>
+</tbody>
+</table>
+<p><a id="authentication-event-monitoring"></a></p>
+<h2>2. Authentication Event Monitoring</h2>
+<p>Track who is accessing your Dynatrace environment and how.</p>
+<pre><code class="language-dql">// Authenticated API calls by credential type (24 h)
+// Retitled 10/12/2026: authentication.type is set on every audited request, so this is API traffic
+// (about 31,700 calls a day on the validation tenant), not sign-ins. Sign-ins are event.type == &quot;LOGIN&quot;.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter isNotNull(authentication.type)
+| summarize events = count(), by:{authentication.type, event.outcome}
+| sort events desc
+</code></pre>
+<pre><code class="language-dql">// Failed sign-in attempts - critical for security monitoring
+// Corrected 09/24/2026: a failed sign-in is event.type == &quot;LOGIN&quot; with event.outcome == &quot;failure&quot;.
+// The previous &quot;any non-2xx outcome&quot; predicate counted 404 GETs and even 304 Not Modified.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.type == &quot;LOGIN&quot; and event.outcome == &quot;failure&quot;
+| summarize failures = count(), by:{user.id, origin.address}
+| sort failures desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Sign-in activity by hour (successful and failed interactive logins)
+// Split by event.provider (SaaS 1.349): signing in to a classic app can produce two audit events, one
+// from the API gateway (API_GATEWAY) and one from the cluster (CLASSIC_LOGIN). Summing both double-counts.
+// Corrected 10/12/2026: this cell counted isNotNull(authentication.type), which is every authenticated API
+// call: 31,712 events in 24 h on the validation tenant, of which 4 were sign-ins.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.type == &quot;LOGIN&quot;
+| makeTimeseries logins = count(), by:{event.outcome, event.provider}, interval:1h
+</code></pre>
+<h3>Authentication Patterns to Monitor</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Indicates</th>
+<th>Query Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Multiple failed logins</td>
+<td>Brute force attempt</td>
+<td>Failed + same user</td>
+</tr>
+<tr>
+<td>Off-hours logins</td>
+<td>Unusual access</td>
+<td>Timestamp analysis</td>
+</tr>
+<tr>
+<td>New location logins</td>
+<td>Account compromise</td>
+<td>IP/location change</td>
+</tr>
+<tr>
+<td>Rapid successive logins</td>
+<td>Automation or sharing</td>
+<td>Time between logins</td>
+</tr>
+<tr>
+<td>Login after offboarding</td>
+<td>Process failure</td>
+<td>User status check</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Off-hours activity detection (outside 08:00-18:00)
+// formatTimestamp renders the hour in the query's timezone (the notebook or user timezone setting), not
+// necessarily UTC: set the timezone to the one your business hours are defined in before reading the result.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| fieldsAdd hour = formatTimestamp(timestamp, format: &quot;HH&quot;)
+| filter toLong(hour) &lt; 8 or toLong(hour) &gt;= 18
+| summarize off_hours_events = count(), by:{user.id}
+| sort off_hours_events desc
+| limit 25
+</code></pre>
+<p><a id="authorization-and-access-events"></a></p>
+<h2>3. Authorization and Access Events</h2>
+<p>Track permission checks and access attempts to sensitive resources.</p>
+<blockquote>
+<p><strong>Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.</strong> <em>&quot;Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings&quot;</em> — <em>&quot;Administrators can view these logs in Account Management &gt; Settings &gt; Audit log&quot;</em>, where they are kept for up to ten years (also queryable through the Account Audits API). The same page says <em>&quot;The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded.&quot;</em> The query below shows IAM API calls made <strong>through this environment</strong> — useful for spotting automation, not a change log. These events show IAM API calls made through this environment, including environment-level policy-binding changes; scheduled <code>/lookups/iam_*</code> file uploads are excluded by the query. Account-level group and policy changes are recorded in the account audit log.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/account-management/audit-logs">Account Management audit logs (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Access denied events - indicates permission issues or attacks
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.outcome == &quot;403&quot;
+| summarize denials = count(), by:{user.id, resource}
+| sort denials desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// IAM API activity in this environment (account-level IAM changes: see the note above)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;}) and contains(resource, &quot;iam&quot;)
+| filter not startsWith(resource, &quot;/lookups/&quot;)
+| summarize changes = count(), by:{user.id, event.type}
+| sort changes desc
+</code></pre>
+<h3>Access Event Categories</h3>
+<table>
+<thead>
+<tr>
+<th>Event Type</th>
+<th>Security Relevance</th>
+<th>Monitoring Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Access denied</td>
+<td>Permission misconfiguration or probe</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Privilege escalation</td>
+<td>Critical security event</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Cross-environment access</td>
+<td>Boundary violation</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Admin action</td>
+<td>Privileged operation</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Bulk data access</td>
+<td>Exfiltration risk</td>
+<td>High</td>
+</tr>
+</tbody>
+</table>
+<p><a id="configuration-change-tracking"></a></p>
+<h2>4. Configuration Change Tracking</h2>
+<p>Track changes recorded in this environment. Account-level IAM changes (groups, policies, boundaries, bindings) are in the account audit log — see the note in Section 3.</p>
+<p><strong>User accounts are not in these records.</strong> Users are created, invited and removed at account level, so an environment <code>AUDIT_EVENT</code> never describes a user lifecycle change; the <code>CREATE</code> / <code>DELETE</code> events below are settings objects, tokens and lookup files. For joiner-and-leaver evidence, use the account audit log, which covers <em>&quot;Group memberships&quot;</em>, together with your IdP's provisioning log when users arrive by SCIM (IAM-06).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/account-management/audit-logs">Account Management audit logs (DT docs)</a> — <em>&quot;Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Create / delete activity in this environment — settings objects, API and ActiveGate tokens,
+// lookup files. NOT user accounts: users are account-level, so no AUDIT_EVENT here records a user
+// being created or deleted (retitled 10/14/2026; on the validation tenant 30 d of CREATE/DELETE was
+// 11,080 SETTINGS, 390 lookup-file, 102 token, 25 API_GATEWAY, 3 CLASSIC_API and 1 SLO events).
+// event.provider says which kind of object each row is.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;CREATE&quot;, &quot;DELETE&quot;})
+| fields timestamp, user.id, event.provider, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// IAM API activity in this environment — recent calls (group membership itself is account-level)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;}) and contains(resource, &quot;iam&quot;)
+| filter not startsWith(resource, &quot;/lookups/&quot;)
+| fields timestamp, user.id, event.type, resource
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// IAM API activity in this environment, by user (policy changes themselves: account audit log)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;}) and contains(resource, &quot;iam&quot;)
+| filter not startsWith(resource, &quot;/lookups/&quot;)
+| summarize iam_api_calls = count(), by:{user.id}
+| sort iam_api_calls desc
+</code></pre>
+<pre><code class="language-dql">// Token lifecycle: API and ActiveGate token creation, update and deletion
+// Corrected 09/24/2026: token lifecycle events carry event.provider API_TOKEN / ACTIVE_GATE_TOKEN,
+// and their resource is the token ID, so the previous contains(resource, &quot;token&quot;) filter missed
+// every one of them and matched only scheduled /lookups/iam_tokens uploads.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.provider, {&quot;API_TOKEN&quot;, &quot;ACTIVE_GATE_TOKEN&quot;})
+| fields timestamp, user.id, event.provider, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 50
+</code></pre>
+<h3>Change Tracking Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Change Type</th>
+<th>Audit Requirement</th>
+<th>Review Frequency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User lifecycle</td>
+<td>Log all</td>
+<td>Weekly</td>
+</tr>
+<tr>
+<td>Group changes</td>
+<td>Log all</td>
+<td>Weekly</td>
+</tr>
+<tr>
+<td>Policy changes</td>
+<td>Log + approve</td>
+<td>On change</td>
+</tr>
+<tr>
+<td>Admin actions</td>
+<td>Log + review</td>
+<td>Daily</td>
+</tr>
+<tr>
+<td>Token operations</td>
+<td>Log all</td>
+<td>Monthly</td>
+</tr>
+</tbody>
+</table>
+<p><a id="compliance-reporting-patterns"></a></p>
+<h2>5. Compliance Reporting Patterns</h2>
+<p>Standard queries for compliance frameworks.</p>
+<h3>SOC2 - Access Control Evidence</h3>
+<p>SOC2 requires evidence of access controls and monitoring.</p>
+<pre><code class="language-dql">// SOC2: Users who signed in during the period
+// Corrected 09/24/2026: this cell queried `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`,
+// which matches nothing on most tenants, or unrelated file-based audit logs (for example database
+// .aud files). Platform audit records are AUDIT_EVENT records in dt.system.events.
+fetch dt.system.events, from:-90d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.type == &quot;LOGIN&quot; and event.outcome == &quot;success&quot;
+| summarize {last_login = takeMax(timestamp), login_count = count()}, by:{user.id}
+| sort last_login desc
+| limit 500
+</code></pre>
+<pre><code class="language-dql">// SOC2: Administrative action log
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-90d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;})
+// Corrected 10/12/2026: many POSTs change nothing. DQL queries, permission checks, verify/autocomplete/preview
+// calls and classic token lookups are reads; app-state saves are UI bookkeeping; workflow runs (…/run) are
+// executions, not edits; /lookups/ uploads are a scheduled job. Over 30 days on the validation
+// tenant these were 177,504 of 198,069 write-verb events (90 %). Check the remaining resource
+// list on your tenant for further read-style POSTs.
+| filter not(contains(resource, &quot;/query:&quot;) or contains(resource, &quot;effective-permissions&quot;)
+             or endsWith(resource, &quot;/lookup&quot;) or contains(resource, &quot;/verify&quot;)
+             or contains(resource, &quot;/autocomplete&quot;) or contains(resource, &quot;filter-preview&quot;)
+             or endsWith(resource, &quot;/run&quot;) or startsWith(resource, &quot;/platform/state/v1/user-app-states/&quot;)
+             or contains(resource, &quot;lookup:upload&quot;) or startsWith(resource, &quot;/lookups/&quot;))
+| fields timestamp, user.id, user.organization, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 100
+</code></pre>
+<h3>SOX - Segregation of Duties</h3>
+<p>SOX requires segregation of duties and change authorization.</p>
+<pre><code class="language-dql">// SOX: Privileged user activity (write operations)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;})
+// Corrected 10/12/2026: many POSTs change nothing. DQL queries, permission checks, verify/autocomplete/preview
+// calls and classic token lookups are reads; app-state saves are UI bookkeeping; workflow runs (…/run) are
+// executions, not edits; /lookups/ uploads are a scheduled job. Over 30 days on the validation
+// tenant these were 177,504 of 198,069 write-verb events (90 %). Check the remaining resource
+// list on your tenant for further read-style POSTs.
+| filter not(contains(resource, &quot;/query:&quot;) or contains(resource, &quot;effective-permissions&quot;)
+             or endsWith(resource, &quot;/lookup&quot;) or contains(resource, &quot;/verify&quot;)
+             or contains(resource, &quot;/autocomplete&quot;) or contains(resource, &quot;filter-preview&quot;)
+             or endsWith(resource, &quot;/run&quot;) or startsWith(resource, &quot;/platform/state/v1/user-app-states/&quot;)
+             or contains(resource, &quot;lookup:upload&quot;) or startsWith(resource, &quot;/lookups/&quot;))
+| summarize privileged_actions = count(), by:{user.id, event.type}
+| sort privileged_actions desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// SOX: Configuration changes requiring approval
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;}) and contains(resource, &quot;settings&quot;)
+// Corrected 10/12/2026: effective-permissions:resolve is a permission check sent as POST, not a change.
+// It was 1,149 of 2,314 matching events over 30 days on the validation tenant.
+// The settings service also records changes with event.provider == &quot;SETTINGS&quot;, where resource is the
+// settings object rather than an API path, so this filter does not select them.
+| filter not contains(resource, &quot;effective-permissions&quot;)
+| fields timestamp, user.id, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 50
+</code></pre>
+<h3>HIPAA - PHI Access Logging</h3>
+<p>HIPAA requires logging of access to protected health information.</p>
+<p>Most reads of data stored in Grail are DQL queries, so the report below counts query executions as well as <code>GET</code> calls. A query's audit record names the caller, the app and the API path. On the validation tenant it did not carry the query text or the records the query returned. Use buckets and security context to limit what a query can read: the access model sets that limit, and the audit log only records that the query ran.</p>
+<pre><code class="language-dql">// HIPAA: data access events — API reads (GET) and Grail queries (POST …/query:execute)
+// Corrected 10/12/2026: running a DQL query is a POST to query:execute, so a GET-only filter never showed
+// who queried logs, spans or business events. That was 112,000 events over 30 days on the validation tenant.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.type == &quot;GET&quot; or contains(resource, &quot;/query:execute&quot;)
+| summarize reads = count(), by:{user.id, resource}
+| sort reads desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// HIPAA: Access anomalies - bulk query detection against each caller's own baseline
+// Corrected 10/13/2026: this cell flagged any user with more than 1,000 audit events in 7 days, which
+// is every regular browser user (10 users on the validation tenant). A dashboard load alone runs many
+// queries. This version counts Grail query executions per hour and flags callers whose busiest hour
+// was at least 5x their typical (median) hour and above 100 queries; it returned 4 browser users on
+// the validation tenant, peaks of 389-1,463 queries/hour against medians of 4-109. Tune both numbers.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter contains(resource, &quot;/query:execute&quot;)
+| fieldsAdd hour = bin(timestamp, 1h)
+| summarize queries = count(), by:{user.id, request.source, hour}
+| summarize {peak_per_hour = max(queries), typical_per_hour = median(queries), active_hours = count()}, by:{user.id, request.source}
+| fieldsAdd peak_vs_typical = round(toDouble(peak_per_hour) / typical_per_hour, decimals: 1)
+| filter peak_per_hour &gt; 100 and peak_vs_typical &gt;= 5
+| sort peak_vs_typical desc
+| limit 25
+</code></pre>
+<h3>PCI-DSS - Cardholder Data Access</h3>
+<p>PCI-DSS requires tracking access to cardholder data.</p>
+<pre><code class="language-dql">// PCI-DSS: Failed access attempts (potential attack indicator)
+// Corrected 10/13/2026: access failures are 401 (not authenticated), 403 (not authorized) and failed
+// sign-ins. The previous &quot;failure or any status &gt;= 400&quot; predicate was mostly 404 Not Found, 400 Bad
+// Request and 5xx server errors: over 30 days on the validation tenant 3,034 of its events were 404s,
+// against 43 401s, 411 403s and 3 failed sign-ins. Those are not access attempts.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.outcome, {&quot;401&quot;, &quot;403&quot;}) or (event.type == &quot;LOGIN&quot; and event.outcome == &quot;failure&quot;)
+| fieldsAdd failure_kind = if(event.outcome == &quot;401&quot;, &quot;unauthenticated (401)&quot;, else: if(event.outcome == &quot;403&quot;, &quot;forbidden (403)&quot;, else: &quot;failed sign-in&quot;))
+| summarize failures = count(), by:{user.id, origin.address, failure_kind}
+| sort failures desc
+| limit 50
+</code></pre>
+<h3>Compliance Query Reference</h3>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>Key Reports</th>
+<th>Frequency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SOC2</td>
+<td>User access, admin actions, logical access</td>
+<td>Quarterly</td>
+</tr>
+<tr>
+<td>SOX</td>
+<td>Privileged users, change authorization</td>
+<td>Quarterly</td>
+</tr>
+<tr>
+<td>HIPAA</td>
+<td>PHI access, anomaly detection</td>
+<td>Monthly</td>
+</tr>
+<tr>
+<td>PCI-DSS</td>
+<td>Failed access, CDE access</td>
+<td>Daily/Weekly</td>
+</tr>
+<tr>
+<td>GDPR</td>
+<td>Data access, consent tracking</td>
+<td>On request</td>
+</tr>
+</tbody>
+</table>
+<p><a id="access-review-workflows"></a></p>
+<h2>6. Access Review Workflows</h2>
+<p>Periodic access reviews are required by most compliance frameworks.</p>
+<h3>Access Review Process</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Generate user access report</td>
+<td>IAM Admin</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Distribute to managers</td>
+<td>IAM Admin</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Review and certify access</td>
+<td>Managers</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Remove inappropriate access</td>
+<td>IAM Admin</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Document review completion</td>
+<td>IAM Admin</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Access review: most and least active users in the window
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-180d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| summarize {events = count(), last_seen = takeMax(timestamp)}, by:{user.id}
+| sort last_seen asc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Access review: High-activity users (potential over-privilege)
+// Corrected 09/24/2026: this cell queried `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`,
+// which matches nothing on most tenants, or unrelated file-based audit logs (for example database
+// .aud files). Platform audit records are AUDIT_EVENT records in dt.system.events.
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| summarize action_count = count(), by:{user.id}
+| sort action_count desc
+| limit 50
+</code></pre>
+<h3>Access Review Checklist</h3>
+<pre><code>□ All users verified as current employees
+□ Access levels appropriate for job function
+□ No separation of duties violations
+□ Privileged access justified and approved
+□ Inactive accounts identified for removal
+□ Service accounts still required
+□ Review documented and signed off
+</code></pre>
+<h3>Review Frequency by Access Level</h3>
+<table>
+<thead>
+<tr>
+<th>Access Level</th>
+<th>Review Frequency</th>
+<th>Approver</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Viewer</td>
+<td>Annually</td>
+<td>Manager</td>
+</tr>
+<tr>
+<td>Editor</td>
+<td>Semi-annually</td>
+<td>Manager + Security</td>
+</tr>
+<tr>
+<td>Admin</td>
+<td>Quarterly</td>
+<td>Director + Security</td>
+</tr>
+<tr>
+<td>Account Admin</td>
+<td>Monthly</td>
+<td>CISO</td>
+</tr>
+</tbody>
+</table>
+<p><a id="building-compliance-dashboards"></a></p>
+<h2>7. Building Compliance Dashboards</h2>
+<p>Create dashboards for ongoing compliance monitoring.</p>
+<h3>Dashboard Components</h3>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Metrics</th>
+<th>Chart Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Authentication</td>
+<td>Logins/failures over time</td>
+<td>Line chart</td>
+</tr>
+<tr>
+<td>Access Denied</td>
+<td>Failed access attempts</td>
+<td>Bar chart</td>
+</tr>
+<tr>
+<td>User Changes</td>
+<td>Create/delete/modify</td>
+<td>Table</td>
+</tr>
+<tr>
+<td>Admin Activity</td>
+<td>Privileged actions</td>
+<td>Table</td>
+</tr>
+<tr>
+<td>Token Operations</td>
+<td>Creates/revocations</td>
+<td>Table</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Dashboard: Sign-in trend (for line chart)
+// Corrected 09/24/2026: this cell queried `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`,
+// which matches nothing on most tenants, or unrelated file-based audit logs (for example database
+// .aud files). Platform audit records are AUDIT_EVENT records in dt.system.events.
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.type == &quot;LOGIN&quot; and event.outcome == &quot;success&quot;
+| makeTimeseries logins = count(), interval:24h
+</code></pre>
+<pre><code class="language-dql">// Dashboard: Failed access by day (for bar chart) — 401, 403 and failed sign-ins
+// Corrected 10/13/2026: &quot;any status &gt;= 400&quot; was mostly 404s and server errors, not access failures.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.outcome, {&quot;401&quot;, &quot;403&quot;}) or (event.type == &quot;LOGIN&quot; and event.outcome == &quot;failure&quot;)
+| fieldsAdd failure_kind = if(event.type == &quot;LOGIN&quot;, &quot;failed sign-in&quot;, else: event.outcome)
+| makeTimeseries failures = count(), by:{failure_kind}, interval:24h
+</code></pre>
+<pre><code class="language-dql">// Dashboard: Recent administrative actions (for table)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;})
+// Corrected 10/12/2026: many POSTs change nothing. DQL queries, permission checks, verify/autocomplete/preview
+// calls and classic token lookups are reads; app-state saves are UI bookkeeping; workflow runs (…/run) are
+// executions, not edits; /lookups/ uploads are a scheduled job. Over 30 days on the validation
+// tenant these were 177,504 of 198,069 write-verb events (90 %). Check the remaining resource
+// list on your tenant for further read-style POSTs.
+| filter not(contains(resource, &quot;/query:&quot;) or contains(resource, &quot;effective-permissions&quot;)
+             or endsWith(resource, &quot;/lookup&quot;) or contains(resource, &quot;/verify&quot;)
+             or contains(resource, &quot;/autocomplete&quot;) or contains(resource, &quot;filter-preview&quot;)
+             or endsWith(resource, &quot;/run&quot;) or startsWith(resource, &quot;/platform/state/v1/user-app-states/&quot;)
+             or contains(resource, &quot;lookup:upload&quot;) or startsWith(resource, &quot;/lookups/&quot;))
+| fields timestamp, user.id, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 25
+</code></pre>
+<h3>Alert Thresholds</h3>
+<p>Configure alerts based on audit log patterns:</p>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Threshold</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Failed logins</td>
+<td>&gt; 5 in 10 min same user</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td>Failed logins</td>
+<td>&gt; 20 in 10 min any</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Admin action</td>
+<td>Any outside business hours</td>
+<td>Warning</td>
+</tr>
+<tr>
+<td>Policy change</td>
+<td>Any</td>
+<td>Info</td>
+</tr>
+<tr>
+<td>User deletion</td>
+<td>Any</td>
+<td>Info</td>
+</tr>
+<tr>
+<td>Bulk data access</td>
+<td>Busiest hour ≥ 5× the caller's typical hour (see the HIPAA bulk-query cell)</td>
+<td>Warning</td>
+</tr>
+</tbody>
+</table>
+<h2>Next Steps</h2>
+<p>With compliance monitoring in place, proceed to multi-environment management:</p>
+<h3>Recommended Path</h3>
+<ol>
+<li><strong>IAM-08: Multi-Environment IAM</strong> - Scale IAM across environments</li>
+<li><strong>IAM-09: Troubleshooting Access Issues</strong> - Debug permission problems</li>
+</ol>
+<h3>Compliance Checklist</h3>
+<p>Before moving on, ensure you have:</p>
+<ul>
+<li>[ ] Identified applicable compliance frameworks</li>
+<li>[ ] Created queries for required audit reports</li>
+<li>[ ] Established access review schedule</li>
+<li>[ ] Built compliance monitoring dashboard</li>
+<li>[ ] Configured alerts for critical events</li>
+<li>[ ] Documented audit log retention policy</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Audit log fundamentals and retention requirements</li>
+<li>Authentication event monitoring patterns</li>
+<li>Authorization and access event tracking</li>
+<li>Configuration change monitoring</li>
+<li>Compliance-specific query patterns (SOC2, SOX, HIPAA, PCI-DSS)</li>
+<li>Access review workflows</li>
+<li>Compliance dashboard components</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail">Audit logs on Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/account-management/audit-logs">Account Management audit logs (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Reference</a></li>
+<li><a href="https://www.aicpa-cima.com/resources/landing/system-and-organization-controls-soc-suite-of-services">SOC2 Trust Principles</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IAM-08: Multi-Environment IAM</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">IAM — IAM Administration</a><span class="sep">/</span><span aria-current="page">IAM-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>IAM-08: Multi-Environment IAM</h1>
+<blockquote>
+<p><strong>Series:</strong> IAM — IAM Administration | <strong>Notebook:</strong> 8 of 12 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/13/2026</p>
+</blockquote>
+<h2>Scaling IAM Across Multiple Environments</h2>
+<p>Enterprise organizations typically have multiple Dynatrace environments (development, staging, production). This notebook covers strategies for managing IAM consistently across environments while maintaining security boundaries.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#multi-environment-architecture">Multi-Environment Architecture</a></li>
+<li><a href="#account-level-vs-environment-level-permissions">Account-Level vs Environment-Level Permissions</a></li>
+<li><a href="#centralized-vs-federated-models">Centralized vs Federated Models</a></li>
+<li><a href="#cross-environment-access-patterns">Cross-Environment Access Patterns</a></li>
+<li><a href="#break-glass-procedures">Break-Glass Procedures</a></li>
+<li><a href="#synchronizing-iam-configuration">Synchronizing IAM Configuration</a></li>
+<li><a href="#multi-tenant-considerations">Multi-Tenant Considerations</a></li>
+<li><a href="#monitoring-multi-environment-iam">Monitoring Multi-Environment IAM</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environments</strong></td>
+<td>Multiple environments under one account</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Account-level IAM admin</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>IAM-01 through 07 completed</td>
+</tr>
+</tbody>
+</table>
+<p><a id="multi-environment-architecture"></a></p>
+<h2>1. Multi-Environment Architecture</h2>
+<p>Understanding the relationship between accounts and environments is foundational.</p>
+<h3>Account and Environment Hierarchy</h3>
+<pre><code>Dynatrace Account (Organization Level)
+├── Environment: Production
+│   ├── Entities, Logs, Traces
+│   └── Environment-specific settings
+├── Environment: Staging
+│   ├── Entities, Logs, Traces
+│   └── Environment-specific settings
+└── Environment: Development
+    ├── Entities, Logs, Traces
+    └── Environment-specific settings
+</code></pre>
+<h3>Permission Scopes</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>What It Controls</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Account</strong></td>
+<td>Users, groups, SSO, billing</td>
+<td>Create users, manage IdP</td>
+</tr>
+<tr>
+<td><strong>Environment</strong></td>
+<td>Data access, settings, configurations</td>
+<td>Read logs, modify alerting</td>
+</tr>
+</tbody>
+</table>
+<h3>Common Environment Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Environments</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Standard</strong></td>
+<td>Dev, Stage, Prod</td>
+<td>Software development</td>
+</tr>
+<tr>
+<td><strong>Regional</strong></td>
+<td>US, EU, APAC</td>
+<td>Geographic compliance</td>
+</tr>
+<tr>
+<td><strong>BU-based</strong></td>
+<td>Retail, Finance, HR</td>
+<td>Business unit isolation</td>
+</tr>
+<tr>
+<td><strong>Tenant</strong></td>
+<td>Customer A, B, C</td>
+<td>MSP/multi-tenant</td>
+</tr>
+</tbody>
+</table>
+<p><a id="account-level-vs-environment-level-permissions"></a></p>
+<h2>2. Account-Level vs Environment-Level Permissions</h2>
+<p>Understanding where permissions are managed is critical for proper access control.</p>
+<h3>Account-Level Permissions</h3>
+<p>Managed in Account Management, apply across all environments:</p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>account-user-management</code></td>
+<td>View and manage users, groups and policies</td>
+</tr>
+<tr>
+<td><code>account-viewer</code></td>
+<td>View account information</td>
+</tr>
+<tr>
+<td><code>account-company-info</code></td>
+<td>Manage account and company settings</td>
+</tr>
+</tbody>
+</table>
+<h3>Environment-Level Permissions</h3>
+<p>Scoped to specific environments:</p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:logs:read</code></td>
+<td>Read logs in environment</td>
+</tr>
+<tr>
+<td><code>storage:metrics:read</code></td>
+<td>Read metrics</td>
+</tr>
+<tr>
+<td><code>storage:buckets:read</code></td>
+<td>Read records from Grail buckets — needed in addition to every table read above</td>
+</tr>
+<tr>
+<td><code>settings:objects:read</code></td>
+<td>Read configuration</td>
+</tr>
+<tr>
+<td><code>settings:objects:write</code></td>
+<td>Modify configuration</td>
+</tr>
+</tbody>
+</table>
+<h3>Policy Binding Scope: Account or Environment</h3>
+<p>Where a policy is <strong>bound</strong> decides how far it reaches, independent of what the policy says:</p>
+<table>
+<thead>
+<tr>
+<th>Binding level</th>
+<th>Reach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Account-level</strong></td>
+<td>Applies to all environments under the account</td>
+</tr>
+<tr>
+<td><strong>Environment-level</strong></td>
+<td>Applies only to a single environment</td>
+</tr>
+</tbody>
+</table>
+<p>So a read-only policy bound at account level grants read in production too. For per-environment access (the matrix below), bind each group's policies at the environment level. Dynatrace suggests defining one policy at the account level and binding it to environment levels rather than creating identical environment-level policies — the policy text is shared, the reach is set per binding.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-mgt">Manage IAM policies (DT docs)</a> — account-level policies <em>&quot;apply to all environments under that account (customer)&quot;</em>; environment-level policies <em>&quot;apply only to a single customer environment&quot;</em>; <em>&quot;defining one policy on the account level and binding it to environment levels&quot;</em>.</sub></p>
+</blockquote>
+<h3>Permission Assignment Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Account Perms</th>
+<th>Prod</th>
+<th>Stage</th>
+<th>Dev</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IAM Admin</td>
+<td><code>account-user-management</code></td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>Prod Viewer</td>
+<td>-</td>
+<td>Read</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>Prod Editor</td>
+<td>-</td>
+<td>Read/Write</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>Dev Team</td>
+<td>-</td>
+<td>Read</td>
+<td>Read/Write</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>Platform Team</td>
+<td>-</td>
+<td>Full</td>
+<td>Full</td>
+<td>Full</td>
+</tr>
+</tbody>
+</table>
+<p><a id="centralized-vs-federated-models"></a></p>
+<h2>3. Centralized vs Federated Models</h2>
+<p>Choose a governance model based on organization structure.</p>
+<h3>Centralized Model</h3>
+<p>Single IAM team manages all access.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Group creation</td>
+<td>Central team only</td>
+</tr>
+<tr>
+<td>Policy authoring</td>
+<td>Central team only</td>
+</tr>
+<tr>
+<td>Access requests</td>
+<td>Ticketing system</td>
+</tr>
+<tr>
+<td>Approvals</td>
+<td>Central team</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Consistent standards</li>
+<li>Single point of control</li>
+<li>Easier compliance</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Bottleneck for requests</li>
+<li>Slower response time</li>
+<li>Less team autonomy</li>
+</ul>
+<h3>Federated Model</h3>
+<p>Delegated administration to teams.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Group creation</td>
+<td>Team leads (within namespace)</td>
+</tr>
+<tr>
+<td>Policy authoring</td>
+<td>Central team defines templates</td>
+</tr>
+<tr>
+<td>Access requests</td>
+<td>Direct to team lead</td>
+</tr>
+<tr>
+<td>Approvals</td>
+<td>Team lead + central audit</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Faster access provisioning</li>
+<li>Team ownership</li>
+<li>Scales with organization</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Requires governance framework</li>
+<li>Risk of inconsistency</li>
+<li>More complex auditing</li>
+</ul>
+<h3>Hybrid Model (Recommended)</h3>
+<table>
+<thead>
+<tr>
+<th>Responsibility</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Account-level IAM</td>
+<td>Central team</td>
+</tr>
+<tr>
+<td>Production access</td>
+<td>Central team</td>
+</tr>
+<tr>
+<td>Non-prod access</td>
+<td>Team leads</td>
+</tr>
+<tr>
+<td>Policy templates</td>
+<td>Central team</td>
+</tr>
+<tr>
+<td>Custom policies</td>
+<td>Team leads (with approval)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cross-environment-access-patterns"></a></p>
+<h2>4. Cross-Environment Access Patterns</h2>
+<p>Define how users access multiple environments.</p>
+<h3>Pattern 1: Environment-Specific Groups</h3>
+<p>Separate groups per environment.</p>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Environment</th>
+<th>Permissions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt-prod-viewers</code></td>
+<td>Production</td>
+<td>Read-only</td>
+</tr>
+<tr>
+<td><code>dt-stage-editors</code></td>
+<td>Staging</td>
+<td>Read/Write</td>
+</tr>
+<tr>
+<td><code>dt-dev-admins</code></td>
+<td>Development</td>
+<td>Full</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Use when:</strong> Strict environment isolation required.</p>
+<h3>Pattern 2: Role-Based Groups</h3>
+<p>Same role, different environment permissions.</p>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Prod</th>
+<th>Stage</th>
+<th>Dev</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt-sre-team</code></td>
+<td>Editor</td>
+<td>Editor</td>
+<td>Editor</td>
+</tr>
+<tr>
+<td><code>dt-dev-team</code></td>
+<td>Viewer</td>
+<td>Editor</td>
+<td>Admin</td>
+</tr>
+<tr>
+<td><code>dt-security-team</code></td>
+<td>Viewer</td>
+<td>Viewer</td>
+<td>Viewer</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Use when:</strong> Consistent role across environments with varying access levels.</p>
+<h3>Pattern 3: Escalation-Based Access</h3>
+<p>Production access requires explicit escalation.</p>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Normal Access</th>
+<th>Escalated Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt-oncall</code></td>
+<td>Stage/Dev</td>
+<td>Production (during incident)</td>
+</tr>
+<tr>
+<td><code>dt-deploy</code></td>
+<td>Stage</td>
+<td>Production (during deploy window)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Use when:</strong> Production access is exception, not default.</p>
+<p><a id="break-glass-procedures"></a></p>
+<h2>5. Break-Glass Procedures</h2>
+<p>Emergency access when normal procedures can't be followed.</p>
+<h3>What is Break-Glass?</h3>
+<p>Emergency access mechanism for critical incidents when:</p>
+<ul>
+<li>Normal approvers unavailable</li>
+<li>SSO/IdP is down</li>
+<li>Critical incident requires immediate elevated access</li>
+</ul>
+<h3>Break-Glass Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Emergency account</td>
+<td>Local account (not SSO)</td>
+</tr>
+<tr>
+<td>Elevated permissions</td>
+<td>Admin or full access</td>
+</tr>
+<tr>
+<td>Secure storage</td>
+<td>Password vault, split secrets</td>
+</tr>
+<tr>
+<td>Audit logging</td>
+<td>All actions logged</td>
+</tr>
+<tr>
+<td>Post-incident review</td>
+<td>Mandatory after use</td>
+</tr>
+</tbody>
+</table>
+<h3>Break-Glass Setup</h3>
+<ol>
+<li>
+<p><strong>Create emergency account</strong></p>
+<ul>
+<li>A <strong>non-federated</strong> user (not SSO-dependent), invited to the environment</li>
+<li>Long, randomly generated password held only in the vault</li>
+<li>Dynatrace does not configure MFA itself — MFA is enforced in your IdP — so a non-federated account relies on the vault, split knowledge and use alerts below as its compensating controls</li>
+</ul>
+</li>
+<li>
+<p><strong>Assign minimal necessary permissions</strong></p>
+<ul>
+<li>Dynatrace recommends Account manager permissions for this account, so it can repair federation and group settings while the IdP is unavailable</li>
+<li>Add environment access (for example the Admin User default policy) only if your emergency procedures need it</li>
+</ul>
+</li>
+<li>
+<p><strong>Secure the credentials</strong></p>
+<ul>
+<li>Store in enterprise vault (CyberArk, HashiCorp)</li>
+<li>Or use split-knowledge (2+ people needed)</li>
+<li>Document retrieval procedure</li>
+</ul>
+</li>
+<li>
+<p><strong>Define usage criteria</strong></p>
+<ul>
+<li>When break-glass can be used</li>
+<li>Who can authorize</li>
+<li>Notification requirements</li>
+</ul>
+</li>
+<li>
+<p><strong>Establish post-incident process</strong></p>
+<ul>
+<li>Rotate credentials after each use</li>
+<li>Review all actions taken</li>
+<li>Document in incident report</li>
+</ul>
+</li>
+</ol>
+<h3>Break-Glass Policy Template</h3>
+<pre><code>BREAK-GLASS ACCESS POLICY
+
+Authorized Situations:
+□ P1/P2 incident AND normal approvers unavailable
+□ SSO/IdP outage preventing authentication
+□ Security incident requiring immediate response
+
+NOT Authorized:
+□ Convenience (approver busy but reachable)
+□ Non-urgent requests
+□ Bypassing normal approval process
+
+Usage Steps:
+1. Attempt normal access/approval first
+2. Document why break-glass is needed
+3. Notify security team
+4. Retrieve credentials from vault
+5. Perform necessary actions only
+6. Log out immediately when done
+7. Notify IAM team for credential rotation
+8. Complete post-incident review within 24h
+</code></pre>
+<p><a id="synchronizing-iam-configuration"></a></p>
+<h2>6. Synchronizing IAM Configuration</h2>
+<p>Keep IAM configuration consistent across environments.</p>
+<h3>Configuration as Code</h3>
+<p>Store IAM configuration in version control:</p>
+<pre><code>iam-config/
+├── groups/
+│   ├── platform-team.yaml
+│   ├── dev-team.yaml
+│   └── security-team.yaml
+├── policies/
+│   ├── standard-user.yaml
+│   ├── pro-user.yaml
+│   └── log-reader.yaml
+└── boundaries/
+    ├── production-boundary.yaml
+    └── sensitive-data-boundary.yaml
+</code></pre>
+<h3>Synchronization Approaches</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Manual</strong></td>
+<td>Simple</td>
+<td>Error-prone, doesn't scale</td>
+</tr>
+<tr>
+<td><strong>Terraform</strong></td>
+<td>Version controlled, repeatable</td>
+<td>Learning curve</td>
+</tr>
+<tr>
+<td><strong>Dynatrace API</strong></td>
+<td>Direct control</td>
+<td>Custom scripting needed</td>
+</tr>
+<tr>
+<td><strong>Monaco</strong></td>
+<td>Dynatrace-specific</td>
+<td>Configuration complexity</td>
+</tr>
+</tbody>
+</table>
+<h3>Change Management Process</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Approval</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Create PR with IAM change</td>
+<td>Developer</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Review configuration</td>
+<td>IAM team</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Apply to dev environment</td>
+<td>Automated</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Test in dev</td>
+<td>Developer</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Apply to staging</td>
+<td>Automated</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Validate in staging</td>
+<td>IAM team</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Apply to production</td>
+<td>Manual approval + deploy</td>
+</tr>
+</tbody>
+</table>
+<p><a id="multi-tenant-considerations"></a></p>
+<h2>7. Multi-Tenant Considerations</h2>
+<p>Special considerations for MSPs and multi-tenant deployments.</p>
+<h3>Multi-Tenant Architecture</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Isolation Level</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Separate Accounts</strong></td>
+<td>Highest</td>
+<td>Different legal entities</td>
+</tr>
+<tr>
+<td><strong>Separate Environments</strong></td>
+<td>High</td>
+<td>Business unit isolation</td>
+</tr>
+<tr>
+<td><strong>Boundaries within Environment</strong></td>
+<td>Medium</td>
+<td>Team isolation</td>
+</tr>
+<tr>
+<td><strong>Segments only</strong></td>
+<td>None — a segment adds filter conditions to a query; what a user may read is set by policies and boundaries</td>
+<td>Data filtering only</td>
+</tr>
+</tbody>
+</table>
+<h3>Tenant Isolation Checklist</h3>
+<pre><code>□ Data cannot be accessed across tenants
+□ Users cannot see other tenants exist
+□ Configuration cannot impact other tenants
+□ Audit logs are tenant-specific
+□ Billing is tenant-specific
+</code></pre>
+<h3>MSP Considerations</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Customer environments</td>
+<td>Separate environment per customer</td>
+</tr>
+<tr>
+<td>MSP admin access</td>
+<td>Dedicated MSP admin group</td>
+</tr>
+<tr>
+<td>Customer admin access</td>
+<td>Scoped to their environment only</td>
+</tr>
+<tr>
+<td>Audit</td>
+<td>Separate audit logs per customer</td>
+</tr>
+<tr>
+<td>Compliance</td>
+<td>Document isolation in SOC2</td>
+</tr>
+</tbody>
+</table>
+<p><a id="monitoring-multi-environment-iam"></a></p>
+<h2>Monitoring Multi-Environment IAM</h2>
+<p>Query patterns for multi-environment oversight. Run these in each environment — audit events are recorded per environment, so there is no cross-environment audit query. Account-level changes are in the account audit log (Account Management &gt; Settings &gt; Audit log).</p>
+<pre><code class="language-dql">// Who calls this environment, from where (by organization, provider, source)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| summarize requests = count(), by:{user.organization, event.provider, request.source}
+| sort requests desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Write activity in this environment by organization — account-level changes are in Account Management &gt; Settings &gt; Audit log
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;})
+// Corrected 10/12/2026: many POSTs change nothing. DQL queries, permission checks, verify/autocomplete/preview
+// calls and classic token lookups are reads; app-state saves are UI bookkeeping; workflow runs (…/run) are
+// executions, not edits; /lookups/ uploads are a scheduled job. Over 30 days on the validation
+// tenant these were 177,504 of 198,069 write-verb events (90 %). Check the remaining resource
+// list on your tenant for further read-style POSTs.
+| filter not(contains(resource, &quot;/query:&quot;) or contains(resource, &quot;effective-permissions&quot;)
+             or endsWith(resource, &quot;/lookup&quot;) or contains(resource, &quot;/verify&quot;)
+             or contains(resource, &quot;/autocomplete&quot;) or contains(resource, &quot;filter-preview&quot;)
+             or endsWith(resource, &quot;/run&quot;) or startsWith(resource, &quot;/platform/state/v1/user-app-states/&quot;)
+             or contains(resource, &quot;lookup:upload&quot;) or startsWith(resource, &quot;/lookups/&quot;))
+| summarize actions = count(), by:{user.organization, event.type}
+| sort actions desc
+</code></pre>
+<pre><code class="language-dql">// Break-glass / emergency account usage — rare-actor detection
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-90d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| summarize {events = count(), first_seen = takeMin(timestamp), last_seen = takeMax(timestamp)}, by:{user.id}
+| filter events &lt; 10
+| sort events asc
+| limit 25
+</code></pre>
+<h2>Next Steps</h2>
+<p>With multi-environment IAM understood, proceed to troubleshooting:</p>
+<h3>Recommended Path</h3>
+<ol>
+<li><strong>IAM-09: Troubleshooting Access Issues</strong> - Debug permission problems systematically</li>
+</ol>
+<h3>Multi-Environment Checklist</h3>
+<p>Before moving on, ensure you have:</p>
+<ul>
+<li>[ ] Documented all environments and their purposes</li>
+<li>[ ] Defined governance model (centralized, federated, hybrid)</li>
+<li>[ ] Created environment-specific access groups</li>
+<li>[ ] Established break-glass procedure</li>
+<li>[ ] Implemented IAM configuration as code</li>
+<li>[ ] Documented multi-tenant isolation (if applicable)</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Multi-environment architecture and hierarchy</li>
+<li>Account-level vs environment-level permissions</li>
+<li>Centralized, federated, and hybrid governance models</li>
+<li>Cross-environment access patterns</li>
+<li>Break-glass procedures for emergency access</li>
+<li>IAM configuration synchronization approaches</li>
+<li>Multi-tenant considerations for MSPs</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/account-management">Account Management (DT docs)</a></li>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs">Dynatrace Terraform Provider</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-mgt">Manage IAM policies (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a> — <code>storage:buckets:read</code>: <em>&quot;Required additionally to a table permission.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;Configuring multi-factor authentication (MFA) is not supported by Dynatrace.&quot;</em>; for emergency access, <em>&quot;we recommend that you invite a non-federated user to the environment with Account manager permissions&quot;</em></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

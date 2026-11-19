@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8S-09: Troubleshooting Kubernetes Monitoring</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">K8S — Kubernetes Monitoring</a><span class="sep">/</span><span aria-current="page">K8S-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>K8S-09: Troubleshooting Kubernetes Monitoring</h1>
+<blockquote>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 9 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/03/2026</p>
+</blockquote>
+<h2>Debugging Dynatrace Monitoring in Kubernetes</h2>
+<p>When monitoring doesn't work as expected, systematic troubleshooting is essential. This notebook covers common issues, diagnostic procedures, and resolution steps for Dynatrace Kubernetes monitoring.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#troubleshooting-methodology">Troubleshooting Methodology</a></li>
+<li><a href="#operator-issues">Operator Issues</a></li>
+<li><a href="#oneagent-issues">OneAgent Issues</a></li>
+<li><a href="#activegate-issues">ActiveGate Issues</a></li>
+<li><a href="#injection-issues">Injection Issues</a></li>
+<li><a href="#data-collection-issues">Data Collection Issues</a></li>
+<li><a href="#connectivity-issues">Connectivity Issues</a></li>
+<li><a href="#diagnostic-commands">Diagnostic Commands</a></li>
+<li><a href="#dql-diagnostics">DQL-Based Diagnostics</a></li>
+<li><a href="#symptom-resolution-index">Symptom-to-Resolution Index</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS/Managed access</td>
+</tr>
+<tr>
+<td><strong>kubectl</strong></td>
+<td>Configured for your cluster</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Cluster admin or debug access</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>K8S-01 through K8S-03</td>
+</tr>
+</tbody>
+</table>
+<p><a id="troubleshooting-methodology"></a></p>
+<h2>1. Troubleshooting Methodology</h2>
+<h3>Systematic Approach</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnR3JhZEs5IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBGMTcyQSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxRTI5M0IiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InN0ZXBHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNBNzhCRkEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN0MzQUVEIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJmaXhHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3M0JFMjgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93SzkiIHg9Ii0yMCUiIHk9Ii0yMCUiIHdpZHRoPSIxNDAlIiBoZWlnaHQ9IjE0MCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjMiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYXJyb3doZWFkIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiNBNzhCRkEiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSJ1cmwoI2JnR3JhZEs5KSIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPlRyb3VibGVzaG9vdGluZyBNZXRob2RvbG9neTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5TaXgtc3RlcCBzeXN0ZW1hdGljIGZsb3cgZm9yIER5bmF0cmFjZSBLdWJlcm5ldGVzIG1vbml0b3JpbmcgaXNzdWVzPC90ZXh0PgoKICA8IS0tIFN0ZXAgcGlwZWxpbmUgKDUgaG9yaXpvbnRhbCArIDEgb3V0Y29tZSBiZWxvdykgLS0+CgogIDwhLS0gU3RlcCAxIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIxMDAiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTAwIiByeD0iOCIgZmlsbD0idXJsKCNzdGVwR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3dLOSkiLz4KICA8dGV4dCB4PSIxMTUiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+MS4gSWRlbnRpZnk8L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSIxNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiPlN5bXB0b208L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSIxNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiPldoYXQgaXMgd3Jvbmc/PC90ZXh0PgogIDx0ZXh0IHg9IjExNSIgeT0iMTg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIj5TY29wZSBvZiBpbXBhY3Q/PC90ZXh0PgoKICA8bGluZSB4MT0iMTk1IiB5MT0iMTUwIiB4Mj0iMjIwIiB5Mj0iMTUwIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd2hlYWQpIi8+CgogIDwhLS0gU3RlcCAyIC0tPgogIDxyZWN0IHg9IjIyNSIgeT0iMTAwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEwMCIgcng9IjgiIGZpbGw9InVybCgjc3RlcEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93SzkpIi8+CiAgPHRleHQgeD0iMzAwIiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjIuIENoZWNrIFN0YXR1czwvdGV4dD4KICA8dGV4dCB4PSIzMDAiIHk9IjE0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiI+UG9kIC8gT3BlcmF0b3I8L3RleHQ+CiAgPHRleHQgeD0iMzAwIiB5PSIxNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiPmt1YmVjdGwgLW4gZHluYXRyYWNlPC90ZXh0PgogIDx0ZXh0IHg9IjMwMCIgeT0iMTg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIj5nZXQgcG9kcywgZHluYWt1YmU8L3RleHQ+CgogIDxsaW5lIHgxPSIzODAiIHkxPSIxNTAiIHgyPSI0MDUiIHkyPSIxNTAiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93aGVhZCkiLz4KCiAgPCEtLSBTdGVwIDMgLS0+CiAgPHJlY3QgeD0iNDEwIiB5PSIxMDAiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTAwIiByeD0iOCIgZmlsbD0idXJsKCNzdGVwR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3dLOSkiLz4KICA8dGV4dCB4PSI0ODUiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+My4gUmV2aWV3PC90ZXh0PgogIDx0ZXh0IHg9IjQ4NSIgeT0iMTQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIj5Mb2dzIC8gRXZlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjQ4NSIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIj5rdWJlY3RsIGxvZ3M8L3RleHQ+CiAgPHRleHQgeD0iNDg1IiB5PSIxODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiPmt1YmVjdGwgZ2V0IGV2ZW50czwvdGV4dD4KCiAgPGxpbmUgeDE9IjU2NSIgeTE9IjE1MCIgeDI9IjU5MCIgeTI9IjE1MCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3doZWFkKSIvPgoKICA8IS0tIFN0ZXAgNCAtLT4KICA8cmVjdCB4PSI1OTUiIHk9IjEwMCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxMDAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3N0ZXBHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvd0s5KSIvPgogIDx0ZXh0IHg9IjY3MCIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj40LiBWZXJpZnkgQ29uZmlnPC90ZXh0PgogIDx0ZXh0IHg9IjY3MCIgeT0iMTQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIj5EeW5hS3ViZSBZQU1MPC90ZXh0PgogIDx0ZXh0IHg9IjY3MCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIj50b2tlbnMsIG5hbWVzcGFjZVNlbGVjdG9yLDwvdGV4dD4KICA8dGV4dCB4PSI2NzAiIHk9IjE4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMSI+YXBpVXJsLCBjYXBhYmlsaXRpZXM8L3RleHQ+CgogIDxsaW5lIHgxPSI3NTAiIHkxPSIxNTAiIHgyPSI3NzUiIHkyPSIxNTAiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93aGVhZCkiLz4KCiAgPCEtLSBTdGVwIDUgLS0+CiAgPHJlY3QgeD0iNzgwIiB5PSIxMDAiIHdpZHRoPSIxMTAiIGhlaWdodD0iMTAwIiByeD0iOCIgZmlsbD0idXJsKCNzdGVwR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3dLOSkiLz4KICA8dGV4dCB4PSI4MzUiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+NS4gVGVzdDwvdGV4dD4KICA8dGV4dCB4PSI4MzUiIHk9IjE0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiI+Q29ubmVjdGl2aXR5PC90ZXh0PgogIDx0ZXh0IHg9IjgzNSIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIj5jdXJsIC9hcGkvdjEvdGltZTwvdGV4dD4KICA8dGV4dCB4PSI4MzUiIHk9IjE4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMSI+RE5TICsgcHJveHk8L3RleHQ+CgogIDwhLS0gU3RlcCA2IChvdXRjb21lIOKAlCBncmVlbikgLS0+CiAgPGxpbmUgeDE9IjgzNSIgeTE9IjIwNSIgeDI9IjgzNSIgeTI9IjI0MCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3doZWFkKSIvPgogIDxyZWN0IHg9IjYxNSIgeT0iMjQ1IiB3aWR0aD0iMjc1IiBoZWlnaHQ9IjEwMCIgcng9IjgiIGZpbGw9InVybCgjZml4R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3dLOSkiLz4KICA8dGV4dCB4PSI3NTIiIHk9IjI3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+Ni4gQXBwbHkgRml4IGFuZCBWYWxpZGF0ZTwvdGV4dD4KICA8dGV4dCB4PSI3NTIiIHk9IjI5NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+Um9sbCBvdXQgcmVtZWRpYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNzUyIiB5PSIzMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPnZlcmlmeSBtZXRyaWNzICsgbG9ncyByZXR1cm48L3RleHQ+CiAgPHRleHQgeD0iNzUyIiB5PSIzMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPmRvY3VtZW50IHRoZSByb290IGNhdXNlPC90ZXh0PgoKICA8IS0tIFF1aWNrIFN5bXB0b20gR3VpZGUgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjI0NSIgd2lkdGg9IjU1NSIgaGVpZ2h0PSIyMjAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNTUiIHk9IjI3MiIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+UXVpY2sgU3ltcHRvbSBHdWlkZTwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjI3MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Rmlyc3QgcGxhY2UgdG8gbG9vayB3aGVuIGVhY2ggc3ltcHRvbSBhcHBlYXJzPC90ZXh0PgoKICA8bGluZSB4MT0iNTUiIHkxPSIyODIiIHgyPSI1ODAiIHkyPSIyODIiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CgogIDx0ZXh0IHg9IjU1IiB5PSIzMDUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPk5vIGNsdXN0ZXIgZGF0YTwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjMwNSIgZmlsbD0iI0E3OEJGQSIgZm9udC1zaXplPSIxMiI+4oaSIEFjdGl2ZUdhdGUga3ViZXJuZXRlcy1tb25pdG9yaW5nIGNhcGFiaWxpdHkgKyB0b2tlbiBzY29wZXM8L3RleHQ+CgogIDx0ZXh0IHg9IjU1IiB5PSIzMzAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPk5vIG5vZGUgLyBwb2QgZGF0YTwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjMzMCIgZmlsbD0iI0E3OEJGQSIgZm9udC1zaXplPSIxMiI+4oaSIE9uZUFnZW50IERhZW1vblNldCBydW5uaW5nLCB0b2xlcmF0aW9ucyBvbiBjb250cm9sIHBsYW5lPC90ZXh0PgoKICA8dGV4dCB4PSI1NSIgeT0iMzU1IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5ObyBhcHAgdHJhY2VzPC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iMzU1IiBmaWxsPSIjQTc4QkZBIiBmb250LXNpemU9IjEyIj7ihpIgSW5qZWN0aW9uIHdlYmhvb2sgKyBuYW1lc3BhY2VTZWxlY3RvciBtYXRjaCBsYWJlbHM8L3RleHQ+CgogIDx0ZXh0IHg9IjU1IiB5PSIzODAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPlBhcnRpYWwgZGF0YTwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjM4MCIgZmlsbD0iI0E3OEJGQSIgZm9udC1zaXplPSIxMiI+4oaSIHRoZSBjbHVzdGVyJ3MgS3ViZXJuZXRlcyBtb25pdG9yaW5nIHNldHRpbmdzPC90ZXh0PgoKICA8dGV4dCB4PSI1NSIgeT0iNDA1IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5PcGVyYXRvciBDcmFzaExvb3A8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSI0MDUiIGZpbGw9IiNBNzhCRkEiIGZvbnQtc2l6ZT0iMTIiPuKGkiBPcGVyYXRvciBsb2dzICsgdG9rZW4gc2NvcGVzICsgUkJBQyBDbHVzdGVyUm9sZTwvdGV4dD4KCiAgPHRleHQgeD0iNTUiIHk9IjQzMCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+TG9ncyBtaXNzaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iNDMwIiBmaWxsPSIjQTc4QkZBIiBmb250LXNpemU9IjEyIj7ihpIgc3BlYy5sb2dNb25pdG9yaW5nOiB7fSArIHRlbXBsYXRlcy5sb2dNb25pdG9yaW5nIHJlc291cmNlczwvdGV4dD4KCiAgPHRleHQgeD0iNTUiIHk9IjQ1NSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsLW9wYWNpdHk9IjAuODUiPlBhaXIgd2l0aCBrdWJlY3RsICsgRFFMIGRpYWdub3N0aWNzIGluIMKnNiAvIMKnOSBvZiBLOFMtMDkuPC90ZXh0Pgo8L3N2Zz4K" alt="Troubleshooting Methodology" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action | Purpose |
+|------|--------|---------|
+| 1 | Identify symptom | What's wrong? |
+| 2 | Check status | Pods running? |
+| 3 | Review logs/events | Error messages |
+| 4 | Verify config | DynaKube YAML |
+| 5 | Test connectivity | curl endpoints |
+| 6 | Apply fix & validate | Fix, verify, document |
+For environments where SVG doesn't render
+-->
+<h3>Common Symptom Categories</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely Component</th>
+<th>Start Here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No cluster data</td>
+<td>ActiveGate</td>
+<td>Section 4</td>
+</tr>
+<tr>
+<td>No node/pod data</td>
+<td>OneAgent</td>
+<td>Section 3</td>
+</tr>
+<tr>
+<td>No app traces</td>
+<td>Injection</td>
+<td>Section 5</td>
+</tr>
+<tr>
+<td>Partial data</td>
+<td>Data collection</td>
+<td>Section 6</td>
+</tr>
+<tr>
+<td>Operator errors</td>
+<td>Operator</td>
+<td>Section 2</td>
+</tr>
+</tbody>
+</table>
+<h3>First Checks</h3>
+<pre><code class="language-bash"># DynaKube status
+kubectl -n dynatrace get dynakube
+
+# All Dynatrace pods
+kubectl -n dynatrace get pods
+
+# Recent events
+kubectl -n dynatrace get events --sort-by='.lastTimestamp' | tail -20
+</code></pre>
+<p><a id="operator-issues"></a></p>
+<h2>2. Operator Issues</h2>
+<h3>Operator Not Running</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>DynaKube CR shows no status</li>
+<li>OneAgent pods not created</li>
+</ul>
+<p><strong>Diagnostic:</strong></p>
+<pre><code class="language-bash"># Check operator deployment
+kubectl -n dynatrace get deployment dynatrace-operator
+
+# Check operator logs
+kubectl -n dynatrace logs -l app.kubernetes.io/name=dynatrace-operator --tail=100
+</code></pre>
+<p><strong>Common Causes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Missing CRDs</td>
+<td>Reinstall operator with Helm</td>
+</tr>
+<tr>
+<td>RBAC issues</td>
+<td>Check ServiceAccount permissions</td>
+</tr>
+<tr>
+<td>Resource limits</td>
+<td>Increase operator resources</td>
+</tr>
+<tr>
+<td>Webhook failure</td>
+<td>Check webhook certificates</td>
+</tr>
+</tbody>
+</table>
+<h3>DynaKube Stuck in Deploying</h3>
+<p><strong>Diagnostic:</strong></p>
+<pre><code class="language-bash"># Describe DynaKube
+kubectl -n dynatrace describe dynakube dynakube
+
+# Check conditions
+kubectl -n dynatrace get dynakube -o jsonpath='{.items[*].status.conditions}' | jq .
+</code></pre>
+<p><strong>Common Causes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Invalid API token</td>
+<td>Regenerate and update secret</td>
+</tr>
+<tr>
+<td>Network policy blocking</td>
+<td>Allow egress to Dynatrace</td>
+</tr>
+<tr>
+<td>Image pull failure</td>
+<td>Check pull secrets</td>
+</tr>
+</tbody>
+</table>
+<h3>Known Issues by Operator Version</h3>
+<p>Some failures are not configuration mistakes — they are known defects in specific Dynatrace Operator versions. Before deep-diving a symptom, check whether your Operator version falls in an affected window:</p>
+<table>
+<thead>
+<tr>
+<th>First affected</th>
+<th>Fixed / Mitigated</th>
+<th>Issue</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Not stated in the release notes</td>
+<td><strong>1.9.1</strong> and <strong>1.10.3</strong> (both released October 15, 2026 — adopt on your own schedule), and <strong>1.11.0</strong></td>
+<td><strong>CSI driver cleanup removes code modules still in use.</strong> The <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-3">Operator 1.10.3 release notes (DT docs)</a> say: <em>&quot;Fixed an issue where the CSI driver cleanup could delete OneAgent code module binaries still in use by running pods. Without this fix, a container restart (for example, after an out-of-memory termination) could leave the application without its OneAgent files, so the application would no longer be monitored.&quot;</em> The <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-1">1.9.1 (DT docs)</a> and <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">1.11.0 (DT docs)</a> release notes carry the same fix.</td>
+</tr>
+<tr>
+<td>1.9.0</td>
+<td><strong>Still open at 1.11.0</strong> — listed under <em>Known issues</em> in the 1.11.0 release notes; the fix is cluster-side</td>
+<td><strong>OpenShift only</strong> — the injected init container carries <code>seccompProfile: RuntimeDefault</code> by default from 1.9.0 (the <code>feature.dynatrace.com/init-container-seccomp-profile</code> flag flipped to <code>true</code>). Pods that previously ran under the <strong><code>anyuid</code></strong> SCC are rejected at admission with <code>Forbidden: seccomp may not be set</code> — before scheduling, with no Dynatrace component logging an error. This is not a defect being fixed in a later Operator: the default is unchanged through 1.10.2 (verified from the operator source at each tag, 08/27/2026), the 1.11.0 release notes still list it (<em>&quot;Since Dynatrace Operator 1.9.0, a RuntimeDefault seccomp profile is applied to the Dynatrace init container by default.&quot;</em>), and the flag that disables it was <strong>marked deprecated for removal</strong> at 1.10.2. The durable fix is a custom SCC that permits <code>runtime/default</code> seccomp for the affected workloads. <strong>FAQ-13</strong> covers admission mechanics, the SCC matrix, the custom-SCC manifest and the RBAC gotcha.</td>
+</tr>
+<tr>
+<td>1.10.1 and earlier</td>
+<td><strong>1.10.2</strong> (released July 30, 2026 — staged adoption; upgrade on your own schedule)</td>
+<td>Four defects fixed at once: (1) <strong>Kubernetes workload and namespace tagging regression</strong> — where several rules matched the same key, each later rule overwrote the previous one; from 1.10.2 <strong>only the first matching rule for a key applies</strong>, which is a <em>behaviour change</em>, not just a fix (see K8S-10). (2) <strong><code>dynatrace-webhook</code> <code>CrashLoopBackOff</code> on gVisor</strong> runtime-class nodes. (3) <strong>Injected pods hanging at startup</strong> when the OneAgent-binary download init container timed out — the timeout is now 15 minutes. (4) <strong>Metadata-enrichment rules that cannot be applied are now logged</strong> instead of being silently disregarded, so a rule that never took effect is finally visible.</td>
+</tr>
+<tr>
+<td>1.10.1 (OpenShift manifests)</td>
+<td>1.10.1 (corrected manifests re-uploaded 07/2026)</td>
+<td><strong>OpenShift only</strong> — on a fresh install, or an upgrade where the operator resource was deleted first, the operator pod hangs at <code>Init:0/1</code> and <code>dynatrace-webhook</code> pods stay <code>0/1</code>, waiting for a <code>dynatrace-webhook-certs</code> secret that is never created. Root cause is a bootstrap deadlock between the two Operator 1.10.x init containers: <strong><code>crd-storage-migrator</code></strong> waits for webhook readiness, the webhook waits for its cert secret, and the OpenShift manifest omitted the <strong><code>webhook-cert-generator</code></strong> init container that creates it. Vanilla-Kubernetes Helm and kubectl manifests ship it and are unaffected. <strong>Fix:</strong> re-download the corrected v1.10.1 OpenShift manifests and reinstall — there is no new Operator version. Interim: run the operator image's <code>certgen</code> command as a <code>Job</code> or <code>oc run</code> pod to create the secret and patch the webhook caBundle.</td>
+</tr>
+<tr>
+<td>1.10.0</td>
+<td>1.10.1</td>
+<td><strong>Auto-update failures</strong> across ActiveGate, CodeModule, and OneAgent, plus the <strong>OneAgent rollout integrity check hanging</strong> — a rollout that never completes rather than one that visibly fails. The 1.10.0 release notes themselves recommend skipping the release, and it is now flagged <strong><code>prerelease: true</code></strong> on the <a href="https://github.com/Dynatrace/dynatrace-operator/releases">GitHub releases page</a> — a structural signal you can check yourself before pinning. <strong>Fix:</strong> upgrade to 1.10.1.</td>
+</tr>
+<tr>
+<td>1.10.0</td>
+<td>1.10.1 (via feature flag)</td>
+<td><strong><code>classicFullstack</code> only</strong> — OneAgent fails TLS certificate verification when connecting through an <strong>in-cluster ActiveGate</strong>. <strong>Fix:</strong> upgrade to 1.10.1, which introduces the <code>feature.dynatrace.com/automatic-tls-certificate</code> feature flag on the DynaKube to restore automatic certificate handling. Do <strong>not</strong> confuse this with the 1.1.0 → 1.5.1 row below — see the note after the table.</td>
+</tr>
+<tr>
+<td>1.8.0</td>
+<td>1.8.1</td>
+<td>OpenShift OperatorHub-based install — Kubernetes API monitoring missing (1.8.1 shipped as a hotfix ten days after 1.8.0)</td>
+</tr>
+<tr>
+<td>1.3.0</td>
+<td>1.4.1 (mitigated)</td>
+<td>CSI driver pods crash frequently — liveness-probe failures under high simultaneous mount load (see below)</td>
+</tr>
+<tr>
+<td>1.1.0</td>
+<td>1.5.1</td>
+<td>OneAgent pods unable to validate the SSL certificate of a containerized ActiveGate after an Operator upgrade</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash"># Which Operator version am I running?
+kubectl -n dynatrace get deployment dynatrace-operator \
+  -o jsonpath='{.spec.template.spec.containers[0].image}'
+
+# Which init containers does the operator pod have? (maps an Init:0/1 hang to a diagnosis)
+kubectl -n dynatrace get pod -l app.kubernetes.io/name=dynatrace-operator \
+  -o jsonpath='{.items[*].spec.initContainers[*].name}'
+</code></pre>
+<blockquote>
+<p><strong>Two different ActiveGate-certificate failures — pick the right row.</strong> The table has two entries whose <em>symptom</em> is identical (&quot;OneAgent cannot validate the certificate of a containerized ActiveGate&quot;), and routing to the wrong one wastes a triage cycle:</p>
+<table>
+<thead>
+<tr>
+<th>You are on</th>
+<th>Deployment mode</th>
+<th>Row that applies</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.1.0 – 1.5.0</td>
+<td>any</td>
+<td>1.1.0 → 1.5.1</td>
+<td>Upgrade to 1.5.1 or later</td>
+</tr>
+<tr>
+<td>1.10.0</td>
+<td><code>classicFullstack</code> with an in-cluster ActiveGate</td>
+<td>1.10.0 → 1.10.1</td>
+<td>Upgrade to 1.10.1 and set <code>feature.dynatrace.com/automatic-tls-certificate</code></td>
+</tr>
+</tbody>
+</table>
+<p>A reader on 1.10.x who matches on symptom alone lands on the 1.5.1 fix, which does not cover them — they are already far past 1.5.1. Check your Operator version <em>and</em> your <code>spec.oneAgent</code> mode before acting.</p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> The <a href="https://community.dynatrace.com/t/kubernetes-openshift-troubleshooting-map/49142">Kubernetes/OpenShift troubleshooting map (Dynatrace community)</a> maintains this known-issues list as new Operator versions ship — check it alongside the <a href="https://github.com/Dynatrace/dynatrace-operator/releases">Operator releases (Dynatrace GitHub)</a> when triaging a failure that appeared right after an upgrade.</p>
+</blockquote>
+<blockquote>
+<p><strong>OpenShift <code>Init:0/1</code> on 1.10.1:</strong> a fresh-install or operator-deleted-upgrade hang where the operator sits at <code>Init:0/1</code> and the webhook waits for its cert secret is the 1.10.1 manifest defect in the table above — <strong>re-pull the OpenShift manifests before any deeper triage.</strong> Details and the <code>certgen</code> workaround: <a href="https://community.dynatrace.com/t5/Heads-up-from-Dynatrace/Resolved-Unable-to-deploy-Operator-1-10-1-on-fresh-clusters-or/ta-p/302391">Heads-up: Unable to deploy Operator 1.10.1 on fresh clusters (Dynatrace community — requires sign-in)</a>.</p>
+</blockquote>
+<h3>CSI Driver Crash Loops Under High Mount Load</h3>
+<p>On Operator 1.3.0+, clusters with a large number of simultaneous volume mounts per node (typically high pod density) can drive the CSI driver <code>server</code> container into a liveness-probe crash loop. Symptoms: high system load, high kubelet CPU, pods waiting on volume provisioning, <code>FailedMount</code> events referencing a missing <code>csi.sock</code>, and the CSI driver pod restarting with back-off.</p>
+<p>Mitigations, in order of preference:</p>
+<ol>
+<li><strong>Upgrade the Operator to 1.4.1 or later</strong> — the liveness-probe parameters were adjusted to tolerate mount-storm load.</li>
+<li><strong>Raise (or remove) the CSI <code>server</code> container resource limits</strong> via Helm values:</li>
+</ol>
+<pre><code class="language-yaml">csidriver:
+  server:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 200Mi
+      limits:
+        cpu: 1000m
+        memory: 200Mi
+</code></pre>
+<ol start="3">
+<li><strong>Tune the liveness-probe timeouts</strong> directly on the <code>dynatrace-oneagent-csi-driver</code> DaemonSet (<code>initialDelaySeconds: 15</code>, <code>periodSeconds: 15</code>, <code>timeoutSeconds: 10</code>, and <code>--probe-timeout=9s</code> on the liveness-probe container). Helm does not expose these — GitOps setups need a post-renderer.</li>
+<li><strong>Disable the liveness probe</strong> — last resort only; not recommended.</li>
+</ol>
+<p>Alternatively, reduce simultaneous mounts by lowering max pods per node. If none of this resolves it, collect a support archive (Section 8) and open a support ticket.</p>
+<p><a id="oneagent-issues"></a></p>
+<h2>3. OneAgent Issues</h2>
+<h3>OneAgent Pods Not Starting</h3>
+<p><strong>Diagnostic:</strong></p>
+<pre><code class="language-bash"># Check DaemonSet
+kubectl -n dynatrace get daemonset -l app.kubernetes.io/component=oneagent
+
+# Check pods
+kubectl -n dynatrace get pods -l app.kubernetes.io/component=oneagent -o wide
+
+# Describe failing pod
+kubectl -n dynatrace describe pod &lt;oneagent-pod-name&gt;
+</code></pre>
+<p><strong>Common Causes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tolerations missing</td>
+<td>Add tolerations to DynaKube</td>
+</tr>
+<tr>
+<td>Node selector mismatch</td>
+<td>Update node selectors</td>
+</tr>
+<tr>
+<td>Resource unavailable</td>
+<td>Check node resources</td>
+</tr>
+<tr>
+<td>Security context denied</td>
+<td>Configure PSP/PSS</td>
+</tr>
+</tbody>
+</table>
+<h3>OneAgent Not Reporting</h3>
+<p><strong>Diagnostic:</strong></p>
+<pre><code class="language-bash"># Check OneAgent logs
+kubectl -n dynatrace logs &lt;oneagent-pod&gt; -c oneagent --tail=100
+
+# Check connectivity
+kubectl -n dynatrace exec &lt;oneagent-pod&gt; -c oneagent -- curl -v https://&lt;tenant&gt;.live.dynatrace.com/api/v1/deployment/installer/agent/connectioninfo
+</code></pre>
+<p><strong>Common Causes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Firewall blocking</td>
+<td>Allow egress port 443</td>
+</tr>
+<tr>
+<td>Proxy misconfiguration</td>
+<td>Set proxy in DynaKube</td>
+</tr>
+<tr>
+<td>Certificate issues</td>
+<td>Check custom CA config</td>
+</tr>
+</tbody>
+</table>
+<p><a id="activegate-issues"></a></p>
+<h2>4. ActiveGate Issues</h2>
+<h3>ActiveGate Not Starting</h3>
+<p><strong>Diagnostic:</strong></p>
+<pre><code class="language-bash"># Check StatefulSet
+kubectl -n dynatrace get statefulset -l app.kubernetes.io/component=activegate
+
+# Check pods
+kubectl -n dynatrace get pods -l app.kubernetes.io/component=activegate
+
+# Check logs
+kubectl -n dynatrace logs &lt;activegate-pod&gt; --tail=100
+</code></pre>
+<p><strong>Common Causes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Memory too low</td>
+<td>Increase resources in DynaKube</td>
+</tr>
+<tr>
+<td>PVC issues</td>
+<td>Check storage class</td>
+</tr>
+<tr>
+<td>Token invalid</td>
+<td>Regenerate API token</td>
+</tr>
+</tbody>
+</table>
+<h3>No Kubernetes Metrics</h3>
+<p><strong>Diagnostic:</strong></p>
+<pre><code class="language-bash"># Check capabilities
+kubectl -n dynatrace get dynakube -o jsonpath='{.items[*].spec.activeGate.capabilities}'
+
+# Should include: kubernetes-monitoring
+</code></pre>
+<p><strong>Resolution:</strong> Ensure <code>kubernetes-monitoring</code> capability is enabled:</p>
+<pre><code class="language-yaml">spec:
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+      - routing
+</code></pre>
+<p><a id="injection-issues"></a></p>
+<h2>5. Injection Issues</h2>
+<h3>Pods Not Getting Injected</h3>
+<p><strong>Diagnostic:</strong></p>
+<pre><code class="language-bash"># Check namespace labels
+kubectl get namespace &lt;namespace&gt; -o jsonpath='{.metadata.labels}'
+
+# Check pod annotations
+kubectl get pod &lt;pod&gt; -o jsonpath='{.metadata.annotations}'
+
+# Check webhook
+kubectl get mutatingwebhookconfigurations
+</code></pre>
+<p><strong>Common Causes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Namespace not selected</td>
+<td>Add matching labels</td>
+</tr>
+<tr>
+<td>Pod has opt-out annotation</td>
+<td>Remove annotation</td>
+</tr>
+<tr>
+<td>Webhook not registered</td>
+<td>Restart operator</td>
+</tr>
+<tr>
+<td>Code modules not delivered</td>
+<td>With the CSI driver: check the <code>dynatrace-oneagent-csi-driver</code> pod on that node. With image volumes (Operator 1.11.0+): check the node meets the Kubernetes 1.35+ and runtime requirements. Otherwise check the init container's download (ephemeral storage)</td>
+</tr>
+</tbody>
+</table>
+<h3>Check Injection Status</h3>
+<pre><code class="language-bash"># Check if init container present
+kubectl get pod &lt;pod&gt; -o jsonpath='{.spec.initContainers[*].name}'
+
+# Check environment variables
+kubectl exec &lt;pod&gt; -c &lt;container&gt; -- env | grep DT_
+</code></pre>
+<h3>Namespace Selector Debugging</h3>
+<p>The selector sits inside the injection mode, not at the top of <code>spec</code>:</p>
+<pre><code class="language-bash"># DynaKube selector (cloudNativeFullStack or applicationMonitoring)
+kubectl -n dynatrace get dynakube -o jsonpath='{.items[*].spec.oneAgent.cloudNativeFullStack.namespaceSelector}'
+kubectl -n dynatrace get dynakube -o jsonpath='{.items[*].spec.oneAgent.applicationMonitoring.namespaceSelector}'
+
+# Label a namespace with whatever key/value that selector matches
+kubectl label namespace &lt;namespace&gt; &lt;key&gt;=&lt;value&gt;
+</code></pre>
+<p>An empty result from both means no selector is set, and every namespace is in scope.</p>
+<h3>Documented Injection-Skip Reason Annotations</h3>
+<p>When the webhook skips injection it stamps the pod with <code>oneagent.dynatrace.com/injected: &quot;false&quot;</code> (likewise <code>metadata-enrichment.dynatrace.com/injected</code> and <code>otlp-exporter-configuration.dynatrace.com/injected</code>) plus a companion <code>reason</code> annotation. Read them with <code>kubectl describe pod &lt;pod&gt; -n &lt;namespace&gt;</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Reason</th>
+<th>Meaning</th>
+<th>Typical Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NoBootstrapperConfig</code></td>
+<td>Webhook can't find or create the bootstrapper config Secret in the pod's namespace</td>
+<td>Incomplete DynaKube reconciliation — check DynaKube status and operator logs</td>
+</tr>
+<tr>
+<td><code>MissingTenantUUID</code></td>
+<td>DynaKube reconciliation incomplete; environment UUID not yet verified</td>
+<td>Wait for / fix reconciliation (token, connectivity)</td>
+</tr>
+<tr>
+<td><code>DynaKubeStatusNotReady</code></td>
+<td>CodeModules status not ready — webhook can't determine which CodeModule to inject</td>
+<td>Check DynaKube conditions; verify tenant connectivity</td>
+</tr>
+<tr>
+<td><code>OwnerLookupFailed</code></td>
+<td>Webhook can't determine the pod owner (name and kind)</td>
+<td>Usually transient — Kubernetes API temporarily unreachable or slow; re-create the pod</td>
+</tr>
+<tr>
+<td><code>NoOTLPExporterConfigSecret</code></td>
+<td>Webhook can't find or create the OTLP exporter configuration Secret</td>
+<td>Incomplete reconciliation or configuration preventing Secret creation</td>
+</tr>
+<tr>
+<td><code>IngestEndpointUnavailable</code></td>
+<td>Webhook can't construct a valid ingest endpoint URL at injection time</td>
+<td>Check DynaKube <code>apiUrl</code> and tenant connectivity</td>
+</tr>
+</tbody>
+</table>
+<p><a id="data-collection-issues"></a></p>
+<h2>6. Data Collection Issues</h2>
+<h3>Missing Metrics</h3>
+<p><strong>Diagnostic Steps:</strong></p>
+<ol>
+<li>Verify entity exists in Dynatrace</li>
+<li>Check metric availability for entity type</li>
+<li>Verify time range includes data</li>
+<li>Check for filtering issues</li>
+</ol>
+<pre><code class="language-dql">// Verify Kubernetes entities are being discovered (smartscape topology)
+smartscapeNodes &quot;K8S_CLUSTER&quot;
+| fields entity.name = name, lifetime
+| sort lifetime desc
+
+// Legacy alternative (deprecated for new content):
+// fetch dt.entity.kubernetes_cluster
+// | fields entity.name, lifetime
+// | sort lifetime desc
+
+</code></pre>
+<pre><code class="language-dql">// Check if container metrics are flowing
+timeseries cpu = avg(dt.kubernetes.container.cpu_usage), from:-1h
+| limit 1
+</code></pre>
+<pre><code class="language-dql">// Check if logs are being ingested
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.namespace.name)
+| summarize logCount = count()
+</code></pre>
+<h3>Missing Logs</h3>
+<p><strong>Diagnostic:</strong></p>
+<pre><code class="language-bash"># Is log monitoring configured on the DynaKube? (spec.logMonitoring)
+kubectl -n dynatrace get dynakube -o jsonpath='{.items[*].spec.logMonitoring}'
+
+# Verify OneAgent log collection
+kubectl -n dynatrace exec &lt;oneagent-pod&gt; -c oneagent -- cat /var/lib/dynatrace/oneagent/log/oneagent.log | tail -50
+</code></pre>
+<p><strong>Common Causes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spec.logMonitoring</code> not set</td>
+<td>Add <code>spec.logMonitoring: {}</code> (K8S-07 § 3)</td>
+</tr>
+<tr>
+<td>Application logs to a file, not stdout/stderr</td>
+<td>The Log modules read stdout/stderr only — use a forwarder or custom log source</td>
+</tr>
+<tr>
+<td>Log volume too high</td>
+<td>Configure sampling/filtering</td>
+</tr>
+<tr>
+<td>Log format unsupported</td>
+<td>Configure custom parsing</td>
+</tr>
+</tbody>
+</table>
+<p><a id="connectivity-issues"></a></p>
+<h2>7. Connectivity Issues</h2>
+<h3>Testing Connectivity</h3>
+<pre><code class="language-bash"># From OneAgent pod
+kubectl -n dynatrace exec &lt;oneagent-pod&gt; -c oneagent -- \
+  curl -v https://&lt;tenant&gt;.live.dynatrace.com/api/v1/time
+
+# From ActiveGate pod
+kubectl -n dynatrace exec &lt;activegate-pod&gt; -- \
+  curl -v https://&lt;tenant&gt;.live.dynatrace.com/api/v1/time
+</code></pre>
+<h3>Network Policy Issues</h3>
+<pre><code class="language-yaml"># Allow Dynatrace egress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dynatrace-egress
+  namespace: dynatrace
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+</code></pre>
+<h3>Proxy Configuration</h3>
+<pre><code class="language-yaml">spec:
+  proxy:
+    value: https://proxy.example.com:8080
+  # Or use a secret
+  # proxy:
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: proxy-secret
+  #       key: proxy
+</code></pre>
+<p><a id="diagnostic-commands"></a></p>
+<h2>8. Diagnostic Commands</h2>
+<h3>Quick Health Check</h3>
+<pre><code class="language-bash">#!/bin/bash
+# dynatrace-health-check.sh
+
+echo &quot;=== DynaKube Status ===&quot;
+kubectl -n dynatrace get dynakube
+
+echo &quot;\n=== Dynatrace Pods ===&quot;
+kubectl -n dynatrace get pods
+
+echo &quot;\n=== OneAgent DaemonSet ===&quot;
+kubectl -n dynatrace get daemonset -l app.kubernetes.io/component=oneagent
+
+echo &quot;\n=== ActiveGate StatefulSet ===&quot;
+kubectl -n dynatrace get statefulset -l app.kubernetes.io/component=activegate
+
+echo &quot;\n=== Recent Events ===&quot;
+kubectl -n dynatrace get events --sort-by='.lastTimestamp' | tail -10
+</code></pre>
+<h3>Collect a Support Archive (Official Subcommand)</h3>
+<p>The Operator ships a built-in <code>support-archive</code> subcommand that packages version info, logs from all Dynatrace components (OneAgent, ActiveGate, webhook, CSI driver), Kubernetes manifests for operator components and DynaKubes, and troubleshoot output into a single zip — this is what Dynatrace support asks for:</p>
+<pre><code class="language-bash">kubectl exec -n dynatrace deployment/dynatrace-operator -- \
+  dynatrace-operator support-archive --stdout &gt; operator-support-archive.zip
+</code></pre>
+<p>If the operator pod itself won't start, run the archive from a standalone pod using the operator's ServiceAccount and image:</p>
+<pre><code class="language-bash">kubectl run -n dynatrace support-archive --rm -i \
+  --overrides='{ &quot;spec&quot;: { &quot;serviceAccount&quot;: &quot;dynatrace-operator&quot; } }' \
+  --restart Never --image &lt;operator-image&gt; -- \
+  support-archive --delay 10 --stdout &gt; support-archive.zip
+</code></pre>
+<h3>Collect Support Bundle (Manual Fallback)</h3>
+<pre><code class="language-bash"># Create support bundle
+mkdir dynatrace-debug
+cd dynatrace-debug
+
+# DynaKube
+kubectl -n dynatrace get dynakube -o yaml &gt; dynakube.yaml
+
+# Pods
+kubectl -n dynatrace get pods -o yaml &gt; pods.yaml
+
+# Events
+kubectl -n dynatrace get events &gt; events.txt
+
+# Operator logs
+kubectl -n dynatrace logs -l app.kubernetes.io/name=dynatrace-operator &gt; operator.log
+
+# OneAgent logs (one pod)
+kubectl -n dynatrace logs $(kubectl -n dynatrace get pods -l app.kubernetes.io/component=oneagent -o jsonpath='{.items[0].metadata.name}') -c oneagent &gt; oneagent.log
+
+# Package
+cd ..
+tar -czf dynatrace-debug.tar.gz dynatrace-debug/
+</code></pre>
+<h3>Common kubectl Commands</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kubectl -n dynatrace get all</code></td>
+<td>All resources</td>
+</tr>
+<tr>
+<td><code>kubectl -n dynatrace describe dynakube</code></td>
+<td>DynaKube details</td>
+</tr>
+<tr>
+<td><code>kubectl -n dynatrace logs &lt;pod&gt;</code></td>
+<td>Pod logs</td>
+</tr>
+<tr>
+<td><code>kubectl -n dynatrace exec -it &lt;pod&gt; -- sh</code></td>
+<td>Shell access</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dql-diagnostics"></a></p>
+<h2>9. DQL-Based Diagnostics</h2>
+<p>Complement kubectl diagnostics with DQL queries that detect Dynatrace component issues across your cluster fleet.</p>
+<blockquote>
+<p><strong>Query Kubernetes events on <code>event.provider</code>, not <code>event.kind</code>.</strong> Kubernetes events land in the <code>events</code> object carrying <code>event.kind == &quot;DAVIS_EVENT&quot;</code> — the same kind as everything else Davis emits — so <em>kind</em> cannot discriminate them. The working discriminator is <strong><code>event.provider == &quot;KUBERNETES_EVENT&quot;</code></strong>, and the reason lives in <strong><code>dt.kubernetes.event.reason</code></strong> (<code>k8s.event.reason</code> resolves but is null on every record). A filter on <code>event.kind == &quot;K8S_EVENT&quot;</code> is syntactically valid, executes, and returns nothing — which during triage reads as &quot;no failures,&quot; the most expensive possible wrong answer. Verified against a live tenant 08/11/2026.</p>
+</blockquote>
+<h3>Common Failure Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Symptoms</th>
+<th>Detection Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CSI Volume Timeout</strong></td>
+<td>Pods stuck in ContainerCreating</td>
+<td><code>dt.kubernetes.event.reason == &quot;FailedMount&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Injection Failure</strong></td>
+<td>Missing init container</td>
+<td><code>dt.kubernetes.event.reason</code> in <code>Failed</code> / <code>InspectFailed</code>, namespace <code>dynatrace</code></td>
+</tr>
+<tr>
+<td><strong>ActiveGate scheduling failure</strong></td>
+<td>AG never starts, data gaps</td>
+<td><code>dt.kubernetes.event.reason == &quot;FailedScheduling&quot;</code></td>
+</tr>
+<tr>
+<td><strong>OneAgent CrashLoop</strong></td>
+<td>Incomplete monitoring</td>
+<td><code>dt.kubernetes.event.reason == &quot;BackOff&quot;</code> (<code>CrashLoopBackOff</code> appears in <code>.message</code>)</td>
+</tr>
+<tr>
+<td><strong>OOM kill</strong></td>
+<td>AG/OA restarts, data gaps</td>
+<td><code>dt.kubernetes.container.oom_kills</code> metric — no reliable event reason</td>
+</tr>
+<tr>
+<td><strong>ActiveGate gone quiet</strong></td>
+<td>Stale data, no updates</td>
+<td><code>smartscapeNodes &quot;ACTIVEGATE&quot;</code> whose last-seen time is older than two hours (query below)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Detect Dynatrace component failures in the last 24h
+// One open event is re-written about every 5 min under the same event.id, so it can repeat here.
+// Discriminator is event.provider == &quot;KUBERNETES_EVENT&quot; — NOT event.kind, which
+// carries &quot;DAVIS_EVENT&quot; on these records and never takes a &quot;K8S_EVENT&quot; value.
+// The reason field is dt.kubernetes.event.reason; k8s.event.reason is null throughout.
+fetch events, from:-24h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter k8s.namespace.name == &quot;dynatrace&quot;
+| filter in(dt.kubernetes.event.reason,
+    {&quot;Failed&quot;, &quot;FailedMount&quot;, &quot;FailedScheduling&quot;, &quot;BackOff&quot;, &quot;Killing&quot;, &quot;Unhealthy&quot;, &quot;InspectFailed&quot;})
+| fields timestamp, k8s.cluster.name, k8s.workload.name,
+         dt.kubernetes.event.reason,
+         dt.kubernetes.event.involved_object.name,
+         dt.kubernetes.event.message
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// ActiveGates that stopped reporting — last seen more than 2 h ago
+// Uses Smartscape node lifetimes (no bytes scanned). from:-7d is required: without it only nodes
+// seen in the default window are returned, so a long-silent ActiveGate is invisible.
+// A re-created ActiveGate pod gets a new node with the same name, so group by name and take the
+// latest last-seen time — a name with a current instance drops out.
+// This replaces a dt.davis.events filter on &quot;ACTIVEGATE&quot; / &quot;AGENT_CONNECTION&quot; event types, which
+// matched nothing over 30 days on the validation tenant (10/02/2026): no such event types exist there.
+smartscapeNodes &quot;ACTIVEGATE&quot;, from:-7d
+| summarize {lastSeen = max(lifetime[end]), instances = count()}, by:{name}
+| filter lastSeen &lt; now() - 2h
+| sort lastSeen desc
+</code></pre>
+<pre><code class="language-dql">// Hosts with gaps in CPU reporting (OneAgent interruptions)
+// arraySize counts empty buckets too, so count only the non-null ones.
+timeseries hostCpu = avg(dt.host.cpu.usage), from:-6h, by:{dt.entity.host}
+| fieldsAdd buckets = arraySize(hostCpu), reported = arraySize(arrayRemoveNulls(hostCpu))
+| fieldsAdd completeness = round(100.0 * reported / buckets, decimals: 1)
+| filter completeness &lt; 95.0
+| fieldsAdd hostName = entityName(dt.entity.host, type:&quot;dt.entity.host&quot;)
+| fields hostName, completeness, reported, buckets
+| sort completeness asc
+// A host that stopped reporting entirely drops out of timeseries altogether —
+// cross-check smartscapeNodes &quot;HOST&quot; for hosts with no series.
+</code></pre>
+<p><a id="symptom-resolution-index"></a></p>
+<h2>10. Symptom-to-Resolution Index</h2>
+<p>The Dynatrace community maintains a curated <a href="https://community.dynatrace.com/t/kubernetes-openshift-troubleshooting-map/49142">Kubernetes/OpenShift troubleshooting map (Dynatrace community)</a> — a living index of exact error messages mapped to resolution articles, kept current by Dynatrace staff. The tables below index the most load-bearing entries by the error text you will actually see; use the map itself for the full, growing list. (A few entries live on the <em>Heads-up from Dynatrace</em> board, which requires community sign-in.)</p>
+<h3>Deployment and Startup</h3>
+<table>
+<thead>
+<tr>
+<th>Error / Symptom</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CrashLoopBackOff: Downgrading OneAgent is not supported, please uninstall the old version first</code></td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/CrashLoopBackOff-Downgrading-OneAgent-is-not-supported-uninstall/ta-p/230199">Downgrading OneAgent (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Crash loop on pods when installing OneAgent</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Crash-loop-on-pods-when-installing-OneAgent/ta-p/230200">Crash loop on install (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Deployment succeeded but <code>dynatrace-oneagent</code> container not ready / not running / no meaningful logs / image can't be pulled</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Deployment-seems-successful-but-the-dynatrace-oneagent-container/ta-p/230201">&quot;Deployment seems successful, but…&quot; family (Dynatrace community)</a> — sibling articles cover each variant</td>
+</tr>
+<tr>
+<td><code>ImagePullBackOff</code> on OneAgent / ActiveGate pods</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/ImagePullBackoff-error-on-OneAgent-and-ActiveGate-pods/ta-p/230212">ImagePullBackoff (Dynatrace community)</a>; on Kubernetes 1.35+ with a private registry, <em>&quot;the kubelet verifies pull credentials per pod, even for images already cached on the node&quot;</em>, so injected pods without their own pull secret fail with <code>ImagePullBackOff</code> — see <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/use-private-registry">Use a private registry (DT docs)</a> and ONBRD-05 §5</td>
+</tr>
+<tr>
+<td><code>CannotPullContainerError</code></td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/CannotPullContainerError/ta-p/230208">CannotPullContainerError (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>No Dynatrace pods scheduled on control-plane nodes</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/No-pods-scheduled-on-control-plane-nodes/ta-p/230206">Control-plane taints/tolerations (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Error applying the DynaKube custom resource on GKE</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Error-when-applying-the-custom-resource-on-GKE/ta-p/230207">GKE custom resource error (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Pods stuck in <code>Terminating</code> after an upgrade</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Pods-stuck-in-Terminating-state-after-upgrade/ta-p/230197">Pods stuck terminating (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>OneAgent / CSI pod count doesn't match node count</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Dynatrace-Operator-Having-a-different-number-of-OA-CSI-pods-than/ta-p/262171">OA/CSI pod count mismatch (Dynatrace community)</a></td>
+</tr>
+</tbody>
+</table>
+<h3>Connectivity and Authentication</h3>
+<table>
+<thead>
+<tr>
+<th>Error / Symptom</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>There was an error with the TLS handshake</code></td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/There-was-an-error-with-the-TLS-handshake/ta-p/230213">TLS handshake (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td><code>Invalid bearer token</code></td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Invalid-bearer-token/ta-p/230214">Invalid bearer token (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Problem with ActiveGate token</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Problem-with-ActiveGate-token/ta-p/230211">ActiveGate token (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td><code>Internal error occurred: failed calling webhook (…) x509: certificate signed by unknown authority</code></td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Internal-error-occurred-failed-calling-webhook-x509-certificate/ta-p/230216">Webhook x509 certificate (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td><code>Could not check credentials. Process is started by other user</code></td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Could-not-check-credentials-Process-is-started-by-other-user/ta-p/230215">Credentials / process user (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>OneAgent unable to connect when Istio is enabled</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/OneAgent-unable-to-connect-when-using-Istio/ta-p/230217">OneAgent + Istio connectivity (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Dynatrace Kubernetes service missing / creation fails with Istio enabled</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Dynatrace-Service-could-be-missing-when-Istio-is-enabled/ta-p/233608">Istio service creation (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Connectivity issues with Calico network policies</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Connectivity-issues-when-using-Calico/ta-p/230218">Calico connectivity (Dynatrace community)</a></td>
+</tr>
+</tbody>
+</table>
+<h3>Injection</h3>
+<table>
+<thead>
+<tr>
+<th>Error / Symptom</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cloud Native Full-Stack pods not injected — systematic validation walkthrough</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Dynatrace-Operator-Cloud-Native-Full-Stack-Pod-Injection/ta-p/264697">CNFS pod injection validation (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Application pods can't start post-injection</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Application-pods-can-t-start-post-injection-with-quot/ta-p/273048">Pods can't start post-injection (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>OpenShift: injected pods rejected at admission (seccomp × SCC)</td>
+<td>FAQ-13 — Dynatrace injection and OpenShift SCCs</td>
+</tr>
+<tr>
+<td><code>MountVolume</code> error migrating Classic Full-Stack → Cloud Native Full-Stack</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/MountVolume-Error-while-migrating-from-ClassicFullstack-to/ta-p/260612">CFS→CNFS MountVolume error (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Injection skipped with a <code>reason</code> annotation</td>
+<td>Section 5 above — documented reason codes</td>
+</tr>
+</tbody>
+</table>
+<h3>Data Gaps and Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Error / Symptom</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deployment successful but no monitoring data in Dynatrace</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Deployment-was-successful-but-monitoring-data-isn-t-available-in/ta-p/230205">No monitoring data (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Gaps in cluster monitoring after changing Kubernetes settings</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Why-are-there-gaps-in-Kubernetes-monitoring-of-a-cluster-after-I/ta-p/232510">Gaps after settings change (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Node memory usage reported greater than memory limits</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Kubernetes-Node-memory-usage-is-greater-than-memory-limits/ta-p/241886">Node memory vs limits (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>PVC metrics not showing data</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Troubleshooting-PVC-not-showing-data/ta-p/245026">PVC not showing data (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>&quot;Monitoring not available&quot; problem on an inactive cluster</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Monitoring-not-available-problem-for-inactive-Kubernetes-cluster/ta-p/262296">Inactive cluster (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Which dashboards / alerts / SLOs still use deprecated Kubernetes metrics?</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Which-of-my-custom-dashboards-custom-alerts-and-SLOs-use/ta-p/198098">Deprecated K8s metrics audit (Dynatrace community)</a></td>
+</tr>
+</tbody>
+</table>
+<h3>Prometheus Annotation Scraping</h3>
+<table>
+<thead>
+<tr>
+<th>Error / Symptom</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Excluded Prometheus metrics still fetched by ActiveGate</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/Excluded-Prometheus-metrics-are-still-fetched-by-ActiveGate/ta-p/262203">Excluded metrics still fetched (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td>Prometheus metrics missing</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/How-to-troubleshoot-missing-Prometheus-metrics/ta-p/211379">Missing Prometheus metrics (Dynatrace community)</a></td>
+</tr>
+<tr>
+<td><code>Counter metric cache limit exceeded</code> warning in ActiveGate logs</td>
+<td><a href="https://community.dynatrace.com/t5/Troubleshooting/A-warning-message-quot-Counter-metric-cache-limit-exceeded-quot/ta-p/264981">Counter metric cache limit (Dynatrace community)</a></td>
+</tr>
+</tbody>
+</table>
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Systematic troubleshooting methodology</li>
+<li>Operator debugging and common issues</li>
+<li>OneAgent troubleshooting steps</li>
+<li>ActiveGate diagnostics</li>
+<li>Code injection debugging</li>
+<li>Data collection issue resolution</li>
+<li>Connectivity testing and network policy configuration</li>
+<li>Diagnostic commands and the official Operator support-archive subcommand</li>
+<li>A symptom-to-resolution index built on the community troubleshooting map</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/troubleshooting">Operator + DynaKube troubleshooting (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Set up Dynatrace on Kubernetes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/how-it-works">How K8s monitoring works (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Davis Problems app (DT docs)</a></li>
+<li><a href="https://community.dynatrace.com/t/kubernetes-openshift-troubleshooting-map/49142">Kubernetes/OpenShift troubleshooting map (Dynatrace community)</a></li>
+<li><a href="https://github.com/Dynatrace/dynatrace-operator/releases">Dynatrace Operator releases (Dynatrace GitHub)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2">Operator 1.10.2 release notes (DT docs)</a></li>
+<li><a href="https://community.dynatrace.com/t5/Troubleshooting/Kubernetes-Operator-CSI-driver-crashes-frequently/ta-p/272021">Kubernetes Operator CSI driver crashes frequently (Dynatrace community)</a></li>
+<li><a href="https://community.dynatrace.com/t5/Troubleshooting/Dynatrace-Operator-Cloud-Native-Full-Stack-Pod-Injection/ta-p/264697">Cloud Native Full-Stack pod injection validation (Dynatrace community)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

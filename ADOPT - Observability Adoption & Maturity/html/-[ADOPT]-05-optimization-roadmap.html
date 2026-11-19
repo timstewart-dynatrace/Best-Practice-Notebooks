@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADOPT-05: Optimization Roadmap</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ADOPT — Observability Adoption &amp; Maturity</a><span class="sep">/</span><span aria-current="page">ADOPT-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ADOPT-05: Optimization Roadmap</h1>
+<blockquote>
+<p><strong>Series:</strong> ADOPT — Observability Adoption &amp; Maturity | <strong>Notebook:</strong> 5 of 6 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/12/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>An optimization roadmap translates maturity assessment results and success metrics into a prioritized plan of action. This notebook covers monthly milestone planning, the distinction between quick wins and strategic investments, cost optimization opportunities (bucket management, sampling, retention tuning), automation candidates, and methods for measuring the return on observability investment. The roadmap framework is designed to be adapted to any organization's size and pace.</p>
+<blockquote>
+<p><strong>OneAgent primary-field enrichment (OneAgent 1.333+):</strong> OneAgent can enrich telemetry at the source — metrics, spans, logs, events and entities — with the primary Grail fields <code>dt.security_context</code>, <code>dt.cost.costcenter</code> and <code>dt.cost.product</code>, and with primary tags such as <code>primary_tags.environment</code>. The values travel with the data into OpenPipeline routing, bucket assignment and record-level permissions, with no processing rule needed. Set them at install time or on an existing host with <code>--set-host-tag</code> (for example <code>oneagentctl --set-host-tag=&quot;dt.cost.costcenter=12345&quot;</code>), or per process with <code>DT_TAGS</code>. See <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent (DT docs)</a>.</p>
+</blockquote>
+<h3>Dynatrace Version Support Policy</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Standard Support</th>
+<th>Enterprise Support</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>9 months</td>
+<td>12 months</td>
+</tr>
+<tr>
+<td><strong>ActiveGate</strong></td>
+<td>9 months</td>
+<td>12 months</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Operator</strong></td>
+<td>Independent release cycle — check <a href="https://docs.dynatrace.com/docs/whats-new">release notes</a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Support periods start on each version's release date, so an agent fleet ages out of support even if nothing changes.</p>
+<h3>Capability Support Statuses</h3>
+<p>The OneAgent platform and capability support matrix labels each capability with one of these statuses (quoted from the matrix legend):</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GA</strong></td>
+<td>&quot;Generally available and fully supported.&quot;</td>
+</tr>
+<tr>
+<td><strong>Preview</strong></td>
+<td>&quot;Preview features aren't production-ready and they aren't officially supported.&quot;</td>
+</tr>
+<tr>
+<td><strong>Future</strong></td>
+<td>&quot;A feature or technology support that is either on the roadmap or may be considered on-demand.&quot;</td>
+</tr>
+<tr>
+<td><strong>Not planned</strong></td>
+<td>&quot;A feature or technology support that Dynatrace does not currently plan to pursue.&quot;</td>
+</tr>
+</tbody>
+</table>
+<p>Do not build a production roadmap item on a Preview capability.</p>
+<h3>Third-Party Technology EOL Policy</h3>
+<p>&quot;Dynatrace typically supports technologies and their versions six months longer than the vendor to give you enough time to upgrade your environment.&quot; &quot;End of support announcements are provided six months in advance.&quot;</p>
+<blockquote>
+<p><strong>Reference:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/technology-support/oneagent-platform-and-capability-support-matrix">OneAgent platform and capability support matrix</a> | <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End-of-Support Announcements</a> | <a href="https://www.dynatrace.com/company/trust-center/support-policy/">Support Policy</a></p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#roadmap-principles">Roadmap Planning Principles</a></li>
+<li><a href="#quick-wins">Quick Wins — Month 1</a></li>
+<li><a href="#foundation-building">Foundation Building — Months 2-3</a></li>
+<li><a href="#strategic-investments">Strategic Investments — Months 4-6</a></li>
+<li><a href="#cost-optimization">Cost Optimization Opportunities</a></li>
+<li><a href="#automation-candidates">Automation Candidates</a></li>
+<li><a href="#measuring-roi">Measuring ROI of Observability</a></li>
+<li><a href="#summary">Summary and Series Conclusion</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS (Grail) on DPS for § 5.3. The DQL does not apply to Dynatrace Managed, which has no Grail.</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:spans:read</code>, <code>storage:events:read</code>, <code>storage:entities:read</code>, <code>storage:system:read</code>, <code>storage:buckets:read</code></td>
+</tr>
+<tr>
+<td><strong>Context</strong></td>
+<td>Completed ADOPT-01 through ADOPT-04</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform team leads, engineering directors, VP of Engineering, CTO</td>
+</tr>
+</tbody>
+</table>
+<p><a id="roadmap-principles"></a></p>
+<h2>1. Roadmap Planning Principles</h2>
+<p>An effective optimization roadmap follows these principles:</p>
+<h3>Principle 1: Start with Impact, Not Complexity</h3>
+<p>Prioritize actions by their impact on reliability and team productivity, not by their technical sophistication. A simple alerting cleanup can reduce MTTR more than a complex automation workflow.</p>
+<h3>Principle 2: Measure Before and After</h3>
+<p>Every initiative on the roadmap should have a measurable outcome tied to the success metrics defined in ADOPT-03 (MTTR, MTTD, noise ratio, etc.).</p>
+<h3>Principle 3: Quick Wins Build Momentum</h3>
+<p>Early, visible wins build organizational trust in the observability investment. Prioritize 2-3 quick wins in the first month.</p>
+<h3>Principle 4: Budget for Learning</h3>
+<p>Every initiative has a learning component. Allocate time for team enablement (ADOPT-04) alongside technical work.</p>
+<h3>Roadmap Structure</h3>
+<table>
+<thead>
+<tr>
+<th>Timeframe</th>
+<th>Focus</th>
+<th>Effort Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Month 1</td>
+<td>Quick wins — immediate impact</td>
+<td>Low effort, high visibility</td>
+</tr>
+<tr>
+<td>Months 2-3</td>
+<td>Foundation — platform hygiene</td>
+<td>Medium effort, foundational</td>
+</tr>
+<tr>
+<td>Months 4-6</td>
+<td>Strategic — transformative initiatives</td>
+<td>High effort, long-term value</td>
+</tr>
+</tbody>
+</table>
+<p><a id="quick-wins"></a></p>
+<h2>2. Quick Wins — Month 1</h2>
+<p>Quick wins require minimal effort but deliver visible results. They establish credibility for the broader optimization program.</p>
+<h3>2.1 Alert Noise Cleanup</h3>
+<p><strong>Goal:</strong> Halve the share of problems that close within five minutes, and remove the top recurring problems from the notification path.</p>
+<p><strong>Actions:</strong></p>
+<ul>
+<li>Identify the problem types that most often close within five minutes (query below)</li>
+<li>Set a <strong>Minimum duration</strong> on the problem-triggered workflows that notify people, so transient problems never page anyone (FAQ-21)</li>
+<li>Tune the detector behind each short-lived type (ALERT-02)</li>
+<li>Configure maintenance windows for planned work</li>
+<li>Document alerting ownership per service</li>
+</ul>
+<p>Use this query to find the problem types worth tuning first:</p>
+<pre><code class="language-dql">// Top 10 problem types by volume, with the share that closed within 5 minutes, 30 days
+fetch dt.davis.problems, from:-30d
+| filter dt.davis.is_duplicate == false
+| summarize {
+    total = count(),
+    closed_within_5min = countIf(resolved_problem_duration &lt; 5m)
+  }, by:{event.name}
+| fieldsAdd short_lived_pct = round(toDouble(closed_within_5min) / toDouble(total) * 100, decimals: 1)
+| sort total desc
+| limit 10
+</code></pre>
+<h3>2.2 Agent Version Standardization</h3>
+<p><strong>Goal:</strong> Every host on a OneAgent release that is still inside its support window, with as few distinct releases as practical.</p>
+<p><strong>Actions:</strong></p>
+<ul>
+<li>Identify hosts on releases older than the support window (see the version policy above)</li>
+<li>Enable auto-update for non-production hosts</li>
+<li>Schedule coordinated updates for production (FAQ-04)</li>
+</ul>
+<pre><code class="language-dql">// Agent version distribution — identify outdated releases on hosts seen in the last 24 hours.
+// The host property is installerVersion; agentVersion exists only on process group instances.
+fetch dt.entity.host, from:-24h
+| summarize {host_count = count()}, by:{installerVersion}
+| sort host_count desc
+| limit 20
+
+// No Smartscape equivalent: the OneAgent version is not a Smartscape HOST node field.
+</code></pre>
+<h3>2.3 Dashboard Consolidation</h3>
+<p><strong>Goal:</strong> Replace ad-hoc dashboards with standardized templates.</p>
+<p><strong>Actions:</strong></p>
+<ul>
+<li>Audit existing dashboards for overlap and staleness</li>
+<li>Create 3 standard templates: Infrastructure Health, Application Health, Business KPIs</li>
+<li>Retire unused dashboards</li>
+</ul>
+<p><a id="foundation-building"></a></p>
+<h2>3. Foundation Building — Months 2-3</h2>
+<p>Foundation work addresses platform hygiene and establishes the infrastructure for long-term success.</p>
+<h3>3.1 Complete Agent Deployment</h3>
+<p><strong>Goal:</strong> Achieve &gt; 95% host monitoring coverage.</p>
+<p><strong>Actions:</strong></p>
+<ul>
+<li>Compare monitored hosts against CMDB inventory</li>
+<li>Deploy OneAgent to all unmonitored hosts</li>
+<li>Establish automated agent deployment for new hosts (cloud-init, Ansible, etc.)</li>
+</ul>
+<h3>3.2 Grail Bucket Organization</h3>
+<p><strong>Goal:</strong> Implement a bucket strategy aligned with data ownership and retention requirements.</p>
+<p><strong>Actions:</strong></p>
+<ul>
+<li>Audit current bucket usage and data distribution</li>
+<li>Design a bucket naming convention (e.g., <code>&lt;team&gt;_&lt;datatype&gt;_&lt;env&gt;</code>)</li>
+<li>Configure OpenPipeline routing to direct data to appropriate buckets</li>
+<li>Set retention policies per bucket based on compliance and cost requirements</li>
+</ul>
+<pre><code class="language-dql">// Analyze log volume by source to inform bucket strategy
+fetch logs, from:-24h
+| summarize {record_count = count()}, by:{log.source}
+| sort record_count desc
+| limit 20
+</code></pre>
+<h3>3.3 SLO Definition</h3>
+<p><strong>Goal:</strong> Define SLOs for the top 10 business-critical services.</p>
+<p><strong>Actions:</strong></p>
+<ul>
+<li>Identify the 10 services with the highest business impact</li>
+<li>Define availability and latency SLOs for each</li>
+<li>Build burn-rate alerting for each SLO as described in SLO-04 — a native burn-rate alert announced for SaaS 1.347 was withdrawn from the release notes, so plan to build it</li>
+<li>Create an SLO dashboard for leadership visibility</li>
+</ul>
+<h3>3.4 IAM Policy Implementation</h3>
+<p><strong>Goal:</strong> Move from shared admin accounts to role-based access.</p>
+<p><strong>Actions:</strong></p>
+<ul>
+<li>Define IAM groups per team (see IAM series for detailed guidance)</li>
+<li>Implement least-privilege policies</li>
+<li>Scope data access with security context and policy boundaries (ORGNZ, IAM) — segments filter what a user sees on screen but do not restrict access to data (FAQ-24)</li>
+</ul>
+<p><a id="strategic-investments"></a></p>
+<h2>4. Strategic Investments — Months 4-6</h2>
+<p>Strategic investments are higher-effort initiatives that deliver transformative value over time.</p>
+<h3>4.1 Workflow Automation</h3>
+<p><strong>Goal:</strong> Automate response to the top 5 most frequent problem types.</p>
+<p><strong>Actions:</strong></p>
+<ul>
+<li>Identify the 5 most frequent, well-understood problem types from ADOPT-03 data</li>
+<li>Design Dynatrace Workflows for automated triage and notification</li>
+<li>Progress to automated remediation for problems with known runbooks</li>
+<li>Measure MTTR improvement for automated vs manual resolution</li>
+</ul>
+<h3>4.2 Configuration as Code (Monaco or Terraform)</h3>
+<p><strong>Goal:</strong> Manage Dynatrace configuration through version-controlled code.</p>
+<p><strong>Actions:</strong></p>
+<ul>
+<li>Export current configuration with Monaco or the Terraform provider (AUTOM)</li>
+<li>Establish a Git repository for Dynatrace configuration</li>
+<li>Implement CI/CD pipeline for configuration deployment</li>
+<li>Check for drift on a schedule — Terraform's <code>plan</code> reports it natively; with Monaco it is a scheduled download compared against the repository</li>
+</ul>
+<h3>4.3 OpenTelemetry Integration</h3>
+<p><strong>Goal:</strong> Extend observability to applications not covered by OneAgent.</p>
+<p><strong>Actions:</strong></p>
+<ul>
+<li>Identify services that need custom instrumentation</li>
+<li>Implement OpenTelemetry SDKs for critical code paths</li>
+<li>Route OTel data through Dynatrace's OTLP endpoint</li>
+<li>Validate trace context propagation end-to-end</li>
+</ul>
+<h3>4.4 Business Event Correlation</h3>
+<p><strong>Goal:</strong> Connect technical metrics to business outcomes.</p>
+<p><strong>Actions:</strong></p>
+<ul>
+<li>Identify 3-5 key business transactions (checkout, login, search, etc.)</li>
+<li>Instrument business events for each transaction</li>
+<li>Build dashboards correlating technical health with business KPIs</li>
+<li>Establish business-context alerting (e.g., revenue impact of slowdowns)</li>
+</ul>
+<p><a id="cost-optimization"></a></p>
+<h2>5. Cost Optimization Opportunities</h2>
+<p>Cost optimization is not about reducing observability — it is about ensuring every byte of data delivers value. The following queries help identify opportunities.</p>
+<h3>5.1 High-Volume Log Sources</h3>
+<p>Identify the sources generating the most log data. High-volume sources are candidates for filtering, sampling, or reduced retention.</p>
+<pre><code class="language-dql">// Top 15 log sources by record count in the last 7 days
+fetch logs, from:-7d
+| summarize {record_count = count()}, by:{log.source}
+| sort record_count desc
+| limit 15
+</code></pre>
+<h3>5.2 Debug and Verbose Log Analysis</h3>
+<p>Debug-level logs are often the largest contributor to ingestion volume but rarely needed in production. This query quantifies the opportunity.</p>
+<pre><code class="language-dql">// Log record count by severity level over the last 24 hours
+fetch logs, from:-24h
+| summarize {record_count = count()}, by:{loglevel}
+| sort record_count desc
+</code></pre>
+<blockquote>
+<p><strong>Cost optimization actions for high-volume logs:</strong></p>
+<ul>
+<li><strong>Drop at ingest:</strong> Configure an OpenPipeline rule to drop DEBUG/TRACE records from production sources — or stop shipping them at the source</li>
+<li><strong>Reduce retention:</strong> Route verbose logs to buckets with shorter retention (7-14 days)</li>
+<li><strong>Sample:</strong> Use sampling for high-cardinality, low-value data</li>
+<li><strong>Aggregate:</strong> Replace raw log storage with metric extraction for patterns you only need to count</li>
+</ul>
+</blockquote>
+<h3>5.3 Entity Monitoring Mode Review</h3>
+<p>Not every host requires Full-Stack monitoring. Infrastructure Monitoring is billed per host-hour rather than per GiB-hour of host memory, and may be appropriate for hosts that run no application you need to trace. Read each host's mode from the billing events — the classic <code>monitoringMode</code> host property is empty for many hosts (ADOPT-02 § 1.2).</p>
+<blockquote>
+<p><strong>SaaS 1.347 — staged tenant rollout from 09/16/2026:</strong> billing usage events are moving their host ID from <code>dt.entity.host</code> to <code>dt.smartscape.host</code>. Verbatim: <em>&quot;If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names.&quot;</em> The query below reads <code>coalesce(toString(dt.smartscape.host), dt.entity.host)</code>, so it returns the same hosts before and after the change reaches your tenant (on the validation tenant both fields were written, with identical values, on 10/05/2026). <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in SaaS 1.347 (DT docs)</a>.</p>
+</blockquote>
+<pre><code class="language-dql">// Hosts by the capability they were billed under (DPS), last 24 hours
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+// SaaS 1.347 moves the host ID to dt.smartscape.host; coalesce reads whichever field your tenant writes.
+| fieldsAdd host = coalesce(toString(dt.smartscape.host), dt.entity.host)
+| filter isNotNull(host)
+| summarize {hosts = countDistinctExact(host)}, by:{billed_as = event.type}
+| sort hosts desc
+</code></pre>
+<h3>5.4 Span Volume Analysis</h3>
+<p>Distributed tracing can generate significant data volume. Identify services producing the most spans to evaluate whether head-based or tail-based sampling is appropriate.</p>
+<pre><code class="language-dql">// Top 10 services by span volume in the last 24 hours
+fetch spans, from:-24h
+| summarize {span_count = count()}, by:{dt.entity.service}
+| sort span_count desc
+| limit 10
+</code></pre>
+<h3>Cost Optimization Decision Matrix</h3>
+<p>A starting point from community practice — adjust each cell to your own value judgments and compliance requirements.</p>
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Low Value</th>
+<th>Medium Value</th>
+<th>High Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Logs</strong></td>
+<td>Drop DEBUG/TRACE at ingest</td>
+<td>Short-retention bucket (7-14 days)</td>
+<td>Default or longer retention (35+ days)</td>
+</tr>
+<tr>
+<td><strong>Spans</strong></td>
+<td>Sample at 10:1</td>
+<td>Sample at 2:1</td>
+<td>Full retention</td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td>Drop unused dimensions; stop extracting unused metrics</td>
+<td>Standard ingest</td>
+<td>Standard ingest</td>
+</tr>
+<tr>
+<td><strong>Events</strong></td>
+<td>Filter noise</td>
+<td>Standard retention</td>
+<td>Full retention</td>
+</tr>
+</tbody>
+</table>
+<p><a id="automation-candidates"></a></p>
+<h2>6. Automation Candidates</h2>
+<p>Automation reduces toil and improves consistency. Prioritize automating tasks that are repetitive, well-defined, and currently manual.</p>
+<h3>Automation Priority Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Frequency</th>
+<th>Manual Effort</th>
+<th>Automation Tool</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alert triage and routing</td>
+<td>Daily</td>
+<td>30 min/day</td>
+<td>Dynatrace Workflows</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Agent deployment on new hosts</td>
+<td>Weekly</td>
+<td>1 hour/week</td>
+<td>Cloud-init / Ansible</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Dashboard creation for new services</td>
+<td>Monthly</td>
+<td>2 hours/service</td>
+<td>Monaco or Terraform templates</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Configuration drift detection</td>
+<td>Weekly</td>
+<td>1 hour/week</td>
+<td>Terraform <code>plan</code>, or scheduled Monaco download + diff</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Report generation for leadership</td>
+<td>Weekly</td>
+<td>2 hours/week</td>
+<td>Scheduled DQL notebooks</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Incident postmortem data collection</td>
+<td>Per incident</td>
+<td>1 hour/incident</td>
+<td>Workflow + DQL</td>
+<td>Low (high value)</td>
+</tr>
+<tr>
+<td>Capacity forecasting</td>
+<td>Monthly</td>
+<td>4 hours/month</td>
+<td>Dynatrace Intelligence forecasting</td>
+<td>Low (high value)</td>
+</tr>
+</tbody>
+</table>
+<h3>Quick-Start Automation: Transient-Problem Suppression</h3>
+<p>The simplest and highest-impact automation is keeping transient problems away from people. Use this query to identify candidates:</p>
+<pre><code class="language-dql">// Problems that closed within 5 minutes — candidates for a Minimum duration on the notifying workflow
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| filter dt.davis.is_duplicate == false
+| fieldsAdd duration_minutes = resolved_problem_duration / 1m
+| filter duration_minutes &lt; 5
+| summarize {auto_resolve_count = count()}, by:{event.name}
+| sort auto_resolve_count desc
+| limit 10
+</code></pre>
+<blockquote>
+<p><strong>Interpretation:</strong> Problems that consistently resolve within 5 minutes are strong candidates for:</p>
+<ul>
+<li>A <strong>Minimum duration</strong> on the problem-triggered workflow that notifies people, so a problem that resolves inside the window never notifies (FAQ-21)</li>
+<li>Workflow-based triage that only escalates if the problem persists</li>
+<li>Detector tuning, when the type is never worth acting on (ALERT-02)</li>
+</ul>
+</blockquote>
+<p><a id="measuring-roi"></a></p>
+<h2>7. Measuring ROI of Observability</h2>
+<p>Leadership will eventually ask: <strong>&quot;What is the return on our observability investment?&quot;</strong> This section provides a framework for answering that question.</p>
+<h3>7.1 Cost Avoidance</h3>
+<p>Calculate the cost of incidents prevented or shortened by improved observability.</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Formula</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Incident cost reduction</strong></td>
+<td>(Old MTTR - New MTTR) x Avg incidents/month x Cost per hour of downtime</td>
+<td>(2h - 0.5h) x 20 x $10,000 = $300,000/month</td>
+</tr>
+<tr>
+<td><strong>Alert fatigue reduction</strong></td>
+<td>(Old noise hours - New noise hours) x Avg engineer hourly rate</td>
+<td>(20h - 5h) x $75 = $1,125/week</td>
+</tr>
+<tr>
+<td><strong>Prevented outages</strong></td>
+<td>Proactive detections x Estimated outage cost</td>
+<td>5 x $50,000 = $250,000/quarter</td>
+</tr>
+</tbody>
+</table>
+<h3>7.2 Productivity Gains</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Formula</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Self-service investigation</strong></td>
+<td>Escalation tickets eliminated x Avg ticket resolution time x Rate</td>
+<td>100 tickets x 2h x $75 = $15,000/month</td>
+</tr>
+<tr>
+<td><strong>Onboarding acceleration</strong></td>
+<td>Weeks saved per new hire x New hires per year x Weekly rate</td>
+<td>2 weeks x 20 hires x $3,750 = $150,000/year</td>
+</tr>
+</tbody>
+</table>
+<h3>7.3 Business Value Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>How to Measure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Revenue protected</strong></td>
+<td>SLO compliance rate x Revenue at risk</td>
+</tr>
+<tr>
+<td><strong>Customer satisfaction</strong></td>
+<td>Correlation between uptime and NPS/CSAT</td>
+</tr>
+<tr>
+<td><strong>Deployment velocity</strong></td>
+<td>Change failure rate improvement enables faster releases</td>
+</tr>
+</tbody>
+</table>
+<h3>7.4 Building the ROI Dashboard</h3>
+<p>Create a monthly ROI report combining:</p>
+<ol>
+<li>MTTR/MTTD trends (from ADOPT-03)</li>
+<li>Problem count trends (declining = improving)</li>
+<li>Data volume and cost metrics (from this notebook)</li>
+<li>Team enablement progress (from ADOPT-04)</li>
+<li>Estimated cost avoidance (calculated from the formulas above)</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<h3>Key Takeaways</h3>
+<ul>
+<li>Start with quick wins in Month 1 to build organizational momentum</li>
+<li>Cost optimization is about value alignment, not cost cutting — every byte should earn its storage</li>
+<li>Automation candidates should be prioritized by frequency and manual effort</li>
+<li>ROI of observability can be quantified through cost avoidance, productivity gains, and business value</li>
+<li>The roadmap is a living document — review and adjust monthly</li>
+</ul>
+<h3>ADOPT Series Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Focus</th>
+<th>Key Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ADOPT-01</strong></td>
+<td>Maturity Model</td>
+<td>Understand where you are today</td>
+</tr>
+<tr>
+<td><strong>ADOPT-02</strong></td>
+<td>Platform Health</td>
+<td>Assess deployment completeness</td>
+</tr>
+<tr>
+<td><strong>ADOPT-03</strong></td>
+<td>Success Metrics</td>
+<td>Define MTTD, problem duration, alert quality, and baselines</td>
+</tr>
+<tr>
+<td><strong>ADOPT-04</strong></td>
+<td>Team Enablement</td>
+<td>Build organizational capability</td>
+</tr>
+<tr>
+<td><strong>ADOPT-05</strong></td>
+<td>Optimization Roadmap</td>
+<td>Plan the path forward</td>
+</tr>
+<tr>
+<td><strong>ADOPT-06</strong></td>
+<td>Coverage Audit and Staged Enablement</td>
+<td>Close coverage gaps in waves, each proven at a value gate</td>
+</tr>
+<tr>
+<td><strong>ADOPT-99</strong></td>
+<td>Best Practice Summary</td>
+<td>One checklist of every practice in the series</td>
+</tr>
+</tbody>
+</table>
+<h3>What Comes Next</h3>
+<p>Proceed to <strong>ADOPT-06: Maximizing Platform Value</strong> to turn the coverage gaps found in ADOPT-02 into a staged enablement program. Use the other notebook series in this repository (ONBRD, K8S, IAM, AUTOM, WFLOW, etc.) as practical guides for implementing each roadmap initiative.</p>
+<h2>References</h2>
+<ul>
+<li><a href="https://www.dynatrace.com/company/trust-center/support-policy/">Support policy (Dynatrace)</a> — OneAgents and ActiveGates: 9 months Standard Support, 12 months Enterprise Support; <em>&quot;Timeframes indicated commence upon version release date.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/technology-support/oneagent-platform-and-capability-support-matrix">OneAgent platform and capability support matrix (DT docs)</a> — <em>&quot;Preview features aren't production-ready and they aren't officially supported.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End of support announcements (DT docs)</a> — <em>&quot;End of support announcements are provided six months in advance.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent (DT docs)</a> — <em>&quot;OneAgent version 1.333&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/infrastructure-monitoring">Infrastructure Monitoring (DT docs)</a> — <em>&quot;Infrastructure Monitoring consumption is measured in host hours&quot;</em></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

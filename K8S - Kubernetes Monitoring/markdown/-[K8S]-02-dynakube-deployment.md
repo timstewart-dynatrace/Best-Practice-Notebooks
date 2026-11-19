@@ -1,6 +1,6 @@
 # K8S-02: DynaKube Operator Deployment
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 14 | **Created:** January 2026 | **Last Updated:** 11/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 2 of 14 | **Created:** January 2026 | **Last Updated:** 11/19/2026
 
 ## Installing and Configuring the Dynatrace Operator
 The DynaKube operator is the recommended way to deploy Dynatrace monitoring in Kubernetes. This notebook covers installation via Helm, configuration options, and deployment modes for different use cases.
@@ -30,7 +30,7 @@ The DynaKube operator is the recommended way to deploy Dynatrace monitoring in K
 | **kubectl** | Configured for your cluster |
 | **API Tokens** | Operator token (Platform Token recommended) + Data ingest token |
 
-> **Operator token type:** new automation should use **Platform Tokens** (`dt0s16`) with `Authorization: Bearer` for the Operator token — note that **the Operator itself accepts platform tokens only from Operator 1.10.0** (released July 15, 2026): *"No immediate action is required and existing access tokens continue to be accepted."* ([Dynatrace Operator 1.10.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0)) On clusters running an earlier Operator, keep the classic access (API) token — it remains the working path. The OneAgent installer download path still uses Classic API Tokens (`dt0c01` with `Authorization: Api-Token`); this is expected and supported. See the [IAM series](../../iam/) for parameterized policy patterns and the ONBRD-99 Recommended Defaults card for the canonical token / configuration / extension stack.
+> **Operator token type:** new automation should use **Platform Tokens** (`dt0s16`) with `Authorization: Bearer` for the Operator token — note that **the Operator itself accepts platform tokens only from Operator 1.10.0** (released July 15, 2026): *"No immediate action is required and existing access tokens continue to be accepted."* ([Dynatrace Operator 1.10.0 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0)) On clusters running an earlier Operator, keep the classic access (API) token — it remains the working path. The OneAgent installer download path still uses Classic API Tokens (`dt0c01` with `Authorization: Api-Token`); this is expected and supported. See the IAM series (IAM Administration) for parameterized policy patterns and the ONBRD-99 Recommended Defaults card for the canonical token / configuration / extension stack.
 
 > **Version Support Policy:** OneAgent and ActiveGate versions are supported for **9 months (Standard)** or **12 months (Enterprise)** from release. The Operator is not in that table — for Operator versions, follow the upgrade path in each release's notes (Operator 1.11.0: *"Minimum operator version required for direct upgrade: 1.6.0"*). Third-party technologies are supported for 6 months beyond vendor EOL. See [Support Policy (Dynatrace)](https://www.dynatrace.com/company/trust-center/support-policy/).
 

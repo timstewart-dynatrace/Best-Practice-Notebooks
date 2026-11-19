@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOBL-12: Advanced Instrumentation &amp; Optimization</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MOBL — Mobile Monitoring</a><span class="sep">/</span><span aria-current="page">MOBL-12</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MOBL-12: Advanced Instrumentation &amp; Optimization</h1>
+<blockquote>
+<p><strong>Series:</strong> MOBL — Mobile Monitoring | <strong>Notebook:</strong> 12 of 12 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook covers advanced mobile SDK techniques that go beyond automatic instrumentation. You will learn how to send custom business events, create manual and nested user actions, report errors and events programmatically, tag web requests for end-to-end tracing, instrument A/B tests and feature flags, tune SDK performance, and manage multi-app monitoring strategies. These techniques give you fine-grained control over what mobile telemetry reaches Grail and how it maps to your business logic.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#custom-business-events">Custom Business Events</a></li>
+<li><a href="#advanced-user-actions">Advanced User Actions</a></li>
+<li><a href="#error-event-reporting">Error &amp; Event Reporting APIs</a></li>
+<li><a href="#web-request-tagging">Web Request Tagging</a></li>
+<li><a href="#ab-testing-feature-flags">A/B Testing &amp; Feature Flags</a></li>
+<li><a href="#sdk-performance-optimization">SDK Performance Optimization</a></li>
+<li><a href="#multi-app-strategies">Multi-App Strategies</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:bizevents:read</code> (custom business events), <code>storage:user.events:read</code>, <code>storage:user.sessions:read</code></td>
+</tr>
+<tr>
+<td><strong>Mobile App</strong></td>
+<td>iOS or Android app with Dynatrace SDK integrated</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>Familiarity with MOBL-01 through MOBL-09 (fundamentals, SDK setup, user actions, crash reporting, network monitoring)</td>
+</tr>
+<tr>
+<td><strong>SDK Version</strong></td>
+<td>Dynatrace iOS Agent 8.x+ or Android Agent 8.x+</td>
+</tr>
+</tbody>
+</table>
+<p><a id="custom-business-events"></a></p>
+<h2>1. Custom Business Events</h2>
+<p>The <code>sendBizEvent()</code> API allows you to send custom business events directly from your mobile app into Grail. Unlike auto-captured user actions, business events let you track domain-specific interactions that matter to your business -- purchases, sign-ups, feature usage, subscription changes, and more.</p>
+<h3>Why Custom Business Events?</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Example</th>
+<th>Business Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Purchases</strong></td>
+<td>In-app purchase completed</td>
+<td>Revenue tracking, conversion funnels</td>
+</tr>
+<tr>
+<td><strong>Sign-ups</strong></td>
+<td>New account registration</td>
+<td>Growth metrics, onboarding analysis</td>
+</tr>
+<tr>
+<td><strong>Feature usage</strong></td>
+<td>User opened a specific feature</td>
+<td>Feature adoption, prioritization</td>
+</tr>
+<tr>
+<td><strong>Content engagement</strong></td>
+<td>Article read, video watched</td>
+<td>Content strategy optimization</td>
+</tr>
+<tr>
+<td><strong>Error context</strong></td>
+<td>User-reported issue with metadata</td>
+<td>Correlate user feedback with technical data</td>
+</tr>
+</tbody>
+</table>
+<h3>iOS Implementation</h3>
+<pre><code class="language-swift">// iOS -- send a purchase business event
+let attributes: [String: Any] = [
+    &quot;product.name&quot;: &quot;Premium Subscription&quot;,
+    &quot;product.price&quot;: 9.99,
+    &quot;currency&quot;: &quot;USD&quot;,
+    &quot;payment.method&quot;: &quot;apple_pay&quot;
+]
+Dynatrace.sendBizEvent(withType: &quot;com.myapp.purchase&quot;, attributes: attributes)
+</code></pre>
+<h3>Android Implementation</h3>
+<pre><code class="language-kotlin">// Android -- send a purchase business event
+// sendBizEvent(String type, JSONObject attributes) takes a JSONObject, not a Map
+JSONObject().apply {
+    put(&quot;product.name&quot;, &quot;Premium Subscription&quot;)
+    put(&quot;product.price&quot;, 9.99)
+    put(&quot;currency&quot;, &quot;USD&quot;)
+    put(&quot;payment.method&quot;, &quot;google_pay&quot;)
+}.also { jsonObject -&gt;
+    Dynatrace.sendBizEvent(&quot;com.myapp.purchase&quot;, jsonObject)
+}
+</code></pre>
+<h3>Best Practices for Business Events</h3>
+<ul>
+<li><strong>Use reverse-domain naming</strong> for <code>event.type</code> (e.g., <code>com.myapp.purchase</code>) to avoid collisions</li>
+<li><strong>Keep attribute names consistent</strong> across iOS and Android implementations</li>
+<li><strong>Include version context</strong> -- add <code>app.version</code> as an attribute if not automatically enriched</li>
+<li><strong>Avoid PII</strong> -- never include email addresses, phone numbers, or other personal data in business event attributes</li>
+<li><strong>Only monitored sessions send them</strong> -- business events are captured only for monitored sessions; when OneAgent is disabled by a flag or by cost and traffic control, they are not reported (OneAgent for iOS/Android 8.253+)</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios">OneAgent SDK for iOS (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android">OneAgent SDK for Android (DT docs)</a> — <em>&quot;With sendBizEvent , you can report business events. These are standalone events, as Dynatrace sends them separately from user actions or user sessions.&quot;</em></sub></p>
+</blockquote>
+<h3>Query Custom Purchase Events</h3>
+<p>Use the following DQL query to retrieve and inspect custom purchase business events sent from your mobile app:</p>
+<pre><code class="language-dql">// Query custom purchase business events
+fetch bizevents, from:-24h
+| filter event.type == &quot;com.myapp.purchase&quot;
+| fields timestamp, product.name, product.price, currency, payment.method
+| sort timestamp desc
+| limit 50
+</code></pre>
+<p><a id="advanced-user-actions"></a></p>
+<h2>2. Advanced User Actions</h2>
+<p>While the Dynatrace SDK auto-instruments many user actions (taps, screen loads), advanced scenarios require manual control. This section covers nested actions, long-running actions, and action properties.</p>
+<h3>Nested Actions</h3>
+<p>Nested actions let you create parent-child relationships between user actions. This is useful for multi-step flows where you want to measure both the overall flow and individual steps.</p>
+<pre><code class="language-swift">// iOS -- nested actions for a checkout flow
+let parentAction = DTXAction.enter(withName: &quot;Checkout Flow&quot;)
+let childAction = DTXAction.enter(withName: &quot;Validate Cart&quot;, parentAction: parentAction)
+// ... validation logic ...
+childAction?.leave()
+// ... more checkout logic ...
+parentAction?.leave()
+</code></pre>
+<pre><code class="language-kotlin">// Android -- nested actions for a checkout flow
+val parentAction = Dynatrace.enterAction(&quot;Checkout Flow&quot;)
+val childAction = Dynatrace.enterAction(&quot;Validate Cart&quot;, parentAction)
+// ... validation logic ...
+childAction.leaveAction()
+// ... more checkout logic ...
+parentAction.leaveAction()
+</code></pre>
+<h3>Long-Running Actions</h3>
+<p>Auto-generated actions close after a short inactivity timeout set by the agent. For long-running operations like file uploads, background syncs, or multi-screen wizards, you need to manage the action lifecycle explicitly:</p>
+<pre><code class="language-swift">// iOS -- long-running action for file upload
+let uploadAction = DTXAction.enter(withName: &quot;Upload Photo&quot;)
+uploadPhoto { result in
+    switch result {
+    case .success:
+        uploadAction?.reportValue(withName: &quot;upload.size_bytes&quot;, intValue: Int64(fileSize))
+        uploadAction?.leave()
+    case .failure(let error):
+        uploadAction?.reportError(withName: &quot;upload.failed&quot;, error: error)
+        uploadAction?.leave()
+    }
+}
+</code></pre>
+<h3>Action Properties</h3>
+<p>Attach custom properties to user actions for richer analysis:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Type</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reportValue(withName:intValue:)</code></td>
+<td>Integer</td>
+<td><code>action.reportValue(withName: &quot;items_in_cart&quot;, intValue: 3)</code></td>
+</tr>
+<tr>
+<td><code>reportValue(withName:doubleValue:)</code></td>
+<td>Double</td>
+<td><code>action.reportValue(withName: &quot;total_price&quot;, doubleValue: 49.99)</code></td>
+</tr>
+<tr>
+<td><code>reportValue(withName:stringValue:)</code></td>
+<td>String</td>
+<td><code>action.reportValue(withName: &quot;category&quot;, stringValue: &quot;electronics&quot;)</code></td>
+</tr>
+<tr>
+<td><code>reportError(withName:error:)</code></td>
+<td>Error</td>
+<td><code>action.reportError(withName: &quot;validation_error&quot;, error: err)</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Action properties become queryable fields in Grail. Use consistent naming across platforms so your DQL queries work for both iOS and Android data.</p>
+</blockquote>
+<p><a id="error-event-reporting"></a></p>
+<h2>3. Error &amp; Event Reporting APIs</h2>
+<p>Beyond automatic crash detection, the SDK provides APIs to report handled errors, custom error conditions, and diagnostic events. This is critical for capturing errors that your app handles gracefully (try/catch) but that you still want visibility into.</p>
+<h3>Reporting Handled Errors</h3>
+<pre><code class="language-swift">// iOS -- report a handled error
+do {
+    let data = try parseUserProfile(json)
+} catch {
+    DTXAction.reportError(withName: &quot;profile_parse_error&quot;, error: error) // standalone error
+}
+</code></pre>
+<pre><code class="language-kotlin">// Android -- report a handled error
+try {
+    val data = parseUserProfile(json)
+} catch (e: Exception) {
+    Dynatrace.reportError(&quot;profile_parse_error&quot;, e)
+}
+</code></pre>
+<h3>Reporting Custom Events</h3>
+<p><code>reportEvent</code> is an <strong>action</strong> method and takes only a name -- the event must belong to an open action. For an event with attributes, send a business event instead:</p>
+<pre><code class="language-swift">// iOS -- a named event inside an action
+let storageCheck = DTXAction.enter(withName: &quot;Check storage&quot;)
+storageCheck?.reportEvent(withName: &quot;low_storage_warning&quot;)
+storageCheck?.leave()
+
+// iOS -- the same signal with attributes, as a standalone business event
+Dynatrace.sendBizEvent(withType: &quot;com.myapp.low_storage_warning&quot;, attributes: [
+    &quot;available_mb&quot;: availableMB,
+    &quot;threshold_mb&quot;: 100
+])
+</code></pre>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions called <code>Dynatrace.reportError(withName:error:)</code> and <code>Dynatrace.reportEvent(withName:attributes:)</code> on iOS. Neither exists: errors are reported with <code>DTXAction.reportError(withName:error:)</code> (standalone) or on an action, and events with <code>action.reportEvent(withName:)</code>.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios">OneAgent SDK for iOS (DT docs)</a> — <em>&quot;The event must belong to an existing custom action or an autogenerated user action .&quot;</em></sub></p>
+</blockquote>
+<h3>Query Reported Errors</h3>
+<p>Use the following query to retrieve errors that were explicitly reported from your mobile SDK:</p>
+<pre><code class="language-dql">// Reported errors from mobile apps (API-reported errors)
+fetch user.events, from:-24h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;})
+| filter characteristics.has_error and characteristics.is_api_reported
+| fields start_time, frontend.name, error.name, error.code, os.name, app.short_version
+| sort start_time desc
+| limit 50
+</code></pre>
+<h3>Error Reporting Best Practices</h3>
+<ul>
+<li><strong>Report all handled exceptions</strong> that indicate degraded functionality -- even if the user does not see an error message</li>
+<li><strong>Include context</strong> -- attach relevant metadata (user action, screen name, request URL) to help with root cause analysis</li>
+<li><strong>Avoid high-volume reporting</strong> -- do not report transient conditions (e.g., network retries) that self-resolve. Focus on errors that impact the user experience</li>
+<li><strong>Use consistent error names</strong> across platforms so a single DQL query can aggregate iOS and Android errors together</li>
+</ul>
+<p><a id="web-request-tagging"></a></p>
+<h2>4. Web Request Tagging</h2>
+<p>Web request tagging links mobile-initiated HTTP requests to their corresponding server-side traces. This enables true end-to-end distributed tracing from the user's device through your backend services.</p>
+<h3>How It Works</h3>
+<ol>
+<li>The mobile SDK generates a unique request tag for each outgoing HTTP request</li>
+<li>Your app adds this tag as a custom HTTP header (<code>x-dynatrace</code>)</li>
+<li>The Dynatrace server-side agent (OneAgent) reads the header and correlates the server-side span with the mobile user action</li>
+<li>The result is a single distributed trace spanning device to backend</li>
+</ol>
+<h3>iOS Implementation</h3>
+<pre><code class="language-swift">// iOS -- tag an outgoing web request with a parent action
+let url = URL(string: &quot;https://api.myapp.com/checkout&quot;)!
+var request = URLRequest(url: url)
+let checkout = DTXAction.enter(withName: &quot;Checkout&quot;)
+if let dynatraceHeaderValue = checkout?.getTagFor(url) {
+    let dynatraceHeaderKey = Dynatrace.getRequestTagHeader() // always &quot;x-dynatrace&quot;
+    request.setValue(dynatraceHeaderValue, forHTTPHeaderField: dynatraceHeaderKey)
+}
+// Without a parent action: Dynatrace.getRequestTagValue(for: url)
+let task = URLSession.shared.dataTask(with: request) { data, response, error in
+    // handle response
+    checkout?.leave()
+}
+task.resume()
+</code></pre>
+<h3>Android Implementation</h3>
+<pre><code class="language-kotlin">// Android -- tag an outgoing web request with a parent action
+val webAction = Dynatrace.enterAction(&quot;Checkout&quot;)
+val uniqueRequestTag = webAction.getRequestTag()          // standalone: Dynatrace.getRequestTag()
+val timing = Dynatrace.getWebRequestTiming(uniqueRequestTag)
+val request = Request.Builder()
+    .url(&quot;https://api.myapp.com/checkout&quot;)
+    .addHeader(Dynatrace.getRequestTagHeader(), uniqueRequestTag)
+    .build()
+timing.startWebRequestTiming()
+// ... execute the request, then stop the timing with the URL and response code ...
+webAction.leaveAction()
+</code></pre>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions used <code>DTXAction.getRequestTag(for:)</code> (iOS) and <code>Dynatrace.getRequestTag(connection)</code> (Android). The documented calls are <code>action?.getTagFor(url)</code> / <code>Dynatrace.getRequestTagValue(for:)</code> on iOS and <code>action.getRequestTag()</code> / <code>Dynatrace.getRequestTag()</code> on Android, with the header name from <code>Dynatrace.getRequestTagHeader()</code>.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-ios-app/customization/oneagent-sdk-for-ios">OneAgent SDK for iOS (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android">OneAgent SDK for Android (DT docs)</a> — <em>&quot;To track web requests, add the x-dynatrace HTTP header with a unique value to the web request.&quot;</em></sub></p>
+</blockquote>
+<h3>When to Use Manual Tagging</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Auto-tagged?</th>
+<th>Manual Tagging Needed?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URLSession (iOS), and libraries built on it such as Alamofire</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>HttpURLConnection and OkHttp (Android), and libraries built on them</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Other HTTP frameworks</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>WebSocket connections (<code>ws://</code>, <code>wss://</code>)</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>gRPC calls</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>GraphQL over custom transport</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Most standard HTTP libraries are auto-instrumented by the SDK. Manual tagging is primarily needed for custom or non-standard network transports.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-02-support-and-limitations">Support and limitations — Android (DT docs)</a> — <em>&quot;Only web requests from the frameworks HttpURLConnection and OkHttp (including frameworks that are based on these frameworks) are automatically instrumented&quot;</em>; <em>&quot;webSocket requests (ws://, wss://) and other non-HTTP protocols require manual instrumentation.&quot;</em></sub></p>
+</blockquote>
+<p><a id="ab-testing-feature-flags"></a></p>
+<h2>5. A/B Testing &amp; Feature Flags</h2>
+<p>Instrumenting A/B tests and feature flags in Dynatrace lets you correlate experiment variants with real user performance and business outcomes. By reporting variant assignments as session properties and business events, you can answer questions like: &quot;Does variant B of the checkout flow have a higher crash rate?&quot; or &quot;Which feature flag configuration drives more conversions?&quot;</p>
+<h3>Reporting A/B Test Variants</h3>
+<p>Use session properties to tag the user's session with the assigned variant:</p>
+<p>Values are reported on a user action, then converted into a session property in the app settings:</p>
+<pre><code class="language-swift">// iOS -- report the A/B test variant on an action
+let assign = DTXAction.enter(withName: &quot;Assign experiment&quot;)
+assign?.reportValue(withName: &quot;ab_test_checkout_v2&quot;, stringValue: &quot;variant_b&quot;)
+assign?.leave()
+</code></pre>
+<pre><code class="language-kotlin">// Android -- report the A/B test variant on an action
+val assign = Dynatrace.enterAction(&quot;Assign experiment&quot;)
+assign.reportValue(&quot;ab_test_checkout_v2&quot;, &quot;variant_b&quot;)
+assign.leaveAction()
+</code></pre>
+<h3>Reporting Feature Flag States</h3>
+<p>Send business events when feature flags are evaluated so you can track which users see which features:</p>
+<pre><code class="language-swift">// iOS -- report feature flag evaluation as business event
+let flagAttributes: [String: Any] = [
+    &quot;feature.name&quot;: &quot;dark_mode&quot;,
+    &quot;feature.variant&quot;: &quot;enabled&quot;,
+    &quot;feature.source&quot;: &quot;launchdarkly&quot;
+]
+Dynatrace.sendBizEvent(withType: &quot;com.myapp.feature_flag&quot;, attributes: flagAttributes)
+</code></pre>
+<h3>Track App Version Adoption Over Time</h3>
+<p>App version adoption is closely related to feature flag rollouts. Use this query to see how session volume (<code>user.sessions</code>, one record per session) distributes across app versions (<code>app.short_version</code>):</p>
+<pre><code class="language-dql">// Track app version adoption over time
+fetch user.sessions, from:-7d
+| filter dt.rum.application.type == &quot;mobile&quot;
+| filter isNotNull(app.short_version)
+| makeTimeseries session_count = count(), by:{app.short_version}, time:start_time, interval:24h
+</code></pre>
+<p><a id="sdk-performance-optimization"></a></p>
+<h2>6. SDK Performance Optimization</h2>
+<p>The Dynatrace mobile SDK is designed to be lightweight, but in performance-sensitive applications you may need to fine-tune its behavior. This section covers the key optimization levers.</p>
+<h3>Optimization Levers</h3>
+<table>
+<thead>
+<tr>
+<th>Optimization</th>
+<th>Description</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Beacon batching</strong></td>
+<td>SDK batches beacons before sending</td>
+<td>Reduces network overhead</td>
+</tr>
+<tr>
+<td><strong>Excluded URLs</strong></td>
+<td>Skip monitoring for analytics/CDN URLs</td>
+<td>Reduces beacon volume</td>
+</tr>
+<tr>
+<td><strong>Data collection level</strong></td>
+<td><code>OFF</code> / <code>PERFORMANCE</code> / <code>USER_BEHAVIOR</code> per user (MOBL-09 §3); crash reporting is a separate opt-in</td>
+<td>Captures only what the user agreed to</td>
+</tr>
+<tr>
+<td><strong>Cost and traffic control</strong></td>
+<td>Monitored-session percentage in the app settings</td>
+<td>Reduces DEM unit consumption</td>
+</tr>
+</tbody>
+</table>
+<h3>Configuring Excluded URLs</h3>
+<p>Exclude third-party analytics and CDN URLs that generate noise without providing actionable insight. The filters work on the device, so excluded requests are never captured.</p>
+<p><strong>iOS</strong> — <code>DTXURLFilters</code> in <code>Info.plist</code>, an array of URL patterns (wildcards supported):</p>
+<pre><code class="language-xml">&lt;key&gt;DTXURLFilters&lt;/key&gt;
+&lt;array&gt;
+    &lt;string&gt;https://analytics.google.com/*&lt;/string&gt;
+    &lt;string&gt;https://cdn.myapp.com/*&lt;/string&gt;
+    &lt;string&gt;https://firebaselogging.googleapis.com/*&lt;/string&gt;
+&lt;/array&gt;
+</code></pre>
+<p><strong>Android</strong> — the <code>urlFilters</code> property of the <code>webRequests</code> block in the Dynatrace Android Gradle plugin configuration (OneAgent for Mobile 8.339+). The plugin documentation's <em>Filter web requests by URL</em> page has the exact syntax.</p>
+<blockquote>
+<p><strong>Correction (10/02/2026).</strong> Earlier revisions showed an Android <code>dynatrace.config.xml</code> with <code>&lt;excludeURLs&gt;</code> entries. No such file is documented; Android configuration lives in the Gradle plugin DSL.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/ios/id-03-configuration">Configuration — iOS (DT docs)</a> — <em>&quot;DTXURLFilters Array [] An array of URL patterns to exclude from automatic instrumentation. Supports wildcards.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-339">What's new in OneAgent for Mobile 8.339 (DT docs)</a> — <em>&quot;The Dynatrace Android Gradle plugin now supports a new urlFilters property in the webRequests configuration.&quot;</em></sub></p>
+</blockquote>
+<h3>Data Collection Levels</h3>
+<p>There is no &quot;crash-only&quot; or &quot;user actions only&quot; level. The SDK has three data collection levels -- <code>OFF</code>, <code>PERFORMANCE</code> and <code>USER_BEHAVIOR</code> -- and crash reporting is a separate opt-in (<code>crashReportingOptedIn</code>). See MOBL-09 §3 for what each level captures and how to set it.</p>
+<h3>Cost and Traffic Control</h3>
+<p>Reducing the share of monitored sessions lowers DEM unit consumption for high-traffic apps. The setting is in the mobile app's settings under <strong>General &gt; Enablement and cost control</strong>, and applies to all users of that application configuration. Sessions that are not monitored also send no business events.</p>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions listed a four-level &quot;performance collection level&quot; table (Full / User actions / Crash-only / Off) and placed sampling under &quot;Application Settings &gt; Data Privacy &gt; Session Replay &amp; Data Collection&quot;. Neither matches the documentation.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android">OneAgent SDK for Android (DT docs)</a> — <em>&quot;The possible values for the data collection level are as follows: OFF PERFORMANCE USER_BEHAVIOR&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-android">Session Replay Classic for Android (DT docs)</a> — <em>&quot;From the application settings, select General &gt; Enablement and cost control .&quot;</em></sub></p>
+</blockquote>
+<h3>Query Feature Flag Event Tracking</h3>
+<p>Use this query to see which feature flags are most actively evaluated and which variants are being served:</p>
+<pre><code class="language-dql">// Feature flag event tracking
+fetch bizevents, from:-24h
+| filter event.type == &quot;com.myapp.feature_flag&quot;
+| summarize usage_count = count(), by:{feature.name, feature.variant}
+| sort usage_count desc
+| limit 20
+</code></pre>
+<p><a id="multi-app-strategies"></a></p>
+<h2>7. Multi-App Strategies</h2>
+<p>Many organizations operate multiple mobile applications -- a customer-facing app, a driver/courier app, an internal admin app, or white-label variants for different brands. Managing Dynatrace monitoring across multiple apps requires careful planning.</p>
+<h3>Shared vs. Separate Configurations</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Description</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Separate app configs</strong></td>
+<td>Each app has its own Dynatrace application ID and configuration</td>
+<td>Apps with distinct user bases and SLOs</td>
+</tr>
+<tr>
+<td><strong>Shared app config</strong></td>
+<td>Multiple app variants share one configuration</td>
+<td>White-label apps with identical codebases</td>
+</tr>
+<tr>
+<td><strong>Hybrid</strong></td>
+<td>Shared config for variants, separate for distinct apps</td>
+<td>Organizations with both scenarios</td>
+</tr>
+</tbody>
+</table>
+<h3>Multi-App Considerations</h3>
+<ul>
+<li><strong>Naming conventions</strong> -- Use consistent prefixes (e.g., <code>MyBrand Customer</code>, <code>MyBrand Driver</code>, <code>MyBrand Admin</code>) so you can filter and group easily in DQL</li>
+<li><strong>Shared business events</strong> -- If multiple apps send the same <code>event.type</code>, include an <code>app.name</code> attribute to distinguish the source</li>
+<li><strong>Cross-app session linking</strong> -- When a user action in one app triggers backend calls that affect another app, use web request tagging (Section 4) to maintain trace continuity</li>
+<li><strong>DEM unit budgeting</strong> -- Each app consumes DEM units independently. Use cost and traffic control strategically for high-traffic apps while keeping 100% monitoring for critical apps</li>
+</ul>
+<h3>Compare Session Volume Across Apps</h3>
+<p>Use this query to compare daily session volumes (distinct <code>dt.rum.session.id</code> per <code>frontend.name</code>) across all your mobile applications:</p>
+<pre><code class="language-dql">// Session volume comparison across all mobile apps
+fetch user.events, from:-7d
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;})
+| makeTimeseries session_count = countDistinct(dt.rum.session.id), by:{frontend.name}, interval:24h
+</code></pre>
+<hr />
+<h2>Series Complete</h2>
+<p>Congratulations on completing all 12 notebooks in the <strong>MOBL (Mobile Monitoring)</strong> series! You now have a comprehensive understanding of Dynatrace mobile RUM -- from foundational concepts to advanced instrumentation techniques.</p>
+<h3>Full Series Recap</h3>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Title</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MOBL-01</strong></td>
+<td>Mobile Monitoring Fundamentals</td>
+<td>Architecture, platforms, entity types, beacon data flow</td>
+</tr>
+<tr>
+<td><strong>MOBL-02</strong></td>
+<td>iOS SDK Setup (Swift &amp; SwiftUI)</td>
+<td>SPM/CocoaPods integration, Info.plist, DTSwiftInstrumentor</td>
+</tr>
+<tr>
+<td><strong>MOBL-03</strong></td>
+<td>Android SDK Setup (Kotlin &amp; Jetpack Compose)</td>
+<td>Top-level Gradle plugin, variant configurations, Compose</td>
+</tr>
+<tr>
+<td><strong>MOBL-04</strong></td>
+<td>Cross-Platform Frameworks</td>
+<td>Flutter, React Native, Cordova, .NET MAUI (Xamarin end of support)</td>
+</tr>
+<tr>
+<td><strong>MOBL-05</strong></td>
+<td>User Action Tracking</td>
+<td>Auto and custom actions, rage taps, action queries</td>
+</tr>
+<tr>
+<td><strong>MOBL-06</strong></td>
+<td>Crash Reporting &amp; ANR Detection</td>
+<td>Crash capture, symbolication, ANR, crash queries</td>
+</tr>
+<tr>
+<td><strong>MOBL-07</strong></td>
+<td>Network Request Monitoring</td>
+<td>HTTP monitoring, trace correlation, status-code trends</td>
+</tr>
+<tr>
+<td><strong>MOBL-08</strong></td>
+<td>Session Replay for Mobile</td>
+<td>Enablement, masking, capture percentage, crash replay</td>
+</tr>
+<tr>
+<td><strong>MOBL-09</strong></td>
+<td>Session Properties &amp; Data Privacy</td>
+<td>Session properties, user tagging, data collection levels, opt-in, deletion</td>
+</tr>
+<tr>
+<td><strong>MOBL-10</strong></td>
+<td>DQL for Mobile Analytics</td>
+<td><code>user.events</code> / <code>user.sessions</code> query library</td>
+</tr>
+<tr>
+<td><strong>MOBL-11</strong></td>
+<td>Dashboards &amp; Alerting</td>
+<td>KPI dashboards, crash-rate detectors, problem workflows</td>
+</tr>
+<tr>
+<td><strong>MOBL-12</strong></td>
+<td>Advanced Instrumentation &amp; Optimization</td>
+<td>Business events, request tagging, A/B testing, SDK tuning</td>
+</tr>
+</tbody>
+</table>
+<h3>What's Next?</h3>
+<ul>
+<li><strong>Apply what you learned</strong> -- Implement custom business events and manual instrumentation in your production apps</li>
+<li><strong>Explore related series</strong> -- Review the <strong>SPANS</strong> series for distributed tracing or <strong>WFLOW</strong> series for automated alerting workflows</li>
+<li><strong>Stay current</strong> -- Dynatrace regularly updates the mobile SDK with new capabilities. Check the <a href="https://docs.dynatrace.com/docs/whats-new">Dynatrace release notes</a> for the latest features</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

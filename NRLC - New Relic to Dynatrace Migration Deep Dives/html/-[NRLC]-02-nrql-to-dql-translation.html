@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NRLC-02: NRQL → DQL Translation</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NRLC — New Relic to Dynatrace Migration Deep Dives</a><span class="sep">/</span><span aria-current="page">NRLC-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NRLC-02: NRQL → DQL Translation</h1>
+<blockquote>
+<p><strong>Series:</strong> NRLC — New Relic to Dynatrace Migration Deep Dives | <strong>Notebook:</strong> 2 of 9 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Query translation is the technical core of any New Relic → Dynatrace migration. NRQL is SQL-like and declarative; DQL is pipeline-based. A direct string substitution doesn't work — the structure, source resolution, and time semantics all differ. This deep dive covers the <strong>architecture and behavior of the open-source <a href="https://github.com/timstewart-dynatrace/nrql-engine"><code>nrql-engine</code></a> compiler</strong> (292 tested patterns, AST-based), the translation surface it covers, the confidence scoring it produces, the gaps it flags for manual review, and the patterns to recognize when reading its output.</p>
+<p>The TypeScript <code>nrql-engine</code> and the Python compiler in <code>Dynatrace-NewRelic/compiler/</code> are <strong>pinned to each other via the Phase 19b regression suite</strong> (<code>test_phase19b_engine_parity.py</code> in CI) — drift on either side trips the test. Both expose the same 292-pattern surface with identical confidence scoring.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-compiler">Why a Compiler, Not Regex</a></li>
+<li><a href="#pipeline">Compiler Pipeline</a></li>
+<li><a href="#surface">Translation Surface</a></li>
+<li><a href="#confidence">Confidence Scoring</a></li>
+<li><a href="#patterns">Pattern Library — Worked Examples</a></li>
+<li><a href="#source-mapping">Source-Class Mapping (FROM clause)</a></li>
+<li><a href="#function-mapping">Function Mapping (Aggregations)</a></li>
+<li><a href="#time-mapping">Time Expression Mapping</a></li>
+<li><a href="#gaps">Unsupported NRQL — What to Do</a></li>
+<li><a href="#tooling">Tooling: Engine, Translator, CLI</a></li>
+<li><a href="#validation">Validation Loop</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Engineers translating NRQL queries; reviewers of automated translations</td>
+</tr>
+<tr>
+<td><strong>Recommended</strong></td>
+<td>NRLC-01 (platform comparison); familiarity with both NRQL and DQL syntax</td>
+</tr>
+<tr>
+<td><strong>Companion projects</strong></td>
+<td><a href="https://github.com/timstewart-dynatrace/nrql-engine"><code>nrql-engine</code></a>, <a href="https://github.com/timstewart-dynatrace/nrql-translator"><code>nrql-translator</code></a>, <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities"><code>NewRelic-to-Dynatrace-Migration-Utilities</code></a></td>
+</tr>
+</tbody>
+</table>
+<h2>Engine Support (Phase 19b)</h2>
+<p>The compiler is exposed through three projects (all pinned to the same 292-pattern surface via Phase 19b):</p>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Module / CLI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Single NRQL query</td>
+<td><code>migrate.py compile &quot;&lt;nrql&gt;&quot;</code> or <code>nrql-translator query</code></td>
+</tr>
+<tr>
+<td>Batch translation</td>
+<td><code>migrate.py batch --file queries.csv</code> or <code>nrql-translator excel</code></td>
+</tr>
+<tr>
+<td>Translate + auto-fix + post-processing</td>
+<td><code>migrate.py convert --file queries.txt</code> (wraps compile + DQLFixer + Phase 19 apdex/compare/rate/percentage uplift)</td>
+</tr>
+<tr>
+<td>Validate syntax only</td>
+<td><code>migrate.py compile --validate</code></td>
+</tr>
+<tr>
+<td>Shorthand pre-expand (<code>Distributed*</code>, <code>Mobile*</code>, <code>Lambda*</code>, etc.)</td>
+<td><code>compiler/shorthands.py</code> (9 patterns; Phase 19b)</td>
+</tr>
+<tr>
+<td>DQL auto-fix rules</td>
+<td><code>validators/dql_fixer.py</code> (24 methods; Phase 19b one-to-one with TS <code>dql-fixer.ts</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>See §1 APM of the <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/main/docs/COVERAGE.md">coverage matrix (migration utilities GitHub)</a> for the full NRQL event-class → DT data-object mapping (Transaction, Span, Log, Metric, SystemSample, PageView, MobileSession, SyntheticCheck, and custom event types).</p>
+<p><a id="why-compiler"></a></p>
+<h2>1. Why a Compiler, Not Regex</h2>
+<p>Early translation tools used regular expressions: find <code>SELECT count(*)</code>, replace with <code>summarize count = count()</code>. This breaks fast:</p>
+<table>
+<thead>
+<tr>
+<th>Failure mode</th>
+<th>Why regex fails</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nested function calls</td>
+<td><code>percentage(count(*), WHERE status = 200)</code> requires recursion, not pattern match</td>
+</tr>
+<tr>
+<td><code>FACET CASES</code> with nested <code>if()</code></td>
+<td>Requires understanding the AST to emit nested DQL</td>
+</tr>
+<tr>
+<td>Subqueries / <code>SELECT ... FROM (SELECT ...)</code></td>
+<td>Regex can't track scope</td>
+</tr>
+<tr>
+<td>Time expressions</td>
+<td><code>SINCE 1 day ago UNTIL 1 hour ago</code> vs. <code>SINCE bin(now(), 24h)</code> need semantic awareness</td>
+</tr>
+<tr>
+<td>Compound <code>WHERE</code> with mixed operators</td>
+<td>Operator precedence requires a parser</td>
+</tr>
+</tbody>
+</table>
+<p><a href="https://github.com/timstewart-dynatrace/nrql-engine"><code>nrql-engine</code></a> replaced an early 2,197-line regex translator with a proper compiler. The result: 292 tested translation patterns, <strong>1,200+ unit tests in the Python orchestrator (post-Phase-24)</strong>, and the ability to translate complex queries that the regex tool silently produced wrong DQL for. Phase 19b added a CI parity job (<code>test_phase19b_engine_parity.py</code>) that pins the Python compiler to the TS <code>nrql-engine</code> — drift on either side trips the test.</p>
+<p><a id="pipeline"></a></p>
+<h2>2. Compiler Pipeline</h2>
+<pre><code>NRQL string
+    ↓
+  Lexer       → token stream
+    ↓
+  Parser      → AST (recursive descent)
+    ↓
+  Emitter     → DQL string + CompileResult
+    ↓
+  Validator   → syntactically valid? against tenant?
+    ↓
+  Auto-fixer  → attempt safe corrections (operator normalization, duration literals)
+    ↓
+Output: { dql, confidence, notes[], warnings[], fixes[] }
+</code></pre>
+<p>Each stage lives in a separate module: <code>compiler/lexer.py</code>, <code>compiler/parser.py</code>, <code>compiler/ast_nodes.py</code>, <code>compiler/emitter.py</code> (Python project), or <code>src/compiler/*.ts</code> (TypeScript engine).</p>
+<p>The <code>CompileResult</code> is the contract every consumer uses:</p>
+<pre><code class="language-typescript">interface CompileResult {
+  success: boolean;
+  dql: string;
+  confidence: 'HIGH' | 'MEDIUM' | 'LOW';
+  confidenceScore: number;     // 0-100
+  ast?: NRQLNode;
+  notes: TranslationNotes;     // structured guidance
+  warnings: string[];
+  fixes: string[];             // applied auto-fixes
+}
+</code></pre>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5OUlFMIOKGkiBEUUwgQ29tcGlsZXIgUGlwZWxpbmU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+QVNULWJhc2VkIMK3IDI5MiBwYXR0ZXJucyDCtyBjb25maWRlbmNlLXNjb3JlZCBvdXRwdXQ8L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0ibnIzYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzczQkUyOCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIElucHV0IC0tPgogIDxyZWN0IHg9IjMwIiB5PSIyMDAiIHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iIzY0NzQ4QiIgcng9IjYiLz4KICA8dGV4dCB4PSI5MCIgeT0iMjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5OUlFMIHN0cmluZzwvdGV4dD4KICA8dGV4dCB4PSI5MCIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5TRUxFQ1QgY291bnQoKik8L3RleHQ+CiAgPHRleHQgeD0iOTAiIHk9IjI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+RlJPTSBUcmFuc2FjdGlvbjwvdGV4dD4KCiAgPCEtLSBQaXBlbGluZSBzdGFnZXMgKDUgYm94ZXMgaW4gbWlkZGxlKSAtLT4KICA8ZyBmb250LXNpemU9IjExIj4KICAgIDxyZWN0IHg9IjE4MCIgeT0iMTIwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjIiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iMTQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXdlaWdodD0iNzAwIj5MZXhlcjwvdGV4dD4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj50b2tlbnM8L3RleHQ+CiAgICA8dGV4dCB4PSIyNDAiIHk9IjE3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U0VMRUNULCBjb3VudCwgKiwgLi4uPC90ZXh0PgoKICAgIDxyZWN0IHg9IjE4MCIgeT0iMjAwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjIiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjYiLz4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iMjIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXdlaWdodD0iNzAwIj5QYXJzZXI8L3RleHQ+CiAgICA8dGV4dCB4PSIyNDAiIHk9IjI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+cmVjdXJzaXZlIGRlc2NlbnQ8L3RleHQ+CiAgICA8dGV4dCB4PSIyNDAiIHk9IjI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oaSIEFTVDwvdGV4dD4KCiAgICA8cmVjdCB4PSIxODAiIHk9IjI4MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI2Ii8+CiAgICA8dGV4dCB4PSIyNDAiIHk9IjMwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC13ZWlnaHQ9IjcwMCI+RW1pdHRlcjwvdGV4dD4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iMzIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5BU1Qg4oaSIERRTDwvdGV4dD4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iMzM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj4yOTIgcGF0dGVybnM8L3RleHQ+CgogICAgPHJlY3QgeD0iMzQwIiB5PSIxNjAiIHdpZHRoPSIxMjAiIGhlaWdodD0iNjAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogICAgPHRleHQgeD0iNDAwIiB5PSIxODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEOUY5OUQiIGZvbnQtd2VpZ2h0PSI3MDAiPlZhbGlkYXRvcjwvdGV4dD4KICAgIDx0ZXh0IHg9IjQwMCIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5zeW50YXggY2hlY2s8L3RleHQ+CiAgICA8dGV4dCB4PSI0MDAiIHk9IjIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+dGVuYW50IHZhbGlkYXRpb248L3RleHQ+CgogICAgPHJlY3QgeD0iMzQwIiB5PSIyNDAiIHdpZHRoPSIxMjAiIGhlaWdodD0iNjAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogICAgPHRleHQgeD0iNDAwIiB5PSIyNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUYzQzciIGZvbnQtd2VpZ2h0PSI3MDAiPkF1dG8tZml4ZXI8L3RleHQ+CiAgICA8dGV4dCB4PSI0MDAiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+bmFtZWQgcGFyYW1zPC90ZXh0PgogICAgPHRleHQgeD0iNDAwIiB5PSIyOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmR1cmF0aW9uIGxpdGVyYWxzPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBBcnJvd3MgLS0+CiAgPGcgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiPgogICAgPGxpbmUgeDE9IjE1MCIgeTE9IjI0MCIgeDI9IjE4MCIgeTI9IjE1MCIgbWFya2VyLWVuZD0idXJsKCNucjNhcnIpIi8+CiAgICA8bGluZSB4MT0iMjQwIiB5MT0iMTgwIiB4Mj0iMjQwIiB5Mj0iMjAwIiBtYXJrZXItZW5kPSJ1cmwoI25yM2FycikiLz4KICAgIDxsaW5lIHgxPSIyNDAiIHkxPSIyNjAiIHgyPSIyNDAiIHkyPSIyODAiIG1hcmtlci1lbmQ9InVybCgjbnIzYXJyKSIvPgogICAgPGxpbmUgeDE9IjMwMCIgeTE9IjMxMCIgeDI9IjM0MCIgeTI9IjI3MCIgbWFya2VyLWVuZD0idXJsKCNucjNhcnIpIi8+CiAgICA8bGluZSB4MT0iNDAwIiB5MT0iMjIwIiB4Mj0iNDAwIiB5Mj0iMjQwIiBtYXJrZXItZW5kPSJ1cmwoI25yM2FycikiLz4KICAgIDxsaW5lIHgxPSI0NjAiIHkxPSIyNzAiIHgyPSI1MDAiIHkyPSIyNzAiIG1hcmtlci1lbmQ9InVybCgjbnIzYXJyKSIvPgogIDwvZz4KCiAgPCEtLSBPdXRwdXQgLS0+CiAgPHJlY3QgeD0iNTEwIiB5PSIyMDAiIHdpZHRoPSIxODAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMzM0MTU1IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjIyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q29tcGlsZVJlc3VsdDwvdGV4dD4KICA8dGV4dCB4PSI1MjUiIHk9IjI0NCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+ZHFsOiAiZmV0Y2ggc3BhbnMuLi4iPC90ZXh0PgogIDx0ZXh0IHg9IjUyNSIgeT0iMjYwIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5jb25maWRlbmNlOiBISUdIPC90ZXh0PgogIDx0ZXh0IHg9IjUyNSIgeT0iMjc2IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5zY29yZTogOTU8L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSIyOTIiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPm5vdGVzOiBbLi4uXTwvdGV4dD4KICA8dGV4dCB4PSI1MjUiIHk9IjMwOCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+Zml4ZXM6IFsuLi5dPC90ZXh0PgoKICA8IS0tIENvbmZpZGVuY2UgYnJlYWtkb3duIChyaWdodCBzaWRlKSAtLT4KICA8dGV4dCB4PSI4MDAiIHk9IjEyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Q29uZmlkZW5jZTwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMCI+CiAgICA8cmVjdCB4PSI3MTAiIHk9IjE0MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNSIvPgogICAgPHRleHQgeD0iNzI1IiB5PSIxNTgiIGZpbGw9IiM4NkVGQUMiIGZvbnQtd2VpZ2h0PSI3MDAiPkhJR0ggKDkw4oCTMTAwKTwvdGV4dD4KICAgIDx0ZXh0IHg9IjcyNSIgeT0iMTczIiBmaWxsPSIjOTRBM0I4Ij5TYW1wbGUtdmFsaWRhdGUgNeKAkzEwJTwvdGV4dD4KCiAgICA8cmVjdCB4PSI3MTAiIHk9IjE5MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNSIvPgogICAgPHRleHQgeD0iNzI1IiB5PSIyMDgiIGZpbGw9IiNGRUYzQzciIGZvbnQtd2VpZ2h0PSI3MDAiPk1FRElVTSAoNjDigJM4OSk8L3RleHQ+CiAgICA8dGV4dCB4PSI3MjUiIHk9IjIyMyIgZmlsbD0iIzk0QTNCOCI+MTAwJSByZXZpZXcgZHVyaW5nIGR1YWwtcnVuPC90ZXh0PgoKICAgIDxyZWN0IHg9IjcxMCIgeT0iMjQwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI3MjUiIHk9IjI1OCIgZmlsbD0iI0ZFQ0FDQSIgZm9udC13ZWlnaHQ9IjcwMCI+TE9XICgw4oCTNTkpPC90ZXh0PgogICAgPHRleHQgeD0iNzI1IiB5PSIyNzMiIGZpbGw9IiM5NEEzQjgiPkhhbmQtdHJhbnNsYXRlOyBkbyBub3QgYXV0by1pbXBvcnQ8L3RleHQ+CiAgPC9nPgoKICA8dGV4dCB4PSI4MDAiIHk9IjMyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5FdmVyeSBzdGFnZSBmZWVkczwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjMzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj50aGUgY29tcGlsZSByZXN1bHQ8L3RleHQ+CgogIDwhLS0gQm90dG9tIG5vdGUgLS0+CiAgPHJlY3QgeD0iMTgwIiB5PSIzODAiIHdpZHRoPSI1NDAiIGhlaWdodD0iODAiIGZpbGw9IiMwRjE3MkEiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjUiLz4KICA8dGV4dCB4PSI0NTAiIHk9IjQwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+V2h5IGEgY29tcGlsZXIsIG5vdCByZWdleDwvdGV4dD4KICA8dGV4dCB4PSI0NTAiIHk9IjQyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMCI+TmVzdGVkIGZ1bmN0aW9uIGNhbGxzIMK3IG9wZXJhdG9yIHByZWNlZGVuY2Ugwrcgc3VicXVlcmllcyDCtyB0aW1lIHNlbWFudGljcyDCtyBGQUNFVCBDQVNFUyB3aXRoIG5lc3RlZCBpZigpPC90ZXh0PgogIDx0ZXh0IHg9IjQ1MCIgeT0iNDM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEwIj5hbGwgcmVxdWlyZSBBU1QgdHJhdmVyc2FsLiBUaGUgMiwxOTctbGluZSByZWdleCBwcmVkZWNlc3NvciBwcm9kdWNlZCBzaWxlbnQgd3JvbmcgRFFMLjwvdGV4dD4KCiAgPHRleHQgeD0iNDY1IiB5PSI0ODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk9wZW4gc291cmNlOiBnaXRodWIuY29tL3RpbXN0ZXdhcnQtZHluYXRyYWNlL25ycWwtZW5naW5lPC90ZXh0Pgo8L3N2Zz4K" alt="NRQL → DQL Compiler Pipeline" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Output |
+|-------|--------|
+| Lexer | tokens |
+| Parser | AST |
+| Emitter | DQL string |
+| Validator | syntax + tenant check |
+| Auto-fixer | safe corrections |
+| Result | { dql, confidence: HIGH/MED/LOW, score: 0-100, notes, fixes } |
+For environments where SVG doesn't render
+-->
+<p><a id="surface"></a></p>
+<h2>3. Translation Surface</h2>
+<p><strong>Supported NRQL clauses:</strong> <code>SELECT</code>, <code>FROM</code>, <code>WHERE</code>, <code>FACET</code>, <code>TIMESERIES</code>, <code>LIMIT</code>, <code>ORDER BY</code>, <code>COMPARE WITH</code>, <code>SINCE</code>, <code>UNTIL</code></p>
+<p><strong>Supported aggregations:</strong> <code>count</code>, <code>average</code>/<code>avg</code>, <code>sum</code>, <code>min</code>, <code>max</code>, <code>uniqueCount</code>, <code>percentile</code>, <code>latest</code>, <code>earliest</code>, <code>uniques</code>, <code>median</code>, <code>stddev</code>, <code>rate</code>, <code>percentage</code>, <code>cdfPercentage</code>, <code>filter</code>, <code>histogram</code>, <code>funnel</code>, <code>apdex</code> (with caveats)</p>
+<p><strong>Supported expressions:</strong></p>
+<ul>
+<li>Arithmetic between aggregations (<code>sum(a) / count()</code>)</li>
+<li>Nested <code>if()</code> for conditional faceting</li>
+<li>Time grouping (<code>hourOf</code>, <code>dateOf</code>, <code>weekOf</code>)</li>
+<li>Subqueries via <code>lookup</code> patterns</li>
+<li><code>WHERE</code> with <code>AND</code> / <code>OR</code> / <code>NOT</code> / <code>IN</code> / <code>LIKE</code> / regex</li>
+</ul>
+<p><strong>Partial / produces warnings:</strong></p>
+<ul>
+<li><code>apdex()</code> — emits DQL with TODO marker; threshold needs config</li>
+<li><code>bytecountestimate()</code> — no DQL equivalent; recommend reformulation</li>
+<li><code>funnel()</code> — multi-stage; emitted as nested append/join with manual review note</li>
+</ul>
+<p><strong>Not supported:</strong></p>
+<ul>
+<li><code>cohort()</code> — retention analysis is a different DT capability (Dynatrace Intelligence or custom DQL)</li>
+<li>Custom event types not present in DT (manual mapping required)</li>
+<li>Some metric streaming integrations — routed through OneAgent or OTLP instead</li>
+</ul>
+<p><a id="confidence"></a></p>
+<h2>4. Confidence Scoring</h2>
+<p>Every translation gets a confidence label and a 0–100 score. The scoring is rule-based, not heuristic:</p>
+<table>
+<thead>
+<tr>
+<th>Confidence</th>
+<th>Score</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HIGH</strong></td>
+<td>90–100</td>
+<td>Pattern fully covered; structural and semantic equivalence</td>
+</tr>
+<tr>
+<td><strong>MEDIUM</strong></td>
+<td>60–89</td>
+<td>Translation correct in common case; edge cases (NULLs, empty sets, time boundaries) need spot-check</td>
+</tr>
+<tr>
+<td><strong>LOW</strong></td>
+<td>0–59</td>
+<td>Manual review required; one or more constructs lack a direct equivalent</td>
+</tr>
+</tbody>
+</table>
+<h3>What lowers confidence</h3>
+<table>
+<thead>
+<tr>
+<th>Construct</th>
+<th>Confidence Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use of <code>apdex()</code></td>
+<td>LOW (threshold not portable)</td>
+</tr>
+<tr>
+<td>Use of <code>funnel()</code></td>
+<td>LOW (multi-stage; manual review)</td>
+</tr>
+<tr>
+<td>Subquery with <code>lookup</code></td>
+<td>MEDIUM (correctness depends on lookup data)</td>
+</tr>
+<tr>
+<td><code>SLIDE BY</code></td>
+<td>LOW: the compiler emits <code>rolling()</code>, and DQL has no such function (<code>UNKNOWN_FUNCTION</code>). Rewrite it by hand per §8</td>
+</tr>
+<tr>
+<td>Nested <code>if()</code> in <code>FACET CASES</code></td>
+<td>MEDIUM (emits nested DQL; review structure)</td>
+</tr>
+<tr>
+<td><code>COMPARE WITH</code></td>
+<td>MEDIUM (emits append + time-shift; verify alignment)</td>
+</tr>
+<tr>
+<td>Standard <code>SELECT count(*) FROM X WHERE Y FACET Z TIMESERIES</code></td>
+<td>HIGH</td>
+</tr>
+</tbody>
+</table>
+<h3>Acting on Confidence</h3>
+<ul>
+<li><strong>HIGH</strong> → trust the translation; sample-validate 5–10% during dual-run</li>
+<li><strong>MEDIUM</strong> → 100% review during dual-run; verify edge cases</li>
+<li><strong>LOW</strong> → hand-translate or reformulate the requirement; do not auto-import</li>
+</ul>
+<p><a id="patterns"></a></p>
+<h2>5. Pattern Library — Worked Examples</h2>
+<h3>Simple aggregation with FACET</h3>
+<p><strong>NRQL:</strong></p>
+<pre><code class="language-sql">SELECT count(*), average(duration) FROM Transaction
+WHERE appName = 'checkout' SINCE 1 hour ago FACET host
+</code></pre>
+<p><strong>DQL:</strong></p>
+<pre><code class="language-dql">fetch spans, from:-1h
+| filter dt.service.name == &quot;checkout&quot; and isNotNull(endpoint.name)
+| summarize {count = count(), average_duration = avg(duration)}, by:{host.name}
+</code></pre>
+<p>Confidence: <strong>HIGH (100)</strong> — provided the translation keeps both filters. <code>isNotNull(endpoint.name)</code> restricts <code>fetch spans</code> to request root spans (one per NR <code>Transaction</code>); <code>dt.service.name</code> is the Dynatrace service name, whereas <code>service.name</code> is the OpenTelemetry resource attribute and misses spans that do not carry it. See §6.</p>
+<h3>Percentage with conditional</h3>
+<p><strong>NRQL:</strong></p>
+<pre><code class="language-sql">SELECT percentage(count(*), WHERE status = 200) FROM Transaction
+</code></pre>
+<p><strong>DQL:</strong></p>
+<pre><code class="language-dql">fetch spans, from:-1h
+| filter isNotNull(endpoint.name) and isNotNull(http.response.status_code)
+| summarize success_pct = 100.0 * countIf(http.response.status_code == 200) / count()
+</code></pre>
+<p>Confidence: <strong>HIGH (95)</strong> only when the status field is mapped. Dynatrace spans carry the HTTP status as <code>http.response.status_code</code> (<code>stable</code>, type <code>long</code>) — map NR <code>httpResponseCode</code> / <code>http.statusCode</code> / <code>status</code> to it. A literal translation to <code>status == 200</code> or <code>http.status_code == 200</code> runs without error and returns 0% or close to it: neither field is in the semantic dictionary, and on the validation tenant, over request spans, they gave 0% and 13.5% where <code>http.response.status_code</code> gave 89.6% (10/05/2026).</p>
+<h3>Rate (decomposed)</h3>
+<p><strong>NRQL:</strong></p>
+<pre><code class="language-sql">SELECT rate(count(*), 1 minute) FROM Transaction
+</code></pre>
+<p><strong>DQL:</strong></p>
+<pre><code class="language-dql">fetch spans, from:-1h
+| filter isNotNull(endpoint.name)
+| makeTimeseries requests = count(), interval:1m
+</code></pre>
+<p>Confidence: <strong>HIGH (90)</strong> — NRQL <code>rate(count, N)</code> is structurally a per-interval count. Over event data DQL expresses it with <code>makeTimeseries</code>; <code>timeseries</code> reads stored metrics and needs a metric key (<code>timeseries count = count()</code> fails with <em>missing: metricKey</em>). For request counts, <code>timeseries requests = sum(dt.service.request.count, rollup: sum), interval:1m, from:-1h</code> reads the same rate from the service metric.</p>
+<h3>COMPARE WITH (time-shifted append)</h3>
+<p><strong>NRQL:</strong></p>
+<pre><code class="language-sql">SELECT count(*) FROM Transaction COMPARE WITH 1 week ago SINCE 1 day ago
+</code></pre>
+<p><strong>DQL:</strong></p>
+<pre><code class="language-dql">fetch spans, from:-1d
+| filter isNotNull(endpoint.name)
+| summarize current_count = count()
+| append [
+    fetch spans, from:-192h, to:-168h
+    | filter isNotNull(endpoint.name)
+    | summarize previous_count = count()
+  ]
+</code></pre>
+<p>Confidence: <strong>MEDIUM (75)</strong> — verify the time alignment; DT default behavior on <code>append</code> may need a join for visualization.</p>
+<h3>Subquery via lookup</h3>
+<p><strong>NRQL:</strong></p>
+<pre><code class="language-sql">SELECT count(*) FROM PageView WHERE userAgent IN (SELECT name FROM BotList)
+</code></pre>
+<p><strong>DQL:</strong></p>
+<pre><code class="language-dql">fetch user.events, from:-1h
+| filter characteristics.has_page_summary == true
+| lookup [data record(name = &quot;HeadlessChrome&quot;), record(name = &quot;Googlebot&quot;)],
+    sourceField:browser.user_agent, lookupField:name, prefix:&quot;bot.&quot;
+| filter isNotNull(bot.name)
+| summarize bot_page_views = count()
+</code></pre>
+<p>Confidence: <strong>MEDIUM (70)</strong> — correctness depends on where the bot list lives. NR page views are New RUM page summaries in <code>user.events</code>, not logs. The <code>data</code> subquery stands in for the bot list; replace it with your own table (for example a tabular file read with <code>load &quot;/lookups/&lt;file&gt;&quot;</code>). Confirm that <code>browser.user_agent</code> is populated on your real-user data first — on the validation tenant every page summary came from synthetic traffic and carried no user agent, so this query returned 0 (10/05/2026).</p>
+<p><a id="source-mapping"></a></p>
+<h2>6. Source-Class Mapping (FROM clause)</h2>
+<p>NRQL's <code>FROM</code> references NR event classes; DQL's <code>fetch</code> references Grail data objects.</p>
+<table>
+<thead>
+<tr>
+<th>NRQL FROM</th>
+<th>DQL fetch</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Transaction</code></td>
+<td><code>fetch spans</code> + <code>filter isNotNull(endpoint.name)</code></td>
+<td>One record per request: <code>endpoint.name</code> is set only on request root spans. <code>span.kind == &quot;server&quot;</code> over-counts (it also matches server spans that are not request roots). Map <code>appName</code> to <code>dt.service.name</code>, not the OpenTelemetry <code>service.name</code></td>
+</tr>
+<tr>
+<td><code>TransactionError</code></td>
+<td><code>fetch spans</code> + <code>filter isNotNull(endpoint.name) and span.status_code == &quot;error&quot;</code>, or the <code>dt.service.request.failure_count</code> metric</td>
+<td><code>error</code> is not a Dynatrace field — <code>isNotNull(error)</code> matches only spans where some instrumentation set a custom <code>error</code> attribute, and read 0 failures on a service with 235 of 749 requests failing in five minutes (10/05/2026)</td>
+</tr>
+<tr>
+<td><code>Span</code></td>
+<td><code>fetch spans</code></td>
+<td>Direct</td>
+</tr>
+<tr>
+<td><code>Log</code></td>
+<td><code>fetch logs</code></td>
+<td>Direct</td>
+</tr>
+<tr>
+<td><code>Metric</code></td>
+<td><code>timeseries &lt;agg&gt;(&lt;metric.key&gt;)</code></td>
+<td>NRQL metrics → DT metrics</td>
+</tr>
+<tr>
+<td><code>SystemSample</code></td>
+<td><code>timeseries avg(dt.host.cpu.usage)</code> (etc.)</td>
+<td>Infrastructure host metrics</td>
+</tr>
+<tr>
+<td><code>ProcessSample</code></td>
+<td><code>timeseries ... by:{dt.entity.process_group_instance}</code></td>
+<td>Process metrics</td>
+</tr>
+<tr>
+<td><code>K8sContainerSample</code></td>
+<td><code>timeseries ... by:{k8s.container.name}</code></td>
+<td>K8s container metrics</td>
+</tr>
+<tr>
+<td><code>PageView</code></td>
+<td><code>fetch user.events</code> + <code>filter characteristics.has_page_summary == true</code></td>
+<td>New RUM page summaries; RUM data is not in <code>logs</code> or <code>events</code></td>
+</tr>
+<tr>
+<td><code>BrowserInteraction</code></td>
+<td><code>fetch user.events</code> + the matching <code>characteristics.has_*</code> flag (for example <code>has_user_action</code>)</td>
+<td>New RUM; see WEBRUM-09 for the event characteristics</td>
+</tr>
+<tr>
+<td><code>MobileSession</code></td>
+<td><code>fetch user.sessions</code></td>
+<td>New RUM sessions</td>
+</tr>
+<tr>
+<td><code>SyntheticCheck</code></td>
+<td><code>fetch dt.synthetic.events</code> + <code>filter in(event.type, {&quot;http_monitor_execution&quot;, &quot;browser_monitor_execution&quot;})</code></td>
+<td>For availability, also <code>filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)</code> — a retried browser failure is otherwise counted twice</td>
+</tr>
+<tr>
+<td>Custom event type</td>
+<td><code>fetch bizevents</code> or <code>fetch events</code></td>
+<td>Depends on ingest mapping</td>
+</tr>
+</tbody>
+</table>
+<p>The compiler picks the <code>fetch</code> source from a built-in lookup. There is no CLI flag to override it — if your NR custom event lands in a different DT data object, edit the translated DQL.</p>
+<p><a id="function-mapping"></a></p>
+<h2>7. Function Mapping (Aggregations)</h2>
+<table>
+<thead>
+<tr>
+<th>NRQL</th>
+<th>DQL</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>count(*)</code></td>
+<td><code>count()</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>count(field)</code></td>
+<td><code>countIf(isNotNull(field))</code></td>
+<td>counts non-null; <code>count()</code> takes no positional field</td>
+</tr>
+<tr>
+<td><code>uniqueCount(field)</code></td>
+<td><code>countDistinct(field)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>average(field)</code> / <code>avg(field)</code></td>
+<td><code>avg(field)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>sum(field)</code></td>
+<td><code>sum(field)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>min(field)</code> / <code>max(field)</code></td>
+<td><code>min(field)</code> / <code>max(field)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>percentile(field, 95)</code></td>
+<td><code>percentile(field, 95)</code></td>
+<td>DQL uses positional; NRQL uses positional</td>
+</tr>
+<tr>
+<td><code>median(field)</code></td>
+<td><code>median(field)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>stddev(field)</code></td>
+<td><code>stddev(field)</code></td>
+<td>on a duration field use <code>stddev(duration / 1ms)</code> — <code>stddev(duration)</code> returns 0 with no warning</td>
+</tr>
+<tr>
+<td><code>latest(field)</code></td>
+<td><code>takeLast(field)</code></td>
+<td>with <code>sort start_time desc</code> on spans, <code>sort timestamp desc</code> on logs, if needed</td>
+</tr>
+<tr>
+<td><code>earliest(field)</code></td>
+<td><code>takeFirst(field)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>uniques(field)</code></td>
+<td><code>collectDistinct(field)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>rate(count(*), 1 minute)</code></td>
+<td><code>makeTimeseries count(), interval:1m</code></td>
+<td>structural rewrite; <code>timeseries</code> needs a metric key</td>
+</tr>
+<tr>
+<td><code>percentage(count(*), WHERE x)</code></td>
+<td><code>100.0 * countIf(x) / count()</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>filter(count(*), WHERE x)</code></td>
+<td><code>countIf(x)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>histogram(field, ...)</code></td>
+<td><code>summarize ..., by:{bin(field, N)}</code></td>
+<td>bucket-based; on a duration use a duration width, e.g. <code>bin(duration, 100ms)</code> (<code>bin</code> has no <code>width:</code> parameter)</td>
+</tr>
+<tr>
+<td><code>apdex(field, t:N)</code></td>
+<td>flagged TODO; manual config</td>
+<td>DT uses Apdex via Dynatrace Intelligence or custom DQL</td>
+</tr>
+<tr>
+<td><code>funnel(...)</code></td>
+<td>flagged; nested append/join skeleton</td>
+<td>manual review</td>
+</tr>
+<tr>
+<td><code>cohort(...)</code></td>
+<td>unsupported</td>
+<td>use Dynatrace Intelligence or custom DQL</td>
+</tr>
+</tbody>
+</table>
+<p><a id="time-mapping"></a></p>
+<h2>8. Time Expression Mapping</h2>
+<table>
+<thead>
+<tr>
+<th>NRQL</th>
+<th>DQL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SINCE 1 hour ago</code></td>
+<td><code>from:-1h</code></td>
+</tr>
+<tr>
+<td><code>SINCE 1 day ago UNTIL 1 hour ago</code></td>
+<td><code>from:-1d, to:-1h</code></td>
+</tr>
+<tr>
+<td><code>SINCE '2026-04-14 00:00:00'</code></td>
+<td><code>from:&quot;2026-04-14T00:00:00Z&quot;</code></td>
+</tr>
+<tr>
+<td><code>TIMESERIES 5 minutes</code></td>
+<td><code>interval:5m</code></td>
+</tr>
+<tr>
+<td><code>TIMESERIES MAX</code></td>
+<td>omit <code>interval:</code> — <code>makeTimeseries</code> / <code>timeseries</code> choose the interval automatically (<code>interval: auto</code> does not parse)</td>
+</tr>
+<tr>
+<td><code>TIMESERIES 5 minutes SLIDE BY 1 minute</code></td>
+<td>no direct equivalent. For counts and sums, query at the slide step and sum a moving window: <code>interval:1m</code> then <code>fieldsAdd c_5m = arrayMovingSum(c, 5)</code> (the first four points cover partial windows). A sliding average or percentile has no exact equivalent — review by hand. <code>bin()</code> produces fixed, non-overlapping buckets, not a sliding window</td>
+</tr>
+<tr>
+<td><code>COMPARE WITH 1 week ago</code></td>
+<td>the <strong>same window, shifted back 168 h</strong>: <code>timeseries …, shift:-168h</code> in an <code>append</code> for metrics, or a second <code>fetch</code> whose <code>from:</code> / <code>to:</code> are both moved back 168 h (<code>SINCE 1 day ago</code> → <code>from:-192h, to:-168h</code>, as in §5). Not <code>from:-2w, to:-1w</code>, which compares a whole week against a one-day window</td>
+</tr>
+</tbody>
+</table>
+<p>The metric form of <code>COMPARE WITH</code>, executed against a live tenant on 10/14/2026 (2 rows, no notifications; <code>shift:-7d</code> is also accepted but Grail rewrites it to <code>-168h</code>):</p>
+<pre><code class="language-dql">timeseries current = sum(dt.service.request.count, rollup: sum), from:-1d, interval:1h
+| append [timeseries previous = sum(dt.service.request.count, rollup: sum), from:-1d, interval:1h, shift:-168h]
+</code></pre>
+<p>The compiler normalizes all time expressions to absolute or relative DQL forms. A common gotcha: NRQL's default time window (1 hour) differs from DQL's defaults; the compiler always emits an explicit <code>from:</code> to avoid this.</p>
+<p><a id="gaps"></a></p>
+<h2>9. Unsupported NRQL — What to Do</h2>
+<p>When the compiler emits LOW confidence or a TODO marker:</p>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Translation contains <code>// TODO: APDEX_THRESHOLD</code></td>
+<td>NRQL <code>apdex(field, t:0.5)</code> — threshold doesn't translate</td>
+<td>Configure DT Apdex calculation separately or use Dynatrace Intelligence SLO with target value</td>
+</tr>
+<tr>
+<td>Translation contains <code>// TODO: FUNNEL_STAGES</code></td>
+<td>Multi-stage funnel</td>
+<td>Emit per-stage metrics + custom DQL with <code>lookup</code> chain</td>
+</tr>
+<tr>
+<td>Compiler returns <code>success: false</code></td>
+<td>Unparseable NRQL (likely malformed or uses a private NR feature)</td>
+<td>Hand-translate; capture in gap-analysis</td>
+</tr>
+<tr>
+<td>LOW confidence on subquery</td>
+<td><code>lookup</code> target not validated against Grail</td>
+<td>Check that the looked-up data exists as queryable Grail content</td>
+</tr>
+<tr>
+<td>LOW confidence on custom event type</td>
+<td>Source mapping unknown</td>
+<td>Add a source mapping override or route the data via OpenPipeline first</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Document gaps in the migration's gap-analysis artifact</strong> (NR2DT-01 Discover §6). LOW-confidence queries are a planned cost, not a surprise.</p>
+<p><a id="tooling"></a></p>
+<h2>10. Tooling: Engine, Translator, CLI</h2>
+<p>Three projects expose the same compiler in different shapes:</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Form</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><a href="https://github.com/timstewart-dynatrace/nrql-engine"><code>nrql-engine</code></a></strong></td>
+<td>TypeScript library on GitHub Packages (<code>@timstewart-dynatrace/nrql-engine</code>; see the install note below)</td>
+<td>Embed in your own tool, web app, or CI — <strong>planned future home: <a href="https://github.com/dynatrace-dma"><code>dynatrace-dma</code></a> (Dynatrace Migration Assistant)</strong></td>
+</tr>
+<tr>
+<td><strong><a href="https://github.com/timstewart-dynatrace/nrql-translator"><code>nrql-translator</code></a></strong></td>
+<td>Thin CLI around the engine</td>
+<td>Single query, batch Excel, validation, notebook generation</td>
+</tr>
+<tr>
+<td><strong><a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities"><code>NewRelic-to-Dynatrace-Migration-Utilities</code></a></strong></td>
+<td>Python CLI orchestrating full migration</td>
+<td>End-to-end NR→DT including all entity transformers</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Installing the engine.</strong> It is not on npmjs.com. Its README says it needs <em>&quot;authentication even for public packages&quot;</em>: export a <code>GITHUB_TOKEN</code> with <code>read:packages</code>, and add this to <code>.npmrc</code>:</p>
+<pre><code class="language-text">@timstewart-dynatrace:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+</code></pre>
+<p><strong>Running the translator.</strong> Run it from a checkout of the repository: <code>npm install</code>, then <code>npm run build:all</code>.</p>
+<h3>Single-query CLI</h3>
+<pre><code class="language-bash"># Using nrql-translator
+npm run cli -- query &quot;SELECT count(*) FROM Transaction FACET host&quot;
+
+# Or Dynatrace-NewRelic Python CLI
+python3 migrate.py compile &quot;SELECT count(*) FROM Transaction FACET host&quot;
+</code></pre>
+<h3>Batch translation</h3>
+<pre><code class="language-bash"># CSV in, CSV out (with confidence column)
+python3 migrate.py batch --file all-queries.csv
+
+# Excel batch (preserves dashboard mapping)
+npm run cli -- excel dashboards.xlsx --output dashboards-dql.xlsx
+</code></pre>
+<h3>Notebook output</h3>
+<p>The translator can emit a Dynatrace notebook from a <code>*_ast_test.json</code> file. It does not read a CSV:</p>
+<pre><code class="language-bash">npm run cli -- notebook dashboard_ast_test.json -o migrated-dashboard.ipynb
+</code></pre>
+<h3>Dynatrace Migration Assistant (<code>dynatrace-dma</code>) Home</h3>
+<p>The <a href="https://github.com/dynatrace-dma"><code>dynatrace-dma</code></a> GitHub organization is the upstream <strong>Dynatrace Migration Assistant</strong> home for source-platform migration tooling. It already hosts:</p>
+<ul>
+<li><a href="https://github.com/dynatrace-dma/splunk-to-dynatrace"><code>splunk-to-dynatrace</code></a> — Splunk → Dynatrace migration resources</li>
+<li><a href="https://github.com/dynatrace-dma/datadog-to-dynatrace"><code>datadog-to-dynatrace</code></a> — Datadog configuration extraction scripts</li>
+</ul>
+<p>The NRQL engine is planned to relocate here under a <code>newrelic-to-dynatrace</code> repo following the same pattern. Until the move, the engine remains canonical at <code>timstewart-dynatrace/nrql-engine</code>; track <code>dynatrace-dma</code> for the official Dynatrace-supported version going forward.</p>
+<p><a id="validation"></a></p>
+<h2>11. Validation Loop</h2>
+<p>Translation alone doesn't guarantee correctness. The full loop is:</p>
+<pre><code>NRQL → [compile] → DQL → [syntax validate] → [tenant validate] → [behavioral validate]
+</code></pre>
+<ol>
+<li><strong>Syntax validate</strong> — the engine's <code>DQLSyntaxValidator</code> runs offline pattern checks and makes no network call. With a tenant, <code>DTEnvironmentRegistry.validate_dql_syntax</code> submits the query to <code>POST /platform/storage/query/v1/query:execute</code>.</li>
+<li><strong>Tenant validate</strong> — <code>DTEnvironmentRegistry</code> checks that referenced metrics and entities exist in the target tenant. Buckets and OpenPipeline enrichment attributes are not in the registry, so check those by hand (NRLC-08 §3).</li>
+<li><strong>Behavioral validate</strong> — run both NRQL (against NR) and translated DQL (against DT) over the same time window and compare result shape and magnitudes.</li>
+</ol>
+<h3>Auto-fix</h3>
+<p>When syntax validation fails, the engine attempts safe corrections before reporting failure:</p>
+<ul>
+<li>Field name normalization (camelCase ↔ snake_case for known mappings)</li>
+</ul>
+<p>Applied fixes are returned in <code>result.fixes[]</code> so reviewers can see what changed.</p>
+<h2>Summary</h2>
+<p>NRQL→DQL translation is a compiler problem, not a string-replace problem. The open-source <code>nrql-engine</code> covers 292 patterns with confidence scoring; LOW-confidence queries are flagged for manual review rather than silently emitted as wrong DQL. Pair the translator with the validation loop, treat MEDIUM confidence as a review obligation, and keep an explicit gap-analysis for the genuinely unsupported constructs.</p>
+<p>Continue to <strong>NRLC-03 Dashboard Migration</strong> to see how translated queries flow into Dynatrace dashboard artifacts.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a> (planned future home: the <a href="https://github.com/dynatrace-dma"><code>dynatrace-dma</code></a> Dynatrace Migration Assistant organization), and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M2S-07: Step 7 — Enable: User Enablement and Communication</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">M2S — Managed to SaaS Migration</a><span class="sep">/</span><span aria-current="page">M2S-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>M2S-07: Step 7 — Enable: User Enablement and Communication</h1>
+<blockquote>
+<p><strong>Series:</strong> M2S — Managed to SaaS Migration | <strong>Notebook:</strong> 7 of 9 | <strong>Phase:</strong> Run | <strong>Step:</strong> Enable | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/17/2026</p>
+</blockquote>
+<p>A successful migration is measured not by the technical cutover but by whether every team in the organization can use the new platform effectively. Step 7 focuses on communication, training, documentation, and establishing the support structures that ensure adoption. Without deliberate enablement, teams will struggle with new URLs, unfamiliar interfaces, and unanswered questions — undermining the value of the migration.</p>
+<blockquote>
+<p><strong>M2S Migration Journey — 3 Phases / 9 Steps</strong></p>
+<p><strong>Plan:</strong> 1. Discover | 2. Strategize | 3. Design</p>
+<p><strong>Upgrade:</strong> 4. Prepare | 5. Execute | 6. Integrate</p>
+<p><strong>Run:</strong> <strong>7. Enable</strong> | 8. Expand | 9. Optimize</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#communication-plan">Communication Plan</a></li>
+<li><a href="#persona-based-training">Persona-Based Training</a></li>
+<li><a href="#documentation-updates">Documentation Updates</a></li>
+<li><a href="#self-service-resources">Self-Service Resources</a></li>
+<li><a href="#support-channels">Support Channels</a></li>
+<li><a href="#measuring-enablement-success">Measuring Enablement Success</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Steps 1–6 Complete</strong></td>
+<td>Discovery, strategy, design, preparation, execution, and integration phases finished</td>
+</tr>
+<tr>
+<td><strong>SaaS Tenant Stable</strong></td>
+<td>All OneAgents reporting, integrations reconnected</td>
+</tr>
+<tr>
+<td><strong>IAM Configured</strong></td>
+<td>User accounts, groups, and policies set up in SaaS</td>
+</tr>
+<tr>
+<td><strong>Stakeholder List</strong></td>
+<td>Complete inventory of Dynatrace users by role and team</td>
+</tr>
+<tr>
+<td><strong>Communication Channels</strong></td>
+<td>Access to organizational email, Slack/Teams, intranet</td>
+</tr>
+</tbody>
+</table>
+<p><a id="communication-plan"></a></p>
+<h2>1. Communication Plan</h2>
+<p>The migration affects every Dynatrace user in the organization. A structured communication plan ensures no team is surprised, confused, or left behind. Tailor the message to the audience — executives need a different message than SRE engineers.</p>
+<h3>Communication Timeline</h3>
+<table>
+<thead>
+<tr>
+<th>When</th>
+<th>Audience</th>
+<th>Message</th>
+<th>Channel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pre-migration (2–4 weeks before)</strong></td>
+<td>All stakeholders</td>
+<td>Migration timeline, what changes, what stays the same, how to prepare</td>
+<td>Email + town hall</td>
+</tr>
+<tr>
+<td><strong>During migration</strong></td>
+<td>Platform team</td>
+<td>Wave status updates, issues found, resolution progress</td>
+<td>Slack/Teams war room</td>
+</tr>
+<tr>
+<td><strong>Day of cutover</strong></td>
+<td>All users</td>
+<td>New URLs, login process, where to get help</td>
+<td>Email + Slack/Teams announcement</td>
+</tr>
+<tr>
+<td><strong>Post-migration (+1 week)</strong></td>
+<td>All users</td>
+<td>Feature highlights, training schedule, FAQ link</td>
+<td>Email + intranet</td>
+</tr>
+<tr>
+<td><strong>Post-migration (+2 weeks)</strong></td>
+<td>All users</td>
+<td>Adoption metrics, success stories, remaining training sessions</td>
+<td>Email</td>
+</tr>
+<tr>
+<td><strong>Post-migration (+30 days)</strong></td>
+<td>Management</td>
+<td>Migration summary, adoption dashboard, next steps (Step 9)</td>
+<td>Executive briefing</td>
+</tr>
+</tbody>
+</table>
+<h3>Audience-Specific Messaging</h3>
+<p>Each audience cares about different things. Craft messages that answer their specific questions:</p>
+<table>
+<thead>
+<tr>
+<th>Audience</th>
+<th>Key Questions</th>
+<th>Message Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Executives</strong></td>
+<td>What’s the ROI? Is it done?</td>
+<td>Business value, cost savings, reduced operational burden</td>
+</tr>
+<tr>
+<td><strong>Platform Admins</strong></td>
+<td>How do I manage it? What’s different?</td>
+<td>New admin workflows, IAM policies, Settings 2.0, Grail buckets</td>
+</tr>
+<tr>
+<td><strong>SRE/Operations</strong></td>
+<td>Where are my alerts? How do I troubleshoot?</td>
+<td>New URLs, Notebooks replacing USQL, Workflow-based alerting</td>
+</tr>
+<tr>
+<td><strong>Developers</strong></td>
+<td>Does my pipeline still work? Where’s my data?</td>
+<td>API endpoint changes, tracing, log analysis, deployment markers</td>
+</tr>
+<tr>
+<td><strong>Security Team</strong></td>
+<td>Is it compliant? Where are the audit logs?</td>
+<td>Application security, audit logging, compliance dashboards</td>
+</tr>
+</tbody>
+</table>
+<h3>Communication Templates</h3>
+<h4>Pre-Migration Email (Example)</h4>
+<pre><code>Subject: Dynatrace Platform Migration — Moving to SaaS [Timeline]
+
+Team,
+
+We are migrating our Dynatrace monitoring platform from Managed (self-hosted)
+to SaaS (cloud-hosted). This migration brings improved performance, automatic
+updates, and access to new capabilities including Grail data lakehouse,
+Notebooks, and the AutomationEngine.
+
+What changes:
+- New URL: https://{tenant}.apps.dynatrace.com (replaces your current bookmark)
+- Login: SSO via your corporate identity provider
+- Query language: DQL replaces USQL for advanced queries
+
+What stays the same:
+- Your dashboards, management zones, and alerting rules are migrated
+- OneAgent monitoring continues without interruption
+- Historical data stays in Managed — it does not move to SaaS, so keep the
+  Managed environment readable until it is decommissioned
+
+Timeline: [Insert dates]
+Training: [Insert schedule link]
+Questions: [Insert support channel]
+</code></pre>
+<h4>Post-Migration Email (Example)</h4>
+<pre><code>Subject: Dynatrace Migration Complete — Your New Platform is Live
+
+Team,
+
+The Dynatrace migration to SaaS is complete. Your new environment is live at:
+
+  https://{tenant}.apps.dynatrace.com
+
+Action required:
+1. Update your bookmarks to the new URL
+2. Log in using SSO (same corporate credentials)
+3. Verify your dashboards and alerts are working
+
+Resources:
+- Quick Start Guide: [link]
+- FAQ: [link]
+- Support channel: #dynatrace-migration-support
+- Training schedule: [link]
+
+If anything looks wrong, report it in #dynatrace-migration-support immediately.
+</code></pre>
+<h3>Verify User Access to SaaS</h3>
+<p>Before sending the post-migration announcement, confirm that users can actually log in and see data:</p>
+<pre><code class="language-dql">// Verify real user traffic is arriving on the SaaS tenant after cutover.
+//
+// Corrected 08/27/2026. This cell previously queried `dt.entity.user_session_synthetic`,
+// which DOES NOT EXIST — it raises ENTITY_DATA_OBJECT_UNDEFINED, returns ok:true with
+// zero rows, and so always printed &quot;No user sessions — verify IAM configuration&quot; on
+// every environment. Controls at the time: synthetic_test 117, multiprotocol_monitor 4,
+// user.sessions 3,262 — so the zero was the identifier, not an empty tenant.
+//
+// It also conflated two questions. User sessions are RUM data; they cannot tell you
+// whether IAM groups are configured. Group membership is an Account Management concern
+// — see IAM-04 and IAM-05 for that check.
+//
+// Corrected 10/05/2026. Synthetic monitors create user sessions too, so a bare count()
+// can report &quot;real users arriving&quot; on a tenant with no real-user RUM at all — on the
+// validation tenant all 4,702 sessions in 24 h were synthetic. Split on dt.rum.user_type
+// (values real_user / robot / synthetic in the semantic dictionary).
+fetch user.sessions, from:-24h
+| summarize {realUserSessions = countIf(dt.rum.user_type == &quot;real_user&quot;),
+             syntheticSessions = countIf(dt.rum.user_type == &quot;synthetic&quot;),
+             robotSessions = countIf(dt.rum.user_type == &quot;robot&quot;)}
+| fieldsAdd status = if(realUserSessions &gt; 0,
+                        then: &quot;Real user sessions arriving on SaaS&quot;,
+                        else: if(syntheticSessions &gt; 0,
+                                 then: &quot;Only synthetic sessions — real-user RUM not arriving yet&quot;,
+                                 else: &quot;No user sessions — check RUM enablement and OneAgent/RUM JS injection&quot;))
+
+</code></pre>
+<p><a id="persona-based-training"></a></p>
+<h2>2. Persona-Based Training</h2>
+<p>One-size-fits-all training does not work. Each persona interacts with Dynatrace differently, so training must be tailored to their workflows. Deliver training within the first two weeks of migration to prevent users from forming bad habits or giving up on the platform.</p>
+<h3>Training Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Persona</th>
+<th>Training Focus</th>
+<th>Key Topics</th>
+<th>Duration</th>
+<th>Format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Platform Admins</strong></td>
+<td>SaaS administration</td>
+<td>IAM policies, Settings 2.0, Grail bucket management, OpenPipeline configuration, token management</td>
+<td>2 hours</td>
+<td>Hands-on workshop</td>
+</tr>
+<tr>
+<td><strong>SRE/Operations</strong></td>
+<td>Monitoring and alerting</td>
+<td>Notebooks, DQL queries, Workflow-based alerting, problem analysis, SLO management</td>
+<td>2 hours</td>
+<td>Hands-on workshop</td>
+</tr>
+<tr>
+<td><strong>Developers</strong></td>
+<td>Observability integration</td>
+<td>Distributed tracing in Notebooks, log analysis with DQL, deployment markers, release tracking</td>
+<td>1.5 hours</td>
+<td>Hands-on workshop</td>
+</tr>
+<tr>
+<td><strong>Management</strong></td>
+<td>Executive dashboards</td>
+<td>Dashboard navigation, SLO reporting, business analytics, sharing and scheduling</td>
+<td>1 hour</td>
+<td>Demo + walkthrough</td>
+</tr>
+<tr>
+<td><strong>Security Team</strong></td>
+<td>Security features</td>
+<td>Application Security module, vulnerability analysis, audit log queries, compliance dashboards</td>
+<td>1.5 hours</td>
+<td>Hands-on workshop</td>
+</tr>
+</tbody>
+</table>
+<h3>What Changed: Managed vs. SaaS Key Differences</h3>
+<p>Training must address the specific changes users will encounter:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Managed Experience</th>
+<th>SaaS Experience</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>URL</strong></td>
+<td><code>https://{managed-server}/e/{env-id}/</code></td>
+<td><code>https://{tenant}.apps.dynatrace.com</code></td>
+</tr>
+<tr>
+<td><strong>Login</strong></td>
+<td>Local users or LDAP</td>
+<td>SSO via identity provider</td>
+</tr>
+<tr>
+<td><strong>Navigation</strong></td>
+<td>Classic UI</td>
+<td>Unified platform UI with app launcher</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>USQL (limited)</td>
+<td>DQL (full Grail access)</td>
+</tr>
+<tr>
+<td><strong>Data analysis</strong></td>
+<td>Custom charts, data explorer</td>
+<td>Notebooks (interactive, shareable)</td>
+</tr>
+<tr>
+<td><strong>Alerting</strong></td>
+<td>Notification rules + alerting profiles</td>
+<td>Workflows (AutomationEngine)</td>
+</tr>
+<tr>
+<td><strong>Configuration</strong></td>
+<td>Classic settings pages and Configuration API</td>
+<td>Settings 2.0 (schema-based) and the Settings app</td>
+</tr>
+<tr>
+<td><strong>Data storage</strong></td>
+<td>Elasticsearch + Cassandra</td>
+<td>Grail data lakehouse</td>
+</tr>
+<tr>
+<td><strong>Updates</strong></td>
+<td>Automatic every 4 weeks, in your maintenance window (inaccessible during the update on clusters under 3 nodes)</td>
+<td>Automatic every 2 weeks, operated by Dynatrace</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/upgrade/up-information">Pre-upgrade information (DT docs)</a> — Managed: <em>&quot;Automatic upgrades every 4 weeks; OS Patches by Customer&quot;</em>; SaaS: <em>&quot;Automatic upgrades every 2 weeks; OS Security patches by Dynatrace ACE team.&quot;</em>; <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/update-cluster">Update a cluster (DT docs)</a> — <em>&quot;If your Managed Cluster consists of fewer than three nodes, Dynatrace Managed will not be accessible during the update process.&quot;</em></sub></p>
+</blockquote>
+<h3>DQL Transition Guide</h3>
+<p>The biggest workflow change for power users is the transition from USQL to DQL. Include these common translations in training:</p>
+<table>
+<thead>
+<tr>
+<th>USQL Pattern</th>
+<th>DQL Equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SELECT * FROM usersession</code></td>
+<td><code>fetch user.sessions, from:-24h</code> — the time range is mandatory in DQL</td>
+</tr>
+<tr>
+<td><code>WHERE country = 'US'</code></td>
+<td><code>| filter country == &quot;...&quot;</code> (classic RUM on Grail) or <code>| filter geo.country.iso_code == &quot;US&quot;</code> (New RUM)</td>
+</tr>
+<tr>
+<td><code>GROUP BY browserFamily</code></td>
+<td><code>| summarize c = count(), by:{browserFamily}</code> (classic) or <code>by:{browser.name}</code> (New RUM)</td>
+</tr>
+<tr>
+<td><code>ORDER BY duration DESC</code></td>
+<td><code>| sort duration desc</code></td>
+</tr>
+<tr>
+<td><code>LIMIT 10</code></td>
+<td><code>| limit 10</code></td>
+</tr>
+</tbody>
+</table>
+<p>Which column applies depends on whether the tenant runs classic RUM on Grail or New RUM — the field names differ. <strong>WEBRUM-09</strong> has the full grammar and field mapping for both, including the fields with no New RUM equivalent.</p>
+<blockquote>
+<p><strong>Tip:</strong> DQL is far more powerful than USQL. Frame the transition as an upgrade, not a disruption. Teams that learn DQL gain access to all Grail data sources (logs, spans, events, metrics, entities) through a single query language.</p>
+</blockquote>
+<h3>Hands-On Training: First DQL Queries</h3>
+<p>Use these queries in training sessions to give users immediate hands-on experience with the SaaS platform:</p>
+<pre><code class="language-dql">// Training query 1: Explore recent log data (replaces USQL session queries)
+fetch logs, from:-1h
+| summarize logCount = count(), by:{loglevel}
+| sort logCount desc
+</code></pre>
+<pre><code class="language-dql">// Training query 2: View active detected problems
+fetch dt.davis.problems, from:-24h
+| filter event.status == &quot;ACTIVE&quot;
+| fieldsKeep display_id, event.name, event.category, timestamp
+| sort timestamp desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Training query 3: Host CPU overview (replaces Managed data explorer)
+timeseries avgCpu = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
+| fieldsAdd avgCpuValue = arrayAvg(avgCpu)
+| sort avgCpuValue desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Training query 4: Service response time analysis (distributed tracing)
+// Dividing a duration by 1ms turns it into a plain number of milliseconds
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {avgDurationMs = avg(duration) / 1ms, p95DurationMs = percentile(duration, 95) / 1ms, requestCount = count()}, by:{dt.entity.service}
+| sort p95DurationMs desc
+| limit 10
+</code></pre>
+<p><a id="documentation-updates"></a></p>
+<h2>3. Documentation Updates</h2>
+<p>Every internal document that references Dynatrace must be updated. Stale documentation with Managed URLs, old login procedures, or outdated screenshots will confuse users and generate unnecessary support requests.</p>
+<h3>Documentation Inventory</h3>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Updates Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Runbooks</strong></td>
+<td>New SaaS URLs, updated troubleshooting procedures, revised escalation paths</td>
+</tr>
+<tr>
+<td><strong>Architecture diagrams</strong></td>
+<td>New network topology showing SaaS endpoints, ActiveGate placement, data flow</td>
+</tr>
+<tr>
+<td><strong>Onboarding guides</strong></td>
+<td>SaaS-specific login instructions, navigation walkthrough, first-day tasks</td>
+</tr>
+<tr>
+<td><strong>Disaster recovery plans</strong></td>
+<td>Updated recovery procedures (SaaS manages infrastructure; focus shifts to data and configuration backup)</td>
+</tr>
+<tr>
+<td><strong>API documentation</strong></td>
+<td>New base URLs (<code>{tenant}.live.dynatrace.com</code>), token management procedures</td>
+</tr>
+<tr>
+<td><strong>Migration records</strong></td>
+<td>Archive SaaS Upgrade Assistant deploy result CSVs for audit trail</td>
+</tr>
+<tr>
+<td><strong>Security documentation</strong></td>
+<td>Updated SSO configuration, token policies, audit log access</td>
+</tr>
+<tr>
+<td><strong>ITSM integration guides</strong></td>
+<td>Updated webhook URLs, ServiceNow/Jira connector configuration</td>
+</tr>
+</tbody>
+</table>
+<h3>URL Replacement Checklist</h3>
+<p>Search all documentation for these patterns and replace:</p>
+<table>
+<thead>
+<tr>
+<th>Find</th>
+<th>Replace With</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>https://{managed-server}/e/{env-id}/</code></td>
+<td><code>https://{tenant}.apps.dynatrace.com/</code></td>
+</tr>
+<tr>
+<td><code>https://{managed-server}/e/{env-id}/api/v2/</code></td>
+<td><code>https://{tenant}.live.dynatrace.com/api/v2/</code></td>
+</tr>
+<tr>
+<td><code>https://{managed-server}/e/{env-id}/api/config/v1/</code></td>
+<td><code>https://{tenant}.live.dynatrace.com/api/config/v1/</code></td>
+</tr>
+<tr>
+<td><code>https://{managed-server}/api/cluster/v2/</code></td>
+<td>N/A — rewrite to use Account Management API</td>
+</tr>
+<tr>
+<td>References to &quot;Managed cluster&quot;</td>
+<td>&quot;SaaS environment&quot;</td>
+</tr>
+<tr>
+<td>References to &quot;cluster node&quot;</td>
+<td>Remove (SaaS manages infrastructure)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Do not just replace URLs. Review the surrounding context. Some procedures (e.g., cluster restarts, Cassandra maintenance) no longer apply in SaaS and should be removed entirely.</p>
+</blockquote>
+<blockquote>
+<p><strong>The <code>/api/config/v1/</code> row is a stopgap, not a destination.</strong> The rewrite above is correct for Managed → SaaS. But most of <code>/api/config/v1</code> stops answering when the tenant later upgrades to the latest Dynatrace, so documentation repointed at it will need a second pass. If you are editing these pages anyway, flag every <code>/api/config/v1/</code> reference for a Gen3 follow-up — or resolve it now against AUTOM-02's schema catalog and rewrite straight to the Settings 2.0 or platform equivalent. Same for <code>/api/v2/</code> procedures that read entities, metrics, logs, events or tags; the ingest endpoints are unaffected.</p>
+</blockquote>
+<p><a id="self-service-resources"></a></p>
+<h2>4. Self-Service Resources</h2>
+<p>Not every user will attend training. Self-service resources let users learn at their own pace and serve as a reference after training is complete. Create and share the following:</p>
+<h3>Quick Start Guide</h3>
+<p>A one-page guide covering the first five minutes on the new platform:</p>
+<ol>
+<li><strong>Log in</strong> — Navigate to <code>https://{tenant}.apps.dynatrace.com</code> and authenticate via SSO</li>
+<li><strong>Navigate</strong> — Use the app launcher (left sidebar) to find Dashboards, Notebooks, Problems, Services</li>
+<li><strong>Run your first query</strong> — Open Notebooks &gt; New Notebook &gt; Add DQL cell &gt; paste:<pre><code>fetch logs, from:-1h | summarize count = count(), by:{loglevel} | sort count desc
+</code></pre>
+</li>
+<li><strong>Find your dashboard</strong> — Go to Dashboards and search by name</li>
+<li><strong>Check alerts</strong> — Go to Problems to see active Dynatrace-detected issues</li>
+</ol>
+<h3>DQL Cheat Sheet</h3>
+<p>Common queries that replace everyday Managed workflows:</p>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>DQL Query</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Find error logs</td>
+<td><code>fetch logs, from:-1h | filter status == &quot;ERROR&quot; | limit 50</code></td>
+</tr>
+<tr>
+<td>List active problems</td>
+<td><code>fetch dt.davis.problems, from:-24h | filter event.status == &quot;ACTIVE&quot;</code></td>
+</tr>
+<tr>
+<td>Check host CPU</td>
+<td><code>timeseries avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}</code></td>
+</tr>
+<tr>
+<td>View service requests</td>
+<td><code>fetch spans, from:-1h | filter span.kind == &quot;server&quot; | summarize count(), by:{dt.entity.service}</code></td>
+</tr>
+<tr>
+<td>Count log volume</td>
+<td><code>fetch logs, from:-24h | summarize count = count(), by:{log.source} | sort count desc</code></td>
+</tr>
+<tr>
+<td>Find slow transactions</td>
+<td><code>fetch spans, from:-1h | filter span.kind == &quot;server&quot; | filter duration &gt; 5s | limit 20</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Frequently Asked Questions</h3>
+<p>Publish answers to the questions you know users will ask:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Where do I log in?</td>
+<td><code>https://{tenant}.apps.dynatrace.com</code> — use your corporate SSO credentials</td>
+</tr>
+<tr>
+<td>What happened to my dashboards?</td>
+<td>Migrated via SaaS Upgrade Assistant — find them in Dashboards (use search)</td>
+</tr>
+<tr>
+<td>How do I query data now?</td>
+<td>DQL in Notebooks replaces USQL. See the DQL Cheat Sheet above</td>
+</tr>
+<tr>
+<td>Where are my management zones?</td>
+<td>Migrated by the Upgrade Assistant where your archive carried them — find them by searching <em>Management zones</em> in Settings. For data access on the new platform, see the IAM and ORGNZ series</td>
+</tr>
+<tr>
+<td>Why do problem counts look different?</td>
+<td>Dynatrace Intelligence is relearning baselines on the new SaaS environment — in community practice roughly one to four weeks depending on the signal. FAQ-25 § 5 has a query that measures each host's history depth</td>
+</tr>
+<tr>
+<td>Can I still use the old Managed URL?</td>
+<td>Until decommission, yes — it still holds the history for every migrated host, but no new data for them. After decommission, no</td>
+</tr>
+<tr>
+<td>Where did USQL go?</td>
+<td>USQL is not available in SaaS. Use DQL in Notebooks — it is more powerful and covers all data sources</td>
+</tr>
+<tr>
+<td>How do I create a new API token?</td>
+<td>Go to Account Management &gt; Identity &amp; Access Management &gt; OAuth clients, or use Settings &gt; Access Tokens for environment tokens</td>
+</tr>
+<tr>
+<td>Why does the UI look different?</td>
+<td>SaaS uses the unified platform UI. The app launcher on the left provides access to all features</td>
+</tr>
+<tr>
+<td>Who do I contact for help?</td>
+<td>Use the #dynatrace-migration-support channel (Slack/Teams) or attend weekly office hours</td>
+</tr>
+</tbody>
+</table>
+<h3>Video Walkthroughs</h3>
+<p>Record short (5–10 minute) screen recordings covering:</p>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Audience</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SaaS login and navigation</td>
+<td>All users</td>
+<td>SSO login, app launcher, finding dashboards</td>
+</tr>
+<tr>
+<td>Creating your first Notebook</td>
+<td>SRE/Developers</td>
+<td>New notebook, DQL cells, visualization, sharing</td>
+</tr>
+<tr>
+<td>Workflow-based alerting</td>
+<td>SRE/Operations</td>
+<td>Creating a workflow trigger, conditional routing, Slack notification</td>
+</tr>
+<tr>
+<td>IAM and token management</td>
+<td>Platform Admins</td>
+<td>Groups, policies, environment tokens, OAuth clients</td>
+</tr>
+<tr>
+<td>Dashboard management</td>
+<td>Management</td>
+<td>Finding dashboards, sharing, scheduling PDF exports</td>
+</tr>
+</tbody>
+</table>
+<p><a id="support-channels"></a></p>
+<h2>5. Support Channels</h2>
+<p>Establish clear support channels before the migration goes live. Users need to know exactly where to go when they have questions. Ambiguity leads to frustration and shadow IT workarounds.</p>
+<h3>Support Channel Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Channel</th>
+<th>Purpose</th>
+<th>Owner</th>
+<th>Response Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Slack/Teams channel</strong> (<code>#dynatrace-migration-support</code>)</td>
+<td>Day-to-day questions, quick troubleshooting</td>
+<td>Platform team</td>
+<td>&lt; 2 hours during business hours</td>
+</tr>
+<tr>
+<td><strong>Office hours</strong> (weekly 30-min drop-in)</td>
+<td>Live Q&amp;A, screen sharing, hands-on help</td>
+<td>Platform team</td>
+<td>Scheduled</td>
+</tr>
+<tr>
+<td><strong>Jira/ServiceNow</strong></td>
+<td>Formal requests: access issues, configuration changes, feature requests</td>
+<td>SRE team</td>
+<td>Per SLA</td>
+</tr>
+<tr>
+<td><strong>Dynatrace University</strong></td>
+<td>Self-paced learning, certifications</td>
+<td>Individual</td>
+<td>Self-service</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Community</strong></td>
+<td>Peer support, best practices, shared queries</td>
+<td>Community</td>
+<td>Best-effort</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Support</strong></td>
+<td>Platform issues, bugs, outage investigation</td>
+<td>Dynatrace</td>
+<td>Per contract SLA</td>
+</tr>
+</tbody>
+</table>
+<h3>Escalation Path</h3>
+<p>Define a clear escalation path so support requests do not get stuck:</p>
+<pre><code>User question
+  → Slack/Teams channel (platform team triages)
+    → If access issue: IAM admin resolves
+    → If configuration issue: Platform team resolves
+    → If platform bug: Dynatrace Support ticket
+    → If feature request: Backlog (Jira/ServiceNow)
+</code></pre>
+<h3>Transition Support Timeline</h3>
+<p>Support intensity should decrease over time as users become self-sufficient:</p>
+<table>
+<thead>
+<tr>
+<th>Period</th>
+<th>Support Level</th>
+<th>Activities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Week 1–2</strong></td>
+<td>High (hyper-care)</td>
+<td>Daily office hours, immediate Slack response, proactive check-ins</td>
+</tr>
+<tr>
+<td><strong>Week 3–4</strong></td>
+<td>Medium</td>
+<td>Bi-weekly office hours, same-day Slack response</td>
+</tr>
+<tr>
+<td><strong>Month 2–3</strong></td>
+<td>Standard</td>
+<td>Weekly office hours, standard SLA response</td>
+</tr>
+<tr>
+<td><strong>Month 4+</strong></td>
+<td>Business as usual</td>
+<td>Monthly office hours, standard support channels</td>
+</tr>
+</tbody>
+</table>
+<p><a id="measuring-enablement-success"></a></p>
+<h2>6. Measuring Enablement Success</h2>
+<p>Enablement is not complete when training is delivered — it is complete when users are actively and effectively using the platform. Measure adoption with concrete metrics and set targets that demonstrate real usage.</p>
+<h3>Enablement Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Target</th>
+<th>How to Measure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Active users (weekly)</strong></td>
+<td>≥ Managed baseline within 30 days</td>
+<td>Platform audit events (<code>dt.system.events</code>)</td>
+</tr>
+<tr>
+<td><strong>Notebooks created</strong></td>
+<td>10+ in the first month</td>
+<td>Notebook listing / document count</td>
+</tr>
+<tr>
+<td><strong>DQL queries executed</strong></td>
+<td>Increasing week-over-week trend</td>
+<td>Query audit (if enabled)</td>
+</tr>
+<tr>
+<td><strong>Support tickets</strong></td>
+<td>Decreasing trend after week 2</td>
+<td>ITSM system</td>
+</tr>
+<tr>
+<td><strong>Training attendance</strong></td>
+<td>80%+ of target personas</td>
+<td>Training records</td>
+</tr>
+<tr>
+<td><strong>Dashboard views</strong></td>
+<td>≥ Managed baseline</td>
+<td>Dashboard analytics</td>
+</tr>
+<tr>
+<td><strong>Workflow automations created</strong></td>
+<td>At least 5 within first month</td>
+<td>Workflow listing</td>
+</tr>
+<tr>
+<td><strong>Managed environment logins</strong></td>
+<td>Declining to zero</td>
+<td>Managed access logs</td>
+</tr>
+</tbody>
+</table>
+<h3>Tracking Active Users</h3>
+<p>Monitor platform adoption using audit events. On SaaS these are platform audit events in <code>dt.system.events</code> (<code>event.kind == &quot;AUDIT_EVENT&quot;</code>), not records in the generic <code>events</code> table. Grail-based audit logging is on by default. Reading it needs <code>storage:system:read</code> for <code>AUDIT_EVENT</code> records and <code>storage:buckets:read</code> on the <code>dt_system_events</code> bucket:</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail">Audit logs (DT docs)</a> — <em>&quot;Grail-based audit logging is active by default in all Dynatrace environments.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Track daily active users over the past 7 days (sign-ins recorded in the platform audit log)
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.provider == &quot;API_GATEWAY&quot; and event.type == &quot;LOGIN&quot;
+| summarize activeUsers = countDistinct(user.id), by:{day = bin(timestamp, 24h)}
+| sort day desc
+</code></pre>
+<pre><code class="language-dql">// Track audit events by provider — shows which platform surfaces are being used
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| summarize eventCount = count(), by:{event.provider}
+| sort eventCount desc
+| limit 15
+</code></pre>
+<h3>Monitoring Data Flow Health</h3>
+<p>Verify that the platform is healthy and data is flowing — users cannot adopt a platform that is not working correctly:</p>
+<pre><code class="language-dql">// Verify log ingestion is healthy — compare volume to expected baseline
+fetch logs, from:-24h
+| makeTimeseries logVolume = count(default: 0), interval: 1h
+</code></pre>
+<pre><code class="language-dql">// Count monitored hosts — should match or exceed Managed baseline
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 1 counts over 24 h too.
+fetch dt.entity.host, from:-24h
+| summarize hostCount = count()
+
+// Alternative: Smartscape on Grail (entity.name → name)
+// smartscapeNodes HOST
+// | summarize hostCount = count()
+
+</code></pre>
+<pre><code class="language-dql">// Count monitored services — compare to Managed inventory
+// from:-24h: without it, only entities seen in the default 2-hour window are counted — Step 1 counts over 24 h too.
+fetch dt.entity.service, from:-24h
+| summarize serviceCount = count()
+
+// Alternative: Smartscape on Grail (entity.name → name)
+// smartscapeNodes SERVICE
+// | summarize serviceCount = count()
+
+</code></pre>
+<h3>Adoption Dashboard</h3>
+<p>Build a migration adoption dashboard that tracks these metrics over time. Share it with management as evidence that the migration is succeeding. Key tiles:</p>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>Visualization</th>
+<th>Data Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Active users per day</td>
+<td>Line chart</td>
+<td>Audit log events</td>
+</tr>
+<tr>
+<td>Monitored hosts</td>
+<td>Single value</td>
+<td>Entity count</td>
+</tr>
+<tr>
+<td>Monitored services</td>
+<td>Single value</td>
+<td>Entity count</td>
+</tr>
+<tr>
+<td>Log ingestion volume</td>
+<td>Line chart</td>
+<td>Log count timeseries</td>
+</tr>
+<tr>
+<td>Problems detected</td>
+<td>Line chart</td>
+<td>detected problems timeseries</td>
+</tr>
+<tr>
+<td>Managed logins remaining</td>
+<td>Line chart (target: zero)</td>
+<td>Managed access logs</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-completion-checklist"></a></p>
+<h2>7. Step Completion Checklist</h2>
+<p>Do not proceed to Step 8 (Expand) until all items are confirmed.</p>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pre-migration communication sent to all stakeholders</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Post-migration announcement sent with new URLs and login instructions</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Platform admin training delivered</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>SRE/operations training delivered</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Developer training delivered</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Management dashboard walkthrough completed</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Security team training delivered</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>All runbooks updated with SaaS URLs and procedures</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Architecture diagrams updated to reflect SaaS topology</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Onboarding guides updated for SaaS</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>API documentation updated with new base URLs</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Disaster recovery plans revised for SaaS model</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Quick Start Guide published and shared</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>DQL Cheat Sheet published and shared</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>FAQ published and shared</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Support channels established and announced</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Escalation path documented and communicated</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Enablement success metrics baselined</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Active user count meets or exceeds Managed baseline</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Next Step</h2>
+<blockquote>
+<p><strong>M2S-08: Step 8 — Expand: Adopt New SaaS Capabilities</strong> — Adopt the SaaS-exclusive capabilities that were never available in Managed: Grail, Notebooks, OpenPipeline, workflow automation, Dynatrace Assist, and platform apps.</p>
+</blockquote>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://university.dynatrace.com/learn">Dynatrace University</a> — Self-paced learning and certifications</li>
+<li><a href="https://community.dynatrace.com/">Dynatrace Community</a> — Peer support and shared best practices</li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Documentation</a> — Full DQL reference</li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks">Notebooks Documentation</a> — Interactive data exploration</li>
+<li><a href="https://docs.dynatrace.com/docs/deliver">Workflows Documentation</a> — AutomationEngine for alerting and remediation</li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management">IAM Documentation</a> — User and access management in SaaS</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In Step 7, you:</p>
+<ul>
+<li>Executed a structured communication plan targeting all stakeholders with audience-specific messaging</li>
+<li>Delivered persona-based training for platform admins, SRE/operations, developers, management, and security</li>
+<li>Updated all internal documentation (runbooks, architecture diagrams, onboarding guides, API docs) to reflect SaaS</li>
+<li>Published self-service resources including a Quick Start Guide, DQL Cheat Sheet, and FAQ</li>
+<li>Established support channels with clear escalation paths and a hyper-care schedule</li>
+<li>Defined and baselined enablement success metrics to track adoption</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> The migration is only as successful as the enablement effort behind it. Technology changes are straightforward; people changes require communication, training, and ongoing support. Invest in enablement now to avoid months of low adoption, frustrated users, and shadow IT workarounds.</p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

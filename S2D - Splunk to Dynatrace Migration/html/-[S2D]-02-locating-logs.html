@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2D-02: Locating Logs in Dynatrace</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2D — Splunk to Dynatrace Migration</a><span class="sep">/</span><span aria-current="page">S2D-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2D-02: Locating Logs in Dynatrace</h1>
+<blockquote>
+<p><strong>Series:</strong> S2D — Splunk to Dynatrace Migration | <strong>Notebook:</strong> 2 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/14/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Before migrating Splunk objects such as dashboards, alerts, or reports, it is essential to verify that the log data referenced in these objects is available in Dynatrace.</p>
+<p>This notebook describes the process of determining where the required logs can be found, then validating whether they are present in Dynatrace.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmdHcmFkUzJEMiIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzdGVwMUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InN0ZXAyR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDNHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzdGVwNEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VmNDQ0NCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InN0ZXA1R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzA1OTY2OSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvd1MyRDIiIHg9Ii0yMCUiIHk9Ii0yMCUiIHdpZHRoPSIxNDAlIiBoZWlnaHQ9IjE0MCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjMiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYXJyb3dTMkQyIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM5NGEzYjgiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjYmdHcmFkUzJEMikiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iNjAwIj5Mb2cgRGlzY292ZXJ5IFByb2Nlc3M8L3RleHQ+CgogIDwhLS0gU3RlcCAxIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI1NSIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxMCIgZmlsbD0idXJsKCNzdGVwMUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93UzJEMikiLz4KICA8dGV4dCB4PSI5MCIgeT0iODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj4xLiBFc3RhYmxpc2g8L3RleHQ+CiAgPHRleHQgeD0iOTAiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+U2NvcGU8L3RleHQ+CiAgPHRleHQgeD0iOTAiIHk9IjEyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2JmZGJmZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij5Ib3N0cywgY2x1c3RlcnM8L3RleHQ+CiAgPHRleHQgeD0iOTAiIHk9IjEzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2JmZGJmZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij5uYW1lc3BhY2VzPC90ZXh0PgoKICA8IS0tIEFycm93IDEtMiAtLT4KICA8bGluZSB4MT0iMTU1IiB5MT0iMTA1IiB4Mj0iMTc1IiB5Mj0iMTA1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1MyRDIpIi8+CgogIDwhLS0gU3RlcCAyIC0tPgogIDxyZWN0IHg9IjE4MCIgeT0iNTUiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTAwIiByeD0iMTAiIGZpbGw9InVybCgjc3RlcDJHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1MyRDIpIi8+CiAgPHRleHQgeD0iMjQwIiB5PSI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPjIuIERldGVybWluZTwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+U3BlY2lmaWNzPC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iMTIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZGRkNmZlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiPlNQTCBkaXNjb3Zlcnk8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIxMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNkZGQ2ZmUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+cXVlcmllczwvdGV4dD4KCiAgPCEtLSBBcnJvdyAyLTMgLS0+CiAgPGxpbmUgeDE9IjMwNSIgeTE9IjEwNSIgeDI9IjMyNSIgeTI9IjEwNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dTMkQyKSIvPgoKICA8IS0tIFN0ZXAgMyAtLT4KICA8cmVjdCB4PSIzMzAiIHk9IjU1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEwMCIgcng9IjEwIiBmaWxsPSJ1cmwoI3N0ZXAzR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3dTMkQyKSIvPgogIDx0ZXh0IHg9IjM5MCIgeT0iODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj4zLiBMb2NhdGUgaW48L3RleHQ+CiAgPHRleHQgeD0iMzkwIiB5PSI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPkR5bmF0cmFjZTwvdGV4dD4KICA8dGV4dCB4PSIzOTAiIHk9IjEyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZlZjNjNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij5EUUwgdmFsaWRhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIzOTAiIHk9IjEzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZlZjNjNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5Ij5xdWVyaWVzPC90ZXh0PgoKICA8IS0tIEFycm93IDMtNCAtLT4KICA8bGluZSB4MT0iNDU1IiB5MT0iMTA1IiB4Mj0iNDc1IiB5Mj0iMTA1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1MyRDIpIi8+CgogIDwhLS0gU3RlcCA0IC0tPgogIDxyZWN0IHg9IjQ4MCIgeT0iNTUiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTAwIiByeD0iMTAiIGZpbGw9InVybCgjc3RlcDRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvd1MyRDIpIi8+CiAgPHRleHQgeD0iNTQwIiB5PSI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPjQuIENvbmZpZ3VyZTwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+SW5nZXN0PC90ZXh0PgogIDx0ZXh0IHg9IjU0MCIgeT0iMTIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmVjYWNhIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiPkxvZyBpbmdlc3QgcnVsZXM8L3RleHQ+CiAgPHRleHQgeD0iNTQwIiB5PSIxMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZWNhY2EiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+aWYgbmVlZGVkPC90ZXh0PgoKICA8IS0tIEFycm93IDQtNSAoZG93biB0aGVuIHJpZ2h0KSAtLT4KICA8cGF0aCBkPSJNIDU0MCAxNjAgTCA1NDAgMTk1IEwgNjIwIDE5NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dTMkQyKSIvPgoKICA8IS0tIFN0ZXAgNSAtLT4KICA8cmVjdCB4PSI1NTAiIHk9IjE3NSIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxMCIgZmlsbD0idXJsKCNzdGVwNUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93UzJEMikiLz4KICA8dGV4dCB4PSI2MTAiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPjUuIFJlc29sdmU8L3RleHQ+CiAgPHRleHQgeD0iNjEwIiB5PSIyMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5Jc3N1ZXM8L3RleHQ+CiAgPHRleHQgeD0iNjEwIiB5PSIyNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhN2YzZDAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSI+Q3VzdG9tIHNvdXJjZXMsPC90ZXh0PgogIDx0ZXh0IHg9IjYxMCIgeT0iMjUzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTdmM2QwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiPnRpbWVzdGFtcHM8L3RleHQ+CgogIDwhLS0gS2V5IGF0IGJvdHRvbSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMTgwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjExMCIgcng9IjgiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNTAiIHk9IjIwMCIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+UXVpY2sgUmVmZXJlbmNlIFF1ZXJpZXM6PC90ZXh0PgoKICA8dGV4dCB4PSI1MCIgeT0iMjIwIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5WTSBMb2dzOjwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjIyMCIgZmlsbD0iIzYwYTVmYSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5Ij58IGZpbHRlciBtYXRjaGVzUGhyYXNlKGhvc3QubmFtZSwgInNlcnZlciIpPC90ZXh0PgoKICA8dGV4dCB4PSI1MCIgeT0iMjQwIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5LOHMgTG9nczo8L3RleHQ+CiAgPHRleHQgeD0iMTMwIiB5PSIyNDAiIGZpbGw9IiM2MGE1ZmEiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOSI+fCBmaWx0ZXIgbWF0Y2hlc1BocmFzZShrOHMuY2x1c3Rlci5uYW1lLCAicHJvZCIpPC90ZXh0PgoKICA8dGV4dCB4PSI1MCIgeT0iMjYwIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj5CeSBTb3VyY2U6PC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMjYwIiBmaWxsPSIjNjBhNWZhIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiPnwgZmlsdGVyIG1hdGNoZXNQaHJhc2UobG9nLnNvdXJjZSwgIi92YXIvbG9nIik8L3RleHQ+CgogIDx0ZXh0IHg9IjUwIiB5PSIyODAiIGZpbGw9IiM5NGEzYjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkNvbXBhcmU6PC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMjgwIiBmaWxsPSIjNjBhNWZhIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiPnwgc3VtbWFyaXplIGNvdW50ID0gY291bnQoKSwgYnk6e2hvc3QubmFtZX08L3RleHQ+Cjwvc3ZnPgo=" alt="Log Discovery Process" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action | Output |
+|---|--------|--------|
+| 1 | Establish Scope | Infrastructure footprint |
+| 2 | Determine Specifics | Required log sources |
+| 3 | Locate in Dynatrace | DQL verification queries |
+| 4 | Configure Ingest | Ingest rules if needed |
+| 5 | Resolve Discrepancies | Troubleshooting steps |
+For environments where SVG doesn't render
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#step-1-establishing-scope">Step 1: Establishing Scope</a></li>
+<li><a href="#step-2-determining-specifics-in-splunk">Step 2: Determining Specifics in Splunk</a></li>
+<li><a href="#step-3-locating-logs-in-dynatrace">Step 3: Locating Logs in Dynatrace</a></li>
+<li><a href="#step-4-configuring-log-ingest">Step 4: Configuring Log Ingest</a></li>
+<li><a href="#step-5-resolving-discrepancies">Step 5: Resolving Discrepancies</a></li>
+<li><a href="#troubleshooting-checklist">Troubleshooting Checklist</a></li>
+<li><a href="#validation-query-template">Validation Query Template</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS or Managed with Grail</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:buckets:read</code>, <code>settings:objects:read</code></td>
+</tr>
+<tr>
+<td><strong>Splunk Access</strong></td>
+<td>Ability to run queries against source indexes</td>
+</tr>
+<tr>
+<td><strong>Infrastructure Knowledge</strong></td>
+<td>Understanding of application deployment topology</td>
+</tr>
+</tbody>
+</table>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will be able to:</p>
+<ol>
+<li>Establish the infrastructure scope for log migration</li>
+<li>Use Splunk queries to identify specific log sources</li>
+<li>Validate log availability in Dynatrace using DQL</li>
+<li>Configure log ingest rules when data is missing</li>
+<li>Troubleshoot common log ingestion issues</li>
+</ol>
+<p><a id="step-1-establishing-scope"></a></p>
+<h2>Step 1: Establishing Scope</h2>
+<p>When approaching a new application for migration, the first task is determining where the logs required for monitoring are located. This often coincides with the application's infrastructure, but not always.</p>
+<h3>Common Log Locations</h3>
+<table>
+<thead>
+<tr>
+<th>Environment Type</th>
+<th>Log Location Identifier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Virtual Machines</td>
+<td>Host or host group</td>
+</tr>
+<tr>
+<td>Kubernetes</td>
+<td>Cluster, namespace, deployment</td>
+</tr>
+<tr>
+<td>Cloud Functions</td>
+<td>Cloud provider, function name</td>
+</tr>
+<tr>
+<td>Containers</td>
+<td>Container name, image</td>
+</tr>
+</tbody>
+</table>
+<h3>Gathering Scope Information</h3>
+<p>Information about application scope can come from:</p>
+<ol>
+<li><strong>Management Zones</strong> - If configured, these often define application boundaries</li>
+<li><strong>Application Teams</strong> - Direct knowledge of deployment topology</li>
+<li><strong>CMDB/Inventory</strong> - Infrastructure documentation</li>
+<li><strong>Existing Splunk Queries</strong> - Filters used in current dashboards</li>
+</ol>
+<p><a id="step-2-determining-specifics-in-splunk"></a></p>
+<h2>Step 2: Determining Specifics in Splunk</h2>
+<p>Not all logs within an application's footprint are required for every dashboard and alert. Conversely, dashboards and alerts may reference logs outside the expected footprint.</p>
+<h3>Splunk Discovery Queries</h3>
+<p>Run these queries in Splunk to understand the specific log sources being used:</p>
+<h4>Record Count by Host</h4>
+<pre><code class="language-spl">index=[your_index] | stats count by host
+</code></pre>
+<h4>Record Count by Source</h4>
+<pre><code class="language-spl">index=[your_index] | stats count by source, sourcetype
+</code></pre>
+<h4>Record Count by Kubernetes Attributes</h4>
+<pre><code class="language-spl">index=[your_index] | stats count by kubernetes_cluster, kubernetes_namespace, kubernetes_deployment_name
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> If your Splunk environment doesn't use index-based organization, substitute the filters from your actual queries before the <code>stats</code> command.</p>
+</blockquote>
+<p><a id="step-3-locating-logs-in-dynatrace"></a></p>
+<h2>Step 3: Locating Logs in Dynatrace</h2>
+<p>To determine whether required logs are present in Dynatrace, use DQL queries with the relevant filters from your Splunk discovery.</p>
+<h3>Search by Host Name</h3>
+<pre><code class="language-dql">// Search logs by host name
+// Replace 'your-host-name' with the actual host from Splunk
+fetch logs, from:-1h
+| filter matchesPhrase(host.name, &quot;your-host-name&quot;)
+| summarize count = count(), by:{log.source}
+| sort count desc
+</code></pre>
+<h3>Search by Log Source Path</h3>
+<pre><code class="language-dql">// Search by specific log file path
+// Replace path with your application's log location
+fetch logs, from:-1h
+| filter matchesPhrase(log.source, &quot;/var/log/application&quot;)
+| summarize count = count(), by:{host.name}
+| sort count desc
+</code></pre>
+<h3>Search by Kubernetes Attributes</h3>
+<pre><code class="language-dql">// Search by Kubernetes cluster and namespace
+fetch logs, from:-1h
+| filter matchesPhrase(k8s.cluster.name, &quot;production-cluster&quot;)
+| filter matchesPhrase(k8s.namespace.name, &quot;ecommerce&quot;)
+| summarize count = count(), by:{k8s.deployment.name, k8s.pod.name}
+| sort count desc
+</code></pre>
+<h3>Compare Counts with Splunk</h3>
+<p>Run equivalent time-bounded queries in both platforms to compare log volumes.</p>
+<blockquote>
+<p><strong>Exact names for exact counts.</strong> <code>matchesPhrase(host.name, &quot;app-server-01&quot;)</code> also matches <code>my-app-server-01</code>, which Splunk <code>host=app-server-01</code> does not. It is fine for discovery; for a like-for-like count, switch to <code>host.name == &quot;your-exact-host-name&quot;</code> once you know the name.</p>
+</blockquote>
+<pre><code class="language-dql">// Total log count for the last hour (compare with Splunk)
+fetch logs, from:now()-1h
+| filter matchesPhrase(host.name, &quot;your-host-name&quot;)
+| summarize total_count = count()
+</code></pre>
+<p><a id="step-4-configuring-log-ingest"></a></p>
+<h2>Step 4: Configuring Log Ingest</h2>
+<p>If the required logs are not available in Dynatrace, you need to configure log ingest rules.</p>
+<h3>Ingest Rule Hierarchy</h3>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Scope</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Environment</td>
+<td>All hosts</td>
+<td>Organization-wide policies</td>
+</tr>
+<tr>
+<td>Host Group</td>
+<td>Specific host groups</td>
+<td>Application-specific rules</td>
+</tr>
+<tr>
+<td>Kubernetes cluster</td>
+<td>One cluster</td>
+<td>K8s-wide policies</td>
+</tr>
+<tr>
+<td>Host</td>
+<td>Single host</td>
+<td>Special cases</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Recommendation:</strong> Use host group-level rules for application granularity without per-host overhead.</p>
+</blockquote>
+<h3>Log Ingest Rule Properties</h3>
+<p>The log ingest rules page states: <em>&quot;Four hierarchy scopes are supported: host, Kubernetes cluster, host group, and environment.&quot;</em> (An earlier sentence on the same page still says three.)</p>
+<p>Rules can filter logs based on:</p>
+<ul>
+<li>Host tag (key=value, set via <code>oneagentctl</code> or remote configuration). There is no host-name matcher.</li>
+<li>Log source (file name or path) and log source origin</li>
+<li>Kubernetes attributes (container, namespace, deployment, pod, workload)</li>
+<li>Log record level</li>
+<li>Process group</li>
+<li>Journald unit</li>
+<li>Log content (wildcards)</li>
+</ul>
+<h3>Documentation Reference</h3>
+<p>See <a href="https://docs.dynatrace.com/docs/shortlink/lma-log-ingest-rules">Log Ingest Rules</a> for complete configuration options.</p>
+<p><a id="step-5-resolving-discrepancies"></a></p>
+<h2>Step 5: Resolving Discrepancies</h2>
+<p>If logs are still not appearing after configuring ingest rules, investigate these common issues:</p>
+<h3>Custom Log Sources</h3>
+<p>If your application writes to non-standard log locations, you may need to configure <a href="https://docs.dynatrace.com/docs/shortlink/lma-custom-log-source">Custom Log Sources</a>.</p>
+<h3>OneAgent Log Monitoring</h3>
+<p>Verify that log content access is enabled on the OneAgent. The <code>oneagentctl</code> command can check this:</p>
+<pre><code class="language-bash">oneagentctl --get-app-log-content-access
+</code></pre>
+<p>To enable it, run <code>oneagentctl --set-app-log-content-access=true</code>. The OneAgent CLI page says: <em>&quot;Use the --get-app-log-content-access parameter to check whether Log Monitoring is enabled&quot;</em> and <em>&quot;Set the --set-app-log-content-access parameter to true or false&quot;</em>.</p>
+<blockquote>
+<p><strong>Note:</strong> Host-level settings supersede environment configuration. If log monitoring is disabled on the OneAgent, environment-level rules will not apply.</p>
+</blockquote>
+<h3>Timestamp and Splitting Issues</h3>
+<p>If logs appear but counts differ or content seems incorrect, you may need <a href="https://docs.dynatrace.com/docs/shortlink/lma-timestamp-configuration">Timestamp and Splitting Rules</a> to properly parse multi-line logs or custom timestamp formats.</p>
+<h3>Check what OneAgent discovered first</h3>
+<blockquote>
+<p><strong>Coverage vs. volume — the log-module self-monitoring events.</strong> Before assuming a missing Splunk log needs a custom source or a new ingest rule, check what OneAgent already discovered — the gap is often a source detected but not yet configured for ingest, not a discovery miss. The log module emits a <code>log_source.status</code> event per discovered source into <code>dt.system.events</code>, carrying <code>log.source.file_status</code> and <code>log.source.ingest_status</code> — so it reveals sources OneAgent <strong>detected but is not ingesting</strong>, which a <code>fetch logs</code> count cannot show (no stored records means nothing to count). It scans events, not raw logs, and needs only event-read.</p>
+<p>Log-module self-monitoring is enabled by default for Grail environments since SaaS 1.340 (<em>&quot;Log module self-monitoring enabled by default for Grail&quot;</em>), and it remains opt-in for Log Monitoring Classic. The built-in <em>Log ingest Overview</em> dashboard visualizes it. Verify the events are flowing in your tenant before relying on them. See <strong>FAQ-08</strong> (Recommended Approach) for the full file-status × ingest-status coverage matrix and the <code>fetch logs</code> fallback for tenants where the events are not available.</p>
+<p><strong>Quiet a warning you have already accepted, and only that one.</strong> A migration surfaces SFM warnings for sources you have investigated and decided to leave as they are. Suppression rules are set through the Settings API with the <code>builtin:logmonitoring.log-sfm-settings</code> schema, at tenant, host-group, Kubernetes-cluster or host scope. Keep each rule narrow, for example one event type on one log source, so the same warning still fires elsewhere. Rolling out in <strong>SaaS 1.351</strong> (released with a staged tenant rollout from 11/11/2026): a UI for the same rules under <strong>Settings &gt; Collect and capture &gt; Log monitoring &gt; Configure log module &gt; Advanced settings &gt; SFM Events</strong>. Until it reaches your tenant, the Settings API is the working path.</p>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-340">SaaS 1.340 (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-oa/lma-log-agent-sfm">Monitor log source health with SFM events (DT docs)</a> — <em>&quot;To customize this functionality, update your configuration via the Settings API. Use the builtin:logmonitoring.log-sfm-settings schema ID.&quot;</em>; <em>&quot;Keep the suppression scope as narrow as needed.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-351">SaaS 1.351 (DT docs)</a> — <em>&quot;Rollout start on Nov 11, 2026&quot;</em>; <em>&quot;You can configure self-monitoring event suppression without working directly with the configuration API.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<pre><code class="language-dql">// Log-source coverage from the OneAgent log-module self-monitoring events.
+// Unlike `fetch logs` (which sees only sources that produced records), this
+// surfaces sources OneAgent DETECTED but is NOT ingesting. Scans events, not raw logs.
+fetch dt.system.events, from: now() - 24h
+| filter event.provider == &quot;Log Module&quot; and event.type == &quot;log_source.status&quot;
+| dedup event.id, sort:{ timestamp desc }
+| filter event.status == &quot;Active&quot;
+| fieldsAdd coverage =
+    if(log.source.file_status == &quot;FILE_STATUS_OK&quot; and log.source.ingest_status == &quot;Ingested&quot;, &quot;Available | Ingesting&quot;, else:
+    if(log.source.file_status == &quot;FILE_STATUS_OK&quot; and log.source.ingest_status == &quot;Not ingested&quot;, &quot;Available | NOT ingesting&quot;, else:
+    if(log.source.ingest_status == &quot;Partially ingested&quot;, &quot;Partial ingestion&quot;,
+    else: &quot;Unsupported or issue&quot;)))
+| summarize sources = count(), by:{coverage}
+| sort sources desc
+</code></pre>
+<p><a id="troubleshooting-checklist"></a></p>
+<h2>Troubleshooting Checklist</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Possible Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No logs from host</td>
+<td>Ingest rule missing</td>
+<td>Add ingest rule for host/host group</td>
+</tr>
+<tr>
+<td>No logs from file</td>
+<td>Custom log source needed</td>
+<td>Configure custom log source</td>
+</tr>
+<tr>
+<td>Some logs missing</td>
+<td>OneAgent disabled</td>
+<td>Enable log content access</td>
+</tr>
+<tr>
+<td>Wrong log count</td>
+<td>Timestamp parsing</td>
+<td>Configure timestamp rules</td>
+</tr>
+<tr>
+<td>Multi-line broken</td>
+<td>Splitting rules</td>
+<td>Configure splitting rules</td>
+</tr>
+</tbody>
+</table>
+<p><a id="validation-query-template"></a></p>
+<h2>Validation Query Template</h2>
+<p>Use this template to create a comprehensive validation query for your application:</p>
+<pre><code class="language-dql">// Comprehensive log validation template
+// Modify filters to match your application
+fetch logs, from:now()-24h
+| filter matchesPhrase(host.name, &quot;app-server&quot;) or matchesPhrase(k8s.namespace.name, &quot;app-namespace&quot;)
+| summarize {
+    total_count = count(),
+    error_count = countIf(status == &quot;ERROR&quot;),
+    warn_count = countIf(loglevel == &quot;WARN&quot;)
+  }, by:{log.source}
+| sort total_count desc
+</code></pre>
+<h2>Next Steps</h2>
+<p>Once you've validated that required logs are available in Dynatrace, proceed to <strong>S2D-03: SPL to DQL Translation</strong> to begin converting your Splunk queries.</p>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/lma-log-ingest-rules">Log Ingest Rules</a></li>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/lma-custom-log-source">Custom Log Sources</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface#check-if-log-monitoring-is-enabled">OneAgent CLI — log content access (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-340">SaaS 1.340 (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/lma-timestamp-configuration">Timestamp Configuration</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

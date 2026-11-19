@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WFLOW-03: Alert Notification Basics</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WFLOW — Workflows and Alert Notifications</a><span class="sep">/</span><span aria-current="page">WFLOW-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WFLOW-03: Alert Notification Basics</h1>
+<blockquote>
+<p><strong>Series:</strong> WFLOW — Workflows and Alert Notifications | <strong>Notebook:</strong> 3 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Sending Notifications with Workflows</h2>
+<p>The most common workflow use case is sending alert notifications to Slack, Microsoft Teams, and email. This notebook covers setting up connections, configuring notification tasks, and best practices for effective alerting.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#notification-architecture">Notification Architecture</a></li>
+<li><a href="#setting-up-connections">Setting Up Connections</a></li>
+<li><a href="#slack-notifications">Slack Notifications</a></li>
+<li><a href="#microsoft-teams-notifications">Microsoft Teams Notifications</a></li>
+<li><a href="#email-notifications">Email Notifications</a></li>
+<li><a href="#message-formatting">Message Formatting</a></li>
+<li><a href="#complete-alert-workflow-example">Complete Alert Workflow Example</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Platform subscription</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>automation:workflows:write</code>, <code>automation:workflows:run</code> (WFLOW-01 §4)</td>
+</tr>
+<tr>
+<td><strong>Workflows authorization settings</strong></td>
+<td><code>app-settings:objects:read</code> and <code>app-settings:objects:write</code> for connector actions; <code>email:emails:send</code> for email. Each connector's setup page lists its full set (Workflows &gt; Settings &gt; Authorization settings)</td>
+</tr>
+<tr>
+<td><strong>External requests</strong></td>
+<td>A host pattern for every outbound destination (Settings &gt; General &gt; External requests)</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td><strong>WFLOW-01</strong> and <strong>WFLOW-02</strong></td>
+</tr>
+<tr>
+<td><strong>External Access</strong></td>
+<td>Slack workspace admin or Teams channel access</td>
+</tr>
+</tbody>
+</table>
+<p><a id="notification-architecture"></a></p>
+<h2>1. Notification Architecture</h2>
+<h3>How Workflow Notifications Work</h3>
+<pre><code>Trigger (Detected Problem, Schedule, etc.)
+            ↓
+    Workflow Executes
+            ↓
+    Notification Task
+            ↓
+    Connection (credentials)
+            ↓
+    External Service (Slack, Teams, Email)
+</code></pre>
+<h3>Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Connection</strong></td>
+<td>Securely stores credentials (tokens, webhooks)</td>
+</tr>
+<tr>
+<td><strong>Notification Task</strong></td>
+<td>Sends message using connection</td>
+</tr>
+<tr>
+<td><strong>Message Template</strong></td>
+<td>Dynamic content using Jinja expressions</td>
+</tr>
+</tbody>
+</table>
+<h3>Supported Notification Channels</h3>
+<table>
+<thead>
+<tr>
+<th>Channel</th>
+<th>Task Type</th>
+<th>Authentication</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Slack</td>
+<td><code>dynatrace.slack:slack-send-message</code> (Send message); Request approval (copy its ID from the action picker)</td>
+<td>Bot OAuth token from a Slack app</td>
+</tr>
+<tr>
+<td>Microsoft Teams</td>
+<td><code>dynatrace.msteams:send-message</code></td>
+<td>Teams Workflows (Power Automate) webhook URL</td>
+</tr>
+<tr>
+<td>Email</td>
+<td><code>dynatrace.email:send-email</code></td>
+<td>Built-in — sends from <code>no-reply@apps.dynatrace.com</code>; no SMTP setup</td>
+</tr>
+<tr>
+<td>PagerDuty</td>
+<td>Send event (Events API v2) and REST API actions — copy the exact IDs from the action picker</td>
+<td>Events connection (routing key) for Send event; REST API key for the others</td>
+</tr>
+<tr>
+<td>ServiceNow</td>
+<td><code>dynatrace.servicenow:snow-create-incident</code>, plus other <code>snow-*</code> actions</td>
+<td>OAuth or Basic Auth</td>
+</tr>
+<tr>
+<td>Jira</td>
+<td><code>dynatrace.jira:jira-create-issue</code>, plus other <code>jira-*</code> actions</td>
+<td>API Token</td>
+</tr>
+<tr>
+<td>Custom Webhook (HTTP Request)</td>
+<td><code>dynatrace.automations:http-function</code></td>
+<td>Credential Vault (Basic or Token)</td>
+</tr>
+</tbody>
+</table>
+<p>The Slack Send message, Teams, Email, ServiceNow, Jira and HTTP Request identifiers were checked against Dynatrace's published workflow samples and connector templates (10/02/2026, re-checked 10/06/2026). The PagerDuty and Slack Request approval identifiers do not appear there, so copy them from the action picker rather than typing them. Once an action has run, the platform records its app and function in <code>dt.system.events</code> (<code>dt.automation_engine.action.app</code> / <code>.action.function</code>), so a tenant can confirm them too. The YAML in this series uses these identifiers and the actions' real input names (<code>message</code>, <code>content</code>, <code>payload</code>, <code>connectionId</code>). It is simplified in two places: connection names stand in for connection IDs, and named <code>conditions:</code> lists stand in for each task's <code>conditions</code> (<code>states</code> / <code>custom</code>). Export a workflow built in the editor to get the exact document shape.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml">threat-detection-notification-sender.yaml (Dynatrace GitHub)</a> — <em>&quot;action: dynatrace.slack:slack-send-message&quot;</em>, <em>&quot;action: dynatrace.msteams:send-message&quot;</em>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml">wftpl_sample_servicenow_incident_man.yaml (Dynatrace GitHub)</a> — <em>&quot;action: dynatrace.servicenow:snow-create-incident&quot;</em>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/AGENTS.md">Workflow samples action catalog (Dynatrace GitHub)</a>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-actions">PagerDuty Connector actions (DT docs)</a> — <em>&quot;Trigger, acknowledge, or resolve an alert in PagerDuty using the Events API v2&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email">Email (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="setting-up-connections"></a></p>
+<h2>2. Setting Up Connections</h2>
+<p>Connections store credentials separately from workflows for security and reusability.</p>
+<h3>Accessing Connections</h3>
+<ol>
+<li>Open <strong>Settings</strong></li>
+<li>Select <strong>Connections</strong>, then the tool (Slack, Microsoft Teams, ServiceNow, …)</li>
+<li>Select <strong>Connection</strong> to add one</li>
+</ol>
+<p>Dynatrace's connector pages give this path as <em>Settings &gt; Connections</em> followed by the tool — for example <em>Connections &gt; Slack</em> or <em>Connections &gt; Microsoft Teams</em>.</p>
+<h3>Creating a Connection</h3>
+<ol>
+<li>Open the connector (step 2 above) and select <strong>Connection</strong></li>
+<li>Enter the credential the connector asks for (a Slack bot token, a Teams webhook URL, …)</li>
+<li>Allow the destination host under <strong>Settings &gt; General &gt; External requests</strong></li>
+<li>Name the connection (e.g., <code>slack-production-alerts</code>)</li>
+<li>Save</li>
+</ol>
+<h3>Connection Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Descriptive names</strong></td>
+<td><code>slack-prod-oncall</code> not <code>slack1</code></td>
+</tr>
+<tr>
+<td><strong>Environment separation</strong></td>
+<td>Different connections for prod/staging</td>
+</tr>
+<tr>
+<td><strong>Least privilege</strong></td>
+<td>Minimum required scopes</td>
+</tr>
+<tr>
+<td><strong>Regular rotation</strong></td>
+<td>Update tokens periodically</td>
+</tr>
+</tbody>
+</table>
+<p><a id="slack-notifications"></a></p>
+<h2>3. Slack Notifications</h2>
+<h3>Setting Up the Slack Connection</h3>
+<p>The Slack connection takes a bot token from a Slack app you create: <em>&quot;Your Dynatrace Slack Connector requires an OAuth token to authorize sending messages to Slack.&quot;</em></p>
+<p><strong>Setup:</strong></p>
+<ol>
+<li><strong>Allow the host.</strong> Settings &gt; General &gt; External requests: add a host pattern for <code>slack.com</code>.</li>
+<li><strong>Grant Workflows the connector permissions.</strong> Workflows &gt; Settings &gt; Authorization settings: enable <code>app-settings:objects:read</code>, <code>app-settings:objects:write</code> and the <code>state:app-states:*</code> and <code>state:user-app-states:*</code> permissions the setup page lists.</li>
+<li><strong>Create the Slack app</strong> at https://api.slack.com/apps, from an app manifest. To send messages to channels, the minimal bot scopes are <code>channels:read</code>, <code>groups:read</code> and <code>chat:write</code>. Add <code>chat:write.public</code> to post to public channels the bot has not joined. Approvals, reactions and file attachments need more scopes, listed on the setup page.</li>
+<li><strong>Install</strong> the app to the workspace and copy the <strong>Bot User OAuth Token</strong>.</li>
+<li><strong>Create the connection.</strong> Settings &gt; Connections &gt; Slack &gt; <strong>Connection</strong>: name it and paste the token in <strong>Bot token</strong>.</li>
+</ol>
+<blockquote>
+<p><strong>There is no webhook option on the Slack connection.</strong> If you must post through a Slack incoming webhook, that is an HTTP Request task (<code>dynatrace.automations:http-function</code>) to the webhook URL, outside the Slack connector, with the webhook host allowed under External requests.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup">Set up Slack Connector (DT docs)</a> — the External requests and Authorization settings steps and the minimal manifest; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions">Slack Connector actions (DT docs)</a> — scopes per action.</sub></p>
+</blockquote>
+<h3>Basic Slack Message Task</h3>
+<pre><code class="language-yaml">name: send_slack_alert
+action: dynatrace.slack:slack-send-message
+input:
+  connection: slack-production      # the Slack connection's ID in an exported workflow
+  channel: &quot;#alerts-production&quot;
+  messageFormat: slack_format
+  message: |
+    :rotating_light: *Problem Detected*
+    
+    *Title:* {{ event()[&quot;event.name&quot;] }}
+    *Category:* {{ event()[&quot;event.category&quot;] }}
+    *Started:* {{ event()[&quot;event.start&quot;] }}
+    
+    &lt;{{ problem_link() }}|View in Dynatrace&gt;
+</code></pre>
+<h3>Slack Message with Blocks</h3>
+<p>For richer formatting, put a Block Kit payload in <code>message</code>. The Send message action has no separate <code>blocks</code> input: with <code>messageFormat: slack_format</code>, <em>&quot;Slack Markdown or Slack Block Kit inputs are processed&quot;</em> from the message field.</p>
+<pre><code class="language-yaml">input:
+  connection: slack-production
+  channel: &quot;#alerts&quot;
+  messageFormat: slack_format
+  message: |
+    {
+      &quot;blocks&quot;: [
+        { &quot;type&quot;: &quot;header&quot;,
+          &quot;text&quot;: { &quot;type&quot;: &quot;plain_text&quot;, &quot;text&quot;: &quot;{{ ':red_circle:' if (event().get('event.severity') | int(5)) &lt;= 1 else ':large_orange_circle:' }} {{ event()['event.category'] }} Alert&quot; } },
+        { &quot;type&quot;: &quot;section&quot;,
+          &quot;fields&quot;: [
+            { &quot;type&quot;: &quot;mrkdwn&quot;, &quot;text&quot;: &quot;*Problem:*\n{{ event()['event.name'] }}&quot; },
+            { &quot;type&quot;: &quot;mrkdwn&quot;, &quot;text&quot;: &quot;*Status:*\n{{ event()['event.status'] }}&quot; } ] },
+        { &quot;type&quot;: &quot;section&quot;,
+          &quot;fields&quot;: [
+            { &quot;type&quot;: &quot;mrkdwn&quot;, &quot;text&quot;: &quot;*Started:*\n{{ event()['event.start'] }}&quot; },
+            { &quot;type&quot;: &quot;mrkdwn&quot;, &quot;text&quot;: &quot;*ID:*\n{{ event()['display_id'] }}&quot; } ] },
+        { &quot;type&quot;: &quot;actions&quot;,
+          &quot;elements&quot;: [
+            { &quot;type&quot;: &quot;button&quot;, &quot;text&quot;: { &quot;type&quot;: &quot;plain_text&quot;, &quot;text&quot;: &quot;View Problem&quot; }, &quot;url&quot;: &quot;{{ problem_link() }}&quot; } ] }
+      ]
+    }
+</code></pre>
+<p>The expressions resolve before the JSON reaches Slack, so a problem title that contains a double quote breaks the payload. Build the layout in Slack's Block Kit Builder and send one test message before you rely on it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions">Slack Connector actions (DT docs)</a> — <em>&quot;If messageFormat is slack_format , Slack Markdown or Slack Block Kit inputs are processed.&quot;</em>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/AGENTS.md">Workflow samples action catalog (Dynatrace GitHub)</a> — <em>&quot;Slack messages can be plain text/Slack Markdown, or a JSON Block Kit payload&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="microsoft-teams-notifications"></a></p>
+<h2>4. Microsoft Teams Notifications</h2>
+<blockquote>
+<p><strong>Office 365 connectors no longer work.</strong> Microsoft's final schedule: <em>&quot;Rollout begins : May 18, 2026 Rollout completes : May 22, 2026 After these dates, Office 365 Connectors will no longer function.&quot;</em> An Office 365 incoming-webhook URL in a Dynatrace connection stops delivering. The Dynatrace Microsoft Teams connector takes a Teams <strong>Workflows</strong> (Power Automate) webhook URL instead.</p>
+</blockquote>
+<h3>Setting Up the Teams Connection</h3>
+<ol>
+<li><strong>Create the webhook in Teams.</strong> Open the channel's context menu, select <strong>Workflows</strong>, and choose <strong>Send webhook alerts to a channel</strong>. Save, then select <strong>Copy webhook link</strong>.</li>
+<li><strong>Allow the host.</strong> Settings &gt; General &gt; External requests: add a host pattern for the webhook's domain. Dynatrace's example is <code>*.api.powerplatform.com</code>.</li>
+<li><strong>Create the connection.</strong> Settings &gt; Connections &gt; Microsoft Teams &gt; <strong>Connection</strong>: name it and paste the URL in <strong>Webhook URL</strong>.</li>
+</ol>
+<p>Messages arrive under the name of the user who created the webhook. If an existing connection's URL contains <code>logic.azure.com</code>, the Teams connector page explains how to replace it with the flow's updated URL.</p>
+<h3>Basic Teams Message Task</h3>
+<pre><code class="language-yaml">name: send_teams_alert
+action: dynatrace.msteams:send-message
+input:
+  connectionId: teams-production    # the Teams connection's ID in an exported workflow
+  messageFormat: dynatrace_markdown # converts each Markdown element to a card element
+  message: |
+    **Problem Detected**
+    
+    **Title:** {{ event()[&quot;event.name&quot;] }}
+    **Category:** {{ event()[&quot;event.category&quot;] }}
+    **Started:** {{ event()[&quot;event.start&quot;] }}
+    
+    [View in Dynatrace]({{ problem_link() }})
+</code></pre>
+<h3>Teams Adaptive Card</h3>
+<p>For richer formatting, put Adaptive Card JSON in <code>message</code> with the default <code>messageFormat</code> (<code>msteams_format</code>), or pick a predefined card in <code>selectTemplate</code>.</p>
+<pre><code class="language-yaml">input:
+  connectionId: teams-production
+  message: |
+    {
+      &quot;type&quot;: &quot;AdaptiveCard&quot;,
+      &quot;$schema&quot;: &quot;http://adaptivecards.io/schemas/adaptive-card.json&quot;,
+      &quot;version&quot;: &quot;1.4&quot;,
+      &quot;body&quot;: [
+        { &quot;type&quot;: &quot;TextBlock&quot;, &quot;text&quot;: &quot;{{ event()['event.category'] }} Alert&quot;, &quot;size&quot;: &quot;Large&quot;, &quot;weight&quot;: &quot;Bolder&quot;,
+          &quot;color&quot;: &quot;{{ 'Attention' if (event().get('event.severity') | int(5)) &lt;= 1 else 'Warning' }}&quot; },
+        { &quot;type&quot;: &quot;FactSet&quot;, &quot;facts&quot;: [
+            { &quot;title&quot;: &quot;Problem&quot;, &quot;value&quot;: &quot;{{ event()['event.name'] }}&quot; },
+            { &quot;title&quot;: &quot;Status&quot;, &quot;value&quot;: &quot;{{ event()['event.status'] }}&quot; },
+            { &quot;title&quot;: &quot;Started&quot;, &quot;value&quot;: &quot;{{ event()['event.start'] }}&quot; } ] }
+      ],
+      &quot;actions&quot;: [
+        { &quot;type&quot;: &quot;Action.OpenUrl&quot;, &quot;title&quot;: &quot;View in Dynatrace&quot;, &quot;url&quot;: &quot;{{ problem_link() }}&quot; }
+      ]
+    }
+</code></pre>
+<p>Use Dynatrace expressions for the dynamic values, as above. The docs say <em>&quot;We don't support Adaptive Cards Template Language templating&quot;</em>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/microsoft-teams">Microsoft Teams Connector (DT docs)</a> — setup steps, <code>messageFormat</code> (<em>&quot;Must be msteams_format or dynatrace_markdown&quot;</em>) and <code>selectTemplate</code>; <a href="https://devblogs.microsoft.com/microsoft365dev/retirement-of-office-365-connectors-within-microsoft-teams/">Retirement of Office 365 connectors within Microsoft Teams (Microsoft 365 Developer Blog)</a>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml">threat-detection-notification-sender.yaml (Dynatrace GitHub)</a> — <em>&quot;action: dynatrace.msteams:send-message&quot;</em>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/AGENTS.md">Workflow samples action catalog (Dynatrace GitHub)</a>.</sub></p>
+</blockquote>
+<p><a id="email-notifications"></a></p>
+<h2>5. Email Notifications</h2>
+<h3>Email Options</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Setup</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Send email action</strong> (<code>dynatrace.email:send-email</code>)</td>
+<td>No setup — sends from <code>no-reply@apps.dynatrace.com</code>; the workflow needs the <code>email:emails:send</code> permission</td>
+<td>Most notifications</td>
+</tr>
+<tr>
+<td><strong>Corporate mail relay</strong></td>
+<td>Not an option of the Send email action — call the relay's HTTP API from an HTTP Request or JavaScript task</td>
+<td>A corporate sender address is required</td>
+</tr>
+<tr>
+<td><strong>SendGrid/SES</strong></td>
+<td>HTTP Request task to the provider's API</td>
+<td>High volume, HTML templates</td>
+</tr>
+</tbody>
+</table>
+<p>The two HTTP routes need the provider's host allowed under <strong>Settings &gt; General &gt; External requests</strong>. A host on a private network, such as a corporate relay, is reached through EdgeConnect (WFLOW-94).</p>
+<p>The Send email action has two limits: <em>&quot;For To , Cc , and Bcc fields the number of email addresses is restricted to 10 per field.&quot;</em> and <em>&quot;Trial environments are prohibited to send emails with Email .&quot;</em></p>
+<h3>Basic Email Task</h3>
+<pre><code class="language-yaml">name: send_email_alert
+action: dynatrace.email:send-email
+input:
+  to:
+    - &quot;oncall@company.com&quot;
+    - &quot;platform-team@company.com&quot;
+  cc: []
+  bcc: []
+  subject: &quot;[{{ event()['event.category'] }}] {{ event()['event.name'] }}&quot;
+  content: |
+    A problem has been detected in your Dynatrace environment.
+    
+    Problem Details:
+    ----------------
+    Title: {{ event()[&quot;event.name&quot;] }}
+    Category: {{ event()[&quot;event.category&quot;] }}
+    Status: {{ event()[&quot;event.status&quot;] }}
+    Start Time: {{ event()[&quot;event.start&quot;] }}
+    Problem ID: {{ event()[&quot;display_id&quot;] }}
+    
+    Affected Entities:
+    {{ (event().get(&quot;smartscape.affected_entities&quot;) or []) | map(attribute=&quot;name&quot;) | join(&quot;, &quot;) or event()[&quot;affected_entity_ids&quot;] | join(&quot;, &quot;) }}
+    
+    Root Cause:
+    {{ (event().get(&quot;root_cause.smartscape_entity&quot;) or {}).get(&quot;name&quot;, &quot;not yet determined&quot;) }}
+    
+    View this problem:
+    {{ problem_link() }}
+</code></pre>
+<h3>Formatted Email</h3>
+<p>The root cause is read with <code>.get()</code> because most problems do not carry one: on a validation tenant, 127 of 540 problems over 24 h had <code>root_cause.smartscape_entity</code> (10/06/2026), and a bracket read of a missing field fails the task with <em>Undefined variables</em>. The older <code>root_cause_entity_id</code> is deprecated and just as often absent. The affected-entities line follows the same rule: it prints the names from <code>smartscape.affected_entities</code> and falls back to the deprecated <code>affected_entity_ids</code> when that field is empty — see the callout in §6. Enabling <strong>Wait for root cause analysis</strong> on the trigger (WFLOW-02 §2) addresses the early-lifecycle gap but does not guarantee a root cause: <em>&quot;Dynatrace Intelligence does not populate a root cause for every problem, particularly early in the lifecycle or for externally ingested events.&quot;</em></p>
+<p>The <code>content</code> field takes markdown: bold, headings, lists, tables and links. It does not take HTML, so an HTML template arrives as literal tags, and there is no content-type input. For an HTML template, send through SendGrid or SES from an HTTP Request task (table above).</p>
+<pre><code class="language-yaml">input:
+  to: [&quot;oncall@company.com&quot;]
+  cc: []
+  bcc: []
+  subject: &quot;[{{ event()['event.category'] }}] {{ event()['event.name'] }}&quot;
+  content: |
+    ## {{ event()['event.category'] }} alert
+
+    | | |
+    |---|---|
+    | **Problem** | {{ event()['event.name'] }} |
+    | **Status** | {{ event()['event.status'] }} |
+    | **Started** | {{ event()['event.start'] }} |
+
+    [View in Dynatrace]({{ problem_link() }})
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email">Email (DT docs)</a> — <em>&quot;It doesn't offer support for HTML.&quot;</em>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml">threat-detection-notification-sender.yaml (Dynatrace GitHub)</a> — <em>&quot;action: dynatrace.email:send-email&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="message-formatting"></a></p>
+<h2>6. Message Formatting</h2>
+<h3>Jinja Expression Reference</h3>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Result</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>{{ event()[&quot;event.name&quot;] }}</code></td>
+<td>Problem title</td>
+<td>Main content</td>
+</tr>
+<tr>
+<td><code>{{ event()[&quot;event.category&quot;] }}</code></td>
+<td>AVAILABILITY/ERROR/SLOWDOWN/…</td>
+<td>What kind of problem</td>
+</tr>
+<tr>
+<td><code>{{ event().get(&quot;event.severity&quot;) | int(5) }}</code></td>
+<td>1 (most severe) … 5</td>
+<td>Color coding</td>
+</tr>
+<tr>
+<td><code>{{ (event().get(&quot;smartscape.affected_entities&quot;) or []) | map(attribute=&quot;name&quot;) | join(&quot;, &quot;) }}</code></td>
+<td>Comma-separated entity names</td>
+<td>Show all affected</td>
+</tr>
+<tr>
+<td><code>{{ event()[&quot;affected_entity_ids&quot;] | join(&quot;, &quot;) }}</code></td>
+<td>Comma-separated classic IDs</td>
+<td>Fallback only — deprecated</td>
+</tr>
+<tr>
+<td><code>{{ event()[&quot;event.start&quot;] }}</code></td>
+<td>ISO timestamp</td>
+<td>When started</td>
+</tr>
+<tr>
+<td><code>{{ problem_link() }}</code></td>
+<td>Full URL</td>
+<td>Link to problem (Problem trigger only)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Deprecated problem fields.</strong> The upgrade guide marks the classic entity fields deprecated: <em>&quot;root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity , and affected_entity_ids in favor of smartscape.affected_entities . Build new payloads against the Smartscape fields.&quot;</em> <code>affected_entity_ids</code> still works and is the better-populated field: over 7 days on a validation tenant (10/14/2026) it was set on 5,014 of 5,014 problem records and <code>smartscape.affected_entities</code> on 4,056, so the templates in this notebook read <code>smartscape.affected_entities</code> first and fall back to it, as in the email template in §5. <strong>WFLOW-02 §8</strong> maps every payload field and <strong>WFLOW-05 §3</strong> has the population counts.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a> — <em>&quot;smartscape.affected_entities Record array; each element has id , type , name&quot;</em>.</sub></p>
+</blockquote>
+<p><code>event.severity</code> is <code>stable</code> in the semantic dictionary (read 11/11/2026) and is a 1–5 scale; the problem record carries no <code>CRITICAL</code>/<code>HIGH</code> strings. <code>int(5)</code> treats a missing severity as least severe — see WFLOW-04 §3 for why that default matters from SaaS 1.348.</p>
+<h3>Conditional Formatting</h3>
+<pre><code class="language-jinja">{% set sev = event().get(&quot;event.severity&quot;) | int(5) %}
+{% if sev &lt;= 1 %}
+:red_circle: CRITICAL ALERT
+{% elif sev == 2 %}
+:large_orange_circle: MAJOR ALERT
+{% else %}
+:large_yellow_circle: {{ event()[&quot;event.category&quot;] }} ALERT
+{% endif %}
+</code></pre>
+<h3>Severity Emoji Map</h3>
+<table>
+<thead>
+<tr>
+<th><code>event.severity</code></th>
+<th>Slack Emoji</th>
+<th>Teams Color</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 (Critical)</td>
+<td><code>:red_circle:</code></td>
+<td><code>Attention</code></td>
+</tr>
+<tr>
+<td>2 (Major)</td>
+<td><code>:large_orange_circle:</code></td>
+<td><code>Warning</code></td>
+</tr>
+<tr>
+<td>3 (Minor)</td>
+<td><code>:large_yellow_circle:</code></td>
+<td><code>Accent</code></td>
+</tr>
+<tr>
+<td>4 (Warning)</td>
+<td><code>:large_blue_circle:</code></td>
+<td><code>Good</code></td>
+</tr>
+</tbody>
+</table>
+<p>Level names follow the Davis severity scale (see WFLOW-04 § 3); Warning and Informational events never open a problem, so a problem-triggered workflow sees levels 1–3.</p>
+<h3>Inline Severity Mapping</h3>
+<pre><code class="language-jinja">{{ {1: &quot;:red_circle:&quot;, 2: &quot;:large_orange_circle:&quot;, 3: &quot;:large_yellow_circle:&quot;, 4: &quot;:large_blue_circle:&quot;}.get(event().get(&quot;event.severity&quot;) | int(5), &quot;:white_circle:&quot;) }}
+</code></pre>
+<p><a id="complete-alert-workflow-example"></a></p>
+<h2>7. Complete Alert Workflow Example</h2>
+<p>A workflow that sends the same problem to Slack, Teams, and email. Tasks are keyed by name and the trigger block uses the exported shape (WFLOW-02 §2); export a workflow built in the editor for the exact document.</p>
+<h3>Workflow Configuration</h3>
+<pre><code class="language-yaml">name: production-alert-notifications
+description: Send alerts to all channels for production problems
+
+trigger:
+  eventTrigger:
+    isActive: true
+    triggerConfiguration:
+      type: davis-problem
+      value:
+        triggerOn: open
+        categories:
+          availability: true
+          error: true
+          slowdown: true
+          resource: true
+        entityTagsMatch: all
+        entityTags:
+          env:
+            - prod
+        analysisReady: true          # Wait for root cause analysis
+
+tasks:
+  slack_notification:
+    name: slack_notification
+    action: dynatrace.slack:slack-send-message
+    input:
+      connection: slack-production
+      channel: &quot;#alerts-production&quot;
+      message: |
+        {{ {1: &quot;:red_circle:&quot;, 2: &quot;:large_orange_circle:&quot;, 3: &quot;:large_yellow_circle:&quot;}.get(event().get(&quot;event.severity&quot;) | int(5), &quot;:white_circle:&quot;) }} *{{ event()[&quot;event.category&quot;] }} Problem*
+        
+        *{{ event()[&quot;event.name&quot;] }}*
+        
+        • *Status:* {{ event()[&quot;event.status&quot;] }}
+        • *Started:* {{ event()[&quot;event.start&quot;] }}
+        • *ID:* {{ event()[&quot;display_id&quot;] }}
+        
+        &lt;{{ problem_link() }}|:mag: View Problem&gt;
+
+  teams_notification:
+    name: teams_notification
+    action: dynatrace.msteams:send-message
+    input:
+      connectionId: teams-production
+      messageFormat: dynatrace_markdown
+      message: |
+        **{{ event()[&quot;event.category&quot;] }} Problem**
+        
+        **{{ event()[&quot;event.name&quot;] }}**
+        
+        - **Status:** {{ event()[&quot;event.status&quot;] }}
+        - **Started:** {{ event()[&quot;event.start&quot;] }}
+        - **ID:** {{ event()[&quot;display_id&quot;] }}
+        
+        [View Problem]({{ problem_link() }})
+
+  email_notification:
+    name: email_notification
+    action: dynatrace.email:send-email
+    input:
+      to: [&quot;platform-oncall@company.com&quot;]
+      cc: []
+      bcc: []
+      subject: &quot;[{{ event()['event.category'] }}] {{ event()['event.name'] }}&quot;
+      content: |
+        A {{ event()[&quot;event.category&quot;] }} problem has been detected.
+        
+        Problem: {{ event()[&quot;event.name&quot;] }}
+        Status: {{ event()[&quot;event.status&quot;] }}
+        Started: {{ event()[&quot;event.start&quot;] }}
+        
+        View: {{ problem_link() }}
+</code></pre>
+<h3>Task Execution</h3>
+<p>All three tasks have no predecessor, so they start in parallel when the trigger fires. A task that does have predecessors waits for them: <em>&quot;By default, a task will run if its predecessors ended successfully.&quot;</em></p>
+<h3>Cost: this is a standard workflow</h3>
+<p>Three tasks make this a <strong>standard</strong> workflow, which consumes workflow hours for as long as it exists (WFLOW-01 §3.5). For a single destination, a simple workflow with one task costs no workflow hours. The upgrade guide keeps standard workflows for cases like this one, <em>&quot;when one filter must fan out to several destinations in a single configuration.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/running">Monitor workflow executions (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/license/capabilities/automation/automation">Automation Workflow consumption (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Monitor Your Notification Workflows</h3>
+<pre><code class="language-dql">// Notification workflow executions
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;ACTION_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| filter in(dt.automation_engine.action.app, {&quot;dynatrace.email&quot;, &quot;dynatrace.slack&quot;, &quot;dynatrace.servicenow&quot;})
+| summarize executions = count(), by:{dt.automation_engine.action.app, dt.automation_engine.state}
+| sort executions desc
+</code></pre>
+<pre><code class="language-dql">// Notification task success rates
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;ACTION_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| summarize {total = count(), succeeded = countIf(dt.automation_engine.state == &quot;SUCCESS&quot;)}, by:{dt.automation_engine.action.function}
+| fieldsAdd success_pct = round(succeeded * 100.0 / total, decimals: 1)
+| sort total desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Failed notification tasks
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;ACTION_EXECUTION&quot;
+| filter dt.automation_engine.state == &quot;ERROR&quot;
+| fields timestamp, dt.automation_engine.action.function, dt.automation_engine.task.name, dt.automation_engine.state_info
+| sort timestamp desc
+| limit 25
+</code></pre>
+<h2>Next Steps</h2>
+<p>Now that you can send basic notifications, learn advanced patterns:</p>
+<h3>Recommended Path</h3>
+<ol>
+<li><strong>WFLOW-04: Advanced Notification Routing</strong> - Conditional routing by severity, team, time</li>
+<li><strong>WFLOW-05: PagerDuty &amp; ServiceNow</strong> - Incident management integration</li>
+<li><strong>WFLOW-06: Custom Notification Templates</strong> - Rich formatting and dynamic content</li>
+</ol>
+<h3>Key Takeaways</h3>
+<ul>
+<li><strong>Connections</strong> store credentials securely and are reusable</li>
+<li><strong>Slack</strong> connections take a bot OAuth token from a Slack app; there is no webhook option</li>
+<li><strong>Teams</strong> connections take a Teams Workflows (Power Automate) webhook URL; Office 365 connectors stopped working in May 2026</li>
+<li><strong>Email</strong> sends from <code>no-reply@apps.dynatrace.com</code>; for another sender, call a mail provider's API from an HTTP Request task</li>
+<li>Every outbound destination needs an <strong>External requests</strong> host pattern</li>
+<li><strong>Jinja expressions</strong> enable dynamic message content; read optional fields such as the root cause with <code>.get()</code></li>
+<li>Tasks with no predecessor run in <strong>parallel</strong>; more than one task makes a <strong>standard</strong> workflow, billed in workflow hours</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Notification architecture: triggers → tasks → connections → external services</li>
+<li>How to set up connections for Slack, Teams, and email</li>
+<li>Basic and advanced Slack message formatting</li>
+<li>Microsoft Teams notifications with Adaptive Cards</li>
+<li>Plain-text and markdown email notifications (the Send email action does not render HTML)</li>
+<li>Jinja expressions for dynamic content</li>
+<li>A complete multi-channel alert workflow</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions">Notification actions umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack">Slack action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup">Set up Slack Connector (DT docs)</a></li>
+<li><a href="https://devblogs.microsoft.com/microsoft365dev/retirement-of-office-365-connectors-within-microsoft-teams/">Retirement of Office 365 connectors within Microsoft Teams (Microsoft 365 Developer Blog)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/microsoft-teams">Microsoft Teams action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email">Email action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty">PagerDuty action (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Workflow reference / Jinja expressions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications">Alerting and notifications umbrella (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

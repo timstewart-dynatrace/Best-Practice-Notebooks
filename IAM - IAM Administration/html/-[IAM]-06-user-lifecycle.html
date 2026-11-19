@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IAM-06: User Lifecycle and Provisioning</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">IAM — IAM Administration</a><span class="sep">/</span><span aria-current="page">IAM-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>IAM-06: User Lifecycle and Provisioning</h1>
+<blockquote>
+<p><strong>Series:</strong> IAM — IAM Administration | <strong>Notebook:</strong> 6 of 12 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/08/2026</p>
+</blockquote>
+<h2>Automating User Management at Scale</h2>
+<p>Manual user management doesn't scale. This notebook covers user lifecycle automation including SCIM provisioning, JIT access, service accounts, token management, and inviting external users from other domains.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#scim-provisioning">SCIM Provisioning</a></li>
+<li><a href="#just-in-time-provisioning">Just-in-Time Provisioning</a></li>
+<li><a href="#user-onboarding-workflows">User Onboarding Workflows</a></li>
+<li><a href="#user-offboarding">User Offboarding</a></li>
+<li><a href="#service-accounts-and-oauth-clients">Service Accounts and OAuth Clients</a></li>
+<li><a href="#api-token-management">API Token Management</a></li>
+<li><a href="#external-user-and-cross-domain-access">External User and Cross-Domain Access</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Gen3 IAM enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>account-user-management</code> for user/token management</td>
+</tr>
+<tr>
+<td><strong>IdP</strong></td>
+<td>Enterprise IdP (Okta, Azure AD, etc.) for SCIM</td>
+</tr>
+</tbody>
+</table>
+<h2>1. User Lifecycle Overview</h2>
+<p>Users have a lifecycle from creation to deactivation. Effective management requires automation at each stage.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idWxmQmx1ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWQ0ZWQ4O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idWxmR3JlZW5HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDU5NjY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idWxmUHVycGxlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InVsZk9yYW5nZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjU5ZTBiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ1bGZSZWRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VmNDQ0NDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZGMyNjI2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InVsZlNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0idWxmQXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzY0NzQ4YiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjcwMCIgaGVpZ2h0PSIzNDAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWUyOTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Vc2VyIExpZmVjeWNsZSBGbG93PC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iNTIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkZyb20gcHJvdmlzaW9uaW5nIHRvIG9mZmJvYXJkaW5nPC90ZXh0PgoKICA8IS0tIFN0YWdlIDE6IFByb3Zpc2lvbiAtLT4KICA8cmVjdCB4PSI0MCIgeT0iODAiIHdpZHRoPSIxMTAiIGhlaWdodD0iOTAiIHJ4PSI2IiBmaWxsPSIjZmZmIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3VsZlNoYWRvdykiLz4KICA8cmVjdCB4PSI0MCIgeT0iODAiIHdpZHRoPSIxMTAiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSJ1cmwoI3VsZkJsdWVHcmFkKSIvPgogIDxyZWN0IHg9IjQwIiB5PSIxMDMiIHdpZHRoPSIxMTAiIGhlaWdodD0iNyIgZmlsbD0idXJsKCN1bGZCbHVlR3JhZCkiLz4KICA8dGV4dCB4PSI5NSIgeT0iMTAwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MS4gUHJvdmlzaW9uPC90ZXh0PgogIDx0ZXh0IHg9Ijk1IiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q3JlYXRlIHVzZXI8L3RleHQ+CiAgPHRleHQgeD0iOTUiIHk9IjE0NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Bc3NpZ24gZ3JvdXBzPC90ZXh0PgogIDx0ZXh0IHg9Ijk1IiB5PSIxNjAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0NJTS9KSVQ8L3RleHQ+CgogIDwhLS0gQXJyb3cgMSAtLT4KICA8bGluZSB4MT0iMTUwIiB5MT0iMTI1IiB4Mj0iMTc1IiB5Mj0iMTI1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCN1bGZBcnJvdykiLz4KCiAgPCEtLSBTdGFnZSAyOiBBY3RpdmF0ZSAtLT4KICA8cmVjdCB4PSIxODAiIHk9IjgwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjkwIiByeD0iNiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCN1bGZTaGFkb3cpIi8+CiAgPHJlY3QgeD0iMTgwIiB5PSI4MCIgd2lkdGg9IjExMCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9InVybCgjdWxmR3JlZW5HcmFkKSIvPgogIDxyZWN0IHg9IjE4MCIgeT0iMTAzIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjciIGZpbGw9InVybCgjdWxmR3JlZW5HcmFkKSIvPgogIDx0ZXh0IHg9IjIzNSIgeT0iMTAwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Mi4gQWN0aXZhdGU8L3RleHQ+CiAgPHRleHQgeD0iMjM1IiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Rmlyc3QgbG9naW48L3RleHQ+CiAgPHRleHQgeD0iMjM1IiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SWRQIHNpZ24taW4gKE1GQSBpbiBJZFApPC90ZXh0PgogIDx0ZXh0IHg9IjIzNSIgeT0iMTYwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFjY2VwdCB0ZXJtczwvdGV4dD4KCiAgPCEtLSBBcnJvdyAyIC0tPgogIDxsaW5lIHgxPSIyOTAiIHkxPSIxMjUiIHgyPSIzMTUiIHkyPSIxMjUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI3VsZkFycm93KSIvPgoKICA8IS0tIFN0YWdlIDM6IE9wZXJhdGUgLS0+CiAgPHJlY3QgeD0iMzIwIiB5PSI4MCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI5MCIgcng9IjYiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjdWxmU2hhZG93KSIvPgogIDxyZWN0IHg9IjMyMCIgeT0iODAiIHdpZHRoPSIxMTAiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSJ1cmwoI3VsZlB1cnBsZUdyYWQpIi8+CiAgPHJlY3QgeD0iMzIwIiB5PSIxMDMiIHdpZHRoPSIxMTAiIGhlaWdodD0iNyIgZmlsbD0idXJsKCN1bGZQdXJwbGVHcmFkKSIvPgogIDx0ZXh0IHg9IjM3NSIgeT0iMTAwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+My4gT3BlcmF0ZTwvdGV4dD4KICA8dGV4dCB4PSIzNzUiIHk9IjEzMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ob3JtYWwgdXNhZ2U8L3RleHQ+CiAgPHRleHQgeD0iMzc1IiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWNjZXNzIGRhdGE8L3RleHQ+CiAgPHRleHQgeD0iMzc1IiB5PSIxNjAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGF5LXRvLWRheTwvdGV4dD4KCiAgPCEtLSBBcnJvdyAzIC0tPgogIDxsaW5lIHgxPSI0MzAiIHkxPSIxMjUiIHgyPSI0NTUiIHkyPSIxMjUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI3VsZkFycm93KSIvPgoKICA8IS0tIFN0YWdlIDQ6IFJldmlldyAtLT4KICA8cmVjdCB4PSI0NjAiIHk9IjgwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjkwIiByeD0iNiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCN1bGZTaGFkb3cpIi8+CiAgPHJlY3QgeD0iNDYwIiB5PSI4MCIgd2lkdGg9IjExMCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9InVybCgjdWxmT3JhbmdlR3JhZCkiLz4KICA8cmVjdCB4PSI0NjAiIHk9IjEwMyIgd2lkdGg9IjExMCIgaGVpZ2h0PSI3IiBmaWxsPSJ1cmwoI3VsZk9yYW5nZUdyYWQpIi8+CiAgPHRleHQgeD0iNTE1IiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj40LiBSZXZpZXc8L3RleHQ+CiAgPHRleHQgeD0iNTE1IiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGVyaW9kaWMgYXVkaXQ8L3RleHQ+CiAgPHRleHQgeD0iNTE1IiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWNjZXNzIHJldmlldzwvdGV4dD4KICA8dGV4dCB4PSI1MTUiIHk9IjE2MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5RdWFydGVybHk8L3RleHQ+CgogIDwhLS0gQXJyb3cgNCAtLT4KICA8bGluZSB4MT0iNTcwIiB5MT0iMTI1IiB4Mj0iNTk1IiB5Mj0iMTI1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCN1bGZBcnJvdykiLz4KCiAgPCEtLSBTdGFnZSA1OiBPZmZib2FyZCAtLT4KICA8cmVjdCB4PSI2MDAiIHk9IjgwIiB3aWR0aD0iODAiIGhlaWdodD0iOTAiIHJ4PSI2IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlZjQ0NDQiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3VsZlNoYWRvdykiLz4KICA8cmVjdCB4PSI2MDAiIHk9IjgwIiB3aWR0aD0iODAiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSJ1cmwoI3VsZlJlZEdyYWQpIi8+CiAgPHJlY3QgeD0iNjAwIiB5PSIxMDMiIHdpZHRoPSI4MCIgaGVpZ2h0PSI3IiBmaWxsPSJ1cmwoI3VsZlJlZEdyYWQpIi8+CiAgPHRleHQgeD0iNjQwIiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj41LiBPZmZib2FyZDwvdGV4dD4KICA8dGV4dCB4PSI2NDAiIHk9IjEzMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SZXZva2U8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmVtb3ZlPC90ZXh0PgogIDx0ZXh0IHg9IjY0MCIgeT0iMTYwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFyY2hpdmU8L3RleHQ+CgogIDwhLS0gTW9kaWZ5IGxvb3AgLS0+CiAgPHBhdGggZD0iTSA1MTUgMTcwIFEgNTE1IDIxMCAzNzUgMjEwIFEgMjM1IDIxMCAyMzUgMTcwIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMS41IiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI0IiBtYXJrZXItZW5kPSJ1cmwoI3VsZkFycm93KSIvPgogIDx0ZXh0IHg9IjM3NSIgeT0iMjI1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiNkOTc3MDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJvbGUgY2hhbmdlPyBNb2RpZnkgZ3JvdXBzPC90ZXh0PgoKICA8IS0tIFRpbWVsaW5lIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMjYwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlMjkzYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QXV0b21hdGlvbiBNZXRob2RzPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMjc1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxNTAiIHk9IjI5NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTI5M2IiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNDSU0gUHJvdmlzaW9uaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjE1MCIgeT0iMzEwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNvbnRpbnVvdXMgc3luYyBmcm9tIElkUDwvdGV4dD4KCiAgPHJlY3QgeD0iMjYwIiB5PSIyNzUiIHdpZHRoPSIxODAiIGhlaWdodD0iNDUiIHJ4PSI0IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMjk1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlMjkzYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SklUIFByb3Zpc2lvbmluZzwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjMxMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PbiBmaXJzdCBTU08gbG9naW48L3RleHQ+CgogIDxyZWN0IHg9IjQ2MCIgeT0iMjc1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1NTAiIHk9IjI5NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTI5M2IiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1hbnVhbDwvdGV4dD4KICA8dGV4dCB4PSI1NTAiIHk9IjMxMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BY2NvdW50IE1hbmFnZW1lbnQgVUk8L3RleHQ+Cjwvc3ZnPgo=" alt="User Lifecycle Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Trigger | Actions |
+|-------|---------|----------|
+| Provision | New hire, role change | Create user, assign groups |
+| Activate | First login | IdP sign-in (MFA enforced by the IdP), accept terms |
+| Operate | Ongoing | Access resources, membership changes |
+| Review | Periodic | Verify access still needed |
+| Offboard | Termination, role change | Revoke access, disable account |
+-->
+<h3>Lifecycle Stages</h3>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Description</th>
+<th>Automation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Provision</strong></td>
+<td>Create user identity</td>
+<td>SCIM, JIT</td>
+</tr>
+<tr>
+<td><strong>Assign</strong></td>
+<td>Add to groups, grant access</td>
+<td>SCIM group sync</td>
+</tr>
+<tr>
+<td><strong>Activate</strong></td>
+<td>First login through the IdP</td>
+<td>SSO integration</td>
+</tr>
+<tr>
+<td><strong>Operate</strong></td>
+<td>Normal access and usage</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Review</strong></td>
+<td>Periodic access review</td>
+<td>Audit queries</td>
+</tr>
+<tr>
+<td><strong>Modify</strong></td>
+<td>Change groups/access</td>
+<td>SCIM update</td>
+</tr>
+<tr>
+<td><strong>Offboard</strong></td>
+<td>Remove access</td>
+<td>SCIM delete, JIT expiry</td>
+</tr>
+</tbody>
+</table>
+<h3>Manual vs Automated</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Pros</th>
+<th>Cons</th>
+<th>Scale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Manual</strong></td>
+<td>Full control</td>
+<td>Slow, error-prone</td>
+<td>&lt; 50 users</td>
+</tr>
+<tr>
+<td><strong>SCIM</strong></td>
+<td>Automated sync</td>
+<td>Setup complexity</td>
+<td>50 - 10,000+ users</td>
+</tr>
+<tr>
+<td><strong>JIT</strong></td>
+<td>No pre-provisioning</td>
+<td>Less control</td>
+<td>Any size</td>
+</tr>
+</tbody>
+</table>
+<p><a id="scim-provisioning"></a></p>
+<h2>2. SCIM Provisioning</h2>
+<p>SCIM (System for Cross-domain Identity Management) automatically syncs users and groups from your IdP to Dynatrace.</p>
+<blockquote>
+<p><strong>Breaking (SaaS 1.347 — staged tenant rollout from 09/16/2026): <code>GET /Users</code> pagination is now RFC-compliant.</strong> Verbatim: <em>&quot;The SCIM <code>GET /Users</code> endpoint now interprets <code>startIndex</code> as the absolute, 1-based index of the first result, per RFC 7644.&quot;</em></p>
+<p><strong>A client that passed a page number silently reads the wrong window.</strong> Under the old interpretation <code>startIndex=2</code> meant &quot;the second page&quot;; under RFC 7644 it means &quot;start at record 2&quot;. The request still returns <code>200</code> with a well-formed body, so the failure surfaces as users that never sync rather than as an error — the same silent shape that makes provisioning bugs hard to attribute.</p>
+<p>If you drive SCIM through a commercial IdP connector (Entra ID, Okta), it is almost certainly already RFC-compliant and needs no change. <strong>The population at risk is hand-rolled sync scripts</strong>, which is exactly what a page-number loop looks like. Convert to <code>startIndex = (page - 1) * count + 1</code> and reconcile a full user list after the rollout reaches your tenant.</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3BmQmx1ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWQ0ZWQ4O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3BmR3JlZW5HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxMGI5ODE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzA1OTY2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzcGZTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9InNwZkFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0ic3BmQXJyb3dHcmVlbiIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjMTZhMzRhIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iNzAwIiBoZWlnaHQ9IjM0MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzMiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTI5M2IiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNDSU0gUHJvdmlzaW9uaW5nIEZsb3c8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSI1MiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QXV0b21hdGVkIHVzZXIgYW5kIGdyb3VwIHN5bmNocm9uaXphdGlvbjwvdGV4dD4KCiAgPCEtLSBJZFAgQm94IC0tPgogIDxyZWN0IHg9IjQwIiB5PSI4MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxODAiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3NwZlNoYWRvdykiLz4KICA8cmVjdCB4PSI0MCIgeT0iODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3NwZkJsdWVHcmFkKSIvPgogIDxyZWN0IHg9IjQwIiB5PSIxMTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTAiIGZpbGw9InVybCgjc3BmQmx1ZUdyYWQpIi8+CiAgPHRleHQgeD0iMTQwIiB5PSIxMDUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JZGVudGl0eSBQcm92aWRlcjwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjE0MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KE9rdGEsIEF6dXJlIEFELCBldGMuKTwvdGV4dD4KCiAgPCEtLSBJZFAgYWN0aW9ucyAtLT4KICA8cmVjdCB4PSI1NSIgeT0iMTU1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjI1IiByeD0iMyIgZmlsbD0iI2RiZWFmZSIvPgogIDx0ZXh0IHg9IjE0MCIgeT0iMTcyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiMxZDRlZDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlVzZXIgY3JlYXRlZC9tb2RpZmllZDwvdGV4dD4KCiAgPHJlY3QgeD0iNTUiIHk9IjE4NSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIyNSIgcng9IjMiIGZpbGw9IiNkYmVhZmUiLz4KICA8dGV4dCB4PSIxNDAiIHk9IjIwMiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjMWQ0ZWQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Hcm91cCBtZW1iZXJzaGlwIGNoYW5nZWQ8L3RleHQ+CgogIDxyZWN0IHg9IjU1IiB5PSIyMTUiIHdpZHRoPSIxNzAiIGhlaWdodD0iMjUiIHJ4PSIzIiBmaWxsPSIjZGJlYWZlIi8+CiAgPHRleHQgeD0iMTQwIiB5PSIyMzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzFkNGVkOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VXNlciBkaXNhYmxlZC9kZWxldGVkPC90ZXh0PgoKICA8IS0tIFNDSU0gQVBJIC0tPgogIDxyZWN0IHg9IjI4MCIgeT0iMTIwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjEwMCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjc3BmU2hhZG93KSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMTU1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzdjM2FlZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0NJTSAyLjAgQVBJPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMTc1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBPU1QgL1VzZXJzPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMTkwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBBVENIIC9Vc2Vycy97aWR9PC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMjA1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBVVCAvR3JvdXBzL3tpZH08L3RleHQ+CgogIDwhLS0gRHluYXRyYWNlIEJveCAtLT4KICA8cmVjdCB4PSI0NjAiIHk9IjgwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE4MCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjc3BmU2hhZG93KSIvPgogIDxyZWN0IHg9IjQ2MCIgeT0iODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3NwZkdyZWVuR3JhZCkiLz4KICA8cmVjdCB4PSI0NjAiIHk9IjExMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMCIgZmlsbD0idXJsKCNzcGZHcmVlbkdyYWQpIi8+CiAgPHRleHQgeD0iNTYwIiB5PSIxMDUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2UgQWNjb3VudDwvdGV4dD4KICA8dGV4dCB4PSI1NjAiIHk9IjE0MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWNjb3VudCBNYW5hZ2VtZW50PC90ZXh0PgoKICA8IS0tIERUIHJlc3VsdHMgLS0+CiAgPHJlY3QgeD0iNDc1IiB5PSIxNTUiIHdpZHRoPSIxNzAiIGhlaWdodD0iMjUiIHJ4PSIzIiBmaWxsPSIjZGNmY2U3Ii8+CiAgPHRleHQgeD0iNTYwIiB5PSIxNzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzE2NjUzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VXNlciBjcmVhdGVkL3VwZGF0ZWQ8L3RleHQ+CgogIDxyZWN0IHg9IjQ3NSIgeT0iMTg1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjI1IiByeD0iMyIgZmlsbD0iI2RjZmNlNyIvPgogIDx0ZXh0IHg9IjU2MCIgeT0iMjAyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiMxNjY1MzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkdyb3VwIHN5bmMgY29tcGxldGU8L3RleHQ+CgogIDxyZWN0IHg9IjQ3NSIgeT0iMjE1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjI1IiByeD0iMyIgZmlsbD0iI2RjZmNlNyIvPgogIDx0ZXh0IHg9IjU2MCIgeT0iMjMyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiMxNjY1MzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFjY2VzcyByZXZva2VkPC90ZXh0PgoKICA8IS0tIEFycm93cyAtLT4KICA8bGluZSB4MT0iMjQwIiB5MT0iMTcwIiB4Mj0iMjc1IiB5Mj0iMTcwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNzcGZBcnJvdykiLz4KICA8dGV4dCB4PSIyNTciIHk9IjE2MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QdXNoPC90ZXh0PgoKICA8bGluZSB4MT0iNDIwIiB5MT0iMTcwIiB4Mj0iNDU1IiB5Mj0iMTcwIiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNzcGZBcnJvd0dyZWVuKSIvPgogIDx0ZXh0IHg9IjQzNyIgeT0iMTYwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiMxNmEzNGEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN5bmM8L3RleHQ+CgogIDwhLS0gU3luYyBvcGVyYXRpb25zIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMjgwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlMjkzYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0NJTSBPcGVyYXRpb25zPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMjk1IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjM1IiByeD0iNCIgZmlsbD0iI2UwZjJmZSIgc3Ryb2tlPSIjMDI4NGM3IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxMjUiIHk9IjMxMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwMzY5YTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNyZWF0ZSBVc2VyPC90ZXh0PgogIDx0ZXh0IHg9IjEyNSIgeT0iMzIyIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjgiIGZpbGw9IiMwMzY5YTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBPU1QgL1VzZXJzPC90ZXh0PgoKICA8cmVjdCB4PSIyMTAiIHk9IjI5NSIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIzNSIgcng9IjQiIGZpbGw9IiNmZWYzYzciIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMjc1IiB5PSIzMTAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5VcGRhdGUgVXNlcjwvdGV4dD4KICA8dGV4dCB4PSIyNzUiIHk9IjMyMiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI4IiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QQVRDSCAvVXNlcnMve2lkfTwvdGV4dD4KCiAgPHJlY3QgeD0iMzYwIiB5PSIyOTUiIHdpZHRoPSIxMzAiIGhlaWdodD0iMzUiIHJ4PSI0IiBmaWxsPSIjZGNmY2U3IiBzdHJva2U9IiMxNmEzNGEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQyNSIgeT0iMzEwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzE2NjUzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3luYyBHcm91cHM8L3RleHQ+CiAgPHRleHQgeD0iNDI1IiB5PSIzMjIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iIzE2NjUzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UFVUIC9Hcm91cHMve2lkfTwvdGV4dD4KCiAgPHJlY3QgeD0iNTEwIiB5PSIyOTUiIHdpZHRoPSIxMzAiIGhlaWdodD0iMzUiIHJ4PSI0IiBmaWxsPSIjZmVmMmYyIiBzdHJva2U9IiNkYzI2MjYiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjU3NSIgeT0iMzEwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2I5MWMxYyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGVhY3RpdmF0ZTwvdGV4dD4KICA8dGV4dCB4PSI1NzUiIHk9IjMyMiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI4IiBmaWxsPSIjYjkxYzFjIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QQVRDSCBhY3RpdmU9ZmFsc2U8L3RleHQ+Cjwvc3ZnPgo=" alt="SCIM Provisioning Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Component | Action |
+|------|-----------|--------|
+| 1 | IdP | Detects user/group change |
+| 2 | SCIM Client | Sends API request to Dynatrace |
+| 3 | Dynatrace | Processes user/group operation |
+| 4 | Sync | User/group state matches IdP |
+-->
+<h3>How SCIM Works</h3>
+<ol>
+<li>You configure SCIM in your IdP (Okta, Azure AD, etc.)</li>
+<li>When users/groups change in IdP, SCIM syncs to Dynatrace</li>
+<li>Users are automatically created, updated, or deactivated</li>
+<li>Group memberships stay in sync</li>
+</ol>
+<h3>Documented IdPs</h3>
+<table>
+<thead>
+<tr>
+<th>IdP</th>
+<th>Dynatrace documentation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Microsoft Entra ID (Azure)</td>
+<td>IdP-specific example instructions</td>
+</tr>
+<tr>
+<td>Okta</td>
+<td>IdP-specific example instructions</td>
+</tr>
+</tbody>
+</table>
+<p>Dynatrace documents example instructions for Azure and Okta only. In community practice, other SCIM 2.0 clients (OneLogin, PingFederate and similar) are connected with the same endpoint and token — verify the behavior against your IdP before relying on it.</p>
+<h3>SCIM Configuration Steps</h3>
+<p><strong>In Dynatrace:</strong></p>
+<ol>
+<li><strong>Verify your domain.</strong> Verification is a DNS TXT record check, and an account needs to verify a domain only once. DNS propagation can take from a few minutes up to 24 hours.</li>
+<li>Navigate to <strong>Account Management</strong> → <strong>Identity &amp; access management</strong> → <strong>SCIM configuration</strong></li>
+<li>Copy the SCIM endpoint URL and create a token</li>
+</ol>
+<p><strong>In Your IdP (Example: Okta):</strong></p>
+<ol>
+<li>Open your Dynatrace SAML application</li>
+<li>Go to Provisioning tab</li>
+<li>Configure SCIM connection:
+<ul>
+<li>SCIM connector base URL</li>
+<li>API token (from Dynatrace)</li>
+</ul>
+</li>
+<li>Enable provisioning features:
+<ul>
+<li>Create Users</li>
+<li>Update User Attributes</li>
+<li>Deactivate Users</li>
+<li>Push Groups</li>
+</ul>
+</li>
+</ol>
+<h3>SCIM Attributes Synced</h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Source</th>
+<th>Dynatrace Field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>userName</td>
+<td>IdP email</td>
+<td>Email (login)</td>
+</tr>
+<tr>
+<td>givenName</td>
+<td>IdP first name</td>
+<td>First name</td>
+</tr>
+<tr>
+<td>familyName</td>
+<td>IdP last name</td>
+<td>Last name</td>
+</tr>
+<tr>
+<td>active</td>
+<td>IdP status</td>
+<td>Account status</td>
+</tr>
+<tr>
+<td>groups</td>
+<td>IdP group membership</td>
+<td>Group membership</td>
+</tr>
+</tbody>
+</table>
+<h3>SCIM Groups and Permissions</h3>
+<p>Every group SCIM creates appears in Account Management as a group of type <code>SCIM</code>. Those groups are managed by SCIM only: they cannot be removed or modified through Account Management, so change them in the IdP. <strong>SCIM syncs membership, not access.</strong> Permissions for SCIM groups still have to be assigned manually in Dynatrace, so a newly pushed group grants nothing until you bind policies to it.</p>
+<h3>Best Practices</h3>
+<ul>
+<li><strong>Test in sandbox</strong> before production</li>
+<li><strong>Push only the groups you intend to bind</strong> — each pushed group needs its policy bindings added in Dynatrace</li>
+<li><strong>Use consistent naming</strong> between IdP and Dynatrace</li>
+<li><strong>Monitor sync status</strong> for failures</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-scim">SCIM (DT docs)</a> — <em>&quot;Verification is based on a DNS TXT Record check.&quot;</em>; <em>&quot;Groups of type <code>SCIM</code> are managed by SCIM only and cannot be removed or modified through Account Management&quot;</em>; <em>&quot;Permissions to SCIM groups still have to be assigned manually in Dynatrace&quot;</em>. <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in Dynatrace SaaS 1.347 (DT docs)</a> — the SCIM <code>GET /Users</code> <code>startIndex</code> change quoted above.</sub></p>
+</blockquote>
+<p><a id="just-in-time-provisioning"></a></p>
+<h2>3. Just-in-Time Provisioning</h2>
+<p>With SAML federation, Dynatrace creates users just in time: a federated user who doesn't yet exist is created automatically at sign-in. There is no setting to switch this on and no default group to configure — it is how SAML federation behaves.</p>
+<h3>How JIT Works</h3>
+<ol>
+<li>User authenticates via SAML SSO</li>
+<li>If the user doesn't exist, Dynatrace creates them (existing users are updated)</li>
+<li>At each successful login, Dynatrace checks the incoming group claims against each group's <strong>SAML Group Attribute Value</strong> and adds the user to every matching group</li>
+<li>User accesses Dynatrace with the permissions bound to those groups</li>
+</ol>
+<h3>JIT vs SCIM</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>JIT</th>
+<th>SCIM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User created</td>
+<td>On first login</td>
+<td>Before login</td>
+</tr>
+<tr>
+<td>Deactivation</td>
+<td>Manual or session-based</td>
+<td>Automatic sync</td>
+</tr>
+<tr>
+<td>Group sync</td>
+<td>At login only</td>
+<td>Continuous</td>
+</tr>
+<tr>
+<td>Setup</td>
+<td>Simple</td>
+<td>More complex</td>
+</tr>
+<tr>
+<td>Control</td>
+<td>Less</td>
+<td>More</td>
+</tr>
+</tbody>
+</table>
+<h3>Configuring JIT</h3>
+<p>JIT needs no separate switch. Configure SAML federation, then map groups:</p>
+<ol>
+<li>Configure SAML federation for your domain</li>
+<li>On each Dynatrace group that should be driven by the IdP, set the <strong>SAML Group Attribute Value</strong> to the IdP group claim it should match</li>
+<li>Bind policies to those groups — a user whose claims match no group gets no permissions</li>
+</ol>
+<blockquote>
+<p><strong>Caution:</strong> switching an existing <code>LOCAL</code> group to SAML removes all of its current user assignments. Membership is then driven by the group claims at each login.</p>
+</blockquote>
+<h3>JIT Group Mapping</h3>
+<p>SAML assertion includes groups, which are mapped to Dynatrace groups:</p>
+<table>
+<thead>
+<tr>
+<th>SAML Group</th>
+<th>Dynatrace Group</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IT-Dynatrace-Admins</code></td>
+<td><code>dt-platform-admins</code></td>
+</tr>
+<tr>
+<td><code>App-Checkout-Team</code></td>
+<td><code>dt-checkout-editors</code></td>
+</tr>
+<tr>
+<td><code>All-Employees</code></td>
+<td><code>dt-all-viewers</code></td>
+</tr>
+</tbody>
+</table>
+<h3>JIT Considerations</h3>
+<table>
+<thead>
+<tr>
+<th>Pro</th>
+<th>Con</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Simple setup</td>
+<td>User created only after login</td>
+</tr>
+<tr>
+<td>No pre-provisioning needed</td>
+<td>Group sync only at login</td>
+</tr>
+<tr>
+<td>Self-service access</td>
+<td>Harder to audit who has access</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;During sign-in, a user that doesn't already exist in Dynatrace is created automatically.&quot;</em>; <em>&quot;Upon a federated user's successful login, Dynatrace checks incoming group claims against SAML Group Attribute Values&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="user-onboarding-workflows"></a></p>
+<h2>4. User Onboarding Workflows</h2>
+<h3>Standard Onboarding Process</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Add user to IdP group</td>
+<td>HR/IT</td>
+</tr>
+<tr>
+<td>2</td>
+<td>SCIM syncs user to Dynatrace</td>
+<td>Automatic</td>
+</tr>
+<tr>
+<td>3</td>
+<td>User receives welcome email</td>
+<td>IT</td>
+</tr>
+<tr>
+<td>4</td>
+<td>User logs in via SSO</td>
+<td>User</td>
+</tr>
+<tr>
+<td>5</td>
+<td>User completes MFA enrollment in the identity provider</td>
+<td>User</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Access verified</td>
+<td>User/Manager</td>
+</tr>
+</tbody>
+</table>
+<h3>New Employee Checklist</h3>
+<pre><code>□ Employee added to corporate directory
+□ Employee assigned to appropriate IdP groups
+□ SCIM sync verified (user appears in Dynatrace)
+□ Employee logs in successfully
+□ Employee completes MFA enrollment in the IdP
+□ Employee confirms access to required data
+</code></pre>
+<h3>Role Change Process</h3>
+<p>When users change roles:</p>
+<ol>
+<li>Manager requests access change</li>
+<li>IAM admin approves</li>
+<li>Update IdP group membership</li>
+<li>SCIM syncs changes</li>
+<li>User has new access on next login</li>
+</ol>
+<h3>Temporary Access</h3>
+<p>For contractors or short-term access:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Duration</th>
+<th>Automation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IdP time-limited group</td>
+<td>Days to months</td>
+<td>IdP policy</td>
+</tr>
+<tr>
+<td>Manual group removal</td>
+<td>Any</td>
+<td>Calendar reminder</td>
+</tr>
+</tbody>
+</table>
+<p><a id="user-offboarding"></a></p>
+<h2>5. User Offboarding</h2>
+<p>Proper offboarding is critical for security.</p>
+<h3>Offboarding Triggers</h3>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>Response</th>
+<th>Timing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Termination</td>
+<td>Full revocation</td>
+<td>Immediate</td>
+</tr>
+<tr>
+<td>Resignation</td>
+<td>Full revocation</td>
+<td>Last day</td>
+</tr>
+<tr>
+<td>Role change</td>
+<td>Partial revocation</td>
+<td>At change</td>
+</tr>
+<tr>
+<td>Contract end</td>
+<td>Full revocation</td>
+<td>End date</td>
+</tr>
+</tbody>
+</table>
+<h3>Automated Offboarding (SCIM)</h3>
+<ol>
+<li>User disabled/removed in IdP</li>
+<li>SCIM syncs deactivation to Dynatrace</li>
+<li>User cannot login</li>
+<li>In community practice, also confirm that sessions opened before the deactivation have ended — verify the behavior in your own tenant</li>
+</ol>
+<h3>Manual Offboarding Checklist</h3>
+<pre><code>□ Remove from all Dynatrace groups
+□ Revoke any API tokens created by user
+□ Deactivate OAuth clients owned by user
+□ Transfer ownership of dashboards/notebooks
+□ Review audit log for recent activity
+□ Document offboarding completion
+</code></pre>
+<h3>Token Revocation on Offboarding</h3>
+<p>Critical: User-created tokens remain active until explicitly revoked.</p>
+<p>Tokens live in two places, so revoke in both:</p>
+<ol>
+<li><strong>Classic access tokens — in each environment.</strong> They are generated per environment on the <strong>Access Tokens</strong> page, so check every environment the user could reach. To find them by owner across many environments, the Tokens API v2 lists <em>&quot;all API tokens available in your environment&quot;</em> and filters with <code>apiTokenSelector=owner(&quot;&lt;owner&gt;&quot;)</code> (<em>&quot;The user that owns the token. Case-sensitive.&quot;</em>):<pre><code class="language-bash">curl -s -H &quot;Authorization: Api-Token $TOKEN&quot; \
+  &quot;https://&lt;env-id&gt;.live.dynatrace.com/api/v2/apiTokens?apiTokenSelector=owner(%22&lt;owner&gt;%22)&quot;
+</code></pre>
+Then revoke each returned token on the Access Tokens page (or <code>DELETE /api/v2/apiTokens/{id}</code>). API 1.348 marks the <code>/apiTokens</code> endpoints deprecated; they keep working during the deprecation period (§ 7, <em>Token Rotation Process</em>).</li>
+<li><strong>Platform tokens — in Account Management.</strong> <em>&quot;Account admins can disable or delete platform tokens created by all users under their account.&quot;</em></li>
+<li><strong>OAuth clients</strong> the user owns — deactivate them (checklist above).</li>
+</ol>
+<p>For evidence an auditor can keep, the token-lifecycle query in <strong>IAM-07</strong> (§ 4) lists every token creation and deletion in the environment, with who did it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens">Access tokens classic (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/tokens-v2/api-tokens/get-all">Access tokens API - GET all tokens (DT docs)</a> — <em>&quot;Lists all API tokens available in your environment.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a> — <em>&quot;Account admins can disable or delete platform tokens created by all users under their account.&quot;</em></sub></p>
+</blockquote>
+<h3>Verification</h3>
+<p>After offboarding, verify:</p>
+<ul>
+<li>[ ] User cannot login via SSO</li>
+<li>[ ] User not in any groups</li>
+<li>[ ] User's tokens are revoked</li>
+<li>[ ] No active OAuth clients</li>
+</ul>
+<p><a id="service-accounts-and-oauth-clients"></a></p>
+<h2>6. Service Accounts and OAuth Clients</h2>
+<p>Non-human identities require special handling.</p>
+<h3>Service Accounts vs OAuth Clients</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Use Case</th>
+<th>Authentication</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Service Account</strong></td>
+<td>Automation, scripts</td>
+<td>API token</td>
+</tr>
+<tr>
+<td><strong>OAuth Client</strong></td>
+<td>Apps, integrations</td>
+<td>OAuth 2.0</td>
+</tr>
+</tbody>
+</table>
+<h3>Creating OAuth Clients</h3>
+<ol>
+<li>Account Management → OAuth clients</li>
+<li>Create new client</li>
+<li>Configure:
+<ul>
+<li>Name and description</li>
+<li>Grant type (client credentials)</li>
+<li>Scopes (permissions)</li>
+</ul>
+</li>
+<li>Save client ID and secret securely</li>
+</ol>
+<h3>OAuth Client Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One client per application</td>
+<td>Isolation, easy revocation</td>
+</tr>
+<tr>
+<td>Minimum scopes</td>
+<td>Least privilege</td>
+</tr>
+<tr>
+<td>Store the client secret in a secrets manager</td>
+<td>The secret mints tokens; OAuth token expiry itself is not configurable</td>
+</tr>
+<tr>
+<td>Rotate secrets regularly</td>
+<td>Security hygiene</td>
+</tr>
+<tr>
+<td>Document ownership</td>
+<td>Accountability</td>
+</tr>
+</tbody>
+</table>
+<h3>OAuth Scopes</h3>
+<p>Common scopes for automation:</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Grants</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:logs:read</code></td>
+<td>Read logs</td>
+</tr>
+<tr>
+<td><code>storage:metrics:read</code></td>
+<td>Read metrics</td>
+</tr>
+<tr>
+<td><code>settings:objects:read</code></td>
+<td>Read settings</td>
+</tr>
+<tr>
+<td><code>settings:objects:write</code></td>
+<td>Modify settings</td>
+</tr>
+<tr>
+<td><code>document:documents:read</code></td>
+<td>Read dashboards</td>
+</tr>
+</tbody>
+</table>
+<h3>Service Account Lifecycle</h3>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Create</td>
+<td>Document owner, purpose, expiry</td>
+</tr>
+<tr>
+<td>Review (quarterly)</td>
+<td>Verify still needed</td>
+</tr>
+<tr>
+<td>Owner change</td>
+<td>Update documentation</td>
+</tr>
+<tr>
+<td>Decommission</td>
+<td>Revoke client, archive docs</td>
+</tr>
+</tbody>
+</table>
+<p><a id="api-token-management"></a></p>
+<h2>7. API Token Management</h2>
+<p>API tokens provide access for scripts, tools, and legacy integrations.</p>
+<h3>Token Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Scope</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Personal</strong></td>
+<td>User's permissions</td>
+<td>User automation</td>
+</tr>
+<tr>
+<td><strong>Service</strong></td>
+<td>Specific scopes</td>
+<td>Application integration</td>
+</tr>
+</tbody>
+</table>
+<h3>Token Scopes Reference</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Permission</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>logs.read</code></td>
+<td>Read log data</td>
+</tr>
+<tr>
+<td><code>metrics.read</code></td>
+<td>Read metrics</td>
+</tr>
+<tr>
+<td><code>entities.read</code></td>
+<td>Read entity data</td>
+</tr>
+<tr>
+<td><code>settings.read</code></td>
+<td>Read settings</td>
+</tr>
+<tr>
+<td><code>settings.write</code></td>
+<td>Modify settings</td>
+</tr>
+<tr>
+<td><code>problems.read</code></td>
+<td>Read problems</td>
+</tr>
+<tr>
+<td><code>events.ingest</code></td>
+<td>Send events</td>
+</tr>
+</tbody>
+</table>
+<h3>Token Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Minimum scopes</td>
+<td>Only grant what's needed</td>
+</tr>
+<tr>
+<td>Descriptive names</td>
+<td><code>cicd-pipeline-metrics-reader</code></td>
+</tr>
+<tr>
+<td>Expiration dates</td>
+<td>Set reasonable expiry</td>
+</tr>
+<tr>
+<td>Rotation schedule</td>
+<td>Rotate every 90 days</td>
+</tr>
+<tr>
+<td>Secure storage</td>
+<td>Use secrets manager</td>
+</tr>
+<tr>
+<td>No sharing</td>
+<td>One token per use case</td>
+</tr>
+</tbody>
+</table>
+<h3>Token Rotation Process</h3>
+<ol>
+<li>Create new token with same scopes</li>
+<li>Update applications with new token</li>
+<li>Verify applications work</li>
+<li>Revoke old token</li>
+<li>Document rotation</li>
+</ol>
+<blockquote>
+<p><strong>Deprecation — Dynatrace API 1.348 (rollout start 10/12/2026, staged tenant rollout).</strong> The <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348">API 1.348 changelog (DT docs)</a> marks the whole <code>/apiTokens</code> endpoint family deprecated — <em>&quot;The following endpoints are deprecated&quot;</em>: <code>GET</code>/<code>POST /apiTokens</code>, <code>POST /apiTokens/lookup</code>, and <code>GET</code>/<code>PUT</code>/<code>DELETE /apiTokens/{id}</code>. That changelog names no successor. Deprecated endpoints keep working during the deprecation period, so the rotation steps above remain the working path; re-check the changelog for a successor before building new rotation automation on these endpoints.</p>
+<p><strong>Phase 3 environments cannot run step 1.</strong> Once an environment opts into <strong>Phase 3</strong> of the upgrade to Latest Dynatrace, <em>&quot;classic API token creation is disabled; all new integrations must use platform tokens&quot;</em> (<a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-11-api-tokens/upgrade-api-endpoints">Best practices for upgrading App Observability API endpoints (DT docs)</a>). &quot;Create new token with same scopes&quot; then fails. Check your environment's upgrade phase before you rotate. In a Phase 3 environment, move the consumer onto a platform token or an OAuth client instead of minting a replacement classic token.</p>
+</blockquote>
+<h3>Tenant Token Rotation — a Different Object</h3>
+<p>Everything above concerns <strong>API tokens</strong>. The <strong>tenant token</strong> is a different credential: it is what OneAgents and ActiveGates use to authenticate to the cluster. It is not created, scoped, or revoked through the API-token surface, and rotating it affects <strong>the monitored fleet</strong>, not a script or a pipeline. Nothing in the rotation process above applies to it.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>API token</th>
+<th>Tenant token</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Used by</strong></td>
+<td>Scripts, pipelines, integrations</td>
+<td>OneAgents and ActiveGates</td>
+</tr>
+<tr>
+<td><strong>Created / scoped by you</strong></td>
+<td>Yes — you choose the scopes</td>
+<td>No — issued by the environment</td>
+</tr>
+<tr>
+<td><strong>Rotation blast radius</strong></td>
+<td>The consumers you updated</td>
+<td>Every agent reporting to the environment</td>
+</tr>
+<tr>
+<td><strong>&quot;Done&quot; means</strong></td>
+<td>Your applications still work</td>
+<td>Every agent has picked up the new token</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Forthcoming / rolling out (API 1.344).</strong> Dynatrace API 1.344 (published 07/15/2026, rollout from 07/29/2026) adds <strong><code>GET /tenantTokenRotation/status</code></strong> to Environment API v2 — verify it has reached your tenant before scripting against it.</p>
+<p>The point of the endpoint is that it makes a rotation <strong>auditable rather than assumed</strong>. Rotating a tenant token is a two-state affair: the new token is issued, and then agents pick it up on their own schedule. Without a status surface you retire the old token on faith. With it you can confirm the fleet has converged <em>before</em> treating the old token as retired — which is exactly the evidence an auditor asks for, and the check that prevents a stranded agent from going dark.</p>
+<p><strong>Until it reaches your tenant, the pre-1.344 working path is unchanged:</strong> verify rotation from the deployment surface — check the Deployment Status page and confirm agents reconnect and keep reporting after the rotation, rather than inferring success from the absence of complaints. Keep that check even once the endpoint is available; it is the one that tells you an agent is <em>monitoring</em>, not merely <em>authenticated</em>.</p>
+<h3>Monitoring Token Usage</h3>
+<p>Use audit logs to track token activity.</p>
+<pre><code class="language-dql">// Track API token usage patterns
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter authentication.type == &quot;TOKEN&quot;
+| summarize calls = count(), by:{user.id, event.provider}
+| sort calls desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Token lifecycle: API and ActiveGate token creation, update and deletion
+// Token events carry event.provider API_TOKEN / ACTIVE_GATE_TOKEN, and their resource is the token ID —
+// a contains(resource, &quot;token&quot;) filter misses them and matches only /lookups/iam_tokens uploads.
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.provider, {&quot;API_TOKEN&quot;, &quot;ACTIVE_GATE_TOKEN&quot;})
+| fields timestamp, user.id, event.provider, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Monitor OAuth client activity
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter authentication.type == &quot;OAUTH2&quot;
+| summarize calls = count(), by:{authentication.grant.type, request.source}
+| sort calls desc
+</code></pre>
+<p><a id="external-user-and-cross-domain-access"></a></p>
+<h2>8. External User and Cross-Domain Access</h2>
+<p>Not all users come from your corporate directory. Consultants, partners, vendors, and Dynatrace support engineers may need access to your tenant. This section covers how to invite users from external domains and manage their access securely.</p>
+<h3>Inviting an External User</h3>
+<p><strong>Account Management UI:</strong></p>
+<ol>
+<li>Navigate to <strong>Account Management</strong> → <strong>Identity &amp; access management</strong> → <strong>People</strong></li>
+<li>Click <strong>Invite user</strong></li>
+<li>Enter the external user's email address (any domain — no allowlisting required)</li>
+<li>The user receives an email invitation to create a Dynatrace account or log in with existing credentials</li>
+<li>Once accepted, assign the user to the appropriate groups</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> The invitation is sent to the email address you enter. The external user does not need to be in your corporate directory or IdP. They create a local Dynatrace account with that email address.</p>
+</blockquote>
+<h3>How External Users Authenticate</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Auth Method</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>No SSO configured for their domain</strong></td>
+<td>Local Dynatrace account (email + password)</td>
+<td>User creates account when accepting the invitation</td>
+</tr>
+<tr>
+<td><strong>Their domain is federated</strong></td>
+<td>SSO via their own IdP</td>
+<td>Requires Account or Environment Federation configuration</td>
+</tr>
+<tr>
+<td><strong>Your IdP includes them as guest</strong></td>
+<td>SSO via your IdP</td>
+<td>Common with Azure AD B2B guest users</td>
+</tr>
+<tr>
+<td><strong>SAML Federation configured</strong></td>
+<td>SSO via federated IdP</td>
+<td>External domain must be added to your SAML federation</td>
+</tr>
+</tbody>
+</table>
+<h3>Assigning Permissions to External Users</h3>
+<p>External users can be assigned to any Dynatrace group — the same groups and policies that apply to internal users. Best practices:</p>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Create a dedicated group</strong> (e.g., <code>external-consultants</code>)</td>
+<td>Isolate external access for easy audit and revocation</td>
+</tr>
+<tr>
+<td><strong>Apply least-privilege policies</strong></td>
+<td>External users should only see what they need</td>
+</tr>
+<tr>
+<td><strong>Use WHERE clauses</strong> to scope access</td>
+<td>Restrict to specific environments, schemas, or data boundaries</td>
+</tr>
+<tr>
+<td><strong>Set time-bound access</strong></td>
+<td>Use IdP group expiration or calendar reminders for contractor end dates</td>
+</tr>
+<tr>
+<td><strong>Enforce MFA at the identity provider</strong></td>
+<td>Dynatrace does not configure MFA itself; require it in the IdP that authenticates external users (or in yours, for guest accounts)</td>
+</tr>
+</tbody>
+</table>
+<h3>Example: Granting a Consultant Read-Only Access</h3>
+<ol>
+<li><strong>Create group:</strong> <code>external-acme-consultants</code></li>
+<li><strong>Bind policy:</strong> Read-only access scoped to the relevant environment</li>
+</ol>
+<pre><code>ALLOW environment:roles:viewer;
+ALLOW automation:workflows:read;
+ALLOW settings:objects:read
+  WHERE settings:schemaId = &quot;builtin:davis.anomaly-detectors&quot;;
+ALLOW storage:buckets:read
+  WHERE storage:table-name = &quot;logs&quot;;
+ALLOW storage:logs:read
+  WHERE storage:dt.security_context = &quot;checkout-team&quot;;
+</code></pre>
+<p>The two alerting lines give read access to notification workflows and custom alerts (anomaly detectors) in Latest Dynatrace. On a <strong>Dynatrace Classic</strong> environment, read access to alerting profiles and problem notifications is <code>ALLOW settings:objects:read WHERE settings:schemaId startsWith &quot;builtin:alerting&quot;;</code> (plus <code>&quot;builtin:problem&quot;</code>) instead — those schemas are not visible in Latest Dynatrace, so the classic line grants nothing there.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a> — <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em>; <code>builtin:problem.notifications</code> and <code>builtin:alerting.profile</code> are <em>&quot;Replaced by Workflows&quot;</em>.</sub></p>
+</blockquote>
+<ol start="3">
+<li><strong>Invite user:</strong> consultant@acme.com</li>
+<li><strong>Add to group:</strong> <code>external-acme-consultants</code></li>
+<li><strong>Set review date:</strong> Contractor end date in your access review calendar</li>
+</ol>
+<h3>API Provisioning of External Users</h3>
+<p>The Account Management API supports programmatic user invitation:</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>API Endpoint</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Invite user</td>
+<td><code>/iam/v1/accounts/{accountUuid}/users</code></td>
+<td>POST</td>
+</tr>
+<tr>
+<td>List users</td>
+<td><code>/iam/v1/accounts/{accountUuid}/users</code></td>
+<td>GET</td>
+</tr>
+<tr>
+<td>Add user to groups (body: JSON array of group UUIDs)</td>
+<td><code>/iam/v1/accounts/{accountUuid}/users/{email}</code></td>
+<td>POST</td>
+</tr>
+<tr>
+<td>Remove user from groups</td>
+<td><code>/iam/v1/accounts/{accountUuid}/users/{email}/groups?group-uuid={groupUuid}</code></td>
+<td>DELETE</td>
+</tr>
+</tbody>
+</table>
+<h3>Security Considerations</h3>
+<table>
+<thead>
+<tr>
+<th>Consideration</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>No SCIM sync</strong></td>
+<td>External users without SSO cannot benefit from automatic provisioning or group sync — manage manually</td>
+</tr>
+<tr>
+<td><strong>Domain verification</strong></td>
+<td>Required for federated SSO configurations; not required for local account invitations</td>
+</tr>
+<tr>
+<td><strong>Token creation</strong></td>
+<td>External users with appropriate permissions can create API tokens — monitor via audit logs</td>
+</tr>
+<tr>
+<td><strong>Offboarding</strong></td>
+<td>External users must be explicitly removed; they are not deactivated by your corporate IdP offboarding flow</td>
+</tr>
+<tr>
+<td><strong>Regular access reviews</strong></td>
+<td>Review external user access quarterly (or more frequently for privileged access)</td>
+</tr>
+<tr>
+<td><strong>Fallback admin</strong></td>
+<td>Keep a non-federated user with Account manager permissions as the break-glass account, so an IdP or federation problem cannot lock you out</td>
+</tr>
+</tbody>
+</table>
+<h3>External User Offboarding Checklist</h3>
+<pre><code>□ Remove from all Dynatrace groups
+□ Revoke any API tokens created by the external user
+□ Deactivate any OAuth clients they own
+□ Transfer ownership of shared dashboards/notebooks
+□ Verify user cannot login
+□ Document offboarding completion with date
+</code></pre>
+<h2>Next Steps</h2>
+<p>With user lifecycle management in place, proceed to compliance:</p>
+<h3>Recommended Path</h3>
+<ol>
+<li><strong>IAM-07: Audit Logging and Compliance</strong> - Monitor and report on access</li>
+<li><strong>IAM-08: Multi-Environment IAM</strong> - Scale across environments</li>
+<li><strong>IAM-09: Troubleshooting Access Issues</strong> - Debug problems</li>
+</ol>
+<h3>User Lifecycle Checklist</h3>
+<p>Before moving on, ensure you have:</p>
+<ul>
+<li>[ ] Chosen SCIM, JIT, or manual provisioning</li>
+<li>[ ] Configured IdP integration for provisioning</li>
+<li>[ ] Documented onboarding process</li>
+<li>[ ] Documented offboarding process</li>
+<li>[ ] Established token management policy</li>
+<li>[ ] Created service account inventory</li>
+<li>[ ] Defined process for inviting and managing external users</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>User lifecycle stages and automation options</li>
+<li>SCIM provisioning configuration</li>
+<li>Just-in-time provisioning via SSO</li>
+<li>User onboarding and offboarding workflows</li>
+<li>Service account and OAuth client management</li>
+<li>API token best practices and rotation</li>
+<li>How to invite external users from other domains and manage cross-domain access securely</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/account-management/identity-access-management">Manage Users, Groups, and Permissions</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-scim">SCIM Provisioning</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML Federation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/oauth-clients">OAuth Clients</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/access-tokens-and-oauth-clients/access-tokens">API Tokens</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348">Dynatrace API 1.348 changelog (DT docs)</a> — <em>&quot;The following endpoints are deprecated&quot;</em> (the <code>/apiTokens</code> family; rollout start 10/12/2026)</li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-11-api-tokens/upgrade-api-endpoints">Best practices for upgrading App Observability API endpoints (DT docs)</a> — <em>&quot;For Phase 3 environments, classic API token creation is disabled; all new integrations must use platform tokens.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api">Account Management API</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/user-management-api/post-user-groups">Add a user to groups (DT docs)</a> — <em>&quot;Adds a user to groups. Any existing group membership remains unaffected.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/user-management-api/delete-user-groups">Remove a user from groups (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/token-concepts">Token concepts (DT docs)</a> — the IAM token types table lists <em>&quot;Expiry configurable?&quot;</em> as <em>&quot;No&quot;</em> for OAuth tokens</li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;Configuring multi-factor authentication (MFA) is not supported by Dynatrace.&quot;</em>; break-glass: <em>&quot;we recommend that you invite a non-federated user to the environment with Account manager permissions&quot;</em></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8S-01: Kubernetes Monitoring Fundamentals</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">K8S — Kubernetes Monitoring</a><span class="sep">/</span><span aria-current="page">K8S-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>K8S-01: Kubernetes Monitoring Fundamentals</h1>
+<blockquote>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 1 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/15/2026</p>
+</blockquote>
+<h2>Introduction to Kubernetes Observability with Dynatrace</h2>
+<p>Kubernetes introduces unique observability challenges: ephemeral workloads, dynamic scaling, complex networking, and multi-layer abstractions. Dynatrace provides comprehensive Kubernetes monitoring through the DynaKube operator, which deploys and manages monitoring components automatically.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#kubernetes-observability-challenges">Kubernetes Observability Challenges</a></li>
+<li><a href="#dynatrace-monitoring-architecture">Dynatrace Monitoring Architecture</a></li>
+<li><a href="#entity-model-for-kubernetes">Entity Model for Kubernetes</a></li>
+<li><a href="#data-sources-and-signals">Data Sources and Signals</a></li>
+<li><a href="#key-metrics-and-dimensions">Key Metrics and Dimensions</a></li>
+<li><a href="#your-first-kubernetes-queries">Your First Kubernetes Queries</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Kubernetes monitoring enabled</td>
+</tr>
+<tr>
+<td><strong>Kubernetes Cluster</strong></td>
+<td>Any distribution (EKS, AKS, GKE, OpenShift, etc.)</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>To run the queries: <code>storage:metrics:read</code>, <code>storage:events:read</code>, <code>storage:smartscape:read</code> (Smartscape nodes) — plus the bucket permissions for the data you query</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Basic Kubernetes concepts (pods, deployments, services)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="kubernetes-observability-challenges"></a></p>
+<h2>1. Kubernetes Observability Challenges</h2>
+<p>Kubernetes environments present unique monitoring requirements:</p>
+<table>
+<thead>
+<tr>
+<th>Challenge</th>
+<th>Description</th>
+<th>Dynatrace Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ephemeral Workloads</strong></td>
+<td>Pods come and go constantly</td>
+<td>Entity relationships preserved across restarts</td>
+</tr>
+<tr>
+<td><strong>Dynamic Scaling</strong></td>
+<td>Replicas change based on load</td>
+<td>Automatic discovery of new instances</td>
+</tr>
+<tr>
+<td><strong>Multi-Layer Stack</strong></td>
+<td>Infra → K8s → App complexity</td>
+<td>Unified view from cluster to code</td>
+</tr>
+<tr>
+<td><strong>Distributed Services</strong></td>
+<td>Microservices across namespaces</td>
+<td>End-to-end distributed tracing</td>
+</tr>
+<tr>
+<td><strong>Resource Constraints</strong></td>
+<td>CPU/memory limits and requests</td>
+<td>Resource utilization vs. limits monitoring</td>
+</tr>
+<tr>
+<td><strong>Network Complexity</strong></td>
+<td>Service mesh, ingress, CNI</td>
+<td>Network flow and latency analysis</td>
+</tr>
+</tbody>
+</table>
+<h3>Traditional vs. Cloud-Native Monitoring</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Traditional</th>
+<th>Kubernetes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Identity</strong></td>
+<td>IP address, hostname</td>
+<td>Labels, selectors, namespaces</td>
+</tr>
+<tr>
+<td><strong>Lifecycle</strong></td>
+<td>Long-lived servers</td>
+<td>Short-lived pods</td>
+</tr>
+<tr>
+<td><strong>Configuration</strong></td>
+<td>Static files</td>
+<td>Dynamic ConfigMaps, Secrets</td>
+</tr>
+<tr>
+<td><strong>Networking</strong></td>
+<td>Fixed topology</td>
+<td>Service discovery, DNS</td>
+</tr>
+<tr>
+<td><strong>Scaling</strong></td>
+<td>Manual or scheduled</td>
+<td>HPA, VPA, KEDA</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dynatrace-monitoring-architecture"></a></p>
+<h2>2. Dynatrace Monitoring Architecture</h2>
+<p>Dynatrace monitors Kubernetes through multiple components:</p>
+<h3>DynaKube Operator Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+<th>Deployment Mode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Full-stack monitoring (processes, code)</td>
+<td>DaemonSet or application-only</td>
+</tr>
+<tr>
+<td><strong>ActiveGate</strong></td>
+<td>Routing; <code>kubernetes-monitoring</code> capability queries the K8s API and cAdvisor</td>
+<td>StatefulSet in cluster</td>
+</tr>
+<tr>
+<td><strong>Prometheus Integration</strong></td>
+<td>Custom metrics ingestion</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<h3>Deployment Modes</h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Use Case</th>
+<th>OneAgent</th>
+<th>Code Modules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>cloudNativeFullStack</strong></td>
+<td>Full visibility, K8s-native</td>
+<td>Privileged DaemonSet</td>
+<td>Injected via webhook</td>
+</tr>
+<tr>
+<td><strong>classicFullStack</strong> (legacy)</td>
+<td>Traditional deployment — avoid for new deployments</td>
+<td>Privileged DaemonSet</td>
+<td>Loaded from host</td>
+</tr>
+<tr>
+<td><strong>applicationMonitoring</strong></td>
+<td>App-only, no infra</td>
+<td>None</td>
+<td>Injected via webhook</td>
+</tr>
+<tr>
+<td><strong>hostMonitoring</strong></td>
+<td>Infra-only</td>
+<td>DaemonSet</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<h3>Data Flow</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY2x1c3RlckdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFlM2E1ZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGYxNzJhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibm9kZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzMzNDE1NTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ib25lYWdlbnRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2ZjE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzRmNDZlNTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImFjdGl2ZWdhdGVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNGI4YTY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBkOTQ4ODtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImR5bmF0cmFjZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDA3MGM5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYXBpR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjU5ZTBiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMCIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2QtY29sb3I9IiMwMDAiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd2hlYWQiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzk0YTNiOCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd2hlYWRPcmFuZ2UiIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iI2Y1OWUwYiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzBmMTcyYSIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmMWY1ZjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkt1YmVybmV0ZXMgTW9uaXRvcmluZyBEYXRhIEZsb3c8L3RleHQ+CgogIDwhLS0gS3ViZXJuZXRlcyBDbHVzdGVyIENvbnRhaW5lciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iNTAiIHdpZHRoPSI2MjAiIGhlaWdodD0iMzAwIiByeD0iMTIiIGZpbGw9InVybCgjY2x1c3RlckdyYWQpIiBzdHJva2U9IiMzMjZjZTUiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIzNTAiIHk9Ijc1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjMzI2Y2U1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5LdWJlcm5ldGVzIENsdXN0ZXI8L3RleHQ+CgogIDwhLS0gTm9kZSAxIC0tPgogIDxyZWN0IHg9IjcwIiB5PSI5NSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIxMTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI25vZGVHcmFkKSIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjE1NSIgeT0iMTE4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNTAwIiBmaWxsPSIjY2JkNWUxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ob2RlIDE8L3RleHQ+CiAgPCEtLSBPbmVBZ2VudCAxIC0tPgogIDxyZWN0IHg9IjEwNSIgeT0iMTMwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjU1IiByeD0iNiIgZmlsbD0idXJsKCNvbmVhZ2VudEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjE1NSIgeT0iMTU1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PbmVBZ2VudDwvdGV4dD4KICA8dGV4dCB4PSIxNTUiIHk9IjE3MiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjYzdkMmZlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EYWVtb25TZXQ8L3RleHQ+CgogIDwhLS0gTm9kZSAyIC0tPgogIDxyZWN0IHg9IjI2NSIgeT0iOTUiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTEwIiByeD0iOCIgZmlsbD0idXJsKCNub2RlR3JhZCkiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjExOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjUwMCIgZmlsbD0iI2NiZDVlMSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Tm9kZSAyPC90ZXh0PgogIDwhLS0gT25lQWdlbnQgMiAtLT4KICA8cmVjdCB4PSIzMDAiIHk9IjEzMCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI1NSIgcng9IjYiIGZpbGw9InVybCgjb25lYWdlbnRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjE1NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T25lQWdlbnQ8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIxNzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iI2M3ZDJmZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGFlbW9uU2V0PC90ZXh0PgoKICA8IS0tIE5vZGUgMyAtLT4KICA8cmVjdCB4PSI0NjAiIHk9Ijk1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjExMCIgcng9IjgiIGZpbGw9InVybCgjbm9kZUdyYWQpIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNTQ1IiB5PSIxMTgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI1MDAiIGZpbGw9IiNjYmQ1ZTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vZGUgMzwvdGV4dD4KICA8IS0tIE9uZUFnZW50IDMgLS0+CiAgPHJlY3QgeD0iNDk1IiB5PSIxMzAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNTUiIHJ4PSI2IiBmaWxsPSJ1cmwoI29uZWFnZW50R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNTQ1IiB5PSIxNTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9uZUFnZW50PC90ZXh0PgogIDx0ZXh0IHg9IjU0NSIgeT0iMTcyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiNjN2QyZmUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRhZW1vblNldDwvdGV4dD4KCiAgPCEtLSBEYXRhIGZsb3cgbGluZXMgZnJvbSBPbmVBZ2VudHMgdG8gQWN0aXZlR2F0ZSAtLT4KICA8cGF0aCBkPSJNMTU1IDE4NSBMMTU1IDIyMCBMMzUwIDI0NSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIvPgogIDxwYXRoIGQ9Ik0zNTAgMTg1IEwzNTAgMjQ1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWRhc2hhcnJheT0iNCwzIi8+CiAgPHBhdGggZD0iTTU0NSAxODUgTDU0NSAyMjAgTDM1MCAyNDUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI0LDMiLz4KCiAgPCEtLSBBY3RpdmVHYXRlIC0tPgogIDxyZWN0IHg9IjI2MCIgeT0iMjU1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0idXJsKCNhY3RpdmVnYXRlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIyODUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFjdGl2ZUdhdGU8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIzMDUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OWY2ZTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YXRlZnVsU2V0PC90ZXh0PgoKICA8IS0tIEs4cyBBUEkgQm94IC0tPgogIDxyZWN0IHg9IjUyMCIgeT0iMjY1IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0idXJsKCNhcGlHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1NzUiIHk9IjI5NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SzhzIEFQSTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBmcm9tIEs4cyBBUEkgdG8gQWN0aXZlR2F0ZSAtLT4KICA8bGluZSB4MT0iNTIwIiB5MT0iMjkwIiB4Mj0iNDQ1IiB5Mj0iMjkwIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd2hlYWRPcmFuZ2UpIi8+CiAgPHRleHQgeD0iNDgyIiB5PSIyODAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iI2ZjZDM0ZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Y2x1c3RlciBzdGF0ZTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBmcm9tIEFjdGl2ZUdhdGUgdG8gb3V0c2lkZSBjbHVzdGVyIC0tPgogIDxsaW5lIHgxPSIzNTAiIHkxPSIzMjUiIHgyPSIzNTAiIHkyPSIzNTUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93aGVhZCkiLz4KCiAgPCEtLSBEeW5hdHJhY2UgU2FhUy9NYW5hZ2VkIC0tPgogIDxyZWN0IHg9IjIyMCIgeT0iMzkwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjcwIiByeD0iMTAiIGZpbGw9InVybCgjZHluYXRyYWNlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMzUwIiB5PSI0MjAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkR5bmF0cmFjZSBTYWFTPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iNDQyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjYmZkYmZlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HcmFpbCBEYXRhIExha2Vob3VzZTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBmcm9tIGNsdXN0ZXIgdG8gRHluYXRyYWNlIC0tPgogIDxsaW5lIHgxPSIzNTAiIHkxPSIzNTUiIHgyPSIzNTAiIHkyPSIzODUiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93aGVhZCkiLz4KCiAgPCEtLSBMZWdlbmQgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjM5NSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI2MCIgcng9IjYiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMTIwIiB5PSI0MTIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRhdGEgU2lnbmFsczwvdGV4dD4KICA8bGluZSB4MT0iNjAiIHkxPSI0MjUiIHgyPSI4NSIgeTI9IjQyNSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIvPgogIDx0ZXh0IHg9Ijk1IiB5PSI0MjkiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iI2NiZDVlMSI+TWV0cmljcywgVHJhY2VzLCBMb2dzPC90ZXh0PgogIDxsaW5lIHgxPSI2MCIgeTE9IjQ0MyIgeDI9Ijg1IiB5Mj0iNDQzIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9Ijk1IiB5PSI0NDciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iI2NiZDVlMSI+Q2x1c3RlciBNZXRhZGF0YTwvdGV4dD4KPC9zdmc+" alt="Kubernetes Monitoring Data Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Component | Location | Function |
+|-----------|----------|----------|
+| OneAgent (DaemonSet) | Each Node | Collects metrics, traces, logs |
+| ActiveGate (StatefulSet) | In Cluster | Routes data, monitors K8s API |
+| K8s API | Control Plane | Provides cluster state metadata |
+| Dynatrace SaaS (Grail) | Cloud | Stores and analyzes all telemetry |
+For environments where SVG doesn't render
+-->
+<p><a id="entity-model-for-kubernetes"></a></p>
+<h2>3. Entity Model for Kubernetes</h2>
+<p>Dynatrace creates entities for each Kubernetes resource and maintains relationships between them.</p>
+<h3>Kubernetes Node Types (Smartscape)</h3>
+<p>Queries in this series use <strong>Smartscape</strong> node types (<code>smartscapeNodes &quot;K8S_…&quot;</code>). The classic <code>dt.entity.*</code> model they replace is shown for reference:</p>
+<table>
+<thead>
+<tr>
+<th>Smartscape node type</th>
+<th>Classic entity (<code>dt.entity.*</code>)</th>
+<th>Represents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>K8S_CLUSTER</code></td>
+<td><code>kubernetes_cluster</code></td>
+<td>Cluster</td>
+</tr>
+<tr>
+<td><code>K8S_NODE</code></td>
+<td><code>kubernetes_node</code></td>
+<td>Worker node</td>
+</tr>
+<tr>
+<td><code>K8S_NAMESPACE</code></td>
+<td><code>cloud_application_namespace</code></td>
+<td>Namespace</td>
+</tr>
+<tr>
+<td><code>K8S_DEPLOYMENT</code>, <code>K8S_STATEFULSET</code>, <code>K8S_DAEMONSET</code>, <code>K8S_REPLICASET</code>, <code>K8S_JOB</code>, <code>K8S_CRONJOB</code></td>
+<td><code>cloud_application</code> (one classic type for all)</td>
+<td>Workloads</td>
+</tr>
+<tr>
+<td><code>K8S_POD</code></td>
+<td><code>cloud_application_instance</code></td>
+<td>Pod</td>
+</tr>
+<tr>
+<td><code>K8S_SERVICE</code></td>
+<td><code>kubernetes_service</code></td>
+<td>Kubernetes Service object</td>
+</tr>
+<tr>
+<td><code>SERVICE</code></td>
+<td><code>service</code></td>
+<td>Detected application service</td>
+</tr>
+</tbody>
+</table>
+<p>Smartscape also models objects the classic model never had — <code>K8S_INGRESS</code>, <code>K8S_CONFIGMAP</code>, <code>K8S_PERSISTENTVOLUMECLAIM</code>, <code>K8S_HORIZONTALPODAUTOSCALER</code>, <code>K8S_DYNAKUBE</code> and more.</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>fetch dt.semantic_dictionary.models | filter data_object == &quot;smartscape.nodes&quot;</code> — 23 <code>K8S_*</code> node types and their <code>classic_models</code>, read 10/02/2026.</sub></p>
+</blockquote>
+<h3>Entity Relationships</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY2x1c3RlckVudGl0eUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzMyNmNlNTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWU0YTllO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibm9kZUVudGl0eUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzYzNjZmMTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNGY0NmU1O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibnNFbnRpdHlHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNGI4YTY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBkOTQ4ODtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Indvcmtsb2FkRW50aXR5R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjU5ZTBiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwZ2lFbnRpdHlHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYzQ4OTk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2RiMjc3NztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNlcnZpY2VFbnRpdHlHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3ciIHg9Ii0yMCUiIHk9Ii0yMCUiIHdpZHRoPSIxNDAlIiBoZWlnaHQ9IjE0MCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIwIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1jb2xvcj0iIzAwMCIgZmxvb2Qtb3BhY2l0eT0iMC4zIi8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93aGVhZCIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGYxNzJhIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2YxZjVmOSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+S3ViZXJuZXRlcyBNb2RlbCBpbiBTbWFydHNjYXBlIChjbGFzc2ljIGVudGl0eSBpbiBzbWFsbCB0eXBlKTwvdGV4dD4KCiAgPCEtLSBLVUJFUk5FVEVTX0NMVVNURVIgLS0+CiAgPHJlY3QgeD0iMjUwIiB5PSI1MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI1MCIgcng9IjgiIGZpbGw9InVybCgjY2x1c3RlckVudGl0eUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iNzIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNiZmRiZmUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmR0LmVudGl0eS5rdWJlcm5ldGVzX2NsdXN0ZXI8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSI4OCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SzhTX0NMVVNURVI8L3RleHQ+CgogIDwhLS0gQnJhbmNoIGxpbmVzIGZyb20gY2x1c3RlciAtLT4KICA8bGluZSB4MT0iMzAwIiB5MT0iMTAwIiB4Mj0iMzAwIiB5Mj0iMTQwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI0MDAiIHkxPSIxMDAiIHgyPSI0MDAiIHkyPSIxNDAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIi8+CgogIDwhLS0gS1VCRVJORVRFU19OT0RFIC0tPgogIDxyZWN0IHg9IjEwMCIgeT0iMTUwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiByeD0iOCIgZmlsbD0idXJsKCNub2RlRW50aXR5R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMjAwIiB5PSIxNzIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNjN2QyZmUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmR0LmVudGl0eS5rdWJlcm5ldGVzX25vZGU8L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSIxODgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPks4U19OT0RFPC90ZXh0PgoKICA8IS0tIENvbm5lY3QgY2x1c3RlciB0byBub2RlIC0tPgogIDxsaW5lIHgxPSIzMDAiIHkxPSIxNDAiIHgyPSIyMDAiIHkyPSIxNTAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93aGVhZCkiLz4KICA8dGV4dCB4PSIyMjAiIHk9IjEzOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjOTRhM2I4Ij5jb250YWluczwvdGV4dD4KCiAgPCEtLSBDTE9VRF9BUFBMSUNBVElPTl9OQU1FU1BBQ0UgLS0+CiAgPHJlY3QgeD0iNDAwIiB5PSIxNTAiIHdpZHRoPSIyNTAiIGhlaWdodD0iNTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI25zRW50aXR5R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNTI1IiB5PSIxNzIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OWY2ZTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmR0LmVudGl0eS5jbG91ZF9hcHBsaWNhdGlvbl9uYW1lc3BhY2U8L3RleHQ+CiAgPHRleHQgeD0iNTI1IiB5PSIxODgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPks4U19OQU1FU1BBQ0U8L3RleHQ+CgogIDwhLS0gQ29ubmVjdCBjbHVzdGVyIHRvIG5hbWVzcGFjZSAtLT4KICA8bGluZSB4MT0iNDAwIiB5MT0iMTQwIiB4Mj0iNTI1IiB5Mj0iMTUwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd2hlYWQpIi8+CiAgPHRleHQgeD0iNDkwIiB5PSIxMzgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzk0YTNiOCI+Y29udGFpbnM8L3RleHQ+CgogIDwhLS0gTGluZSBmcm9tIG5vZGUgdG8gUEdJIC0tPgogIDxsaW5lIHgxPSIyMDAiIHkxPSIyMDAiIHgyPSIyMDAiIHkyPSIyNTAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93aGVhZCkiLz4KICA8dGV4dCB4PSIyMTIiIHk9IjIzMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjOTRhM2I4Ij5ob3N0czwvdGV4dD4KCiAgPCEtLSBDTE9VRF9BUFBMSUNBVElPTiAtLT4KICA8cmVjdCB4PSI0MDAiIHk9IjI0NSIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI1MCIgcng9IjgiIGZpbGw9InVybCgjd29ya2xvYWRFbnRpdHlHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1MTAiIHk9IjI2NyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZlZjNjNyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZHQuZW50aXR5LmNsb3VkX2FwcGxpY2F0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjUxMCIgeT0iMjgzIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5LOFNfREVQTE9ZTUVOVCDigKY8L3RleHQ+CgogIDwhLS0gQ29ubmVjdCBuYW1lc3BhY2UgdG8gd29ya2xvYWQgLS0+CiAgPGxpbmUgeDE9IjUyNSIgeTE9IjIwMCIgeDI9IjUxMCIgeTI9IjI0NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3doZWFkKSIvPgogIDx0ZXh0IHg9IjU0MCIgeT0iMjI1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM5NGEzYjgiPmNvbnRhaW5zPC90ZXh0PgoKICA8IS0tIFBST0NFU1NfR1JPVVBfSU5TVEFOQ0UgLS0+CiAgPHJlY3QgeD0iNzAiIHk9IjI2MCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI1MCIgcng9IjgiIGZpbGw9InVybCgjcGdpRW50aXR5R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMjAwIiB5PSIyODIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmYmNmZTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmR0LmVudGl0eS5jbG91ZF9hcHBsaWNhdGlvbl9pbnN0YW5jZTwvdGV4dD4KICA8dGV4dCB4PSIyMDAiIHk9IjI5OCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SzhTX1BPRDwvdGV4dD4KCiAgPCEtLSBDb25uZWN0IHdvcmtsb2FkIHRvIFBHSSAtLT4KICA8bGluZSB4MT0iNDAwIiB5MT0iMjgwIiB4Mj0iMzMwIiB5Mj0iMjgwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd2hlYWQpIi8+CiAgPHRleHQgeD0iMzU1IiB5PSIyNzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzk0YTNiOCI+cnVucyBhczwvdGV4dD4KCiAgPCEtLSBMaW5lIGZyb20gUEdJIHRvIFNlcnZpY2UgLS0+CiAgPGxpbmUgeDE9IjIwMCIgeTE9IjMxMCIgeDI9IjIwMCIgeTI9IjM1NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3doZWFkKSIvPgogIDx0ZXh0IHg9IjIxMiIgeT0iMzM4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM5NGEzYjgiPnByb3ZpZGVzPC90ZXh0PgoKICA8IS0tIFNFUlZJQ0UgLS0+CiAgPHJlY3QgeD0iMTAwIiB5PSIzNjUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3NlcnZpY2VFbnRpdHlHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIyMDAiIHk9IjM4NyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RkZDZmZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZHQuZW50aXR5LnNlcnZpY2U8L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSI0MDMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNFUlZJQ0U8L3RleHQ+CgogIDwhLS0gTGVnZW5kIC0tPgogIDxyZWN0IHg9IjUyMCIgeT0iMzQwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjcwIiByeD0iNiIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjM1NyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzk0YTNiOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmVsYXRpb25zaGlwIFR5cGVzPC90ZXh0PgogIDxsaW5lIHgxPSI1MzAiIHkxPSIzNzAiIHgyPSI1NTUiIHkyPSIzNzAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93aGVhZCkiLz4KICA8dGV4dCB4PSI1NjUiIHk9IjM3NCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjY2JkNWUxIj5QYXJlbnQg4oaSIENoaWxkPC90ZXh0PgogIDx0ZXh0IHg9IjUzMCIgeT0iMzk4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM2NDc0OGIiPkxhYmVscyBzaG93IHJlbGF0aW9uc2hpcDwvdGV4dD4KPC9zdmc+" alt="Kubernetes Entity Relationships" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Parent (Smartscape / classic) | Relationship | Child (Smartscape / classic) |
+|-------------------------------|--------------|------------------------------|
+| K8S_CLUSTER / `dt.entity.kubernetes_cluster` | contains | K8S_NODE / `dt.entity.kubernetes_node` |
+| K8S_CLUSTER / `dt.entity.kubernetes_cluster` | contains | K8S_NAMESPACE / `dt.entity.cloud_application_namespace` |
+| K8S_NAMESPACE / `dt.entity.cloud_application_namespace` | contains | K8S_DEPLOYMENT … / `dt.entity.cloud_application` |
+| K8S_DEPLOYMENT … / `dt.entity.cloud_application` | runs as | K8S_POD / `dt.entity.cloud_application_instance` |
+| K8S_NODE / `dt.entity.kubernetes_node` | hosts | K8S_POD / `dt.entity.cloud_application_instance` |
+| K8S_POD / `dt.entity.cloud_application_instance` | provides | SERVICE / `dt.entity.service` |
+For environments where SVG doesn't render
+-->
+<h3>Entity Naming</h3>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Dynatrace Entity Name Pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cluster</td>
+<td>Cluster name from kubeconfig</td>
+</tr>
+<tr>
+<td>Namespace</td>
+<td><code>namespace-name</code></td>
+</tr>
+<tr>
+<td>Deployment</td>
+<td><code>deployment-name</code> in namespace</td>
+</tr>
+<tr>
+<td>Pod</td>
+<td><code>pod-name</code> (ephemeral, tied to PGI)</td>
+</tr>
+<tr>
+<td>Service</td>
+<td>Auto-detected from traffic patterns</td>
+</tr>
+</tbody>
+</table>
+<p><a id="data-sources-and-signals"></a></p>
+<h2>4. Data Sources and Signals</h2>
+<p>Dynatrace collects multiple signal types from Kubernetes:</p>
+<h3>Metrics and Events</h3>
+<table>
+<thead>
+<tr>
+<th>Collector</th>
+<th>What it gathers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ActiveGate</strong> with the <code>kubernetes-monitoring</code> capability</td>
+<td>Cluster topology and state from the Kubernetes API; node- and container-level metrics via cAdvisor; Kubernetes events</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong> (full-stack / host monitoring)</td>
+<td>Host and process metrics, code-level traces</td>
+</tr>
+<tr>
+<td><strong>Prometheus scraping</strong> (optional)</td>
+<td>Application metrics from annotated pods</td>
+</tr>
+</tbody>
+</table>
+<h3>Logs</h3>
+<table>
+<thead>
+<tr>
+<th>Log Type</th>
+<th>Collected by</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Container logs</strong> (stdout/stderr)</td>
+<td>Log module — integrated with OneAgent, or the standalone Kubernetes Log module</td>
+<td>Application debugging</td>
+</tr>
+<tr>
+<td><strong>Kubernetes events</strong></td>
+<td>ActiveGate, from the Kubernetes API — stored as <strong>events</strong> (<code>event.provider == &quot;KUBERNETES_EVENT&quot;</code>), not logs</td>
+<td>Scheduling, scaling, errors</td>
+</tr>
+<tr>
+<td><strong>Node / system logs</strong></td>
+<td>OneAgent log module</td>
+<td>Infrastructure issues</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/how-it-works/kubernetes-monitoring">Kubernetes platform monitoring (DT docs)</a> — <em>&quot;Uses the Kubernetes API and cAdvisor to get node- and container-level metrics and Kubernetes events&quot;</em>; <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/k8s-log-monitoring">Kubernetes log monitoring (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Traces</h3>
+<table>
+<thead>
+<tr>
+<th>Trace Source</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent auto-instrumentation</strong></td>
+<td>Supported languages/frameworks</td>
+</tr>
+<tr>
+<td><strong>OpenTelemetry</strong></td>
+<td>Custom instrumentation</td>
+</tr>
+<tr>
+<td><strong>Service mesh</strong></td>
+<td>Istio, Linkerd sidecars</td>
+</tr>
+</tbody>
+</table>
+<p><a id="key-metrics-and-dimensions"></a></p>
+<h2>5. Key Metrics and Dimensions</h2>
+<h3>Grail Metric Keys (what DQL queries)</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Grain</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.kubernetes.container.cpu_usage</code></td>
+<td>Container</td>
+<td>CPU used (millicores)</td>
+</tr>
+<tr>
+<td><code>dt.kubernetes.container.memory_working_set</code></td>
+<td>Container</td>
+<td>Working-set memory (bytes)</td>
+</tr>
+<tr>
+<td><code>dt.kubernetes.container.cpu_throttled</code></td>
+<td>Container</td>
+<td>CPU throttled</td>
+</tr>
+<tr>
+<td><code>dt.kubernetes.container.requests_cpu</code> / <code>.limits_cpu</code></td>
+<td>Container</td>
+<td>CPU requests / limits</td>
+</tr>
+<tr>
+<td><code>dt.kubernetes.container.requests_memory</code> / <code>.limits_memory</code></td>
+<td>Container</td>
+<td>Memory requests / limits</td>
+</tr>
+<tr>
+<td><code>dt.kubernetes.container.restarts</code> / <code>.oom_kills</code></td>
+<td>Container</td>
+<td>Restarts and OOM kills (counts)</td>
+</tr>
+<tr>
+<td><code>dt.kubernetes.node.cpu_allocatable</code> / <code>.memory_allocatable</code> / <code>.pods_allocatable</code></td>
+<td>Node</td>
+<td>Allocatable capacity</td>
+</tr>
+<tr>
+<td><code>dt.kubernetes.node.conditions</code></td>
+<td>Node</td>
+<td>Node conditions</td>
+</tr>
+<tr>
+<td><code>dt.kubernetes.pods</code>, <code>dt.kubernetes.workloads</code>, <code>dt.kubernetes.nodes</code></td>
+<td>Cluster objects</td>
+<td>Object counts</td>
+</tr>
+<tr>
+<td><code>dt.kubernetes.workload.pods_desired</code>, <code>dt.kubernetes.workload.conditions</code></td>
+<td>Workload</td>
+<td>Desired pods, conditions</td>
+</tr>
+<tr>
+<td><code>dt.kubernetes.pod.network_received_data</code> / <code>_transmitted_data</code></td>
+<td>Pod</td>
+<td>Network bytes</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub>Key list read with <code>metrics | filter startsWith(metric.key, &quot;dt.kubernetes&quot;)</code> on the validation tenant, 10/02/2026 (24 <code>dt.kubernetes.*</code> keys; OneAgent container keys are under <code>dt.containers.*</code>).</sub></p>
+</blockquote>
+<h3>Classic Metric Keys (Metrics API, Data Explorer)</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>builtin:containers.cpu.usagePercent</code></td>
+<td>CPU usage vs. limit</td>
+<td>Percent</td>
+</tr>
+<tr>
+<td><code>builtin:containers.memory.usagePercent</code></td>
+<td>Memory usage vs. limit</td>
+<td>Percent</td>
+</tr>
+<tr>
+<td><code>builtin:kubernetes.workload.requests_cpu</code> / <code>limits_cpu</code></td>
+<td>CPU requests / limits</td>
+<td>Millicores</td>
+</tr>
+<tr>
+<td><code>builtin:kubernetes.workload.requests_memory</code> / <code>limits_memory</code></td>
+<td>Memory requests / limits</td>
+<td>Bytes</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>These are <code>builtin:</code> keys — the classic Metrics namespace, not Grail.</strong> They are correct for the classic Metrics API, Data Explorer and classic dashboards, but <strong>DQL reads Grail only</strong>: <code>metrics | filter startsWith(metric.key, &quot;builtin:&quot;)</code> returns <strong>zero rows over 7 days</strong> on a live tenant (08/11/2026), while <code>startsWith(metric.key, &quot;dt.kubernetes&quot;)</code> returns 27 keys in the same command. A <code>timeseries avg(builtin:kubernetes.workload.requests_cpu)</code> therefore charts nothing and reports no error.</p>
+<p>For DQL, use the Grail equivalents — and note the <strong>grain differs, not just the prefix</strong>: Grail emits requests and limits at <strong>container</strong> grain (<code>dt.kubernetes.container.requests_cpu</code>, <code>.requests_memory</code>, <code>.limits_cpu</code>, <code>.limits_memory</code>), summed by you across <code>k8s.workload.name</code> to reach a workload figure. There is no <code>dt.kubernetes.workload.requests_*</code>. Full Grail key list and the derivation pattern: <strong>K8S-08 §2</strong>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Request and limit metrics changed what they count in ActiveGate 1.343 / 1.345</strong> — they carry an <em>effective</em> pod value: from 1.343 init containers are accounted for, and from 1.345 pod-level <code>spec.resources</code> (Kubernetes 1.34+) and pod <code>overhead</code> too, which can move a limit <em>down</em>. Reserved figures can step at either upgrade with no workload change; usage metrics are unaffected. This matters whenever you compare a request/limit trend across an upgrade boundary — see K8S-08 §2 before drawing capacity conclusions from one.</p>
+</blockquote>
+<p><a id="your-first-kubernetes-queries"></a></p>
+<h2>6. Your First Kubernetes Queries</h2>
+<p>Let's explore common queries for Kubernetes monitoring.</p>
+<pre><code class="language-dql">// Verify Kubernetes clusters are reporting (smartscape topology)
+smartscapeNodes &quot;K8S_CLUSTER&quot;
+| fields entity.name = name, tags
+| sort entity.name asc
+
+// Legacy alternative (deprecated for new content):
+// fetch dt.entity.kubernetes_cluster
+// | fields entity.name, tags
+// | sort entity.name asc
+
+</code></pre>
+<pre><code class="language-dql">// Count Kubernetes nodes
+smartscapeNodes &quot;K8S_NODE&quot;
+| summarize nodeCount = count()
+
+// Legacy alternative:
+// fetch dt.entity.kubernetes_node
+// | summarize nodeCount = count()
+
+</code></pre>
+<pre><code class="language-dql">// List Kubernetes namespaces
+smartscapeNodes &quot;K8S_NAMESPACE&quot;
+| fields entity.name = name, tags
+| sort entity.name asc
+| limit 50
+
+// Legacy alternative:
+// fetch dt.entity.cloud_application_namespace
+// | fields entity.name, tags
+// | sort entity.name asc
+// | limit 50
+
+</code></pre>
+<pre><code class="language-dql">// Container CPU usage — highest consumers
+// Sort on a scalar. `sort` on the timeseries array itself compares arrays element by element,
+// so the order has nothing to do with the average — reduce with arrayAvg() first.
+timeseries cpu = avg(dt.kubernetes.container.cpu_usage), from:-1h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name}
+| fieldsAdd avgCpuMillicores = round(arrayAvg(cpu), decimals: 0)
+| fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name, avgCpuMillicores
+| sort avgCpuMillicores desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Container memory usage approaching limits
+// &quot;Approaching the limit&quot; needs the limit: compare working set with limits_memory per container.
+// Containers with no memory limit drop out (limitMiB is null) — they cannot be OOM-killed for
+// exceeding a limit, only by node pressure.
+timeseries {
+    used = avg(dt.kubernetes.container.memory_working_set),
+    lim = avg(dt.kubernetes.container.limits_memory)
+  }, from:-1h, by:{k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name}
+| fieldsAdd usedMiB = round(arrayAvg(used) / 1048576, decimals: 0),
+            limitMiB = round(arrayAvg(lim) / 1048576, decimals: 0)
+| filter limitMiB &gt; 0
+| fieldsAdd pctOfLimit = round(100 * usedMiB / limitMiB, decimals: 1)
+| fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name, usedMiB, limitMiB, pctOfLimit
+| sort pctOfLimit desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Kubernetes events - recent warnings and errors
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing &quot;kubernetes&quot; or for content substrings like &quot;BackOff&quot; —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
+// They arrive as `fetch events | filter event.provider == &quot;KUBERNETES_EVENT&quot;`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   status                                &quot;WARN&quot; for Kubernetes Warning events, &quot;INFO&quot; for Normal
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT &quot;Warning&quot;. The Warning/Normal
+// split is in status (&quot;WARN&quot; / &quot;INFO&quot;). dt.kubernetes.event.important was &quot;true&quot; on all 204,078
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == &quot;KUBERNETES_EVENT&quot;
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
+fetch events, from:-1h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter status == &quot;WARN&quot;
+| fields timestamp, k8s.cluster.name, k8s.namespace.name, dt.kubernetes.event.reason, dt.kubernetes.event.message
+| sort timestamp desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Pod restarts - find crashlooping workloads
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing &quot;kubernetes&quot; or for content substrings like &quot;BackOff&quot; —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
+// They arrive as `fetch events | filter event.provider == &quot;KUBERNETES_EVENT&quot;`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   status                                &quot;WARN&quot; for Kubernetes Warning events, &quot;INFO&quot; for Normal
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT &quot;Warning&quot;. The Warning/Normal
+// split is in status (&quot;WARN&quot; / &quot;INFO&quot;). dt.kubernetes.event.important was &quot;true&quot; on all 204,078
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == &quot;KUBERNETES_EVENT&quot;
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
+fetch events, from:-24h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter in(dt.kubernetes.event.reason, {&quot;BackOff&quot;, &quot;BackoffLimitExceeded&quot;, &quot;Killing&quot;})
+| summarize events = countDistinctExact(event.id), by:{k8s.namespace.name, k8s.pod.name, dt.kubernetes.event.reason}
+| sort events desc
+| limit 25
+</code></pre>
+<p><a id="next-steps"></a></p>
+<h2>7. Next Steps</h2>
+<p>Now that you understand Kubernetes monitoring fundamentals, proceed to:</p>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>K8S-02: DynaKube Operator Deployment</strong></td>
+<td>Install and configure the operator</td>
+</tr>
+<tr>
+<td><strong>K8S-03: GitOps for DynaKube</strong></td>
+<td>Manage DynaKube with ArgoCD/Flux</td>
+</tr>
+<tr>
+<td><strong>K8S-04: Cluster Health Monitoring</strong></td>
+<td>Deep-dive into cluster metrics</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Kubernetes observability challenges and how Dynatrace addresses them</li>
+<li>Dynatrace monitoring architecture (OneAgent, ActiveGate, DynaKube)</li>
+<li>Entity model for Kubernetes resources</li>
+<li>Data sources: metrics, logs, and traces</li>
+<li>Key metrics for container and cluster monitoring</li>
+<li>Basic DQL queries for Kubernetes data using <code>smartscapeNodes</code> (modern) with <code>dt.entity.*</code> legacy alternatives shown as comments</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Setup on Kubernetes (DT docs)</a> — top-level entry point for all K8s monitoring docs</li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/how-it-works">How it works (DT docs)</a> — architecture, components, and data flow</li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/quickstart">Quickstart (DT docs)</a> — minimum viable deployment</li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference">Reference (DT docs)</a> — DynaKube parameters, feature flags, network, security, storage, workload mutation</li>
+<li><a href="https://github.com/Dynatrace/dynatrace-operator">Dynatrace Operator (Dynatrace GitHub)</a> — source, releases, and Helm chart</li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app/reference/effective-pod-resources">Effective pod resources (DT docs)</a> — how request/limit metrics represent the enforced pod value</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

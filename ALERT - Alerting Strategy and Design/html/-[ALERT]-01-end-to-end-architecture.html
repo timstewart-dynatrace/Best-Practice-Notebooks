@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALERT-01: End-to-End Alerting Architecture</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ALERT — Alerting Strategy and Design</a><span class="sep">/</span><span aria-current="page">ALERT-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ALERT-01: End-to-End Alerting Architecture</h1>
+<blockquote>
+<p><strong>Series:</strong> ALERT — Alerting Strategy and Design | <strong>Notebook:</strong> 01 of 05 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 11/09/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Alerting in Dynatrace is a cross-cutting concern: detection lives in one app, routing in another, reliability targets in a third. Teams that try to assemble it ad hoc end up with noise, gaps, and the wrong people paged. This notebook draws the <strong>whole board on one canvas</strong> — what you set up, where, and how it connects end to end — so you can see the complete solution before building any one piece.</p>
+<p>This is the doorway for the ALERT series. It does not re-document mechanics; it orchestrates them and points at the series that own each piece (AIOPS for detection, SLO for reliability, WFLOW for routing).</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#board">The Whole Board</a></li>
+<li><a href="#funnel">The Anti-Noise Funnel</a></li>
+<li><a href="#where">What to Set Up, Where</a></li>
+<li><a href="#rule">The One Rule That Makes Routing Work</a></li>
+<li><a href="#next">Where to Go Next</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3 with Grail, <strong>Settings</strong> for custom alerts (the Anomaly Detection app before SaaS 1.344 — § 3), the SLO app, and AutomationEngine (Workflows)</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform owners and SREs standing up alerting for the first time, or rationalising an ad-hoc setup</td>
+</tr>
+<tr>
+<td><strong>Companion series</strong></td>
+<td>AIOPS (detection), SLO (reliability targets), WFLOW (routing)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="board"></a></p>
+<h2>1. The Whole Board</h2>
+<p>Every Dynatrace alert, regardless of source, follows the same spine: <strong>telemetry → detection → one enriched problem → routing → destination</strong>, with an optional closed loop back. The diagram shows the complete picture, colour-coded by <em>where you configure each piece</em>.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5FbmQtdG8tZW5kIGFsZXJ0aW5nIGluIER5bmF0cmFjZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5NYW55IGRldGVjdGlvbiBwYXRocyBjb252ZXJnZSBvbiBvbmUgZW5yaWNoZWQgcHJvYmxlbSwgdGhlbiByb3V0ZSDigJQgY29sb3VyIHNob3dzIHdoZXJlIHlvdSBjb25maWd1cmUgZWFjaCBwaWVjZTwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFNvdXJjZXMgLS0+CiAgPHJlY3QgeD0iMzE1IiB5PSI2NCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iODEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPnRlbGVtZXRyeSDihpIgR3JhaWw8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+YWdlbnRzIMK3IE9UZWwgwrcgbG9ncyDCtyBSVU0gwrcgc3ludGhldGljczwvdGV4dD4KICA8bGluZSB4MT0iNDY1IiB5MT0iOTgiIHgyPSI0NjUiIHkyPSIxMTIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CgogIDwhLS0gRGV0ZWN0aW9uIHJvdyAtLT4KICA8dGV4dCB4PSI0MCIgeT0iMTA4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5kZXRlY3Q8L3RleHQ+CiAgPHJlY3QgeD0iNDAiIHk9IjExNCIgd2lkdGg9IjE5NSIgaGVpZ2h0PSI1MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjEzNyIgeT0iMTMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5PT1RCIERhdmlzPC90ZXh0PgogIDx0ZXh0IHg9IjEzNyIgeT0iMTUxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5hdXRvbWF0aWMg4oCUIHJldmlldzwvdGV4dD4KICA8cmVjdCB4PSIyNDUiIHk9IjExNCIgd2lkdGg9IjE5NSIgaGVpZ2h0PSI1MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjM0MiIgeT0iMTMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5DdXN0b20gYWxlcnQ8L3RleHQ+CiAgPHRleHQgeD0iMzQyIiB5PSIxNTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmN1c3RvbSBzaWduYWwgwrcgU2V0dGluZ3M8L3RleHQ+CiAgPHJlY3QgeD0iNDUwIiB5PSIxMTQiIHdpZHRoPSIxOTUiIGhlaWdodD0iNTAiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI1NDciIHk9IjEzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+T3BlblBpcGVsaW5lIG1ldHJpYzwvdGV4dD4KICA8dGV4dCB4PSI1NDciIHk9IjE1MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+Y2hlYXAgZGVyaXZlZCBzaWduYWw8L3RleHQ+CiAgPHJlY3QgeD0iNjU1IiB5PSIxMTQiIHdpZHRoPSIyMzUiIGhlaWdodD0iNTAiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NzIiIHk9IjEzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+U0xPIGJ1cm4tcmF0ZTwvdGV4dD4KICA8dGV4dCB4PSI3NzIiIHk9IjE1MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+ZXJyb3ItYnVkZ2V0IGJyZWFjaDwvdGV4dD4KCiAgPGxpbmUgeDE9IjEzNyIgeTE9IjE2NCIgeDI9IjEzNyIgeTI9IjE5NiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSIzNDIiIHkxPSIxNjQiIHgyPSIzNDIiIHkyPSIxOTYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iNTQ3IiB5MT0iMTY0IiB4Mj0iNTQ3IiB5Mj0iMTk2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9Ijc3MiIgeTE9IjE2NCIgeDI9Ijc3MiIgeTI9IjE5NiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSIxMzciIHkxPSIxOTYiIHgyPSI3NzIiIHkyPSIxOTYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iNDY1IiB5MT0iMTk2IiB4Mj0iNDY1IiB5Mj0iMjEyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgoKICA8IS0tIENvbnZlcmdlbmNlIC0tPgogIDxyZWN0IHg9IjMwMCIgeT0iMjE0IiB3aWR0aD0iMzMwIiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGOEZBRkMiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5EYXZpcyBwcm9ibGVtIChlbnJpY2hlZCk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyNTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnRlYW0gwrcgYXJlYSDCtyB0YWdzIMK3IHNlcnZpY2Ug4oCUIGV2ZW50IHRlbXBsYXRlIG9yIGVudGl0eSB0YWdzPC90ZXh0PgogIDxsaW5lIHgxPSI0NjUiIHkxPSIyNjIiIHgyPSI0NjUiIHkyPSIyNzgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CgogIDwhLS0gUm91dGluZyAtLT4KICA8dGV4dCB4PSI0MCIgeT0iMzA0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5yb3V0ZTwvdGV4dD4KICA8cmVjdCB4PSIzMDAiIHk9IjI4MCIgd2lkdGg9IjMzMCIgaGVpZ2h0PSI0OCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj53b3JrZmxvdyAoQXV0b21hdGlvbkVuZ2luZSk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzMTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnNpbXBsZSA9IG5vIHdvcmtmbG93LWhvdXJzIMK3IG11bHRpLXN0ZXAgPSB3b3JrZmxvdy1ob3VyczwvdGV4dD4KICA8bGluZSB4MT0iNDY1IiB5MT0iMzI4IiB4Mj0iNDY1IiB5Mj0iMzQ0IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgoKICA8IS0tIERlc3RpbmF0aW9ucyAtLT4KICA8dGV4dCB4PSI0MCIgeT0iMzQ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5ub3RpZnkgLyBhY3Q8L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjM1MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIzNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiByeD0iNiIvPjx0ZXh0IHg9IjEyMCIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5TbGFjazwvdGV4dD4KICA8cmVjdCB4PSIxOTAiIHk9IjM1MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIzNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiByeD0iNiIvPjx0ZXh0IHg9IjI1MCIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5NUyBUZWFtczwvdGV4dD4KICA8cmVjdCB4PSIzMjAiIHk9IjM1MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIzNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiByeD0iNiIvPjx0ZXh0IHg9IjM4MCIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5QYWdlckR1dHk8L3RleHQ+CiAgPHJlY3QgeD0iNDUwIiB5PSIzNTAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMzQiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgcng9IjYiLz48dGV4dCB4PSI1MTAiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+SmlyYTwvdGV4dD4KICA8cmVjdCB4PSI1ODAiIHk9IjM1MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIzNCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz48dGV4dCB4PSI2NTAiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+U2VydmljZU5vdzwvdGV4dD4KICA8cmVjdCB4PSI3MzAiIHk9IjM1MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIzNCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPjx0ZXh0IHg9IjgwMCIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIj5jbGFzc2ljIGludGVncmF0aW9uczwvdGV4dD4KCiAgPCEtLSBjbG9zZWQgbG9vcCAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjQwNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+Y2xvc2VkIGxvb3Ag4oCUIHJlbWVkaWF0aW9uICZhbXA7IGluY2lkZW50IGF1dG8tcmVzb2x2ZSB3aGVuIHRoZSBwcm9ibGVtIGNsb3NlczwvdGV4dD4KCiAgPCEtLSBsZWdlbmQgLS0+CiAgPGxpbmUgeDE9IjQwIiB5MT0iNDI0IiB4Mj0iODkwIiB5Mj0iNDI0IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQwIiB5PSI0NDYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPndoZXJlIHlvdSBjb25maWd1cmUgaXQ6PC90ZXh0PgogIDxyZWN0IHg9IjIxNSIgeT0iNDM4IiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjMTQ5NkZGIi8+PHRleHQgeD0iMjMzIiB5PSI0NDgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNldHRpbmdzPC90ZXh0PgogIDxyZWN0IHg9IjM4NSIgeT0iNDM4IiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjMjJEM0VFIi8+PHRleHQgeD0iNDAzIiB5PSI0NDgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk9wZW5QaXBlbGluZTwvdGV4dD4KICA8cmVjdCB4PSI1MTAiIHk9IjQzOCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjEyIiByeD0iMyIgZmlsbD0iI0E3OEJGQSIvPjx0ZXh0IHg9IjUyOCIgeT0iNDQ4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TTE8gYXBwPC90ZXh0PgogIDxyZWN0IHg9IjYxMCIgeT0iNDM4IiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjNzNCRTI4Ii8+PHRleHQgeD0iNjI4IiB5PSI0NDgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPldvcmtmbG93czwvdGV4dD4KICA8cmVjdCB4PSI3MjAiIHk9IjQzOCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjEyIiByeD0iMyIgZmlsbD0iI0ZGQjgwMCIvPjx0ZXh0IHg9IjczOCIgeT0iNDQ4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jbGFzc2ljIC8gbGVnYWN5PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5UaGUgbG9hZC1iZWFyaW5nIHJ1bGU6IGVucmljaCB0aGUgcHJvYmxlbSB1cHN0cmVhbSAoZXZlbnQgdGVtcGxhdGUpIG9yIHlvdSBjYW5ub3Qgcm91dGUgaXQgZG93bnN0cmVhbTwvdGV4dD4KPC9zdmc+Cg==" alt="End-to-end alerting in Dynatrace" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | Pieces | Where configured |
+|-------|--------|------------------|
+| Detect | OOTB Davis · custom alert (anomaly detector) · OpenPipeline metric · SLO burn-rate | Settings (Davis automatic, custom alerts) / OpenPipeline / SLO app |
+| Converge | one enriched Davis problem (team, area, tags, service) | event template + primary Grail tags / entity tags / ownership |
+| Route | workflow — simple (no workflow-hours) vs multi-step (workflow-hours) | AutomationEngine |
+| Notify/act | Slack · Teams · PagerDuty · Jira · ServiceNow · classic integrations | workflow connectors (HTTP Request where there is no connector, e.g. xMatters) / existing classic profiles |
+| Closed loop | remediation · incident resolved when the problem closes | workflow / ServiceNow connector or store app |
+For environments where SVG doesn't render
+-->
+<p>The key insight the diagram makes visible: <strong>many detection paths, one convergence point.</strong> You do not build a separate alerting stack per signal type — every mechanism produces a Davis problem, and everything downstream operates on that.</p>
+<p><a id="funnel"></a></p>
+<h2>2. The Anti-Noise Funnel</h2>
+<p>The order in which you reach for detection mechanisms determines how much noise you live with. Work top-down; only descend when the layer above cannot express the condition:</p>
+<ol>
+<li><strong>Out-of-the-box Davis first.</strong> It already detects latency spikes, error anomalies, resource saturation, and service degradation — with seasonal baselines you do not have to tune. Most &quot;we need an alert for X&quot; requests are already covered. Review and adjust sensitivity before building anything custom (AIOPS-02 §1–§3).</li>
+<li><strong>Custom Davis anomaly detector</strong> only when a business-specific condition is not covered. Use auto-adaptive or seasonal analyzers, not static thresholds on traffic-correlated metrics (AIOPS-02 §4).</li>
+<li><strong>OpenPipeline-derived metric</strong> when the signal lives in logs or spans. Extract a metric once at ingest, then alert on the metric — querying logs/traces directly in a detector incurs query cost on every evaluation; a derived metric does not (OPIPE, FINOPS-03).</li>
+<li><strong>SLO burn-rate</strong> for the reliability of a user journey — the highest-signal alert of all, because it fires on &quot;we are about to break our promise to users&quot; (SLO-04).</li>
+</ol>
+<p>Each step down costs more to build and maintain. Staying as high as possible is the single biggest lever on alert noise.</p>
+<p><strong>Know whether the funnel is actually working.</strong> The measure is not how many alerts you have — it is how much of the time a <em>healthy</em> service sits in an alert state. The working yardstick is 0.1% of observed time, roughly 1 to 1.5 minutes a day; ALERT-99 §3 carries the rule and the audit loop that applies it, and AIOPS-02 §8 the query that ranks your noisiest detectors. Run it against a service you believe is well-monitored before assuming the funnel is doing its job.</p>
+<p><a id="where"></a></p>
+<h2>3. What to Set Up, Where</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>What you configure</th>
+<th>Where</th>
+<th>Cost note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Detection — automatic</td>
+<td>Review &amp; tune sensitivity</td>
+<td>OOTB Davis (Settings 2.0)</td>
+<td>included</td>
+</tr>
+<tr>
+<td>Detection — custom signal</td>
+<td>Custom alert (analyzer + event template)</td>
+<td>Settings (Anomaly Detection app before SaaS 1.344) → config-as-code</td>
+<td>included for metric (<code>timeseries</code>) queries; a log or record query bills query usage on every evaluation</td>
+</tr>
+<tr>
+<td>Detection — cheap custom metric</td>
+<td>Metric extraction from logs/spans</td>
+<td>OpenPipeline</td>
+<td>ingest cost, no query cost</td>
+</tr>
+<tr>
+<td>Detection — reliability</td>
+<td>SLO + burn-rate alert</td>
+<td>SLO app</td>
+<td>included</td>
+</tr>
+<tr>
+<td>Convergence</td>
+<td>Enrichment (team, area, service) so routing has something to filter</td>
+<td>event template / primary Grail tags / entity tags / ownership</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Routing</td>
+<td>Problem-trigger workflow</td>
+<td>AutomationEngine — simple (no workflow-hours) vs multi-step (workflow-hours)</td>
+<td>choose deliberately</td>
+</tr>
+<tr>
+<td>Destinations</td>
+<td>Connector per channel</td>
+<td>workflow connectors, or HTTP Request where there is none; existing classic integrations via alerting profiles</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Closed loop</td>
+<td>Remediation / resolve the incident when the problem closes</td>
+<td>workflow / ServiceNow connector or store app</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Custom alerts live in Settings (SaaS 1.344+).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344's staged rollout started 07/29/2026. On a tenant still below 1.344, the <strong>Anomaly Detection</strong> app is where custom alerts are created.</p>
+</blockquote>
+<blockquote>
+<p><strong>What &quot;included&quot; means for a custom alert.</strong> A custom alert runs its query on every evaluation, by default once a minute. A metric query costs nothing extra: <em>&quot;Querying metrics with the DQL timeseries command is included with Metrics - Ingest &amp; Process, regardless of where the query originates&quot;</em>. A query over logs or other records is billed each time it runs, which is why the docs pair records-based alerts with a long window and execution delay: <em>&quot;instead of the custom alert running 60 times per hour at the default 1-minute interval, it runs only once per hour.&quot;</em></p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em>, <a href="https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics">Metrics consumption (DPS) (DT docs)</a> — <em>&quot;Querying metrics with the DQL timeseries command is included with Metrics - Ingest &amp; Process, regardless of where the query originates&quot;</em>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting">Avoid overalerting (DT docs)</a> — <em>&quot;instead of the custom alert running 60 times per hour at the default 1-minute interval, it runs only once per hour.&quot;</em></sub></p>
+</blockquote>
+<h3>A noise control on the routing side</h3>
+<p><strong>Available (SaaS 1.344):</strong> the workflow <strong>Problem trigger</strong> has a <strong>Minimum duration</strong> option (under <em>Advanced options</em>) that postpones the trigger until the problem has been open for at least the configured duration: 5 minutes up to one week. SaaS 1.344's rollout started <strong>07/29/2026</strong>; verify it has reached your tenant before designing around it.</p>
+<p>Note <em>where</em> this sits on the board, because it is easy to file in the wrong place. It is <strong>not</strong> an analyzer parameter, and it does not delay the problem. The problem opens, and shows in the Problems app, as soon as Davis creates it. What Minimum duration holds back is the <em>notification</em>: a problem that closes before reaching the threshold never triggers the workflow. Analyzer settings such as <code>violatingSamples</code> and <code>slidingWindow</code> decide whether a series is anomalous at all; Minimum duration decides whether a problem has lasted long enough to tell someone. The two compose rather than substitute. Because it applies at the trigger, it damps notifications from flapping detectors you do not own. It does not reduce problem counts or the alert-state time the 0.1% yardstick measures (ALERT-99 §3). That is still the detector's job.</p>
+<p>Where Minimum duration is not available yet, the sliding-window minimum on the analyzer remains the control to rely on for this class of noise (ALERT-02, AIOPS-02 §4).</p>
+<p>ALERT-02 covers choosing detection; ALERT-03 covers routing and cost; ALERT-04 covers ServiceNow.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">SaaS 1.344 release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a> — <em>&quot;The Minimum duration option postpones the trigger until the problem has been open for at least the configured duration.&quot;</em> <strong>Derived:</strong> the &quot;different layer, composes rather than substitutes&quot; placement follows from the delay acting on the problem-to-notification step while analyzer parameters act on the series.</sub></p>
+</blockquote>
+<p><a id="rule"></a></p>
+<h2>4. The One Rule That Makes Routing Work</h2>
+<blockquote>
+<p><strong>Enrich the problem upstream, or you cannot route it downstream.</strong></p>
+</blockquote>
+<p>A workflow routes by <em>filtering</em> — &quot;send problems where <code>team == checkout</code> to #checkout-alerts.&quot; That only works if the problem carries a <code>team</code> property. Three ways it gets there:</p>
+<ul>
+<li><strong>Primary Grail tags</strong> — primary Grail fields and tags (<code>primary_tags.*</code>) are copied from the alerting events onto the problem record, so the trigger can filter on them directly. A problem that groups several entities holds the deduplicated union of their values, so one problem can carry two teams (ALERT-04 §2).</li>
+<li><strong>The detector's event template</strong> — when you build a custom anomaly detector, its event template defines the properties on the event it raises (AIOPS-02 §4). Put team / service / area there.</li>
+<li><strong>Entity tags and ownership</strong> — for OOTB problems, the affected entity's tags carry the metadata. Since SaaS 1.337, ownership is also available on Smartscape nodes, and a workflow reads it with the Ownership <code>get_owners</code> action. That is a second task, so the workflow becomes a standard one (ALERT-03 §1, WFLOW-04).</li>
+</ul>
+<p>A problem that fires with no team or ownership metadata forces every workflow to re-derive routing from scratch — the most common reason an alerting setup degenerates into &quot;everything goes to one channel.&quot; Spend the effort upstream.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;You can filter and template on them directly on the problem&quot;</em>; <em>&quot;The problem carries the deduplicated union.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">SaaS 1.337 release notes (DT docs)</a> — <em>&quot;Ownership information is now available in Smartscape and for Smartscape nodes.&quot;</em>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow">Create a simple workflow (DT docs)</a> — <em>&quot;limited to only one task&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="next"></a></p>
+<h2>5. Where to Go Next</h2>
+<table>
+<thead>
+<tr>
+<th>You want to…</th>
+<th>Go to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Choose and build a detection mechanism</td>
+<td>ALERT-02 → AIOPS-02</td>
+</tr>
+<tr>
+<td>Set reliability targets and alert on burn rate</td>
+<td>SLO-04</td>
+</tr>
+<tr>
+<td>Route alerts to teams without noise (simple vs multi-step cost)</td>
+<td>ALERT-03 → WFLOW-04</td>
+</tr>
+<tr>
+<td>Create ServiceNow incidents (and resolve them when the problem closes)</td>
+<td>ALERT-04</td>
+</tr>
+<tr>
+<td>See the complete setup checklist</td>
+<td>ALERT-99</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications">Alerting and notifications (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection app (DT docs)</a>. <strong>Derived:</strong> the anti-noise funnel ordering is a synthesis of OOTB-first guidance and the query-cost economics in OPIPE/FINOPS.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

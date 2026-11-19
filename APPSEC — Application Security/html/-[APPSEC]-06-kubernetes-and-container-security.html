@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APPSEC-06: Kubernetes and Container Security</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">APPSEC — Application Security</a><span class="sep">/</span><span aria-current="page">APPSEC-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>APPSEC-06: Kubernetes and Container Security</h1>
+<blockquote>
+<p><strong>Series:</strong> APPSEC — Application Security | <strong>Notebook:</strong> 6 of 10 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 10/02/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Kubernetes and container workloads produce findings across all three AppSec pillars at once — RVA on the running containerized application, RAP on its request traffic, and SPM on the cluster + image configuration. This notebook covers how the pieces fit together and the K8s-specific levers.</p>
+<p>For K8s rollout patterns themselves (DynaKube CR, operator install, namespace selectors), see the K8S series. This notebook focuses on the <em>security</em> dimension specifically.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5LdWJlcm5ldGVzIGFuZCBDb250YWluZXIgU2VjdXJpdHk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+RHluYUt1YmUgYXBwbGljYXRpb24gbW9uaXRvcmluZyArIGltYWdlICsgY2x1c3RlciBwb3N0dXJlPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSI5NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMzQjgyRjYiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzNCODJGNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkR5bmFLdWJlIENSPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIxNjUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzNCODJGNiIgcng9IjYiLz4KICA8dGV4dCB4PSIxODAiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+YXBwbGljYXRpb25Nb25pdG9yaW5nIGVuYWJsZWQ8L3RleHQ+CiAgPHJlY3QgeD0iMzM1IiB5PSI5NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMzQjgyRjYiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzNCODJGNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDc1IiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPldvcmtsb2FkIGNvZGUgbW9kdWxlPC90ZXh0PgogIDxyZWN0IHg9IjM1NSIgeT0iMTY1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzQjgyRjYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDc1IiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPmluamVjdCArIG9ic2VydmU8L3RleHQ+CiAgPHJlY3QgeD0iNjMwIiB5PSI5NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMzQjgyRjYiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzNCODJGNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNzcwIiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkNvbnRhaW5lciBpbWFnZSBmaW5kaW5nczwvdGV4dD4KICA8cmVjdCB4PSI2NTAiIHk9IjE2NSIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjM0I4MkY2IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc3MCIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5WVUxORVJBQklMSVRZX0ZJTkRJTkc8L3RleHQ+CiAgPHJlY3QgeD0iNDAiIHk9IjI3NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMzQjgyRjYiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzNCODJGNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkNsdXN0ZXIgcG9zdHVyZSAoU1BNKTwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzQ1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzQjgyRjYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPmNvbmZpZyBiYXNlbGluZXM8L3RleHQ+CiAgPHJlY3QgeD0iMzM1IiB5PSIyNzUiIHdpZHRoPSIyODAiIGhlaWdodD0iMTcwIiBmaWxsPSIjM0I4MkY2IiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiMzQjgyRjYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5LOHMgbmFtZXNwYWNlIHNjb3Bpbmc8L3RleHQ+CiAgPHJlY3QgeD0iMzU1IiB5PSIzNDUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzNCODJGNiIgcng9IjYiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+dGVuYW50IC8gdGVhbSAvIGVudjwvdGV4dD4KICA8cmVjdCB4PSI2MzAiIHk9IjI3NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiMzQjgyRjYiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzNCODJGNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNzcwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkNyb3NzLXJlZiBLOFMgc2VyaWVzPC90ZXh0PgogIDxyZWN0IHg9IjY1MCIgeT0iMzQ1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzQjgyRjYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzcwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPnJvbGxvdXQgcGF0dGVybnM8L3RleHQ+Cjwvc3ZnPgo=" alt="K8s + container security" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | Dynatrace surface |
+|-------|---------------------|
+| Application | RVA + RAP (via code module) |
+| Container image | Vulnerability findings (incl. ingested third-party image scanners) |
+| Cluster config | SPM |
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#dynakube">1. DynaKube and applicationMonitoring</a></li>
+<li><a href="#image-vulns">2. Container Image Vulnerabilities</a></li>
+<li><a href="#cluster-spm">3. Cluster SPM Findings</a></li>
+<li><a href="#dql-k8s">4. DQL: K8s-Scoped Findings</a></li>
+<li><a href="#namespace-scoping">5. Namespace Scoping for IAM</a></li>
+<li><a href="#next">6. Next Steps</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Gen3 SaaS with Grail; AppSec entitlement enabled</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Full-Stack mode (or code-module attached) on monitored hosts</td>
+</tr>
+<tr>
+<td><strong>Read access</strong></td>
+<td>To run the DQL: <code>storage:security.events:read</code> <strong>plus</strong> <code>storage:buckets:read</code> (a table permission alone reads nothing). The Vulnerabilities and Threats &amp; Exploits apps have their own requirements — see APPSEC-09 for the full model</td>
+</tr>
+<tr>
+<td><strong>Background</strong></td>
+<td>APPSEC-01 (fundamentals + three-pillar framing)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dynakube"></a></p>
+<h2>1. DynaKube and applicationMonitoring</h2>
+<p>The DynaKube custom resource is the entry point for AppSec on Kubernetes. The relevant fields:</p>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta5
+kind: DynaKube
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  apiUrl: https://&lt;tenant&gt;.live.dynatrace.com/api
+  oneAgent:
+    applicationMonitoring: {}
+</code></pre>
+<p><code>useCSIDriver</code> is not a <code>v1beta5</code> field: the DynaKube parameters reference lists it only for the retired <code>v1beta1</code>/<code>v1beta2</code> APIs. Through Operator 1.10.x, whether code modules come from the CSI driver is decided when the Operator is installed (CSI or <em>Without CSI driver</em> variant), and that remains the working path on those versions.</p>
+<p><strong>Operator 1.11.0+ (released 10/01/2026): image volumes.</strong> Dynatrace now recommends image volume-based code-module injection, which <em>&quot;replaces the CSI driver as the recommended approach&quot;</em>: each node pulls the code-modules image once and shares it with every instrumented pod, with no CSI DaemonSet. Turn it on per DynaKube with the annotation <code>feature.dynatrace.com/mount-code-modules-via-image-volume: &quot;true&quot;</code> (mutually exclusive with <code>feature.dynatrace.com/node-image-pull</code>). It needs <strong>Kubernetes 1.35+</strong> and <strong>containerd 2.2+ or CRI-O 1.33+</strong>, and <em>&quot;Image volume injection is not compatible with the Dynatrace built-in tenant registry.&quot;</em> Try it on one workload first with the pod annotation <code>oneagent.dynatrace.com/volume-type: &quot;image&quot;</code>; <em>&quot;A full migration requires a rolling restart of all injected workloads.&quot;</em> Clusters that do not meet those requirements stay on the CSI driver or ephemeral volumes. The delivery mode changes how code modules reach the pod; RVA and RAP still depend only on code-module injection being enabled.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a> — <em>&quot;DynaKube API version v1beta2 is no longer available with Dynatrace Operator version 1.7.0&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/application-observability">Application observability setup (DT docs)</a> — <em>&quot;CSI driver is optional (see step 2). If enabled, it gets deployed as DaemonSet and results in a CSI driver pod on each node.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/use-image-volumes">Use image volumes for code modules injection (DT docs)</a> — requirements, both annotations, and the registry limit</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-image-volume">Migrate to image volumes (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><code>applicationMonitoring</code> enables the code-module injection that RVA and RAP rely on inside workload containers. Monitoring mode then decides how well findings are assessed: per the Application Security docs, Infrastructure and Discovery modes still provide third-party and code-level detection (limited) and RAP — Discovery only once code-module injection is enabled — but without the Full-Stack topology that adjusts the Dynatrace Security Score, so DSS stays at the CVSS base score (APPSEC-01 § 3). SPM findings on the cluster itself do not depend on monitoring mode.</p>
+<p>For cluster rollout the K8S series covers per-namespace targeting, monitoring modes, and operator versioning. APPSEC concerns are downstream of that.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a> — the <em>Monitoring modes coverage</em> table and <em>&quot;For Application Security to work in Discovery mode, after enabling Discovery mode, you also need to enable code-module injection.&quot;</em> (re-read 09/18/2026). <strong>Softened:</strong> the exact DynaKube schema may shift per operator release — verify against the current K8S series and the operator CRD.</sub></p>
+</blockquote>
+<p><a id="image-vulns"></a></p>
+<h2>2. Container Image Vulnerabilities</h2>
+<p>RVA reports vulnerable libraries loaded by processes running in containers, plus vulnerabilities on Kubernetes nodes. A container image is a <em>related</em> entity of those findings, not the thing RVA scans. RVA vulnerability events identify the cluster and workload through the arrays <code>related_entities.kubernetes_clusters.names</code> and <code>related_entities.kubernetes_workloads.names</code>; they carry no <code>k8s.namespace.name</code>.</p>
+<p>Container-<em>image</em> findings are a different record: <code>VULNERABILITY_FINDING</code> events with <code>object.type == &quot;CONTAINER_IMAGE&quot;</code>, <code>container_image.registry</code> / <code>container_image.repository</code>, and the Kubernetes resource fields (<code>k8s.cluster.name</code>, <code>k8s.namespace.name</code>). These come from vulnerability findings, including ingested third-party image scanners.</p>
+<p>Practical pattern: report image findings <strong>by namespace</strong> rather than by individual workload — namespaces are usually a stable team/service boundary, while workload names churn with deployments.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/vulnerabilities/concepts">Vulnerabilities concepts (DT docs)</a> — <em>&quot;Affected entities Entities (process groups, processes, and Kubernetes nodes) for which a vulnerability was detected&quot;</em> and <em>&quot;Related container image In Kubernetes environments, the container image used by the affected processes.&quot;</em>; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability">Vulnerability events (DT semantic dictionary)</a> — the Kubernetes resource fields appear under the vulnerability finding and scan events, whose example query filters <code>object.type == &quot;CONTAINER_IMAGE&quot;</code> (re-read 10/02/2026). <strong>Softened:</strong> the namespace-as-stable-boundary recommendation is community practice — verify the namespace-naming discipline in your tenant before relying on it for reports.</sub></p>
+</blockquote>
+<p><a id="cluster-spm"></a></p>
+<h2>3. Cluster SPM Findings</h2>
+<p>SPM (APPSEC-05) covers Kubernetes cluster configuration: RBAC bindings, pod security, network policies, secret management. Common high-impact findings:</p>
+<ul>
+<li>Cluster-admin-bound users that shouldn't be cluster-admin</li>
+<li>Pods running as root without explicit need</li>
+<li>Network policies absent on namespaces that should be isolated</li>
+<li>Secrets stored as ConfigMaps instead of Secrets (or unencrypted at rest)</li>
+<li>Public LoadBalancer services exposing internal-only workloads</li>
+</ul>
+<p>These findings are durable — they reflect the cluster's declared state and don't churn the way runtime events do.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a> for SPM scope. <strong>Softened:</strong> the high-impact finding list reflects the standard CIS-K8s control set; the exact Dynatrace SPM catalog should be confirmed against current docs.</sub></p>
+</blockquote>
+<p><a id="dql-k8s"></a></p>
+<h2>4. DQL: K8s-Scoped Findings</h2>
+<p>Filter AppSec events to a specific cluster + namespace to slice findings by team boundary.</p>
+<pre><code class="language-dql">// Currently failing compliance rules in one cluster + namespace (latest result per object + rule)
+// Counting every record counts scan results, most of them PASSED or NOT_RELEVANT (APPSEC-05 § 3).
+fetch security.events, from:-7d
+| filter event.type == &quot;COMPLIANCE_FINDING&quot;
+| filter k8s.cluster.name == &quot;prod-cluster-01&quot; and k8s.namespace.name == &quot;team-payments&quot;
+| dedup {object.id, compliance.rule.id}, sort:{timestamp desc}
+| filter compliance.result.status.level == &quot;FAILED&quot;
+| summarize {failing = count()}, by:{compliance.standard.short_name, compliance.rule.severity.level}
+| sort failing desc
+
+// Container-image vulnerability findings in the same namespace (docs pattern; run separately):
+// fetch security.events, from:-7d
+// | filter event.type == &quot;VULNERABILITY_FINDING&quot; and object.type == &quot;CONTAINER_IMAGE&quot;
+// | filter k8s.namespace.name == &quot;team-payments&quot;
+// | dedup {object.id, vulnerability.id, component.name, component.version}, sort:{timestamp desc}
+// | summarize {findings = count()}, by:{dt.security.risk.level}
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> lists <code>storage:k8s.cluster.name</code> and <code>storage:k8s.namespace.name</code> as conditions on <code>storage:security.events:read</code>; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/vulnerability">Vulnerability events (DT semantic dictionary)</a> for the <code>VULNERABILITY_FINDING</code> dedup pattern (re-read 10/02/2026). <strong>Dictionary:</strong> <code>k8s.namespace.name</code> (<code>stable</code>), read 09/18/2026. <strong>Live-verified 10/02/2026:</strong> on one validation namespace the previous count-everything form returned 31,400 <code>COMPLIANCE_FINDING</code> records; the deduplicated, <code>FAILED</code>-only form returns 16. The cluster and namespace names above are placeholders — replace them with your own. The image query is the docs' pattern; the validation tenant has no vulnerability findings to run it against.</sub></p>
+</blockquote>
+<p><a id="namespace-scoping"></a></p>
+<h2>5. Namespace Scoping for IAM</h2>
+<p>K8s namespace is the natural IAM boundary for AppSec findings: AppDev team X should see findings in its own namespaces, not in team Y's. The IAM permission model supports this via boundary conditions:</p>
+<pre><code>ALLOW storage:buckets:read WHERE storage:table-name = &quot;security.events&quot;;
+ALLOW storage:security.events:read
+  WHERE storage:k8s.namespace.name IN (&quot;team-payments-prod&quot;, &quot;team-payments-staging&quot;);
+</code></pre>
+<p>Two details make or break this policy. IAM lists use <code>IN (&quot;…&quot;, &quot;…&quot;)</code> with parentheses — DQL's <code>{…}</code> array syntax does not validate here. And <code>storage:buckets:read</code> is required in addition to the table permission; without it the namespace-scoped grant reads nothing. Two limits follow from the data. RVA vulnerability state and change events carry no <code>k8s.namespace.name</code>, so this condition cannot match them — the team sees compliance and vulnerability <em>findings</em> only; scope RVA visibility by <code>dt.security_context</code> instead (APPSEC-09 § 3). And <code>vulnerability-service:vulnerabilities:read</code> takes no conditions, so granting it shows every vulnerability in the tenant in the Vulnerabilities app.</p>
+<p>See APPSEC-09 for the full pattern including the policy-vs-managed-policy decision and the privacy carve-out for <code>view-sensitive-request-data</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> confirms K8s namespace as an available boundary condition on <code>storage:security.events:read</code> and says of <code>storage:buckets:read</code>: <em>&quot;Grants permission to read records from Grail buckets. Required additionally to a table permission.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax">IAM policy statement syntax (DT docs)</a> — its <code>IN</code> example is <code>WHERE settings:schemaId IN (&quot;builtin:container.monitoring-rule&quot;, &quot;builtin:container.built-in-monitoring-rule&quot;)</code> (both re-read 09/18/2026). The full IAM model is in APPSEC-09.</sub></p>
+</blockquote>
+<p><a id="next"></a></p>
+<h2>6. Next Steps</h2>
+<ol>
+<li>Confirm DynaKube <code>applicationMonitoring</code> is enabled on clusters where AppDev-tier vulnerability data matters.</li>
+<li>Run the namespace-scoped DQL above against a known-active namespace to verify field names match.</li>
+<li>Read the <strong>K8S series</strong> for the rollout mechanics — this notebook intentionally defers to it.</li>
+<li>Read <strong>APPSEC-09</strong> for the full K8s namespace IAM scoping pattern.</li>
+</ol>
+<p><a id="references"></a></p>
+<h2>References</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a></td>
+<td>K8s + container security framing</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a></td>
+<td>k8s.namespace.name boundary condition</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax">IAM policy statement syntax (DT docs)</a></td>
+<td>Condition operators (<code>=</code>, <code>IN (…)</code>, <code>startsWith</code>, <code>MATCH</code>)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><sub><strong>⚠️ DISCLAIMER</strong>: This information was AI generated and is provided &quot;as-is&quot; without warranty. It was produced as an independent, community-driven project and <strong>not supported by Dynatrace</strong>. Always refer to official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> for the most current information.</sub></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-10: Managed Cluster Architecture and Health Model</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-10</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-10: Managed Cluster Architecture and Health Model</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 10 — Managed Cluster Architecture and Health Model | <strong>Created:</strong> September 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A Dynatrace Managed cluster is a small distributed system you operate yourself: every node runs a web server, the Dynatrace Server, two databases, and an ActiveGate, and the cluster phones home to Dynatrace's Mission Control. &quot;Is the cluster healthy?&quot; is therefore not one question but several — and the answers live in different places.</p>
+<p>This notebook is the map for the cluster-health notebooks, DTM-11 to DTM-16. It covers <strong>what runs on a node</strong>, <strong>where each kind of data lives and how it survives a failure</strong>, a <strong>five-layer health model</strong> that tells you what to check and in which order, and <strong>where each health signal is surfaced</strong> — the Cluster Management Console, cluster event notifications, self-monitoring, the Cluster API, and Mission Control.</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>The five components on every cluster node and what each one stores</li>
+<li>Why losing one node of three costs you nothing, while losing a disk can cost you transaction data permanently</li>
+<li>The five health layers — node, storage, capacity, connectivity, lifecycle — and the signal for each</li>
+<li>Which self-monitoring option you actually have, given your licensing</li>
+<li>Which cluster events to route to a human on day one</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#node-components">What Runs on a Cluster Node</a></li>
+<li><a href="#data-stores">Where Each Kind of Data Lives</a></li>
+<li><a href="#redundancy">The Redundancy Model — What a Node Failure Costs</a></li>
+<li><a href="#health-layers">The Five Layers of Cluster Health</a></li>
+<li><a href="#health-surfaces">Where Health Is Surfaced</a></li>
+<li><a href="#day-one-events">Cluster Events to Route on Day One</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A self-hosted <strong>Dynatrace Managed</strong> cluster. Nothing in this series applies to Dynatrace SaaS.</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Cluster Management Console (CMC) administrator access; for the Cluster API, a cluster API token with the <code>ServiceProviderAPI</code> permission</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong> — every check is a CMC view, a cluster event, or a Cluster API call</td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 09/25/2026 and re-checked 11/10/2026, when the release-notes page listed 1.346, 1.348 and 1.350 as supported and 1.344 as supported only with Enterprise Success and Support</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<ul>
+<li><strong>Every node is identical.</strong> Each runs NGINX, the Dynatrace Server, Cassandra, Elasticsearch and an embedded ActiveGate. Health means <em>all five</em> are up on <em>every</em> node.</li>
+<li><strong>Three nodes is the production floor</strong>, because metrics, events and user sessions are kept in three copies — one node can fail with no data loss. A Dynatrace blog says five or more nodes tolerate two failures; the docs make no such statement, so plan for one (§4).</li>
+<li><strong>Transaction storage is the exception.</strong> Distributed traces and code-level data are spread across nodes, not replicated, and not backed up. A lost node or a full disk loses that slice permanently.</li>
+<li><strong>Check health bottom-up</strong>: node and process → storage → capacity → connectivity → lifecycle. This ordering is this series' model (§5), not a Dynatrace construct — a lower-layer fault can surface as symptoms in the layers above it.</li>
+<li><strong>The cheapest alarm system is already built in — but it only covers part of the picture.</strong> Cluster event notifications email on node-down, low disk, lost Mission Control connection and a cluster that should be scaled out. Whether some <em>Configurable</em> events, Adaptive Load Reduction among them, email by default is something the docs contradict themselves on, so set it explicitly (§6.2). Many other events, <strong>backup problems included</strong>, never email you: they appear only in the CMC <strong>Events</strong> list and in Mission Control. Route the emails to a monitored mailbox, and read the Events list on a schedule.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/managed-components">Managed components (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability">Single-cluster high availability (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications">Configure Cluster event notifications (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="node-components"></a></p>
+<h2>2. What Runs on a Cluster Node</h2>
+<p>The Managed Installer deploys the same component set on every node — <em>&quot;All listed components are deployed on the first node you create when setting up a Managed Cluster, as well as on every subsequent node.&quot;</em></p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+QW5hdG9teSBvZiBhIE1hbmFnZWQgQ2x1c3RlcjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5FdmVyeSBub2RlIHJ1bnMgdGhlIHNhbWUgZml2ZSBjb21wb25lbnRzIOKAlCB3aGF0IGRpZmZlcnMgaXMgaG93IGVhY2ggc3RvcmUgc3Vydml2ZXMgbG9zaW5nIGEgbm9kZTwvdGV4dD4KCiAgPCEtLSBPbmVBZ2VudCB0cmFmZmljIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI4MCIgd2lkdGg9IjYwMCIgaGVpZ2h0PSIzMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjMzMCIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5PbmVBZ2VudCAvIEFjdGl2ZUdhdGUgdHJhZmZpYyDigJQgTkdJTlggcmVkaXJlY3RzIGF3YXkgZnJvbSBhIGZhaWxlZCBub2RlPC90ZXh0PgoKICA8bGluZSB4MT0iMTI1IiB5MT0iMTEyIiB4Mj0iMTI1IiB5Mj0iMTI4IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxyZWN0IHg9IjMwIiB5PSIxMzAiIHdpZHRoPSIxOTAiIGhlaWdodD0iMjEwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjEyNSIgeT0iMTUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5DbHVzdGVyIG5vZGUgMTwvdGV4dD4KICA8cmVjdCB4PSI0MiIgeT0iMTYyIiB3aWR0aD0iMTY2IiBoZWlnaHQ9IjI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTI1IiB5PSIxNzkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPk5HSU5YPC90ZXh0PgogIDxyZWN0IHg9IjQyIiB5PSIxOTQiIHdpZHRoPSIxNjYiIGhlaWdodD0iMjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICA8dGV4dCB4PSIxMjUiIHk9IjIxMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+U2VydmVyICsgdHJhbnNhY3Rpb24gc3RvcmU8L3RleHQ+CiAgPHJlY3QgeD0iNDIiIHk9IjIyNiIgd2lkdGg9IjE2NiIgaGVpZ2h0PSIyNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9IjEyNSIgeT0iMjQzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5DYXNzYW5kcmEg4oCUIG1ldHJpY3Mgc3RvcmU8L3RleHQ+CiAgPHJlY3QgeD0iNDIiIHk9IjI1OCIgd2lkdGg9IjE2NiIgaGVpZ2h0PSIyNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiByeD0iNiIvPgogIDx0ZXh0IHg9IjEyNSIgeT0iMjc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5FbGFzdGljc2VhcmNoIHN0b3JlPC90ZXh0PgogIDxyZWN0IHg9IjQyIiB5PSIyOTAiIHdpZHRoPSIxNjYiIGhlaWdodD0iMjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjYiLz4KICA8dGV4dCB4PSIxMjUiIHk9IjMwNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+RW1iZWRkZWQgQWN0aXZlR2F0ZTwvdGV4dD4KICA8dGV4dCB4PSIxMjUiIHk9IjMzMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+KyBzZWxmLW1vbml0b3JpbmcgT25lQWdlbnQ8L3RleHQ+CgogIDxsaW5lIHgxPSIzMzAiIHkxPSIxMTIiIHgyPSIzMzAiIHkyPSIxMjgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHJlY3QgeD0iMjM1IiB5PSIxMzAiIHdpZHRoPSIxOTAiIGhlaWdodD0iMjEwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjMzMCIgeT0iMTUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5DbHVzdGVyIG5vZGUgMjwvdGV4dD4KICA8cmVjdCB4PSIyNDciIHk9IjE2MiIgd2lkdGg9IjE2NiIgaGVpZ2h0PSIyNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjMzMCIgeT0iMTc5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5OR0lOWDwvdGV4dD4KICA8cmVjdCB4PSIyNDciIHk9IjE5NCIgd2lkdGg9IjE2NiIgaGVpZ2h0PSIyNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjMzMCIgeT0iMjExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5TZXJ2ZXIgKyB0cmFuc2FjdGlvbiBzdG9yZTwvdGV4dD4KICA8cmVjdCB4PSIyNDciIHk9IjIyNiIgd2lkdGg9IjE2NiIgaGVpZ2h0PSIyNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9IjMzMCIgeT0iMjQzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5DYXNzYW5kcmEg4oCUIG1ldHJpY3Mgc3RvcmU8L3RleHQ+CiAgPHJlY3QgeD0iMjQ3IiB5PSIyNTgiIHdpZHRoPSIxNjYiIGhlaWdodD0iMjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjYiLz4KICA8dGV4dCB4PSIzMzAiIHk9IjI3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+RWxhc3RpY3NlYXJjaCBzdG9yZTwvdGV4dD4KICA8cmVjdCB4PSIyNDciIHk9IjI5MCIgd2lkdGg9IjE2NiIgaGVpZ2h0PSIyNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiByeD0iNiIvPgogIDx0ZXh0IHg9IjMzMCIgeT0iMzA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5FbWJlZGRlZCBBY3RpdmVHYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjMzMCIgeT0iMzMxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj4rIHNlbGYtbW9uaXRvcmluZyBPbmVBZ2VudDwvdGV4dD4KCiAgPGxpbmUgeDE9IjUzNSIgeTE9IjExMiIgeDI9IjUzNSIgeTI9IjEyOCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8cmVjdCB4PSI0NDAiIHk9IjEzMCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIyMTAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNTM1IiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPkNsdXN0ZXIgbm9kZSAzPC90ZXh0PgogIDxyZWN0IHg9IjQ1MiIgeT0iMTYyIiB3aWR0aD0iMTY2IiBoZWlnaHQ9IjI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTM1IiB5PSIxNzkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPk5HSU5YPC90ZXh0PgogIDxyZWN0IHg9IjQ1MiIgeT0iMTk0IiB3aWR0aD0iMTY2IiBoZWlnaHQ9IjI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTM1IiB5PSIyMTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPlNlcnZlciArIHRyYW5zYWN0aW9uIHN0b3JlPC90ZXh0PgogIDxyZWN0IHg9IjQ1MiIgeT0iMjI2IiB3aWR0aD0iMTY2IiBoZWlnaHQ9IjI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTM1IiB5PSIyNDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkNhc3NhbmRyYSDigJQgbWV0cmljcyBzdG9yZTwvdGV4dD4KICA8cmVjdCB4PSI0NTIiIHk9IjI1OCIgd2lkdGg9IjE2NiIgaGVpZ2h0PSIyNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiByeD0iNiIvPgogIDx0ZXh0IHg9IjUzNSIgeT0iMjc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5FbGFzdGljc2VhcmNoIHN0b3JlPC90ZXh0PgogIDxyZWN0IHg9IjQ1MiIgeT0iMjkwIiB3aWR0aD0iMTY2IiBoZWlnaHQ9IjI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTM1IiB5PSIzMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkVtYmVkZGVkIEFjdGl2ZUdhdGU8L3RleHQ+CiAgPHRleHQgeD0iNTM1IiB5PSIzMzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPisgc2VsZi1tb25pdG9yaW5nIE9uZUFnZW50PC90ZXh0PgoKICA8IS0tIE1pc3Npb24gQ29udHJvbCAtLT4KICA8cmVjdCB4PSI2NjAiIHk9IjEzMCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyMTAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNzgwIiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPk1pc3Npb24gQ29udHJvbDwvdGV4dD4KICA8dGV4dCB4PSI3ODAiIHk9IjE3NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RHluYXRyYWNlLXJ1bjsgdGhlIGNsdXN0ZXI8L3RleHQ+CiAgPHRleHQgeD0iNzgwIiB5PSIxOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmluaXRpYXRlcyBldmVyeSBjb25uZWN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9Ijc4MCIgeT0iMjIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5oZWFsdGggY2hlY2sgZXZlcnkgMiBtaW51dGVzPC90ZXh0PgogIDx0ZXh0IHg9Ijc4MCIgeT0iMjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5saWNlbnNpbmcgKyB1c2FnZSBkYXRhPC90ZXh0PgogIDx0ZXh0IHg9Ijc4MCIgeT0iMjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj51cGRhdGUgcGFja2FnZXMgKH5ldmVyeSA0IHdlZWtzKTwvdGV4dD4KICA8dGV4dCB4PSI3ODAiIHk9IjI4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+SFRUUFMgLyBXU1Mgb24gcG9ydCA0NDM8L3RleHQ+CiAgPHRleHQgeD0iNzgwIiB5PSIzMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiPkNsYXNzaWMgbGljZW5zaW5nOiAmZ3Q7MTQgZGF5czwvdGV4dD4KICA8dGV4dCB4PSI3ODAiIHk9IjMyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+b2ZmbGluZSA9IG5vIG92ZXJhZ2VzPC90ZXh0PgogIDxsaW5lIHgxPSI2MzIiIHkxPSIyMzUiIHgyPSI2NTYiIHkyPSIyMzUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gUmVkdW5kYW5jeSBzdHJpcCAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+V2hhdCBzdXJ2aXZlcyBsb3Npbmcgb25lIG5vZGUgb2YgYSAzKyBub2RlIGNsdXN0ZXI8L3RleHQ+CiAgPHJlY3QgeD0iMzAiIHk9IjM4NiIgd2lkdGg9IjIwNSIgaGVpZ2h0PSI3MiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9IjEzMiIgeT0iNDA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5NZXRyaWNzLCBldmVudHMsIHNlc3Npb25zPC90ZXh0PgogIDx0ZXh0IHg9IjEzMiIgeT0iNDI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50aHJlZSBjb3BpZXMgYWNyb3NzIG5vZGVzPC90ZXh0PgogIDx0ZXh0IHg9IjEzMiIgeT0iNDQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5vbmUgbm9kZSBsb3NzOiBubyBkYXRhIGxvc3M8L3RleHQ+CiAgPHJlY3QgeD0iMjUwIiB5PSIzODYiIHdpZHRoPSIyMDUiIGhlaWdodD0iNzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSIzNTIiIHk9IjQwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+TG9nIE1vbml0b3JpbmcgZXZlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjM1MiIgeT0iNDI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50d28gY29waWVzPC90ZXh0PgogIDx0ZXh0IHg9IjM1MiIgeT0iNDQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50d28gbm9kZSBsb3NzOiBnYXBzPC90ZXh0PgogIDxyZWN0IHg9IjQ3MCIgeT0iMzg2IiB3aWR0aD0iMjA1IiBoZWlnaHQ9IjcyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTcyIiB5PSI0MDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlRyYW5zYWN0aW9uIHN0b3JhZ2U8L3RleHQ+CiAgPHRleHQgeD0iNTcyIiB5PSI0MjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmRpc3RyaWJ1dGVkLCBub3QgcmVwbGljYXRlZDwvdGV4dD4KICA8dGV4dCB4PSI1NzIiIHk9IjQ0NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YW5kIG5ldmVyIGJhY2tlZCB1cDwvdGV4dD4KICA8cmVjdCB4PSI2OTAiIHk9IjM4NiIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI3MiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc5NSIgeT0iNDA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Qcm9jZXNzaW5nIGNhcGFjaXR5PC90ZXh0PgogIDx0ZXh0IHg9Ijc5NSIgeT0iNDI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5wbGFuIG9uZS10aGlyZCBhYm92ZSB0eXBpY2FsPC90ZXh0PgogIDx0ZXh0IHg9Ijc5NSIgeT0iNDQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5zbyBzdXJ2aXZvcnMgYWJzb3JiIHRoZSBsb2FkPC90ZXh0PgogIDxsaW5lIHgxPSI0MCIgeTE9IjQ4MCIgeDI9Ijg5MCIgeTI9IjQ4MCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+U291cmNlOiBEeW5hdHJhY2UgTWFuYWdlZCBkb2NzIOKAlCBNYW5hZ2VkIGNvbXBvbmVudHMsIFNpbmdsZS1jbHVzdGVyIGhpZ2ggYXZhaWxhYmlsaXR5LCBNaXNzaW9uIENvbnRyb2wgZGF0YSBleGNoYW5nZSAocmVhZCAwOS8yNS8yMDI2KTwvdGV4dD4KPC9zdmc+" alt="Anatomy of a Managed Cluster" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Element | Role |
+|---------|------|
+| NGINX | Front door for agent traffic; redirects away from a failed node |
+| Dynatrace Server | Processing, UI, API; owns the transaction store |
+| Cassandra | Metrics repository (and configuration) |
+| Elasticsearch | Elasticsearch store |
+| Embedded ActiveGate | Built-in ActiveGate on each node |
+| Self-monitoring OneAgent | Full-Stack OneAgent on each node |
+| Mission Control | Dynatrace-run; health checks every 2 min, licensing, updates; cluster-initiated over 443 |
+| Redundancy | Metrics/events/sessions 3 copies; log events 2 copies; transaction storage not replicated or backed up |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>systemd unit</th>
+<th>What it does for health</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>NGINX</strong></td>
+<td><code>dynatrace-nginx</code></td>
+<td>Receives OneAgent traffic and redirects it to working nodes when one fails</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Server</strong></td>
+<td><code>dynatrace-server</code></td>
+<td>Processing, web UI and APIs; writes the transaction store</td>
+</tr>
+<tr>
+<td><strong>Apache Cassandra</strong></td>
+<td><code>dynatrace-cassandra</code></td>
+<td>The metrics repository — long-term time series and configuration</td>
+</tr>
+<tr>
+<td><strong>Elasticsearch</strong></td>
+<td><code>dynatrace-elasticsearch</code></td>
+<td>The Elasticsearch store (log events are replicated here)</td>
+</tr>
+<tr>
+<td><strong>Embedded ActiveGate</strong></td>
+<td><code>dynatrace-security-gateway</code></td>
+<td>The node's built-in ActiveGate</td>
+</tr>
+<tr>
+<td>Nodekeeper, firewall</td>
+<td><code>dynatrace-nodekeeper</code>, <code>dynatrace-firewall</code></td>
+<td>Node housekeeping and the node's <code>iptables</code> rules</td>
+</tr>
+</tbody>
+</table>
+<p>Every node also carries a <strong>self-monitoring OneAgent</strong>: <em>&quot;Dynatrace Managed deployment includes Dynatrace OneAgent at each Cluster node, which provides self-monitoring of Managed Cluster health.&quot;</em></p>
+<p>The node-level health check is a single command — the <code>check</code> action of the node control script <em>&quot;Checks the status of iptables rules and the processes for Nodekeeper, Cassandra, Elasticsearch, ActiveGate, Watcher, and NGINX.&quot;</em> DTM-11 covers it in detail.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/managed-components">Managed components (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/start-stop-restart-node">Start/stop/restart a node (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/hosted-self-monitoring">Hosted self-monitoring (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="data-stores"></a></p>
+<h2>3. Where Each Kind of Data Lives</h2>
+<p>Four data stores sit on each node's disk, each under its own path. Their health, sizing and failure behavior differ, which is why storage gets two notebooks of its own (DTM-12 and DTM-13).</p>
+<table>
+<thead>
+<tr>
+<th>Store</th>
+<th>Install parameter</th>
+<th>Default path under <code>/var/opt/dynatrace-managed</code></th>
+<th>Replicated?</th>
+<th>Backed up?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Metrics repository</strong> (Cassandra)</td>
+<td><code>CASSANDRA_DATASTORE_PATH</code></td>
+<td><code>/cassandra</code></td>
+<td>Yes</td>
+<td><strong>Partly</strong> — daily snapshot that excludes 1-minute and 5-minute data and the most frequently changing column families (see below)</td>
+</tr>
+<tr>
+<td><strong>Elasticsearch store</strong></td>
+<td><code>ELASTICSEARCH_DATASTORE_PATH</code></td>
+<td><code>/elasticsearch</code></td>
+<td>Yes</td>
+<td>Yes — incremental, every 2 h by default</td>
+</tr>
+<tr>
+<td><strong>Transactions store</strong></td>
+<td><code>SERVER_DATASTORE_PATH</code></td>
+<td><code>/server/tenantData</code></td>
+<td><strong>No</strong> — distributed</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><strong>Session replay store</strong></td>
+<td><code>SERVER_REPLAY_DATASTORE_PATH</code></td>
+<td><code>/server/replayData</code></td>
+<td><strong>No</strong> — <em>&quot;Dynatrace Managed loses only the data stored on that node, such as distributed traces and session replays.&quot;</em></td>
+<td>Not stated</td>
+</tr>
+</tbody>
+</table>
+<p>Five layout rules come straight from the docs, and each one is a health rule in disguise:</p>
+<ol>
+<li><strong>Separate the stores.</strong> Docs: <em>&quot;place SERVER_DATASTORE_PATH , CASSANDRA_DATASTORE_PATH , and ELASTICSEARCH_DATASTORE_PATH in separate directories, and make none of them a subdirectory of another.&quot;</em> The hardware guide goes further: <em>&quot;Mount different types of data storage on separate disk volumes for maximum flexibility and performance.&quot;</em> Separate volumes mean one store filling up cannot starve the others.</li>
+<li><strong>Keep nodes symmetric.</strong> <em>&quot;Use the same partition size on all Cluster nodes.&quot;</em> Data is spread evenly, so the smallest node's disk is effectively the cluster's disk — and an undersized node can be stopped outright: <em>&quot;All Managed Cluster nodes must have the same partition size for dynatrace-storage.&quot;</em> It then raises <em>&quot;The node with id %s is not properly configured.&quot;</em> (SEVERE, not emailed).</li>
+<li><strong>No network file systems for live data.</strong> <em>&quot;High-latency remote volumes such as NFS or CIFS are not supported for primary storage; NFS is sufficient for backups only.&quot;</em></li>
+<li><strong>Keep data off the root volume.</strong> <em>&quot;Don't store Dynatrace data on the root volume&quot;</em> — resizing it later is harder.</li>
+<li><strong>Exclude the data paths from antivirus.</strong> <em>&quot;Exclude data storage paths from antivirus scanning to prevent data consistency issues&quot;</em>.</li>
+</ol>
+<p>The metrics backup is narrower than &quot;daily snapshot&quot; suggests: <em>&quot;Dynatrace excludes the most frequently changing column families (excluded column families comprise about 80% of total storage) in addition to 1-minute and 5-minute resolution data.&quot;</em> A restore brings back configuration and longer-term metrics, not your recent high-resolution history. DTM-12 covers what that means in practice.</p>
+<p>The size ceiling that matters most: <em>&quot;Keep the Long-term Metrics Store data below 2 TB per node.&quot;</em> and <em>&quot;Dynatrace Managed raises a warning cluster event when the data on a node exceeds 2 TB, and a severe cluster event when it exceeds 4 TB.&quot;</em> Both thresholds have their own cluster event (§7).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/change-storage-location">Change storage location (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability">Single-cluster high availability (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/adaptive-data-retention">Adaptive data retention (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications">Configure Cluster event notifications (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="redundancy"></a></p>
+<h2>4. The Redundancy Model — What a Node Failure Costs</h2>
+<p><strong>Three nodes is the floor for production.</strong> <em>&quot;Production environments require a minimum three-node Managed Cluster for reliability and data redundancy.&quot;</em> The reason is the copy count: <em>&quot;The Managed Cluster maintains three copies of this data, so Dynatrace Managed continues to operate after the loss of one node. The loss of two or more nodes might affect Managed Cluster performance and availability&quot;</em> — depending on data distribution and required consistency.</p>
+<p>What survives a node loss depends on the data class:</p>
+<table>
+<thead>
+<tr>
+<th>Data class</th>
+<th>Copies</th>
+<th>Loss of one node</th>
+<th>Loss of two nodes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Metrics, events, user sessions, configuration</td>
+<td>3</td>
+<td>No data loss</td>
+<td>Performance and availability may be affected</td>
+</tr>
+<tr>
+<td>Log Monitoring events</td>
+<td>2</td>
+<td>No data loss</td>
+<td><em>&quot;the failure of two nodes makes some log events unavailable&quot;</em></td>
+</tr>
+<tr>
+<td>Transaction storage (traces, call stacks, code-level data)</td>
+<td>1 — distributed</td>
+<td><strong>That node's share is gone</strong> — though <em>&quot;Dynatrace Managed can estimate the missing data&quot;</em> from the representative set the other nodes keep</td>
+<td>More of it is gone</td>
+</tr>
+</tbody>
+</table>
+<p>The transaction-storage row is the one teams miss: <em>&quot;Dynatrace Managed does not replicate raw transaction data, such as call stacks, database statements, and code-level visibility, across nodes. Instead, it distributes this data evenly across all nodes.&quot;</em> Combined with the backup scope — <em>&quot;Transaction storage data is not backed up&quot;</em> — a node that dies with its disk takes its share of trace history with it, and no restore brings it back.</p>
+<p><strong>Headroom is part of redundancy.</strong> Surviving a failure only helps if the remaining nodes can absorb the load. The docs are specific: <em>&quot;Plan for a processing capacity one-third higher than typical utilization.&quot;</em> A three-node cluster running each node near capacity is one failure away from overload, even though no data is at risk.</p>
+<p><strong>Larger clusters tolerate more.</strong> A Dynatrace blog on high availability puts the scaling plainly: <em>&quot;in a three-node cluster, one node can go down; in a cluster with five or more nodes, two nodes can go down.&quot;</em> The docs make no such statement — they keep three copies at every cluster size — so plan for one failure.</p>
+<p><strong>Two data centers.</strong> Premium High Availability (PHA) extends this across sites: <em>&quot;Deploy at least six nodes, with three nodes per DC.&quot;</em> Also: <em>&quot;PHA is available only for online Managed Clusters.&quot;</em> DTM-16 covers PHA and failover.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability">Single-cluster high availability (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a></sub></li>
+<li><sub><a href="https://www.dynatrace.com/news/blog/premium-high-availability-and-turnkey-disaster-recovery-for-dynatrace-managed-early-adopter/">Premium High Availability and turnkey disaster recovery (Dynatrace blog)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers">Multi-data center high availability (DT docs)</a></sub></li>
+<li><sub><strong>Derived:</strong> &quot;a dead node's trace history is unrecoverable&quot; combines the no-replication and no-backup statements</sub></li>
+</ul>
+</blockquote>
+<p><a id="health-layers"></a></p>
+<h2>5. The Five Layers of Cluster Health</h2>
+<p>This series groups the documented health signals into five layers and checks them <strong>bottom-up</strong>. The grouping and the order are this series' model, not a Dynatrace construct. The docs do tie one step together: a disk short of space means <em>&quot;data retention might be reduced&quot;</em>. One further link is documented: a node whose storage partition is smaller than the others' is stopped (<em>&quot;Dynatrace shuts down this Managed Cluster node&quot;</em>; §3), so a storage fault becomes a layer-1 fault. In community practice, a full disk can also surface as load reduction (layer 3) — verify the chain against your own cluster's event history. Fix the lowest failing layer first.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5UaGUgRml2ZSBMYXllcnMgb2YgTWFuYWdlZCBDbHVzdGVyIEhlYWx0aDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5DaGVjayB0aGVtIGJvdHRvbS11cCDigJQgYSBmYWlsdXJlIGluIGEgbG93ZXIgbGF5ZXIgY2FuIHN1cmZhY2UgYXMgc3ltcHRvbXMgaW4gdGhlIGxheWVycyBhYm92ZSBpdDwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9Ijg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5MQVlFUjwvdGV4dD4KICA8dGV4dCB4PSI0NDAiIHk9Ijg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5USEUgUVVFU1RJT04gwrcgV0hBVCBURUxMUyBZT1U8L3RleHQ+CiAgPHRleHQgeD0iODQwIiB5PSI4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+REVFUCBESVZFPC90ZXh0PgoKICA8cmVjdCB4PSIzMCIgeT0iOTgiIHdpZHRoPSI4NzAiIGhlaWdodD0iNjQiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNTAiIHk9IjEzNiIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+NTwvdGV4dD4KICA8dGV4dCB4PSI3NiIgeT0iMTM2IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5MaWZlY3ljbGU8L3RleHQ+CiAgPHRleHQgeD0iMjUwIiB5PSIxMjUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkFyZSBiYWNrdXBzIHN1Y2NlZWRpbmcgYW5kIHRoZSB2ZXJzaW9uIHN0aWxsIHN1cHBvcnRlZD88L3RleHQ+CiAgPHRleHQgeD0iMjUwIiB5PSIxNDUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkNhc3NhbmRyYSAvIEVsYXN0aWNzZWFyY2ggYmFja3VwIHByb2JsZW0gwrcgbGFzdCBiYWNrdXAgwrcgcmVsZWFzZSB0YWJsZTwvdGV4dD4KICA8cmVjdCB4PSI3ODAiIHk9IjExNSIgd2lkdGg9IjExMCIgaGVpZ2h0PSIzMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiByeD0iNiIvPgogIDx0ZXh0IHg9IjgzNSIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5EVE0tMTY8L3RleHQ+CgogIDxyZWN0IHg9IjMwIiB5PSIxNzIiIHdpZHRoPSI4NzAiIGhlaWdodD0iNjQiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNTAiIHk9IjIxMCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+NDwvdGV4dD4KICA8dGV4dCB4PSI3NiIgeT0iMjEwIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5Db25uZWN0aXZpdHk8L3RleHQ+CiAgPHRleHQgeD0iMjUwIiB5PSIxOTkiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkNhbiBhZ2VudHMgcmVhY2ggbm9kZXMsIGFuZCBub2RlcyByZWFjaCBNaXNzaW9uIENvbnRyb2w/PC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMjE5IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5MYWNrIG9mIGNvbm5lY3Rpb24gdG8gTWlzc2lvbiBDb250cm9sIMK3IG5vZGUgY2FuJ3QgcmVjZWl2ZSB0cmFmZmljPC90ZXh0PgogIDxyZWN0IHg9Ijc4MCIgeT0iMTg5IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iODM1IiB5PSIyMDkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkRUTS0xNDwvdGV4dD4KCiAgPHJlY3QgeD0iMzAiIHk9IjI0NiIgd2lkdGg9Ijg3MCIgaGVpZ2h0PSI2NCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI1MCIgeT0iMjg0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj4zPC90ZXh0PgogIDx0ZXh0IHg9Ijc2IiB5PSIyODQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPkNhcGFjaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMjczIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5DYW4gdGhlIGNsdXN0ZXIga2VlcCB1cCDigJQgd2l0aCBvbmUgbm9kZSBnb25lPzwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjI5MyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QWRhcHRpdmUgTG9hZCBSZWR1Y3Rpb24gwrcgbWVtb3J5IGVtZXJnZW5jeSDCtyBDbHVzdGVyIGhlYWx0aCBkYXNoYm9hcmQ8L3RleHQ+CiAgPHJlY3QgeD0iNzgwIiB5PSIyNjMiIHdpZHRoPSIxMTAiIGhlaWdodD0iMzAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjYiLz4KICA8dGV4dCB4PSI4MzUiIHk9IjI4MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RFRNLTE1PC90ZXh0PgoKICA8cmVjdCB4PSIzMCIgeT0iMzIwIiB3aWR0aD0iODcwIiBoZWlnaHQ9IjY0IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjUwIiB5PSIzNTgiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPjI8L3RleHQ+CiAgPHRleHQgeD0iNzYiIHk9IjM1OCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+U3RvcmFnZTwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjM0NyIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+SXMgZXZlcnkgc3RvcmUgaGVhbHRoeSwgd2l0aGluIHNpemUsIHdpdGggZnJlZSBkaXNrPzwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjM2NyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+SW5zdWZmaWNpZW50IGRpc2sgc3BhY2UgwrcgbWV0cmljcyA+IDIgVEIgLyA0IFRpQiDCtyByZXRlbnRpb24gdHJ1bmNhdGlvbjwvdGV4dD4KICA8cmVjdCB4PSI3ODAiIHk9IjMzNyIgd2lkdGg9IjExMCIgaGVpZ2h0PSIzMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9IjgzNSIgeT0iMzU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5EVE0tMTIgLyAxMzwvdGV4dD4KCiAgPHJlY3QgeD0iMzAiIHk9IjM5NCIgd2lkdGg9Ijg3MCIgaGVpZ2h0PSI2NCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI1MCIgeT0iNDMyIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj4xPC90ZXh0PgogIDx0ZXh0IHg9Ijc2IiB5PSI0MzIiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vZGUgYW5kIHByb2Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iMjUwIiB5PSI0MjEiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkFyZSBhbGwgbm9kZXMgdXAsIGFuZCBhbGwgc2VydmljZXMgb24gZWFjaCBub2RlIHJ1bm5pbmc/PC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iNDQxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5DTUMgRGVwbG95bWVudCBzdGF0dXMgwrcgTm9kZSBpcyBkb3duIGV2ZW50IMK3IG9ucHJlbWlzZS9jbHVzdGVyIEFQSTwvdGV4dD4KICA8cmVjdCB4PSI3ODAiIHk9IjQxMSIgd2lkdGg9IjExMCIgaGVpZ2h0PSIzMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjgzNSIgeT0iNDMxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5EVE0tMTE8L3RleHQ+CiAgPGxpbmUgeDE9IjQwIiB5MT0iNDc4IiB4Mj0iODkwIiB5Mj0iNDc4IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5TaWduYWxzIGFyZSB0aGUgZG9jdW1lbnRlZCBjbHVzdGVyIGV2ZW50IG5vdGlmaWNhdGlvbnMgYW5kIENNQyB2aWV3czsgdGhlIGxheWVyaW5nIGlzIHRoaXMgc2VyaWVzJyBtb2RlbCwgbm90IGEgRHluYXRyYWNlIGNvbnN0cnVjdDwvdGV4dD4KPC9zdmc+" alt="The Five Layers of Managed Cluster Health" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | Question | Signals | Deep dive |
+|-------|----------|---------|-----------|
+| 1 Node and process | Are all nodes up and all services running? | CMC Deployment status, Node is down, onpremise/cluster API | DTM-11 |
+| 2 Storage | Is every store healthy, within size, with free disk? | Insufficient disk space, metrics > 2 TB (warning) / 4 TiB (supported limit), retention truncation | DTM-12 / 13 |
+| 3 Capacity | Can the cluster keep up, with one node gone? | Adaptive Load Reduction, memory emergency, Cluster health dashboard | DTM-15 |
+| 4 Connectivity | Can agents reach nodes and nodes reach Mission Control? | Lack of connection to Mission Control, node can't receive traffic | DTM-14 |
+| 5 Lifecycle | Are backups succeeding and the version supported? | Backup problem events, last backup, release table | DTM-16 |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>The question</th>
+<th>Documented signals</th>
+<th>Deep dive</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Node and process</strong></td>
+<td>Are all nodes up, and every service on each running?</td>
+<td>CMC <em>Deployment status</em>; <em>&quot;Node is down&quot;</em>, <em>&quot;Host is down&quot;</em> events; <code>/api/v1.0/onpremise/cluster</code></td>
+<td>DTM-11</td>
+</tr>
+<tr>
+<td><strong>2. Storage</strong></td>
+<td>Is every store healthy, within its size ceiling, with free disk?</td>
+<td><em>Insufficient disk space</em>; <em>&quot;Long-term Metrics Store size exceeds recommended 2 TB on %s.&quot;</em> (warning, never emailed); <em>Metrics storage exceeds supported size (4 TiB)</em>; <em>Transaction storage retention period truncation</em></td>
+<td>DTM-12, DTM-13</td>
+</tr>
+<tr>
+<td><strong>3. Capacity</strong></td>
+<td>Can the cluster keep up today — and with one node gone?</td>
+<td><em>Adaptive Load Reduction activity</em>; <em>&quot;Heap memory: Server %d started memory emergency mode.&quot;</em>; the <em>Cluster health self-monitoring</em> dashboard</td>
+<td>DTM-15</td>
+</tr>
+<tr>
+<td><strong>4. Connectivity</strong></td>
+<td>Can agents reach the nodes, and the nodes reach Mission Control?</td>
+<td><em>&quot;There is lack of connection to Dynatrace Mission Control.&quot;</em>; <em>&quot;A cluster node can't receive OneAgent traffic.&quot;</em></td>
+<td>DTM-14</td>
+</tr>
+<tr>
+<td><strong>5. Lifecycle</strong></td>
+<td>Are backups succeeding, and is the installed version still supported?</td>
+<td><em>&quot;Cassandra backup problem.&quot;</em>, <em>&quot;ElasticSearch backup problem.&quot;</em>; CMC <em>Last backup</em>; the Managed release table</td>
+<td>DTM-16</td>
+</tr>
+</tbody>
+</table>
+<p>Two further signals are cross-cutting, not layer-specific. <strong>Clock drift</strong> (<em>&quot;Server time of server %d is out of sync. … Please enable NTP on all cluster nodes.&quot;</em>) corrupts ordering across every store. <strong>Adaptive data retention</strong> silently shortens how far back you can look when disk runs short (§7).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications">Configure Cluster event notifications (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console">Cluster Management Console (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring">Local self-monitoring (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="health-surfaces"></a></p>
+<h2>6. Where Health Is Surfaced</h2>
+<p>Five places report cluster health. They overlap, but each has a job the others can't do.</p>
+<h3>6.1 Cluster Management Console (CMC)</h3>
+<p>The first stop for a human. <em>&quot;Home displays the Dynatrace Managed deployment overview, with a graphical representation of your deployment at a glance.&quot;</em> It also shows the date and storage location of the <strong>last backup</strong>. <em>&quot;Deployment status provides an overview of your Cluster infrastructure&quot;</em> — expand a node's row for its details. <strong>Events</strong> <em>&quot;lists log events by message and timestamp.&quot;</em> <strong>Audit log</strong> <em>&quot;lists events triggered by the cluster and selected configuration changes for all environments&quot;</em>, but only <em>&quot;changes related to cluster-wide configuration, licensing, storage quota, and permissions&quot;</em>. Environment-level entries come from the Audit Logs API. To test the Mission Control link on demand, open the <strong>Licensing</strong> page and select <strong>Check Mission Control connection</strong> in the upper-right corner.</p>
+<h3>6.2 Cluster event notifications</h3>
+<p>The built-in alarm system (§7). Recipients are set in CMC under <strong>Settings &gt; Emails &gt; Email notifications</strong>; delivery needs an SMTP server under <strong>Settings &gt; Emails &gt; SMTP server</strong>. The same page holds the <strong>emergency contacts</strong>, who <em>&quot;receive notifications from Dynatrace product experts in the event of catastrophic Managed Cluster states&quot;</em>.</p>
+<p>Each cluster event has two delivery columns in the docs: <strong>Email notification</strong> and <strong>MC notification</strong> (Mission Control). They differ event by event — some always email, some never do, and some are <em>Configurable</em>, which <em>&quot;means that you can turn the email notification for that event on or off through the Settings API&quot;</em> through the <code>builtin:cluster-events-notification-settings</code> schema at <code>/api/cluster/v2/settings/objects</code>. When no settings object exists, <em>&quot;all notifications trigger an email to configured recipients&quot;</em> — that default applies to the configurable events, not to events whose email column is <em>No</em>. <strong>The page contradicts itself, though.</strong> Its own example under <em>&quot;If the items list is empty, the default value is used&quot;</em> sets <code>transactionStorageTruncation</code> and <code>adaptiveLoadReductionActivated</code> to <code>sendEmail: false</code>. Don't rely on either reading: create the settings object explicitly (§9, step 3).</p>
+<h3>6.3 Self-monitoring — which one you have depends on licensing</h3>
+<p><em>&quot;Depending on your configuration, it stores data locally, sends it to Mission Control, or forwards it to a dedicated self-monitoring environment.&quot;</em> The three options aren't interchangeable:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>What you get</th>
+<th>The catch</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Local self-monitoring</strong></td>
+<td>An environment named <code>Local-Self-Monitoring</code> with <code>dsfm:</code> metrics and a <strong>Cluster health self-monitoring</strong> dashboard that shows <em>&quot;an indicator of whether the Managed Cluster has sufficient capacity for the current load&quot;</em>; it <em>&quot;does not count toward license consumption&quot;</em></td>
+<td><em>&quot;available only for Dynatrace Managed customers using Davis data units (DDUs) licensing&quot;</em>. A Dynatrace blog says otherwise: <em>&quot;A dedicated self-monitoring Dynatrace environment called Local self-monitoring is now enabled by default on all Dynatrace Managed Clusters.&quot;</em> Check your CMC</td>
+</tr>
+<tr>
+<td><strong>Hosted (premium) self-monitoring</strong></td>
+<td>Data from the per-node Full-Stack OneAgents in a Dynatrace-hosted environment</td>
+<td><em>&quot;only available and included in Enterprise Success and Support subscriptions&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Private self-monitoring</strong></td>
+<td>Your own environment monitoring the cluster, including cross-cluster setups (<em>&quot;have a pre-production Managed Cluster monitor a production Managed Cluster, and vice versa&quot;</em>)</td>
+<td><em>&quot;requires installing OneAgent on your Cluster nodes, which consumes Dynatrace licenses&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>Check which option applies to you <strong>before</strong> an incident. The dashboard you plan to open may not exist on your licensing model.</p>
+<h3>6.4 The Cluster API</h3>
+<p>For automation and external monitoring. Authenticate with a cluster API token in the <code>Authorization</code> header using the <code>Api-Token</code> realm. The node-list call needs the <code>ServiceProviderAPI</code> permission.</p>
+<p>Every known node, with its <code>id</code>, <code>operationState</code> (for example <code>&quot;RUNNING&quot;</code>), build version, and JVM and OS details:</p>
+<pre><code class="language-bash">curl -s &quot;https://&lt;your-cluster&gt;/api/v1.0/onpremise/cluster&quot; \
+  -H &quot;accept: application/json&quot; \
+  -H &quot;Authorization: Api-Token &lt;cluster-api-token&gt;&quot;
+</code></pre>
+<p>Each node's capabilities (web UI, agent traffic) and its data-center assignment:</p>
+<pre><code class="language-bash">curl -s &quot;https://&lt;your-cluster&gt;/api/v1.0/onpremise/cluster/configuration&quot; \
+  -H &quot;accept: application/json&quot; \
+  -H &quot;Authorization: Api-Token &lt;cluster-api-token&gt;&quot;
+</code></pre>
+<p>In community practice, the external check is a poll of the first call that alerts when any node's <code>operationState</code> is not <code>RUNNING</code> — a check that doesn't depend on the cluster alerting on itself.</p>
+<h3>6.5 Mission Control — what Dynatrace sees</h3>
+<p><em>&quot;All communication between a Managed Cluster and Mission Control is encrypted and initiated only by the Cluster.&quot;</em> The health check runs <em>&quot;Once every 2 minutes&quot;</em> and carries, per node, <em>&quot;node ID, node IP address, node state, server state&quot;</em> and, among other fields, <em>&quot;CPU statistics, memory statistics, storage statistics&quot;</em>. This is what lets Dynatrace support act proactively, and why a cluster that can't reach Mission Control is harder to support (DTM-14).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console">Cluster Management Console (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications">Configure Cluster event notifications (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a></sub></li>
+<li><sub><a href="https://www.dynatrace.com/news/blog/proactive-self-monitoring-ensures-seamless-operations-for-dynatrace-managed-at-scale/">Proactive self-monitoring for Dynatrace Managed (Dynatrace blog)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/self-monitoring">Self-monitoring (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring">Local</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/hosted-self-monitoring">Hosted</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/private-self-monitoring">Private</a> (DT docs)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-info-known-servers">Get cluster information about known cluster nodes (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-nodes-configuration">Get cluster nodes configuration (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-authentication">Cluster API authentication (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-data-exchange">Mission Control data exchange (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="day-one-events"></a></p>
+<h2>7. Cluster Events to Route on Day One</h2>
+<p>Cluster event notifications are free and already built. They fail in two ways: nobody reads the mailbox, or the event you care about <strong>was never emailed at all</strong>. The <em>Emailed</em> column below is the docs' <strong>Email notification</strong> column. Every event in the table also goes to Mission Control.</p>
+<table>
+<thead>
+<tr>
+<th>Event (as the docs name it)</th>
+<th>Layer</th>
+<th>Emailed</th>
+<th>Why it can't wait</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;Node is down - %s.&quot;</em></td>
+<td>1</td>
+<td>Yes, <em>&quot;if happened outside of the upgrade procedure&quot;</em></td>
+<td>You are now running without redundancy</td>
+</tr>
+<tr>
+<td><em>Insufficient disk space on a Managed Cluster node</em></td>
+<td>2</td>
+<td>Configurable</td>
+<td><em>&quot;Ignoring that message might cause data loss.&quot;</em></td>
+</tr>
+<tr>
+<td><em>Transaction storage retention period truncation</em></td>
+<td>2</td>
+<td>Configurable</td>
+<td>Adaptive data retention is already deleting trace history early</td>
+</tr>
+<tr>
+<td><em>&quot;Long-term Metrics Store size exceeds recommended 2 TB on %s.&quot;</em></td>
+<td>2</td>
+<td><strong>No</strong></td>
+<td>The recommended per-node ceiling — the first warning, and it never emails</td>
+</tr>
+<tr>
+<td><em>Metrics storage exceeds supported size (4 TiB)</em></td>
+<td>2</td>
+<td>Configurable</td>
+<td>You are past the supported ceiling (the recommended ceiling is 2 TB per node)</td>
+</tr>
+<tr>
+<td><em>Adaptive Load Reduction activity</em></td>
+<td>3</td>
+<td>Configurable — the docs conflict on the default (§6.2)</td>
+<td>The cluster is dropping incoming traces to keep up</td>
+</tr>
+<tr>
+<td><em>&quot;Your Dynatrace Managed cluster should be scaled-out!&quot;</em></td>
+<td>3</td>
+<td>Yes</td>
+<td>The cluster is too small for its load (DTM-15)</td>
+</tr>
+<tr>
+<td><em>&quot;There is lack of connection to Dynatrace Mission Control.&quot;</em></td>
+<td>4</td>
+<td>Yes</td>
+<td>Classic licensing: after 14 days offline (7 for trials), license overages are disallowed. Under DPS, usage is sent once the connection returns</td>
+</tr>
+<tr>
+<td><em>&quot;Cassandra backup problem.&quot;</em> / <em>&quot;ElasticSearch backup problem.&quot;</em></td>
+<td>5</td>
+<td><strong>No</strong></td>
+<td>Your restore point is aging silently — and nothing emails you about it</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The events that don't email.</strong> Backup failures are not the only ones. Heap-memory emergency mode, <em>&quot;A cluster node can't receive OneAgent traffic.&quot;</em>, a component going down, and Cassandra connection losses are all Mission-Control-only too (DTM-11 lists them). You see them only in the CMC <strong>Events</strong> list, so reading it is a scheduled task, not something an alert will prompt.</p>
+<p>Two behaviors behind these events are worth knowing before they fire:</p>
+<ul>
+<li><strong>Adaptive data retention</strong> is automatic. When <em>&quot;The disk is full&quot;</em> or an environment exceeds its quota, it <em>&quot;periodically increases or decreases the retention time&quot;</em> for transaction storage, Session Replay and Log Monitoring data. Nothing fails loudly — you can simply look back less far than you think.</li>
+<li><strong>Adaptive load reduction</strong> drops work: <em>&quot;New incoming distributed traces are skipped in a random fashion&quot;</em>. Brief episodes are tolerable, but the docs warn that <em>&quot;consistent use for intervals of 15 minutes or longer can impact the accuracy of your monitoring data and metrics&quot;</em>.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications">Configure Cluster event notifications (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/operation/change-storage-location">Change storage location (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/adaptive-data-retention">Adaptive data retention (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed">Adaptive traffic management for Managed (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/basics/mission-control-proactive-support">Mission Control proactive support (DT docs)</a> — <em>&quot;If a connection outage to Mission Control lasts longer than 14 days (seven days for free trial accounts), the Managed Cluster disallows the ability to exceed the license limit (overages).&quot;</em> (classic licensing); under DPS <em>&quot;the Managed Cluster collects usage data and sends it to Mission Control as soon as the connection is restored&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="doc-gaps"></a></p>
+<h2>8. What the Documentation Does Not Say</h2>
+<p>A health model is only as good as its thresholds. These were searched for in the Managed documentation on 09/25/2026, re-checked on 09/28/2026, and <strong>not found</strong>. Treat any number you hear for them as folklore until you can point to a source:</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>What the docs <em>do</em> give you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A defined list of CMC node states</strong></td>
+<td>Passing mentions only — nodes <em>&quot;marked as Offline in the Cluster Management Console&quot;</em> (backup and restore) and a Deployment status page listing <em>&quot;all nodes healthy&quot;</em> (recover from a backup) — plus the Cluster API's <code>operationState</code> field, with <code>&quot;RUNNING&quot;</code> as the documented example value. A Dynatrace product manager posted the full list of 12 values in 2020 (<a href="https://community.dynatrace.com/t/state-of-nodes/19542">state of nodes (Dynatrace community)</a>; DTM-11 §2)</td>
+</tr>
+<tr>
+<td><strong>A Cluster API v2 endpoint for node health</strong></td>
+<td>Nothing — v2 covers environments, tokens, users, remote access, license, Log Monitoring and Synthetic nodes. Node status is v1 only</td>
+</tr>
+<tr>
+<td><strong>Disk-usage percentage thresholds</strong> for Cassandra or Elasticsearch</td>
+<td>The <em>Insufficient disk space</em> event and the 2 TB / 4 TB metrics-store ceilings. Community KB articles add Elasticsearch's upstream watermarks and Cassandra's compaction headroom (DTM-12 §6, DTM-13 §5)</td>
+</tr>
+<tr>
+<td><strong>Which store holds Davis problems and events</strong></td>
+<td>Nothing in the docs. A Dynatrace product manager's 2019 forum answer puts them in Elasticsearch (<a href="https://community.dynatrace.com/t/what-are-the-different-type-of-data/21768">what are the different type of data (Dynatrace community)</a>). By contrast, RUM Classic user sessions and Log Monitoring data are documented: <em>&quot;Data is stored in Elasticsearch store at DATASTORE_PATH/elasticsearch.&quot;</em> The backup-sizing page agrees: <em>&quot;user sessions might take up to 99% of total Elasticsearch storage&quot;</em> (DTM-13)</td>
+</tr>
+</tbody>
+</table>
+<p>One inconsistency to watch: the multi-data-center page says in one section that the cluster <em>&quot;maintains two copies of this data&quot;</em> and in another that <em>&quot;PHA stores three copies of all configuration data, metrics, and user sessions in each DC.&quot;</em> Confirm your replication posture with Dynatrace support before relying on a copy count across sites.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v1/cluster-v1/get-cluster-info-known-servers">Get cluster information about known cluster nodes (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/dynatrace-api/cluster-api/cluster-api-v2">Cluster API v2 (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers">Multi-data center high availability (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/back-up-and-restore-a-cluster">Backup and restore a cluster (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/recover-from-backup">Recover from a backup (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/estimating-cluster-backup-size">Estimating cluster backup size (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a>. <strong>Observed 09/28/2026:</strong> none of the four gaps is filled anywhere in the 140 pages under <code>/managed/managed-cluster/</code> and <code>/managed/dynatrace-api/cluster-api/</code> (crawled and searched for node-state names, <code>operationState</code> values, disk-percentage figures and store names; first checked 09/25/2026); the Cluster API v2 index lists no cluster-node status call. The Davis-events row was also searched across all 2,681 <code>/managed/</code> pages on 09/28/2026: the only storage statements found concern Log Monitoring events.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>9. Recommended Approach</h2>
+<ol>
+<li><strong>Confirm the floor.</strong> Run at least three nodes of the same hardware configuration with equal partition sizes and headroom one-third above typical load. Below that, you have monitoring without redundancy.</li>
+<li><strong>Separate the volumes.</strong> Put Cassandra, Elasticsearch and transaction storage on separate disk volumes, never on NFS/CIFS.</li>
+<li><strong>Make the alarms land.</strong> Configure the SMTP server (<strong>Settings &gt; Emails &gt; SMTP server</strong>), set CMC email recipients to a monitored, shared destination, fill in the emergency contacts, and confirm a message arrives. Then create the <code>builtin:cluster-events-notification-settings</code> object with <code>sendEmail: true</code> for every configurable §7 event — don't rely on the default, because the docs disagree on whether truncation and Adaptive Load Reduction email when no object exists (§6.2).</li>
+<li><strong>Read what doesn't email.</strong> Review the CMC <strong>Events</strong> list at least weekly for the events that are never emailed — backup problems first.</li>
+<li><strong>Know your self-monitoring option.</strong> Work out whether you have local (DDU), hosted (Enterprise Success) or private (license-consuming) self-monitoring, and bookmark the dashboard you'd actually open.</li>
+<li><strong>Add one external check.</strong> Poll <code>/api/v1.0/onpremise/cluster</code> from outside the cluster and alert on any node not <code>RUNNING</code>.</li>
+<li><strong>Walk the layers weekly, bottom-up</strong>: nodes → storage → capacity → connectivity → lifecycle. The rest of this series is one notebook per layer.</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>10. Summary and Next Steps</h2>
+<p>A Managed cluster is healthy when all five components run on every node, every store has room, the cluster has headroom to lose a node, agents and Mission Control can reach it, and its backups and version are current. Three-copy replication makes a single node loss survivable for metrics, events and sessions — but not for transaction storage, which is neither replicated nor backed up.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Layer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-11: Server Nodes and Processes</td>
+<td>1 — Node and process</td>
+</tr>
+<tr>
+<td>DTM-12: Cassandra Metrics Store Health</td>
+<td>2 — Storage</td>
+</tr>
+<tr>
+<td>DTM-13: Elasticsearch Store Health</td>
+<td>2 — Storage</td>
+</tr>
+<tr>
+<td>DTM-14: Cluster ActiveGates and Mission Control Connectivity</td>
+<td>4 — Connectivity</td>
+</tr>
+<tr>
+<td>DTM-15: Capacity and Scaling</td>
+<td>3 — Capacity</td>
+</tr>
+<tr>
+<td>DTM-16: Backup, Upgrade, and Disaster Recovery</td>
+<td>5 — Lifecycle</td>
+</tr>
+<tr>
+<td>DTM-99: Best Practice Summary and Health-Check Checklist</td>
+<td>All</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Series map:</strong> DTM-00: The Dynatrace Managed Journey routes every notebook in this series.</p>
+<p><strong>Related series:</strong> M2S (Managed to SaaS Migration) covers moving a Managed cluster to SaaS. A healthy cluster is a precondition for a clean migration.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

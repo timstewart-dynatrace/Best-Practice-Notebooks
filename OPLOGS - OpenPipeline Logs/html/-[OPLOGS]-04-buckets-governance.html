@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPLOGS-04: Buckets &amp; Data Governance</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPLOGS — OpenPipeline Logs</a><span class="sep">/</span><span aria-current="page">OPLOGS-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPLOGS-04: Buckets &amp; Data Governance</h1>
+<blockquote>
+<p><strong>Series:</strong> OPLOGS — OpenPipeline Logs | <strong>Notebook:</strong> 4 of 8 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/06/2026</p>
+</blockquote>
+<h2>Strategic Storage Management for OpenPipeline Logs</h2>
+<p>This notebook covers Grail bucket architecture, retention policies, routing configuration, access control, and cost optimization strategies.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#discovering-your-buckets">Discovering Your Buckets</a></li>
+<li><a href="#strategic-bucket-design">Strategic Bucket Design</a></li>
+<li><a href="#retention-policies">Retention Policies</a></li>
+<li><a href="#bucket-routing-configuration">Bucket Routing Configuration</a></li>
+<li><a href="#access-control-data-governance">Access Control &amp; Data Governance</a></li>
+<li><a href="#query-optimization-with-buckets">Query Optimization with Buckets</a></li>
+<li><a href="#cost-optimization-strategies">Cost Optimization Strategies</a></li>
+<li><a href="#bucket-management-best-practices">Bucket Management Best Practices</a></li>
+<li><a href="#summary">📝 Summary</a></li>
+<li><a href="#next-steps">➡️ Next Steps</a></li>
+<li><a href="#references">📚 References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with log data</li>
+<li>✅ Understanding of OpenPipeline basics (OPLOGS-01 to OPLOGS-03)</li>
+<li>✅ Admin access for bucket configuration (optional)</li>
+</ul>
+<p><a id="discovering-your-buckets"></a></p>
+<h2>1. Discovering Your Buckets</h2>
+<p>Start with what already exists: which buckets hold log data, how their volume moves, and which log levels land in each.</p>
+<pre><code class="language-dql">// Discover all buckets with log data
+fetch logs, from: now() - 24h
+| summarize {log_count = count()}, by: {dt.system.bucket}
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// Bucket volume analysis over time
+fetch logs, from: now() - 7d
+| makeTimeseries {count = count()}, by: {dt.system.bucket}, interval: 24h
+| limit 100
+</code></pre>
+<pre><code class="language-dql">// Bucket composition by log level
+fetch logs, from: now() - 24h
+| summarize {count = count()}, by: {dt.system.bucket, loglevel}
+| sort dt.system.bucket asc, count desc
+</code></pre>
+<p><a id="strategic-bucket-design"></a></p>
+<h2>2. Strategic Bucket Design</h2>
+<p>Design buckets based on <strong>access patterns</strong>, <strong>retention requirements</strong>, and <strong>cost optimization</strong>.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZXJyb3JCdWNrZXQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ3YXJuQnVja2V0IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaW5mb0J1Y2tldCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImF1ZGl0QnVja2V0IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZGVidWdCdWNrZXQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0iYnVja2V0U2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJidWNrZXRBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjM0MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QnVja2V0IEdvdmVybmFuY2UgU3RyYXRlZ3k8L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Sb3V0ZSBsb2dzIHRvIHB1cnBvc2UtYnVpbHQgYnVja2V0cyB3aXRoIHRpZXJlZCByZXRlbnRpb248L3RleHQ+CgogIDwhLS0gTG9nIFNvdXJjZXMgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjcwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjIwMCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjgwIiB5PSI5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWxsIExvZ3M8L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjExNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xMDAlPC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSIxMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dm9sdW1lPC90ZXh0PgoKICA8cmVjdCB4PSI1MCIgeT0iMTU1IiB3aWR0aD0iNjAiIGhlaWdodD0iMTUiIHJ4PSIzIiBmaWxsPSIjZWY0NDQ0Ii8+CiAgPHRleHQgeD0iODAiIHk9IjE2NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NSU8L3RleHQ+CgogIDxyZWN0IHg9IjUwIiB5PSIxNzUiIHdpZHRoPSI2MCIgaGVpZ2h0PSIxNSIgcng9IjMiIGZpbGw9IiNmNTllMGIiLz4KICA8dGV4dCB4PSI4MCIgeT0iMTg2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xMCU8L3RleHQ+CgogIDxyZWN0IHg9IjUwIiB5PSIxOTUiIHdpZHRoPSI2MCIgaGVpZ2h0PSIxNSIgcng9IjMiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI4MCIgeT0iMjA2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj40MCU8L3RleHQ+CgogIDxyZWN0IHg9IjUwIiB5PSIyMTUiIHdpZHRoPSI2MCIgaGVpZ2h0PSIxNSIgcng9IjMiIGZpbGw9IiM4YjVjZjYiLz4KICA8dGV4dCB4PSI4MCIgeT0iMjI2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xMCU8L3RleHQ+CgogIDxyZWN0IHg9IjUwIiB5PSIyMzUiIHdpZHRoPSI2MCIgaGVpZ2h0PSIxNSIgcng9IjMiIGZpbGw9IiMxMGI5ODEiLz4KICA8dGV4dCB4PSI4MCIgeT0iMjQ2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4zNSU8L3RleHQ+CgogIDwhLS0gUm91dGluZyBBcnJvd3MgLS0+CiAgPHBhdGggZD0iTTEzMCwxNjIgTDE3MCwxMDAiIHN0cm9rZT0iI2VmNDQ0NCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2J1Y2tldEFycm93KSIvPgogIDxwYXRoIGQ9Ik0xMzAsMTgyIEwxNzAsMTQ1IiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNidWNrZXRBcnJvdykiLz4KICA8cGF0aCBkPSJNMTMwLDIwMiBMMTcwLDE5MCIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYnVja2V0QXJyb3cpIi8+CiAgPHBhdGggZD0iTTEzMCwyMjIgTDE3MCwyMzUiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2J1Y2tldEFycm93KSIvPgogIDxwYXRoIGQ9Ik0xMzAsMjQyIEwxNzAsMjgwIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNidWNrZXRBcnJvdykiLz4KCiAgPCEtLSBCdWNrZXRzIC0tPgogIDxyZWN0IHg9IjE4MCIgeT0iNzUiIHdpZHRoPSIxODAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2Vycm9yQnVja2V0KSIgZmlsdGVyPSJ1cmwoI2J1Y2tldFNoYWRvdykiLz4KICA8dGV4dCB4PSIyNzAiIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZXJyb3JfbG9nczwvdGV4dD4KICA8dGV4dCB4PSIyNzAiIHk9IjExMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjkwLWRheSByZXRlbnRpb248L3RleHQ+CgogIDxyZWN0IHg9IjE4MCIgeT0iMTMwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ1IiByeD0iOCIgZmlsbD0idXJsKCN3YXJuQnVja2V0KSIgZmlsdGVyPSJ1cmwoI2J1Y2tldFNoYWRvdykiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjE1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPndhcm5pbmdfbG9nczwvdGV4dD4KICA8dGV4dCB4PSIyNzAiIHk9IjE2NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjM1LWRheSByZXRlbnRpb248L3RleHQ+CgogIDxyZWN0IHg9IjE4MCIgeT0iMTg1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ1IiByeD0iOCIgZmlsbD0idXJsKCNpbmZvQnVja2V0KSIgZmlsdGVyPSJ1cmwoI2J1Y2tldFNoYWRvdykiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjIwNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmRlZmF1bHRfbG9nczwvdGV4dD4KICA8dGV4dCB4PSIyNzAiIHk9IjIyMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjM1LWRheSByZXRlbnRpb248L3RleHQ+CgogIDxyZWN0IHg9IjE4MCIgeT0iMjQwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ1IiByeD0iOCIgZmlsbD0idXJsKCNhdWRpdEJ1Y2tldCkiIGZpbHRlcj0idXJsKCNidWNrZXRTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjcwIiB5PSIyNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hdWRpdF9sb2dzPC90ZXh0PgogIDx0ZXh0IHg9IjI3MCIgeT0iMjc3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MS15ZWFyIHJldGVudGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iMTgwIiB5PSIyOTUiIHdpZHRoPSIxODAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2RlYnVnQnVja2V0KSIgZmlsdGVyPSJ1cmwoI2J1Y2tldFNoYWRvdykiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjMxNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmRlYnVnX2xvZ3M8L3RleHQ+CiAgPHRleHQgeD0iMjcwIiB5PSIzMzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj43LWRheSByZXRlbnRpb24gKG9yIERST1ApPC90ZXh0PgoKICA8IS0tIEJlbmVmaXRzIFNlY3Rpb24gLS0+CiAgPHJlY3QgeD0iNDAwIiB5PSI3MCIgd2lkdGg9IjM3MCIgaGVpZ2h0PSIyNTAiIHJ4PSIxMCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI1ODUiIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Hb3Zlcm5hbmNlIEJlbmVmaXRzPC90ZXh0PgoKICA8cmVjdCB4PSI0MjAiIHk9IjExMCIgd2lkdGg9IjE2NSIgaGVpZ2h0PSI5MCIgcng9IjYiIGZpbGw9IiNmZWYyZjIiLz4KICA8dGV4dCB4PSI1MDIiIHk9IjEzNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2RjMjYyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q29zdCBDb250cm9sPC90ZXh0PgogIDx0ZXh0IHg9IjUwMiIgeT0iMTU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ZjFkMWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRST1AgZGVidWc6IHNhdmVzPC90ZXh0PgogIDx0ZXh0IHg9IjUwMiIgeT0iMTcwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ZjFkMWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnlvdXIgREVCVUcgc2hhcmU8L3RleHQ+CiAgPHRleHQgeD0iNTAyIiB5PSIxOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzdmMWQxZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2hvcnQgcmV0ZW50aW9uID0gbG93ZXIgUmV0YWluPC90ZXh0PgoKICA8cmVjdCB4PSI1OTUiIHk9IjExMCIgd2lkdGg9IjE2NSIgaGVpZ2h0PSI5MCIgcng9IjYiIGZpbGw9IiNkMWZhZTUiLz4KICA8dGV4dCB4PSI2NzciIHk9IjEzNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzA0Nzg1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q29tcGxpYW5jZTwvdGV4dD4KICA8dGV4dCB4PSI2NzciIHk9IjE1NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDY0ZTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BdWRpdCBsb2dzOiAxIHllYXI8L3RleHQ+CiAgPHRleHQgeD0iNjc3IiB5PSIxNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA2NGUzYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmV0ZW50aW9uIHNldCBieSBwb2xpY3k8L3RleHQ+CiAgPHRleHQgeD0iNjc3IiB5PSIxOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA2NGUzYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2VwYXJhdGlvbiBvZiBjb25jZXJuczwvdGV4dD4KCiAgPHJlY3QgeD0iNDIwIiB5PSIyMTAiIHdpZHRoPSIxNjUiIGhlaWdodD0iOTAiIHJ4PSI2IiBmaWxsPSIjZGJlYWZlIi8+CiAgPHRleHQgeD0iNTAyIiB5PSIyMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTQwYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFjY2VzcyBDb250cm9sPC90ZXh0PgogIDx0ZXh0IHg9IjUwMiIgeT0iMjU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZTNhOGEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRlYW0tYmFzZWQgYnVja2V0czwvdGV4dD4KICA8dGV4dCB4PSI1MDIiIHk9IjI3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMWUzYThhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JQU0gcG9saWNpZXMgcGVyIGJ1Y2tldDwvdGV4dD4KICA8dGV4dCB4PSI1MDIiIHk9IjI5MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMWUzYThhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5OZWVkLXRvLWtub3cgYWNjZXNzPC90ZXh0PgoKICA8cmVjdCB4PSI1OTUiIHk9IjIxMCIgd2lkdGg9IjE2NSIgaGVpZ2h0PSI5MCIgcng9IjYiIGZpbGw9IiNmZWYzYzciLz4KICA8dGV4dCB4PSI2NzciIHk9IjIzNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGVyZm9ybWFuY2U8L3RleHQ+CiAgPHRleHQgeD0iNjc3IiB5PSIyNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzc4MzUwZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TmFycm93ZXIgcXVlcmllcyBvbjwvdGV4dD4KICA8dGV4dCB4PSI2NzciIHk9IjI3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNzgzNTBmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zbWFsbGVyIGJ1Y2tldHM8L3RleHQ+CiAgPHRleHQgeD0iNjc3IiB5PSIyOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzc4MzUwZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmVkdWNlZCBzY2FuIGNvc3Q8L3RleHQ+Cjwvc3ZnPgo=" alt="Bucket Governance Strategy" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+Bucket Governance Strategy:
+
+Bucket Types by Purpose:
+1. default_logs - General purpose, 35 days, All teams
+2. debug_logs - Development troubleshooting, 7 days, Dev teams
+3. error_logs - Incident investigation, 90 days, SRE/Ops
+4. audit_logs - Compliance, 365 days, Audit team
+5. security_logs - Security operations, 180 days, SecOps
+6. archive_logs - Long-term storage, 730 days, Compliance
+
+Access Control:
+- Team-based permissions
+- Role-based access
+- Bucket-level isolation
+-->
+<h3>Recommended Bucket Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Bucket Name</th>
+<th>Purpose</th>
+<th>Retention</th>
+<th>Access</th>
+<th>Data Types</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>default_logs</code></td>
+<td>General purpose</td>
+<td>35 days</td>
+<td>All teams</td>
+<td>Standard logs</td>
+</tr>
+<tr>
+<td><code>debug_logs</code></td>
+<td>Development troubleshooting</td>
+<td>7 days</td>
+<td>Dev teams</td>
+<td>DEBUG, TRACE</td>
+</tr>
+<tr>
+<td><code>error_logs</code></td>
+<td>Incident investigation</td>
+<td>90 days</td>
+<td>SRE/Ops</td>
+<td>ERROR, FATAL</td>
+</tr>
+<tr>
+<td><code>audit_logs</code></td>
+<td>Compliance</td>
+<td>365 days</td>
+<td>Audit team</td>
+<td>Auth, access</td>
+</tr>
+<tr>
+<td><code>security_logs</code></td>
+<td>Security operations</td>
+<td>180 days</td>
+<td>SecOps</td>
+<td>Security events</td>
+</tr>
+<tr>
+<td><code>archive_logs</code></td>
+<td>Long-term storage</td>
+<td>730 days</td>
+<td>Compliance</td>
+<td>Critical events</td>
+</tr>
+</tbody>
+</table>
+<h3>Bucket Naming Convention</h3>
+<pre><code>&lt;purpose&gt;_logs
+&lt;team&gt;_&lt;purpose&gt;_logs
+&lt;environment&gt;_&lt;purpose&gt;_logs
+</code></pre>
+<p>Examples:</p>
+<ul>
+<li><code>platform_debug_logs</code></li>
+<li><code>prod_security_logs</code></li>
+<li><code>payment_audit_logs</code></li>
+</ul>
+<pre><code class="language-dql">// Analyze current log distribution for bucket planning
+// status == &quot;ERROR&quot; covers every error-class level (ERROR, SEVERE, CRITICAL, FATAL, …);
+// loglevel == &quot;ERROR&quot; alone misses SEVERE and the rest
+fetch logs, from: now() - 24h
+| summarize {
+    total = count(),
+    debug = countIf(loglevel == &quot;DEBUG&quot; OR loglevel == &quot;TRACE&quot;),
+    info = countIf(loglevel == &quot;INFO&quot; OR loglevel == &quot;NOTICE&quot;),
+    warn = countIf(loglevel == &quot;WARN&quot;),
+    error = countIf(status == &quot;ERROR&quot;)
+  }
+| fieldsAdd debug_pct = round((debug * 100.0) / total, decimals: 1)
+| fieldsAdd info_pct = round((info * 100.0) / total, decimals: 1)
+| fieldsAdd warn_pct = round((warn * 100.0) / total, decimals: 1)
+| fieldsAdd error_pct = round((error * 100.0) / total, decimals: 1)
+</code></pre>
+<pre><code class="language-dql">// Identify audit/security logs for specialized bucket
+fetch logs, from: now() - 24h
+| filter contains(content, &quot;auth&quot;)
+        OR contains(content, &quot;login&quot;)
+        OR contains(content, &quot;logout&quot;)
+        OR contains(content, &quot;permission&quot;)
+        OR contains(content, &quot;access&quot;)
+| summarize {count = count()}, by: {k8s.namespace.name, loglevel}
+| sort count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Volume by source - helps determine routing needs
+fetch logs, from: now() - 24h
+| summarize {count = count()}, by: {dt.openpipeline.source, dt.system.bucket}
+| sort count desc
+</code></pre>
+<p><a id="retention-policies"></a></p>
+<h2>3. Retention Policies</h2>
+<h3>Retention Strategy Matrix</h3>
+<p>Starting points from community practice — your audit, legal and investigation needs set the real numbers:</p>
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Min Retention</th>
+<th>Recommended</th>
+<th>Max</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DEBUG/TRACE</td>
+<td>3 days</td>
+<td>7 days</td>
+<td>14 days</td>
+<td>High volume, temporary</td>
+</tr>
+<tr>
+<td>INFO</td>
+<td>7 days</td>
+<td>35 days</td>
+<td>90 days</td>
+<td>Standard operations</td>
+</tr>
+<tr>
+<td>WARN</td>
+<td>14 days</td>
+<td>60 days</td>
+<td>180 days</td>
+<td>Trend analysis</td>
+</tr>
+<tr>
+<td>ERROR</td>
+<td>30 days</td>
+<td>90 days</td>
+<td>365 days</td>
+<td>Incident investigation</td>
+</tr>
+<tr>
+<td>Audit</td>
+<td>365 days</td>
+<td>365 days</td>
+<td>730 days</td>
+<td>Compliance</td>
+</tr>
+<tr>
+<td>Security</td>
+<td>90 days</td>
+<td>180 days</td>
+<td>365 days</td>
+<td>SIEM/forensics</td>
+</tr>
+</tbody>
+</table>
+<h3>Retention Cost Impact</h3>
+<p>Under DPS, Log Management &amp; Analytics has separate <strong>Ingest &amp; Process</strong>, <strong>Retain</strong> and <strong>Query</strong> dimensions (usage-based model; <em>Retain with Included Queries</em> is the alternative model). Retention changes only the <strong>Retain</strong> dimension:</p>
+<pre><code class="language-text">Retain consumption per day = GiB stored × Retain GiB-day price
+GiB stored (steady state)  ≈ daily volume × retention days
+
+Example (DEBUG logs):
+- 100 GB/day × 35 days = 3,500 GB stored
+- 100 GB/day ×  7 days =   700 GB stored
+- Result: 80% fewer DEBUG GiB-days retained
+- Ingest &amp; Process is billed per GiB ingested, so it does not change
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/license/capabilities/log-analytics">Log Analytics overview (DT docs)</a> — <em>&quot;In the usage-based model, Log - Retain and Log - Query are charged separately&quot;</em>, <a href="https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-retain">Log Management &amp; Analytics - Retain (DT docs)</a> — <em>&quot;consumption per day = (volume of uncompressed logs stored in GiB) x (GiB-day price for Retain on your rate card)&quot;</em>, <a href="https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-ingest">Log Management &amp; Analytics - Ingest &amp; Process (DT docs)</a> — <em>&quot;It is calculated per gibibyte (GiB).&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Estimate storage by log level
+fetch logs, from: now() - 24h
+| fieldsAdd content_bytes = stringLength(content)
+| summarize {
+    log_count = count(),
+    total_mb = round(sum(content_bytes) / 1048576.0, decimals: 2),
+    avg_bytes = round(avg(content_bytes), decimals: 0)
+  }, by: {loglevel}
+| sort total_mb desc
+</code></pre>
+<pre><code class="language-dql">// Retained DEBUG/TRACE volume at 35 vs 7 days (steady state)
+// Retain is billed per GiB-day stored; Ingest &amp; Process (per GiB ingested) does not change with retention
+fetch logs, from: now() - 24h
+| filter loglevel == &quot;DEBUG&quot; OR loglevel == &quot;TRACE&quot;
+| fieldsAdd content_bytes = stringLength(content)
+| summarize {daily_mb = sum(content_bytes) / 1048576.0}
+| fieldsAdd daily_ingest_gb = round(daily_mb / 1024, decimals: 2)
+| fieldsAdd stored_35d_gb = round(daily_mb * 35 / 1024, decimals: 2)
+| fieldsAdd stored_7d_gb = round(daily_mb * 7 / 1024, decimals: 2)
+| fieldsAdd retain_gib_days_avoided_per_day = round(daily_mb * (35 - 7) / 1024, decimals: 2)
+| fieldsAdd daily_mb = round(daily_mb, decimals: 2)
+</code></pre>
+<pre><code class="language-dql">// Retention planning: volume by bucket and loglevel
+fetch logs, from: now() - 24h
+| fieldsAdd content_bytes = stringLength(content)
+| summarize {
+    log_count = count(),
+    daily_mb = round(sum(content_bytes) / 1048576.0, decimals: 2)
+  }, by: {dt.system.bucket, loglevel}
+| sort dt.system.bucket asc, daily_mb desc
+</code></pre>
+<p><a id="bucket-routing-configuration"></a></p>
+<h2>4. Bucket Routing Configuration</h2>
+<p>A <strong>route</strong> sends a record to a <strong>pipeline</strong>; the <strong>bucket</strong> is chosen inside that pipeline by <strong>Bucket assignment</strong> processors in the Bucket assignment stage. There is no route-level bucket setting.</p>
+<h3>Bucket Assignment Processors</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Matching condition</th>
+<th>Bucket</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>loglevel == &quot;DEBUG&quot; OR loglevel == &quot;TRACE&quot;</code></td>
+<td><code>debug_logs</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>status == &quot;ERROR&quot;</code></td>
+<td><code>error_logs</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>matchesValue(content, &quot;*audit*&quot;) OR matchesValue(k8s.namespace.name, &quot;*security*&quot;)</code></td>
+<td><code>audit_logs</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>contains()</code> is not enabled in OpenPipeline matching conditions, hence <code>matchesValue</code>. <code>status == &quot;ERROR&quot;</code> covers SEVERE, CRITICAL and FATAL as well as ERROR.</p>
+<h3>Assignment Priority</h3>
+<ol>
+<li>Bucket assignment is <strong>first match only</strong> — the first processor whose condition matches decides</li>
+<li>Order processors from specific to general</li>
+<li>A last processor with condition <code>true</code> makes the fallback explicit; in community practice, records that match none land in the default bucket</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — Bucket assignment stage: <em>&quot;Assign records to the best-fit bucket.&quot;</em>, executed <em>first match only</em>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Preview routing decision logic over the whole hour (the summarize bounds the output;
+// a limit before it lets the first records decide the mix and hides whole branches)
+fetch logs, from: now() - 1h
+| fieldsAdd target_bucket = if(loglevel == &quot;DEBUG&quot; OR loglevel == &quot;TRACE&quot;, &quot;debug_logs&quot;,
+                            else: if(status == &quot;ERROR&quot;, &quot;error_logs&quot;,
+                            else: if(matchesValue(content, &quot;*audit*&quot;) OR matchesValue(k8s.namespace.name, &quot;*security*&quot;), &quot;audit_logs&quot;,
+                            else: &quot;default_logs&quot;)))
+| summarize {count = count()}, by: {target_bucket, loglevel}
+| sort target_bucket asc, count desc
+</code></pre>
+<pre><code class="language-dql">// Validate current routing effectiveness
+fetch logs, from: now() - 24h
+| summarize {
+    total = count(),
+    in_default = countIf(dt.system.bucket == &quot;default_logs&quot;)
+  }, by: {loglevel}
+| fieldsAdd default_pct = round((in_default * 100.0) / total, decimals: 1)
+| sort default_pct desc
+</code></pre>
+<pre><code class="language-dql">// Namespace-based routing analysis
+fetch logs, from: now() - 24h
+| filter isNotNull(k8s.namespace.name)
+| fieldsAdd suggested_bucket = if(contains(k8s.namespace.name, &quot;prod&quot;), &quot;prod_logs&quot;,
+                               else: if(contains(k8s.namespace.name, &quot;staging&quot;), &quot;staging_logs&quot;,
+                               else: &quot;dev_logs&quot;))
+| summarize {count = count()}, by: {k8s.namespace.name, suggested_bucket}
+| sort count desc
+| limit 20
+</code></pre>
+<p><a id="access-control-data-governance"></a></p>
+<h2>5. Access Control &amp; Data Governance</h2>
+<h3>Bucket-Level Access Control</h3>
+<table>
+<thead>
+<tr>
+<th>Bucket</th>
+<th>Read Access</th>
+<th>Write Access</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>default_logs</code></td>
+<td>All authenticated</td>
+<td>OpenPipeline</td>
+<td>General access</td>
+</tr>
+<tr>
+<td><code>debug_logs</code></td>
+<td>Dev teams</td>
+<td>OpenPipeline</td>
+<td>Development</td>
+</tr>
+<tr>
+<td><code>audit_logs</code></td>
+<td>Audit team only</td>
+<td>OpenPipeline</td>
+<td>Compliance</td>
+</tr>
+<tr>
+<td><code>security_logs</code></td>
+<td>SecOps only</td>
+<td>OpenPipeline</td>
+<td>Security ops</td>
+</tr>
+</tbody>
+</table>
+<h3>IAM Policy Integration</h3>
+<p>Configure in <strong>Account Management → Identity &amp; access management → Policy management</strong>. Policies are written in the policy statement language, not JSON, and bucket access needs <strong>two</strong> statements — read on the bucket, plus the table permission:</p>
+<pre><code class="language-text">ALLOW storage:buckets:read WHERE storage:bucket-name=&quot;audit_logs&quot;;
+ALLOW storage:logs:read WHERE storage:bucket-name=&quot;audit_logs&quot;;
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — <em>&quot;All bucket permissions need to start with storage:buckets:read&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-mgt">Manage IAM policies (DT docs)</a> — <em>&quot;Go to Account Management &gt; Identity &amp; access management &gt; Policy management.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Identify sensitive data patterns for access control planning
+fetch logs, from: now() - 24h
+| filter contains(content, &quot;password&quot;)
+        OR contains(content, &quot;secret&quot;)
+        OR contains(content, &quot;token&quot;)
+        OR contains(content, &quot;api_key&quot;)
+        OR contains(content, &quot;credential&quot;)
+| summarize {count = count()}, by: {dt.system.bucket, k8s.namespace.name}
+| sort count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Data governance audit: bucket access patterns
+fetch logs, from: now() - 24h
+| summarize {
+    total_logs = count(),
+    unique_sources = countDistinct(dt.openpipeline.source)
+  }, by: {dt.system.bucket}
+| sort total_logs desc
+</code></pre>
+<p><a id="query-optimization-with-buckets"></a></p>
+<h2>6. Query Optimization with Buckets</h2>
+<h3>Target Specific Buckets</h3>
+<p>Querying specific buckets <strong>reduces scan costs</strong> and <strong>improves performance</strong>. An unscoped <code>fetch logs</code> reads every log bucket in the timeframe.</p>
+<p>On a validation tenant (10/23/2026, a 15-minute window with four populated log buckets), the unscoped query scanned 731.8 MB. <code>bucket:{&quot;easytrade&quot;}</code> scanned 317.1 MB (−57%) and <code>bucket:{&quot;hipstershop&quot;}</code> 156.6 MB (−79%). The four single-bucket scans added up exactly to the unscoped one.</p>
+<ul>
+<li><code>filter dt.system.bucket == &quot;easytrade&quot;</code> pruned exactly like <code>bucket:{&quot;easytrade&quot;}</code>: same bytes, same records read.</li>
+<li>Filtering on an ordinary field does not prune. <code>filter k8s.namespace.name == &quot;hipstershop&quot;</code> returned the same rows as the <code>hipstershop</code> bucket but read all 3.5M records and scanned 292.8 MB, nearly twice the bucket-scoped query.</li>
+<li>A bucket name that does not exist is skipped without a warning, even inside a list next to a real one.</li>
+</ul>
+<p>Measure on your own data. The <code>scannedBytes</code> value in the query metadata is the number to compare.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-optimization">Anomaly Detection DQL optimization guide (DT docs)</a> — <em>&quot;By applying a bucket filter, you can direct Grail to analyze only the specific storage locations where the relevant data is expected, instead of scanning the entire storage.&quot;</em></sub></p>
+</blockquote>
+<p><strong>✅ Efficient - targets specific bucket:</strong></p>
+<pre><code>fetch logs, bucket: {&quot;error_logs&quot;}, from: now() - 7d
+| filter status == &quot;ERROR&quot;
+| limit 100
+</code></pre>
+<p><strong>❌ Inefficient - scans all buckets:</strong></p>
+<pre><code>fetch logs, from: now() - 7d
+| filter status == &quot;ERROR&quot;
+| limit 100
+</code></pre>
+<h3>Multi-Bucket Queries</h3>
+<pre><code>// Query multiple specific buckets
+fetch logs, bucket: {&quot;prod_logs&quot;, &quot;error_logs&quot;}, from: now() - 24h
+| filter status == &quot;ERROR&quot;
+</code></pre>
+<pre><code class="language-dql">// Query specific bucket (efficient)
+fetch logs, bucket: {&quot;default_logs&quot;}, from: now() - 1h
+| summarize {count = count()}, by: {loglevel}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// Which log buckets received data in the last 24 hours, and how much?
+// Reads billing usage events, not logs: an unscoped fetch logs would cost
+// as much as the queries this section is meant to optimize.
+fetch dt.system.events, from: now() - 24h
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot; and event.type == &quot;Log Management &amp; Analytics - Ingest &amp; Process&quot;
+| dedup event.id
+| summarize {ingested_bytes = sum(billed_bytes)}, by: {usage.bucket}
+| sort ingested_bytes desc
+</code></pre>
+<pre><code class="language-dql">// Bucket-aware dashboarding: hourly ingest volume by bucket
+// Billing usage events again, so a refreshing tile does not re-scan 24 h of logs
+fetch dt.system.events, from: now() - 24h
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot; and event.type == &quot;Log Management &amp; Analytics - Ingest &amp; Process&quot;
+| dedup event.id
+| makeTimeseries {ingested_bytes = sum(billed_bytes)}, by: {usage.bucket}, interval: 1h
+</code></pre>
+<p><a id="cost-optimization-strategies"></a></p>
+<h2>7. Cost Optimization Strategies</h2>
+<h3>Storage Cost Reduction Tactics</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Effect</th>
+<th>Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shorten DEBUG retention</td>
+<td>Retained DEBUG volume falls with retention (7 of 35 days ≈ 80% less)</td>
+<td>Bucket assignment to a 7-day bucket</td>
+</tr>
+<tr>
+<td>Drop health check logs</td>
+<td>Saves your health-check share — measure it first (OPLOGS-03 §7)</td>
+<td>Drop record processor</td>
+</tr>
+<tr>
+<td>Trim long content</td>
+<td>Depends on how much of each record you can remove</td>
+<td>DQL processor (<code>fieldsRemove</code>, or a shortened <code>content</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3>ROI Calculation</h3>
+<pre><code>Current State:
+- 100 GB/day total logs
+- 35-day retention all buckets
+- Total storage: 3,500 GB
+
+Optimized State:
+- 60 GB/day INFO/WARN (35d) = 2,100 GB
+- 30 GB/day DEBUG (7d) = 210 GB  
+- 10 GB/day ERROR (90d) = 900 GB
+- Total storage: 3,210 GB
+
+Stored volume: ~8% lower (Retain); ingest unchanged
+</code></pre>
+<pre><code class="language-dql">// Stored volume per log level: everything at 35 days vs tiered retention
+// delta_gb &gt; 0: less stored; delta_gb &lt; 0: more stored (90-day error retention adds Retain cost)
+// Rounding happens only on the outputs, so the products are not distorted
+fetch logs, from: now() - 24h
+| fieldsAdd content_bytes = stringLength(content)
+| summarize {daily_gb = sum(content_bytes) / 1073741824.0, log_count = count()}, by: {loglevel}
+| fieldsAdd tiered_retention_days = if(loglevel == &quot;DEBUG&quot; OR loglevel == &quot;TRACE&quot;, 7,
+                                    else: if(in(loglevel, {&quot;ERROR&quot;, &quot;SEVERE&quot;, &quot;CRITICAL&quot;, &quot;FATAL&quot;, &quot;ALERT&quot;, &quot;EMERGENCY&quot;}), 90,
+                                    else: 35))
+| fieldsAdd stored_35d_gb = round(daily_gb * 35, decimals: 1)
+| fieldsAdd stored_tiered_gb = round(daily_gb * tiered_retention_days, decimals: 1)
+| fieldsAdd delta_gb = round(daily_gb * (35 - tiered_retention_days), decimals: 1)
+| fieldsAdd daily_gb = round(daily_gb, decimals: 3)
+| sort delta_gb desc
+</code></pre>
+<pre><code class="language-dql">// Identify high-volume low-value logs
+fetch logs, from: now() - 24h
+| filter loglevel == &quot;DEBUG&quot; OR loglevel == &quot;INFO&quot;
+| fieldsAdd content_bytes = stringLength(content)
+| summarize {
+    log_count = count(),
+    total_mb = round(sum(content_bytes) / 1048576.0, decimals: 2)
+  }, by: {k8s.namespace.name, k8s.workload.name}
+| sort total_mb desc
+| limit 20
+</code></pre>
+<p><a id="bucket-management-best-practices"></a></p>
+<h2>8. Bucket Management Best Practices</h2>
+<h3>✅ Do's</h3>
+<ol>
+<li><strong>Start with clear bucket strategy</strong> before configuring pipelines</li>
+<li><strong>Name buckets descriptively</strong> with purpose and team</li>
+<li><strong>Set retention based on data value</strong>, not convenience</li>
+<li><strong>Review bucket distribution</strong> weekly</li>
+<li><strong>Query specific buckets</strong> for performance</li>
+<li><strong>Document bucket purposes</strong> and access policies</li>
+</ol>
+<h3>❌ Don'ts</h3>
+<ol>
+<li><strong>Don't put everything in default bucket</strong> - defeats purpose</li>
+<li><strong>Don't set uniform retention</strong> - wastes storage on low-value data</li>
+<li><strong>Don't ignore bucket metrics</strong> - monitor distribution</li>
+<li><strong>Don't create too many buckets</strong> - complexity overhead</li>
+<li><strong>Don't skip access controls</strong> - security risk</li>
+</ol>
+<pre><code class="language-dql">// Weekly bucket health check query
+// error_pct uses status == &quot;ERROR&quot;, which includes SEVERE, CRITICAL, FATAL, …
+fetch logs, from: now() - 7d
+| summarize {
+    total_logs = count(),
+    unique_sources = countDistinct(dt.openpipeline.source),
+    debug_pct = round((countIf(loglevel == &quot;DEBUG&quot;) * 100.0) / count(), decimals: 1),
+    error_pct = round((countIf(status == &quot;ERROR&quot;) * 100.0) / count(), decimals: 1)
+  }, by: {dt.system.bucket}
+| sort total_logs desc
+</code></pre>
+<pre><code class="language-dql">// Bucket routing effectiveness
+fetch logs, from: now() - 24h
+| summarize {count = count()}, by: {dt.system.bucket, dt.openpipeline.pipelines}
+| sort count desc
+</code></pre>
+<hr />
+<p><a id="summary"></a></p>
+<h2>📝 Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>Bucket Architecture</strong> - How Grail organizes log storage<br />
+✅ <strong>Strategic Design</strong> - Creating purpose-driven buckets<br />
+✅ <strong>Retention Policies</strong> - Optimizing data lifecycle costs<br />
+✅ <strong>Routing Rules</strong> - Directing logs to appropriate storage<br />
+✅ <strong>Access Control</strong> - Implementing data governance<br />
+✅ <strong>Query Optimization</strong> - Targeting buckets for efficiency</p>
+<h3>Key Takeaway</h3>
+<blockquote>
+<p><strong>Buckets are foundational.</strong> Design your bucket strategy first - it impacts security, cost, and every query you'll write.</p>
+</blockquote>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>➡️ Next Steps</h2>
+<p>Continue to <strong>OPLOGS-05: Querying &amp; Parsing</strong> to learn advanced DQL techniques for log analysis.</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>📚 References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Use Grail buckets to partition data (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment">Configure data storage and retention for logs (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies">Working with policies (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-retain">Log Management &amp; Analytics - Retain (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-ingest">Log Management &amp; Analytics - Ingest &amp; Process (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

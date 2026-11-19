@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DASH-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DASH — Dashboard Design &amp; Building</a><span class="sep">/</span><span aria-current="page">DASH-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DASH-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> DASH — Dashboard Design &amp; Building | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/18/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook consolidates every actionable best practice from the DASH series (DASH-01 through DASH-07) into a single definitive reference. Each practice specifies exactly what to set, with no ambiguity. Use this as a checklist when building, auditing, or reviewing Dynatrace dashboards.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#dashboard-architecture">Dashboard Architecture</a></li>
+<li><a href="#design-and-layout">Design and Layout</a></li>
+<li><a href="#tile-configuration">Tile Configuration</a></li>
+<li><a href="#executive-tier">Executive Tier</a></li>
+<li><a href="#operations-tier">Operations Tier</a></li>
+<li><a href="#engineering-tier">Engineering Tier</a></li>
+<li><a href="#dql-query-standards">DQL Query Standards</a></li>
+<li><a href="#variables-and-filters">Variables and Filters</a></li>
+<li><a href="#refresh-and-performance">Refresh and Performance</a></li>
+<li><a href="#sharing-and-permissions">Sharing and Permissions</a></li>
+<li><a href="#reporting-and-automation">Reporting and Automation</a></li>
+<li><a href="#dashboard-lifecycle">Dashboard Lifecycle</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Prior Reading</strong></td>
+<td>DASH-01 through DASH-07 for full context</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:metrics:read</code>, <code>storage:events:read</code>, <code>storage:spans:read</code>, <code>document:documents:write</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="dashboard-architecture"></a></p>
+<h2>1. Dashboard Architecture</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Use the three-tier hierarchy</td>
+<td>Create exactly three tiers: Executive, Operations, Engineering</td>
+<td>Critical</td>
+<td>DASH-02</td>
+</tr>
+<tr>
+<td>2</td>
+<td>One purpose per dashboard</td>
+<td>Each dashboard answers one audience's questions; never build an &quot;everything&quot; dashboard</td>
+<td>Critical</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Connect tiers with drill-down links</td>
+<td>Add markdown tiles with dashboard links so users navigate Executive &gt; Operations &gt; Engineering</td>
+<td>Recommended</td>
+<td>DASH-02</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Use dashboards for monitoring, notebooks for investigation</td>
+<td>Dashboards = continuous monitoring, team visibility, stakeholder reporting. Notebooks = ad-hoc exploration, incident investigation, training</td>
+<td>Critical</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Group related tiles into rows</td>
+<td>Put related tiles in a collapsible row (e.g., &quot;Service Health&quot;, &quot;Infrastructure&quot;) — rows arrive with SaaS 1.350 (staged rollout from 11/04/2026); until then, place them together under a Markdown header tile</td>
+<td>Recommended</td>
+<td>DASH-01</td>
+</tr>
+</tbody>
+</table>
+<p><a id="design-and-layout"></a></p>
+<h2>2. Design and Layout</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>6</td>
+<td>Place the most critical KPI in the top-left</td>
+<td>Top-left tile is the first thing the eye hits; put your primary health indicator there</td>
+<td>Critical</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Follow Z-pattern reading order</td>
+<td>Arrange tiles left-to-right, top-to-bottom so the dashboard reads naturally</td>
+<td>Recommended</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Limit tile count to 8-12 per dashboard</td>
+<td>More than 15 tiles creates cognitive overload</td>
+<td>Critical</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Use descriptive tile titles</td>
+<td>Title format: <code>Metric Name (Unit) — Scope</code>. Example: &quot;Error Rate (%) — Checkout Service&quot;. Never use &quot;Query 1&quot;</td>
+<td>Critical</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Keep all tiles on the same time range</td>
+<td>Use the dashboard time selector for all tiles; only use fixed ranges when there is a specific analytical reason</td>
+<td>Recommended</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Use color intentionally</td>
+<td>Green = healthy, Yellow = watch, Red = act. No decorative colors</td>
+<td>Recommended</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>12</td>
+<td>No decorative elements</td>
+<td>No gratuitous pie charts, no 3D effects, no logos</td>
+<td>Optional</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Executive layout: headline-trend-detail</td>
+<td>Top row: 3 single-value KPIs. Middle row: trend line chart. Bottom row: detail table</td>
+<td>Recommended</td>
+<td>DASH-03</td>
+</tr>
+</tbody>
+</table>
+<p><a id="tile-configuration"></a></p>
+<h2>3. Tile Configuration</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>14</td>
+<td>Every tile must trigger an action</td>
+<td>If a tile does not lead to a decision (investigate, escalate, scale, correlate), remove it</td>
+<td>Critical</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Match tile type to data shape</td>
+<td>Single value: KPIs. Line chart: trends over time. Bar chart: categorical comparisons. Table: detailed data / top-N. Honeycomb: entity health grid</td>
+<td>Recommended</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Use single-value tiles for executive KPIs</td>
+<td>Availability %, MTTR, active problem count, error budget remaining</td>
+<td>Critical</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Use line charts for time trends</td>
+<td>Problem count over 7d, error rate over 2h, CPU usage over 1h</td>
+<td>Recommended</td>
+<td>DASH-02</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Use table tiles for engineering deep-dives</td>
+<td>Engineers need exact values (endpoint p95, DB query time, trace IDs), not visual approximations</td>
+<td>Recommended</td>
+<td>DASH-05</td>
+</tr>
+</tbody>
+</table>
+<p><a id="executive-tier"></a></p>
+<h2>4. Executive Tier</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>19</td>
+<td>Limit to 4-6 tiles maximum</td>
+<td>Single-value and trend tiles only</td>
+<td>Critical</td>
+<td>DASH-02, DASH-03</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Select KPIs using the SMART filter</td>
+<td>Each KPI must be Specific, Measurable, Actionable, Relevant, Time-bound</td>
+<td>Critical</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Start with exactly these 5 KPIs</td>
+<td>Availability %, MTTR, Active Problem Count, Problem Trend (7d), Overall Error Rate</td>
+<td>Critical</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Set availability thresholds</td>
+<td>Green: &gt;99.9%, Yellow: &gt;99.5%, Red: &lt;99.5%</td>
+<td>Critical</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Set MTTR thresholds</td>
+<td>Green: &lt;1 hour, Yellow: &lt;4 hours, Red: &gt;4 hours</td>
+<td>Critical</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Set active problem thresholds</td>
+<td>Green: 0, Yellow: 1-3, Red: &gt;3</td>
+<td>Recommended</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Set error rate thresholds</td>
+<td>Green: &lt;1%, Yellow: &lt;5%, Red: &gt;5%</td>
+<td>Recommended</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>26</td>
+<td>Track error budget for SLA targets</td>
+<td>99.9% SLA = 43.2 min/month budget. 99.5% = 3.6 hours. 99.0% = 7.2 hours</td>
+<td>Recommended</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>27</td>
+<td>Use 7d-30d time ranges</td>
+<td>Executive dashboards show weekly or monthly trends, not minute-by-minute data</td>
+<td>Critical</td>
+<td>DASH-02</td>
+</tr>
+<tr>
+<td>28</td>
+<td>No technical jargon</td>
+<td>&quot;Availability&quot; not &quot;HTTP 200 ratio&quot;. &quot;Resolution Time&quot; not &quot;MTTR&quot; if audience is non-technical</td>
+<td>Recommended</td>
+<td>DASH-02</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Exclude duplicate detected problems</td>
+<td>Always filter <code>dt.davis.is_duplicate == false</code>. Do not add <code>dt.davis.is_frequent_event</code> — frequent issue detection is being phased out and the flag no longer separates anything (ADOPT-03 §5)</td>
+<td>Critical</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Dashboard must be understandable in &lt;30 seconds</td>
+<td>If it takes longer, push detail down to operations tier</td>
+<td>Critical</td>
+<td>DASH-02</td>
+</tr>
+</tbody>
+</table>
+<p><a id="operations-tier"></a></p>
+<h2>5. Operations Tier</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>31</td>
+<td>Use 8-12 tiles with mixed chart types</td>
+<td>Line charts for trends, bar charts for comparisons, tables for top-N, single values for status</td>
+<td>Critical</td>
+<td>DASH-02, DASH-04</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Use 1h-2h time windows for real-time tiles</td>
+<td>Short windows surface real-time spikes; 24h hides them</td>
+<td>Critical</td>
+<td>DASH-02, DASH-04</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Show p50, p90, p95 response time lines</td>
+<td>Three percentile lines on a single timeseries chart at 5-minute intervals</td>
+<td>Recommended</td>
+<td>DASH-04</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Include active problems table</td>
+<td>Show display_id, event.name, event.category, duration_min. Sort by duration descending</td>
+<td>Critical</td>
+<td>DASH-04</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Track log volume by severity level</td>
+<td>Stacked area chart: <code>makeTimeseries count(), interval:5m, by:{loglevel}</code>. Filter out loglevel == &quot;NONE&quot;</td>
+<td>Recommended</td>
+<td>DASH-04</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Detect log volume spikes</td>
+<td>Compare current hour log count to same hour yesterday using <code>append</code></td>
+<td>Recommended</td>
+<td>DASH-04</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Include deployment event table</td>
+<td>Filter <code>event.type == &quot;CUSTOM_DEPLOYMENT&quot; or (event.kind == &quot;SDLC_EVENT&quot; and event.category == &quot;task&quot; and event.type == &quot;deployment&quot;)</code> — classic and SDLC deployment events. Show last 6h</td>
+<td>Critical</td>
+<td>DASH-04</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Add infrastructure tiles for CPU and memory</td>
+<td><code>timeseries avg(dt.host.cpu.usage)</code> and <code>timeseries avg(dt.host.memory.usage)</code> by host</td>
+<td>Recommended</td>
+<td>DASH-04</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Show concurrently open problems over time</td>
+<td>Use <code>spread:timeframe(from:event.start, to:coalesce(event.end, now()))</code> in makeTimeseries</td>
+<td>Recommended</td>
+<td>DASH-04</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Avoid spaghetti line charts</td>
+<td>Use top-N filtering or variables instead of plotting all services on one chart</td>
+<td>Critical</td>
+<td>DASH-04</td>
+</tr>
+</tbody>
+</table>
+<p><a id="engineering-tier"></a></p>
+<h2>6. Engineering Tier</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>41</td>
+<td>Use 10-15 tiles with high data density</td>
+<td>Tables, detailed charts, multiple variables</td>
+<td>Recommended</td>
+<td>DASH-02, DASH-05</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Use 15m-1h time ranges for investigation</td>
+<td>Longer ranges dilute the signal; shorter ranges focus on the incident window</td>
+<td>Critical</td>
+<td>DASH-05</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Include service throughput table</td>
+<td>Show request_count, avg_ms, p50_ms, p95_ms, p99_ms, error_rate_pct per service</td>
+<td>Critical</td>
+<td>DASH-05</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Include endpoint performance table</td>
+<td>Show requests, avg_ms, p95_ms, error_rate by http.route and http.request.method</td>
+<td>Critical</td>
+<td>DASH-05</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Include database performance table</td>
+<td>Show avg_ms, p95_ms, query_count, error_rate by db.system and db.namespace — statements only: exclude <code>CONNECT</code>, <code>COMMIT</code>, <code>PREPARE</code>, <code>RESULTSET</code> (<code>db.operation.name</code>)</td>
+<td>Recommended</td>
+<td>DASH-05</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Always filter <code>isNotNull(db.system)</code> on DB spans</td>
+<td>Prevents null groups in database analysis</td>
+<td>Critical</td>
+<td>DASH-05</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Include latency distribution histogram</td>
+<td>Bucket spans into &lt;100ms, 100-500ms, 500ms-1s, 1s-5s, &gt;5s categories</td>
+<td>Recommended</td>
+<td>DASH-05</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Provide before/after deployment comparison</td>
+<td>Use <code>append</code> to compare 2h after vs 2h before for avg_ms, p95_ms, error_rate</td>
+<td>Recommended</td>
+<td>DASH-05</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Include trace.id in error span tables</td>
+<td>Engineers need clickable trace IDs for distributed trace investigation</td>
+<td>Critical</td>
+<td>DASH-05</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Add markdown tiles documenting each section</td>
+<td>Explain what the section shows and how to interpret it</td>
+<td>Recommended</td>
+<td>DASH-05</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Use variables extensively</td>
+<td>Service and namespace variables (DQL or List) so engineers can focus on their area; time comes from the dashboard timeframe selector</td>
+<td>Critical</td>
+<td>DASH-05</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dql-query-standards"></a></p>
+<h2>7. DQL Query Standards</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>52</td>
+<td>Always specify a time range on fetch</td>
+<td><code>fetch logs, from:-1h</code>. Never use bare <code>fetch logs</code></td>
+<td>Critical</td>
+<td>DASH-01, all</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Filter before aggregating</td>
+<td>Place <code>filter</code> immediately after <code>fetch</code>, never after <code>sort</code> or <code>summarize</code></td>
+<td>Critical</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>54</td>
+<td>Alias all aggregation results</td>
+<td><code>summarize c = count()</code> not <code>summarize count()</code>. Required for sort/fieldsAdd references</td>
+<td>Critical</td>
+<td>All</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Convert span duration to milliseconds</td>
+<td><code>duration / 1ms</code> for display. Duration is stored in nanoseconds</td>
+<td>Critical</td>
+<td>DASH-04, DASH-05</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Convert detected problem duration to hours</td>
+<td><code>resolved_problem_duration / 1h</code>. Duration is in nanoseconds</td>
+<td>Critical</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>57</td>
+<td>Use <code>arrayAvg()</code> on timeseries results before filter/sort</td>
+<td>Timeseries returns arrays, not scalars. Use <code>fieldsAdd val = arrayAvg(ts)</code> then <code>filter val &gt; X</code></td>
+<td>Critical</td>
+<td>DASH-04</td>
+</tr>
+<tr>
+<td>58</td>
+<td>Use <code>countIf()</code> for conditional counts</td>
+<td><code>errors = countIf(span.status_code == &quot;error&quot;)</code> instead of separate filter + count</td>
+<td>Recommended</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Calculate error rate as percentage</td>
+<td><code>100.0 * errors / total</code>. Always multiply by 100.0 (float), not 100 (int)</td>
+<td>Recommended</td>
+<td>DASH-04</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Filter out duplicate detected problems</td>
+<td>Always include <code>filter dt.davis.is_duplicate == false</code> in problem queries</td>
+<td>Critical</td>
+<td>DASH-03</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Use <code>round()</code> with named <code>decimals:</code> parameter</td>
+<td><code>round(value, decimals: 2)</code> not <code>round(value, 2)</code></td>
+<td>Critical</td>
+<td>All</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Prototype all queries in a notebook first</td>
+<td>Validate DQL in a notebook before transferring to dashboard tiles</td>
+<td>Recommended</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>63</td>
+<td>Use <code>span.status_code</code> for span failure — never <code>otel.status_code</code></td>
+<td><code>otel.status_code</code> and <code>otel.status_message</code> <strong>do not exist</strong> (no row in <code>dt.semantic_dictionary.fields</code>). The real fields are <code>span.status_code</code> (<code>stable</code>) and <code>span.status_message</code> (<code>experimental</code>)</td>
+<td>Critical</td>
+<td>DASH-03, DASH-04, DASH-05</td>
+</tr>
+<tr>
+<td>64</td>
+<td>Match <code>span.status_code</code> in <strong>lowercase</strong></td>
+<td><code>== &quot;error&quot;</code>, never <code>== &quot;ERROR&quot;</code>. The OTel SDK constant is uppercase; the Grail value is not. On a live tenant <code>&quot;ERROR&quot;</code> matched 0 spans against 18,630 for <code>&quot;error&quot;</code> (08/11/2026)</td>
+<td>Critical</td>
+<td>DASH-03, DASH-04, DASH-05</td>
+</tr>
+<tr>
+<td>65</td>
+<td>Derive span successes as <code>total - errors</code></td>
+<td><code>span.status_code</code> is <strong>null on successful spans</strong> — <code>&quot;ok&quot;</code> is written vanishingly rarely — so <code>countIf(span.status_code != &quot;error&quot;)</code> counts almost nothing and an availability tile reads ~0% on a healthy estate</td>
+<td>Critical</td>
+<td>DASH-03</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Rules 63–65 are one bug, caught three ways.</strong> Each of the three mistakes returns a <em>plausible number</em> rather than an error, so nothing in the tile, the query, or the dashboard tells you it is wrong. The order in which they bite matters: fixing only the field name (63) turns a hard failure into a silent zero (64), and fixing the name and the case but not the null-handling (65) turns a correct-looking rename into a <strong>0% availability</strong> executive tile on a service that is actually running at 99.6%. Verified end to end against a live tenant, 08/11/2026.</p>
+</blockquote>
+<p><a id="variables-and-filters"></a></p>
+<h2>8. Variables and Filters</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>66</td>
+<td>Use DQL variables for services and hosts</td>
+<td>Variable type: DQL, with a query over <code>smartscapeNodes</code> or <code>dt.entity.service</code> / <code>dt.entity.host</code>. The Dashboards app has no entity-selector type</td>
+<td>Critical</td>
+<td>DASH-06</td>
+</tr>
+<tr>
+<td>67</td>
+<td>Use List variables for fixed sets: namespaces, log levels, environments</td>
+<td>Values discovered from actual data via DQL; switch to a DQL variable when the set changes often</td>
+<td>Recommended</td>
+<td>DASH-06</td>
+</tr>
+<tr>
+<td>68</td>
+<td>Reference the variable key, not its display name</td>
+<td>DQL uses the key, derived from the name with every non-alphanumeric character replaced by <code>_</code>. Keep keys lowercase with underscores: <code>$k8s_namespace</code>, <code>$service</code>, <code>$environment</code></td>
+<td>Critical</td>
+<td>DASH-06</td>
+</tr>
+<tr>
+<td>69</td>
+<td>Reference variables in filter clauses</td>
+<td><code>filter dt.entity.host == $host</code> for DQL entity variables; <code>filter k8s.namespace.name == $namespace</code> for List or Free-text; <code>filter in(loglevel, array($log_levels))</code> for multi-select Never wrap <code>$var</code> in quotes — the substitution adds them</td>
+<td>Critical</td>
+<td>DASH-06</td>
+</tr>
+<tr>
+<td>70</td>
+<td>Provide an &quot;All&quot; option on every variable</td>
+<td>Let users remove the filter to see aggregate data</td>
+<td>Recommended</td>
+<td>DASH-06</td>
+</tr>
+<tr>
+<td>71</td>
+<td>Use the same variable name across all related tiles</td>
+<td>Ensures filter propagation: changing the dropdown updates every tile that references it</td>
+<td>Critical</td>
+<td>DASH-06</td>
+</tr>
+<tr>
+<td>72</td>
+<td>Chain variables for hierarchical filtering</td>
+<td>Second variable's query-based options reference the first variable (e.g., cluster &gt; namespace)</td>
+<td>Optional</td>
+<td>DASH-06</td>
+</tr>
+<tr>
+<td>73</td>
+<td>Build Golden Signals template dashboards</td>
+<td>One variable-driven template with Latency, Traffic, Errors, Saturation sections. Works for any service</td>
+<td>Recommended</td>
+<td>DASH-06</td>
+</tr>
+<tr>
+<td>74</td>
+<td>Test variables with extreme values</td>
+<td>Select the busiest and quietest entities to verify the layout renders correctly under load</td>
+<td>Recommended</td>
+<td>DASH-06</td>
+</tr>
+</tbody>
+</table>
+<p><a id="refresh-and-performance"></a></p>
+<h2>9. Refresh and Performance</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>75</td>
+<td>Executive wall screen refresh</td>
+<td>Set to 10-15 minutes</td>
+<td>Critical</td>
+<td>DASH-02</td>
+</tr>
+<tr>
+<td>76</td>
+<td>Operations NOC wall refresh</td>
+<td>Set to 1-2 minutes</td>
+<td>Critical</td>
+<td>DASH-02</td>
+</tr>
+<tr>
+<td>77</td>
+<td>Operations on-call refresh</td>
+<td>Set to 2-5 minutes</td>
+<td>Recommended</td>
+<td>DASH-02</td>
+</tr>
+<tr>
+<td>78</td>
+<td>Engineering investigation refresh</td>
+<td>Set to manual (on-demand)</td>
+<td>Recommended</td>
+<td>DASH-02</td>
+</tr>
+<tr>
+<td>79</td>
+<td>Executive weekly review refresh</td>
+<td>Set to manual</td>
+<td>Optional</td>
+<td>DASH-02</td>
+</tr>
+<tr>
+<td>80</td>
+<td>Never set refresh below 1 minute</td>
+<td>Aggressive refresh on complex queries causes unnecessary load. Start at 5 min, decrease only if critical</td>
+<td>Critical</td>
+<td>DASH-02</td>
+</tr>
+<tr>
+<td>81</td>
+<td>Use <code>limit</code> on all top-N queries</td>
+<td>Always append <code>| limit N</code> (10-20) to prevent unbounded result sets in tiles</td>
+<td>Critical</td>
+<td>DASH-04, DASH-05</td>
+</tr>
+<tr>
+<td>82</td>
+<td>Use <code>filterOut</code> instead of <code>not</code> for negation filters</td>
+<td><code>filterOut loglevel == &quot;NONE&quot;</code> is faster than <code>filter not loglevel == &quot;NONE&quot;</code></td>
+<td>Recommended</td>
+<td>DASH-04</td>
+</tr>
+</tbody>
+</table>
+<p><a id="sharing-and-permissions"></a></p>
+<h2>10. Sharing and Permissions</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>83</td>
+<td>Executive dashboards: platform team owns, leadership views</td>
+<td>Owner: platform team lead. Editors: platform team. Viewers: all managers + leadership</td>
+<td>Critical</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>84</td>
+<td>Operations dashboards: SRE team owns</td>
+<td>Owner: SRE team. Editors: SRE + on-call. Viewers: operations group</td>
+<td>Critical</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>85</td>
+<td>Engineering dashboards: service team owns</td>
+<td>Owner: service team lead. Editors: service team. Viewers: engineering org</td>
+<td>Recommended</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>86</td>
+<td>Limit editor access</td>
+<td>Encourage clone-and-customize over editing shared originals</td>
+<td>Critical</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>87</td>
+<td>Use naming convention for all dashboards</td>
+<td>Format: <code>[Tier] - [Team/Service] - [Purpose]</code>. Example: &quot;Ops - Checkout - Service Health&quot;</td>
+<td>Critical</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>88</td>
+<td>Tag dashboards with tier, team, and service</td>
+<td>Enables filtering and discovery in the dashboard library</td>
+<td>Recommended</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>89</td>
+<td>Maintain a dashboard ownership registry</td>
+<td>Document who owns each dashboard for accountability</td>
+<td>Recommended</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>90</td>
+<td>Archive dashboards not used in 90 days</td>
+<td>Proxy: no tile queries from the Dashboards app in 90 days (<code>QUERY_EXECUTION_EVENT</code> in <code>dt.system.events</code>) — document reads are not audited. Regular cleanup prevents library bloat</td>
+<td>Recommended</td>
+<td>DASH-07</td>
+</tr>
+</tbody>
+</table>
+<p><a id="reporting-and-automation"></a></p>
+<h2>11. Reporting and Automation</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>91</td>
+<td>Automate executive summary via Workflow</td>
+<td>Schedule: weekly, Monday 8 AM. Recipients: leadership, management</td>
+<td>Recommended</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>92</td>
+<td>Automate operations daily report via Workflow</td>
+<td>Schedule: daily, 7 AM. Recipients: SRE team, on-call</td>
+<td>Recommended</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>93</td>
+<td>Automate SLA compliance report via Workflow</td>
+<td>Schedule: monthly, 1st of month. Recipients: account management, leadership</td>
+<td>Recommended</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>94</td>
+<td>Automate cost/volume tracking report</td>
+<td>Schedule: weekly. Recipients: platform team, finance</td>
+<td>Optional</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>95</td>
+<td>Only report services with error rate &gt;1% in daily ops report</td>
+<td>Filter <code>error_rate_pct &gt; 1.0</code> to surface only degraded services</td>
+<td>Recommended</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>96</td>
+<td>Export dashboard JSON for backup</td>
+<td>Use Documents API: <code>GET /platform/document/v1/documents/&lt;id&gt;</code> returns metadata and content as one multipart response — store the content part in version control</td>
+<td>Recommended</td>
+<td>DASH-07</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dashboard-lifecycle"></a></p>
+<h2>12. Dashboard Lifecycle</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>97</td>
+<td>Follow the 6-step creation workflow</td>
+<td>1) Define audience/purpose, 2) Identify 5-10 key metrics, 3) Prototype in notebook, 4) Build dashboard, 5) Add variables, 6) Share and iterate</td>
+<td>Critical</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>98</td>
+<td>Manage dashboards as code</td>
+<td>Use Monaco CLI or Terraform for multi-environment deployment, version control, and peer review</td>
+<td>Recommended</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>99</td>
+<td>Validate every dashboard payload before merging it</td>
+<td>Deploy to a non-production tenant, open the dashboard in the Dashboards app, confirm <strong>zero</strong> validation warnings. API acceptance (<code>2xx</code>) is not render confirmation. Since SaaS 1.344 (stricter rules in SaaS 1.346) a dashboard that fails validation does not load at all — confirm which version your tenant runs — and API- or AI-authored dashboards are the named affected population</td>
+<td>Critical</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>100</td>
+<td>Organize dashboard repo by tier</td>
+<td>Structure: <code>dashboards/executive/</code>, <code>dashboards/operations/</code>, <code>dashboards/engineering/</code>, <code>dashboards/templates/</code></td>
+<td>Recommended</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>101</td>
+<td>Deploy dashboard changes through PR review</td>
+<td>Export &gt; modify in feature branch &gt; PR review &gt; deploy to staging &gt; validate schema/render &gt; review data fidelity &gt; deploy to production</td>
+<td>Recommended</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>102</td>
+<td>Maintain a query registry</td>
+<td>Track which DQL queries power which dashboard tiles. Update when DQL syntax or data sources change</td>
+<td>Optional</td>
+<td>DASH-07</td>
+</tr>
+<tr>
+<td>103</td>
+<td>A dashboard is never &quot;done&quot;</td>
+<td>Share with target audience, collect feedback, and refine continuously. Evolve with team needs</td>
+<td>Recommended</td>
+<td>DASH-01</td>
+</tr>
+<tr>
+<td>104</td>
+<td>Validate dashboard data matches manual reports</td>
+<td>Executives lose trust if dashboard numbers differ from status meeting reports. Cross-check availability and MTTR calculations</td>
+<td>Critical</td>
+<td>DASH-03</td>
+</tr>
+</tbody>
+</table>
+<h2>Summary</h2>
+<p>This notebook contains <strong>104 best practices</strong> extracted from the DASH series, organized into 12 categories:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Practices</th>
+<th>Critical Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboard Architecture</td>
+<td>1-5</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Design and Layout</td>
+<td>6-13</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Tile Configuration</td>
+<td>14-18</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Executive Tier</td>
+<td>19-30</td>
+<td>8</td>
+</tr>
+<tr>
+<td>Operations Tier</td>
+<td>31-40</td>
+<td>5</td>
+</tr>
+<tr>
+<td>Engineering Tier</td>
+<td>41-51</td>
+<td>6</td>
+</tr>
+<tr>
+<td>DQL Query Standards</td>
+<td>52-65</td>
+<td>11</td>
+</tr>
+<tr>
+<td>Variables and Filters</td>
+<td>66-74</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Refresh and Performance</td>
+<td>75-82</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Sharing and Permissions</td>
+<td>83-90</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Reporting and Automation</td>
+<td>91-96</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Dashboard Lifecycle</td>
+<td>97-104</td>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Priority breakdown:</strong> 53 Critical, 46 Recommended, 5 Optional. Start with Critical practices first, then layer in Recommended practices for a mature dashboard strategy.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

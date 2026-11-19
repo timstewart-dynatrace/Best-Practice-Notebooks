@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DBMON-03: NoSQL Database Monitoring</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DBMON — Database Monitoring</a><span class="sep">/</span><span aria-current="page">DBMON-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DBMON-03: NoSQL Database Monitoring</h1>
+<blockquote>
+<p><strong>Series:</strong> DBMON — Database Monitoring | <strong>Notebook:</strong> 3 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/02/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook covers monitoring NoSQL databases with Dynatrace, including document stores (MongoDB, Cosmos DB), key-value stores (DynamoDB), and wide-column stores (Cassandra). You will learn how to analyze operation performance, read/write ratios, collection-level metrics, and replica health using distributed trace spans.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#nosql-overview">NoSQL Database Overview</a></li>
+<li><a href="#mongodb-monitoring">MongoDB Monitoring</a></li>
+<li><a href="#dynamodb-monitoring">DynamoDB Monitoring</a></li>
+<li><a href="#cassandra-monitoring">Cassandra Monitoring</a></li>
+<li><a href="#cosmosdb-monitoring">Cosmos DB Monitoring</a></li>
+<li><a href="#read-write-analysis">Read vs Write Analysis</a></li>
+<li><a href="#cross-database-comparison">Cross-Database Comparison</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail (Managed has no Grail, so these DQL cells do not run there)</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Deployed on application hosts with NoSQL database clients</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:spans:read</code>, <code>storage:entities:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Application traffic generating NoSQL database calls</td>
+</tr>
+<tr>
+<td><strong>Prior Reading</strong></td>
+<td>DBMON-01: Database Monitoring Fundamentals</td>
+</tr>
+</tbody>
+</table>
+<p><a id="nosql-overview"></a></p>
+<h2>1. NoSQL Database Overview</h2>
+<p>NoSQL databases use different data models and operations than SQL databases. Dynatrace captures these differences through span attributes:</p>
+<table>
+<thead>
+<tr>
+<th>Database</th>
+<th>Category</th>
+<th><code>db.system</code></th>
+<th>Common Operations</th>
+<th>Key Characteristics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MongoDB</td>
+<td>Document Store</td>
+<td><code>mongodb</code></td>
+<td><code>find</code>, <code>insert</code>, <code>update</code>, <code>delete</code>, <code>aggregate</code></td>
+<td>BSON documents, replica sets</td>
+</tr>
+<tr>
+<td>DynamoDB</td>
+<td>Key-Value / Document</td>
+<td><code>dynamodb</code></td>
+<td><code>GetItem</code>, <code>PutItem</code>, <code>Query</code>, <code>Scan</code>, <code>BatchWriteItem</code></td>
+<td>Partition keys, provisioned/on-demand capacity</td>
+</tr>
+<tr>
+<td>Cassandra</td>
+<td>Wide-Column</td>
+<td><code>cassandra</code></td>
+<td><code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code> (CQL)</td>
+<td>Partition keys, consistent hashing</td>
+</tr>
+<tr>
+<td>Cosmos DB</td>
+<td>Multi-Model</td>
+<td><code>cosmosdb</code></td>
+<td><code>ReadItem</code>, <code>CreateItem</code>, <code>Query</code>, <code>ReplaceItem</code></td>
+<td>Request Units (RU), multiple consistency levels</td>
+</tr>
+<tr>
+<td>Couchbase</td>
+<td>Document Store</td>
+<td><code>couchbase</code></td>
+<td><code>get</code>, <code>upsert</code>, <code>query</code>, <code>search</code></td>
+<td>Memory-first, N1QL query language</td>
+</tr>
+</tbody>
+</table>
+<p>Let's discover which NoSQL databases are active in your environment.</p>
+<p><em>In community practice the thresholds in this notebook are the values teams converge on as starting points — Dynatrace publishes none of them. Treat each as a first guess to tune against your own baseline, not a recommended setting.</em></p>
+<pre><code class="language-dql">// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and none of them has a row in the semantic dictionary (older OTel
+// instrumentations may still emit db.statement). They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -&gt; db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -&gt; db.query.text        (stable; 33,463)
+//   db.mongodb.collection-&gt; db.collection.name   (stable; 6,912)
+//   db.name              -&gt; db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, &quot;db.&quot;) | fields name, stability
+// Discover active NoSQL databases
+fetch spans, from:-1h
+| filter in(db.system, {&quot;mongodb&quot;, &quot;dynamodb&quot;, &quot;cassandra&quot;, &quot;cosmosdb&quot;, &quot;couchbase&quot;, &quot;hbase&quot;})
+// db.operation.name is empty on some instrumentations — fall back to code.function (see §2)
+| fieldsAdd operation = coalesce(db.operation.name, code.function)
+| summarize {
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    unique_operations = countDistinct(operation)
+}, by:{db.system, server.address}
+| sort call_count desc
+</code></pre>
+<p><a id="mongodb-monitoring"></a></p>
+<h2>2. MongoDB Monitoring</h2>
+<p>MongoDB is the most widely used document database. Dynatrace captures MongoDB operations through the official MongoDB driver instrumentation, providing visibility into query patterns, collection access, and replica set behavior.</p>
+<h3>Key MongoDB Span Attributes</h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>db.system</code></td>
+<td>Always <code>mongodb</code></td>
+<td><code>mongodb</code></td>
+</tr>
+<tr>
+<td><code>db.operation.name</code></td>
+<td>MongoDB command (often empty on OneAgent MongoDB spans — see below)</td>
+<td><code>find</code>, <code>insert</code>, <code>aggregate</code></td>
+</tr>
+<tr>
+<td><code>db.namespace</code></td>
+<td>Database name</td>
+<td><code>orders</code>, <code>inventory</code></td>
+</tr>
+<tr>
+<td><code>db.collection.name</code></td>
+<td>Target collection</td>
+<td><code>users</code>, <code>products</code></td>
+</tr>
+<tr>
+<td><code>server.address</code></td>
+<td>MongoDB host (or mongos for sharded)</td>
+<td><code>mongo-primary.internal</code></td>
+</tr>
+</tbody>
+</table>
+<p>Which field carries the command depends on the instrumentation — check <code>db.operation.name</code> first, then <code>code.function</code> (OneAgent MongoDB) or <code>span.name</code> (OTel Redis). The MongoDB queries below fall back to <code>code.function</code> when <code>db.operation.name</code> is empty. Note that <code>code.function</code> is <code>experimental</code> in the semantic dictionary (read 09/18/2026), so re-check it before building long-lived dashboards on it.</p>
+<pre><code class="language-dql">// MongoDB operation breakdown by collection
+// db.operation.name is the dictionary field, but OneAgent's MongoDB capture may leave it null
+// and carry the command in code.function — fall back so the breakdown is not silently empty.
+fetch spans, from:-1h
+| filter db.system == &quot;mongodb&quot;
+| fieldsAdd operation = coalesce(db.operation.name, code.function)
+| summarize {
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms
+}, by:{db.namespace, db.collection.name, operation}
+| sort call_count desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// MongoDB slow operations — find operations exceeding 100ms
+fetch spans, from:-1h
+| filter db.system == &quot;mongodb&quot;
+| filter duration &gt; 100ms
+| fields start_time, db.namespace, db.collection.name, db.operation.name,
+        db.query.text, duration_ms = duration / 1ms
+| sort duration_ms desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// MongoDB operation volume over time
+// Falls back to code.function where the instrumentation leaves db.operation.name empty (see §2).
+fetch spans, from:-6h
+| filter db.system == &quot;mongodb&quot;
+| fieldsAdd operation = coalesce(db.operation.name, code.function)
+| filter isNotNull(operation)
+| makeTimeseries ops = count(), by:{operation}, interval:5m
+</code></pre>
+<p><a id="dynamodb-monitoring"></a></p>
+<h2>3. DynamoDB Monitoring</h2>
+<p>Amazon DynamoDB is a fully managed key-value and document database. Monitoring focuses on operation latency, consumed capacity, and identifying hot partitions through query patterns.</p>
+<pre><code class="language-dql">// DynamoDB operation performance by table
+fetch spans, from:-1h
+| filter db.system == &quot;dynamodb&quot;
+| filter isNotNull(db.operation.name)
+| summarize {
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    errors = countIf(span.status_code == &quot;error&quot;)
+}, by:{db.namespace, db.operation.name}
+| sort call_count desc
+</code></pre>
+<pre><code class="language-dql">// DynamoDB Scan vs Query ratio — Scans are expensive and should be minimized
+fetch spans, from:-1h
+| filter db.system == &quot;dynamodb&quot;
+| filter in(db.operation.name, {&quot;Query&quot;, &quot;Scan&quot;})
+| summarize {
+    op_count = count(),
+    avg_ms = avg(duration) / 1ms
+}, by:{db.operation.name}
+| sort op_count desc
+</code></pre>
+<blockquote>
+<p><strong>Warning:</strong> DynamoDB <code>Scan</code> operations read every item in the table and consume significant read capacity. A high Scan-to-Query ratio indicates missing or underused indexes (Global Secondary Indexes). Aim for Query operations to dominate over Scans.</p>
+</blockquote>
+<p><a id="cassandra-monitoring"></a></p>
+<h2>4. Cassandra Monitoring</h2>
+<p>Apache Cassandra uses CQL (Cassandra Query Language), which looks similar to SQL but has fundamentally different performance characteristics due to its distributed architecture.</p>
+<pre><code class="language-dql">// Cassandra operation breakdown by keyspace
+fetch spans, from:-1h
+| filter db.system == &quot;cassandra&quot;
+| filter isNotNull(db.operation.name)
+| summarize {
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p99_ms = percentile(duration, 99) / 1ms
+}, by:{db.namespace, db.operation.name}
+| sort call_count desc
+</code></pre>
+<pre><code class="language-dql">// Cassandra latency spikes — detect operations exceeding 200ms
+fetch spans, from:-6h
+| filter db.system == &quot;cassandra&quot;
+| makeTimeseries {
+    total = count(),
+    slow = countIf(duration &gt; 200ms)
+  }, interval:10m
+</code></pre>
+<p><a id="cosmosdb-monitoring"></a></p>
+<h2>5. Cosmos DB Monitoring</h2>
+<p>Azure Cosmos DB is a globally distributed multi-model database. Performance is measured in Request Units (RU), and monitoring focuses on operation latency, RU consumption patterns, and consistency-related behavior.</p>
+<pre><code class="language-dql">// Cosmos DB operation analysis
+fetch spans, from:-1h
+| filter db.system == &quot;cosmosdb&quot;
+| filter isNotNull(db.operation.name)
+| summarize {
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    errors = countIf(span.status_code == &quot;error&quot;)
+}, by:{db.namespace, db.operation.name}
+| sort call_count desc
+</code></pre>
+<p><a id="read-write-analysis"></a></p>
+<h2>6. Read vs Write Analysis</h2>
+<p>Understanding the read/write ratio is critical for NoSQL database tuning. Read-heavy workloads benefit from caching and read replicas, while write-heavy workloads may need partition optimization.</p>
+<pre><code class="language-dql">// Read vs Write ratio across all NoSQL databases
+// Falls back to code.function where db.operation.name is empty (OneAgent MongoDB, see § 2) —
+// filtering on db.operation.name alone dropped every MongoDB call on the validation tenant.
+// Operations in neither list are OTHER rather than silently counted as writes.
+fetch spans, from:-1h
+| filter in(db.system, {&quot;mongodb&quot;, &quot;dynamodb&quot;, &quot;cassandra&quot;, &quot;cosmosdb&quot;, &quot;couchbase&quot;})
+| fieldsAdd operation = coalesce(db.operation.name, code.function)
+| filter isNotNull(operation)
+| fieldsAdd rw_type = if(
+    in(operation, {&quot;find&quot;, &quot;count&quot;, &quot;aggregate&quot;, &quot;distinct&quot;, &quot;getMore&quot;, &quot;Query&quot;, &quot;Scan&quot;, &quot;GetItem&quot;, &quot;BatchGetItem&quot;, &quot;SELECT&quot;, &quot;ReadItem&quot;, &quot;get&quot;, &quot;search&quot;}),
+    then:&quot;READ&quot;,
+    else:if(
+      in(operation, {&quot;insert&quot;, &quot;update&quot;, &quot;delete&quot;, &quot;findAndModify&quot;, &quot;bulkWrite&quot;, &quot;PutItem&quot;, &quot;UpdateItem&quot;, &quot;DeleteItem&quot;, &quot;BatchWriteItem&quot;, &quot;INSERT&quot;, &quot;UPDATE&quot;, &quot;DELETE&quot;, &quot;CreateItem&quot;, &quot;ReplaceItem&quot;, &quot;UpsertItem&quot;, &quot;upsert&quot;, &quot;replace&quot;, &quot;remove&quot;}),
+      then:&quot;WRITE&quot;,
+      else:&quot;OTHER&quot;))
+| summarize {
+    op_count = count(),
+    avg_ms = avg(duration) / 1ms
+}, by:{db.system, rw_type}
+| sort db.system asc, rw_type asc
+</code></pre>
+<pre><code class="language-dql">// Read/Write ratio trend over time — detect shifting workload patterns
+fetch spans, from:-6h
+| filter in(db.system, {&quot;mongodb&quot;, &quot;dynamodb&quot;, &quot;cassandra&quot;, &quot;cosmosdb&quot;})
+| fieldsAdd operation = coalesce(db.operation.name, code.function)
+| filter isNotNull(operation)
+| fieldsAdd rw_type = if(
+    in(operation, {&quot;find&quot;, &quot;count&quot;, &quot;aggregate&quot;, &quot;distinct&quot;, &quot;getMore&quot;, &quot;Query&quot;, &quot;Scan&quot;, &quot;GetItem&quot;, &quot;BatchGetItem&quot;, &quot;SELECT&quot;, &quot;ReadItem&quot;, &quot;get&quot;, &quot;search&quot;}),
+    then:&quot;READ&quot;,
+    else:if(
+      in(operation, {&quot;insert&quot;, &quot;update&quot;, &quot;delete&quot;, &quot;findAndModify&quot;, &quot;bulkWrite&quot;, &quot;PutItem&quot;, &quot;UpdateItem&quot;, &quot;DeleteItem&quot;, &quot;BatchWriteItem&quot;, &quot;INSERT&quot;, &quot;UPDATE&quot;, &quot;DELETE&quot;, &quot;CreateItem&quot;, &quot;ReplaceItem&quot;, &quot;UpsertItem&quot;, &quot;upsert&quot;, &quot;replace&quot;, &quot;remove&quot;}),
+      then:&quot;WRITE&quot;,
+      else:&quot;OTHER&quot;))
+| makeTimeseries op_count = count(), by:{rw_type}, interval:15m
+</code></pre>
+<p><a id="cross-database-comparison"></a></p>
+<h2>7. Cross-Database Comparison</h2>
+<p>When your environment uses multiple NoSQL databases, comparing their performance characteristics helps identify which systems need attention.</p>
+<pre><code class="language-dql">// Compare NoSQL database performance — volume, latency, and error rates
+fetch spans, from:-1h
+| filter in(db.system, {&quot;mongodb&quot;, &quot;dynamodb&quot;, &quot;cassandra&quot;, &quot;cosmosdb&quot;, &quot;couchbase&quot;})
+| summarize {
+    total_calls = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    error_count = countIf(span.status_code == &quot;error&quot;),
+    unique_namespaces = countDistinct(db.namespace)
+}, by:{db.system}
+| fieldsAdd error_rate_pct = round((toDouble(error_count) / toDouble(total_calls)) * 100, decimals:2)
+| sort total_calls desc
+</code></pre>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li>How Dynatrace captures NoSQL database operations through span instrumentation</li>
+<li>MongoDB operation analysis by collection and performance profiling</li>
+<li>DynamoDB monitoring with Scan vs Query ratio analysis</li>
+<li>Cassandra latency analysis by keyspace and operation</li>
+<li>Cosmos DB operation monitoring</li>
+<li>Read vs Write ratio analysis for workload characterization</li>
+<li>Cross-database performance comparison techniques</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>DBMON-04: Cache and Messaging Monitoring</strong> — Redis, Kafka, RabbitMQ, and Elasticsearch analysis</li>
+<li><strong>DBMON-05: Query Analysis</strong> — Deep query analysis, N+1 detection, and optimization patterns</li>
+</ul>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>CLOUD series</strong> (9 notebooks) — Cloud-DB integration for DynamoDB (CloudWatch RU/throttling), Cosmos DB (Azure native), Cloud SQL / Spanner / Bigtable / Firestore (GCP)</li>
+<li><strong>AIOPS series</strong> — Davis anomaly detection on NoSQL throughput, error rate, and per-collection latency</li>
+<li><strong>DBMON-05</strong> — Query analysis patterns including N+1 detection across NoSQL</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

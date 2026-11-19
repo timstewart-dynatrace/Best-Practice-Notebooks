@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALERT-99: Best-Practice Summary and Setup Checklist</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ALERT — Alerting Strategy and Design</a><span class="sep">/</span><span aria-current="page">ALERT-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ALERT-99: Best-Practice Summary and Setup Checklist</h1>
+<blockquote>
+<p><strong>Series:</strong> ALERT — Alerting Strategy and Design | <strong>Notebook:</strong> 99 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 11/09/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>The series on one page: the principles, a complete end-to-end setup checklist, and the cross-series map of where each piece is built. Use this as the standing reference once you have read ALERT-01 through ALERT-04.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#principles">Principles</a></li>
+<li><a href="#checklist">Complete Setup Checklist</a></li>
+<li><a href="#audit">The Ongoing Audit Loop</a></li>
+<li><a href="#map">Cross-Series Map</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>ALERT-01 through ALERT-04</td>
+</tr>
+<tr>
+<td><strong>Companion series</strong></td>
+<td>AIOPS, SLO, WFLOW, OPIPE</td>
+</tr>
+</tbody>
+</table>
+<p><a id="principles"></a></p>
+<h2>1. Principles</h2>
+<ol>
+<li><strong>OOTB Davis first.</strong> Tune before you build; descend the funnel only when the layer above cannot express the condition.</li>
+<li><strong>One enriched problem is the hub.</strong> Every mechanism converges on a Davis problem; everything downstream operates on it.</li>
+<li><strong>Enrich upstream or you cannot route downstream.</strong> Team/area/severity belong on the problem before a workflow ever sees it.</li>
+<li><strong>Burn-rate beats threshold-on-SLI.</strong> Alert on how fast the budget drains, with multiwindow confirmation.</li>
+<li><strong>Prefer simple workflows.</strong> Pay for multi-step only when you need conditional/multi-team logic.</li>
+<li><strong>Match destination to urgency.</strong> Fast-burn → page; slow-burn → ticket.</li>
+<li><strong>Validate every query before it becomes an alert.</strong> A detector on a silent query is worse than no alert.</li>
+<li><strong>Audit on a cadence.</strong> Building well is half the job. A standing review — classify every problem, trace each false positive to the config behind it, and track the trend per area — keeps the funnel honest as services change. The 0.1%-of-observed-time yardstick in §3 is what turns “too noisy” from an opinion into a measurement.</li>
+</ol>
+<p><a id="checklist"></a></p>
+<h2>2. Complete Setup Checklist</h2>
+<p><strong>Detection</strong></p>
+<ul>
+<li>[ ] Reviewed OOTB Davis anomaly detection settings and tuned sensitivity</li>
+<li>[ ] Custom anomaly detectors only where Davis does not cover the condition (auto-adaptive/seasonal, not static-on-traffic)</li>
+<li>[ ] Log/span signals extracted to OpenPipeline metrics before alerting on them</li>
+<li>[ ] SLOs defined for critical user journeys with burn-rate alerts</li>
+<li>[ ] New detectors deployed with relaxed thresholds first, tightened after 1–2 weeks of observation</li>
+<li>[ ] New detectors shadow-deployed as <code>CUSTOM_INFO</code> and measured before promotion to <code>CUSTOM_ALERT</code></li>
+<li>[ ] Detectors alert on aggregated data, not split by high-cardinality dimensions (version, pod, status code)</li>
+<li>[ ] Sparse log/event conditions use records-based detectors with a large window and matching delay</li>
+</ul>
+<p><strong>Enrichment</strong></p>
+<ul>
+<li>[ ] Detector event templates carry team / area / service properties</li>
+<li>[ ] Primary Grail tags (<code>primary_tags.*</code>) set for the routing dimensions — they carry onto the problem, as a deduplicated union across its entities</li>
+<li>[ ] Entity tags and Smartscape ownership populated for OOTB problems (a workflow reads ownership with the <code>get_owners</code> action, which is a second task and so a standard workflow)</li>
+<li>[ ] <code>event.severity</code> used to drive priority, and each event source confirmed to actually <em>set</em> it: from SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) Davis events and problems no longer default it to 3, so severity filters and priority mappings need a plan for a missing value (ALERT-04 §5)</li>
+<li>[ ] Custom detector event templates set <code>dt.smartscape_source.id</code> to an existing entity ID, as the docs recommend — custom alerts raised without one have been seen attached to the environment entity alone (ALERT-02 §3)</li>
+</ul>
+<p><strong>Routing</strong></p>
+<ul>
+<li>[ ] Problem-trigger workflows filter on enriched metadata</li>
+<li>[ ] Simple workflows used wherever conditional logic is not needed</li>
+<li>[ ] Fast-burn → page channel; slow-burn → ticket channel</li>
+<li>[ ] One notification per problem (no duplicate alerts on raw metrics)</li>
+</ul>
+<p><strong>ITSM / destinations</strong></p>
+<ul>
+<li>[ ] ServiceNow incidents carry assignment group, priority, and a de-dup correlation key</li>
+<li>[ ] Legacy alerting-profile integrations identified; migration to workflows considered</li>
+</ul>
+<p><strong>Governance</strong></p>
+<ul>
+<li>[ ] Production detectors/SLOs promoted to config-as-code</li>
+<li>[ ] Alerts that fire without action reviewed and tuned</li>
+<li>[ ] Quarterly removal pass run: never-fired detectors, orphaned entities, and problems open for weeks</li>
+</ul>
+<p><a id="audit"></a></p>
+<h2>3. The Ongoing Audit Loop</h2>
+<p>The setup checklist above is build-time. Noise creeps back as services, traffic, and ownership change, so a standing audit is what keeps the funnel honest. The point is not to <em>count</em> false positives — it is to find the repeating configuration patterns behind them, so the same noise is not regenerated next period.</p>
+<p><strong>The yardstick: 0.1% of observed time.</strong> A healthy service should sit in an alert state no more than 0.1% of the time it is observed — about <strong>1 to 1.5 minutes a day</strong>, or roughly <strong>43 minutes a month</strong>. For a well-calibrated detector that means firing once or twice a <em>month</em>, not on a daily drumbeat.</p>
+<p>The value of the number is not its precision. It is that it converts &quot;this feels noisy&quot; into something anyone can check: a detector firing several times a week is a tuning candidate by definition rather than by opinion, which is what lets you take the finding to an owning team without it becoming an argument. AIOPS-02 §8 carries the triage query that ranks detectors by firing count and shows, per detector, whether it is attributable and whether you can navigate to its configuration.</p>
+<p><strong>Classify every problem.</strong> Each problem in the audit window lands in exactly one bucket:</p>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Meaning</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>True Positive (TP)</strong></td>
+<td>A real issue that required action</td>
+<td>None — the detector is working</td>
+</tr>
+<tr>
+<td><strong>False Positive (FP)</strong></td>
+<td>Fired but needed no action — a threshold, scope, detection-method, or sliding-window issue</td>
+<td>Trace it to the config and fix the source</td>
+</tr>
+<tr>
+<td><strong>Under Review (UR)</strong></td>
+<td>Not yet conclusive</td>
+<td>Carry to the next period; gather more data points</td>
+</tr>
+</tbody>
+</table>
+<p>Every FP must trace back to a concrete cause — the analyzer type, the entity scope, the sliding window, or the event template. An FP with no configuration change behind it is just a number; an FP with an identified root cause is progress.</p>
+<p><strong>Track one KPI:</strong> the false-positive rate over time, per area, and whether it is trending down. That single trend is the primary output of every cycle.</p>
+<p><strong>Signals to scan each cycle:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>What it flags</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fire rate</strong></td>
+<td>A detector firing many times a day is a tuning or de-dup candidate</td>
+</tr>
+<tr>
+<td><strong>Silence rate</strong></td>
+<td>Never fired in 90+ days → redundant, or watching a dead path</td>
+</tr>
+<tr>
+<td><strong>Immediate-silence rate</strong></td>
+<td>Acknowledged and closed with no action = noise</td>
+</tr>
+<tr>
+<td><strong>Routing coverage</strong></td>
+<td>Every alert should route to exactly one owner; an unrouted alert is invisible</td>
+</tr>
+<tr>
+<td><strong>Runbook link</strong></td>
+<td>An alert with no runbook attached has no possible action</td>
+</tr>
+<tr>
+<td><strong>Owner / area property</strong></td>
+<td>Present, so the alert maps to a team — also catches copy-paste clones that never set it</td>
+</tr>
+<tr>
+<td><strong>Problem age</strong></td>
+<td>A problem open for weeks is not a long incident — it is a misconfigured detector or an entity that no longer exists</td>
+</tr>
+<tr>
+<td><strong>Correlation coverage</strong></td>
+<td>Alerts attached to the environment entity alone have nothing more specific to correlate on and collect in large problems. Custom alerts without <code>dt.smartscape_source.id</code> are one cause; an integration that reports against the environment is another</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Remove, do not only tune.</strong> A review that only ever adjusts thresholds accumulates configuration. Each quarter, actively delete:</p>
+<ul>
+<li>Detectors firing more than a few times a week that nobody has acted on — noise carrying a maintenance cost.</li>
+<li>Detectors that have not fired in months. Either the condition cannot occur or something else is catching it; either way the configuration is dead weight, and its silence is indistinguishable from coverage.</li>
+<li>Alerts bound to orphaned entities — decommissioned services, retired application versions, hosts long gone.</li>
+<li>Detectors behind problems that have stayed open for weeks. Disabling one closes its problem and stops the wasted re-evaluation.</li>
+</ul>
+<p><strong>Cadence:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>When</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pre-go-live</strong></td>
+<td>Before an area or service reaches production</td>
+<td>Every new or migrated detector fires correctly in non-prod; nothing fires on no-data</td>
+</tr>
+<tr>
+<td><strong>Early</strong> (first ~3 months)</td>
+<td>Monthly</td>
+<td>Top-noise alerts reviewed with the owning team</td>
+</tr>
+<tr>
+<td><strong>Steady state</strong></td>
+<td>Quarterly</td>
+<td>Cross-area review; retire detectors silent 90+ days or at a 100% silence rate</td>
+</tr>
+</tbody>
+</table>
+<p>Express these as recurring queries, and pick the data object deliberately — there are <strong>three</strong> surfaces here and they answer different questions. Counts measured over the same 7 days on one tenant, 10/06/2026:</p>
+<table>
+<thead>
+<tr>
+<th>Query</th>
+<th style="text-align:right">Returns</th>
+<th>Use it for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fetch dt.davis.problems</code></td>
+<td style="text-align:right">4,246</td>
+<td><strong>Problem-level signals</strong> — one row per problem. MTTR, severity rollups, problem age.</td>
+</tr>
+<tr>
+<td><code>fetch dt.davis.events</code></td>
+<td style="text-align:right">264,272</td>
+<td><strong>Detector-level noise ranking</strong> — the firing stream (AIOPS-02 §8).</td>
+</tr>
+<tr>
+<td><code>fetch events | filter event.kind == &quot;DAVIS_PROBLEM&quot;</code></td>
+<td style="text-align:right">122,837</td>
+<td>The <strong>raw problem-event stream</strong> — many records per problem as its state updates. Valid, but do not count these and call the result &quot;problems&quot;: they cover 4,264 distinct problems, a 29× over-count. The multiplier is not a constant to divide by — on the same tenant it was about 750× on 07/31/2026.</td>
+</tr>
+</tbody>
+</table>
+<p>The trap worth naming: <strong><code>fetch dt.davis.events | filter event.kind == &quot;DAVIS_PROBLEM&quot;</code> returns exactly zero</strong> — <code>dt.davis.events</code> carries only <code>DAVIS_EVENT</code> (AIOPS-03 §3). That is a filter on the wrong table, not a deprecated form, and it fails silently. The superficially similar <code>fetch events | filter event.kind == &quot;DAVIS_PROBLEM&quot;</code> is a different query against a different table and works fine. AIOPS-03 and ORGNZ-10 carry validated problem-feed patterns to build on.</p>
+<p>Two of the signals above are worth turning into standing trend queries rather than one-off checks, both built from the two-data-object model in AIOPS-03 §3.</p>
+<p><strong>Denoising ratio (events → problems).</strong> How much is Causal AI's grouping actually consolidating? Divide problem-worthy events by the problems they produced, trended daily — a ratio sitting near 1 for a stretch means events are arriving as separate problems rather than merging. Read it alongside &quot;Correlation coverage&quot; above rather than as the same signal: poor correlation coverage pushes the ratio the <em>other</em> way. On the tenant above, problems attached only to the environment grouped 8.5 events each, against about one for every other problem (7 days to 10/06/2026). Filter both sides of the ratio on the same event categories, or problems from an excluded category enter the denominator with no events behind them. As with the 0.1% yardstick, there's no universal healthy number here; trend it against your own baseline.</p>
+<pre><code class="language-dql">// Denoising ratio — problem-worthy events divided by resulting problems, trended daily
+//
+// Both streams must be confined to the SAME window. dt.davis.problems is fetched by
+// record timestamp, but binned by event.start — so a problem that started before the
+// window (or is still open from weeks ago) lands in a day bucket with zero events and
+// reports denoising_ratio = 0. Verified 08/27/2026: without the event.start filter the
+// first 12 rows were all such artifacts, dated back to 2026-06-01.
+//
+// Both streams must also use the SAME categories. Filtering only the events would leave
+// problems opened by excluded categories (custom alerts, for instance) in the denominator
+// with no events behind them, and the ratio would read low. Validated 10/06/2026:
+// 31 daily rows, ratio 1.69-3.65, no notifications.
+//
+// Count completed days only: the current UTC day is a part-filled bucket and reads
+// high (5.48 on 11/09/2026). Re-validated 11/09/2026 with that filter: 30 daily rows,
+// ratio 1.14-3.20, no notifications.
+fetch dt.davis.events, from:-30d
+| filter in(event.category, {&quot;AVAILABILITY&quot;,&quot;ERROR&quot;,&quot;RESOURCE_CONTENTION&quot;,&quot;SLOWDOWN&quot;,&quot;CUSTOM_ALERT&quot;})
+| fieldsAdd kind = &quot;event&quot;, day = bin(timestamp, 24h)
+| append [
+    fetch dt.davis.problems, from:-30d
+    | filter not(dt.davis.is_duplicate)
+    | filter event.start &gt;= now() - 30d
+    | filter in(event.category, {&quot;AVAILABILITY&quot;,&quot;ERROR&quot;,&quot;RESOURCE_CONTENTION&quot;,&quot;SLOWDOWN&quot;,&quot;CUSTOM_ALERT&quot;})
+    | fieldsAdd kind = &quot;problem&quot;, day = bin(event.start, 24h)
+  ]
+| summarize {event_count = countIf(kind == &quot;event&quot;), problem_count = countIf(kind == &quot;problem&quot;)}, by:{day}
+| filter problem_count &gt; 0 and event_count &gt; 0
+| filter day &lt; bin(now(), 24h)
+| fieldsAdd denoising_ratio = round(toDouble(event_count) / problem_count, decimals: 2)
+| sort day asc
+</code></pre>
+<p><strong>Correlation coverage.</strong> The share of non-informational Davis events attached to something more specific than the environment entity. The docs ask for <code>dt.smartscape_source.id</code> to be an existing entity ID so that the correlation engine can resolve the entity; they do not describe what happens to an event without one. The data shows what to watch: an event attached only to the environment has nothing but the environment to be grouped on, and those events collect in large problems (ALERT-02 §3). Measure the attachment itself, not whether <code>dt.smartscape_source.id</code> is present. On the same tenant over 7 days, 88% of events without that field were still attached to a real entity, and one cloud integration's events carried a source yet were attached to the environment alone. Over 30 days to 10/06/2026 the daily share below ranged from 74% to 87%:</p>
+<pre><code class="language-dql">// Correlation coverage — share of non-informational Davis events attached to something
+// other than the environment entity alone, trended daily.
+// affected_entity_ids is populated on every Davis event; smartscape.affected_entities was
+// present on fewer than half of them. Validated 10/06/2026: 31 daily values, 73.7-87.3%,
+// no notifications.
+fetch dt.davis.events, from:-30d
+| filter not(in(event.category, {&quot;INFO&quot;,&quot;WARNING&quot;}))
+| fieldsAdd env_only = arraySize(affected_entity_ids) == 1 and startsWith(toString(affected_entity_ids[0]), &quot;ENVIRONMENT-&quot;)
+| fieldsAdd attributed_flag = if(env_only, 0.0, else: 100.0)
+| makeTimeseries correlation_coverage_pct = avg(attributed_flag), interval:24h
+</code></pre>
+<p>When the share drops, break the environment-only events down by what produced them:</p>
+<pre><code class="language-dql">// What produces the environment-only events? A CUSTOM_* type with no source points at
+// that detector's event template; a built-in provider points at the integration instead.
+// Validated 10/06/2026: 6 rows, no notifications.
+fetch dt.davis.events, from:-30d
+| filter not(in(event.category, {&quot;INFO&quot;,&quot;WARNING&quot;}))
+| filter arraySize(affected_entity_ids) == 1 and startsWith(toString(affected_entity_ids[0]), &quot;ENVIRONMENT-&quot;)
+| fieldsAdd has_source = isNotNull(dt.smartscape_source.id)
+| summarize {events = count(), detectors = countDistinctExact(dt.settings.object_id)}, by:{event.provider, event.type, dt.settings.schema_id, has_source}
+| sort events desc
+| limit 20
+</code></pre>
+<p><strong>Reading the two together.</strong> When correlation coverage falls, the breakdown above says where to look. A <code>CUSTOM_*</code> event type with no source points at that detector's event template (the Enrichment block of Section 2's checklist). A built-in provider whose events land on the environment points at that integration, not at a template you own. A falling denoising ratio <em>despite</em> stable correlation coverage points the other way, at scoping or tuning rather than attribution.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting">Avoid overalerting (DT docs)</a> — <em>&quot;make sure to set the dt.smartscape_source.id field to an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string&quot;</em>; <em>&quot;The same Smartscape entity rule groups all events that share the same dt.smartscape_source.id field value.&quot;</em> Coverage, breakdown, denoising and over-count figures are tenant measurements run 10/06/2026. <strong>Derived:</strong> the audit signals table extends the documented review targets with the correlation-coverage and problem-age checks implied by the entity-ID and long-running-alert guidance; the denoising-ratio and correlation-coverage trend queries apply the two-data-object model (AIOPS-03 §3) to already-documented fields as standing metrics.</sub></p>
+</blockquote>
+<p><a id="map"></a></p>
+<h2>4. Cross-Series Map</h2>
+<table>
+<thead>
+<tr>
+<th>Piece</th>
+<th>Built in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Anomaly detector mechanics (analyzer, tuning, event template)</td>
+<td>AIOPS-02</td>
+</tr>
+<tr>
+<td>Metric events / detector schemas as code</td>
+<td>AIOPS-02 §6, AUTOM-05/06</td>
+</tr>
+<tr>
+<td>OpenPipeline metric extraction</td>
+<td>OPIPE, FAQ-09</td>
+</tr>
+<tr>
+<td>SLIs, error budgets, burn-rate alerting</td>
+<td>SLO-02 / 03 / 04</td>
+</tr>
+<tr>
+<td>SLOs as code</td>
+<td>SLO-05</td>
+</tr>
+<tr>
+<td>Routing, conditions, escalation</td>
+<td>WFLOW-03 / 04</td>
+</tr>
+<tr>
+<td>HTTP / webhook actions</td>
+<td>WFLOW-08</td>
+</tr>
+<tr>
+<td>ServiceNow incident integration</td>
+<td>ALERT-04</td>
+</tr>
+<tr>
+<td>Cost / DPS framing</td>
+<td>FINOPS, FAQ-09</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications">Alerting and notifications (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows (DT docs)</a>. <strong>Derived:</strong> the checklist and funnel synthesise the ALERT, AIOPS, SLO, and WFLOW series into one operational sequence.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

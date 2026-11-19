@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SL2DT-10: Migrating Telegraf-Collected Metrics</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SL2DT — Sumo Logic to Dynatrace</a><span class="sep">/</span><span aria-current="page">SL2DT-10</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SL2DT-10: Migrating Telegraf-Collected Metrics</h1>
+<blockquote>
+<p><strong>Series:</strong> SL2DT — Sumo Logic to Dynatrace | <strong>Notebook:</strong> 10 of 11 | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 10/05/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> bring a Telegraf-collected metric estate across to Dynatrace — inventory it, choose a target ingest path per source, reshape the metric keys, and prove parity during the parallel run.</p>
+<p>Steps 03 through 06 cover the <strong>log</strong> path end to end. Metrics are a separate workstream, and a Sumo account whose operational visibility is largely Telegraf-collected metrics has no chapter in that sequence. The metric keys also change shape at the boundary <strong>regardless of which path you choose</strong>, so every metric query, dashboard panel, and monitor threshold needs rewriting.</p>
+<blockquote>
+<p><strong>Where this fits — read this as a parallel track, not a post-cutover step.</strong> This notebook is numbered 10 because it was added after the original nine steps, not because metric migration happens last. Run it alongside the log path: inventory with <strong>SL2DT-02</strong>, choose ingest paths alongside <strong>SL2DT-03</strong>, rewrite queries alongside <strong>SL2DT-04</strong>, and rebuild monitors and dashboards alongside <strong>SL2DT-05</strong> and <strong>SL2DT-06</strong>. Deferring it to after cutover means running two cutovers.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#outputs">What You'll Produce</a></li>
+<li><a href="#inventory">Inventory the Metric Estate</a></li>
+<li><a href="#paths">Choose the Target Ingest Path</a></li>
+<li><a href="#mechanics">Telegraf to Dynatrace — Plugin Mechanics</a></li>
+<li><a href="#keys">Metric-Key Reshaping at the Boundary</a></li>
+<li><a href="#parity">Parity Validation During the Parallel Run</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead + the team that owns the Telegraf configurations</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Procedural — produce four artifacts checked into the migration repo</td>
+</tr>
+<tr>
+<td><strong>Sumo access</strong></td>
+<td>Metrics sources readable; Telegraf <code>.conf</code> files retrievable from the hosts</td>
+</tr>
+<tr>
+<td><strong>Dynatrace access</strong></td>
+<td>Tenant with metric ingest available; for the remote route, a token with <code>metrics.ingest</code> scope</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>SL2DT-02 (inventory and cut scope), FAQ-11 (how metrics work in Dynatrace), OPIPE-04 (cardinality budgets)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="outputs"></a></p>
+<h2>1. What You'll Produce</h2>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Format</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>inventory/metrics.json</code></td>
+<td>JSON</td>
+<td>Every Sumo metrics source and Telegraf input: measurement, fields, tag keys, volume</td>
+</tr>
+<tr>
+<td><code>metric-key-map.md</code></td>
+<td>Markdown</td>
+<td>Source metric name → Dynatrace metric key, per chosen path</td>
+</tr>
+<tr>
+<td><code>metric-cut-scope.md</code></td>
+<td>Markdown</td>
+<td>Migrate / retire / defer per metric, with owner signoff</td>
+</tr>
+<tr>
+<td><code>parity-report.md</code></td>
+<td>Markdown</td>
+<td>Sumo vs Dynatrace comparison across the parallel window</td>
+</tr>
+</tbody>
+</table>
+<p>These gate the metric half of cutover in <strong>SL2DT-09</strong>. <code>metric-key-map.md</code> is the artifact that unblocks query rewriting in <strong>SL2DT-04</strong> — produce it early, because every downstream rewrite depends on it.</p>
+<p><a id="inventory"></a></p>
+<h2>2. Inventory the Metric Estate</h2>
+<p><strong>SL2DT-02 § 6</strong> inventories collectors for the log path. Metric sources need the same treatment, but the questions differ: what matters is not only where the data comes from, but what each series will <em>cost</em> and what it will <em>key on</em> after the boundary.</p>
+<h3>Metric Source Types to Enumerate</h3>
+<table>
+<thead>
+<tr>
+<th>Sumo-side source</th>
+<th>What to capture</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Telegraf via Installed Collector</td>
+<td>Enabled <code>[[inputs.*]]</code> plugins, measurement names, field names, tag keys</td>
+</tr>
+<tr>
+<td>Hosted metrics source (HTTP)</td>
+<td>Sending system, payload format, metric naming scheme</td>
+</tr>
+<tr>
+<td>StatsD / Graphite source</td>
+<td>Metric naming scheme, aggregation interval</td>
+</tr>
+<tr>
+<td>Prometheus scrape</td>
+<td>Scrape targets, job labels, relabeling rules</td>
+</tr>
+<tr>
+<td>Host metrics from the Installed Collector</td>
+<td>Whether OneAgent already covers the same signal — frequently it does</td>
+</tr>
+</tbody>
+</table>
+<h3>Per-Metric Record</h3>
+<p>For every metric series that survives cut scope, record:</p>
+<ul>
+<li><strong>Input plugin</strong> and <strong>measurement</strong> name</li>
+<li><strong>Field names</strong> — each field becomes its own Dynatrace metric key (see § 5)</li>
+<li><strong>Tag keys</strong> — these become dimensions; count the distinct values per key</li>
+<li><strong>Cardinality estimate</strong> — distinct tag-value combinations per measurement</li>
+<li><strong>Volume</strong> — data points per minute</li>
+<li><strong>Consumers</strong> — which Sumo dashboards, monitors, and scheduled searches read it</li>
+</ul>
+<blockquote>
+<p><strong>Cardinality is the cost driver.</strong> A measurement with only a handful of fields but one high-cardinality tag — a container ID, a request ID, a user ID — multiplies into a large number of series. Apply the cardinality budgets from <strong>OPIPE-04</strong> during inventory rather than after ingest; § 5 explains why correcting this later is a break rather than an edit.</p>
+</blockquote>
+<blockquote>
+<p><strong>The cheapest metric is the one you never migrate.</strong> Apply the same usage-based cut scope here that SL2DT-02 applies to dashboards and monitors: a metric that no dashboard or monitor has read in 90 days is a retire candidate, not a migration candidate.</p>
+</blockquote>
+<p><a id="paths"></a></p>
+<h2>3. Choose the Target Ingest Path</h2>
+<p>Four viable targets. They are ordered not by effort but by how much of the platform you still have afterwards.</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>When it wins</th>
+<th>What you get</th>
+<th>What it costs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. OneAgent native</strong></td>
+<td>The signal is one OneAgent already instruments — hosts, processes, common runtimes, many databases</td>
+<td>Entities and topology, and Davis baselining, without ingesting anything custom</td>
+<td>Deploy OneAgent; accept its metric names rather than your own</td>
+</tr>
+<tr>
+<td><strong>2. Hub extension</strong></td>
+<td>A pre-built Dynatrace extension exists for the technology</td>
+<td>A curated metric set with a supported configuration surface</td>
+<td>Extension setup; confirm its metric set covers what your dashboards actually read</td>
+</tr>
+<tr>
+<td><strong>3. Keep Telegraf → <code>outputs.dynatrace</code></strong></td>
+<td>You need the fastest cutover, or the source has no OneAgent or extension equivalent</td>
+<td>Existing collection keeps working; ingest becomes a config change</td>
+<td>Metric data points only — and the keys still change shape (§ 5)</td>
+</tr>
+<tr>
+<td><strong>4. OTel Collector → OTLP</strong></td>
+<td>You are standardizing on OpenTelemetry across signals anyway</td>
+<td>One collection tier for metrics, traces, and logs</td>
+<td>Delta temporality is mandatory (§ 4); naming differs again (§ 5)</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5DaG9vc2luZyBhIFRhcmdldCBQYXRoIGZvciBUZWxlZ3JhZi1Db2xsZWN0ZWQgTWV0cmljczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5PcmRlcmVkIGJ5IGhvdyBtdWNoIG9mIHRoZSBwbGF0Zm9ybSB5b3Uga2VlcCBhZnRlcndhcmRzIOKAlCBub3QgYnkgZWZmb3J0PC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93VFAiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gVmFsdWUgZGlyZWN0aW9uIGJhciAtLT4KICA8bGluZSB4MT0iNDAiIHkxPSI5MiIgeDI9Ijg5MCIgeTI9IjkyIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93VFApIi8+CiAgPHRleHQgeD0iNDAiIHk9Ijg0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5Nb3N0IHBsYXRmb3JtIHZhbHVlPC90ZXh0PgogIDx0ZXh0IHg9Ijg5MCIgeT0iODQiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkZhc3Rlc3QgdG8gc2hpcDwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gQ2FyZCAxOiBPbmVBZ2VudCBuYXRpdmUgPT09PT09PT09PT09IC0tPgogIDxyZWN0IHg9IjI1IiB5PSIxMTIiIHdpZHRoPSIyMDUiIGhlaWdodD0iMjkyIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiByeD0iNiIvPgogIDxyZWN0IHg9IjI1IiB5PSIxMTIiIHdpZHRoPSIyMDUiIGhlaWdodD0iMjkyIiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8Y2lyY2xlIGN4PSI0NyIgY3k9IjEzNiIgcj0iMTIiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMjUiLz4KICA8dGV4dCB4PSI0NyIgeT0iMTQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4xPC90ZXh0PgogIDx0ZXh0IHg9IjY4IiB5PSIxNDEiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk9uZUFnZW50IG5hdGl2ZTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMTU2IiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj5uYXRpdmUgaW5zdHJ1bWVudGF0aW9uPC90ZXh0PgogIDxsaW5lIHgxPSI0MCIgeTE9IjE2NCIgeDI9IjIxNSIgeTI9IjE2NCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIG9wYWNpdHk9IjAuNCIvPgoKICA8dGV4dCB4PSI0MCIgeT0iMTg2IiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSI3MDAiPldIRU4gSVQgV0lOUzwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMjA0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5PbmVBZ2VudCBhbHJlYWR5PC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIyMTkiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPmluc3RydW1lbnRzIHRoZSB0ZWNobm9sb2d5PC90ZXh0PgoKICA8dGV4dCB4PSI0MCIgeT0iMjQ5IiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSI3MDAiPldIQVQgWU9VIEdFVDwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMjY3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5FbnRpdGllcywgdG9wb2xvZ3kgYW5kPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIyODIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRhdmlzIGJhc2VsaW5pbmc8L3RleHQ+CgogIDx0ZXh0IHg9IjQwIiB5PSIzMTUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjcwMCI+V0hBVCBJVCBDT1NUUzwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMzMzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EZXBsb3kgT25lQWdlbnQ7IGFjY2VwdDwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMzQ4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5pdHMgbWV0cmljIG5hbWVzPC90ZXh0PgoKICA8cmVjdCB4PSI0MCIgeT0iMzY2IiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjI0IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjE1IiByeD0iNCIvPgogIDx0ZXh0IHg9IjEyNyIgeT0iMzgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5QcmVmZXIgd2hlcmUgaXQgYXBwbGllczwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gQ2FyZCAyOiBIdWIgZXh0ZW5zaW9uID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIyNTAiIHk9IjExMiIgd2lkdGg9IjIwNSIgaGVpZ2h0PSIyOTIiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHJ4PSI2Ii8+CiAgPHJlY3QgeD0iMjUwIiB5PSIxMTIiIHdpZHRoPSIyMDUiIGhlaWdodD0iMjkyIiBmaWxsPSJub25lIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8Y2lyY2xlIGN4PSIyNzIiIGN5PSIxMzYiIHI9IjEyIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjI1Ii8+CiAgPHRleHQgeD0iMjcyIiB5PSIxNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5M0M1RkQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjI8L3RleHQ+CiAgPHRleHQgeD0iMjkzIiB5PSIxNDEiIGZpbGw9IiM5M0M1RkQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkh1YiBleHRlbnNpb248L3RleHQ+CiAgPHRleHQgeD0iMjY1IiB5PSIxNTYiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPnByZS1idWlsdCBwYWNrYWdlPC90ZXh0PgogIDxsaW5lIHgxPSIyNjUiIHkxPSIxNjQiIHgyPSI0NDAiIHkyPSIxNjQiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxIiBvcGFjaXR5PSIwLjQiLz4KCiAgPHRleHQgeD0iMjY1IiB5PSIxODYiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjcwMCI+V0hFTiBJVCBXSU5TPC90ZXh0PgogIDx0ZXh0IHg9IjI2NSIgeT0iMjA0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5BIHByZS1idWlsdCBEeW5hdHJhY2U8L3RleHQ+CiAgPHRleHQgeD0iMjY1IiB5PSIyMTkiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPmV4dGVuc2lvbiBleGlzdHM8L3RleHQ+CgogIDx0ZXh0IHg9IjI2NSIgeT0iMjQ5IiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSI3MDAiPldIQVQgWU9VIEdFVDwvdGV4dD4KICA8dGV4dCB4PSIyNjUiIHk9IjI2NyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Q3VyYXRlZCBtZXRyaWMgc2V0IG9uIGE8L3RleHQ+CiAgPHRleHQgeD0iMjY1IiB5PSIyODIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnN1cHBvcnRlZCBjb25maWcgc3VyZmFjZTwvdGV4dD4KCiAgPHRleHQgeD0iMjY1IiB5PSIzMTUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjcwMCI+V0hBVCBJVCBDT1NUUzwvdGV4dD4KICA8dGV4dCB4PSIyNjUiIHk9IjMzMyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U2V0dXA7IHZlcmlmeSBpdCBjb3ZlcnM8L3RleHQ+CiAgPHRleHQgeD0iMjY1IiB5PSIzNDgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPndoYXQgZGFzaGJvYXJkcyByZWFkPC90ZXh0PgoKICA8cmVjdCB4PSIyNjUiIHk9IjM2NiIgd2lkdGg9IjE3NSIgaGVpZ2h0PSIyNCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xNSIgcng9IjQiLz4KICA8dGV4dCB4PSIzNTIiIHk9IjM4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzkzQzVGRCIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+Q2hlY2sgdGhlIEh1YiBmaXJzdDwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gQ2FyZCAzOiBLZWVwIFRlbGVncmFmID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI0NzUiIHk9IjExMiIgd2lkdGg9IjIwNSIgaGVpZ2h0PSIyOTIiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHJ4PSI2Ii8+CiAgPHJlY3QgeD0iNDc1IiB5PSIxMTIiIHdpZHRoPSIyMDUiIGhlaWdodD0iMjkyIiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8Y2lyY2xlIGN4PSI0OTciIGN5PSIxMzYiIHI9IjEyIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjI1Ii8+CiAgPHRleHQgeD0iNDk3IiB5PSIxNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjM8L3RleHQ+CiAgPHRleHQgeD0iNTE4IiB5PSIxNDEiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPktlZXAgVGVsZWdyYWY8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIxNTYiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPm91dHB1dHMuZHluYXRyYWNlPC90ZXh0PgogIDxsaW5lIHgxPSI0OTAiIHkxPSIxNjQiIHgyPSI2NjUiIHkyPSIxNjQiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxIiBvcGFjaXR5PSIwLjQiLz4KCiAgPHRleHQgeD0iNDkwIiB5PSIxODYiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjcwMCI+V0hFTiBJVCBXSU5TPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMjA0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5GYXN0ZXN0IGN1dG92ZXIsIG9yIG5vPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMjE5IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5PbmVBZ2VudC9leHRlbnNpb24gcGF0aDwvdGV4dD4KCiAgPHRleHQgeD0iNDkwIiB5PSIyNDkiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjcwMCI+V0hBVCBZT1UgR0VUPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMjY3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5FeGlzdGluZyBjb2xsZWN0aW9uIGtlZXBzPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMjgyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj53b3JraW5nIOKAlCBhIGNvbmZpZyBjaGFuZ2U8L3RleHQ+CgogIDx0ZXh0IHg9IjQ5MCIgeT0iMzE1IiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSI3MDAiPldIQVQgSVQgQ09TVFM8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIzMzMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk1ldHJpYyBkYXRhIHBvaW50cyBvbmx5IOKAlDwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjM0OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bm8gZW50aXR5IHRvcG9sb2d5PC90ZXh0PgoKICA8cmVjdCB4PSI0OTAiIHk9IjM2NiIgd2lkdGg9IjE3NSIgaGVpZ2h0PSIyNCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xOCIgcng9IjQiLz4KICA8dGV4dCB4PSI1NzciIHk9IjM4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+VHJhbnNpdGlvbiwgbm90IGRlc3RpbmF0aW9uPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBDYXJkIDQ6IE9UZWwgQ29sbGVjdG9yID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI3MDAiIHk9IjExMiIgd2lkdGg9IjIwNSIgaGVpZ2h0PSIyOTIiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiIHJ4PSI2Ii8+CiAgPHJlY3QgeD0iNzAwIiB5PSIxMTIiIHdpZHRoPSIyMDUiIGhlaWdodD0iMjkyIiBmaWxsPSJub25lIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8Y2lyY2xlIGN4PSI3MjIiIGN5PSIxMzYiIHI9IjEyIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjI1Ii8+CiAgPHRleHQgeD0iNzIyIiB5PSIxNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjQ8L3RleHQ+CiAgPHRleHQgeD0iNzQzIiB5PSIxNDEiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk9UZWwgQ29sbGVjdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjcxNSIgeT0iMTU2IiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjEwIj52aWEgT1RMUDwvdGV4dD4KICA8bGluZSB4MT0iNzE1IiB5MT0iMTY0IiB4Mj0iODkwIiB5Mj0iMTY0IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMSIgb3BhY2l0eT0iMC40Ii8+CgogIDx0ZXh0IHg9IjcxNSIgeT0iMTg2IiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSI3MDAiPldIRU4gSVQgV0lOUzwvdGV4dD4KICA8dGV4dCB4PSI3MTUiIHk9IjIwNCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+U3RhbmRhcmRpemluZyBvbjwvdGV4dD4KICA8dGV4dCB4PSI3MTUiIHk9IjIxOSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+T3BlblRlbGVtZXRyeSBhbnl3YXk8L3RleHQ+CgogIDx0ZXh0IHg9IjcxNSIgeT0iMjQ5IiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSI3MDAiPldIQVQgWU9VIEdFVDwvdGV4dD4KICA8dGV4dCB4PSI3MTUiIHk9IjI2NyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T25lIGNvbGxlY3Rpb24gdGllciBmb3I8L3RleHQ+CiAgPHRleHQgeD0iNzE1IiB5PSIyODIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm1ldHJpY3MsIHRyYWNlcyBhbmQgbG9nczwvdGV4dD4KCiAgPHRleHQgeD0iNzE1IiB5PSIzMTUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjcwMCI+V0hBVCBJVCBDT1NUUzwvdGV4dD4KICA8dGV4dCB4PSI3MTUiIHk9IjMzMyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RGVsdGEgdGVtcG9yYWxpdHkgaXM8L3RleHQ+CiAgPHRleHQgeD0iNzE1IiB5PSIzNDgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm1hbmRhdG9yeTsga2V5cyBkaWZmZXI8L3RleHQ+CgogIDxyZWN0IHg9IjcxNSIgeT0iMzY2IiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjI0IiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjE1IiByeD0iNCIvPgogIDx0ZXh0IHg9IjgwMiIgeT0iMzgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5WZXJpZnkga2V5cyBwZXIgcm91dGU8L3RleHQ+CgogIDwhLS0gPT09PT09PT09PT09IFNoYXJlZCBjYXZlYXQgYmFubmVyID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIyNSIgeT0iNDIwIiB3aWR0aD0iODgwIiBoZWlnaHQ9IjU2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ1IiB5PSI0NDMiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vIHBhdGggcHJlc2VydmVzIHlvdXIgc291cmNlIG1ldHJpYyBuYW1lcy48L3RleHQ+CiAgPHRleHQgeD0iMzI1IiB5PSI0NDMiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTIiPkV2ZXJ5IHJvdXRlIHJlc2hhcGVzIHRoZSBrZXkg4oCUIG1hcCBvbGQgdG8gbmV3IGJlZm9yZSBjdXRvdmVyICjCpyA1KS48L3RleHQ+CiAgPHRleHQgeD0iNDUiIHk9IjQ2NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+TW9zdCBlc3RhdGVzIGVuZCB1cCBtaXhpbmcgcGF0aHMuIFRoYXQgaXMgYSBsZWdpdGltYXRlIGVuZCBzdGF0ZSDigJQgYnV0IHJlY29yZCBhIHJldmlzaXQgZGF0ZSBmb3IgYW55dGhpbmcgcGFya2VkIG9uIHBhdGggMy48L3RleHQ+Cjwvc3ZnPgo=" alt="Telegraf Target Path Decision" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Path | When it wins | What you get | Caveat |
+|------|--------------|--------------|--------|
+| 1. OneAgent native | OneAgent already instruments the technology | Entities, topology, Davis baselining | Accept its metric names |
+| 2. Hub extension | A pre-built Dynatrace extension exists | Curated metric set, supported config surface | Verify it covers what dashboards read |
+| 3. Keep Telegraf (outputs.dynatrace) | Fastest cutover, or no OneAgent/extension path | Existing collection keeps working | Metric data points only — transition state |
+| 4. OTel Collector via OTLP | Standardizing on OpenTelemetry | One tier for metrics, traces, logs | Delta temporality mandatory; keys differ |
+For environments where SVG doesn't render
+-->
+<h3>Decide Per Source, Not Per Estate</h3>
+<p>Most migrations end up mixing paths — OneAgent for the host and runtime signals it already covers, an extension where one exists, and Telegraf for the long tail. That is a legitimate end state, not a failure to converge.</p>
+<blockquote>
+<p><strong>Path 3 is a transition state, not a destination — write that down explicitly.</strong> In community practice the most consistent trap is that &quot;keep Telegraf&quot; ships first, works, and is then never revisited. Ingested Telegraf metrics arrive as metric data points carrying dimensions; they do not by themselves produce the entity topology that OneAgent-detected technologies do. Before choosing a metrics-only path for a technology OneAgent could instrument, confirm what topology and baselining you are giving up — and if you choose it anyway, record a revisit date in <code>metric-cut-scope.md</code>.</p>
+</blockquote>
+<p><strong>Related:</strong> <strong>FAQ-14</strong> makes the same argument for SQL Server — caller-side and server-side collection are complements, and a script-only posture (here, a Telegraf-only posture) is a transition rather than an end state.</p>
+<p><a id="mechanics"></a></p>
+<h2>4. Telegraf to Dynatrace — Plugin Mechanics</h2>
+<p>The <code>outputs.dynatrace</code> plugin ships with Telegraf. There are two endpoint modes, and the choice affects authentication <strong>and</strong> enrichment.</p>
+<h3>Endpoint Modes</h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th><code>url</code></th>
+<th>Token</th>
+<th>Automatic enrichment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Local OneAgent</strong></td>
+<td>empty, or <code>http://127.0.0.1:14499/metrics/ingest</code> (the default)</td>
+<td>None required</td>
+<td>Host ID and host name added as dimensions</td>
+</tr>
+<tr>
+<td><strong>Remote environment</strong></td>
+<td><code>https://{env-id}.live.dynatrace.com/api/v2/metrics/ingest</code></td>
+<td><code>metrics.ingest</code> scope</td>
+<td>None — you supply dimensions yourself</td>
+</tr>
+</tbody>
+</table>
+<p>Telegraf metric ingestion requires <strong>OneAgent 1.201+</strong>, and the default metric ingestion port is <strong>14499</strong>.</p>
+<pre><code class="language-toml">## Local OneAgent endpoint — no API token required
+[[outputs.dynatrace]]
+  ## Leave empty to use the local OneAgent endpoint
+  ## (default: http://127.0.0.1:14499/metrics/ingest)
+  url = &quot;&quot;
+  prefix = &quot;telegraf&quot;
+
+## Remote environment endpoint
+[[outputs.dynatrace]]
+  url = &quot;https://{your-environment-id}.live.dynatrace.com/api/v2/metrics/ingest&quot;
+  api_token = &quot;dt0c01.*****&quot;   # metrics.ingest scope only
+  prefix = &quot;telegraf&quot;
+</code></pre>
+<h3>Behaviours That Surprise People</h3>
+<table>
+<thead>
+<tr>
+<th>Behaviour</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Everything is a gauge by default</strong></td>
+<td>&quot;All metrics are reported as gauges, unless they are specified to be delta counters using the <code>additional_counters</code> or <code>additional_counters_patterns</code> config option.&quot; A Telegraf counter you do not list lands as a gauge.</td>
+</tr>
+<tr>
+<td><strong>Batching is 1,000 lines per request</strong></td>
+<td>This is a <strong>client-side</strong> batching constant in the metric library the plugin uses — <em>not</em> an API ceiling. The ingest API limits the <strong>payload to 1 MB</strong> and states there is no limit on the number of metrics. Do not size your pipeline against 1,000.</td>
+</tr>
+<tr>
+<td><strong><code>prefix</code> supplies its own separator</strong></td>
+<td>The plugin documents <code>prefix</code> as &quot;prepended to all metric names (will be separated with a <code>.</code>)&quot; — you do not add the dot.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong><code>prefix</code> trailing-dot trap.</strong> The Dynatrace documentation page shows <code>prefix = &quot;telegraf.&quot;</code> <em>with</em> a trailing dot, while the plugin's own sample configuration uses <code>prefix = &quot;telegraf&quot;</code> <em>without</em> one and states the separator is added automatically. Use the no-dot form, then <strong>verify the resulting keys in your tenant</strong> before building dashboards on them — a doubled dot is easy to ship and awkward to unpick after ingest.</p>
+</blockquote>
+<p><a id="keys"></a></p>
+<h2>5. Metric-Key Reshaping at the Boundary</h2>
+<p><strong>No path preserves your source metric names.</strong> This is the most disruptive fact in a metric migration, and it is why <code>metric-key-map.md</code> gates the query rewrite in SL2DT-04.</p>
+<h3>How <code>outputs.dynatrace</code> Builds the Key</h3>
+<p>The plugin composes the Dynatrace metric key from the Telegraf <strong>measurement</strong> and <strong>field</strong>, joined with a dot:</p>
+<pre><code class="language-go">metricName := tm.Name() + &quot;.&quot; + field.Key
+</code></pre>
+<p>So a Telegraf <code>apache</code> input producing a <code>BusyWorkers</code> field arrives as:</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Telegraf measurement + field</td>
+<td><code>apache</code> + <code>BusyWorkers</code></td>
+</tr>
+<tr>
+<td>Dynatrace metric key</td>
+<td><code>apache.BusyWorkers</code></td>
+</tr>
+<tr>
+<td>With <code>prefix = &quot;telegraf&quot;</code></td>
+<td><code>telegraf.apache.BusyWorkers</code></td>
+</tr>
+</tbody>
+</table>
+<p>Whatever name your Sumo dashboards referenced, compare it against this form and record <strong>both</strong> in <code>metric-key-map.md</code>. They will not match, and every panel and monitor threshold reading the old name needs rewriting.</p>
+<blockquote>
+<p><strong>Sourcing note:</strong> this composition is verified from the plugin <strong>source</strong>, not its README — the README documents the <code>prefix</code> option but never states the <code>measurement.field</code> rule. Cited accordingly in § 8.</p>
+</blockquote>
+<h3>Key Syntax Rules That Will Reject Your Data</h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Constraint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Allowed characters</td>
+<td>Lowercase and uppercase letters, numbers, hyphens (<code>-</code>), underscores (<code>_</code>)</td>
+</tr>
+<tr>
+<td>Non-Latin letters</td>
+<td>Not allowed</td>
+</tr>
+<tr>
+<td>Leading character</td>
+<td>A key cannot start with a number or a hyphen; sections cannot start with a hyphen</td>
+</tr>
+<tr>
+<td>Length</td>
+<td>3–255 characters</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>The <code>dt.</code> prefix is reserved, and violations are dropped silently.</strong> &quot;Metric data ingested with the <code>dt.</code> prefix will be dropped,&quot; and dimensions ingested with the <code>dt.</code> prefix &quot;are ignored.&quot; If your measurement or your configured <code>prefix</code> produces a <code>dt.</code>-prefixed key, the data never arrives and nothing raises an error. Check this before the parallel run, not during it.</p>
+</blockquote>
+<h3>The OTLP Route Names Differently Again</h3>
+<p>If you choose path 4, do not assume its keys match path 3. OTLP ingest applies its own transformations: &quot;a metric key may be suffixed automatically depending on the payload (for example, <code>.count</code> for counters and <code>.gauge</code> for gauges),&quot; and invalid characters &quot;will be replaced with underscores.&quot;</p>
+<p>Those suffixes apply to <strong>Metrics Classic only</strong> — <em>&quot;Grail metrics do not apply the <code>.count</code> and <code>.gauge</code> suffixes&quot;</em> — so DQL and new dashboards use the key as sent. Record the suffixed form in <code>metric-key-map.md</code> only for classic consumers.</p>
+<blockquote>
+<p><strong>Verify, don't assume.</strong> The exact key a given Telegraf input produces <em>through an OpenTelemetry Collector</em> depends on the receiver in that collector, which sits outside Dynatrace's documentation. Send one representative metric through your chosen route into a non-production tenant and read the actual key back (§ 6) before committing a naming convention to <code>metric-key-map.md</code>.</p>
+</blockquote>
+<p><a id="parity"></a></p>
+<h2>6. Parity Validation During the Parallel Run</h2>
+<p>Metric parity is a different test from log parity. You are not diffing record counts — you are confirming that every key in <code>metric-key-map.md</code> exists, carries the dimensions you expected, and is populated across the same window Sumo covers.</p>
+<h3>Step 1 — Confirm the Keys Arrived Under the Names You Expect</h3>
+<pre><code class="language-dql">// List the metric keys that actually landed under your Telegraf prefix.
+// Compare against metric-key-map.md: anything missing never arrived, and
+// anything unexpected is a naming surprise worth catching before cutover.
+// `metrics` returns several rows per key — dedup to one.
+metrics
+| filter startsWith(metric.key, &quot;telegraf.&quot;)
+| dedup metric.key
+| fields metric.key
+| sort metric.key asc
+| limit 200
+</code></pre>
+<h3>Step 2 — Confirm a Migrated Key Is Actually Populated</h3>
+<p>Existence is not continuity. For every key a monitor or dashboard depends on, confirm data points arrive across the whole parallel window — not merely from the moment you enabled the output.</p>
+<pre><code class="language-dql">// Replace the metric key with one from metric-key-map.md.
+// count() on a metric counts REPORTING SERIES per interval (rollup: availability), not data points.
+// Per host, this shows how many of the hourly buckets received data — a host below the bucket
+// count was not sending for part of the window. Check per host before declaring parity.
+// dt.entity.host is present on the local-OneAgent route; on a remote route split by your own host tag.
+timeseries reporting = count(telegraf.apache.BusyWorkers), from:-24h, interval:1h, by:{dt.entity.host}
+| fieldsAdd hours_reporting = arraySize(arrayRemoveNulls(reporting)), buckets = arraySize(reporting)
+| fields dt.entity.host, hours_reporting, buckets
+| sort hours_reporting asc
+</code></pre>
+<h3>What &quot;Parity&quot; Means for Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Passing looks like</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Key presence</strong></td>
+<td>Every key in <code>metric-key-map.md</code> returns from the query above</td>
+</tr>
+<tr>
+<td><strong>Dimension fidelity</strong></td>
+<td>The tag keys inventoried in § 2 are present as dimensions</td>
+</tr>
+<tr>
+<td><strong>Continuity</strong></td>
+<td>Data points across the full parallel window, not only since switch-on</td>
+</tr>
+<tr>
+<td><strong>Host coverage</strong></td>
+<td>The metric arrives from every host running the input, not a subset</td>
+</tr>
+<tr>
+<td><strong>Consumer rewrite</strong></td>
+<td>Every dashboard panel and monitor that read the old name now reads the new key</td>
+</tr>
+</tbody>
+</table>
+<p>Record the outcome in <code>parity-report.md</code>. Metric parity failures are usually <strong>coverage</strong> failures — a Telegraf config rolled to some hosts but not all — and those stay invisible if you only check that the key exists.</p>
+<p><a id="gate"></a></p>
+<h2>7. Step Exit Criteria</h2>
+<p>Do not include metrics in the SL2DT-09 cutover until every box is checked:</p>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>inventory/metrics.json</code> complete — every metric source, measurement, field, and tag key</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Cut scope applied — retire candidates identified and signed off by their owners</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Target path chosen per source, with every path-3 choice carrying a revisit date</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td><code>metric-key-map.md</code> complete — old name → new key for every surviving metric</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>No resulting key collides with the reserved <code>dt.</code> prefix</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Cardinality estimated against the OPIPE-04 budgets</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Every dependent dashboard panel and monitor threshold rewritten to the new keys</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td><code>parity-report.md</code> shows key presence, dimension fidelity, continuity, and host coverage</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Rollback understood — Sumo metric collection still running until cutover is declared</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="references"></a></p>
+<h2>8. References</h2>
+<h3>Dynatrace — metric ingestion</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/telegraf">Send Telegraf metrics to Dynatrace (DT docs)</a> — requires OneAgent 1.201+; default ingestion port 14499</li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/oneagent-metric-api">OneAgent metric API (DT docs)</a> — host ID and host name added automatically on the local endpoint</li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol">Metric ingestion protocol (DT docs)</a> — metric key character, section, and length rules; <em>&quot;Grail metrics do not apply the <code>.count</code> and <code>.gauge</code> suffixes&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/post-ingest-metrics">POST ingest metrics (DT docs)</a> — <code>metrics.ingest</code> scope; 1 MB payload limit</li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits">Metrics limits (DT docs)</a> — reserved <code>dt.</code> prefix; data ingested with it is dropped</li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest">About OTLP metrics ingest (DT docs)</a> — delta temporality requirement; automatic key suffixing</li>
+</ul>
+<h3>Telegraf — the <code>outputs.dynatrace</code> plugin</h3>
+<ul>
+<li><a href="https://github.com/influxdata/telegraf/blob/master/plugins/outputs/dynatrace/README.md">Dynatrace output plugin README (InfluxData GitHub)</a> — endpoint modes, <code>prefix</code>, gauge-by-default behaviour</li>
+<li><a href="https://github.com/influxdata/telegraf/blob/master/plugins/outputs/dynatrace/dynatrace.go"><code>dynatrace.go</code> (InfluxData GitHub)</a> — the <code>measurement + &quot;.&quot; + field</code> key composition</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace or Sumo Logic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://www.sumologic.com:443/help/docs/">Sumo Logic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

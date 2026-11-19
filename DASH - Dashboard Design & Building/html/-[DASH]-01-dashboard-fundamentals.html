@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DASH-01: Dashboard Fundamentals</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DASH — Dashboard Design &amp; Building</a><span class="sep">/</span><span aria-current="page">DASH-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DASH-01: Dashboard Fundamentals</h1>
+<blockquote>
+<p><strong>Series:</strong> DASH — Dashboard Design &amp; Building | <strong>Notebook:</strong> 1 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/18/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Dashboards are the primary visualization layer in Dynatrace, turning raw observability data into actionable insights. This notebook covers the distinction between dashboards and notebooks, when to use each, the architecture of Dynatrace dashboards (tiles, Markdown header tiles, variables), and core design principles that make dashboards effective. Whether you are building your first dashboard or refining an existing library, these fundamentals provide the foundation for every notebook in this series.</p>
+<h3>Dashboards Failing Validation Do Not Load (SaaS 1.344, tightened in 1.346)</h3>
+<blockquote>
+<p><strong>A dashboard that fails validation does not load (SaaS 1.344; stricter rules in SaaS 1.346).</strong> SaaS 1.344 was published 07/27/2026 with a staged tenant rollout from 07/29/2026, and SaaS 1.346 restates the rule with stricter validation. Confirm which version your tenant runs — enforcement arrives with the version. Before 1.344, a dashboard whose payload failed validation still loaded and surfaced validation warnings; from 1.344 it does not load at all until fixed.</p>
+<p>Dynatrace names dashboards <strong>created externally via API or by AI tooling</strong> as the most affected population. If you build dashboards only in the UI, this changes little — the UI emits shapes it can render. If you deploy dashboards as code (Documents API, Monaco, Terraform) or generate them with a script or an assistant, treat the warning state as a grace period rather than a supported state: deploy to a non-production tenant, open the dashboard in the Dashboards app, and confirm zero validation warnings before merging. <strong>DASH-07 §5</strong> carries the full gate, including why a <code>2xx</code> from the Documents API is not render confirmation.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.346, Dynatrace applies stricter validation rules to dashboards and won't display dashboards that fail validation until you fix them.&quot;</em></sub></p>
+</blockquote>
+<h3>New Dashboard Building Blocks</h3>
+<p>Recent platform changes make several dashboard patterns simpler:</p>
+<ol>
+<li>
+<p><strong>OneAgent primary fields/tags as top-level fields</strong> (OneAgent 1.333+, Latest Dynatrace) on metrics, spans, logs, events and entities. Filters and <code>by:</code> groupings can dispatch on <code>dt.security_context</code>, <code>dt.cost.costcenter</code>, <code>dt.cost.product</code>, and customer-defined <code>primary_tags.&lt;key&gt;</code> directly — no more <code>parse(content, ...)</code> in dashboard tile queries. Particularly impactful for executive dashboards (DASH-03) that need cost-by-business-unit views.</p>
+</li>
+<li>
+<p><strong>Ownership by team</strong> — split by owning team with primary Grail tags, not a node attribute. There is no <code>ownership.*</code> field on Smartscape nodes: on a validation tenant (09/24/2026) <code>getNodeField(id, &quot;ownership.team&quot;)</code> returned null for 35 of 35 services while <code>getNodeField(id, &quot;name&quot;)</code> resolved all 35, and <code>dt.semantic_dictionary.fields</code> has no field containing <code>ownership</code>. Primary tags do reach metrics: <em>&quot;Dynatrace enriches all derived signals (service metrics, Davis events, and problems) with the same tags&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a>). So a tile can split by <code>primary_tags.team</code> directly:</p>
+<pre><code class="language-dql">timeseries requests = sum(dt.service.request.count), by:{primary_tags.team}, from:-2h
+</code></pre>
+<p>The split is only as good as the tag — where no <code>team</code> primary tag is set, every series lands in one null group. For notifying the owning team from a workflow, the Ownership app's <em>Get owners</em> action <em>&quot;Retrieves owners from entities and team identifiers&quot;</em> (<a href="https://docs.dynatrace.com/docs/deliver/ownership/ownership-app/ownership-actions">Actions for Ownership (DT docs)</a>).</p>
+</li>
+<li>
+<p><strong><code>dt.service.name</code></strong> (semantic dictionary: <code>stable</code>, <em>&quot;equal to the Smartscape service node name&quot;</em>) sits beside the OTel <code>service.name</code> — split service-level tiles by name without joining through entity enrichment.</p>
+</li>
+</ol>
+<hr />
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#dashboards-vs-notebooks">Dashboards vs Notebooks</a></li>
+<li><a href="#dashboard-architecture">Dashboard Architecture</a></li>
+<li><a href="#design-principles">Design Principles</a></li>
+<li><a href="#dashboard-creation-workflow">Dashboard Creation Workflow</a></li>
+<li><a href="#your-first-dashboard-query">Your First Dashboard Query</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:metrics:read</code>, <code>storage:events:read</code></td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Dashboard creation privileges (<code>document:documents:write</code>)</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 1 hour of ingested logs and metrics</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dashboards-vs-notebooks"></a></p>
+<h2>1. Dashboards vs Notebooks</h2>
+<p>Dynatrace provides two primary visualization tools, each designed for different use cases.</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Dashboard</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Purpose</strong></td>
+<td>Ongoing monitoring and reporting</td>
+<td>Ad-hoc exploration and analysis</td>
+</tr>
+<tr>
+<td><strong>Layout</strong></td>
+<td>Grid-based tile arrangement</td>
+<td>Sequential, document-style cells</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Teams, stakeholders, wall screens</td>
+<td>Individual analysts and engineers</td>
+</tr>
+<tr>
+<td><strong>Interactivity</strong></td>
+<td>Variables, filters, drill-down links</td>
+<td>Inline DQL editing, iterative queries</td>
+</tr>
+<tr>
+<td><strong>Refresh</strong></td>
+<td>Auto-refresh (configurable interval)</td>
+<td>Manual execution per cell</td>
+</tr>
+<tr>
+<td><strong>Sharing</strong></td>
+<td>Access for all, user/group shares, share links; scheduled delivery via Workflows (DASH-07 §3)</td>
+<td>Share as document or export</td>
+</tr>
+<tr>
+<td><strong>Persistence</strong></td>
+<td>Saved as Dynatrace documents</td>
+<td>Saved as Dynatrace documents</td>
+</tr>
+</tbody>
+</table>
+<h3>When to Use a Dashboard</h3>
+<ul>
+<li><strong>Continuous monitoring</strong> — service health, SLA tracking, infrastructure overview</li>
+<li><strong>Team visibility</strong> — wall screens, shared views across roles</li>
+<li><strong>Stakeholder reporting</strong> — executive summaries, weekly status</li>
+<li><strong>Alerting context</strong> — a landing page linked from alert notifications</li>
+</ul>
+<h3>When to Use a Notebook</h3>
+<ul>
+<li><strong>Incident investigation</strong> — iterating on queries to find root cause</li>
+<li><strong>Data exploration</strong> — discovering patterns in new data sources</li>
+<li><strong>Knowledge sharing</strong> — documented analysis with explanatory text</li>
+<li><strong>Training</strong> — step-by-step DQL tutorials (like this series)</li>
+</ul>
+<p><a id="dashboard-architecture"></a></p>
+<h2>2. Dashboard Architecture</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+VGlsZSBUeXBlIERlY2lzaW9uIEd1aWRlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPk1hdGNoIHRoZSB2aXN1YWxpemF0aW9uIHRvIHRoZSBxdWVzdGlvbiB5b3VyIGF1ZGllbmNlIGlzIGFza2luZzwvdGV4dD4KCiAgPCEtLSBTaW5nbGUgVmFsdWUgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjgwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTQwIiB5PSIxMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlNpbmdsZSBWYWx1ZTwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjEyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+IldoYXQncyB0aGUgY3VycmVudCB2YWx1ZT8iPC90ZXh0PgogIDwhLS0gbW9jayBzaW5nbGUtdmFsdWUgLS0+CiAgPHRleHQgeD0iMTQwIiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiPjk5LjclPC90ZXh0PgogIDx0ZXh0IHg9IjE0MCIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5LUElzIMK3IGNvdW50ZXJzIMK3IGhlYWx0aCBzY29yZXM8L3RleHQ+CiAgPHRleHQgeD0iMTQwIiB5PSIxOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOSI+ZS5nLiwgYXZhaWxhYmlsaXR5LCBlcnJvciBjb3VudDwvdGV4dD4KCiAgPCEtLSBMaW5lIENoYXJ0IC0tPgogIDxyZWN0IHg9IjI1MCIgeT0iODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjEwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+TGluZSBDaGFydDwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjEyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+IkhvdyBpcyBpdCB0cmVuZGluZyBvdmVyIHRpbWU/IjwvdGV4dD4KICA8IS0tIG1vY2sgbGluZSBjaGFydCAtLT4KICA8cG9seWxpbmUgcG9pbnRzPSIyNzAsMTgwIDI5MCwxNzAgMzEwLDE2NSAzMzAsMTcwIDM1MCwxNjAgMzcwLDE1NSAzOTAsMTYyIDQxMCwxNTAgNDMwLDE0OCIKICAgICAgICAgICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMjY1IiB5MT0iMTk1IiB4Mj0iNDM1IiB5Mj0iMTk1IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMTk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj50cmVuZHMgwrcgcmF0ZXMgwrcgdGltZS1zZXJpZXM8L3RleHQ+CgogIDwhLS0gQmFyIENoYXJ0IC0tPgogIDxyZWN0IHg9IjQ2MCIgeT0iODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KICA8dGV4dCB4PSI1NjAiIHk9IjEwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QmFyIENoYXJ0PC90ZXh0PgogIDx0ZXh0IHg9IjU2MCIgeT0iMTI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj4iSG93IGRvIGNhdGVnb3JpZXMgY29tcGFyZT8iPC90ZXh0PgogIDwhLS0gbW9jayBiYXIgY2hhcnQgLS0+CiAgPHJlY3QgeD0iNDg1IiB5PSIxNjAiIHdpZHRoPSIyMCIgaGVpZ2h0PSIzMCIgZmlsbD0iI0E3OEJGQSIvPgogIDxyZWN0IHg9IjUxNSIgeT0iMTQ1IiB3aWR0aD0iMjAiIGhlaWdodD0iNDUiIGZpbGw9IiNBNzhCRkEiLz4KICA8cmVjdCB4PSI1NDUiIHk9IjE1NSIgd2lkdGg9IjIwIiBoZWlnaHQ9IjM1IiBmaWxsPSIjQTc4QkZBIi8+CiAgPHJlY3QgeD0iNTc1IiB5PSIxMzUiIHdpZHRoPSIyMCIgaGVpZ2h0PSI1NSIgZmlsbD0iI0E3OEJGQSIvPgogIDxyZWN0IHg9IjYwNSIgeT0iMTcwIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIGZpbGw9IiNBNzhCRkEiLz4KICA8bGluZSB4MT0iNDc1IiB5MT0iMTk1IiB4Mj0iNjM1IiB5Mj0iMTk1IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjU2MCIgeT0iMTk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5lcnJvcnMgYnkgc2VydmljZSDCtyBsb2dzIGJ5IGxldmVsPC90ZXh0PgoKICA8IS0tIFRhYmxlIC0tPgogIDxyZWN0IHg9IjY3MCIgeT0iODAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMjJEM0VFIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KICA8dGV4dCB4PSI3ODAiIHk9IjEwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+VGFibGU8L3RleHQ+CiAgPHRleHQgeD0iNzgwIiB5PSIxMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPiJTaG93IG1lIGRldGFpbGVkIHJvd3MiPC90ZXh0PgogIDwhLS0gbW9jayB0YWJsZSAtLT4KICA8bGluZSB4MT0iNjg1IiB5MT0iMTM4IiB4Mj0iODc1IiB5Mj0iMTM4IiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDxsaW5lIHgxPSI2ODUiIHkxPSIxNTMiIHgyPSI4NzUiIHkyPSIxNTMiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIwLjUiLz4KICA8bGluZSB4MT0iNjg1IiB5MT0iMTY4IiB4Mj0iODc1IiB5Mj0iMTY4IiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMC41Ii8+CiAgPGxpbmUgeDE9IjY4NSIgeTE9IjE4MyIgeDI9Ijg3NSIgeTI9IjE4MyIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjAuNSIvPgogIDx0ZXh0IHg9IjY5MCIgeT0iMTQ4IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlcnZpY2U8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSIxNDgiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjcwMCI+UDk1PC90ZXh0PgogIDx0ZXh0IHg9IjY5MCIgeT0iMTYzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPmNoZWNrb3V0PC90ZXh0PgogIDx0ZXh0IHg9IjgwMCIgeT0iMTYzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPjIyMG1zPC90ZXh0PgogIDx0ZXh0IHg9IjY5MCIgeT0iMTc4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPnBheW1lbnQ8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSIxNzgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+OTVtczwvdGV4dD4KICA8dGV4dCB4PSI3ODAiIHk9IjE5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+dG9wLU4gwrcgcmF3IGRhdGEgwrcgZHJpbGwtZG93bjwvdGV4dD4KCiAgPCEtLSBQaWUgLyBEb251dCAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTQwIiB5PSIyNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlBpZSAvIERvbnV0PC90ZXh0PgogIDx0ZXh0IHg9IjE0MCIgeT0iMjY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj4iV2hhdCBzaGFyZSBvZiB0aGUgdG90YWw/IjwvdGV4dD4KICA8IS0tIG1vY2sgZG9udXQgLS0+CiAgPGNpcmNsZSBjeD0iMTQwIiBjeT0iMjk1IiByPSIyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEwIgogICAgICAgICAgc3Ryb2tlLWRhc2hhcnJheT0iNjUgNzAiIHN0cm9rZS1kYXNob2Zmc2V0PSIwIiB0cmFuc2Zvcm09InJvdGF0ZSgtOTAgMTQwIDI5NSkiLz4KICA8Y2lyY2xlIGN4PSIxNDAiIGN5PSIyOTUiIHI9IjIyIiBmaWxsPSJub25lIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMTAiCiAgICAgICAgICBzdHJva2UtZGFzaGFycmF5PSI0MCA5NSIgc3Ryb2tlLWRhc2hvZmZzZXQ9Ii02NSIgdHJhbnNmb3JtPSJyb3RhdGUoLTkwIDE0MCAyOTUpIi8+CiAgPGNpcmNsZSBjeD0iMTQwIiBjeT0iMjk1IiByPSIyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEwIgogICAgICAgICAgc3Ryb2tlLWRhc2hhcnJheT0iMzAgMTA1IiBzdHJva2UtZGFzaG9mZnNldD0iLTEwNSIgdHJhbnNmb3JtPSJyb3RhdGUoLTkwIDE0MCAyOTUpIi8+CiAgPHRleHQgeD0iMTQwIiB5PSIzMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnRyYWZmaWMgYnkgcmVnaW9uIMK3IGxvZyBkaXN0cmlidXRpb248L3RleHQ+CgogIDwhLS0gSG9uZXljb21iIC0tPgogIDxyZWN0IHg9IjI1MCIgeT0iMjIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMzUwIiB5PSIyNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkhvbmV5Y29tYjwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjI2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+IkhlYWx0aCBvZiBOIGVudGl0aWVzIGF0IGEgZ2xhbmNlIjwvdGV4dD4KICA8IS0tIG1vY2sgaG9uZXljb21iICgzeDMgaGV4YWdvbnMpIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI5MCwgMjg1KSI+CiAgICA8cG9seWdvbiBwb2ludHM9IjAsLTEyIDEwLC02IDEwLDYgMCwxMiAtMTAsNiAtMTAsLTYiIGZpbGw9IiM3M0JFMjgiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjIsLTEyIDMyLC02IDMyLDYgMjIsMTIgMTIsNiAxMiwtNiIgZmlsbD0iIzczQkUyOCIvPgogICAgPHBvbHlnb24gcG9pbnRzPSI0NCwtMTIgNTQsLTYgNTQsNiA0NCwxMiAzNCw2IDM0LC02IiBmaWxsPSIjRkZCODAwIi8+CiAgICA8cG9seWdvbiBwb2ludHM9IjY2LC0xMiA3NiwtNiA3Niw2IDY2LDEyIDU2LDYgNTYsLTYiIGZpbGw9IiM3M0JFMjgiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iODgsLTEyIDk4LC02IDk4LDYgODgsMTIgNzgsNiA3OCwtNiIgZmlsbD0iI0RFMzUwQiIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIxMSw3IDIxLDEzIDIxLDI1IDExLDMxIDEsMjUgMSwxMyIgZmlsbD0iIzczQkUyOCIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIzMyw3IDQzLDEzIDQzLDI1IDMzLDMxIDIzLDI1IDIzLDEzIiBmaWxsPSIjNzNCRTI4Ii8+CiAgICA8cG9seWdvbiBwb2ludHM9IjU1LDcgNjUsMTMgNjUsMjUgNTUsMzEgNDUsMjUgNDUsMTMiIGZpbGw9IiNGRkI4MDAiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iNzcsNyA4NywxMyA4NywyNSA3NywzMSA2NywyNSA2NywxMyIgZmlsbD0iIzczQkUyOCIvPgogIDwvZz4KICA8dGV4dCB4PSIzNTAiIHk9IjMzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+aG9zdCBoZWFsdGggZ3JpZCDCtyBzZXJ2aWNlIHN0YXR1czwvdGV4dD4KCiAgPCEtLSBNYXJrZG93biAtLT4KICA8cmVjdCB4PSI0NjAiIHk9IjIyMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiM5NEEzQjgiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgogIDx0ZXh0IHg9IjU2MCIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRTJFOEYwIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5NYXJrZG93bjwvdGV4dD4KICA8dGV4dCB4PSI1NjAiIHk9IjI2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+IlN0YXRpYyBjb250ZXh0IGZvciB0aGUgcmVhZGVyIjwvdGV4dD4KICA8dGV4dCB4PSI0NzUiIHk9IjI5MCIgZmlsbD0iI0UyRThGMCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+IyBTZWN0aW9uIGhlYWRlcjwvdGV4dD4KICA8dGV4dCB4PSI0NzUiIHk9IjMwNiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QnJpZWYgZXhwbGFuYXRpb24sIGxpbmtzIHRvPC90ZXh0PgogIDx0ZXh0IHg9IjQ3NSIgeT0iMzIwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5ydW5ib29rLCBvbi1jYWxsIHJvdGF0aW9uLCBldGMuPC90ZXh0PgogIDx0ZXh0IHg9IjU2MCIgeT0iMzM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5zZWN0aW9uIGRpdmlkZXJzIMK3IGluc3RydWN0aW9uczwvdGV4dD4KCiAgPCEtLSBEUUwgLyBDdXN0b20gLS0+CiAgPHJlY3QgeD0iNjcwIiB5PSIyMjAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KICA8dGV4dCB4PSI3ODAiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+RFFMIC8gQ3VzdG9tIFRpbGU8L3RleHQ+CiAgPHRleHQgeD0iNzgwIiB5PSIyNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPiJBbnl0aGluZyBub3QgY292ZXJlZCBhYm92ZSI8L3RleHQ+CiAgPHRleHQgeD0iNjg1IiB5PSIyODkiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPmZldGNoIGxvZ3MsIGZyb206LTFoPC90ZXh0PgogIDx0ZXh0IHg9IjY4NSIgeT0iMzAzIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj58IGZpbHRlciBzdGF0dXMgPT0gIkVSUk9SIjwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjMxNyIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+fCBzdW1tYXJpemUgZXJyb3JzID0gY291bnQoKTwvdGV4dD4KICA8dGV4dCB4PSI3ODAiIHk9IjMzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+cmF3IERRTCDCtyBtdWx0aS1yZXN1bHQgdGlsZTwvdGV4dD4KCiAgPCEtLSBEZWNpc2lvbiBydWxlcyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMzYwIiB3aWR0aD0iODUwIiBoZWlnaHQ9IjExNSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlF1aWNrIERlY2lzaW9uIFJ1bGVzPC90ZXh0PgoKICA8dGV4dCB4PSI2MCIgeT0iNDA1IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj7ihpIgU2luZ2xlIG51bWJlcj88L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSI0MDUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNpbmdsZSBWYWx1ZTwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjQyMyIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+4oaSIFRpbWUtc2VyaWVzPzwvdGV4dD4KICA8dGV4dCB4PSIyMDAiIHk9IjQyMyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+TGluZSBDaGFydDwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjQ0MSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+4oaSIENhdGVnb3JpY2FsIGNvbXBhcmU/PC90ZXh0PgogIDx0ZXh0IHg9IjIwMCIgeT0iNDQxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5CYXIgQ2hhcnQ8L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSI0NTkiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPuKGkiBEZXRhaWxlZCByb3dzPzwvdGV4dD4KICA8dGV4dCB4PSIyMDAiIHk9IjQ1OSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VGFibGU8L3RleHQ+CgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDA1IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj7ihpIgUHJvcG9ydGlvbmFsIGJyZWFrZG93bj88L3RleHQ+CiAgPHRleHQgeD0iNjM1IiB5PSI0MDUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlBpZSAvIERvbnV0PC90ZXh0PgoKICA8dGV4dCB4PSI0NjUiIHk9IjQyMyIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+4oaSIEhlYWx0aCBvZiBtYW55IGVudGl0aWVzPzwvdGV4dD4KICA8dGV4dCB4PSI2MzUiIHk9IjQyMyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+SG9uZXljb21iPC90ZXh0PgoKICA8dGV4dCB4PSI0NjUiIHk9IjQ0MSIgZmlsbD0iI0UyRThGMCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+4oaSIFN0YXRpYyBjb250ZXh0IC8gZGl2aWRlcj88L3RleHQ+CiAgPHRleHQgeD0iNjM1IiB5PSI0NDEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk1hcmtkb3duPC90ZXh0PgoKICA8dGV4dCB4PSI0NjUiIHk9IjQ1OSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+4oaSIE5vbmUgb2YgdGhlIGFib3ZlPzwvdGV4dD4KICA8dGV4dCB4PSI2MzUiIHk9IjQ1OSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RFFMIC8gQ3VzdG9tIFRpbGU8L3RleHQ+Cjwvc3ZnPgo=" alt="Tile Type Decision Guide" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Question | Tile Type |
+|----------|-----------|
+| What's the current value? | Single Value |
+| How is it trending? | Line Chart |
+| How do categories compare? | Bar Chart |
+| Show me detailed rows | Table |
+| What share of the total? | Pie / Donut |
+| Health of many entities? | Honeycomb |
+| Static context / divider? | Markdown |
+| Anything else | DQL / Custom Tile |
+For environments where SVG doesn't render
+-->
+<p>A Dynatrace dashboard is built from three things: tiles, the way you group them, and variables.</p>
+<h3>Tiles</h3>
+<p>Tiles are the individual visualization units. Each tile contains a single DQL query (or metric expression) and renders as a specific chart type.</p>
+<table>
+<thead>
+<tr>
+<th>Tile Type</th>
+<th>Best For</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single value</strong></td>
+<td>KPIs, counters, health scores</td>
+<td>Error count, availability %</td>
+</tr>
+<tr>
+<td><strong>Line chart</strong></td>
+<td>Trends over time</td>
+<td>CPU usage, request rate</td>
+</tr>
+<tr>
+<td><strong>Bar chart</strong></td>
+<td>Categorical comparisons</td>
+<td>Errors by service, logs by level</td>
+</tr>
+<tr>
+<td><strong>Table</strong></td>
+<td>Detailed data, top-N lists</td>
+<td>Top 10 slowest endpoints</td>
+</tr>
+<tr>
+<td><strong>Pie / Donut</strong></td>
+<td>Proportional breakdowns</td>
+<td>Traffic by region</td>
+</tr>
+<tr>
+<td><strong>Honeycomb</strong></td>
+<td>Entity health at a glance</td>
+<td>Host health grid</td>
+</tr>
+<tr>
+<td><strong>Markdown</strong></td>
+<td>Static text, instructions</td>
+<td>Section headers, links</td>
+</tr>
+</tbody>
+</table>
+<h3>Grouping Tiles</h3>
+<p>Group related tiles with a <strong>row</strong> — for example, a &quot;Service Health&quot; row for the service tiles and an &quot;Infrastructure&quot; row for the host tiles. Rows arrived with SaaS 1.350 (staged tenant rollout from 11/04/2026): <em>&quot;A row is a full-width container for a group of tiles. You can give it a title and a color, and collapse it when you don't need those tiles.&quot;</em> and <em>&quot;You no longer need a Markdown tile as a section heading.&quot;</em> Until 1.350 reaches your tenant, a dashboard has no collapsible container, so place related tiles together under a <strong>Markdown tile</strong> used as a header.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new/components/dashboard-component-row">Group dashboard tiles into rows (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-350">What's new in Dynatrace SaaS 1.350 (DT docs)</a> — <em>&quot;Bring structure to dashboards with collapsible rows&quot;</em>.</sub></p>
+</blockquote>
+<h3>Variables</h3>
+<p>Variables make dashboards dynamic. A single dashboard template can serve multiple teams by letting users pick values — a service, an environment, a namespace — from variables populated by a DQL query, a list, code or free text. The timeframe comes from the dashboard's own timeframe selector, not a variable. Variables are covered in depth in <strong>DASH-06</strong>.</p>
+<h3>Release Radar (April 2026): New Tile Types and Authoring Controls</h3>
+<p>Recent additions to the dashboard authoring surface:</p>
+<table>
+<thead>
+<tr>
+<th>Addition</th>
+<th>What it does</th>
+<th>Where it helps</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Treemap visualization</strong></td>
+<td>New tile type for hierarchical data — area encodes magnitude so dominant categories pop out (e.g. requests per service, grouped by Kubernetes namespace)</td>
+<td>Spotting the big contributors in nested categories where a bar chart would need many rows</td>
+</tr>
+<tr>
+<td><strong>Row marker coloring (tables)</strong></td>
+<td>Color-coded row markers visually group related rows while keeping the table readable</td>
+<td>Operations tables (DASH-04) where rows belong to tiers, teams, or severities</td>
+</tr>
+<tr>
+<td><strong>Centralized tile indicator controls</strong></td>
+<td>Show/hide warnings, descriptions, and custom timeframes across <em>all</em> tiles from one dashboard-level control</td>
+<td>Cleaning up a dense dashboard for a wall screen vs. an editing session</td>
+</tr>
+<tr>
+<td><strong>Dashboard variables for dynamic coloring</strong></td>
+<td>Variables can drive coloring and threshold conditions, so visual rules stay in sync with the selected environment/team</td>
+<td>Reusable templates — see <strong>DASH-06</strong></td>
+</tr>
+<tr>
+<td><strong>Direct image upload in Markdown</strong></td>
+<td>Built-in image library: upload images directly inside Markdown tiles across Dashboards, Notebooks, and Launcher</td>
+<td>Embedding logos, legends, or architecture snippets without an external host</td>
+</tr>
+</tbody>
+</table>
+<p>Add <strong>Treemap</strong> to the tile-type vocabulary alongside the chart types in the table above. It is the right choice when you want <em>share-of-total within a hierarchy</em> at a glance, rather than precise per-category values.</p>
+<p><a id="design-principles"></a></p>
+<h2>3. Design Principles</h2>
+<p>Effective dashboards follow consistent design principles regardless of the audience.</p>
+<h3>Clarity</h3>
+<ul>
+<li><strong>One purpose per dashboard</strong> — avoid &quot;everything&quot; dashboards that try to serve every audience</li>
+<li><strong>Descriptive tile titles</strong> — a tile titled &quot;Error Rate (%) — Checkout Service&quot; is immediately understandable; &quot;Query 1&quot; is not</li>
+<li><strong>Consistent time ranges</strong> — all tiles should use the dashboard time selector unless there is a specific reason for a fixed range</li>
+</ul>
+<h3>Audience Awareness</h3>
+<ul>
+<li><strong>Executives</strong> need 3-5 high-level KPIs, not 30 detailed charts</li>
+<li><strong>Operations</strong> teams need real-time status and alert context</li>
+<li><strong>Engineers</strong> need drill-down capability and raw data access</li>
+</ul>
+<p>Design for your audience first, then consider the data.</p>
+<h3>Actionability</h3>
+<p>Every tile should answer a question or trigger an action:</p>
+<table>
+<thead>
+<tr>
+<th>Tile Shows</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Error rate above threshold</td>
+<td>Investigate in notebook or traces</td>
+</tr>
+<tr>
+<td>SLA breach trending</td>
+<td>Escalate to engineering</td>
+</tr>
+<tr>
+<td>Deployment marker + latency spike</td>
+<td>Correlate with release</td>
+</tr>
+<tr>
+<td>Host CPU saturated</td>
+<td>Scale or investigate process</td>
+</tr>
+</tbody>
+</table>
+<p>If a tile does not lead to a decision, consider removing it.</p>
+<h3>Layout Best Practices</h3>
+<ul>
+<li><strong>Top-left anchor</strong> — place the most critical KPI in the top-left (first thing the eye hits)</li>
+<li><strong>Z-pattern reading</strong> — arrange tiles so the dashboard reads left-to-right, top-to-bottom</li>
+<li><strong>Group related tiles</strong> — place them together under a Markdown header tile</li>
+<li><strong>Limit tile count</strong> — aim for 8-12 tiles per dashboard; more than 15 creates cognitive overload</li>
+</ul>
+<p><a id="dashboard-creation-workflow"></a></p>
+<h2>4. Dashboard Creation Workflow</h2>
+<p>Follow this structured approach when building a new dashboard:</p>
+<h3>Step 1: Define the Audience and Purpose</h3>
+<p>Answer these questions before opening the dashboard editor:</p>
+<ul>
+<li><strong>Who</strong> will view this dashboard? (role, technical level)</li>
+<li><strong>What</strong> decisions will it support?</li>
+<li><strong>When</strong> will it be viewed? (real-time wall screen, weekly review, incident response)</li>
+<li><strong>How often</strong> should data refresh?</li>
+</ul>
+<h3>Step 2: Identify Key Metrics</h3>
+<p>Select 5-10 metrics that directly answer the audience's questions. Validate each query in a notebook first.</p>
+<h3>Step 3: Prototype in a Notebook</h3>
+<p>Write and validate all DQL queries in a notebook before building the dashboard. This lets you iterate quickly without fighting the tile editor.</p>
+<h3>Step 4: Build the Dashboard</h3>
+<p>Transfer validated queries to dashboard tiles. Group related tiles under Markdown header tiles, following the layout principles above.</p>
+<h3>Step 5: Add Variables and Filters</h3>
+<p>Make the dashboard reusable by adding variables (DQL, List, Code or Free text — DASH-06) for the dimensions viewers filter on; leave time to the dashboard timeframe selector.</p>
+<h3>Step 6: Share and Iterate</h3>
+<p>Share with the target audience, collect feedback, and refine. A dashboard is never &quot;done&quot; — it evolves with the team's needs.</p>
+<p><a id="your-first-dashboard-query"></a></p>
+<h2>5. Your First Dashboard Query</h2>
+<p>Before building a dashboard, you need validated DQL queries. Let's start with a few foundational queries that appear on almost every dashboard.</p>
+<h3>Total Log Volume by Level</h3>
+<p>This query provides a quick overview of log health — useful as a bar chart tile.</p>
+<pre><code class="language-dql">// Log volume breakdown by severity level
+fetch logs, from:-1h
+| summarize log_count = count(), by:{loglevel}
+| sort log_count desc
+</code></pre>
+<h3>Active Problem Count</h3>
+<p>A single-value tile showing how many detected problems are currently active — the most common executive KPI.</p>
+<pre><code class="language-dql">// Count of currently active detected problems
+fetch dt.davis.problems, from:-24h
+| filter event.status == &quot;ACTIVE&quot;
+| summarize active_problems = countDistinct(event.id)
+</code></pre>
+<h3>Error Log Trend Over Time</h3>
+<p>A line chart showing error frequency — ideal for spotting spikes and correlating with deployments.</p>
+<pre><code class="language-dql">// Error log trend over the last 6 hours
+fetch logs, from:-6h
+// status == &quot;ERROR&quot; also counts SEVERE, CRITICAL and FATAL logs; loglevel == &quot;ERROR&quot; misses them
+| filter status == &quot;ERROR&quot;
+| makeTimeseries error_count = count(), interval:10m
+</code></pre>
+<h3>Host CPU Overview</h3>
+<p>A timeseries query for a line chart showing CPU usage across hosts.</p>
+<pre><code class="language-dql">// Average CPU usage by host over the last hour
+timeseries avg_cpu = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
+</code></pre>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>6. Summary and Next Steps</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li>The difference between dashboards and notebooks, and when to use each</li>
+<li>Dashboard architecture: tiles, grouping under Markdown header tiles, and variables</li>
+<li>Core design principles: clarity, audience awareness, actionability</li>
+<li>A structured workflow for creating dashboards</li>
+<li>Foundational DQL queries that appear on most dashboards</li>
+</ul>
+<p><strong>Next:</strong> In <strong>DASH-02: Dashboard Hierarchy</strong>, we explore the three-tier model — Executive, Operations, and Engineering dashboards — and how to design information density for each audience.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

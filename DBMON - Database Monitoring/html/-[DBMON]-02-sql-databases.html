@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DBMON-02: SQL Database Monitoring</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DBMON — Database Monitoring</a><span class="sep">/</span><span aria-current="page">DBMON-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DBMON-02: SQL Database Monitoring</h1>
+<blockquote>
+<p><strong>Series:</strong> DBMON — Database Monitoring | <strong>Notebook:</strong> 2 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook focuses on monitoring relational SQL databases with Dynatrace. You will learn how to analyze query performance for PostgreSQL, MySQL, Microsoft SQL Server, and Oracle databases. We cover slow query detection, operation-level breakdowns, connection monitoring, and response time analysis using distributed trace spans.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#sql-database-landscape">SQL Database Landscape</a></li>
+<li><a href="#query-performance-analysis">Query Performance Analysis</a></li>
+<li><a href="#slow-query-detection">Slow Query Detection</a></li>
+<li><a href="#operation-breakdown-by-table">Operation Breakdown</a></li>
+<li><a href="#connection-pool-monitoring">Connection Pool Monitoring</a></li>
+<li><a href="#database-specific-patterns">Database-Specific Patterns</a></li>
+<li><a href="#response-time-distribution">Response Time Distribution</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail (Managed has no Grail, so these DQL cells do not run there)</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Deployed on application hosts with SQL database clients</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:spans:read</code>, <code>storage:entities:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Application traffic generating SQL database calls (PostgreSQL, MySQL, MS SQL, or Oracle)</td>
+</tr>
+<tr>
+<td><strong>Prior Reading</strong></td>
+<td>DBMON-01: Database Monitoring Fundamentals</td>
+</tr>
+</tbody>
+</table>
+<p><a id="sql-database-landscape"></a></p>
+<h2>1. SQL Database Landscape</h2>
+<p>Relational databases share a common monitoring model: they all execute SQL statements against tables in schemas. Dynatrace captures these calls consistently across vendors using the OpenTelemetry <code>db.*</code> span attributes.</p>
+<table>
+<thead>
+<tr>
+<th>Vendor</th>
+<th><code>db.system</code> Value</th>
+<th>Common Operations</th>
+<th>Default Port</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PostgreSQL</td>
+<td><code>postgresql</code></td>
+<td><code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>COPY</code></td>
+<td>5432</td>
+</tr>
+<tr>
+<td>MySQL</td>
+<td><code>mysql</code></td>
+<td><code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>CALL</code></td>
+<td>3306</td>
+</tr>
+<tr>
+<td>MariaDB</td>
+<td><code>mariadb</code></td>
+<td><code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>CALL</code></td>
+<td>3306</td>
+</tr>
+<tr>
+<td>Microsoft SQL Server</td>
+<td><code>mssql</code></td>
+<td><code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>EXEC</code></td>
+<td>1433</td>
+</tr>
+<tr>
+<td>Oracle</td>
+<td><code>oracle</code></td>
+<td><code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>MERGE</code></td>
+<td>1521</td>
+</tr>
+<tr>
+<td>IBM Db2</td>
+<td><code>db2</code></td>
+<td><code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code></td>
+<td>50000</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>A call is not always a statement, and the operation name is not always the statement kind.</strong> On OneAgent-captured SQL spans, <code>db.operation.name</code> holds the leading keyword of what the driver sent, and also records connection and driver phases. On the validation tenant (SQL Server, 1 h, 10/02/2026): <code>SELECT</code> 20,820 · <code>CONNECT</code> 16,723 · <code>RESULTSET</code> 1,112 · <code>SET</code> 1,089 · <code>EXECUTE</code> 1,015 · <code>COMMIT</code> 964 · <code>PREPARE</code> 580 · <code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code> 11.</p>
+<ul>
+<li><code>CONNECT</code> and <code>COMMIT</code> carry no query text: they open a connection and end a transaction.</li>
+<li><code>PREPARE</code> and <code>RESULTSET</code> repeat a statement's text. Every one of them shared its trace and its <code>db.query.text</code> with a <code>SELECT</code>, <code>SET</code> or write span, so a cell keyed on the text counts that statement twice unless it drops them.</li>
+<li>Batched writes are named after their first keyword. 974 of the 1,089 <code>SET</code> spans were <code>SET NOCOUNT ON; INSERT …</code> batches, so a read/write split on <code>db.operation.name</code> alone would report almost no writes. § 4 classifies from the statement text instead.</li>
+</ul>
+<p>Cells that measure queries drop the four non-statement operations (DBMON-01 § 4). Cells that count calls or failures keep them.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>db.system</code> (<code>experimental</code>) — <code>mysql</code> and <code>mariadb</code> are separate <code>supported_values</code>, read 10/23/2026.</sub></p>
+</blockquote>
+<p>Let's start by identifying which SQL databases are active in your environment.</p>
+<pre><code class="language-dql">// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and none of them has a row in the semantic dictionary (older OTel
+// instrumentations may still emit db.statement). They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -&gt; db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -&gt; db.query.text        (stable; 33,463)
+//   db.mongodb.collection-&gt; db.collection.name   (stable; 6,912)
+//   db.name              -&gt; db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, &quot;db.&quot;) | fields name, stability
+// Discover active SQL databases in the environment
+fetch spans, from:-1h
+| filter in(db.system, {&quot;postgresql&quot;, &quot;mysql&quot;, &quot;mariadb&quot;, &quot;mssql&quot;, &quot;oracle&quot;, &quot;db2&quot;})
+| summarize {
+    call_count = count(),
+    avg_duration_ms = avg(duration) / 1ms,
+    p95_duration_ms = percentile(duration, 95) / 1ms,
+    unique_queries = countDistinct(db.query.text)
+}, by:{db.system, db.namespace, server.address}
+| sort call_count desc
+</code></pre>
+<p><a id="query-performance-analysis"></a></p>
+<h2>2. Query Performance Analysis</h2>
+<p>The most important aspect of SQL database monitoring is understanding query performance. Parameterized statements keep their placeholders and <code>WHERE</code>-clause literals are masked (DBMON-01 § 1), so <code>db.query.text</code> groups identical query shapes together.</p>
+<pre><code class="language-dql">// Top 20 SQL queries by total execution time (highest impact)
+fetch spans, from:-1h
+| filter in(db.system, {&quot;postgresql&quot;, &quot;mysql&quot;, &quot;mariadb&quot;, &quot;mssql&quot;, &quot;oracle&quot;, &quot;db2&quot;})
+| filter not(in(coalesce(db.operation.name, &quot;&quot;), {&quot;CONNECT&quot;, &quot;COMMIT&quot;, &quot;PREPARE&quot;, &quot;RESULTSET&quot;}))  // statements only (DBMON-01 § 4)
+| filter isNotNull(db.query.text)
+| summarize {
+    total_time_ms = sum(duration) / 1ms,
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms
+}, by:{db.system, db.query.text}
+| sort total_time_ms desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Query throughput over time by database system
+fetch spans, from:-6h
+| filter in(db.system, {&quot;postgresql&quot;, &quot;mysql&quot;, &quot;mariadb&quot;, &quot;mssql&quot;, &quot;oracle&quot;, &quot;db2&quot;})
+| filter not(in(coalesce(db.operation.name, &quot;&quot;), {&quot;CONNECT&quot;, &quot;COMMIT&quot;, &quot;PREPARE&quot;, &quot;RESULTSET&quot;}))  // statements only (DBMON-01 § 4)
+| makeTimeseries queries_per_min = count(), by:{db.system}, interval:1m
+</code></pre>
+<p><a id="slow-query-detection"></a></p>
+<h2>3. Slow Query Detection</h2>
+<p>Slow queries are the most common cause of database-related performance problems. A query is considered &quot;slow&quot; relative to its own baseline or an absolute threshold. We use both approaches below.</p>
+<pre><code class="language-dql">// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
+// Detect slow queries — calls exceeding 500ms
+fetch spans, from:-1h
+| filter in(db.system, {&quot;postgresql&quot;, &quot;mysql&quot;, &quot;mariadb&quot;, &quot;mssql&quot;, &quot;oracle&quot;, &quot;db2&quot;})
+| filter duration &gt; 500ms
+| fields start_time, db.system, db.namespace, db.operation.name,
+        db.query.text, server.address,
+        duration_ms = duration / 1ms,
+        dt.service.name
+| sort duration_ms desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Slow query frequency over time — how often do queries exceed 500ms?
+fetch spans, from:-6h
+| filter in(db.system, {&quot;postgresql&quot;, &quot;mysql&quot;, &quot;mariadb&quot;, &quot;mssql&quot;, &quot;oracle&quot;, &quot;db2&quot;})
+| filter not(in(coalesce(db.operation.name, &quot;&quot;), {&quot;CONNECT&quot;, &quot;COMMIT&quot;, &quot;PREPARE&quot;, &quot;RESULTSET&quot;}))  // statements only (DBMON-01 § 4)
+| makeTimeseries {
+    total = count(),
+    slow = countIf(duration &gt; 500ms)
+  }, interval:10m
+</code></pre>
+<pre><code class="language-dql">// Identify query patterns with the highest P95 — potential optimization candidates
+fetch spans, from:-1h
+| filter in(db.system, {&quot;postgresql&quot;, &quot;mysql&quot;, &quot;mariadb&quot;, &quot;mssql&quot;, &quot;oracle&quot;, &quot;db2&quot;})
+| filter not(in(coalesce(db.operation.name, &quot;&quot;), {&quot;CONNECT&quot;, &quot;COMMIT&quot;, &quot;PREPARE&quot;, &quot;RESULTSET&quot;}))  // statements only (DBMON-01 § 4)
+| filter isNotNull(db.query.text)
+| summarize {
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    max_ms = max(duration) / 1ms
+}, by:{db.query.text, db.system}
+| filter call_count &gt;= 10
+| sort p95_ms desc
+| limit 15
+</code></pre>
+<p><a id="operation-breakdown-by-table"></a></p>
+<h2>4. Operation Breakdown</h2>
+<p>Understanding the mix of reads and writes shows where load comes from. Grouping by table needs <code>db.collection.name</code>, which was not set on any SQL span on the validation tenant, so the breakdown below is by database and operation type.</p>
+<pre><code class="language-dql">// Operation mix by database — reads, writes and everything else, classified from the statement text
+// db.operation.name is only the leading keyword: an ORM batch &quot;SET NOCOUNT ON; INSERT …&quot; is named SET.
+// PREPARE and RESULTSET repeat a statement's text, so they are dropped to avoid counting it twice.
+// The text test is approximate: a CTE that writes (WITH … INSERT) is counted as READ.
+fetch spans, from:-1h
+| filter in(db.system, {&quot;postgresql&quot;, &quot;mysql&quot;, &quot;mariadb&quot;, &quot;mssql&quot;, &quot;oracle&quot;, &quot;db2&quot;})
+| filter isNotNull(db.query.text)
+| filter not(in(coalesce(db.operation.name, &quot;&quot;), {&quot;PREPARE&quot;, &quot;RESULTSET&quot;}))
+| fieldsAdd q = upper(trim(db.query.text))
+| fieldsAdd op_type = if(startsWith(q, &quot;SELECT&quot;) or startsWith(q, &quot;WITH&quot;), then:&quot;READ&quot;,
+    else:if(contains(q, &quot;INSERT &quot;) or contains(q, &quot;UPDATE &quot;) or contains(q, &quot;DELETE &quot;) or contains(q, &quot;MERGE &quot;), then:&quot;WRITE&quot;,
+    else:&quot;OTHER&quot;))
+| summarize op_count = count(), by:{db.system, db.namespace, op_type}
+| sort db.system asc, op_count desc
+</code></pre>
+<pre><code class="language-dql">// Average response time by operation type — are writes slower than reads?
+fetch spans, from:-1h
+| filter in(db.system, {&quot;postgresql&quot;, &quot;mysql&quot;, &quot;mariadb&quot;, &quot;mssql&quot;, &quot;oracle&quot;, &quot;db2&quot;})
+| filter isNotNull(db.operation.name)
+| summarize {
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms
+}, by:{db.operation.name, db.system}
+| sort db.system asc, avg_ms desc
+</code></pre>
+<p><a id="connection-pool-monitoring"></a></p>
+<h2>5. Connection Pool Monitoring</h2>
+<p>Connection pool exhaustion is a common source of application errors. While Dynatrace does not directly expose connection pool counters through spans, you can infer connection pressure by analyzing database call volume per service and error patterns (call counts are not concurrency — pool counters come from runtime metrics, see DBMON-05 § 5).</p>
+<pre><code class="language-dql">// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
+// Database calls per service — identify which services make the most DB calls
+fetch spans, from:-1h
+| filter in(db.system, {&quot;postgresql&quot;, &quot;mysql&quot;, &quot;mariadb&quot;, &quot;mssql&quot;, &quot;oracle&quot;, &quot;db2&quot;})
+| summarize {
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    error_count = countIf(span.status_code == &quot;error&quot;)
+}, by:{dt.service.name, db.system, server.address}
+| sort call_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Database error patterns — connection refused, timeout, deadlock
+// span.status_message is experimental and is often empty on failed DB spans; the error
+// text is recorded as an exception event in span.events. expand counts exception events,
+// so a span with two exception events counts twice.
+fetch spans, from:-6h
+| filter in(db.system, {&quot;postgresql&quot;, &quot;mysql&quot;, &quot;mariadb&quot;, &quot;mssql&quot;, &quot;oracle&quot;, &quot;db2&quot;})
+| filter span.status_code == &quot;error&quot;
+| expand span.events
+| filter isNotNull(span.events[exception.type])
+| fieldsAdd exception_type = span.events[exception.type], exception_message = span.events[exception.message]
+| summarize error_count = count(), by:{db.system, server.address, exception_type, exception_message}
+| sort error_count desc
+| limit 20
+</code></pre>
+<p><a id="database-specific-patterns"></a></p>
+<h2>6. Database-Specific Patterns</h2>
+<p>Each SQL database has unique characteristics worth monitoring. The following queries target vendor-specific patterns.</p>
+<h3>PostgreSQL</h3>
+<p>PostgreSQL is commonly used in cloud-native applications. Key concerns: vacuum operations, index bloat, and lock contention.</p>
+<pre><code class="language-dql">// PostgreSQL — query performance breakdown by database
+fetch spans, from:-1h
+| filter db.system == &quot;postgresql&quot;
+| summarize {
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    errors = countIf(span.status_code == &quot;error&quot;)
+}, by:{db.namespace, db.operation.name}
+| sort call_count desc
+</code></pre>
+<h3>MySQL / MariaDB</h3>
+<p>MySQL monitoring focuses on InnoDB buffer pool usage and replication lag. Query cache effectiveness applies only before MySQL 8.0, which removed the query cache (<a href="https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html">What Is New in MySQL 8.0 (MySQL docs)</a>: <em>&quot;The query cache was removed.&quot;</em>).</p>
+<pre><code class="language-dql">// MySQL / MariaDB — response time trend over 6 hours
+fetch spans, from:-6h
+| filter in(db.system, {&quot;mysql&quot;, &quot;mariadb&quot;})
+| filter not(in(coalesce(db.operation.name, &quot;&quot;), {&quot;CONNECT&quot;, &quot;COMMIT&quot;, &quot;PREPARE&quot;, &quot;RESULTSET&quot;}))  // statements only (DBMON-01 § 4)
+| makeTimeseries {
+    avg_ms = avg(duration / 1ms),
+    p95_ms = percentile(duration / 1ms, 95),
+    call_count = count()
+  }, interval:10m
+</code></pre>
+<h3>Microsoft SQL Server — Server-Side View via the ActiveGate Extension</h3>
+<p>Everything above measures SQL Server from the <strong>caller side</strong> — spans emitted by your instrumented applications (<code>db.system == &quot;mssql&quot;</code>). That view cannot see engine internals: blocking, transaction-log pressure, Always On replica health, agent job failures, or databases no instrumented service talks to. The <strong>Microsoft SQL Server extension</strong> (Dynatrace Hub, runs remotely on an ActiveGate — no agent on the DB host) completes the picture with documented <code>sql-server.*</code> metrics and job-outcome log streams:</p>
+<table>
+<thead>
+<tr>
+<th>Feature set</th>
+<th>Key signals</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Default</strong> (always on)</td>
+<td><code>sql-server.general.processesBlocked</code>, <code>sql-server.databases.state</code>, <code>sql-server.uptime</code>, user connections, memory/CPU/worker threads</td>
+</tr>
+<tr>
+<td><strong>Transaction Logs</strong></td>
+<td><code>sql-server.databases.log.percentUsed</code>, used/total size, growth/shrink/flush-wait counts</td>
+</tr>
+<tr>
+<td><strong>Database Files</strong></td>
+<td>Per-file size / used / empty space + <code>largest_files</code> log stream</td>
+</tr>
+<tr>
+<td><strong>Always On</strong></td>
+<td><code>.ag.synchronizationHealth</code>, <code>.ar.role</code> / <code>.ar.failoverMode</code> / <code>.ar.operationalState</code>, <code>.db.synchronizationState</code>, log send/redo queues</td>
+</tr>
+<tr>
+<td><strong>Jobs</strong> + <strong>Agent</strong></td>
+<td><code>current_jobs</code> / <code>failed_jobs</code> log streams (outcome, duration, <strong>error message text</strong>) + <code>sql-server.sql.agent.status</code></td>
+</tr>
+</tbody>
+</table>
+<p>Deployment notes that matter:</p>
+<ul>
+<li><strong>Always On clusters need two monitoring configurations</strong> — the Always On feature set pointed at <strong>primary replicas only</strong>, everything else at all instances. Mixing primaries and secondaries in one Always On config duplicates metrics (<a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a>: <em>&quot;Don't enable the &quot;Always On&quot; feature set on both the primary and the secondary replica in the same cluster.&quot;</em>).</li>
+<li><strong>Job outcomes arrive as log streams, not metrics</strong> — alert with a DQL log alert or an OpenPipeline log-to-metric rule; the failure text is queryable in Grail.</li>
+<li>Logs from official database extensions land in the dedicated <code>default_database_monitoring</code> Grail bucket (see DBMON-01 §6).</li>
+<li><strong>Minimum ActiveGate version 1.303.</strong> The extension docs are explicit: <em>&quot;If you're not on ActiveGate 1.303 and newer, your monitoring configurations will error upon running.&quot;</em> This is a hard-failure prerequisite, not a recommendation — check the ActiveGate group's version before creating the monitoring configuration.</li>
+<li>The extension ships a fixed set of predefined queries; <strong>the documentation does not describe a user-defined-SQL option</strong>, so treat custom SQL as unavailable unless your extension version's page says otherwise. True gaps (e.g., tempdb version-store pressure) go in a small custom Extensions 2.0 <code>sqlServer</code>-datasource extension on the same ActiveGate.</li>
+</ul>
+<p>For the full decision framework — mapping a homegrown script/Telegraf monitor estate onto the extension, the honest gaps, and the migration sequence — see <strong>FAQ-14: Should I Replace My Custom SQL Server Monitoring Scripts with the Dynatrace Extension?</strong></p>
+<p>Blocked processes from the engine's point of view — the signal caller-side spans can only infer from slow response times:</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-2">Microsoft SQL Server extension (DT docs)</a> — feature sets, the <code>sql-server.*</code> metric keys, the jobs-as-log-streams model, the Always On two-configuration rule and the ActiveGate 1.303 minimum, <a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/databases/extensions/microsoft-sql-server-local">Microsoft SQL Server local extension (DT docs)</a> — the OneAgent-host variant, <a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions (DT docs)</a> — the framework these run on. Read at source 08/27/2026.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// SQL Server engine blocking — from the ActiveGate extension (Default feature set)
+//
+// An empty result means the SQL Server extension is not deployed in this
+// environment — NOT a wrong key and not a broken query. `sql-server.*` keys
+// only exist once a monitoring configuration is running. Separate the two
+// before debugging: `metrics | filter startsWith(metric.key, &quot;sql-server&quot;)`
+// returning 0 while `startsWith(metric.key, &quot;dt.host.&quot;)` returns rows means
+// the discovery surface works and the extension simply is not there.
+// (`metrics` takes `from:` with NO leading comma, and caps discovery at 10 days.)
+timeseries blocked = avg(`sql-server.general.processesBlocked`), from:-24h
+</code></pre>
+<pre><code class="language-dql">// Always On availability-group sync health — extension Always On feature set
+// (point the Always On monitoring configuration at the primary replica)
+//
+// An empty result means the SQL Server extension is not deployed in this
+// environment — NOT a wrong key and not a broken query. `sql-server.*` keys
+// only exist once a monitoring configuration is running. Separate the two
+// before debugging: `metrics | filter startsWith(metric.key, &quot;sql-server&quot;)`
+// returning 0 while `startsWith(metric.key, &quot;dt.host.&quot;)` returns rows means
+// the discovery surface works and the extension simply is not there.
+// (`metrics` takes `from:` with NO leading comma, and caps discovery at 10 days.)
+timeseries agHealth = min(`sql-server.always-on.ag.synchronizationHealth`), from:-24h
+</code></pre>
+<p><a id="response-time-distribution"></a></p>
+<h2>7. Response Time Distribution</h2>
+<p>Understanding the distribution of response times helps set realistic SLOs and identify bimodal patterns (e.g., cached vs uncached queries).</p>
+<pre><code class="language-dql">// Response time distribution buckets — group queries into latency tiers
+// The numeric prefix makes the tiers sort in latency order rather than alphabetically.
+fetch spans, from:-1h
+| filter in(db.system, {&quot;postgresql&quot;, &quot;mysql&quot;, &quot;mariadb&quot;, &quot;mssql&quot;, &quot;oracle&quot;, &quot;db2&quot;})
+| filter not(in(coalesce(db.operation.name, &quot;&quot;), {&quot;CONNECT&quot;, &quot;COMMIT&quot;, &quot;PREPARE&quot;, &quot;RESULTSET&quot;}))  // statements only (DBMON-01 § 4)
+| fieldsAdd duration_ms = duration / 1ms
+| fieldsAdd latency_tier = if(duration_ms &lt; 1, then:&quot;1: &lt;1ms&quot;,
+    else:if(duration_ms &lt; 10, then:&quot;2: 1-10ms&quot;,
+    else:if(duration_ms &lt; 100, then:&quot;3: 10-100ms&quot;,
+    else:if(duration_ms &lt; 1000, then:&quot;4: 100ms-1s&quot;,
+    else:&quot;5: &gt;1s&quot;))))
+| summarize query_count = count(), by:{latency_tier}
+| sort latency_tier asc
+</code></pre>
+<pre><code class="language-dql">// Percentile summary across all SQL databases
+fetch spans, from:-1h
+| filter in(db.system, {&quot;postgresql&quot;, &quot;mysql&quot;, &quot;mariadb&quot;, &quot;mssql&quot;, &quot;oracle&quot;, &quot;db2&quot;})
+| filter not(in(coalesce(db.operation.name, &quot;&quot;), {&quot;CONNECT&quot;, &quot;COMMIT&quot;, &quot;PREPARE&quot;, &quot;RESULTSET&quot;}))  // statements only (DBMON-01 § 4)
+| summarize {
+    p50_ms = percentile(duration, 50) / 1ms,
+    p90_ms = percentile(duration, 90) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    p99_ms = percentile(duration, 99) / 1ms,
+    max_ms = max(duration) / 1ms,
+    total_calls = count()
+}, by:{db.system}
+| sort total_calls desc
+</code></pre>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li>How to identify and inventory SQL databases in your environment using span data</li>
+<li>Techniques for finding the highest-impact and slowest queries</li>
+<li>How to separate statements from connection and driver calls, and reads from writes</li>
+<li>Connection pressure and error pattern analysis</li>
+<li>Vendor-specific monitoring patterns for PostgreSQL and MySQL, plus the server-side SQL Server view via the ActiveGate extension (<code>sql-server.*</code> metrics, job-outcome log streams)</li>
+<li>Response time distribution analysis for setting realistic SLOs</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>DBMON-03: NoSQL Database Monitoring</strong> — MongoDB, Cassandra, DynamoDB, and Cosmos DB analysis</li>
+<li><strong>DBMON-05: Query Analysis</strong> — Deep dive into N+1 detection, query frequency patterns, and optimization</li>
+</ul>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>AIOPS series</strong> — Davis anomaly detection on DB connection-pool exhaustion, error rate spikes, and slow-query rate anomalies</li>
+<li><strong>AUTOM series</strong> — Monaco / Terraform automation for vendor-specific extension deployment at scale</li>
+<li><strong>DBMON-05</strong> — Deep query analysis (N+1 detection, optimization prioritization)</li>
+<li><strong>FAQ-14</strong> — Should I replace my custom SQL Server monitoring scripts with the Dynatrace extension? (decision framework, gap handling, migration sequence)</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

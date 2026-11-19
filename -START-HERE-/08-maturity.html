@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maturity Module — Continuous Improvement</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../">Best Practice Notebooks</a><span class="sep">/</span><a href="./">Start here</a><span class="sep">/</span><span aria-current="page">Maturity Module — Continuous Improvement</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="maturity-module--continuous-improvement">Maturity Module — Continuous Improvement</h1>
+<blockquote>
+<p><strong>Purpose:</strong> Framing for ongoing improvement of a Dynatrace practice using the <a href="../ADOPT%20-%20Observability%20Adoption%20&amp;%20Maturity/">ADOPT</a> series. Maturity is not a one-time milestone — it's a loop you run every 6–12 months.
+<strong>Last Updated:</strong> 07/15/2026</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5NYXR1cml0eSBpcyBhIExvb3A8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+UnVuIGV2ZXJ5IDbigJMxMiBtb250aHMg4oCUIGFzc2VzcywgbWVhc3VyZSwgZW5hYmxlLCBwbGFuLCBleGVjdXRlLCByZXBlYXQ8L3RleHQ+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvd01hdCIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8Y2lyY2xlIGN4PSI0NjUiIGN5PSIyODAiIHI9IjUwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5BRE9QVDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+Q29udGludW91czwvdGV4dD4KICA8cmVjdCB4PSIzODAiIHk9IjEwMCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI2NSIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjEyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+QXNzZXNzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTQzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5QbGF0Zm9ybSBoZWFsdGg8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkFET1BULTAyPC90ZXh0PgogIDxyZWN0IHg9IjY1MCIgeT0iMjIwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjY1IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjczNSIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5NZWFzdXJlPC90ZXh0PgogIDx0ZXh0IHg9IjczNSIgeT0iMjYzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5TdWNjZXNzIG1ldHJpY3M8L3RleHQ+CiAgPHRleHQgeD0iNzM1IiB5PSIyNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkFET1BULTAzPC90ZXh0PgogIDxyZWN0IHg9IjYwMCIgeT0iMzcwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjY1IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iMzk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5FbmFibGU8L3RleHQ+CiAgPHRleHQgeD0iNjg1IiB5PSI0MTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlRlYW0gZW5hYmxlbWVudDwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjQyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QURPUFQtMDQ8L3RleHQ+CiAgPHJlY3QgeD0iMTYwIiB5PSIzNzAiIHdpZHRoPSIxNzAiIGhlaWdodD0iNjUiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjQ1IiB5PSIzOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlBsYW48L3RleHQ+CiAgPHRleHQgeD0iMjQ1IiB5PSI0MTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk9wdGltaXphdGlvbiByb2FkbWFwPC90ZXh0PgogIDx0ZXh0IHg9IjI0NSIgeT0iNDI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5BRE9QVC0wNTwvdGV4dD4KICA8cmVjdCB4PSIxMTAiIHk9IjIyMCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI2NSIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIxOTUiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RXhlY3V0ZTwvdGV4dD4KICA8dGV4dCB4PSIxOTUiIHk9IjI2MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+Um9hZG1hcCBkZWxpdmVyeTwvdGV4dD4KICA8dGV4dCB4PSIxOTUiIHk9IjI3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QWxsIHNlcmllczwvdGV4dD4KICA8cGF0aCBkPSJNIDU1MCAxMzIgUSA3MDAgMTcwIDY5NSAyMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dNYXQpIi8+CiAgPHBhdGggZD0iTSA3MzUgMjg1IFEgNzYwIDM2MCA2ODUgMzcwIiBmaWxsPSJub25lIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93TWF0KSIvPgogIDxwYXRoIGQ9Ik0gNjAwIDQxMCBRIDQ4MCA0NjAgMzMwIDQwNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd01hdCkiLz4KICA8cGF0aCBkPSJNIDI0NSAzNzAgUSAxODAgMzYwIDE5NSAyODUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dNYXQpIi8+CiAgPHBhdGggZD0iTSAxOTUgMjIwIFEgMjIwIDE2NSAzODAgMTMyIiBmaWxsPSJub25lIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93TWF0KSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5Mb29wIGZyZXF1ZW5jeTogYW5udWFsIGJhc2VsaW5lOyBxdWFydGVybHkgaXMgdG9vIGZyZXF1ZW50IChubyBzZXR0bGluZyB0aW1lKTsgYmllbm5pYWwgbGV0cyBkZWJ0IGFjY3VtdWxhdGU8L3RleHQ+Cjwvc3ZnPgo=" alt="Maturity Loop" /></p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#why-maturity-is-a-loop">Why Maturity Is a Loop</a></li>
+<li><a href="#adopt-reading-order">ADOPT Reading Order</a></li>
+<li><a href="#lifecycle-phase-mapping">Lifecycle Phase Mapping</a></li>
+<li><a href="#when-to-run-this-loop">When to Run This Loop</a></li>
+<li><a href="#where-to-next">Where to Next</a></li>
+</ol>
+<hr />
+<h2 id="why-maturity-is-a-loop">Why Maturity Is a Loop</h2>
+<p>The first time through an Onboarding or Migration playbook, you reach a working state — tenant operational, domains covered, dashboards and alerts running. That is not the end; that is the starting line for ongoing improvement.</p>
+<p>The <a href="../ADOPT%20-%20Observability%20Adoption%20&amp;%20Maturity/">ADOPT</a> series provides a framework for continuously assessing and improving the practice: maturity model, platform health assessment, success metrics, team enablement, and optimization roadmap. Together they form a loop: assess → measure → enable → roadmap → execute → repeat.</p>
+<p>This module is referenced from each doorway as the final step. It is also the right reading when you take stock of an existing practice that has been running for a while.</p>
+<hr />
+<h2 id="adopt-reading-order">ADOPT Reading Order</h2>
+<p>6 notebooks in <a href="../ADOPT%20-%20Observability%20Adoption%20&amp;%20Maturity/">ADOPT</a>. Read in order on the first pass; revisit individual notebooks as needs arise.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>Priority</th>
+<th>When to read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>Maturity Model</td>
+<td>Mandatory</td>
+<td>First pass: understand the framework</td>
+</tr>
+<tr>
+<td>02</td>
+<td>Platform Health Assessment</td>
+<td>Mandatory</td>
+<td>First pass: assess where you are</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Success Metrics</td>
+<td>Recommended</td>
+<td>First pass: define what &quot;improvement&quot; means for your team</td>
+</tr>
+<tr>
+<td>04</td>
+<td>Team Enablement</td>
+<td>Recommended</td>
+<td>When the team is hitting its skill ceiling</td>
+</tr>
+<tr>
+<td>05</td>
+<td>Optimization Roadmap</td>
+<td>Mandatory</td>
+<td>First pass: build a 6–12 month plan</td>
+</tr>
+<tr>
+<td>99</td>
+<td>Best Practice Summary</td>
+<td>Reference</td>
+<td>One-page synthesis</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="lifecycle-phase-mapping">Lifecycle Phase Mapping</h2>
+<p>ADOPT notebooks map to lifecycle phases in different ways depending on where you are in the journey:</p>
+<table>
+<thead>
+<tr>
+<th>Lifecycle Phase</th>
+<th>Primary ADOPT Notebook</th>
+<th>Supporting Series</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Initial assessment (first time)</td>
+<td>02 (platform health assessment)</td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> for current-state visibility</td>
+</tr>
+<tr>
+<td>Defining success</td>
+<td>03 (success metrics)</td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a>, <a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV</a> for KPI dashboards</td>
+</tr>
+<tr>
+<td>Building a plan</td>
+<td>05 (optimization roadmap) + 01 (maturity model)</td>
+<td>All series catalog (for scoping investments)</td>
+</tr>
+<tr>
+<td>Team capability</td>
+<td>04 (team enablement)</td>
+<td>Depends on team gaps — often <a href="../IAM%20-%20IAM%20Administration/">IAM</a>, <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a>, <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a></td>
+</tr>
+<tr>
+<td>Cost optimization (FinOps)</td>
+<td><a href="../FINOPS%20-%20Cost%20Management%20&amp;%20FinOps/">FINOPS</a> — full series (3+ notebooks)</td>
+<td><a href="../ADOPT%20-%20Observability%20Adoption%20&amp;%20Maturity/">ADOPT</a> notebooks 02–05 for roadmap context; <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> for bucket strategy; <a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a>/<a href="../OPLOGS%20-%20OpenPipeline%20Logs/">OPLOGS</a> for cost optimization per-domain</td>
+</tr>
+<tr>
+<td>Governance scale-out</td>
+<td>Covered in 05</td>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM</a>, <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> governance (notebook 09)</td>
+</tr>
+<tr>
+<td>Continuous improvement</td>
+<td>All ADOPT notebooks</td>
+<td>All series — read as needed</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="when-to-run-this-loop">When to Run This Loop</h2>
+<p>The ADOPT loop is most valuable at these moments:</p>
+<ul>
+<li><strong>6 months after initial onboarding or migration completion</strong> — first formal assessment; identify what's working, what isn't, what to invest in next</li>
+<li><strong>Annually thereafter</strong> — ongoing health check</li>
+<li><strong>After a major scope change</strong> — added a major domain, absorbed a new business unit, regulatory or compliance shift</li>
+<li><strong>Before a budget cycle</strong> — to make a data-driven case for platform investment</li>
+<li><strong>When pain is being felt</strong> — alert fatigue, dashboard sprawl, tagging chaos, unclear ownership — these are signals that maturity work is overdue</li>
+</ul>
+<p>Running this loop too frequently (every quarter) creates churn without time for changes to settle. Running it too rarely (every 2–3 years) lets debt accumulate.</p>
+<hr />
+<h2 id="where-to-next">Where to Next</h2>
+<p>The Maturity Module is the playbook's final stop in the linear sense — but it loops back to everything else.</p>
+<p>When the optimization roadmap (ADOPT-05) identifies investment areas, route back to the relevant module:</p>
+<ul>
+<li>Domain gaps → <a href="06-domain-enablement.html">Domain Enablement Module</a></li>
+<li>Operations maturity → <a href="07-operationalize.html">Operationalize Module</a></li>
+<li>Foundation hygiene → <a href="05-foundation.html">Foundation Module</a></li>
+<li>New tool consolidation → <a href="02-expand-consolidate.html">Doorway 2 — Expanding or Consolidating</a></li>
+<li>Tenant generation change → <a href="03-deployment-migration.html">Doorway 3 — Deployment Migration</a></li>
+</ul>
+<p>The playbook structure supports this: come back to whichever doorway or module fits the next investment.</p>
+<hr />
+<blockquote>
+<p><em>This playbook was AI-generated from community-submitted and publicly available sources. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

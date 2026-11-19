@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IAM-02: SSO and Authentication Configuration</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">IAM — IAM Administration</a><span class="sep">/</span><span aria-current="page">IAM-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>IAM-02: SSO and Authentication Configuration</h1>
+<blockquote>
+<p><strong>Series:</strong> IAM — IAM Administration | <strong>Notebook:</strong> 2 of 12 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/08/2026</p>
+</blockquote>
+<h2>Setting Up Enterprise Authentication</h2>
+<p>Single Sign-On (SSO) is the foundation of enterprise IAM. Configure SSO before setting up groups, policies, or user provisioning. This notebook covers SAML configuration, IdP integration, and authentication best practices.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-sso-first">Why SSO First?</a></li>
+<li><a href="#saml-20-fundamentals">SAML 2.0 Fundamentals</a></li>
+<li><a href="#idp-configuration">IdP Configuration</a></li>
+<li><a href="#dynatrace-saml-setup">Dynatrace SAML Setup</a></li>
+<li><a href="#attribute-mapping">Attribute Mapping</a></li>
+<li><a href="#testing-sso">Testing SSO</a></li>
+<li><a href="#multi-factor-authentication">Multi-Factor Authentication</a></li>
+<li><a href="#troubleshooting-sso">Troubleshooting SSO</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Gen3 IAM enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Account administrator</td>
+</tr>
+<tr>
+<td><strong>IdP Access</strong></td>
+<td>Admin access to enterprise IdP (Okta, Azure AD, etc.)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="why-sso-first"></a></p>
+<h2>1. Why SSO First?</h2>
+<p>SSO must be configured before other IAM components because:</p>
+<table>
+<thead>
+<tr>
+<th>Dependency</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Groups</strong></td>
+<td>Groups are synced from IdP via SAML assertions</td>
+</tr>
+<tr>
+<td><strong>Users</strong></td>
+<td>Users are provisioned through SSO (SCIM or JIT)</td>
+</tr>
+<tr>
+<td><strong>Policies</strong></td>
+<td>Policies are assigned to groups that come from IdP</td>
+</tr>
+<tr>
+<td><strong>Audit</strong></td>
+<td>Authentication events require SSO integration</td>
+</tr>
+</tbody>
+</table>
+<h3>Authentication Flow</h3>
+<pre><code>User → IdP Login → SAML Assertion → Dynatrace
+                        ↓
+              Contains: Email, Groups, Attributes
+                        ↓
+              Dynatrace maps to local groups
+                        ↓
+              Policies and boundaries applied
+</code></pre>
+<h3>Order of Operations</h3>
+<ol>
+<li><strong>Configure SSO</strong> (this notebook)</li>
+<li>Design group architecture (IAM-03)</li>
+<li>Create policies (IAM-04)</li>
+<li>Design boundaries (IAM-05)</li>
+<li>Enable SCIM/JIT provisioning (IAM-06)</li>
+</ol>
+<p><a id="saml-20-fundamentals"></a></p>
+<h2>2. SAML 2.0 Fundamentals</h2>
+<p>Dynatrace uses SAML 2.0 for SSO authentication.</p>
+<h3>Key Concepts</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>IdP</strong></td>
+<td>Identity Provider - authenticates users (Okta, Azure AD, etc.)</td>
+</tr>
+<tr>
+<td><strong>SP</strong></td>
+<td>Service Provider - Dynatrace, the application being accessed</td>
+</tr>
+<tr>
+<td><strong>Assertion</strong></td>
+<td>XML document containing user identity and attributes</td>
+</tr>
+<tr>
+<td><strong>ACS URL</strong></td>
+<td>Assertion Consumer Service - where Dynatrace receives assertions</td>
+</tr>
+<tr>
+<td><strong>Entity ID</strong></td>
+<td>Unique identifier for each party</td>
+</tr>
+</tbody>
+</table>
+<h3>SAML Flow</h3>
+<pre><code>1. User accesses Dynatrace
+2. Dynatrace redirects to IdP
+3. User authenticates with IdP
+4. IdP generates SAML assertion
+5. IdP redirects back to Dynatrace with assertion
+6. Dynatrace validates assertion
+7. User is logged in with appropriate permissions
+</code></pre>
+<h3>Required SAML Attributes</h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Purpose</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>NameID</strong></td>
+<td>User identifier (email)</td>
+<td><code>user@company.com</code></td>
+</tr>
+<tr>
+<td><strong>Groups</strong></td>
+<td>Group memberships</td>
+<td><code>IT-DT-Admins, All-Employees</code></td>
+</tr>
+<tr>
+<td><strong>FirstName</strong></td>
+<td>Display name</td>
+<td><code>John</code></td>
+</tr>
+<tr>
+<td><strong>LastName</strong></td>
+<td>Display name</td>
+<td><code>Smith</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="idp-configuration"></a></p>
+<h2>3. IdP Configuration</h2>
+<p>Configure your Identity Provider to work with Dynatrace.</p>
+<h3>Supported Identity Providers</h3>
+<table>
+<thead>
+<tr>
+<th>IdP</th>
+<th>SSO Support</th>
+<th>SCIM Setup Documented by Dynatrace</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Okta</strong></td>
+<td>Full</td>
+<td>Yes</td>
+<td>Native integration</td>
+</tr>
+<tr>
+<td><strong>Azure AD (Entra ID)</strong></td>
+<td>Full</td>
+<td>Yes</td>
+<td>Enterprise app</td>
+</tr>
+<tr>
+<td><strong>OneLogin</strong></td>
+<td>Full</td>
+<td>No</td>
+<td>App catalog</td>
+</tr>
+<tr>
+<td><strong>PingFederate</strong></td>
+<td>Full</td>
+<td>No</td>
+<td>Federation server</td>
+</tr>
+<tr>
+<td><strong>Google Workspace</strong></td>
+<td>Full</td>
+<td>No</td>
+<td>Custom SAML app</td>
+</tr>
+<tr>
+<td><strong>ADFS</strong></td>
+<td>Full</td>
+<td>No</td>
+<td>On-premises</td>
+</tr>
+</tbody>
+</table>
+<p>Dynatrace's SCIM page documents setup procedures for Azure and Okta only. In community practice, other IdPs with a generic SCIM 2.0 client are configured against the same endpoint — verify with your IdP vendor and test before relying on it; otherwise provision those users through SAML just-in-time creation.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-scim">SCIM (DT docs)</a> — <em>&quot;To continue integrating Dynatrace SCIM with your IdP, select the procedure appropriate for your IdP:&quot;</em> (Azure, Okta); <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;Just-in-Time provisioning is supported.&quot;</em></sub></p>
+</blockquote>
+<h3>IdP Setup Steps (Generic)</h3>
+<ol>
+<li>
+<p><strong>Create SAML Application</strong></p>
+<ul>
+<li>Log into IdP admin console</li>
+<li>Create new SAML 2.0 application</li>
+<li>Name it &quot;Dynatrace&quot; or &quot;Dynatrace [Environment]&quot;</li>
+</ul>
+</li>
+<li>
+<p><strong>Configure Service Provider Settings</strong></p>
+<ul>
+<li>Take the Entity ID and ACS URL from the Dynatrace SP metadata. They depend on the federation type you choose in Section 4:
+<ul>
+<li><strong>Global federation:</strong> Entity ID (audience) <code>https://sso.dynatrace.com:443/saml2/login</code>; ACS / Single Sign On URL <code>https://sso.dynatrace.com:443/saml2/sp/consumer</code></li>
+<li><strong>Account or environment federation:</strong> download the unique SP metadata while creating the SAML configuration. The ACS URL has the form <code>https://sso.dynatrace.com/identity-federation/sp/consumer/account/&lt;account-UUID&gt;/federation/&lt;configuration-UUID&gt;</code></li>
+</ul>
+</li>
+<li>Name ID Format: Email address</li>
+</ul>
+</li>
+<li>
+<p><strong>Configure Attributes</strong></p>
+<ul>
+<li>Map user email to NameID</li>
+<li>Add groups attribute</li>
+<li>Add first/last name attributes</li>
+</ul>
+</li>
+<li>
+<p><strong>Assign Users/Groups</strong></p>
+<ul>
+<li>Assign IdP groups that should access Dynatrace</li>
+<li>Or assign all users and control access via Dynatrace groups</li>
+</ul>
+</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;https://sso.dynatrace.com:443/saml2/login for Entity ID (Audience Restriction).&quot;</em>, <em>&quot;https://sso.dynatrace.com:443/saml2/sp/consumer for Single Sign On URL, Destination URL, Recipient URL.&quot;</em></sub></p>
+</blockquote>
+<h3>Okta Configuration Example</h3>
+<ol>
+<li>
+<p><strong>Create Application</strong></p>
+<ul>
+<li>Applications → Create App Integration</li>
+<li>Select SAML 2.0</li>
+<li>Name: &quot;Dynatrace&quot;</li>
+</ul>
+</li>
+<li>
+<p><strong>SAML Settings</strong></p>
+<pre><code>Single sign-on URL: &lt;ACS URL from the Dynatrace SP metadata&gt;
+                    (global federation: https://sso.dynatrace.com:443/saml2/sp/consumer)
+Audience URI (SP Entity ID): &lt;Entity ID from the Dynatrace SP metadata&gt;
+                    (global federation: https://sso.dynatrace.com:443/saml2/login)
+Name ID format: EmailAddress
+Application username: Email
+</code></pre>
+</li>
+<li>
+<p><strong>Attribute Statements</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>email</code></td>
+<td><code>user.email</code></td>
+</tr>
+<tr>
+<td><code>firstName</code></td>
+<td><code>user.firstName</code></td>
+</tr>
+<tr>
+<td><code>lastName</code></td>
+<td><code>user.lastName</code></td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p><strong>Group Attribute Statements</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Filter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>groups</code></td>
+<td>Matches regex <code>.*</code> (or filter to DT groups)</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ol>
+<h3>Azure AD (Entra ID) Configuration Example</h3>
+<ol>
+<li>
+<p><strong>Enterprise Application</strong></p>
+<ul>
+<li>Enterprise Applications → New Application</li>
+<li>Create your own application</li>
+<li>Name: &quot;Dynatrace&quot;</li>
+</ul>
+</li>
+<li>
+<p><strong>Single Sign-On → SAML</strong></p>
+<pre><code>Identifier (Entity ID): &lt;Entity ID from the Dynatrace SP metadata&gt;
+                        (global federation: https://sso.dynatrace.com:443/saml2/login)
+Reply URL (ACS URL): &lt;ACS URL from the Dynatrace SP metadata&gt;
+                        (global federation: https://sso.dynatrace.com:443/saml2/sp/consumer)
+</code></pre>
+</li>
+<li>
+<p><strong>Attributes &amp; Claims</strong></p>
+<table>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Source attribute</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>emailaddress</code></td>
+<td><code>user.mail</code></td>
+</tr>
+<tr>
+<td><code>givenname</code></td>
+<td><code>user.givenname</code></td>
+</tr>
+<tr>
+<td><code>surname</code></td>
+<td><code>user.surname</code></td>
+</tr>
+<tr>
+<td><code>groups</code></td>
+<td>Group IDs or names</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ol>
+<p><a id="dynatrace-saml-setup"></a></p>
+<h2>4. Dynatrace SAML Setup</h2>
+<p>Configure Dynatrace to accept SAML assertions from your IdP.</p>
+<h3>Steps in Dynatrace Account Management</h3>
+<ol>
+<li>
+<p><strong>Create a fallback user</strong></p>
+<ul>
+<li>A non-federated user account in a group with the <em>View and manage users and groups</em> permission, so you can still sign in if the SAML configuration fails</li>
+</ul>
+</li>
+<li>
+<p><strong>Verify domain ownership</strong></p>
+<ul>
+<li>Identity &amp; access management → Domain verification — add your email domain, publish the DNS TXT record, and verify it</li>
+</ul>
+</li>
+<li>
+<p><strong>Create the SAML configuration</strong></p>
+<ul>
+<li>Identity &amp; access management → SAML configuration → New configuration</li>
+<li>Choose the federation type — global, account, or environment</li>
+</ul>
+</li>
+<li>
+<p><strong>Upload the IdP metadata</strong></p>
+<ul>
+<li><strong>Name</strong>: Descriptive name (e.g., &quot;Corporate Okta&quot;)</li>
+<li><strong>IdP metadata</strong>: select <strong>Choose file</strong> and upload the metadata file you received from your IdP</li>
+</ul>
+</li>
+<li>
+<p><strong>Get Dynatrace SP Information</strong></p>
+<ul>
+<li>Copy ACS URL and Entity ID to configure in IdP</li>
+<li>Download Dynatrace SP metadata if IdP supports it</li>
+</ul>
+</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;Before you can configure the domain for which you want to set up SAML, you need to prove ownership of the domain.&quot;</em>, <em>&quot;go to Identity &amp; access management &gt; SAML configuration and select New configuration&quot;</em>, <em>&quot;Select Choose file to specify the metadata file you received from your IdP.&quot;</em>.</sub></p>
+</blockquote>
+<h3>Configuration Options</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Recommendation</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Sign the whole SAML response</strong></td>
+<td>Required</td>
+<td>Signing only the assertion is not enough — the IdP must sign the entire message</td>
+</tr>
+<tr>
+<td><strong>Encrypt assertions</strong></td>
+<td>Not supported</td>
+<td>Leave assertion encryption off in the IdP</td>
+</tr>
+<tr>
+<td><strong>Sign requests</strong></td>
+<td>Optional</td>
+<td>SP signs auth requests</td>
+</tr>
+<tr>
+<td><strong>Allow IdP-initiated</strong></td>
+<td>Optional</td>
+<td>Supported, with RelayState</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;The entire SAML message must be signed&quot;</em>, <em>&quot;No assertion encryption.&quot;</em>, <em>&quot;Yes, both IdP-initiated sign-in and RelayState are supported.&quot;</em></sub></p>
+</blockquote>
+<p><a id="attribute-mapping"></a></p>
+<h2>5. Attribute Mapping</h2>
+<p>Map SAML attributes to Dynatrace user properties.</p>
+<h3>User Attribute Mapping</h3>
+<table>
+<thead>
+<tr>
+<th>SAML Attribute</th>
+<th>Dynatrace Field</th>
+<th>Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NameID</td>
+<td>User email/login</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>firstName</td>
+<td>First name</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>lastName</td>
+<td>Last name</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>email</td>
+<td>Email (if not NameID)</td>
+<td>If NameID is different</td>
+</tr>
+</tbody>
+</table>
+<h3>Group Attribute Mapping</h3>
+<p>Group values from SAML assertions map to Dynatrace groups:</p>
+<pre><code>IdP Group (in assertion)  →  Dynatrace Group
+IT-DT-Platform-Admins     →  dt-platform-admins
+IT-DT-Checkout-Team       →  dt-checkout-editors
+IT-DT-Security-Audit      →  dt-security-viewers
+</code></pre>
+<h3>Configuring Group Mapping</h3>
+<p>Mapping is configured on each Dynatrace group, not on the SAML configuration:</p>
+<ol>
+<li><strong>Open the group</strong> — Account Management → <strong>Identity &amp; access management</strong> → <strong>Group management</strong>, then the group's <strong>Edit</strong> pane. Test with a new group first.</li>
+<li><strong>Set the SAML Group Attribute Value</strong> — one or more federated group values your IdP sends in the groups attribute. This is the value in the assertion, which is typically an identifier such as an LDAP ID rather than the group's display name.</li>
+<li><strong>Save, then test</strong> — sign in from a new incognito window before signing out of your current session.</li>
+</ol>
+<blockquote>
+<p><strong>⚠️ Converting an existing group wipes its members.</strong> Adding SAML Group Attribute Values to a LOCAL group turns it into a SAML group and removes every user currently assigned to it. Plan the switch for each group, and make sure the users' IdP groups are sending the right values first.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;This typically isn't a group display name.&quot;</em>, <em>&quot;Switching a LOCAL group to SAML removes all user assignments to that group.&quot;</em></sub></p>
+</blockquote>
+<h3>Group Naming Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>IdP Group</th>
+<th>DT Group</th>
+<th>Pros/Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Exact match</strong></td>
+<td><code>dt-admins</code></td>
+<td><code>dt-admins</code></td>
+<td>Simple, but only where the IdP sends group names rather than IDs</td>
+</tr>
+<tr>
+<td><strong>Prefixed</strong></td>
+<td><code>IT-DT-Admins</code></td>
+<td><code>dt-admins</code></td>
+<td>Explicit mapping needed</td>
+</tr>
+<tr>
+<td><strong>Descriptive</strong></td>
+<td><code>Dynatrace Platform Admins</code></td>
+<td><code>dt-platform-admins</code></td>
+<td>Clear in IdP, mapping required</td>
+</tr>
+</tbody>
+</table>
+<p><a id="testing-sso"></a></p>
+<h2>6. Testing SSO</h2>
+<p>Verify SSO works correctly before rolling out.</p>
+<h3>Test Checklist</h3>
+<pre><code>□ SP-initiated login works (start from Dynatrace)
+□ IdP-initiated login works (start from IdP portal)
+□ User attributes map correctly (name, email)
+□ Groups sync correctly
+□ Logout works (single logout)
+□ Session timeout behaves correctly
+</code></pre>
+<h3>Testing Steps</h3>
+<ol>
+<li>
+<p><strong>Test with Admin Account First</strong></p>
+<ul>
+<li>Use an IdP admin account</li>
+<li>Verify login works</li>
+<li>Check group assignments</li>
+</ul>
+</li>
+<li>
+<p><strong>Test SP-Initiated Login</strong></p>
+<ul>
+<li>Go to Dynatrace login page</li>
+<li>Click SSO login</li>
+<li>Should redirect to IdP</li>
+<li>Authenticate and return to Dynatrace</li>
+</ul>
+</li>
+<li>
+<p><strong>Test IdP-Initiated Login</strong></p>
+<ul>
+<li>Go to IdP portal</li>
+<li>Click Dynatrace app tile</li>
+<li>Should land in Dynatrace authenticated</li>
+</ul>
+</li>
+<li>
+<p><strong>Verify User Profile</strong></p>
+<ul>
+<li>Check user's name is correct</li>
+<li>Check user's email is correct</li>
+<li>Check group memberships</li>
+</ul>
+</li>
+</ol>
+<h3>Common Test Failures</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Redirect loop</td>
+<td>Misconfigured ACS URL</td>
+<td>Verify URL matches exactly</td>
+</tr>
+<tr>
+<td>Invalid signature</td>
+<td>Certificate mismatch</td>
+<td>Re-upload IdP certificate</td>
+</tr>
+<tr>
+<td>User not found</td>
+<td>NameID format wrong</td>
+<td>Use email format</td>
+</tr>
+<tr>
+<td>No groups</td>
+<td>Groups attribute missing</td>
+<td>Add groups to assertion</td>
+</tr>
+</tbody>
+</table>
+<p><a id="multi-factor-authentication"></a></p>
+<h2>7. Multi-Factor Authentication</h2>
+<p>MFA must be enforced at the IdP for Dynatrace access — Dynatrace does not support configuring MFA itself.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;Configuring multi-factor authentication (MFA) is not supported by Dynatrace.&quot;</em></sub></p>
+</blockquote>
+<h3>MFA Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Description</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>IdP MFA</strong></td>
+<td>MFA at IdP login</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td><strong>Conditional</strong></td>
+<td>MFA based on risk</td>
+<td>For adaptive security</td>
+</tr>
+</tbody>
+</table>
+<h3>IdP MFA Configuration</h3>
+<p><strong>Okta:</strong></p>
+<ul>
+<li>Security → Authenticators</li>
+<li>Add factors (TOTP, Push, WebAuthn)</li>
+<li>Create sign-on policy requiring MFA for Dynatrace app</li>
+</ul>
+<p><strong>Azure AD:</strong></p>
+<ul>
+<li>Azure AD → Security → MFA</li>
+<li>Conditional Access policies</li>
+<li>Require MFA for Dynatrace enterprise app</li>
+</ul>
+<h3>MFA Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Require MFA for all users</td>
+<td>Baseline security</td>
+</tr>
+<tr>
+<td>Use phishing-resistant factors</td>
+<td>WebAuthn &gt; TOTP &gt; SMS</td>
+</tr>
+<tr>
+<td>Allow backup factors</td>
+<td>Prevent lockout</td>
+</tr>
+<tr>
+<td>Enforce for privileged users</td>
+<td>Critical for admins</td>
+</tr>
+</tbody>
+</table>
+<p><a id="troubleshooting-sso"></a></p>
+<h2>8. Troubleshooting SSO</h2>
+<p>Common SSO issues and their resolutions.</p>
+<h3>SAML Debugging Tools</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Browser dev tools</td>
+<td>View SAML response in network tab</td>
+</tr>
+<tr>
+<td>SAML tracer extension</td>
+<td>Decode SAML in browser</td>
+</tr>
+<tr>
+<td>Base64 decoder</td>
+<td>Decode assertion manually</td>
+</tr>
+<tr>
+<td>IdP logs</td>
+<td>View authentication events</td>
+</tr>
+</tbody>
+</table>
+<h3>Decoding SAML Response</h3>
+<ol>
+<li>Open browser dev tools → Network</li>
+<li>Perform SSO login</li>
+<li>Find POST to ACS URL</li>
+<li>Copy SAMLResponse value</li>
+<li>Base64 decode to see XML</li>
+</ol>
+<h3>Common Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Symptom</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Clock skew</strong></td>
+<td>&quot;Assertion expired&quot;</td>
+<td>Sync IdP/Dynatrace time</td>
+</tr>
+<tr>
+<td><strong>Certificate expired</strong></td>
+<td>Signature invalid</td>
+<td>Renew and update cert</td>
+</tr>
+<tr>
+<td><strong>Wrong ACS URL</strong></td>
+<td>404 or loop</td>
+<td>Correct URL in IdP</td>
+</tr>
+<tr>
+<td><strong>Missing groups</strong></td>
+<td>No permissions</td>
+<td>Add groups to assertion</td>
+</tr>
+<tr>
+<td><strong>Wrong NameID</strong></td>
+<td>User mismatch</td>
+<td>Use email format</td>
+</tr>
+<tr>
+<td><strong>Audience mismatch</strong></td>
+<td>Audience error</td>
+<td>Match Entity ID exactly</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Authenticated API calls by credential type and grant type (24 h)
+// Retitled 10/12/2026: authentication.type is set on every audited request, so this is API traffic, not
+// SSO sign-ins. Sign-ins are event.type == &quot;LOGIN&quot; (see IAM-07 § 2).
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter isNotNull(authentication.type)
+| summarize events = count(), by:{authentication.type, authentication.grant.type, event.outcome}
+| sort events desc
+</code></pre>
+<pre><code class="language-dql">// Find failed sign-in attempts (event.type LOGIN with outcome &quot;failure&quot; — other non-2xx outcomes
+// are failed API calls, and 304 Not Modified is a success)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter event.type == &quot;LOGIN&quot; and event.outcome == &quot;failure&quot;
+| fields timestamp, user.id, authentication.type, event.outcome, origin.address
+| sort timestamp desc
+| limit 50
+</code></pre>
+<h2>Next Steps</h2>
+<p>With SSO configured, proceed to group architecture:</p>
+<h3>Recommended Path</h3>
+<ol>
+<li><strong>IAM-03: Group Architecture and Design</strong> - Design groups that map from IdP</li>
+<li><strong>IAM-04: Policy Authoring</strong> - Create policies for groups</li>
+<li><strong>IAM-06: User Lifecycle</strong> - Enable SCIM/JIT provisioning</li>
+</ol>
+<h3>SSO Checklist</h3>
+<p>Before moving on, ensure you have:</p>
+<ul>
+<li>[ ] IdP SAML application configured</li>
+<li>[ ] Dynatrace SAML configuration created</li>
+<li>[ ] Attribute mapping configured</li>
+<li>[ ] SAML Group Attribute Values planned per group</li>
+<li>[ ] SSO login tested successfully</li>
+<li>[ ] MFA enabled at IdP</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Why SSO must be configured first</li>
+<li>SAML 2.0 fundamentals</li>
+<li>IdP configuration for Okta and Azure AD</li>
+<li>Dynatrace SAML setup process</li>
+<li>Attribute and group mapping</li>
+<li>SSO testing methodology</li>
+<li>MFA best practices</li>
+<li>Troubleshooting common SSO issues</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">Single Sign-On</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/saml-configurations">SAML 2.0 Configuration</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/idp-specific/saml-okta">Okta Integration</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml/idp-specific/saml-azure">Azure AD Integration</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

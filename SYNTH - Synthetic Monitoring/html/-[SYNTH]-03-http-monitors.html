@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SYNTH-03: HTTP Monitors</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SYNTH — Synthetic Monitoring</a><span class="sep">/</span><span aria-current="page">SYNTH-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SYNTH-03: HTTP Monitors</h1>
+<blockquote>
+<p><strong>Series:</strong> SYNTH — Synthetic Monitoring | <strong>Notebook:</strong> 3 of 6 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/25/2026</p>
+</blockquote>
+<h2>Lightweight API and Endpoint Monitoring</h2>
+<p>This notebook covers HTTP monitors for API health checks, endpoint validation, and multi-step API workflows using the latest Dynatrace platform.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#http-monitor-overview">HTTP Monitor Overview</a></li>
+<li><a href="#single-request-monitors">Single Request Monitors</a></li>
+<li><a href="#multi-step-http-monitors">Multi-Step HTTP Monitors</a></li>
+<li><a href="#authentication">Authentication</a></li>
+<li><a href="#response-validation">Response Validation</a></li>
+<li><a href="#ssl-certificate-monitoring">SSL Certificate Monitoring</a></li>
+<li><a href="#analyzing-http-results">Analyzing HTTP Results</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with Synthetic Monitoring</li>
+<li>✅ Completed SYNTH-01 Fundamentals</li>
+<li>✅ API endpoint(s) to monitor</li>
+</ul>
+<blockquote>
+<p><strong>Data model:</strong> HTTP results live in <code>fetch dt.synthetic.events</code>. Monitor-level rows (<code>event.type == &quot;http_monitor_execution&quot;</code>) carry <code>result.state</code> and total <code>result.statistics.duration</code>; per-request rows (<code>event.type == &quot;http_step_execution&quot;</code>) carry the timing breakdown (DNS / TCP / TLS / TTFB) and SSL certificate data.</p>
+</blockquote>
+<p><a id="http-monitor-overview"></a></p>
+<h2>1. HTTP Monitor Overview</h2>
+<p>HTTP monitors execute lightweight HTTP requests without browser overhead:</p>
+<h3>HTTP vs Browser Monitors</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>HTTP Monitor</th>
+<th>Browser Monitor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Execution</td>
+<td>Direct HTTP call</td>
+<td>Full browser</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td>Fast (&lt; 1s typical)</td>
+<td>Slower (3-30s)</td>
+</tr>
+<tr>
+<td>Resources</td>
+<td>Minimal</td>
+<td>Chrome instance</td>
+</tr>
+<tr>
+<td>JavaScript</td>
+<td>Not executed</td>
+<td>Fully executed</td>
+</tr>
+<tr>
+<td>Frequency</td>
+<td>1 min and up (to 4 h), or on demand</td>
+<td>5, 10, 15, 30 min; 1, 2, 4 h; or on demand</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>Lower</td>
+<td>Higher</td>
+</tr>
+</tbody>
+</table>
+<h3>Use Cases</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>HTTP Monitor Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API health check</td>
+<td>Single request</td>
+</tr>
+<tr>
+<td>REST API endpoint</td>
+<td>Single request</td>
+</tr>
+<tr>
+<td>Auth token + API call</td>
+<td>Multi-step</td>
+</tr>
+<tr>
+<td>GraphQL queries</td>
+<td>Single/Multi-step</td>
+</tr>
+<tr>
+<td>Webhook testing</td>
+<td>Single request</td>
+</tr>
+<tr>
+<td>Certificate expiry</td>
+<td>Single request + SSL check</td>
+</tr>
+</tbody>
+</table>
+<h3>Configuration Path</h3>
+<p><strong>Synthetic → Monitor → HTTP</strong></p>
+<p><a id="single-request-monitors"></a></p>
+<h2>2. Single Request Monitors</h2>
+<h3>Request Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>URL</strong></td>
+<td>Full endpoint URL</td>
+<td><code>https://api.example.com/health</code></td>
+</tr>
+<tr>
+<td><strong>Method</strong></td>
+<td>HTTP verb</td>
+<td>GET, POST, PUT, DELETE, PATCH</td>
+</tr>
+<tr>
+<td><strong>Headers</strong></td>
+<td>Custom headers</td>
+<td><code>Authorization: Bearer ...</code></td>
+</tr>
+<tr>
+<td><strong>Body</strong></td>
+<td>Request payload</td>
+<td>JSON, form data, raw</td>
+</tr>
+<tr>
+<td><strong>Performance threshold</strong></td>
+<td>Per-request threshold that can raise a problem</td>
+<td>Set in the request's settings</td>
+</tr>
+</tbody>
+</table>
+<h3>Common HTTP Methods</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Use Case</th>
+<th>Body</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td>Retrieve data</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td>Create resource</td>
+<td>Required</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td>Update resource</td>
+<td>Required</td>
+</tr>
+<tr>
+<td><code>PATCH</code></td>
+<td>Partial update</td>
+<td>Required</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td>Remove resource</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td><code>HEAD</code></td>
+<td>Check existence</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>OPTIONS</code></td>
+<td>CORS preflight</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<h3>Request Headers</h3>
+<pre><code>Content-Type: application/json
+Accept: application/json
+Authorization: Bearer &lt;token&gt;
+X-API-Key: &lt;key&gt;
+User-Agent: Dynatrace Synthetic
+</code></pre>
+<pre><code class="language-dql">// List all HTTP monitors
+// PREFERRED -- Smartscape. Classic dt.entity.http_check maps to HTTP_MONITOR;
+// id_classic still carries the HTTP_CHECK-* id for joining to unmigrated queries.
+smartscapeNodes &quot;HTTP_MONITOR&quot;
+| fields name, id, id_classic, http_monitor.type, enabled, frequency
+| sort name asc
+| limit 50
+
+// Multi-step HTTP requests are separate nodes (HTTP_MONITOR_STEP) joined to the monitor
+// by an edge, not fields of the monitor record. Steps per monitor:
+//
+// smartscapeNodes &quot;HTTP_MONITOR_STEP&quot;
+// | traverse edgeTypes: {&quot;belongs_to&quot;}, targetTypes: {&quot;HTTP_MONITOR&quot;}, direction: forward
+// | summarize steps = count(), by:{monitor = name}
+// | sort steps desc
+
+// FALLBACK (classic surface -- deprecated in DQL, supported for as long as
+// Dynatrace Classic is supported):
+// fetch dt.entity.http_check
+// | fields id, entity.name
+// | sort entity.name asc
+// | limit 50
+</code></pre>
+<pre><code class="language-dql">// HTTP monitor execution results (last 24h)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+fetch dt.synthetic.events, from: now() - 24h
+| filter event.type == &quot;http_monitor_execution&quot;
+| fields timestamp,
+         monitor = monitor.name,
+         location = getNodeName(dt.smartscape.synthetic_location),
+         state = result.state,
+         status_code = result.statistics.response_status_code,
+         response_ms = result.statistics.duration / 1ms
+| sort timestamp desc
+| limit 100
+</code></pre>
+<p><a id="multi-step-http-monitors"></a></p>
+<h2>3. Multi-Step HTTP Monitors</h2>
+<p>Chain multiple HTTP requests with data passing between steps:</p>
+<h3>Multi-Step Workflow Example</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDFHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDU5NjY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDNHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZXh0cmFjdEdyYWRIVFRQIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9Imh0dHBTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9Imh0dHBBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjMyMCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TXVsdGktU3RlcCBIVFRQIE1vbml0b3IgV29ya2Zsb3c8L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DaGFpbmVkIEFQSSByZXF1ZXN0cyB3aXRoIHZhcmlhYmxlIGV4dHJhY3Rpb248L3RleHQ+CgogIDwhLS0gU3RlcCAxOiBBdXRoZW50aWNhdGUgLS0+CiAgPHJlY3QgeD0iMzAiIHk9Ijc1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgcng9IjEwIiBmaWxsPSJ1cmwoI3N0ZXAxR3JhZCkiIGZpbHRlcj0idXJsKCNodHRwU2hhZG93KSIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3RlcCAxOiBBdXRoZW50aWNhdGU8L3RleHQ+CiAgPHRleHQgeD0iMTMwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UE9TVCAvYXBpL2xvZ2luPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMTQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+eyJ1c2VyIjogInRlc3QifTwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjE2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkV4cGVjdDogMjAwIE9LPC90ZXh0PgoKICA8IS0tIEV4dHJhY3QgVG9rZW4gLS0+CiAgPHJlY3QgeD0iODAiIHk9IjE4MCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9InVybCgjZXh0cmFjdEdyYWRIVFRQKSIgZmlsdGVyPSJ1cmwoI2h0dHBTaGFkb3cpIi8+CiAgPHRleHQgeD0iMTMwIiB5PSIyMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hcGkuc2V0VmFsdWU6IHRva2VuPC90ZXh0PgoKICA8IS0tIEFycm93IHRvIFN0ZXAgMiAtLT4KICA8cGF0aCBkPSJNMjMwLDEyNSBMMjgwLDEyNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjaHR0cEFycm93KSIvPgogIDxwYXRoIGQ9Ik0xODAsMTk1IEwxODAsMjMwIEwzMTAsMjMwIEwzMTAsMTgwIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWRhc2hhcnJheT0iNCwyIiBtYXJrZXItZW5kPSJ1cmwoI2h0dHBBcnJvdykiLz4KICA8dGV4dCB4PSIyNDUiIHk9IjI0NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTI0MDBlIj5Vc2UgdG9rZW4gaW4gaGVhZGVyPC90ZXh0PgoKICA8IS0tIFN0ZXAgMjogR2V0IFVzZXIgLS0+CiAgPHJlY3QgeD0iMjkwIiB5PSI3NSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxMCIgZmlsbD0idXJsKCNzdGVwMkdyYWQpIiBmaWx0ZXI9InVybCgjaHR0cFNoYWRvdykiLz4KICA8dGV4dCB4PSIzOTAiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0ZXAgMjogR2V0IFVzZXI8L3RleHQ+CiAgPHRleHQgeD0iMzkwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R0VUIC9hcGkvdXNlcnMvbWU8L3RleHQ+CiAgPHRleHQgeD0iMzkwIiB5PSIxNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BdXRoOiBCZWFyZXIge3Rva2VufTwvdGV4dD4KICA8dGV4dCB4PSIzOTAiIHk9IjE2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkV4cGVjdDogMjAwIE9LPC90ZXh0PgoKICA8IS0tIEV4dHJhY3QgdXNlcklkIC0tPgogIDxyZWN0IHg9IjM0MCIgeT0iMTgwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0idXJsKCNleHRyYWN0R3JhZEhUVFApIiBmaWx0ZXI9InVybCgjaHR0cFNoYWRvdykiLz4KICA8dGV4dCB4PSIzOTAiIHk9IjIwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmFwaS5zZXRWYWx1ZTogdXNlcklkPC90ZXh0PgoKICA8IS0tIEFycm93IHRvIFN0ZXAgMyAtLT4KICA8cGF0aCBkPSJNNDkwLDEyNSBMNTQwLDEyNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjaHR0cEFycm93KSIvPgogIDxwYXRoIGQ9Ik00NDAsMTk1IEw0NDAsMjYwIEw1NzAsMjYwIEw1NzAsMTgwIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWRhc2hhcnJheT0iNCwyIiBtYXJrZXItZW5kPSJ1cmwoI2h0dHBBcnJvdykiLz4KICA8dGV4dCB4PSI1MDUiIHk9IjI3NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTI0MDBlIj5Vc2UgdXNlcklkIGluIHBhdGg8L3RleHQ+CgogIDwhLS0gU3RlcCAzOiBHZXQgT3JkZXJzIC0tPgogIDxyZWN0IHg9IjU1MCIgeT0iNzUiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTAwIiByeD0iMTAiIGZpbGw9InVybCgjc3RlcDNHcmFkKSIgZmlsdGVyPSJ1cmwoI2h0dHBTaGFkb3cpIi8+CiAgPHRleHQgeD0iNjYwIiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TdGVwIDM6IEdldCBPcmRlcnM8L3RleHQ+CiAgPHRleHQgeD0iNjYwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R0VUIC9hcGkvdXNlcnMve3VzZXJJZH0vb3JkZXJzPC90ZXh0PgogIDx0ZXh0IHg9IjY2MCIgeT0iMTQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QXV0aDogQmVhcmVyIHt0b2tlbn08L3RleHQ+CiAgPHRleHQgeD0iNjYwIiB5PSIxNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FeHBlY3Q6IDIwMCwgb3JkZXJzLmxlbmd0aCAmZ3Q7IDA8L3RleHQ+CgogIDwhLS0gRmluYWwgdmFsaWRhdGlvbiAtLT4KICA8cmVjdCB4PSI1ODAiIHk9IjE4MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9IiNkMWZhZTUiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjYwIiB5PSIyMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPlZhbGlkYXRlIFJlc3BvbnNlPC90ZXh0PgoKICA8IS0tIExlZ2VuZCAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMjk1IiB3aWR0aD0iNzQwIiBoZWlnaHQ9IjE4IiByeD0iNCIgZmlsbD0iI2UwZjJmZSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMzA4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwMzY5YTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlZhcmlhYmxlcyBleHRyYWN0ZWQgZnJvbSBvbmUgc3RlcCBjYW4gYmUgdXNlZCBpbiBzdWJzZXF1ZW50IHN0ZXBzIGFzIHt2YXJpYWJsZV9uYW1lfSDigJQgc2luZ2xlIGJyYWNlcywgbm8gJDwvdGV4dD4KPC9zdmc+Cg==" alt="HTTP Monitor Workflow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action | Description |
+|------|--------|-------------|
+| 1 | POST /auth/login | Authenticate and get token |
+| 2 | `api.setValue("token", …)` | Post-execution script stores the token |
+| 3 | GET /api/users/me | Call API with Bearer token |
+| 4 | `api.setValue("userId", …)` | Post-execution script stores the user ID |
+| 5 | GET /api/users/{userId}/orders | Fetch user orders |
+| 6 | Validate response | Verify orders array exists |
+-->
+<h3>Passing Values Between Requests</h3>
+<p>HTTP monitors have no declarative JSON-path or header extractor. A value is carried forward by a <strong>post-execution script</strong> on the request that returns it, which stores the value with <code>api.setValue()</code>:</p>
+<pre><code class="language-javascript">// Post-execution script on request 1 (POST /auth/login)
+if (response.getStatusCode() != 200) {
+    api.fail(&quot;HTTP error: &quot; + response.getStatusCode());
+}
+var jsonData = JSON.parse(response.getResponseBody());
+api.setValue(&quot;token&quot;, jsonData.access_token);
+api.setValue(&quot;userId&quot;, jsonData.user.id);
+</code></pre>
+<p><code>response.getResponseBody()</code> <em>&quot;returns the first 50 KB of the response body as a string&quot;</em>, so a value beyond that point cannot be read this way. Response headers are available to the same script through <code>response.getHeaders()</code>.</p>
+<h3>Using Variables</h3>
+<p>Reference a stored value in any later request field with <strong>single braces and no <code>$</code></strong>:</p>
+<ul>
+<li>URL: <code>https://api.example.com/users/{userId}</code></li>
+<li>Header: <code>Authorization: Bearer {token}</code></li>
+<li>Body: <code>{&quot;userId&quot;: &quot;{userId}&quot;}</code></li>
+</ul>
+<p><code>${userId}</code> is not substituted — the monitor sends the literal text.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic">Pre- and post-execution scripting for HTTP monitors (DT docs)</a> — <em>&quot;You can also apply the value of a variable previously set using api.setValue() in subsequent HTTP monitor configuration fields using the {variable_name} convention.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor">Create and configure an HTTP monitor (DT docs)</a> — <em>&quot;Pre and post execution scripts allows you to add custom logic between HTTP monitor requests to do things like parsing the response, modifying the request URL, or skipping requests under certain conditions.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Multi-step HTTP monitor — per-step performance
+fetch dt.synthetic.events, from: now() - 24h
+| filter event.type == &quot;http_step_execution&quot;
+| summarize {
+    avg_duration_ms = avg(result.statistics.duration / 1ms),
+    success_rate = countIf(result.status.code == 0) * 100.0 / count(),
+    executions = count()
+  }, by: {monitor.name, step.name}
+| fieldsAdd avg_duration_ms = round(avg_duration_ms, decimals: 2)
+| fieldsAdd success_rate = round(success_rate, decimals: 2)
+| sort avg_duration_ms desc
+| limit 30
+</code></pre>
+<p><a id="authentication"></a></p>
+<h2>4. Authentication</h2>
+<h3>Supported Authentication Methods</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Configuration</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Basic Auth</strong></td>
+<td>Username/password encoded</td>
+<td>Legacy APIs</td>
+</tr>
+<tr>
+<td><strong>Bearer Token</strong></td>
+<td>Header: <code>Authorization: Bearer &lt;token&gt;</code></td>
+<td>OAuth2, JWT</td>
+</tr>
+<tr>
+<td><strong>API Key</strong></td>
+<td>Header: <code>X-API-Key: &lt;key&gt;</code></td>
+<td>Third-party APIs</td>
+</tr>
+<tr>
+<td><strong>OAuth2</strong></td>
+<td>Token endpoint + credentials</td>
+<td>Modern APIs</td>
+</tr>
+<tr>
+<td><strong>Client Certificate</strong></td>
+<td>mTLS</td>
+<td>High-security APIs</td>
+</tr>
+</tbody>
+</table>
+<h3>Credential Vault</h3>
+<p>Store sensitive credentials securely:</p>
+<ol>
+<li><strong>Credential Vault</strong></li>
+<li>Add credential (username/password, token, certificate)</li>
+<li>Reference it in the URL, a header or the body as <code>{CREDENTIALS_VAULT-&lt;id&gt;|username}</code>, <code>{CREDENTIALS_VAULT-&lt;id&gt;|password}</code> or <code>{CREDENTIALS_VAULT-&lt;id&gt;|token}</code> — the documented form is <em>&quot;{<credential ID>|token} , {<credential ID>|username} , or {<credential ID>|password}&quot;</em></li>
+</ol>
+<h3>OAuth2 Flow Example</h3>
+<pre><code class="language-text">Request 1: Get token
+    POST https://auth.example.com/oauth/token
+    Body: grant_type=client_credentials
+          &amp;client_id={CREDENTIALS_VAULT-&lt;id&gt;|username}
+          &amp;client_secret={CREDENTIALS_VAULT-&lt;id&gt;|password}
+    Post-execution script:
+          var jsonData = JSON.parse(response.getResponseBody());
+          api.setValue(&quot;bearerToken&quot;, jsonData.access_token);
+
+Request 2: API call
+    GET https://api.example.com/data
+    Header: Authorization: Bearer {bearerToken}
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor">Create and configure an HTTP monitor (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic">Pre- and post-execution scripting for HTTP monitors (DT docs)</a> — its OAuth example parses the token response with <code>JSON.parse</code> and stores the token with <code>api.setValue</code>.</sub></p>
+</blockquote>
+<p><a id="response-validation"></a></p>
+<h2>5. Response Validation</h2>
+<h3>HTTP Status Validation</h3>
+<table>
+<thead>
+<tr>
+<th>Status Range</th>
+<th>Meaning</th>
+<th>Default Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2xx</td>
+<td>Success</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td>3xx</td>
+<td>Redirect</td>
+<td>Follow/Pass</td>
+</tr>
+<tr>
+<td>4xx</td>
+<td>Client Error</td>
+<td>Fail</td>
+</tr>
+<tr>
+<td>5xx</td>
+<td>Server Error</td>
+<td>Fail</td>
+</tr>
+</tbody>
+</table>
+<h3>Content Validation</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Contains</strong></td>
+<td>Text present</td>
+<td><code>&quot;status&quot;: &quot;ok&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Not Contains</strong></td>
+<td>Text absent</td>
+<td><code>&quot;error&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Regex</strong></td>
+<td>Pattern match</td>
+<td><code>&quot;id&quot;:\s*\d+</code></td>
+</tr>
+</tbody>
+</table>
+<p>Text and regex rules are evaluated over the first 50 KB of the response body.</p>
+<h3>Checking JSON Responses</h3>
+<p>JSON-path assertions are <strong>not</strong> an HTTP-monitor rule type. The documented rule types are <em>&quot;Response status code validation Text validation, where the first 50 KB of the response body is checked for a string of text or a regular expression SSL certificate expiry validation&quot;</em>, and when several are configured, <em>&quot;HTTP status code validation is the most important, followed by text and regular expression validation, and finally by SSL certificate expiry validation.&quot;</em></p>
+<p>For a structured check, either match the JSON as text or regex (for example <code>&quot;status&quot;:\s*&quot;success&quot;</code>), or assert in a post-execution script, where <code>api.fail()</code> <em>&quot;marks the request as failed, providing the message as the reason, and marks the monitor execution as failed&quot;</em>:</p>
+<pre><code class="language-javascript">var d = JSON.parse(response.getResponseBody());
+if (d.status !== &quot;success&quot;) {
+    api.fail(&quot;status=&quot; + d.status);
+}
+if (!d.data || !d.data.users || d.data.users.length === 0) {
+    api.fail(&quot;users array is empty&quot;);
+}
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor">Create and configure an HTTP monitor (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic">Pre- and post-execution scripting for HTTP monitors (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// HTTP status code distribution
+fetch dt.synthetic.events, from: now() - 24h
+| filter event.type == &quot;http_monitor_execution&quot;
+| summarize count = count(), by: {monitor.name, result.statistics.response_status_code}
+| sort count desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Failed HTTP requests with error details
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+fetch dt.synthetic.events, from: now() - 24h
+| filter event.type == &quot;http_monitor_execution&quot;
+| filter result.state == &quot;FAIL&quot;
+| fields timestamp,
+         monitor = monitor.name,
+         location = getNodeName(dt.smartscape.synthetic_location),
+         status = result.status.message,
+         status_code = result.status.code,
+         detail = result.status.details
+| sort timestamp desc
+| limit 50
+</code></pre>
+<p><a id="ssl-certificate-monitoring"></a></p>
+<h2>6. SSL Certificate Monitoring</h2>
+<p>HTTP monitors automatically check SSL certificates:</p>
+<h3>Certificate Checks</h3>
+<p><em>&quot;Accept any SSL certificate —by default, HTTP monitors fail when SSL certificates are invalid.&quot;</em> The docs list what counts as invalid: self-signed, expired, inactive, lifetime greater than 398 days, missing hostname, invalid or incomplete chain, untrusted certificate authority, insecure signature algorithm.</p>
+<h3>Expiration Problems</h3>
+<p><em>&quot;Generate a problem if the SSL certificate expires within the next n days&quot;</em> — n is at most 100 — raises a problem <em>&quot;without failing the monitor or affecting monitor availability&quot;</em>. Pick n to leave time to renew; in community practice 30 days is a common setting, with the § 6 query as an early view.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor">Create and configure an HTTP monitor (DT docs)</a> — <em>&quot;Accept any SSL certificate —by default, HTTP monitors fail when SSL certificates are invalid.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// SSL certificate expiration status (per monitor)
+// peer_certificate_expiry_date is carried on http_step_execution records for HTTPS targets
+fetch dt.synthetic.events, from: now() - 6h
+| filter event.type == &quot;http_step_execution&quot;
+| filter isNotNull(result.statistics.peer_certificate_expiry_date)
+| summarize { certificate_expiry = takeMax(result.statistics.peer_certificate_expiry_date) }, by: {monitor.name}
+| fieldsAdd days_until_expiry = round((certificate_expiry - now()) / 1h / 24, decimals: 1)
+| sort days_until_expiry asc
+| limit 20
+</code></pre>
+<p><a id="analyzing-http-results"></a></p>
+<h2>7. Analyzing HTTP Results</h2>
+<pre><code class="language-dql">// HTTP monitor availability summary (by monitor)
+fetch dt.synthetic.events, from: now() - 24h
+| filter event.type == &quot;http_monitor_execution&quot;
+| summarize {
+    total = count(),
+    successful = countIf(result.state == &quot;SUCCESS&quot;),
+    failed = countIf(result.state == &quot;FAIL&quot;)
+  }, by: {monitor.name}
+| fieldsAdd availability_pct = round((successful * 100.0) / total, decimals: 2)
+| sort availability_pct asc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Response time percentiles by monitor (successful executions)
+fetch dt.synthetic.events, from: now() - 24h
+| filter event.type == &quot;http_monitor_execution&quot;
+| filter result.state == &quot;SUCCESS&quot;
+| summarize {
+    p50 = percentile(result.statistics.duration, 50),
+    p95 = percentile(result.statistics.duration, 95),
+    p99 = percentile(result.statistics.duration, 99),
+    max = max(result.statistics.duration),
+    executions = count()
+  }, by: {monitor.name}
+| fieldsAdd p50_ms = round(p50 / 1ms, decimals: 1),
+            p95_ms = round(p95 / 1ms, decimals: 1),
+            p99_ms = round(p99 / 1ms, decimals: 1),
+            max_ms = round(max / 1ms, decimals: 1)
+| fieldsRemove p50, p95, p99, max
+| sort p95_ms desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// HTTP timing breakdown (DNS, TCP connect, TLS, TTFB) — from step records
+fetch dt.synthetic.events, from: now() - 24h
+| filter event.type == &quot;http_step_execution&quot;
+| filter result.status.code == 0
+| summarize {
+    avg_dns_ms     = round(avg(result.statistics.host_name_resolution_time) / 1ms, decimals: 2),
+    avg_connect_ms = round(avg(result.statistics.tcp_connect_time) / 1ms, decimals: 2),
+    avg_tls_ms     = round(avg(result.statistics.tls_handshake_time) / 1ms, decimals: 2),
+    avg_ttfb_ms    = round(avg(result.statistics.time_to_first_byte) / 1ms, decimals: 2),
+    avg_total_ms   = round(avg(result.statistics.duration) / 1ms, decimals: 2),
+    executions = count()
+  }, by: {monitor.name, step.name}
+| sort avg_total_ms desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Response time trend over time (last 7 days)
+fetch dt.synthetic.events, from: now() - 7d
+| filter event.type == &quot;http_monitor_execution&quot;
+| filter result.state == &quot;SUCCESS&quot;
+| makeTimeseries {
+    avg_response_ms = avg(result.statistics.duration / 1ms),
+    p95_response_ms = percentile(result.statistics.duration / 1ms, 95)
+  }, interval: 1h
+</code></pre>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>HTTP monitor types</strong> - Single request vs multi-step<br />
+✅ <strong>Request configuration</strong> - Methods, headers, body<br />
+✅ <strong>Multi-step workflows</strong> - Values passed with <code>api.setValue()</code> and referenced as <code>{variable}</code><br />
+✅ <strong>Authentication</strong> - Basic, Bearer, OAuth2, API keys<br />
+✅ <strong>Response validation</strong> - Status codes, text/regex, post-execution script checks<br />
+✅ <strong>SSL monitoring</strong> - Certificate expiration via <code>result.statistics.peer_certificate_expiry_date</code><br />
+✅ <strong>Analysis queries</strong> - Availability, percentiles, timing breakdown</p>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>SYNTH-04: Private Locations</strong> to learn about running monitors from your own infrastructure.</p>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-and-configure-an-http-monitor">Create and configure an HTTP monitor (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-metrics/http-monitor-metrics">HTTP monitor metrics in Synthetic on Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/credential-vault">Credential vault (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/http-monitors-classic/pre-and-post-scripting-for-http-monitors-classic">Pre- and post-execution scripting for HTTP monitors (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app">Synthetic app (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

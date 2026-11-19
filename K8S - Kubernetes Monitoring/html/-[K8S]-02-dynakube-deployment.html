@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8S-02: DynaKube Operator Deployment</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">K8S — Kubernetes Monitoring</a><span class="sep">/</span><span aria-current="page">K8S-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>K8S-02: DynaKube Operator Deployment</h1>
+<blockquote>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 2 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/19/2026</p>
+</blockquote>
+<h2>Installing and Configuring the Dynatrace Operator</h2>
+<p>The DynaKube operator is the recommended way to deploy Dynatrace monitoring in Kubernetes. This notebook covers installation via Helm, configuration options, and deployment modes for different use cases.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#operator-overview">Operator Overview</a></li>
+<li><a href="#prerequisites-setup">Prerequisites Setup</a></li>
+<li><a href="#helm-chart-installation">Helm Chart Installation</a></li>
+<li><a href="#dynakube-custom-resource">DynaKube Custom Resource</a></li>
+<li><a href="#deployment-modes-explained">Deployment Modes Explained</a></li>
+<li><a href="#configuration-options">Configuration Options</a></li>
+<li><a href="#verification-and-validation">Verification and Validation</a></li>
+<li><a href="#upgrading-the-operator">Upgrading the Operator</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS tenant with API tokens</td>
+</tr>
+<tr>
+<td><strong>Kubernetes Cluster</strong></td>
+<td>v1.27+ (the oldest version in the Dynatrace support matrix, read 11/15/2026 — check its end-of-support column) with admin access</td>
+</tr>
+<tr>
+<td><strong>Helm</strong></td>
+<td>v3.x installed</td>
+</tr>
+<tr>
+<td><strong>kubectl</strong></td>
+<td>Configured for your cluster</td>
+</tr>
+<tr>
+<td><strong>API Tokens</strong></td>
+<td>Operator token (Platform Token recommended) + Data ingest token</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Operator token type:</strong> new automation should use <strong>Platform Tokens</strong> (<code>dt0s16</code>) with <code>Authorization: Bearer</code> for the Operator token — note that <strong>the Operator itself accepts platform tokens only from Operator 1.10.0</strong> (released July 15, 2026): <em>&quot;No immediate action is required and existing access tokens continue to be accepted.&quot;</em> (<a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-0">Dynatrace Operator 1.10.0 release notes (DT docs)</a>) On clusters running an earlier Operator, keep the classic access (API) token — it remains the working path. The OneAgent installer download path still uses Classic API Tokens (<code>dt0c01</code> with <code>Authorization: Api-Token</code>); this is expected and supported. See the IAM series (IAM Administration) for parameterized policy patterns and the ONBRD-99 Recommended Defaults card for the canonical token / configuration / extension stack.</p>
+</blockquote>
+<blockquote>
+<p><strong>Version Support Policy:</strong> OneAgent and ActiveGate versions are supported for <strong>9 months (Standard)</strong> or <strong>12 months (Enterprise)</strong> from release. The Operator is not in that table — for Operator versions, follow the upgrade path in each release's notes (Operator 1.11.0: <em>&quot;Minimum operator version required for direct upgrade: 1.6.0&quot;</em>). Third-party technologies are supported for 6 months beyond vendor EOL. See <a href="https://www.dynatrace.com/company/trust-center/support-policy/">Support Policy (Dynatrace)</a>.</p>
+</blockquote>
+<p><a id="operator-overview"></a></p>
+<h2>1. Operator Overview</h2>
+<p>The Dynatrace Operator manages the complete lifecycle of Dynatrace monitoring components.</p>
+<h3>What the Operator Manages</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Description</th>
+<th>Managed By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent DaemonSet</strong></td>
+<td>Node-level monitoring</td>
+<td>Operator</td>
+</tr>
+<tr>
+<td><strong>ActiveGate StatefulSet</strong></td>
+<td>Routing and K8s API access</td>
+<td>Operator</td>
+</tr>
+<tr>
+<td><strong>Webhook</strong></td>
+<td>Code module injection</td>
+<td>Operator</td>
+</tr>
+<tr>
+<td><strong>CSI Driver</strong></td>
+<td>Volume-based code modules, cached per node</td>
+<td>Operator — on by default with Helm; absent from the plain <code>kubernetes.yaml</code> manifest (<code>kubernetes-csi.yaml</code> adds it)</td>
+</tr>
+<tr>
+<td><strong>Image volumes</strong></td>
+<td>Code modules from a node-shared image volume — no CSI DaemonSet (Operator 1.11.0+, Kubernetes 1.35+)</td>
+<td>Kubernetes, configured by the Operator</td>
+</tr>
+</tbody>
+</table>
+<h3>Operator Architecture</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibmFtZXNwYWNlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUzYTVmO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJvcGVyYXRvckdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzYzNjZmMTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNGY0NmU1O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY3JHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNGI4YTY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBkOTQ4ODtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNvbXBvbmVudEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzMzNDE1NTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTQwJSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjAiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLWNvbG9yPSIjMDAwIiBmbG9vZC1vcGFjaXR5PSIwLjMiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYXJyb3dCbHVlIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2MzY2ZjEiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dUZWFsIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiMxNGI4YTYiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyb3dHcmF5IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMwZjE3MmEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNTAiIHk9IjMwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZjFmNWY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hS3ViZSBPcGVyYXRvciBBcmNoaXRlY3R1cmU8L3RleHQ+CgogIDwhLS0gRHluYXRyYWNlIE5hbWVzcGFjZSBDb250YWluZXIgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjUwIiB3aWR0aD0iNjIwIiBoZWlnaHQ9IjMxMCIgcng9IjEyIiBmaWxsPSJ1cmwoI25hbWVzcGFjZUdyYWQpIiBzdHJva2U9IiMzMjZjZTUiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIzNTAiIHk9Ijc1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjMzI2Y2U1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5keW5hdHJhY2UgbmFtZXNwYWNlPC90ZXh0PgoKICA8IS0tIER5bmF0cmFjZSBPcGVyYXRvciAtLT4KICA8cmVjdCB4PSI3MCIgeT0iMTAwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjkwIiByeD0iOCIgZmlsbD0idXJsKCNvcGVyYXRvckdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iMTMwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2UgT3BlcmF0b3I8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNjN2QyZmUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRlcGxveW1lbnQ8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIxNzUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNhNWI0ZmMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPldhdGNoZXMgQ1JzLCBtYW5hZ2VzPC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iMTg4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjYTViNGZjIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jb21wb25lbnQgbGlmZWN5Y2xlPC90ZXh0PgoKICA8IS0tIER5bmFLdWJlIENSIC0tPgogIDxyZWN0IHg9IjM1MCIgeT0iMTAwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjkwIiByeD0iOCIgZmlsbD0idXJsKCNjckdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ0MCIgeT0iMTMwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hS3ViZTwvdGV4dD4KICA8dGV4dCB4PSI0NDAiIHk9IjE1MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzk5ZjZlNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q3VzdG9tIFJlc291cmNlPC90ZXh0PgogIDx0ZXh0IHg9IjQ0MCIgeT0iMTc1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNWVlYWQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EZWZpbmVzIGRlc2lyZWQgc3RhdGU6PC90ZXh0PgogIDx0ZXh0IHg9IjQ0MCIgeT0iMTg4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNWVlYWQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hcGlVcmwsIG1vZGUsIGZlYXR1cmVzPC90ZXh0PgoKICA8IS0tIEFycm93OiBPcGVyYXRvciB3YXRjaGVzIER5bmFLdWJlIC0tPgogIDxwYXRoIGQ9Ik0yNTAgMTQ1IEwzNDAgMTQ1IiBzdHJva2U9IiM2MzY2ZjEiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0JsdWUpIi8+CiAgPHRleHQgeD0iMjk1IiB5PSIxMzgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNhNWI0ZmMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPndhdGNoZXM8L3RleHQ+CgogIDwhLS0gTWFuYWdlZCBDb21wb25lbnRzIENvbnRhaW5lciAtLT4KICA8cmVjdCB4PSI3MCIgeT0iMjMwIiB3aWR0aD0iNTQwIiBoZWlnaHQ9IjExMCIgcng9IjgiIGZpbGw9InVybCgjY29tcG9uZW50R3JhZCkiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIzNDAiIHk9IjI1NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjUwMCIgZmlsbD0iIzk0YTNiOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TWFuYWdlZCBDb21wb25lbnRzPC90ZXh0PgoKICA8IS0tIE9uZUFnZW50IC0tPgogIDxyZWN0IHg9IjkwIiB5PSIyNzAiIHdpZHRoPSIxMTAiIGhlaWdodD0iNTUiIHJ4PSI2IiBmaWxsPSIjNGY0NmU1IiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjE0NSIgeT0iMjk1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PbmVBZ2VudDwvdGV4dD4KICA8dGV4dCB4PSIxNDUiIHk9IjMxMiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjYzdkMmZlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EYWVtb25TZXQ8L3RleHQ+CgogIDwhLS0gQWN0aXZlR2F0ZSAtLT4KICA8cmVjdCB4PSIyMjAiIHk9IjI3MCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI1NSIgcng9IjYiIGZpbGw9IiMwZDk0ODgiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMjc1IiB5PSIyOTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFjdGl2ZUdhdGU8L3RleHQ+CiAgPHRleHQgeD0iMjc1IiB5PSIzMTIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzk5ZjZlNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3RhdGVmdWxTZXQ8L3RleHQ+CgogIDwhLS0gV2ViaG9vayAtLT4KICA8cmVjdCB4PSIzNTAiIHk9IjI3MCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI1NSIgcng9IjYiIGZpbGw9IiNkOTc3MDYiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNDA1IiB5PSIyOTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPldlYmhvb2s8L3RleHQ+CiAgPHRleHQgeD0iNDA1IiB5PSIzMTIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iI2ZlZjNjNyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2VydmljZTwvdGV4dD4KCiAgPCEtLSBDU0kgRHJpdmVyIC0tPgogIDxyZWN0IHg9IjQ4MCIgeT0iMjcwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjU1IiByeD0iNiIgZmlsbD0iIzdjM2FlZCIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1MzUiIHk9IjI5NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q1NJIERyaXZlcjwvdGV4dD4KICA8dGV4dCB4PSI1MzUiIHk9IjMxMiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjZGRkNmZlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EYWVtb25TZXQ8L3RleHQ+CgogIDwhLS0gQXJyb3dzOiBPcGVyYXRvciBjcmVhdGVzIGNvbXBvbmVudHMgLS0+CiAgPGxpbmUgeDE9IjE2MCIgeTE9IjE5MCIgeDI9IjE2MCIgeTI9IjIxNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMTYwIiB5MT0iMjE1IiB4Mj0iMzQwIiB5Mj0iMjE1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIzNDAiIHkxPSIyMTUiIHgyPSIzNDAiIHkyPSIyMzAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93R3JheSkiLz4KICA8dGV4dCB4PSIyNTAiIHk9IjIxMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk0YTNiOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Y3JlYXRlcyAvIG1hbmFnZXM8L3RleHQ+CgogIDwhLS0gQXJyb3c6IENSIGRlZmluZXMgY29tcG9uZW50cyAtLT4KICA8bGluZSB4MT0iNDQwIiB5MT0iMTkwIiB4Mj0iNDQwIiB5Mj0iMjE1IiBzdHJva2U9IiMxNGI4YTYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI0NDAiIHkxPSIyMTUiIHgyPSIzNDAiIHkyPSIyMTUiIHN0cm9rZT0iIzE0YjhhNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNDIwIiB5PSIyMTAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM1ZWVhZDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmRlZmluZXM8L3RleHQ+CgogIDwhLS0gTGVnZW5kIC0tPgogIDxyZWN0IHg9IjU2MCIgeT0iOTUiIHdpZHRoPSI5MCIgaGVpZ2h0PSI5NSIgcng9IjYiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjA1IiB5PSIxMTIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzk0YTNiOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TGVnZW5kPC90ZXh0PgogIDxyZWN0IHg9IjU3MCIgeT0iMTIyIiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHJ4PSIyIiBmaWxsPSIjNjM2NmYxIi8+CiAgPHRleHQgeD0iNTkwIiB5PSIxMzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2NiZDVlMSI+Q29udHJvbGxlcjwvdGV4dD4KICA8cmVjdCB4PSI1NzAiIHk9IjE0MiIgd2lkdGg9IjEyIiBoZWlnaHQ9IjEyIiByeD0iMiIgZmlsbD0iIzE0YjhhNiIvPgogIDx0ZXh0IHg9IjU5MCIgeT0iMTUyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgiIGZpbGw9IiNjYmQ1ZTEiPkNSPC90ZXh0PgogIDxyZWN0IHg9IjU3MCIgeT0iMTYyIiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHJ4PSIyIiBmaWxsPSIjNDc1NTY5Ii8+CiAgPHRleHQgeD0iNTkwIiB5PSIxNzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2NiZDVlMSI+V29ya2xvYWRzPC90ZXh0Pgo8L3N2Zz4=" alt="DynaKube Operator Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Component | Type | Function |
+|-----------|------|----------|
+| Dynatrace Operator | Deployment | Watches DynaKube CR, manages components |
+| DynaKube | Custom Resource | Defines desired monitoring state |
+| OneAgent | DaemonSet | Full-stack monitoring on each node |
+| ActiveGate | StatefulSet | Routing and K8s API monitoring |
+| Webhook | Service | Code module injection |
+| CSI Driver | DaemonSet | Volume-based code modules |
+For environments where SVG doesn't render
+-->
+<p><a id="prerequisites-setup"></a></p>
+<h2>2. Prerequisites Setup</h2>
+<h3>Required API Tokens</h3>
+<blockquote>
+<p><strong>Platform tokens — available now (Dynatrace Operator 1.10.0, released 07/15/2026):</strong> the Operator accepts a <strong>platform token</strong> in the <code>apiToken</code> field as the successor to the classic access token. Platform tokens carry fine-grained, user-permission-based scoping, can be rotated or temporarily disabled without deletion, and support configurable expiry. Supplying one also turns on <strong>public-registry image resolution</strong> — <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-public-registry">Migrate to public registry (DT docs)</a>: <em>&quot;When your DynaKube uses a platform token, Dynatrace Operator enables public registry resolution automatically. No annotation is required.&quot;</em> Without a platform token, the same feature is opted into with the <code>feature.dynatrace.com/use-public-registry: &quot;true&quot;</code> DynaKube annotation. Three points from that page:</p>
+<ul>
+<li>It requires <strong>Dynatrace SaaS 1.343 or later</strong>.</li>
+<li><em>&quot;All managed component pods restart when the feature is first enabled.&quot;</em> — so moving an existing DynaKube to a platform token restarts its managed component pods (ActiveGate, OneAgent). Schedule it as a change window, not as a routine credential rotation.</li>
+<li><strong>Not every component resolves on Operator 1.10.</strong> <em>&quot;Container images for Extension Execution Controller, Dynatrace Log Module and the SQL Extension Executor are supported from Dynatrace SaaS 1.350 and Dynatrace Operator 1.11. In older versions, these components always require a image specified in the respective spec.templates field.&quot;</em> Operator 1.11.0 was released 10/01/2026, and SaaS releases roll out to tenants in stages, so until both versions reach your estate, keep setting those three images in <code>spec.templates</code>. The 1.11.0 notes extend resolution to the Node Configuration Collector, OTel Collector and EdgeConnect, which <em>&quot;requires a newer Dynatrace SaaS version, currently planned for 1.352&quot;</em>; ActiveGate, OneAgent and code-module images resolve from Operator 1.10.0. The Operator 1.10.0 release notes (updated 10/05/2026) still list EEC, the Log Module and SQL Extension Executor among the auto-resolved images — the how-to is the more specific page, so follow it and verify on your versions.</li>
+</ul>
+<p>Any <code>image</code> or <code>codeModulesImage</code> field already set on the DynaKube takes precedence over the resolved image — remove them when you want resolution to apply.</p>
+<p><strong>Access tokens remain fully supported</strong>; Dynatrace has committed to lead time before platform tokens become mandatory, so the access-token scopes below stay the working path. Separately, <code>spec.tokens.paasToken</code> is deprecated in favour of <code>apiToken</code> — new deployments should not set it.</p>
+</blockquote>
+<p>Create two tokens. The current documentation describes <strong>platform tokens</strong> assigned to a dedicated service user — the <strong>Operator token</strong> with the <em>Kubernetes Operator</em> policy, the <strong>Data Ingest token</strong> with the <em>Kubernetes Ingest</em> policy — and the Kubernetes onboarding flow creates both automatically:</p>
+<p><strong>Operator token (platform token):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fleet-management:activegate.connection-info:read</code></td>
+<td>ActiveGate lifecycle information</td>
+</tr>
+<tr>
+<td><code>fleet-management:activegate.tokens:create</code></td>
+<td>ActiveGate authentication tokens</td>
+</tr>
+<tr>
+<td><code>fleet-management:container-images:read</code></td>
+<td>Image information for managed components</td>
+</tr>
+<tr>
+<td><code>fleet-management:oneagent.connection-info:read</code></td>
+<td>OneAgent lifecycle information</td>
+</tr>
+<tr>
+<td><code>fleet-management:oneagents:download</code></td>
+<td>OneAgent lifecycle</td>
+</tr>
+<tr>
+<td><code>settings:objects:read</code> / <code>settings:objects:write</code></td>
+<td>Kubernetes API monitoring, KSPM and log-monitoring settings</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Data Ingest token (platform token):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>openpipeline:logs:ingest</code></td>
+<td>Ingest logs</td>
+</tr>
+<tr>
+<td><code>openpipeline:metrics:ingest</code></td>
+<td>Ingest metrics</td>
+</tr>
+<tr>
+<td><code>openpipeline:traces:ingest</code></td>
+<td>Ingest traces</td>
+</tr>
+<tr>
+<td><code>storage:metrics:write</code></td>
+<td>Write metrics</td>
+</tr>
+</tbody>
+</table>
+<p>Classic access tokens remain accepted (<em>&quot;existing access tokens continue to be accepted&quot;</em>), and Operators before 1.10.0 accept only them. If a token is missing a scope, the DynaKube status <strong>Tokens</strong> condition names it — check it with <code>kubectl -n dynatrace describe dynakube</code> rather than guessing.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/tokens-permissions/tokens-permissions">Tokens and permissions (DT docs)</a> — <em>&quot;Operator token —assigned the Kubernetes Operator policy. Manages the lifecycle of all Dynatrace components in the cluster.&quot;</em></sub></p>
+</blockquote>
+<h3>Create Namespace and Secret</h3>
+<pre><code class="language-bash"># Create namespace
+kubectl create namespace dynatrace
+
+# Create secret with tokens
+kubectl create secret generic dynakube \
+  --namespace dynatrace \
+  --from-literal=apiToken=&lt;OPERATOR_TOKEN&gt; \
+  --from-literal=dataIngestToken=&lt;DATA_INGEST_TOKEN&gt;
+</code></pre>
+<p><a id="helm-chart-installation"></a></p>
+<h2>3. Helm Chart Installation</h2>
+<h3>Chart Reference: OCI (documented) or Classic Repository</h3>
+<p>Dynatrace documents the operator chart as an <strong>OCI reference</strong> on a public registry:</p>
+<pre><code class="language-bash"># Documented form — OCI registry, version pinned explicitly
+helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
+  --version 1.10.4 \
+  --create-namespace \
+  --namespace dynatrace \
+  --install \
+  --atomic
+</code></pre>
+<p><code>--install</code> makes the same command serve a first install and an upgrade; <code>--atomic</code> rolls the release back automatically if any component fails to start.</p>
+<p>The classic <code>helm repo add</code> index is still served and still works, so automation built on it is <strong>stale, not broken</strong> — there is no urgency to rewrite it, and it is not the long-deprecated <code>dynatrace/helm-charts</code> repository. Prefer the OCI form for new automation; the classic form remains useful for <code>helm search repo</code> version discovery:</p>
+<pre><code class="language-bash"># Classic form — still functional
+helm repo add dynatrace https://raw.githubusercontent.com/Dynatrace/dynatrace-operator/main/config/helm/repos/stable
+helm repo update
+
+# View available versions
+helm search repo dynatrace/dynatrace-operator --versions
+
+# Install operator only (DynaKube CR applied separately)
+helm install dynatrace-operator dynatrace/dynatrace-operator \
+  --namespace dynatrace \
+  --create-namespace \
+  --wait
+</code></pre>
+<blockquote>
+<p><strong>Always pass <code>--version</code>.</strong> An unpinned install silently takes whatever is newest at run time, which is how a cluster ends up on a release its own notes tell you to skip. §8 covers how to choose the version.</p>
+</blockquote>
+<h3>What the Install Creates</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Kind</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dynatrace-operator</code></td>
+<td>Deployment</td>
+<td>Reconciles DynaKube CRs</td>
+</tr>
+<tr>
+<td><code>dynatrace-webhook</code></td>
+<td>Deployment</td>
+<td>Admission webhook — performs code-module injection</td>
+</tr>
+<tr>
+<td><code>dynatrace-oneagent-csi-driver</code></td>
+<td>DaemonSet</td>
+<td>Serves OneAgent code modules to pods as volumes (when <code>csidriver.enabled: true</code>)</td>
+</tr>
+<tr>
+<td><code>webhook-cert-generator</code></td>
+<td>init container</td>
+<td>Creates the <code>dynatrace-webhook-certs</code> secret the webhook needs before it can start (Operator 1.10.0+)</td>
+</tr>
+<tr>
+<td><code>crd-storage-migrator</code></td>
+<td>init container</td>
+<td>Migrates stored DynaKube objects to the current CRD storage version (Operator 1.10.0+)</td>
+</tr>
+</tbody>
+</table>
+<p>Naming the two init containers matters during triage: an operator pod stuck at <code>Init:0/1</code> is waiting on one of them, and</p>
+<pre><code class="language-bash">kubectl -n dynatrace get pod -l app.kubernetes.io/name=dynatrace-operator \
+  -o jsonpath='{.items[*].spec.initContainers[*].name}'
+</code></pre>
+<p>tells you which is present. K8S-09 §2 maps each to its failure mode.</p>
+<h3>Install with Custom Values</h3>
+<pre><code class="language-bash"># Create values file
+cat &gt; dt-values.yaml &lt;&lt; 'EOF'
+# Operator image — top-level chart values, not under &quot;operator:&quot;.
+# Leave empty for the chart default; set only for a private mirror.
+imageRef:
+  repository: &quot;&quot;
+  tag: &quot;&quot;
+customPullSecret: &quot;&quot;  # Required only when pulling from a private registry
+
+# Platform-specific settings
+platform: &quot;kubernetes&quot;  # or &quot;openshift&quot;
+
+# Webhook configuration
+webhook:
+  hostNetwork: false
+
+# CSI driver
+csidriver:
+  enabled: true
+EOF
+
+# Install with values
+helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
+  --version 1.10.4 \
+  --namespace dynatrace \
+  --create-namespace \
+  --values dt-values.yaml \
+  --install \
+  --atomic
+</code></pre>
+<blockquote>
+<p><strong>Private mirror vs. public-registry auto-update (Operator 1.10.0+).</strong> The chart's top-level <code>imageRef</code> (or the older <code>image</code>, which the chart's <a href="https://github.com/Dynatrace/dynatrace-operator/blob/v1.10.4/config/helm/chart/default/values.yaml">values.yaml (Dynatrace GitHub)</a> marks <em>&quot;OBSOLETE -&gt; use imageref instead!&quot;</em>) and <code>customPullSecret</code> set only the Operator's own image. Component images (ActiveGate, OneAgent, code modules) are resolved from the public registry when the DynaKube uses a <strong>platform token</strong> or carries the <code>feature.dynatrace.com/use-public-registry: &quot;true&quot;</code> annotation, and no <code>image</code> / <code>codeModulesImage</code> field overrides them (see §2 and <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-public-registry">Migrate to public registry (DT docs)</a>). That is what enables component <strong>auto-update with multi-architecture image support</strong> — <strong>ARM64, x86-64, s390x, and PPC64le</strong> — so a mixed-architecture node pool resolves the right image per node with no per-arch configuration. Mirroring into a private registry is fully supported, but you then own re-mirroring every architecture you run, and auto-update can only pick up what you have mirrored. Decide this before a mixed-arch rollout, not during one. Operator 1.10.0 was released July 15, 2026 and estates adopt it on their own schedule — on earlier Operators the pre-1.10 pull behavior remains the working path, unchanged.</p>
+</blockquote>
+<h3>Choosing How Images Reach Your Nodes</h3>
+<p>Decide this per cluster before the first rollout. The choice settles who moves component versions, who carries public-registry rate limits, and what your team has to operate.</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Who moves component versions</th>
+<th>Fits when</th>
+<th>What you own</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Public-registry resolution</strong> (platform token, or the <code>feature.dynatrace.com/use-public-registry</code> annotation; SaaS 1.343+, Operator 1.10+)</td>
+<td>The tenant's target version; the Operator checks every 15 minutes</td>
+<td>Nodes can reach <code>public.ecr.aws</code> or Docker Hub</td>
+<td>Nothing per component — but every node pulls from a public registry (rate limits below)</td>
+</tr>
+<tr>
+<td><strong>Public-registry resolution with <code>spec.publicRegistryOverride</code></strong></td>
+<td>Same</td>
+<td>You need one specific public registry</td>
+<td>Only <code>public.ecr.aws</code> or <code>registry-1.docker.io</code> are accepted</td>
+</tr>
+<tr>
+<td><strong>Pull-through cache in front of the public registry</strong></td>
+<td>Same — resolution still names public images; the node's runtime fetches them through your cache</td>
+<td>Egress exists but you want fewer, cached public pulls</td>
+<td>The cache and the node-level runtime mirror configuration</td>
+</tr>
+<tr>
+<td><strong>Mirror and pin</strong> (<code>image</code>, <code>codeModulesImage</code>, <code>spec.templates.*.imageRef</code>)</td>
+<td>You — setting <code>image</code> turns auto-update off for that component</td>
+<td>No egress (air-gapped), or change control requires pinned images</td>
+<td>Re-mirroring every architecture you run, moving the tags, and pull credentials for injected pods (ONBRD-05 § 5)</td>
+</tr>
+</tbody>
+</table>
+<p>Three points hold whichever row you pick:</p>
+<ul>
+<li><strong>Pinning stops auto-update.</strong> The auto-update guide: <em>&quot;To disable auto-update, set the image field in the DynaKube. Omit the field to keep auto-update enabled.&quot;</em> Explicit fields also win over resolution — <em>&quot;their values take precedence over automatically resolved images for the affected component.&quot;</em></li>
+<li><strong>The Operator is never in the auto-update set.</strong> The guide lists what it updates — OneAgent, ActiveGate, CodeModules, Extension Execution Controller, the standalone log module, SQL Extension Executor and EdgeConnect. The Operator itself moves only when you upgrade the chart or manifests (§8), so a private registry needs a process for re-mirroring it too.</li>
+<li><strong>Public registries rate-limit, and the whole fleet pulls at once.</strong> Dynatrace's page warns of <em>&quot;a potential risk of encountering rate limiting&quot;</em> and recommends a private registry to reduce it. A fleet-wide OneAgent update has every node pull the new image, and nodes behind a shared NAT or egress address share one limit. The registries' own figures, checked 11/03/2026 (they change — re-read the pages):
+<ul>
+<li><a href="https://docs.docker.com/docker-hub/usage/pulls/">Docker Hub usage and limits (Docker docs)</a>: unauthenticated, <em>&quot;100 per IPv4 address or IPv6 /64 subnet&quot;</em> per 6 hours; authenticated Personal accounts 200; and <em>&quot;A pull for a multi-arch image will count as one pull for each different architecture.&quot;</em></li>
+<li><a href="https://docs.aws.amazon.com/AmazonECR/latest/public/public-service-quotas.html">Amazon ECR Public service quotas (AWS docs)</a>: 1 unauthenticated image pull per second per Region, 10 per second authenticated, and <em>&quot;For unauthenticated customers, Amazon ECR Public supports up to 500GB of data per month.&quot;</em></li>
+</ul>
+</li>
+</ul>
+<p>In community practice, a pull-through cache with node-level mirroring is the usual middle ground: it keeps tenant-driven updates and cuts public pulls to one per image. Verify that your container runtime and registry support it before you depend on it.</p>
+<p>Sources: <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/updates-and-maintenance/auto-update-components">Configure auto-update for Dynatrace Operator managed components (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/use-public-registry">Use a public registry (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a> — <code>publicRegistryOverride</code>: <em>&quot;Supported values: public.ecr.aws (Amazon ECR Public) or registry-1.docker.io (Docker Hub).&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/prepare-private-registry">Store Dynatrace images in private registries (DT docs)</a>.</p>
+<p><a id="dynakube-custom-resource"></a></p>
+<h2>4. DynaKube Custom Resource</h2>
+<p>The DynaKube CR defines how monitoring is deployed.</p>
+<h3>Minimal DynaKube (cloudNativeFullStack)</h3>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  # Your Dynatrace environment URL
+  apiUrl: https://ENVIRONMENT_ID.live.dynatrace.com/api
+  
+  # OneAgent deployment mode
+  oneAgent:
+    cloudNativeFullStack:
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Exists
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+  
+  # ActiveGate for Kubernetes monitoring
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+      - routing
+      - dynatrace-api
+</code></pre>
+<blockquote>
+<p><strong>API Version Note.</strong> <code>v1beta6</code> is the current DynaKube API version (introduced in Operator 1.8.0) and is what the examples in this notebook use — the production CR in K8S-14 is written against it too. <code>v1beta5</code> is still <em>served</em>, but since Operator 1.10.0 it is flagged <code>deprecated: true</code> in the CRD — treat it as the next migration, not a resting place.</p>
+<p>The deprecation train is what makes this load-bearing at upgrade time:</p>
+<p>Read from the shipped CRDs rather than from prose (verified 08/27/2026 and, for 1.11.0, 10/02/2026, against the
+<code>kubernetes.yaml</code> released with each version):</p>
+<table>
+<thead>
+<tr>
+<th>API version</th>
+<th>1.9.0</th>
+<th>1.10.0 – 1.10.4</th>
+<th>1.11.0</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>v1beta6</code></td>
+<td>served, <strong>storage</strong></td>
+<td>served, <strong>storage</strong></td>
+<td>served, <strong>storage</strong></td>
+<td>Current — use for new DynaKubes</td>
+</tr>
+<tr>
+<td><code>v1beta5</code></td>
+<td>served</td>
+<td>served, <strong>deprecated</strong></td>
+<td>served, <strong>deprecated</strong></td>
+<td>Still applies, but on the deprecation train</td>
+</tr>
+<tr>
+<td><code>v1beta4</code></td>
+<td>served, deprecated</td>
+<td><strong>NOT served</strong></td>
+<td><strong>removed from the CRD</strong></td>
+<td><strong>Breaking at 1.10.0</strong>; gone entirely in 1.11.0</td>
+</tr>
+<tr>
+<td><code>v1beta3</code></td>
+<td>absent</td>
+<td>absent</td>
+<td>absent</td>
+<td>Removed in 1.9.0</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>v1beta4</code> is not a &quot;migrate at your convenience&quot; case.</strong> It was deprecated in <strong>1.9.0</strong> (not 1.10.x) and
+<strong>stopped being served in 1.10.0</strong> — so a cluster still applying <code>v1beta4</code> manifests breaks on the 1.10.x
+upgrade exactly as <code>v1beta3</code> broke on 1.9.0. Migrate off it <em>before</em> the upgrade, not after.</p>
+<p>Audit before crossing a version that removes one. Check what the cluster currently serves:</p>
+<pre><code class="language-bash">kubectl get dynakube -A -o jsonpath='{.items[*].apiVersion}'
+</code></pre>
+<p>That reports the version the API server serves, which is not necessarily the string in your committed YAML — so also grep the manifests your GitOps controller applies (<code>grep -r &quot;apiVersion: dynatrace.com/&quot; .</code>). A manifest pinned to a removed version fails at apply time, which in a GitOps setup surfaces as a sync error rather than an obvious upgrade failure. §8 folds this into the pre-upgrade checklist.</p>
+</blockquote>
+<h3>Apply the DynaKube</h3>
+<pre><code class="language-bash"># Apply DynaKube CR
+kubectl apply -f dynakube.yaml
+
+# Watch deployment progress
+kubectl -n dynatrace get dynakube -w
+</code></pre>
+<p><a id="deployment-modes-explained"></a></p>
+<h2>5. Deployment Modes Explained</h2>
+<h3>cloudNativeFullStack (Recommended)</h3>
+<pre><code class="language-yaml">oneAgent:
+  cloudNativeFullStack:
+    # Injected via webhook — CSI driver volumes (Helm default), ephemeral volumes (no CSI driver) or image volumes (Operator 1.11.0+)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No privileged containers for apps</td>
+<td>CSI driver by default with Helm (ephemeral volumes without it; image volumes from Operator 1.11.0 — see below and K8S-12 §2)</td>
+</tr>
+<tr>
+<td>Best for multi-tenant clusters</td>
+<td>Slightly more complex</td>
+</tr>
+<tr>
+<td>Independent app/infra monitoring</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Image volumes (Operator 1.11.0+, released 10/01/2026).</strong> Per the 1.11.0 release notes, image volume-based code-module injection <em>&quot;replaces the CSI driver as the recommended approach&quot;</em>: each node pulls the code-modules image once and shares it with every instrumented pod, with no CSI DaemonSet and no per-pod copy. Prerequisites: <strong>Kubernetes 1.35+</strong>, <strong>containerd 2.2+ or CRI-O 1.33+</strong>, and a code-modules image from the public registry or a private mirror of it — <em>&quot;Image volume injection is not compatible with the Dynatrace built-in tenant registry.&quot;</em> Enable it with the DynaKube annotation <code>feature.dynatrace.com/mount-code-modules-via-image-volume: &quot;true&quot;</code> (mutually exclusive with <code>feature.dynatrace.com/node-image-pull</code>), test first on single pods with <code>oneagent.dynatrace.com/volume-type: &quot;image&quot;</code>, and plan a rolling restart: <em>&quot;A full migration requires a rolling restart of all injected workloads.&quot;</em> On older clusters or Operators, the CSI driver or ephemeral volumes remain the working path.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/use-image-volumes">Use image volumes for code modules injection (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-image-volume">Migrate to image volumes (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>classicFullStack (Legacy — Migrate Existing Clusters, Not Just New Ones)</h3>
+<pre><code class="language-yaml">oneAgent:
+  classicFullStack:
+    # OneAgent DaemonSet provides code modules via host mounts
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Simpler architecture</td>
+<td>All pods share OneAgent</td>
+</tr>
+<tr>
+<td>Single component</td>
+<td>Requires hostPath mounts</td>
+</tr>
+<tr>
+<td></td>
+<td><strong>Not a ready state for the latest Dynatrace</strong> — see below</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>&quot;Avoid for new deployments&quot; understates this.</strong> The ready-made <em>Check your upgrade readiness</em> dashboard treats a DynaKube using <code>classicFullStack</code> as <strong>not ready</strong> for the latest Dynatrace — the check is on the cluster's current state, not on when it was created. A cluster that has been running <code>classicFullStack</code> happily for two years is flagged exactly like a new one.</p>
+<p>So this is migration work with a deadline attached, not a style preference. Move existing clusters to <code>cloudNativeFullStack</code> (or <code>applicationMonitoring</code> / <code>hostMonitoring</code> where those fit) as part of upgrade preparation rather than waiting for a rebuild. The readiness check also covers Operator ≥ 1.10, the connecting ActiveGate ≥ 1.343, and the image source — see §3 and the Classic → Gen3 doorway in the <code>-START-HERE-</code> playbook.</p>
+</blockquote>
+<h3>applicationMonitoring</h3>
+<pre><code class="language-yaml">oneAgent:
+  applicationMonitoring: {}
+  # Only application-level monitoring, no infrastructure.
+  # Whether the CSI driver is used is set when installing the Operator (§3), not here.
+</code></pre>
+<blockquote>
+<p><strong><code>useCSIDriver</code> is not a field on current DynaKube API versions.</strong> The parameters reference lists it under <code>applicationMonitoring</code> only for <code>v1beta2</code> and <code>v1beta1</code>, and <code>v1beta2</code> is gone from Operator 1.7.0 onward. On <code>v1beta3</code> and later, whether code modules come from the CSI driver is decided when the Operator is installed: the install guide has a CSI variant and a <em>Without CSI driver</em> variant, and the Helm values in §3 carry a <code>csidriver</code> block.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a> — <em>&quot;DynaKube API version v1beta2 is no longer available with Dynatrace Operator version 1.7.0&quot;</em>; <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/application-observability">Application observability setup (DT docs)</a> — <em>&quot;CSI driver is optional (see step 2). If enabled, it gets deployed as DaemonSet and results in a CSI driver pod on each node.&quot;</em></sub></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Minimal footprint</td>
+<td>No infrastructure visibility</td>
+</tr>
+<tr>
+<td>No node-level access needed</td>
+<td>No container metrics</td>
+</tr>
+<tr>
+<td>Good for managed K8s</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3>hostMonitoring</h3>
+<pre><code class="language-yaml">oneAgent:
+  hostMonitoring: {}
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Infrastructure only</td>
+<td>No application tracing</td>
+</tr>
+<tr>
+<td>Lightweight</td>
+<td>No code-level insight</td>
+</tr>
+</tbody>
+</table>
+<p><a id="configuration-options"></a></p>
+<h2>6. Configuration Options</h2>
+<h3>Resource Limits</h3>
+<pre><code class="language-yaml">spec:
+  oneAgent:
+    cloudNativeFullStack:
+      oneAgentResources:      # resources of the OneAgent DaemonSet pods
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 300m
+          memory: 512Mi
+</code></pre>
+<h3>Node Selectors and Tolerations</h3>
+<pre><code class="language-yaml">spec:
+  oneAgent:
+    cloudNativeFullStack:
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+        - key: &quot;dedicated&quot;
+          operator: &quot;Equal&quot;
+          value: &quot;monitoring&quot;
+          effect: &quot;NoSchedule&quot;
+</code></pre>
+<h3>Namespace Selectors</h3>
+<p>Control which namespaces get injection. The selector belongs to the <strong>injection mode</strong>, not to <code>spec</code> — a top-level <code>spec.namespaceSelector</code> is not a DynaKube field and is ignored:</p>
+<pre><code class="language-yaml">spec:
+  oneAgent:
+    cloudNativeFullStack:
+      namespaceSelector:
+        matchLabels:
+          dynatrace-injection: enabled
+</code></pre>
+<p>Or exclude specific namespaces:</p>
+<pre><code class="language-yaml">spec:
+  oneAgent:
+    cloudNativeFullStack:
+      namespaceSelector:
+        matchExpressions:
+          - key: dynatrace-injection
+            operator: NotIn
+            values:
+              - disabled
+</code></pre>
+<p><code>applicationMonitoring</code> takes the same <code>namespaceSelector</code>, and <code>spec.metadataEnrichment.namespaceSelector</code> scopes metadata enrichment separately. Field paths checked against the <code>v1beta6</code> schema in the Operator 1.11.0 CRD, 10/02/2026.</p>
+<h3>Custom ActiveGate Configuration</h3>
+<pre><code class="language-yaml">spec:
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+      - routing
+    replicas: 2
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+</code></pre>
+<h3>Feature Flags and Annotations</h3>
+<p>Control injection at the pod level:</p>
+<table>
+<thead>
+<tr>
+<th>Annotation</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>oneagent.dynatrace.com/inject: &quot;false&quot;</code></td>
+<td>Disable injection for pod</td>
+</tr>
+<tr>
+<td><code>oneagent.dynatrace.com/inject: &quot;true&quot;</code></td>
+<td>No effect — the inject annotations only <strong>exclude</strong> (<em>&quot;setting it to true will have no effect&quot;</em>); inclusion comes from the namespace selector</td>
+</tr>
+<tr>
+<td><code>oneagent.dynatrace.com/technologies: &quot;java,nodejs&quot;</code></td>
+<td>Limit the code modules downloaded — <em>&quot;Ignored if the CSI volume is used or node image pull via ephemeral volume is used&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/monitoring-and-instrumentation/annotate">Annotate pods (DT docs)</a>.</sub></p>
+</blockquote>
+<p>DynaKube feature flags:</p>
+<pre><code class="language-yaml">spec:
+  oneAgent:
+    cloudNativeFullStack:
+      # Note: ONEAGENT_ENABLE_VOLUME_STORAGE defaults to true when CSI driver
+      # is enabled — no need to set explicitly
+</code></pre>
+<h3>Templates Configuration</h3>
+<p>Configure OTel Collector and Log Monitoring via <code>spec.templates</code>:</p>
+<pre><code class="language-yaml">spec:
+  templates:
+    otelCollector:
+      # ⚠️ Always pin to specific version - avoid 'latest'.
+      # Example pin (0.56.0, Sept 2026) — check the releases before installing:
+      # https://github.com/Dynatrace/dynatrace-otel-collector/releases
+      imageRef:
+        repository: public.ecr.aws/dynatrace/dynatrace-otel-collector
+        tag: &quot;0.56.0&quot;
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    
+    logMonitoring:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Log monitoring is enabled with <code>spec.logMonitoring: {}</code> but resource configuration goes under <code>spec.templates.logMonitoring</code>.</p>
+</blockquote>
+<h3>OTel Collector and Log Monitoring Sizing Guide</h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>CPU Limit</th>
+<th>Memory Limit</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dev/Test</td>
+<td>200m</td>
+<td>256Mi</td>
+<td>Low telemetry volume</td>
+</tr>
+<tr>
+<td>Staging</td>
+<td>500m</td>
+<td>512Mi</td>
+<td>Medium volume</td>
+</tr>
+<tr>
+<td>Production</td>
+<td>1000m</td>
+<td>1Gi</td>
+<td>High volume</td>
+</tr>
+</tbody>
+</table>
+<p><a id="verification-and-validation"></a></p>
+<h2>7. Verification and Validation</h2>
+<h3>Check Operator Status</h3>
+<pre><code class="language-bash"># Operator pods
+kubectl -n dynatrace get pods -l app.kubernetes.io/name=dynatrace-operator
+
+# DynaKube status
+kubectl -n dynatrace get dynakube
+
+# Detailed status
+kubectl -n dynatrace describe dynakube dynakube
+</code></pre>
+<h3>Check OneAgent Deployment</h3>
+<pre><code class="language-bash"># OneAgent DaemonSet
+kubectl -n dynatrace get daemonset -l app.kubernetes.io/component=oneagent
+
+# OneAgent pods on each node
+kubectl -n dynatrace get pods -l app.kubernetes.io/component=oneagent -o wide
+</code></pre>
+<h3>Check ActiveGate</h3>
+<pre><code class="language-bash"># ActiveGate StatefulSet
+kubectl -n dynatrace get statefulset -l app.kubernetes.io/component=activegate
+
+# ActiveGate pods
+kubectl -n dynatrace get pods -l app.kubernetes.io/component=activegate
+</code></pre>
+<h3>DynaKube Status Phases</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Running</code></td>
+<td>All components healthy</td>
+</tr>
+<tr>
+<td><code>Deploying</code></td>
+<td>Components being created</td>
+</tr>
+<tr>
+<td><code>Error</code></td>
+<td>Check events for details</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Verify Kubernetes cluster is reporting to Dynatrace
+fetch dt.entity.kubernetes_cluster
+| fields entity.name, tags
+| sort entity.name asc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;K8S_CLUSTER&quot;
+//   | fields name, tags
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: on Smartscape, `tags` is a record of tag key -&gt; value (dictionary: &quot;Note that rule-based
+// tags do not exist in the new model.&quot;). Classic rule-based tags such as dt.owner:... do not appear
+// there, so the legacy query and the Smartscape query above do not return the same tags.
+</code></pre>
+<pre><code class="language-dql">// Check Dynatrace component health via Kubernetes events in the dynatrace namespace
+// (Kubernetes events are events, not logs — see K8S-01 §6). BackOff / Unhealthy / Killing
+// here point at OneAgent, ActiveGate, webhook or CSI pods that are not settling.
+fetch events, from:-1h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot; and k8s.namespace.name == &quot;dynatrace&quot;
+| fields timestamp, k8s.pod.name, dt.kubernetes.event.reason, dt.kubernetes.event.message
+| sort timestamp desc
+| limit 20
+</code></pre>
+<p><a id="upgrading-the-operator"></a></p>
+<h2>8. Upgrading the Operator</h2>
+<h3>Pre-Upgrade Checks</h3>
+<p>An operator upgrade is not only a version bump — it can change <strong>chart defaults</strong> and it can <strong>remove a DynaKube API version</strong>. Both are silent in a values diff. Run these three checks before every upgrade.</p>
+<p><strong>1. Will a changed chart default alter my deployment?</strong></p>
+<p><code>--reuse-values</code> preserves <em>the values you set</em>. It does <strong>not</strong> shield you from a changed default for a value you never set, because there is nothing of yours to reuse. Render the incoming chart and diff it against what is live:</p>
+<pre><code class="language-bash"># Render the target version with your current values
+helm get values dynatrace-operator -n dynatrace &gt; current-values.yaml
+
+helm template dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
+  --version 1.10.4 \
+  --namespace dynatrace \
+  --values current-values.yaml &gt; new.yaml
+
+# Compare against the rendered manifests currently deployed
+helm get manifest dynatrace-operator -n dynatrace &gt; live.yaml
+diff live.yaml new.yaml
+</code></pre>
+<p>The concrete case this catches: <strong>Operator 1.10.0 flipped the ActiveGate <code>TopologySpreadConstraint</code> default from <code>DoNotSchedule</code> to <code>ScheduleAnyway</code>.</strong> Expect an <strong>ActiveGate restart on upgrade</strong> — the pod spec changes, so the StatefulSet rolls. Nothing is broken; plan for the brief gap in ActiveGate-served capabilities (Kubernetes API monitoring, routing, metrics ingest) rather than being surprised by it.</p>
+<p>If your DynaKube sets <code>whenUnsatisfiable</code> explicitly, <strong>your value wins</strong> and the default flip does not apply to you. The ActiveGate example in §6 already sets <code>ScheduleAnyway</code> explicitly, which is the recommended posture: an explicit constraint makes the behavior independent of chart defaults across upgrades.</p>
+<p><strong>2. Does my DynaKube declare an API version the target Operator still serves?</strong></p>
+<pre><code class="language-bash"># What the cluster serves today
+kubectl get dynakube -A -o jsonpath='{.items[*].apiVersion}'
+
+# What your committed manifests declare
+grep -r &quot;apiVersion: dynatrace.com/&quot; .
+</code></pre>
+<p><code>v1beta3</code> was <strong>removed in Operator 1.9.0</strong>, <code>v1beta4</code> <strong>stopped being served in 1.10.0</strong> and was <strong>removed from the CRD in 1.11.0</strong> — against either, an apply fails outright once you cross that version. The 1.11.0 notes add that <em>&quot;depending on your current version, upgrading directly to 1.11 may not be possible until the migration is done&quot;</em>. <code>v1beta4</code> was deprecated back in 1.9.0, so a cluster that took the deprecation as advisory is the one that breaks here. <code>v1beta5</code> is still served but is flagged deprecated from 1.10.0. Target <code>v1beta6</code> for anything you are rewriting anyway. Full table in §4.</p>
+<p><strong>3. Will the new injected pod spec still be admitted?</strong></p>
+<p>On OpenShift, and on any cluster with restrictive admission policy, an operator upgrade changes injected pod specs — and those specs are re-validated on admission. <strong>FAQ-13 §6 (&quot;Assessing Impact Before You Upgrade&quot;)</strong> generalizes this into a pre-upgrade assessment checklist; run it before an OpenShift upgrade rather than after.</p>
+<h3>Helm Upgrade Process</h3>
+<pre><code class="language-bash"># Check current version
+helm list -n dynatrace
+
+# Upgrade to a specific, validated version (OCI — documented form)
+helm upgrade dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator \
+  --version 1.10.4 \
+  --namespace dynatrace \
+  --reuse-values \
+  --atomic \
+  --wait
+
+# Classic-repo equivalent (still functional)
+helm repo update
+helm upgrade dynatrace-operator dynatrace/dynatrace-operator \
+  --version 1.10.4 \
+  --namespace dynatrace \
+  --reuse-values \
+  --wait
+</code></pre>
+<blockquote>
+<p><strong>Pin the target, do not upgrade to &quot;latest&quot;.</strong> Omitting <code>--version</code> takes whatever is newest at run time — which is how a cluster lands on a release its own notes advise skipping.</p>
+</blockquote>
+<h3>Version Compatibility</h3>
+<p>Dynatrace publishes Kubernetes compatibility per <strong>Kubernetes version</strong>, not per Operator line. <a href="https://docs.dynatrace.com/docs/ingest-from/technology-support/support-model-and-issues">Dynatrace Operator support and known issues (DT docs)</a> says <em>&quot;The table below lists the verified and tested release versions&quot;</em>: for each Kubernetes and OpenShift version it gives a minimum and a recommended Dynatrace Operator version, and no maximum. Look up your Kubernetes version there before choosing an Operator release.</p>
+<table>
+<thead>
+<tr>
+<th>Operator Version</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.11.x</td>
+<td><strong>Newest line: v1.11.1</strong> (released 10/22/2026; it fixes CVE-2026-111943, and its <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1">release notes (DT docs)</a> say <em>&quot;We recommend that you upgrade to this version.&quot;</em>). v1.11.0 (released 10/01/2026) removes <code>v1beta4</code> from the CRD; adds image-volume injection, <code>spec.kubernetesMonitoring</code> (size the two ActiveGate StatefulSets inside one DynaKube — when you consolidate onto it, <em>&quot;cluster registration is not configured automatically. Add registration: {} to keep your cluster registered in Dynatrace&quot;</em>; a custom name set by the <code>automatic-kubernetes-api-monitoring-cluster-name</code> annotation moves to <code>kubernetesMonitoring.registration.clusterName</code>; delete the old Kubernetes-monitoring DynaKube only after the <code>KubernetesMonitoringAvailable</code> condition returns <code>True</code>, per <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/double-dynakube-to-single">Consolidate Kubernetes monitoring into a single DynaKube (DT docs)</a>), and workload/pod labels and annotations as enrichment sources. Minimum version for a direct upgrade: 1.6.0. Review the release notes for every minor version you cross before adopting it.</td>
+</tr>
+<tr>
+<td>1.10.x</td>
+<td><strong>Validated pin in this series: v1.10.4</strong> (October 22, 2026). It carries every 1.10.x fix. <strong>1.10.3</strong> (October 15, 2026) fixed the CSI driver cleanup that could delete OneAgent code modules still in use by running pods (K8S-09 §2; the Helm chart enables the CSI driver by default), and <strong>1.10.4</strong> fixes CVE-2026-111943 — its release notes say <em>&quot;We recommend that you upgrade to this version.&quot;</em> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-4">1.10.4 (DT docs)</a> is <em>&quot;released only on GitHub (Helm and manifests)&quot;</em>; OperatorHub and cloud-marketplace installs get the same fix in 1.11.1. Chart defaults (<code>values.yaml</code>) and the served DynaKube API versions are the same as in 1.10.2. <strong>v1.10.2</strong> (July 30, 2026) fixed a workload/namespace <strong>tagging-precedence regression</strong> (now only the first matching rule per key applies — a behaviour change, see K8S-10), <code>dynatrace-webhook</code> <code>CrashLoopBackOff</code> on gVisor nodes, and injected pods hanging on the OneAgent-binary download (timeout raised to 15 min); it also logs metadata-enrichment rules it cannot apply instead of dropping them silently. <strong>Earlier 1.10.x pins keep running</strong> until you upgrade — estates adopt on their own schedule — but lack the CSI cleanup and CVE fixes; v1.10.1 is also subject to the OpenShift-manifest caveat in K8S-09 §2. <strong>Skip 1.10.0</strong> — its own release notes advise skipping it (auto-update defect) and it is flagged <code>prerelease: true</code> on the GitHub releases page. Release notes per tag: <a href="https://github.com/Dynatrace/dynatrace-operator/releases">Operator releases (Dynatrace GitHub)</a></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Older lines got the same CVE fix — GitHub only.</strong> CVE-2026-111943 is also fixed in <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-9-2"><strong>1.9.2</strong> (DT docs)</a> (October 22, 2026), <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-8-2"><strong>1.8.2</strong> (DT docs)</a> (October 28, 2026) and <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-7-4"><strong>1.7.4</strong> (DT docs)</a> (November 3, 2026). Each <em>&quot;will not be published to OperatorHub or supported cloud marketplaces&quot;</em> — installs from those get the fix in 1.11.1. 1.7.4 has no FIPS-compliant image (<em>&quot;If you need a FIPS-compliant image, upgrade to version 1.9.2 instead.&quot;</em>). 1.8.2 and 1.7.4 also exclude the CRD storage migration job's pods from code-module injection. A cluster pinned to one of these lines can take the patch without crossing a minor version. Moving up to 1.10.4 or 1.11.1 still means reading the breaking changes of every minor version on the way.</p>
+</blockquote>
+<blockquote>
+<p><strong>Operator support window:</strong> the trust-center support table covers OneAgents and ActiveGates (9 / 12 months), not the Operator. For the Operator, the release notes state the upgrade floor — <em>&quot;Minimum operator version required for direct upgrade: 1.6.0&quot;</em> in 1.11.0 — so a cluster below 1.6.0 has to upgrade in steps.</p>
+</blockquote>
+<h3>Rollback if Needed</h3>
+<pre><code class="language-bash"># View history
+helm history dynatrace-operator -n dynatrace
+
+# Rollback to previous version
+helm rollback dynatrace-operator 1 -n dynatrace
+</code></pre>
+<h2>Next Steps</h2>
+<p>Now that the operator is deployed, proceed to:</p>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>K8S-03: GitOps for DynaKube</strong></td>
+<td>Manage DynaKube with ArgoCD/Flux</td>
+</tr>
+<tr>
+<td><strong>K8S-04: Cluster Health Monitoring</strong></td>
+<td>Deep-dive into cluster metrics</td>
+</tr>
+<tr>
+<td><strong>K8S-05: Workload Monitoring</strong></td>
+<td>Application-level observability</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Dynatrace Operator architecture and components</li>
+<li>Prerequisites: API tokens and namespace setup</li>
+<li>Helm chart installation with custom values</li>
+<li>DynaKube CR structure and configuration</li>
+<li>Deployment modes and when to use each</li>
+<li>Configuration options for resources, selectors, and features</li>
+<li>Verification commands and status phases</li>
+<li>Upgrade and rollback procedures</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment">Setup on Kubernetes — deployment (DT docs)</a> — application-observability, full-stack-observability, platform-observability deployment paths</li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters reference (DT docs)</a> — full CRD spec (renamed from <code>dynakube-crd</code>)</li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-feature-flags">DynaKube feature flags (DT docs)</a> — reference list of supported feature-flag annotations</li>
+<li><a href="https://github.com/Dynatrace/dynatrace-operator/blob/main/config/helm/chart/default/values.yaml">Helm chart values.yaml (Dynatrace GitHub)</a> — every Helm install option</li>
+<li><a href="https://github.com/Dynatrace/dynatrace-operator/releases">Dynatrace Operator releases (Dynatrace GitHub)</a> — recommended pin is <strong>v1.10.4</strong> (October 22, 2026); earlier 1.10.x pins keep running until you upgrade but lack the CSI cleanup and CVE fixes. Skip 1.10.0 (auto-update defect; flagged <code>prerelease: true</code>). Check before each install</li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-2">Operator 1.10.2 release notes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-3">Operator 1.10.3 release notes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-4">Operator 1.10.4 release notes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/deployment-and-configuration/updates-and-maintenance/auto-update-components">Configure auto-update for Dynatrace Operator managed components (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/use-public-registry">Use a public registry (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/use-private-registry">Use a private registry (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/container-registries/prepare-private-registry">Store Dynatrace images in private registries (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a> — <em>&quot;Removed DynaKube API version v1beta4&quot;</em>; image volumes; <code>spec.kubernetesMonitoring</code></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1">Operator 1.11.1 release notes (DT docs)</a> — <em>&quot;Fixed a security vulnerability (CVE-2026-111943) by updating the Go version used to build Dynatrace Operator to 1.27.3.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/double-dynakube-to-single">Consolidate Kubernetes monitoring into a single DynaKube (DT docs)</a> — <em>&quot;Dynatrace Operator does not migrate annotation values automatically.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/technology-support/support-model-and-issues">Dynatrace Operator support and known issues (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/tokens-permissions/tokens-permissions">Tokens and permissions (DT docs)</a></li>
+<li><a href="https://www.dynatrace.com/company/trust-center/support-policy/">Support policy (Dynatrace)</a> — 9 / 12 months for OneAgents &amp; ActiveGates</li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/guides/migration/migrate-to-public-registry">Migrate to public registry (DT docs)</a> — prerequisites include SaaS 1.343+; component pods restart when first enabled</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

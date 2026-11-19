@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLOUD-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">CLOUD — Cloud Provider Integrations</a><span class="sep">/</span><span aria-current="page">CLOUD-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>CLOUD-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> CLOUD — Cloud Provider Integrations | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/10/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook distills every actionable best practice from the CLOUD series (CLOUD-01 through CLOUD-08) into definitive, priority-ranked tables. Each entry specifies the exact setting, value, or action to take. No hedging — these are the recommended configurations.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#connection-authentication">Connection &amp; Authentication</a></li>
+<li><a href="#aws-integration">AWS Integration</a></li>
+<li><a href="#azure-integration">Azure Integration</a></li>
+<li><a href="#gcp-integration">GCP Integration</a></li>
+<li><a href="#kubernetes">Kubernetes (EKS / AKS / GKE)</a></li>
+<li><a href="#serverless-monitoring">Serverless Monitoring</a></li>
+<li><a href="#log-ingestion">Log Ingestion</a></li>
+<li><a href="#cost-optimization">Cost Optimization</a></li>
+<li><a href="#multi-cloud-governance">Multi-Cloud Governance</a></li>
+<li><a href="#alerting-observability">Alerting &amp; Observability</a></li>
+</ol>
+<hr />
+<p><a id="connection-authentication"></a></p>
+<h2>1. Connection &amp; Authentication</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Use Clouds app direct connections for SaaS</td>
+<td><strong>Clouds app &gt; Add connection</strong> — no ActiveGate required</td>
+<td>Critical</td>
+<td>CLOUD-01</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Reserve classic ActiveGate polling for Managed only</td>
+<td>ActiveGate-based polling for Dynatrace Managed or strict network isolation only</td>
+<td>Critical</td>
+<td>CLOUD-01</td>
+</tr>
+<tr>
+<td>3</td>
+<td>AWS: Use IAM role-based auth (STS AssumeRole)</td>
+<td>IAM Role with trust policy to Dynatrace AWS account; never use long-lived access keys in production</td>
+<td>Critical</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>4</td>
+<td>AWS: Use the Dynatrace-generated scoped read-only policy</td>
+<td>Use the Dynatrace-generated scoped read-only policy from the CloudFormation template (or a least-privilege policy derived from it); never <code>AdministratorAccess</code></td>
+<td>Critical</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Azure: Use Azure Native Dynatrace Service</td>
+<td>Deploy from Azure Marketplace for zero-infrastructure setup with unified billing</td>
+<td>Recommended</td>
+<td>CLOUD-05</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Azure: Use managed identity only for a classic ActiveGate on an Azure VM</td>
+<td>For Clouds-app connections the federated identity credential (row 8) is the recommended method; managed identity applies only to the classic ActiveGate path</td>
+<td>Recommended</td>
+<td>CLOUD-05</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Azure: Assign <code>Monitoring Reader</code> role at subscription scope</td>
+<td>Scope: subscription or management group; role: <code>Monitoring Reader</code> (the role the Azure connection docs assign); <code>Reader</code> only for the classic integration</td>
+<td>Critical</td>
+<td>CLOUD-05</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Azure: Use a federated identity credential (non-native)</td>
+<td>Use a federated identity credential for Clouds-app Azure connections; client secret only where federation is unavailable (keep expiry &lt; 12 months)</td>
+<td>Recommended</td>
+<td>CLOUD-05</td>
+</tr>
+<tr>
+<td>9</td>
+<td>GCP: No service account keys</td>
+<td>Clouds-app connection: impersonation — grant the Dynatrace principal <code>roles/iam.serviceAccountTokenCreator</code> on a read-only service account; <code>dynatrace-gcp-monitor</code>: Workload Identity Federation for GKE with its generated custom roles</td>
+<td>Critical</td>
+<td>CLOUD-06</td>
+</tr>
+<tr>
+<td>10</td>
+<td>GCP: Use dedicated project for monitoring resources</td>
+<td>Isolate Dynatrace service accounts, Pub/Sub topics, and billing in a separate GCP project</td>
+<td>Recommended</td>
+<td>CLOUD-06</td>
+</tr>
+<tr>
+<td>11</td>
+<td>GCP: Choose the connection model deliberately</td>
+<td>Clouds-app GCP connection is generally available (10/29/2026); <code>dynatrace-gcp-monitor</code> on GKE is in maintenance mode and keeps working until you move. It polls metrics and pulls logs from Pub/Sub (Pub/Sub carries logs only)</td>
+<td>Recommended</td>
+<td>CLOUD-06</td>
+</tr>
+</tbody>
+</table>
+<p><a id="aws-integration"></a></p>
+<h2>2. AWS Integration</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>12</td>
+<td>Enable services in tiers, not all at once</td>
+<td><strong>Tier 1 (always):</strong> EC2, ELB, RDS, Lambda. <strong>Tier 2:</strong> S3, SQS, SNS, DynamoDB, ECS/EKS. <strong>Tier 3:</strong> CloudFront, Route 53, Kinesis, Step Functions. <strong>Tier 4:</strong> SageMaker, Bedrock, IoT</td>
+<td>Critical</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Use tag-based resource filtering</td>
+<td>Tag key: <code>dynatrace-monitored</code>, value: <code>true</code>; only monitored resources are discovered</td>
+<td>Critical</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Scope monitoring to active regions only</td>
+<td>Disable regions with no workloads in the Clouds app connection settings</td>
+<td>Recommended</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Account for CloudWatch metric delays in alert windows</td>
+<td>Standard metrics: 5–10 min delay. Set alert evaluation window ≥ 15 min for cloud metrics</td>
+<td>Critical</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Enable CloudWatch detailed monitoring for critical EC2</td>
+<td>Detailed monitoring: 1-min granularity (additional cost); standard: 5-min</td>
+<td>Recommended</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Combine cloud integration with OneAgent on compute</td>
+<td>Cloud integration = cloud context (tags, AZ, instance type); OneAgent = deep observability (traces, code-level). Use both</td>
+<td>Critical</td>
+<td>CLOUD-01</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Review CloudWatch billing dashboard monthly</td>
+<td>Correlate API cost spikes with Dynatrace service additions</td>
+<td>Recommended</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>18a</td>
+<td>Promote AWS tags to primary tags in two steps, plus OneAgent</td>
+<td>AWS tag rule (target Cloud tag) at account scope → OpenPipeline primary Grail tag rule with sources <code>aws.tags.&lt;key&gt;</code> and <code>`tags:aws`[&lt;key&gt;]</code>, condition <code>isNull(primary_tags.&lt;key&gt;)</code>; Host/Process property rule at host-group scope for OneAgent on EC2 (SaaS 1.348+, new cloud connections)</td>
+<td>Critical</td>
+<td>CLOUD-02</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services">AWS integration (DT docs)</a>. <strong>Derived:</strong> the recommended settings in this table are this series' positions, distilled from CLOUD-01 through CLOUD-08 — each notebook carries the per-claim sources.</sub></p>
+</blockquote>
+<p><a id="azure-integration"></a></p>
+<h2>3. Azure Integration</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>19</td>
+<td>Map Azure resource groups to Segments (views) and IAM policies (access)</td>
+<td>Segments filter by <code>azure.resource.group</code> / <code>azure.subscription</code> but grant no access — restrict access with IAM policies or bucket permissions</td>
+<td>Critical</td>
+<td>CLOUD-05</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Propagate Azure tags to Dynatrace</td>
+<td>Tags must flow through automatically; verify <code>environment</code>, <code>team</code>, <code>cost-center</code> appear in Dynatrace</td>
+<td>Recommended</td>
+<td>CLOUD-05</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Use naming convention for resource groups</td>
+<td>Pattern: <code>rg-&lt;application&gt;-&lt;environment&gt;-&lt;region&gt;</code> (e.g., <code>rg-myapp-prod-eastus</code>)</td>
+<td>Recommended</td>
+<td>CLOUD-05</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Forward Azure logs through Diagnostic Settings → Event Hubs</td>
+<td>Diagnostic settings stream activity, Entra ID and resource logs to regional Event Hubs that Dynatrace pulls from (no function code to host); the Azure Native service can create the settings for you. Microsoft 365 workload audit comes from the Office 365 Management Activity API instead (FAQ-27)</td>
+<td>Recommended</td>
+<td>CLOUD-05</td>
+</tr>
+<tr>
+<td>22a</td>
+<td>Promote Azure tags the same way</td>
+<td>Azure tag rule → primary Grail tag rule with <code>azure.tags.&lt;key&gt;</code> and <code>`tags:azure`[&lt;key&gt;]</code>; confirm the Azure tag rule type exists in your tenant first</td>
+<td>Recommended</td>
+<td>CLOUD-05</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-native-integration">Azure Native Dynatrace Service (DT docs)</a>. <strong>Derived:</strong> the recommended settings in this table are this series' positions, distilled from CLOUD-01 through CLOUD-08 — each notebook carries the per-claim sources.</sub></p>
+</blockquote>
+<p><a id="gcp-integration"></a></p>
+<h2>4. GCP Integration</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>23</td>
+<td>Use Workload Identity for GKE pods</td>
+<td>Replace service account JSON keys with Workload Identity for DynaKube and integration pods</td>
+<td>Critical</td>
+<td>CLOUD-06</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Tag all GCP resources with standard labels</td>
+<td>Required labels: <code>env</code>, <code>team</code>, <code>service</code>, <code>cost-center</code>; propagate as Dynatrace tags</td>
+<td>Recommended</td>
+<td>CLOUD-06</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Scope by the <code>gcp.project.id</code> field</td>
+<td>The project arrives as a field on nodes, logs and metrics — build segments and filters on it instead of a hand-propagated tag</td>
+<td>Recommended</td>
+<td>CLOUD-06</td>
+</tr>
+<tr>
+<td>26</td>
+<td>Create Dynatrace Segments per GCP project</td>
+<td>One Segment per project for cost attribution and scoped dashboards (segments filter; access is an IAM-policy job)</td>
+<td>Recommended</td>
+<td>CLOUD-06</td>
+</tr>
+<tr>
+<td>27</td>
+<td>Monitor Pub/Sub message volume for cost control</td>
+<td>Filter logs at Cloud Logging export to reduce Pub/Sub throughput and costs</td>
+<td>Recommended</td>
+<td>CLOUD-06</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Use Cloud Monitoring metrics scope for multi-project</td>
+<td>Aggregate metrics from multiple projects into a single metrics scope rather than separate integrations</td>
+<td>Optional</td>
+<td>CLOUD-06</td>
+</tr>
+<tr>
+<td>28a</td>
+<td>Promote GCP labels and tags the same way</td>
+<td>GCP label / GCP tag rule → primary Grail tag rule with <code>gcp.labels.&lt;key&gt;</code> and <code>`tags:gcp_labels`[&lt;key&gt;]</code></td>
+<td>Recommended</td>
+<td>CLOUD-06</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform">Google Cloud integration (DT docs)</a>. <strong>Derived:</strong> the recommended settings in this table are this series' positions, distilled from CLOUD-01 through CLOUD-08 — each notebook carries the per-claim sources.</sub></p>
+</blockquote>
+<p><a id="kubernetes"></a></p>
+<h2>5. Kubernetes (EKS / AKS / GKE)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>29</td>
+<td>Deploy DynaKube in CloudNativeFullStack mode for standard node pools</td>
+<td><code>spec.oneAgent.cloudNativeFullStack</code> — full agent injection + infrastructure monitoring</td>
+<td>Critical</td>
+<td>CLOUD-03</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Use ApplicationMonitoring mode for Fargate; check mode support on GKE Autopilot</td>
+<td><code>spec.oneAgent.applicationMonitoring</code>; on GKE Autopilot the Operator's chart creates the allowlist for its CSI driver — confirm per-mode support for your Autopilot version; for Fargate, install the Operator with the <strong>Without CSI driver</strong> variant (<code>useCSIDriver</code> is not a DynaKube <code>v1beta5</code> / <code>v1beta6</code> field)</td>
+<td>Critical</td>
+<td>CLOUD-03, CLOUD-06</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Add tolerations for tainted node groups</td>
+<td><code>tolerations: [{effect: NoSchedule, key: node-role, operator: Exists}]</code> to ensure OneAgent runs on all nodes</td>
+<td>Critical</td>
+<td>CLOUD-03</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Enable kubernetes-monitoring capability on ActiveGate</td>
+<td><code>spec.activeGate.capabilities: [kubernetes-monitoring, routing]</code></td>
+<td>Critical</td>
+<td>CLOUD-03</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Use nodeSelector to exclude Windows nodes</td>
+<td><code>nodeSelector: {kubernetes.io/os: linux}</code> in DynaKube spec</td>
+<td>Recommended</td>
+<td>CLOUD-03</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Enforce namespace labels for cost allocation</td>
+<td>Require <code>team</code>, <code>cost-center</code>, <code>environment</code> labels on all namespaces</td>
+<td>Recommended</td>
+<td>CLOUD-03</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Set resource requests and limits on all pods</td>
+<td>Accurate requests enable fair cost attribution and prevent resource contention</td>
+<td>Recommended</td>
+<td>CLOUD-03</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Use Dynatrace for workload monitoring, Container Insights for control plane</td>
+<td>Keep CloudWatch Container Insights / Azure Monitor for control plane logs; Dynatrace for distributed tracing and AI alerting</td>
+<td>Recommended</td>
+<td>CLOUD-03</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Use IRSA (AWS) or Workload Identity (GCP) for pod IAM</td>
+<td>Never mount service account JSON keys into pods; use cloud-native identity federation</td>
+<td>Critical</td>
+<td>CLOUD-03, CLOUD-06</td>
+</tr>
+</tbody>
+</table>
+<p><a id="serverless-monitoring"></a></p>
+<h2>6. Serverless Monitoring</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>38</td>
+<td>Install Dynatrace Lambda Layer on all Lambda functions</td>
+<td>Enables distributed tracing, code-level visibility, and direct log collection</td>
+<td>Critical</td>
+<td>CLOUD-04</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Use meaningful Lambda function names</td>
+<td>Avoid auto-generated names; use <code>&lt;service&gt;-&lt;function&gt;-&lt;env&gt;</code> pattern for identification</td>
+<td>Recommended</td>
+<td>CLOUD-04</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Monitor concurrency headroom</td>
+<td>Alert when <code>cloud.aws.lambda.ConcurrentExecutions.By.FunctionName</code> (Metric Streams) / <code>dt.cloud.aws.lambda.conc_executions</code> (polling) exceeds 80% of account limit (default: 1,000/region)</td>
+<td>Critical</td>
+<td>CLOUD-04</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Track cold start ratio via spans</td>
+<td>Query <code>faas.coldstart == true</code> from spans; high ratio indicates need for provisioned concurrency or SnapStart</td>
+<td>Recommended</td>
+<td>CLOUD-04</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Use error-to-invocation ratio, not raw error count</td>
+<td><code>error_pct = errors / invocations * 100</code>; alert threshold: &gt; 1% for critical functions</td>
+<td>Critical</td>
+<td>CLOUD-04</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Correlate API Gateway latency with Lambda duration</td>
+<td>End-to-end latency = API GW overhead + Lambda duration; monitor both</td>
+<td>Recommended</td>
+<td>CLOUD-04</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Monitor DynamoDB call duration from Lambda spans</td>
+<td>Filter: <code>span.kind == &quot;client&quot;</code>, <code>db.system == &quot;dynamodb&quot;</code>; alert on p95 &gt; baseline</td>
+<td>Recommended</td>
+<td>CLOUD-04</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Set alert evaluation window longer than metric delay</td>
+<td>Cloud metric delay: 5–10 min. Minimum evaluation window for Lambda alerts: 15 min</td>
+<td>Critical</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>45a</td>
+<td>Tag Lambda functions with DT_TAGS</td>
+<td><code>DT_TAGS=&quot;primary_tags.team=… aws.account.id=… aws.region=…&quot;</code> — the function does not load ingest enrichment rules</td>
+<td>Critical</td>
+<td>CLOUD-04</td>
+</tr>
+</tbody>
+</table>
+<p><a id="log-ingestion"></a></p>
+<h2>7. Log Ingestion</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>46</td>
+<td>Use Amazon Data Firehose for CloudWatch log forwarding</td>
+<td>Fully managed, auto-scaling, no custom code. Buffer: 1 MB or 60 seconds. Enable GZIP compression</td>
+<td>Critical</td>
+<td>CLOUD-07</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Migrate the legacy <strong>CloudWatch-subscription</strong> Lambda forwarder to Firehose</td>
+<td><code>dynatrace-aws-log-forwarder</code> — the CloudWatch Subscription Filter → Lambda → Dynatrace API path — is <strong>deprecated</strong>; do not use it for new <em>CloudWatch</em> log forwarding. <strong>Scope of this row:</strong> it retires one named component for one source. It is <strong>not</strong> a prohibition on Lambda-based log forwarding in general — see 47b</td>
+<td>Critical</td>
+<td>CLOUD-07</td>
+</tr>
+<tr>
+<td>47b</td>
+<td>For logs already in <strong>S3</strong>, use the S3 direct-ingestion forwarder — a <em>different</em> component for a <em>different</em> source, and supported</td>
+<td>Available from <strong>SaaS 1.344</strong> (<strong>staged tenant rollout</strong> from 07/29/2026 — verify it has reached your tenant): a <strong>Dynatrace-maintained</strong> Lambda function in your centralized logging account, triggered by S3 event notifications, deployed by a <strong>single CloudFormation stack</strong>, with records <strong>linked to their Smartscape entity</strong> when the producing account has an active AWS connection. Until it arrives, the Dynatrace-published <code>dynatrace-aws-s3-log-forwarder</code> (not the archived <code>dynatrace-aws-log-forwarder</code>) remains the working path — CLOUD-07 §3</td>
+<td>Recommended</td>
+<td>CLOUD-07</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Use Lambda Layer log collection for Lambda functions</td>
+<td>When Lambda Layer is deployed for tracing, use its built-in log collection instead of Firehose for Lambda logs</td>
+<td>Recommended</td>
+<td>CLOUD-07</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Apply subscription filter patterns at CloudWatch level</td>
+<td>Filter pattern examples: <code>?&quot;ERROR&quot; ?&quot;WARN&quot; ?&quot;CRITICAL&quot;</code> for Lambda; <code>&quot;&quot;</code> (all) for application services</td>
+<td>Critical</td>
+<td>CLOUD-07</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Drop debug/trace logs at source</td>
+<td>Pre-filter: exclude DEBUG and TRACE in CloudWatch subscription filters. Estimated savings: 40–60%</td>
+<td>Critical</td>
+<td>CLOUD-07</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Filter health check log lines at source</td>
+<td>Remove <code>/health</code>, <code>/ready</code>, <code>/live</code> endpoint noise before forwarding. Savings: 10–30%</td>
+<td>Recommended</td>
+<td>CLOUD-07</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Use OpenPipeline for enrichment, routing, and fine-grained filtering</td>
+<td>Add <code>cloud.provider</code>, route by log group to specific Grail buckets, drop remaining noise</td>
+<td>Recommended</td>
+<td>CLOUD-07</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Route logs to purpose-specific Grail buckets</td>
+<td>Route <code>/aws/lambda/*</code> → <code>lambda_logs</code>, <code>/ecs/*</code> → <code>application_logs</code>, <code>/aws/rds/*</code> → <code>database_logs</code></td>
+<td>Recommended</td>
+<td>CLOUD-07</td>
+</tr>
+<tr>
+<td>54</td>
+<td>Enable S3 backup on Firehose delivery stream</td>
+<td>Backup failed or all records to S3 for disaster recovery and compliance</td>
+<td>Recommended</td>
+<td>CLOUD-07</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Azure: One diagnostic setting per resource, regional Event Hubs</td>
+<td>Event Hubs must be in the resource's region; each resource allows at most five diagnostic settings</td>
+<td>Recommended</td>
+<td>CLOUD-05</td>
+</tr>
+<tr>
+<td>56</td>
+<td>GCP: Aggregated Log Router sink → Pub/Sub</td>
+<td>One folder/organization sink with <code>includeChildren</code>; exclusion filters before Pub/Sub; grant the writer identity <code>roles/pubsub.publisher</code></td>
+<td>Recommended</td>
+<td>CLOUD-06</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cost-optimization"></a></p>
+<h2>8. Cost Optimization</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>57</td>
+<td>Disable unused cloud service monitoring</td>
+<td>Only enable AWS/Azure/GCP services your applications depend on; disable the rest</td>
+<td>Critical</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>58</td>
+<td>Tag-based filtering is the #1 cost lever</td>
+<td>Monitor only resources tagged <code>dynatrace-monitored: true</code>; reduces both DPS and cloud API costs</td>
+<td>Critical</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Disable individual metrics you do not need</td>
+<td>Per-service metric selection in Clouds app or Settings UI</td>
+<td>Recommended</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Consider CloudWatch Metric Streams at scale</td>
+<td>Streaming can be cheaper than polling for &gt;100 resources with frequent metric retrieval</td>
+<td>Optional</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Set bucket-level retention policies in Grail</td>
+<td>Low-value logs: 7–14 days. Standard logs: 35 days. Compliance logs: 365+ days</td>
+<td>Critical</td>
+<td>CLOUD-07</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Monitor log volume weekly</td>
+<td>Query: <code>fetch logs, from:-7d | makeTimeseries log_count = count(), interval:1h</code> — investigate spikes immediately</td>
+<td>Recommended</td>
+<td>CLOUD-07</td>
+</tr>
+<tr>
+<td>63</td>
+<td>Rightsize overprovisioned instances</td>
+<td>Alert threshold: CPU &lt; 10% sustained over 24h. Action: downsize or terminate</td>
+<td>Recommended</td>
+<td>CLOUD-08</td>
+</tr>
+<tr>
+<td>64</td>
+<td>Identify zero-traffic services for decommission</td>
+<td>Query services with no spans/requests over 7 days; flag as decommission candidates</td>
+<td>Optional</td>
+<td>CLOUD-08</td>
+</tr>
+<tr>
+<td>65</td>
+<td>Enforce K8s resource requests/limits</td>
+<td>Pods without requests/limits cause uncontrolled resource usage and inaccurate cost allocation</td>
+<td>Recommended</td>
+<td>CLOUD-03, CLOUD-08</td>
+</tr>
+</tbody>
+</table>
+<p><a id="multi-cloud-governance"></a></p>
+<h2>9. Multi-Cloud Governance</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>66</td>
+<td>Apply consistent tag schema across all providers</td>
+<td>Required tags: <code>cloud-provider</code>, <code>environment</code>, <code>team</code>, <code>application</code>, <code>cost-center</code>, <code>region</code></td>
+<td>Critical</td>
+<td>CLOUD-08</td>
+</tr>
+<tr>
+<td>67</td>
+<td>Normalize region names across providers</td>
+<td>Use normalized values: <code>us-east</code>, <code>eu-west</code>, <code>ap-south</code> — not provider-specific names</td>
+<td>Recommended</td>
+<td>CLOUD-08</td>
+</tr>
+<tr>
+<td>68</td>
+<td>Create Dynatrace Segments per cloud provider + environment</td>
+<td>One Segment per combination (e.g., <code>AWS-Production</code>, <code>Azure-Staging</code>) for scoped views; pair with IAM policies for access control, which segments do not provide</td>
+<td>Critical</td>
+<td>CLOUD-08</td>
+</tr>
+<tr>
+<td>69</td>
+<td>Enforce tagging compliance with automation</td>
+<td>Reject or alert on untagged cloud resources; query: <code>fetch dt.entity.host | filter isNull(tags)</code></td>
+<td>Critical</td>
+<td>CLOUD-08</td>
+</tr>
+<tr>
+<td>70</td>
+<td>Define SLOs at the service level, not infrastructure level</td>
+<td>SLOs are cloud-agnostic: measure user experience (latency, error rate, availability)</td>
+<td>Recommended</td>
+<td>CLOUD-08</td>
+</tr>
+<tr>
+<td>71</td>
+<td>Route alerts by team, not by cloud provider</td>
+<td>Dynatrace Workflows route to the application owner regardless of which cloud has the issue</td>
+<td>Critical</td>
+<td>CLOUD-08</td>
+</tr>
+<tr>
+<td>72</td>
+<td>Use unified runbooks referencing DQL queries</td>
+<td>Runbooks should use Dynatrace DQL, not provider-specific CLI tools</td>
+<td>Recommended</td>
+<td>CLOUD-08</td>
+</tr>
+<tr>
+<td>73</td>
+<td>Conduct monthly utilization reviews across all providers</td>
+<td>Review underutilized hosts (CPU &lt; 10%), untagged resources, and zero-traffic services</td>
+<td>Recommended</td>
+<td>CLOUD-08</td>
+</tr>
+</tbody>
+</table>
+<p><a id="alerting-observability"></a></p>
+<h2>10. Alerting &amp; Observability</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>74</td>
+<td>Use Dynatrace Intelligence for automatic cross-cloud anomaly detection</td>
+<td>Enable Anomaly Detection on all monitored entities; do not rely solely on static thresholds</td>
+<td>Critical</td>
+<td>CLOUD-08</td>
+</tr>
+<tr>
+<td>75</td>
+<td>Set alert evaluation windows ≥ 15 min for cloud metrics</td>
+<td>Cloud metric delay (planning estimates, CLOUD-02): CloudWatch standard 5–10 min, ActiveGate polling 5–15 min. A 1-min evaluation window on 5-min metrics produces false negatives</td>
+<td>Critical</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>76</td>
+<td>Use OneAgent metrics for sub-minute alerting</td>
+<td>For alerts requiring &lt; 5 min evaluation, use <code>dt.host.*</code> or <code>dt.process.*</code> metrics from OneAgent, not cloud metrics</td>
+<td>Critical</td>
+<td>CLOUD-02</td>
+</tr>
+<tr>
+<td>77</td>
+<td>Combine cloud integration with OneAgent on all compute</td>
+<td>Cloud integration: infrastructure context. OneAgent: processes, traces, code-level diagnostics. Both required for full-stack visibility</td>
+<td>Critical</td>
+<td>CLOUD-01</td>
+</tr>
+<tr>
+<td>78</td>
+<td>Build unified health dashboards showing all providers</td>
+<td>Components: host CPU (all providers), active detected problems, service error rates, log error trends, K8s container metrics</td>
+<td>Recommended</td>
+<td>CLOUD-08</td>
+</tr>
+<tr>
+<td>79</td>
+<td>Deduplicate alerts using Dynatrace Intelligence correlation</td>
+<td>Dynatrace Intelligence automatically correlates related issues across providers; do not create redundant static alerts</td>
+<td>Recommended</td>
+<td>CLOUD-08</td>
+</tr>
+<tr>
+<td>80</td>
+<td>Forward control plane logs to Dynatrace for unified analysis</td>
+<td>EKS: Container Insights logs. AKS: control-plane resource logs via diagnostic settings (prefer <code>kube-audit-admin</code> over <code>kube-audit</code> for cost). GKE: audit and control-plane logs via a Log Router sink → Pub/Sub. Forward all to Grail for cross-platform analysis</td>
+<td>Recommended</td>
+<td>CLOUD-03, CLOUD-06</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIZEV-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">BIZEV — Business Events &amp; Funnel Analysis</a><span class="sep">/</span><span aria-current="page">BIZEV-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>BIZEV-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> BIZEV — Business Events &amp; Funnel Analysis | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/25/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook consolidates every actionable best practice from the BIZEV series (notebooks 01 through 07) into a single, definitive reference. Each practice specifies exactly what to set, with no hedging. Use this as a checklist when instrumenting business events, building conversion funnels, and creating executive reports in Dynatrace.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#data-model-and-schema">Data Model and Schema</a></li>
+<li><a href="#ingestion-and-instrumentation">Ingestion and Instrumentation</a></li>
+<li><a href="#event-naming-and-payload-design">Event Naming and Payload Design</a></li>
+<li><a href="#funnel-analysis">Funnel Analysis</a></li>
+<li><a href="#revenue-and-impact-analysis">Revenue and Impact Analysis</a></li>
+<li><a href="#kpis-and-metric-extraction">KPIs and Metric Extraction</a></li>
+<li><a href="#executive-reporting-and-dashboards">Executive Reporting and Dashboards</a></li>
+<li><a href="#dql-query-patterns">DQL Query Patterns</a></li>
+<li><a href="#sla-and-slo-tracking">SLA and SLO Tracking</a></li>
+<li><a href="#gen2-vs-gen3-adoption">Gen2 vs Gen3 Adoption</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:bizevents:read</code>, <code>storage:events:read</code>, <code>storage:metrics:read</code>, <code>bizevents.ingest</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>BIZEV-01 through BIZEV-07</td>
+</tr>
+</tbody>
+</table>
+<p><a id="data-model-and-schema"></a></p>
+<h2>1. Data Model and Schema</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Use <code>bizevents</code> for business transactions</td>
+<td><code>fetch bizevents</code> — never use <code>events</code> or <code>logs</code> for business analytics</td>
+<td>Critical</td>
+<td>Data Source</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Always populate <code>event.type</code></td>
+<td>Set to a reverse-domain string (e.g., <code>com.myapp.order.completed</code>) on every event</td>
+<td>Critical</td>
+<td>Schema</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Always populate <code>event.provider</code></td>
+<td>Set to the source application or system name</td>
+<td>Critical</td>
+<td>Schema</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Carry the business line in a custom field</td>
+<td>Add a payload field such as <code>product_category</code> (e.g., <code>ecommerce</code>, <code>payments</code>); <code>event.category</code> is an ITIL significance category</td>
+<td>Recommended</td>
+<td>Schema</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Include a <code>user_id</code> or <code>session_id</code> field</td>
+<td>Required for funnel analysis and distinct-user conversion rates</td>
+<td>Critical</td>
+<td>Schema</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Include a numeric <code>amount</code> field on transaction events</td>
+<td>Store as a number, never as a string — enables <code>sum()</code>, <code>avg()</code> without casting</td>
+<td>Critical</td>
+<td>Schema</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Use consistent field types across all events</td>
+<td>Always send <code>amount</code> as double, <code>quantity</code> as long — never vary types</td>
+<td>Recommended</td>
+<td>Schema</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Never confuse <code>bizevents</code> with <code>events</code></td>
+<td><code>bizevents</code> = business transactions; <code>events</code> = infrastructure/operational signals</td>
+<td>Critical</td>
+<td>Data Source</td>
+</tr>
+</tbody>
+</table>
+<p><a id="ingestion-and-instrumentation"></a></p>
+<h2>2. Ingestion and Instrumentation</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>9</td>
+<td>Start with OneAgent auto-capture for web apps</td>
+<td>Configure capture rules in <strong>Settings &gt; Collect and Capture &gt; Business events</strong></td>
+<td>Critical</td>
+<td>Ingestion</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Use CloudEvents format for API ingestion</td>
+<td><code>Content-Type: application/cloudevents+json</code> with <code>specversion</code>, <code>type</code>, <code>source</code>, <code>data</code> fields</td>
+<td>Critical</td>
+<td>Ingestion</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Use batch ingestion for high-volume scenarios</td>
+<td><code>Content-Type: application/cloudevents-batch+json</code> — send arrays of events in a single POST</td>
+<td>Recommended</td>
+<td>Ingestion</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Implement retry logic with exponential backoff</td>
+<td>Retry on <code>429</code> and <code>5xx</code>; keep each request under the documented 5 MB payload limit (no request-rate figure is published)</td>
+<td>Recommended</td>
+<td>Ingestion</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Use the RUM and mobile APIs for client-side capture</td>
+<td><code>dynatrace.sendBizEvent(type, fields)</code> (RUM JavaScript API) or the mobile agents' equivalent; backend code without a capture rule uses the ingest API — there is no OneAgent SDK method for business events</td>
+<td>Recommended</td>
+<td>Ingestion</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Use OpenPipeline for span-to-bizevent mapping</td>
+<td>A <strong>Business event</strong> processor in the OpenPipeline <strong>Data extraction</strong> stage emits a new bizevent per matching span — no second instrumentation</td>
+<td>Recommended</td>
+<td>Ingestion</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Never double-instrument</td>
+<td>If spans already carry business data, extract it with a Business event processor (Data extraction stage) — do not add a second telemetry call in code</td>
+<td>Critical</td>
+<td>Ingestion</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Verify ingestion health with a 15-minute interval timeseries</td>
+<td>Run <code>makeTimeseries event_count = count(), interval:15m</code> daily to detect ingestion gaps</td>
+<td>Recommended</td>
+<td>Monitoring</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Validate required field completeness after instrumentation</td>
+<td>Query <code>countIf(isNotNull(event.type))</code> / <code>total</code> to confirm &gt;99% field population</td>
+<td>Critical</td>
+<td>Monitoring</td>
+</tr>
+</tbody>
+</table>
+<p><a id="event-naming-and-payload-design"></a></p>
+<h2>3. Event Naming and Payload Design</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>18</td>
+<td>Use reverse-domain notation with action verb</td>
+<td>Format: <code>com.&lt;company&gt;.&lt;domain&gt;.&lt;action&gt;</code> (e.g., <code>com.myapp.order.created</code>)</td>
+<td>Critical</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Use all-lowercase, dot-separated names</td>
+<td><code>com.myapp.payment.processed</code> — never <code>PaymentProcessed</code> or <code>PAYMENT_PROCESSED</code></td>
+<td>Critical</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Never put version numbers in event type names</td>
+<td>Use payload fields for versioning — <code>com.myapp.order.created</code> stays the same, add <code>schema_version: 2</code> in payload</td>
+<td>Critical</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Never use meaningless identifiers as event types</td>
+<td><code>event_12345</code> is forbidden — use descriptive domain names</td>
+<td>Critical</td>
+<td>Naming</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Include business identifiers in payload</td>
+<td><code>order_id</code>, <code>customer_id</code>, <code>session_id</code></td>
+<td>Critical</td>
+<td>Payload</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Include measurable values in payload</td>
+<td><code>amount</code>, <code>quantity</code>, <code>duration_ms</code></td>
+<td>Critical</td>
+<td>Payload</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Include categorical dimensions in payload</td>
+<td><code>category</code>, <code>region</code>, <code>customer_tier</code></td>
+<td>Recommended</td>
+<td>Payload</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Never include high-cardinality strings in payload</td>
+<td>No full URLs, stack traces, or free-text fields — parse into structured fields</td>
+<td>Critical</td>
+<td>Cardinality</td>
+</tr>
+<tr>
+<td>26</td>
+<td>Use high-cardinality fields for filtering only, not grouping</td>
+<td><code>filter order_id == &quot;ORD-123&quot;</code> is fine; <code>summarize by:{order_id}</code> on millions of values is not</td>
+<td>Critical</td>
+<td>Cardinality</td>
+</tr>
+<tr>
+<td>27</td>
+<td>Keep <code>summarize by:</code> dimensions under 1,000 distinct values</td>
+<td>Fields like <code>customer_tier</code> (~3 values) or <code>product_category</code> (~100 values) are ideal</td>
+<td>Recommended</td>
+<td>Cardinality</td>
+</tr>
+</tbody>
+</table>
+<p><a id="funnel-analysis"></a></p>
+<h2>4. Funnel Analysis</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>28</td>
+<td>Define explicit funnel steps as distinct event types</td>
+<td>Each step gets its own <code>event.type</code>: <code>product.viewed</code> → <code>cart.updated</code> → <code>checkout.started</code> → <code>payment.processed</code> → <code>order.completed</code></td>
+<td>Critical</td>
+<td>Funnel Design</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Use <code>countIf</code> for funnel step counts in a single query</td>
+<td><code>summarize {step1 = countIf(event.type == &quot;...&quot;), step2 = countIf(...)}</code> — never run separate queries per step</td>
+<td>Critical</td>
+<td>DQL Pattern</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Use <code>countDistinctApprox</code> for distinct-user funnels</td>
+<td><code>countDistinctApprox(if(event.type == &quot;...&quot;, then: user_id))</code> — more accurate than event counts for conversion rates</td>
+<td>Critical</td>
+<td>Funnel Design</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Calculate step conversion as <code>step_N / step_N-1 * 100</code></td>
+<td><code>round(toDouble(step2) / toDouble(step1) * 100, decimals: 1)</code></td>
+<td>Critical</td>
+<td>Metrics</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Calculate overall conversion as <code>last_step / first_step * 100</code></td>
+<td><code>round(toDouble(step5) / toDouble(step1) * 100, decimals: 2)</code></td>
+<td>Critical</td>
+<td>Metrics</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Identify checkout abandonment with per-user aggregation</td>
+<td><code>summarize by:{user_id}</code> then <code>filter started_checkout &gt; 0 AND completed_payment == 0</code></td>
+<td>Recommended</td>
+<td>Analysis</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Measure time between funnel steps</td>
+<td>Convert timestamps to millis, subtract, divide by 1000 for seconds: <code>(unixMillisFromTimestamp(step2_time) - unixMillisFromTimestamp(step1_time)) / 1000.0</code></td>
+<td>Recommended</td>
+<td>Analysis</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Report <code>avg</code>, <code>median</code>, and <code>p95</code> for inter-step timing</td>
+<td>All three are needed to understand the distribution of user behavior</td>
+<td>Recommended</td>
+<td>Analysis</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Segment funnels by <code>event.provider</code> and a business-line field (e.g., <code>product_category</code>)</td>
+<td>Reveals which channels and business lines convert best</td>
+<td>Recommended</td>
+<td>Segmentation</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Track daily conversion rate trends over 7+ days</td>
+<td>Use <code>bin(timestamp, 24h)</code> with <code>summarize by:{day}</code> to measure campaign/release impact (<code>1d</code> is rewritten to <code>24h</code> with a notification; days are UTC-aligned)</td>
+<td>Recommended</td>
+<td>Trending</td>
+</tr>
+</tbody>
+</table>
+<p><a id="revenue-and-impact-analysis"></a></p>
+<h2>5. Revenue and Impact Analysis</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>38</td>
+<td>Correlate detected problems with business event volume</td>
+<td>Overlay <code>fetch dt.davis.problems</code> timelines with <code>fetch bizevents</code> volume to visualize impact</td>
+<td>Critical</td>
+<td>Incident Impact</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Use <code>spread:</code> for concurrent problem timelines</td>
+<td><code>makeTimeseries count = count(), spread: timeframe(from: event.start, to: coalesce(event.end, now()))</code></td>
+<td>Recommended</td>
+<td>DQL Pattern</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Compare incident periods against baselines</td>
+<td>Compare same hour yesterday or same day last week using <code>bin(now(), 24h)</code> offsets</td>
+<td>Critical</td>
+<td>Incident Impact</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Filter to business hours for impact assessment</td>
+<td>Pass your timezone, or 9–5 is UTC: <code>getDayOfWeek(timestamp, timezone: &quot;&lt;tz&gt;&quot;) &lt;= 5 AND getHour(timestamp, timezone: &quot;&lt;tz&gt;&quot;) &gt;= 9 AND getHour(timestamp, timezone: &quot;&lt;tz&gt;&quot;) &lt; 17</code> (ISO days: 1 = Monday)</td>
+<td>Recommended</td>
+<td>Context</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Convert Dynatrace Intelligence <code>resolved_problem_duration</code> from nanoseconds to hours</td>
+<td><code>resolved_problem_duration / 1h</code> — the field is in nanoseconds, not milliseconds</td>
+<td>Critical</td>
+<td>Data Conversion</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Exclude duplicate problems from impact analysis</td>
+<td><code>filter dt.davis.is_duplicate == false</code>. Do not add <code>dt.davis.is_frequent_event</code> — frequent issue detection is being phased out and the flag no longer separates anything (ADOPT-03 §5)</td>
+<td>Critical</td>
+<td>Data Quality</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Exclude maintenance windows from SLA calculations</td>
+<td><code>filter maintenance.is_under_maintenance == false</code></td>
+<td>Recommended</td>
+<td>Data Quality</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Use <code>sum(toDouble(amount))</code> for revenue calculations</td>
+<td>Always cast <code>amount</code> to double before aggregation</td>
+<td>Critical</td>
+<td>DQL Pattern</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Track hourly revenue to detect incident-correlated dips</td>
+<td><code>makeTimeseries hourly_revenue = sum(toDouble(amount)), interval:1h</code></td>
+<td>Recommended</td>
+<td>Monitoring</td>
+</tr>
+</tbody>
+</table>
+<p><a id="kpis-and-metric-extraction"></a></p>
+<h2>6. KPIs and Metric Extraction</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>47</td>
+<td>Define KPIs that are Specific, Measurable, Actionable, and Time-bound</td>
+<td>Every KPI must answer a concrete business question with a formula</td>
+<td>Critical</td>
+<td>KPI Design</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Track these five core KPIs at minimum</td>
+<td>Transaction Volume (<code>count()</code>), AOV (<code>avg(amount)</code>), Conversion Rate, Error Rate, Revenue per Hour (<code>sum(amount)</code> per hour)</td>
+<td>Critical</td>
+<td>KPI Design</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Distinguish business error rates from HTTP error rates</td>
+<td>A payment can fail (business error) with HTTP 200 — use <code>event.type</code> to identify business failures, not HTTP status</td>
+<td>Critical</td>
+<td>KPI Design</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Require minimum sample size before calculating error rates</td>
+<td><code>filter total &gt; 10</code> before computing error percentages to avoid misleading rates</td>
+<td>Recommended</td>
+<td>Data Quality</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Extract critical KPIs as Dynatrace metrics via OpenPipeline</td>
+<td>Counter metric / Value metric processors in the OpenPipeline <strong>Metric extraction</strong> stage for order counts and revenue values</td>
+<td>Critical</td>
+<td>Metric Extraction</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Set metric dimensions to low-cardinality fields only</td>
+<td>Dimensions: <code>event.provider</code>, <code>product_category</code> — never <code>order_id</code> or <code>user_id</code></td>
+<td>Critical</td>
+<td>Metric Extraction</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Use extracted metrics for alerting and SLOs</td>
+<td>Extracted metrics enable native Dynatrace Intelligence alerting and SLO definitions — DQL on bizevents does not</td>
+<td>Critical</td>
+<td>Alerting</td>
+</tr>
+<tr>
+<td>54</td>
+<td>Build a composite business health score</td>
+<td>Weight: Transaction Volume 30%, Error Rate 30%, AOV 20%, Conversion Rate 20% — thresholds: Green/Yellow/Red</td>
+<td>Recommended</td>
+<td>Health Scoring</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Health score thresholds: Error Rate</td>
+<td>Green: &lt; 1%, Yellow: 1–5%, Red: &gt; 5%</td>
+<td>Recommended</td>
+<td>Health Scoring</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Health score thresholds: Volume vs Baseline</td>
+<td>Green: &gt; 90%, Yellow: 70–90%, Red: &lt; 70%</td>
+<td>Recommended</td>
+<td>Health Scoring</td>
+</tr>
+</tbody>
+</table>
+<p><a id="executive-reporting-and-dashboards"></a></p>
+<h2>7. Executive Reporting and Dashboards</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>57</td>
+<td>Lead with business outcomes, not infrastructure metrics</td>
+<td>Report transactions, revenue, conversion rates — never CPU or memory to executives</td>
+<td>Critical</td>
+<td>Presentation</td>
+</tr>
+<tr>
+<td>58</td>
+<td>Always provide baseline context</td>
+<td>Compare against yesterday, last week, or last month — never show a number without comparison</td>
+<td>Critical</td>
+<td>Presentation</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Quantify incidents in business terms</td>
+<td>&quot;Lost 1,200 transactions and $47,000 revenue&quot; not &quot;Service had 500ms latency for 2 hours&quot;</td>
+<td>Critical</td>
+<td>Presentation</td>
+</tr>
+<tr>
+<td>60</td>
+<td>One KPI per dashboard tile</td>
+<td>Each tile answers exactly one question — no multi-metric tiles</td>
+<td>Recommended</td>
+<td>Dashboard Design</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Include a data freshness indicator</td>
+<td><code>if(latest_event &gt; now() - 5m, then: &quot;CURRENT&quot;, else: &quot;STALE&quot;)</code> on every executive dashboard</td>
+<td>Recommended</td>
+<td>Dashboard Design</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Executive dashboard must answer three questions</td>
+<td>1) Is the business running? 2) Are there problems? 3) What is the trend?</td>
+<td>Critical</td>
+<td>Dashboard Design</td>
+</tr>
+<tr>
+<td>63</td>
+<td>Automate report delivery via Workflows</td>
+<td>Schedule daily reports at 8 AM weekdays with a Schedule trigger (Fixed time, weekdays — or Cron schedule <code>0 8 * * 1-5</code>)</td>
+<td>Critical</td>
+<td>Automation</td>
+</tr>
+<tr>
+<td>64</td>
+<td>Use <code>bin(now(), 24h) - 24h</code> to <code>bin(now(), 24h)</code> for &quot;yesterday&quot; queries</td>
+<td>Produces clean 24-hour boundaries for scheduled reports</td>
+<td>Recommended</td>
+<td>DQL Pattern</td>
+</tr>
+<tr>
+<td>65</td>
+<td>Include a weekly business review query set</td>
+<td>Daily volume trend, problems resolved with MTTR, week-over-week volume comparison, busiest hours</td>
+<td>Recommended</td>
+<td>Reporting</td>
+</tr>
+<tr>
+<td>66</td>
+<td>Dashboard tile for current transaction rate</td>
+<td><code>count() / 15.0</code> over <code>from:-15m</code> = transactions per minute</td>
+<td>Recommended</td>
+<td>Dashboard Design</td>
+</tr>
+<tr>
+<td>67</td>
+<td>Limit top-N lists to 10 items max in executive views</td>
+<td><code>limit 10</code> on all ranked queries for readability</td>
+<td>Optional</td>
+<td>Dashboard Design</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dql-query-patterns"></a></p>
+<h2>8. DQL Query Patterns</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>68</td>
+<td>Always specify a time range on <code>fetch bizevents</code></td>
+<td><code>fetch bizevents, from:-24h</code> — never omit the time range</td>
+<td>Critical</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>69</td>
+<td>Filter early, sort late, limit last</td>
+<td>Place <code>filter</code> immediately after <code>fetch</code>, <code>sort</code> after <code>summarize</code>, <code>limit</code> at the end</td>
+<td>Critical</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>70</td>
+<td>Use <code>==</code> for exact matches, <code>~</code> only for wildcards</td>
+<td><code>filter event.type == &quot;com.myapp.order.completed&quot;</code> not <code>event.type ~ &quot;*order*&quot;</code></td>
+<td>Critical</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>71</td>
+<td>Use <code>in()</code> with curly-brace arrays for multi-value filters</td>
+<td><code>filter in(event.type, {&quot;type1&quot;, &quot;type2&quot;})</code> — never SQL-style <code>IN ('a','b')</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>72</td>
+<td>Alias all aggregations used in sort</td>
+<td><code>summarize c = count()</code> then <code>sort c desc</code> — never <code>sort count() desc</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>72b</td>
+<td>Wrap multiple <code>summarize</code> aggregations in <code>{}</code> when using <code>by:</code></td>
+<td>With <code>by:</code> and 2+ aggregations, wrap them: <code>summarize { a = count(), b = avg(x) }, by: {field}</code>. Unwrapped, the tenant emits a <code>PARAMETERS_SHOULD_BE_GROUPED</code> INFO (the query still runs). Without <code>by:</code>, both forms are canonical and no INFO is emitted.</td>
+<td><strong>Recommended</strong></td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>73</td>
+<td>Use <code>round(..., decimals: N)</code> with named parameter</td>
+<td><code>round(value, decimals: 2)</code> — never <code>round(value, 2)</code></td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>74</td>
+<td>Use <code>if(cond, then: ..., else: ...)</code> with named parameters</td>
+<td>Named <code>then:</code> and <code>else:</code> parameters are mandatory</td>
+<td>Critical</td>
+<td>Syntax</td>
+</tr>
+<tr>
+<td>75</td>
+<td>Cast <code>amount</code> fields with <code>toDouble()</code> before math</td>
+<td><code>sum(toDouble(amount))</code> — payload fields may arrive as strings</td>
+<td>Recommended</td>
+<td>Data Types</td>
+</tr>
+<tr>
+<td>76</td>
+<td>Use <code>isNotNull()</code> before aggregating optional fields</td>
+<td><code>filter isNotNull(amount)</code> before <code>sum(toDouble(amount))</code></td>
+<td>Critical</td>
+<td>Data Quality</td>
+</tr>
+<tr>
+<td>77</td>
+<td>Use <code>countDistinctApprox</code> over <code>countDistinct</code> for large datasets</td>
+<td>Faster with negligible accuracy loss for &gt;10,000 distinct values</td>
+<td>Recommended</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>78</td>
+<td>Target specific Grail buckets when possible</td>
+<td><code>fetch bizevents, bucket:{&quot;my_bizevents_*&quot;}</code> to reduce scan volume</td>
+<td>Optional</td>
+<td>Performance</td>
+</tr>
+</tbody>
+</table>
+<p><a id="sla-and-slo-tracking"></a></p>
+<h2>9. SLA and SLO Tracking</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>79</td>
+<td>Define a Transaction Success Rate SLO</td>
+<td>Target: 99.5% — Formula: <code>successful / total * 100</code> from payment events</td>
+<td>Critical</td>
+<td>SLO</td>
+</tr>
+<tr>
+<td>80</td>
+<td>Monitor business-event ingestion continuity — do not report it as availability</td>
+<td>Count empty hours (no business events) in the periods the business transacts; an empty hour means a quiet period or broken capture, not downtime. Availability comes from the success-rate SLO (#79)</td>
+<td>Recommended</td>
+<td>SLO</td>
+</tr>
+<tr>
+<td>81</td>
+<td>Define an MTTR SLO</td>
+<td>Target: &lt; 2 hours — Formula: <code>avg(resolved_problem_duration)</code> in hours, excluding duplicates and maintenance-window problems (#44)</td>
+<td>Recommended</td>
+<td>SLO</td>
+</tr>
+<tr>
+<td>82</td>
+<td>Define a Revenue Impact per Incident SLO</td>
+<td>Target: &lt; $5,000 — Formula: baseline revenue minus incident-period revenue</td>
+<td>Recommended</td>
+<td>SLO</td>
+</tr>
+<tr>
+<td>83</td>
+<td>Do not derive SLA availability from summed problem durations</td>
+<td>Problems overlap, so summed durations are entity-hours of impact, not downtime — they can exceed the period many times over (BIZEV-04 §6). Define availability as an SLO on good ÷ total events (SLO-02/03)</td>
+<td>Critical</td>
+<td>SLA</td>
+</tr>
+<tr>
+<td>84</td>
+<td>Include SLO status indicator in every report</td>
+<td><code>if(success_rate &gt;= 99.5, then: &quot;MET&quot;, else: &quot;MISSED&quot;)</code></td>
+<td>Critical</td>
+<td>Reporting</td>
+</tr>
+<tr>
+<td>85</td>
+<td>Track MTTR with <code>avg</code>, <code>median</code>, and <code>p95</code></td>
+<td>Report all three — avg shows the mean, median shows the typical case, p95 shows worst cases</td>
+<td>Recommended</td>
+<td>Metrics</td>
+</tr>
+</tbody>
+</table>
+<p><a id="gen2-vs-gen3-adoption"></a></p>
+<h2>10. Gen2 vs Gen3 Adoption</h2>
+<p>Practices from BIZEV-07 for environments that have not (fully) moved to the Gen3 experience.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>86</td>
+<td>Confirm the platform generation before designing business analytics</td>
+<td>Dynatrace Managed = no business events in any form (classic toolchain only); SaaS with Grail = adopt business events, regardless of how classic the day-to-day operation is</td>
+<td>Critical</td>
+<td>Adoption</td>
+</tr>
+<tr>
+<td>87</td>
+<td>On Grail-enabled SaaS tenants, build new business analytics on business events, not classic mechanisms</td>
+<td>Calculated service metrics are closed to new customers and superseded by OpenPipeline metric extraction — new classic investment is migration debt</td>
+<td>Critical</td>
+<td>Adoption</td>
+</tr>
+<tr>
+<td>88</td>
+<td>Use the minimal Gen3 footprint for hybrid adoption</td>
+<td>Capture via Settings (OneAgent rules — Full-Stack mode required), report in Notebooks + the new Dashboards app, grant <code>storage:bizevents:read</code>; add OpenPipeline only if you need custom buckets or new <code>bizevents.*</code> metrics (the classic pipeline is not available to accounts created from September 2026) — nothing else has to move</td>
+<td>Recommended</td>
+<td>Adoption</td>
+</tr>
+<tr>
+<td>89</td>
+<td>Bridge business KPIs to classic dashboards with metric extraction</td>
+<td><code>bizevents.</code>-prefixed extracted metrics are readable in Data Explorer, classic dashboards, and classic metric-event alerting (classic pipeline: not available to accounts created from September 2026 and to be deactivated in a future release — build new extraction in OpenPipeline)</td>
+<td>Recommended</td>
+<td>Adoption</td>
+</tr>
+<tr>
+<td>90</td>
+<td>Create metric-extraction rules at capture time, not reporting time</td>
+<td>Extraction is forward-only — no backfill; with classic-pipeline extraction, late-timestamped events land in a <code>.failed</code>-suffixed key</td>
+<td>Critical</td>
+<td>Adoption</td>
+</tr>
+<tr>
+<td>91</td>
+<td>Capture must-not-miss events server-side, not (only) via RUM</td>
+<td><code>sendBizEvent</code> is dropped for unmonitored sessions (cost and traffic controls) — orders and payments belong on OneAgent capture rules or the ingest API</td>
+<td>Critical</td>
+<td>Adoption</td>
+</tr>
+<tr>
+<td>92</td>
+<td>On Managed, apply reverse-domain naming to classic artifacts</td>
+<td>Name request attributes, session properties, and log metrics in <code>com.&lt;company&gt;.&lt;domain&gt;.&lt;action&gt;</code> style so the eventual migration is a mapping exercise</td>
+<td>Recommended</td>
+<td>Adoption</td>
+</tr>
+<tr>
+<td>93</td>
+<td>Size business events against your actual license model before rollout</td>
+<td>Classic DDU: 100 DDUs/GB ingest, 0.30 DDUs/GB-day retain, 1.70 DDUs/GB query, 200,000 DDUs/year free tier; DPS: Events powered by Grail capability</td>
+<td>Recommended</td>
+<td>Adoption</td>
+</tr>
+<tr>
+<td>94</td>
+<td>Scope business-analyst access with a bucket-limited IAM policy</td>
+<td><code>ALLOW storage:bizevents:read WHERE storage:bucket-name = &quot;default_bizevents&quot;;</code> plus the matching <code>storage:buckets:read</code> statement — grants Gen3-app access to business events only, nothing else in Grail; route sensitive streams to custom buckets for per-team policies</td>
+<td>Recommended</td>
+<td>Adoption</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

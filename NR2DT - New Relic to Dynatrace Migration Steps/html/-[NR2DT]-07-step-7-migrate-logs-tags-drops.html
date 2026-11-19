@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NR2DT-07: Step 7 — Migrate Logs, Tags &amp; Drop Rules</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NR2DT — New Relic to Dynatrace Migration Steps</a><span class="sep">/</span><span aria-current="page">NR2DT-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NR2DT-07: Step 7 — Migrate Logs, Tags &amp; Drop Rules</h1>
+<blockquote>
+<p><strong>Series:</strong> NR2DT — New Relic to Dynatrace Migration Steps | <strong>Notebook:</strong> 7 of 10 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 11/03/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> complete Wave 5 — reconfigure log forwarders to ship to Dynatrace, apply OpenPipeline parsing/drop/enrichment rules, and confirm cost-optimization patterns are working.</p>
+<p>Procedural — see <strong>NRLC-07</strong> (Logs, Tags &amp; Drop Rules) for component depth.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#openpipeline">Apply OpenPipeline Configuration</a></li>
+<li><a href="#forwarders">Reconfigure Log Forwarders</a></li>
+<li><a href="#validate">Validate Volumes and Drops</a></li>
+<li><a href="#tags">Verify Tag Enrichment</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead + assigned engineer for this step</td>
+</tr>
+<tr>
+<td><strong>Completed</strong></td>
+<td>NR2DT-06 — Migrate Synthetics, SLOs, Workloads</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Procedural step — use as a runbook; defer to NRLC for depth</td>
+</tr>
+<tr>
+<td><strong>NRLC deep dives</strong></td>
+<td>NRLC-07 (Logs, Tags &amp; Drops)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="openpipeline"></a></p>
+<h2>1. Apply OpenPipeline Configuration</h2>
+<pre><code class="language-bash"># The component names this tool version accepts
+python3 migrate.py migrate --list-components
+</code></pre>
+<p>The log components are named <code>log_parsing</code>, <code>drop_rules</code> and <code>tags</code>. <code>logs</code>, <code>drops</code> and <code>parsing</code> are not component names, and the tool skips an unknown name without an error — so the command this step used to show applied nothing.</p>
+<p><strong>At tool v3.0.0 (commit <code>78cbfce</code>) the <code>migrate</code> command does not migrate the log components either.</strong> Its export and transform phases have branches only for dashboards, alerts, synthetics, SLOs, workloads and notification channels, so <code>--components log_parsing,drop_rules,tags</code> completes without exporting, transforming or importing a single log rule. (The tool's README lists log rules as fully supported; the CLI path at this commit does not reach those transformers.) Re-check <code>--list-components</code> and the changelog in your checkout. Until it changes, build the OpenPipeline configuration from the NR2DT-03 §5 design yourself, with Terraform or the OpenPipeline UI.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py">migrate.py @ 78cbfce (tool repo, GitHub)</a>, <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/config/settings.py">config/settings.py @ 78cbfce (tool repo, GitHub)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p>This step applies:</p>
+<ul>
+<li>Drop rules (NRQL filters → OpenPipeline <strong>Drop record</strong> processors)</li>
+<li>Parsing rules (Grok → DPL parsers)</li>
+<li>Tag rules (NR entity tags → OpenPipeline enrichment rules emitting attributes on ingested data)</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing (DT docs)</a> — <em>&quot;Drops a record. The record isn't processed further and isn't stored.&quot;</em>, read 11/03/2026.</sub></p>
+</blockquote>
+<p><a id="forwarders"></a></p>
+<h2>2. Reconfigure Log Forwarders</h2>
+<p>Reconfigure each log shipper to point at DT instead of (or in addition to) NR:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Reconfigure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Filebeat / Fluent Bit</td>
+<td>DT log ingest endpoint or OneAgent</td>
+</tr>
+<tr>
+<td>Lambda log forwarder</td>
+<td>DT Lambda extension or CloudWatch → Firehose → OpenPipeline</td>
+</tr>
+<tr>
+<td>K8s log integration</td>
+<td>DynaKube + log monitoring</td>
+</tr>
+<tr>
+<td>Syslog</td>
+<td>Environment ActiveGate syslog receiver (UDP 514 / TCP 601 by default) → OpenPipeline processing</td>
+</tr>
+<tr>
+<td>HTTP/JSON</td>
+<td>DT Generic Log Ingest API</td>
+</tr>
+</tbody>
+</table>
+<p>Syslog is not received by OpenPipeline directly: <em>&quot;Syslog ingestion is performed by an ActiveGate&quot;</em>, and <em>&quot;Multi-environment ActiveGates do not support syslog ingestion&quot;</em> — plan an Environment ActiveGate with syslog enabled for each receiving environment.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-syslog">Syslog ingestion with ActiveGate (DT docs)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p><strong>Run dual-shipping</strong> (both NR and DT receive) for 1–2 weeks. NR is silenced after volume validation.</p>
+<p><a id="validate"></a></p>
+<h2>3. Validate Volumes and Drops</h2>
+<h3>Volume parity</h3>
+<pre><code>fetch logs, from:-1d
+| summarize records = count(), by:{dt.system.bucket}
+| sort records desc
+</code></pre>
+<p>Compare against NR's <code>SELECT count(*) FROM Log SINCE 1 day ago</code>. Volumes should match within ±5%.</p>
+<h3>Drop rule effectiveness</h3>
+<p>Confirm dropped patterns are being filtered. Use the <strong>same matcher as the drop rule</strong> (NR2DT-03 §5 drops <code>matchesValue(content, &quot;*GET /health*&quot;)</code>):</p>
+<pre><code class="language-dql">// Same matcher as the drop rule: n should be 0 once the rule is active
+fetch logs, from:-1h
+| filter matchesValue(content, &quot;*GET /health*&quot;)
+| summarize n = count()
+</code></pre>
+<p><code>n</code> should be 0 once the drop rule is working. A broader <code>contains(content, &quot;health&quot;)</code> also counts lines the rule never drops — on the validation tenant (10/05/2026) it matched 1,891 lines in an hour while <code>&quot;GET /health&quot;</code> matched none — so it reads as a failure even where the rule has nothing left to drop.</p>
+<h3>Cost-optimization spot-check</h3>
+<pre><code class="language-dql">// One hour is enough for a ratio: on the validation tenant (10/14/2026) this scanned ~2 GB,
+// against ~61 GB for the same query over 24 h. Scope with fetch logs, bucket:{&quot;&lt;bucket&gt;&quot;} to cut it further.
+fetch logs, from:-1h
+| summarize total = count(),
+    droppable = countIf(loglevel == &quot;DEBUG&quot; OR contains(content, &quot;GET /health&quot;))
+| fieldsAdd dropPercent = round((toDouble(droppable) / toDouble(total)) * 100, decimals: 2)
+</code></pre>
+<p>Confirms how much volume is left to drop (target: 0% droppable after Wave 5).</p>
+<p><a id="tags"></a></p>
+<h2>4. Verify Tag Enrichment</h2>
+<p>Tags become OpenPipeline enrichment attributes attached to ingested data. Verify:</p>
+<pre><code>fetch logs, from:-1h
+| filter environment == &quot;prod&quot;
+| summarize count(), by:{environment}
+</code></pre>
+<p>Should return enriched data with the expected environment value.</p>
+<p><strong>Workload identifiers</strong> should similarly be queryable:</p>
+<pre><code>fetch logs, from:-1h
+| filter workload.name == &quot;checkout&quot;
+| summarize count()
+</code></pre>
+<p><a id="gate"></a></p>
+<h2>5. Step Exit Criteria</h2>
+<p><strong>S7 — Logs / Tags / Drops Migrated</strong></p>
+<ul>
+<li>[ ] All log forwarders reconfigured to DT</li>
+<li>[ ] OpenPipeline parsing, drop, and enrichment rules applied</li>
+<li>[ ] W5 volume parity validated (±5% vs NR)</li>
+<li>[ ] Drop rules confirmed working (target patterns absent)</li>
+<li>[ ] Tag enrichment producing expected attributes on ingested data</li>
+</ul>
+<p><strong>Next step:</strong> <strong>NR2DT-08 — Validate</strong>.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a>, and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

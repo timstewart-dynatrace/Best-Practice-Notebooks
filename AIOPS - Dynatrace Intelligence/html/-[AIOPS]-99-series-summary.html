@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIOPS-99: Series Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AIOPS — Dynatrace Intelligence</a><span class="sep">/</span><span aria-current="page">AIOPS-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AIOPS-99: Series Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> AIOPS — Dynatrace Intelligence | <strong>Notebook:</strong> 8 of 8 | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 10/23/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Closing notebook for the AIOPS series. Recaps the seven chapters, indexes the canonical DQL queries, lists the cross-series pointers, and surfaces the next steps for an AIOps initiative.</p>
+<p><strong>Audience:</strong> Anyone returning to the series after first read; anyone planning a follow-on initiative.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#recap">What This Series Covered</a></li>
+<li><a href="#dql-index">Canonical DQL Queries</a></li>
+<li><a href="#cross">Cross-Series Pointers</a></li>
+<li><a href="#next">Where to Go Next</a></li>
+<li><a href="#sources">Source Currency</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Reading order</strong></td>
+<td>Best read after at least AIOPS-01; selectively after the chapters you've already used</td>
+</tr>
+<tr>
+<td><strong>No DQL execution required</strong></td>
+<td>This notebook is reference material; queries are reproduced as text</td>
+</tr>
+</tbody>
+</table>
+<p><a id="recap"></a></p>
+<h2>1. What This Series Covered</h2>
+<table>
+<thead>
+<tr>
+<th>Chapter</th>
+<th>Subject</th>
+<th>One-line takeaway</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AIOPS-01</td>
+<td>Overview</td>
+<td>Three AI categories — Causal, Predictive, Generative — over Smartscape and Grail</td>
+</tr>
+<tr>
+<td>AIOPS-02</td>
+<td>Anomaly Detection</td>
+<td>Five mechanisms; pick by metric character, not by habit</td>
+</tr>
+<tr>
+<td>AIOPS-03</td>
+<td>Problems &amp; RCA</td>
+<td><code>fetch dt.davis.problems</code>; topology completeness gates RCA quality</td>
+</tr>
+<tr>
+<td>AIOPS-04</td>
+<td>Davis CoPilot / Dynatrace Assist</td>
+<td>Generative AI for DQL, summaries, explanations; not a replacement for tenant-specific knowledge</td>
+</tr>
+<tr>
+<td>AIOPS-05</td>
+<td>AI Models</td>
+<td>Causal correlation, predictive baselines, generative LLM — three different model families</td>
+</tr>
+<tr>
+<td>AIOPS-06</td>
+<td>Integrations &amp; Agentic</td>
+<td>Workflow AI tasks, MCP server, AutomationEngine; agentic in suggest-mode first</td>
+</tr>
+<tr>
+<td>AIOPS-07</td>
+<td>Putting It Together</td>
+<td>Detect → Investigate → Remediate; capacity, incident, regression scenarios</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dql-index"></a></p>
+<h2>2. Canonical DQL Queries</h2>
+<p><strong>Active problem feed (the most-used query in the series):</strong></p>
+<pre><code class="language-dql">fetch dt.davis.problems, from:-2h
+| filter event.status == &quot;ACTIVE&quot;
+| sort event.start desc
+| fields display_id, event.name, event.category, event.start,
+         root_cause_entity_name, affected_entity_ids
+| limit 50
+</code></pre>
+<p><strong>Problem category rollup — 7 days:</strong></p>
+<pre><code class="language-dql">fetch dt.davis.problems, from:-7d
+| summarize problem_count = count(), by:{event.category}
+| sort problem_count desc
+</code></pre>
+<p><strong>Problem severity rollup — 7 days:</strong> a different axis from category, and the one AIOPS-03 § 5 treats as
+distinct. Note <code>event.severity</code> is being <strong>promoted to <code>stable</code></strong> in Semantic Dictionary 1.348 (released
+08/25/2026), across Davis events, Davis event reports and Davis problems. It was <code>experimental</code>,
+which is why earlier revisions of this summary said to use it for triage but not to hard-code an
+integration against it — that caution is what the promotion lifts.</p>
+<p>Confirm before you rely on it: the dictionary ships with the platform version, and a live tenant
+checked on 09/09/2026 still returned <code>experimental</code>, so 1.348 had not reached it. Until it does,
+the original caution stands.</p>
+<p>SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) also changes the value itself:
+<em>&quot;Davis events and problems no longer default event.severity to 3.&quot;</em> Once that reaches your tenant,
+an unset severity is null — the query below tests for it first and labels it <code>not set</code>, rather than
+letting it fall through to <code>5 - informational</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-348">Semantic Dictionary changelog 1.348 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity">Standardized event severity (DT docs)</a> — <em>&quot;If an event source doesn't set severity, the field is empty.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">fetch dt.davis.problems, from:-7d
+| fieldsAdd severity_label = if(isNull(event.severity), &quot;not set&quot;,
+                             else: if(event.severity == 1, &quot;1 - critical&quot;,
+                             else: if(event.severity == 2, &quot;2 - major&quot;,
+                             else: if(event.severity == 3, &quot;3 - minor&quot;,
+                             else: if(event.severity == 4, &quot;4 - warning&quot;, else: &quot;5 - informational&quot;)))))
+| summarize problem_count = count(), by:{event.severity, severity_label}
+| sort event.severity asc
+</code></pre>
+<p><strong>MTTR by category — 30 days:</strong></p>
+<pre><code class="language-dql">fetch dt.davis.problems, from:-30d
+| filter event.status == &quot;CLOSED&quot;
+| fieldsAdd duration = event.end - event.start
+| summarize {
+    median_mttr = percentile(duration, 50),
+    p95_mttr    = percentile(duration, 95),
+    problem_count = count()
+  },
+  by:{event.category}
+| sort problem_count desc
+</code></pre>
+<p><strong>Raw signal volume by category:</strong></p>
+<pre><code class="language-dql">fetch dt.davis.events, from:-1h
+| summarize signal_count = count(), by:{event.category}
+| sort signal_count desc
+</code></pre>
+<p><strong>Signal-to-problem compression trend:</strong> count problem-eligible signals only — INFO / WARNING
+events never open a problem, and PROBLEM_UPDATE records are lifecycle updates, not signals.</p>
+<pre><code class="language-dql">// Run both, compare:
+fetch dt.davis.events, from:-7d
+| filter in(event.category, {&quot;AVAILABILITY&quot;,&quot;ERROR&quot;,&quot;RESOURCE_CONTENTION&quot;,&quot;SLOWDOWN&quot;,&quot;CUSTOM_ALERT&quot;})
+| makeTimeseries signals = count(), interval:24h
+
+fetch dt.davis.problems, from:-7d
+| makeTimeseries problems = count(), interval:24h
+</code></pre>
+<p>Each query above is a text-only copy of one executed in AIOPS-01, AIOPS-03 or AIOPS-07.</p>
+<p><a id="cross"></a></p>
+<h2>3. Cross-Series Pointers</h2>
+<p><strong>Where AIOPS hands off:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Series</th>
+<th>Hand-off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WFLOW</strong></td>
+<td>Notification routing on active problems</td>
+</tr>
+<tr>
+<td><strong>AUTOM</strong></td>
+<td>Anomaly detection settings as code (Monaco / Terraform)</td>
+</tr>
+<tr>
+<td><strong>ADOPT</strong></td>
+<td>Observability maturity model (ADOPT-01); the AIOps stages are in AIOPS-07 §6</td>
+</tr>
+<tr>
+<td><strong>DASH</strong></td>
+<td>Problem-driven SLO and executive dashboards</td>
+</tr>
+<tr>
+<td><strong>K8S, DBMON, CLOUD</strong></td>
+<td>Domain-specific anomaly patterns layered on these mechanisms</td>
+</tr>
+<tr>
+<td><strong>OPLOGS, OPMIG</strong></td>
+<td>Pre-AI investment: clean log streams that AI can reason over</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Where AIOPS is the canonical home:</strong></p>
+<ul>
+<li>AI category model (Causal / Predictive / Generative)</li>
+<li>Davis problem and event data shape</li>
+<li>Davis analyzer family</li>
+<li>Dynatrace Assist surfaces and patterns</li>
+<li>MCP server tool catalog (problem and analyzer surface)</li>
+</ul>
+<p><a id="next"></a></p>
+<h2>4. Where to Go Next</h2>
+<p>If you came here looking for a starting point, pick one based on where you are:</p>
+<ul>
+<li><strong>No detectors tuned yet</strong> → AIOPS-02, then AUTOM-03 (Monaco) / AUTOM-04 (Terraform) to put settings in code</li>
+<li><strong>Problems flooding the on-call rotation</strong> → AIOPS-03 to understand grouping; WFLOW for notification design; ADOPT-01 for maturity framing</li>
+<li><strong>Team not using Assist productively</strong> → AIOPS-04; pair with a working session reviewing the prompt patterns</li>
+<li><strong>Considering BYO LLM or external AI in workflows</strong> → AIOPS-05 (model boundaries) and AIOPS-06 (integration surfaces)</li>
+<li><strong>Building an end-to-end loop</strong> → AIOPS-07 scenarios, then operationalize with the WFLOW patterns</li>
+</ul>
+<p>Three high-value next initiatives most teams should consider:</p>
+<ol>
+<li><strong>Audit topology completeness.</strong> RCA quality is bounded by Smartscape coverage. Inventory untraced services and undeclared dependencies; treat each gap as a backlog item.</li>
+<li><strong>Move detectors to config-as-code.</strong> Shift the Anomaly Detection app from primary configuration tool to exploration tool. AUTOM-03 / AUTOM-04.</li>
+<li><strong>Introduce one workflow with an AI task.</strong> Start with the <em>Summarize Open Problems</em> pattern — high value, low risk, builds team familiarity with AI in workflows.</li>
+</ol>
+<blockquote>
+<p><strong>Custom alerts move to Settings (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created, and initiative 2 refers to that app.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em></sub></p>
+</blockquote>
+<p><a id="sources"></a></p>
+<h2>5. Source Currency</h2>
+<p>Last verified: <strong>09/24/2026</strong> (all DQL executed; citations checked).</p>
+<p>Areas that are evolving fast in 2026 — re-check before relying on screenshots or specific UI flows:</p>
+<ul>
+<li>Dynatrace Assist surfaces (UI placement, conversation starters, action-suggesting features)</li>
+<li>Davis CoPilot agentic features (preview features change naming and scope frequently)</li>
+<li>Workflow AI task templates (new templates ship monthly)</li>
+<li>MCP server tool catalog (new tools added; existing tools sometimes renamed)</li>
+</ul>
+<p>If a query stops returning expected results, validate against <code>mcp__dynatrace__execute-dql</code> first — the data model is more stable than the UI.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

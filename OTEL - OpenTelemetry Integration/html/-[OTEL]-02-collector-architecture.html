@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTEL-02: OpenTelemetry Collector Architecture</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OTEL — OpenTelemetry Integration</a><span class="sep">/</span><span aria-current="page">OTEL-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OTEL-02: OpenTelemetry Collector Architecture</h1>
+<blockquote>
+<p><strong>Series:</strong> OTEL — OpenTelemetry Integration | <strong>Notebook:</strong> 2 of 8 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/28/2026</p>
+</blockquote>
+<h2>Understanding the OTel Collector Pipeline</h2>
+<p>The OpenTelemetry Collector is the backbone of OTel deployments—a vendor-agnostic service for receiving, processing, and exporting telemetry data. This notebook covers its architecture, components, and configuration.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#collector-overview">Collector Overview</a></li>
+<li><a href="#pipeline-architecture">Pipeline Architecture</a></li>
+<li><a href="#receivers">Receivers</a></li>
+<li><a href="#processors">Processors</a></li>
+<li><a href="#exporters">Exporters</a></li>
+<li><a href="#extensions">Extensions</a></li>
+<li><a href="#connectors">Connectors</a></li>
+<li><a href="#configuration-basics">Configuration Basics</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OTEL-01: OpenTelemetry Fundamentals</td>
+</tr>
+<tr>
+<td><strong>Tools</strong></td>
+<td>YAML familiarity for configuration</td>
+</tr>
+</tbody>
+</table>
+<p><a id="collector-overview"></a></p>
+<h2>1. Collector Overview</h2>
+<h3>What is the Collector?</h3>
+<p>The OpenTelemetry Collector is a standalone service that:</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Receives</strong></td>
+<td>Ingests telemetry from multiple sources</td>
+</tr>
+<tr>
+<td><strong>Processes</strong></td>
+<td>Transforms, filters, enriches data</td>
+</tr>
+<tr>
+<td><strong>Exports</strong></td>
+<td>Sends to one or more backends</td>
+</tr>
+</tbody>
+</table>
+<h3>Collector Distributions</h3>
+<table>
+<thead>
+<tr>
+<th>Distribution</th>
+<th>Use Case</th>
+<th>Components</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Core</strong></td>
+<td>Minimal, essential only</td>
+<td>Basic receivers/exporters</td>
+</tr>
+<tr>
+<td><strong>Contrib</strong></td>
+<td>Extended functionality</td>
+<td>Many community components</td>
+</tr>
+<tr>
+<td><strong>Custom</strong></td>
+<td>Your specific needs</td>
+<td>Build with ocb (OTel Collector Builder)</td>
+</tr>
+<tr>
+<td><strong>Vendor</strong></td>
+<td>Pre-configured for vendor</td>
+<td>Dynatrace, AWS, etc.</td>
+</tr>
+</tbody>
+</table>
+<h3>Why Use a Collector?</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Decoupling</strong></td>
+<td>Apps don't need backend-specific SDKs</td>
+</tr>
+<tr>
+<td><strong>Processing</strong></td>
+<td>Centralized filtering, sampling, enrichment</td>
+</tr>
+<tr>
+<td><strong>Fan-out</strong></td>
+<td>Send to multiple backends</td>
+</tr>
+<tr>
+<td><strong>Buffering</strong></td>
+<td>Retry and batching for reliability</td>
+</tr>
+<tr>
+<td><strong>Security</strong></td>
+<td>Centralize credentials and auth</td>
+</tr>
+</tbody>
+</table>
+<p><a id="pipeline-architecture"></a></p>
+<h2>2. Pipeline Architecture</h2>
+<h3>Data Flow</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY29sbGVjdG9yQmciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFlM2E1ZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGYxNzJhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icmVjZWl2ZXJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmM1NWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE2YTM0YTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InByb2Nlc3NvckdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZXhwb3J0ZXJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2ZjE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzRmNDZlNTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImV4dGVuc2lvbkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZGVzdEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDA3MGM5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdyIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTQwJSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjAiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLWNvbG9yPSIjMDAwIiBmbG9vZC1vcGFjaXR5PSIwLjMiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYXJyb3dXaGl0ZSIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjZjhmYWZjIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGYxNzJhIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2YxZjVmOSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T3BlblRlbGVtZXRyeSBDb2xsZWN0b3IgUGlwZWxpbmU8L3RleHQ+CgogIDwhLS0gQ29sbGVjdG9yIENvbnRhaW5lciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iNTAiIHdpZHRoPSI2MjAiIGhlaWdodD0iMjQwIiByeD0iMTIiIGZpbGw9InVybCgjY29sbGVjdG9yQmcpIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIzNTAiIHk9Ijc1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZjU5ZTBiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PcGVuVGVsZW1ldHJ5IENvbGxlY3RvcjwvdGV4dD4KCiAgPCEtLSBSZWNlaXZlcnMgLS0+CiAgPHJlY3QgeD0iNzAiIHk9Ijk1IiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjEzNSIgcng9IjgiIGZpbGw9InVybCgjcmVjZWl2ZXJHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIxNDAiIHk9IjEyMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmVjZWl2ZXJzPC90ZXh0PgogIDx0ZXh0IHg9Ijg1IiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNkY2ZjZTciPuKAoiBPVExQPC90ZXh0PgogIDx0ZXh0IHg9Ijg1IiB5PSIxNjIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNkY2ZjZTciPuKAoiBKYWVnZXI8L3RleHQ+CiAgPHRleHQgeD0iODUiIHk9IjE3OSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjZmNlNyI+4oCiIFByb21ldGhldXM8L3RleHQ+CiAgPHRleHQgeD0iODUiIHk9IjE5NiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjZmNlNyI+4oCiIFppcGtpbjwvdGV4dD4KICA8dGV4dCB4PSI4NSIgeT0iMjEzIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZGNmY2U3Ij7igKIgRmlsZWxvZzwvdGV4dD4KCiAgPCEtLSBBcnJvdyBSIHRvIFAgLS0+CiAgPGxpbmUgeDE9IjIxMCIgeTE9IjE2MiIgeDI9IjI0OCIgeTI9IjE2MiIgc3Ryb2tlPSIjZjhmYWZjIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXaGl0ZSkiLz4KCiAgPCEtLSBQcm9jZXNzb3JzIC0tPgogIDxyZWN0IHg9IjI2MCIgeT0iOTUiIHdpZHRoPSIxNjAiIGhlaWdodD0iMTM1IiByeD0iOCIgZmlsbD0idXJsKCNwcm9jZXNzb3JHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIzNDAiIHk9IjEyMCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJvY2Vzc29yczwvdGV4dD4KICA8dGV4dCB4PSIyNzUiIHk9IjE0NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZlZjNjNyI+4oCiIGJhdGNoPC90ZXh0PgogIDx0ZXh0IHg9IjI3NSIgeT0iMTYyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZmVmM2M3Ij7igKIgbWVtb3J5X2xpbWl0ZXI8L3RleHQ+CiAgPHRleHQgeD0iMjc1IiB5PSIxNzkiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmZWYzYzciPuKAoiBmaWx0ZXI8L3RleHQ+CiAgPHRleHQgeD0iMjc1IiB5PSIxOTYiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmZWYzYzciPuKAoiBhdHRyaWJ1dGVzPC90ZXh0PgogIDx0ZXh0IHg9IjI3NSIgeT0iMjEzIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZmVmM2M3Ij7igKIgazhzYXR0cmlidXRlczwvdGV4dD4KCiAgPCEtLSBBcnJvdyBQIHRvIEUgLS0+CiAgPGxpbmUgeDE9IjQyMCIgeTE9IjE2MiIgeDI9IjQ1OCIgeTI9IjE2MiIgc3Ryb2tlPSIjZjhmYWZjIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXaGl0ZSkiLz4KCiAgPCEtLSBFeHBvcnRlcnMgLS0+CiAgPHJlY3QgeD0iNDcwIiB5PSI5NSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxMzUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2V4cG9ydGVyR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNTQwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkV4cG9ydGVyczwvdGV4dD4KICA8dGV4dCB4PSI0ODUiIHk9IjE0NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2M3ZDJmZSI+4oCiIG90bHBodHRwPC90ZXh0PgogIDx0ZXh0IHg9IjQ4NSIgeT0iMTYyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjYzdkMmZlIj7igKIgb3RscDwvdGV4dD4KICA8dGV4dCB4PSI0ODUiIHk9IjE3OSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2M3ZDJmZSI+4oCiIGRlYnVnPC90ZXh0PgogIDx0ZXh0IHg9IjQ4NSIgeT0iMTk2IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjYzdkMmZlIj7igKIgcHJvbWV0aGV1czwvdGV4dD4KCiAgPCEtLSBFeHRlbnNpb25zIC0tPgogIDxyZWN0IHg9IjcwIiB5PSIyNDUiIHdpZHRoPSI1NDAiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSJ1cmwoI2V4dGVuc2lvbkdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjM0MCIgeT0iMjY3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNTAwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FeHRlbnNpb25zOiBoZWFsdGhfY2hlY2ssIHBwcm9mLCB6cGFnZXM8L3RleHQ+CgogIDwhLS0gRGVzdGluYXRpb25zIC0tPgogIDxyZWN0IHg9IjUzMCIgeT0iMzA1IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjYwIiByeD0iOCIgZmlsbD0idXJsKCNkZXN0R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNTk1IiB5PSIzMzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkR5bmF0cmFjZTwvdGV4dD4KICA8dGV4dCB4PSI1OTUiIHk9IjM1MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjYmZkYmZlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PVExQIEluZ2VzdDwvdGV4dD4KCiAgPCEtLSBEZWJ1ZyBkZXN0aW5hdGlvbiAtLT4KICA8cmVjdCB4PSIzNzAiIHk9IjMwNSIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI2MCIgcng9IjgiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDIwIiB5PSIzMzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI1MDAiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNvbnNvbGU8L3RleHQ+CiAgPHRleHQgeD0iNDIwIiB5PSIzNTAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGVidWcgb3V0cHV0PC90ZXh0PgoKICA8IS0tIEFycm93cyB0byBkZXN0aW5hdGlvbnMgLS0+CiAgPGxpbmUgeDE9IjU0MCIgeTE9IjIzMCIgeDI9IjU0MCIgeTI9IjI2MCIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iNTQwIiB5MT0iMjYwIiB4Mj0iNTk1IiB5Mj0iMzAwIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1doaXRlKSIvPgogIDxsaW5lIHgxPSI1NDAiIHkxPSIyNjAiIHgyPSI0MjAiIHkyPSIzMDAiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V2hpdGUpIi8+CgogIDwhLS0gUGlwZWxpbmUgbGFiZWwgLS0+CiAgPHRleHQgeD0iMzQwIiB5PSI4NyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk0YTNiOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dHJhY2VzIC8gbWV0cmljcyAvIGxvZ3MgcGlwZWxpbmU8L3RleHQ+Cjwvc3ZnPg==" alt="OpenTelemetry Collector Pipeline" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Components | Function |
+|-------|------------|----------|
+| Receivers | OTLP, Jaeger, Prometheus, Zipkin, Filelog | Ingest telemetry |
+| Processors | batch, memory_limiter, filter, attributes, k8sattributes | Transform data |
+| Exporters | otlphttp, otlp, debug, prometheus | Send to backends |
+| Extensions | health_check, pprof, zpages | Operational support |
+
+Data flows: Receivers → Processors → Exporters
+Supports traces / metrics / logs pipelines
+For environments where SVG doesn't render
+-->
+<h3>Pipeline Types</h3>
+<table>
+<thead>
+<tr>
+<th>Pipeline</th>
+<th>Data Type</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>traces</code></td>
+<td>Distributed traces</td>
+<td>Request spans</td>
+</tr>
+<tr>
+<td><code>metrics</code></td>
+<td>Quantitative measurements</td>
+<td>CPU usage</td>
+</tr>
+<tr>
+<td><code>logs</code></td>
+<td>Log records</td>
+<td>Application logs</td>
+</tr>
+</tbody>
+</table>
+<p>Each signal type has its own pipeline(s) with separate receivers, processors, and exporters.</p>
+<p><a id="receivers"></a></p>
+<h2>3. Receivers</h2>
+<p>Receivers ingest telemetry data from external sources.</p>
+<h3>Common Receivers</h3>
+<table>
+<thead>
+<tr>
+<th>Receiver</th>
+<th>Protocol</th>
+<th>Signals</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>otlp</code></td>
+<td>OTLP (gRPC/HTTP)</td>
+<td>Traces, Metrics, Logs</td>
+<td>OTel SDKs</td>
+</tr>
+<tr>
+<td><code>jaeger</code></td>
+<td>Jaeger (gRPC/HTTP)</td>
+<td>Traces</td>
+<td>Jaeger clients</td>
+</tr>
+<tr>
+<td><code>zipkin</code></td>
+<td>Zipkin HTTP</td>
+<td>Traces</td>
+<td>Zipkin clients</td>
+</tr>
+<tr>
+<td><code>prometheus</code></td>
+<td>Prometheus scrape</td>
+<td>Metrics</td>
+<td>Prometheus targets</td>
+</tr>
+<tr>
+<td><code>file_log</code> (<code>filelog</code> before contrib v0.149.0)</td>
+<td>File tailing</td>
+<td>Logs</td>
+<td>Log files</td>
+</tr>
+<tr>
+<td><code>host_metrics</code> (<code>hostmetrics</code> before contrib v0.151.0)</td>
+<td>Host stats</td>
+<td>Metrics</td>
+<td>CPU, memory, disk</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Component renames are version-dependent.</strong> Collector-contrib renamed <code>filelog</code> → <code>file_log</code> in <strong>v0.149.0</strong> and <code>hostmetrics</code> → <code>host_metrics</code>, <code>spanmetrics</code> → <code>span_metrics</code> in <strong>v0.151.0</strong>; each component's <code>metadata.yaml</code> keeps the old name as <code>deprecated_type</code>, so both spellings load on those versions and later. Older Collectors — including Dynatrace Collector builds based on an earlier upstream — know <strong>only</strong> the old names. If one config must run on a mixed fleet, use the old names until every Collector is on v0.151.0+.</p>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/filelogreceiver/metadata.yaml">filelogreceiver metadata.yaml (OpenTelemetry Collector Contrib GitHub)</a> — <code>type: file_log</code>, <code>deprecated_type: filelog</code>; same pattern in <code>hostmetricsreceiver</code> and <code>spanmetricsconnector</code>. Release versions read from the tagged files, 10/02/2026.</sub></p>
+</blockquote>
+<h3>OTLP Receiver Configuration</h3>
+<pre><code class="language-yaml">receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+</code></pre>
+<h3>Prometheus Receiver</h3>
+<pre><code class="language-yaml">receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'my-app'
+          scrape_interval: 15s
+          static_configs:
+            - targets: ['app:8080']
+</code></pre>
+<p><a id="processors"></a></p>
+<h2>4. Processors</h2>
+<p>Processors transform, filter, or enrich telemetry data.</p>
+<h3>Essential Processors</h3>
+<table>
+<thead>
+<tr>
+<th>Processor</th>
+<th>Purpose</th>
+<th>When to Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>batch</code></td>
+<td>Batch data for efficiency</td>
+<td>Always</td>
+</tr>
+<tr>
+<td><code>memory_limiter</code></td>
+<td>Prevent OOM</td>
+<td>Always</td>
+</tr>
+<tr>
+<td><code>resourcedetection</code></td>
+<td>Add resource attributes</td>
+<td>K8s, cloud</td>
+</tr>
+<tr>
+<td><code>attributes</code></td>
+<td>Add/modify attributes</td>
+<td>Enrichment</td>
+</tr>
+<tr>
+<td><code>filter</code></td>
+<td>Drop unwanted data</td>
+<td>Cost reduction</td>
+</tr>
+<tr>
+<td><code>transform</code></td>
+<td>OTTL-based transformations</td>
+<td>Complex processing</td>
+</tr>
+</tbody>
+</table>
+<h3>Batch Processor (Critical)</h3>
+<pre><code class="language-yaml">processors:
+  batch:
+    timeout: 10s
+    send_batch_size: 1000
+    send_batch_max_size: 1500
+</code></pre>
+<h3>Memory Limiter (Critical)</h3>
+<pre><code class="language-yaml">processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 400
+    spike_limit_mib: 100
+</code></pre>
+<h3>Attributes Processor</h3>
+<pre><code class="language-yaml">processors:
+  attributes:
+    actions:
+      - key: environment
+        value: production
+        action: upsert
+      - key: api.key
+        action: delete
+</code></pre>
+<h3>Filter Processor</h3>
+<pre><code class="language-yaml">processors:
+  filter:
+    traces:
+      span:
+        - 'attributes[&quot;url.path&quot;] == &quot;/health&quot;'   # url.path, not the full URL
+</code></pre>
+<h3>Masking Sensitive Data (redaction / transform)</h3>
+<p>Telemetry can carry PII — tokens in headers, emails in attributes, user IDs in log bodies. Strip it <strong>in the collector, before egress</strong>, so it never reaches the backend. Two processors do this:</p>
+<table>
+<thead>
+<tr>
+<th>Processor</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>redaction</code></td>
+<td>Straightforward allow/block of attribute values; redacts matching values completely</td>
+</tr>
+<tr>
+<td><code>transform</code></td>
+<td>OTTL-based; full or <strong>partial</strong> redaction via pattern replacement, per signal</td>
+</tr>
+</tbody>
+</table>
+<p><code>redaction</code> — block values matching a pattern (e.g. a leaked Dynatrace token) and keep a summary of what was scrubbed:</p>
+<pre><code class="language-yaml">processors:
+  redaction:
+    allow_all_keys: true
+    blocked_values:
+      - 'dt0[a-z]0[1-9]\.[A-Za-z0-9]{24}\.[A-Za-z0-9]{64}'   # Dynatrace token shape (single quotes: a backslash is literal)
+    summary: info
+</code></pre>
+<p><code>transform</code> — partial masking of specific attributes across traces, metrics, and logs (separate <code>trace_statements</code> / <code>metric_statements</code> / <code>log_statements</code> blocks):</p>
+<pre><code class="language-yaml">processors:
+  transform:
+    trace_statements:
+      - context: span
+        statements:
+          - replace_all_patterns(attributes, &quot;value&quot;, &quot;[\\w.]+@[\\w.]+&quot;, &quot;***@***&quot;)   # mask emails (OTTL string: double the backslash)
+</code></pre>
+<p>Two rules that bite:</p>
+<ul>
+<li><strong>Order matters</strong> — place redaction/transform <strong>before</strong> any routing or exporting so downstream steps only ever see sanitized data.</li>
+<li><strong>Span names are not attributes</strong> in OTLP — masking attribute values does not touch the span name; handle it separately (e.g. a name-rewriting statement / <code>set_semconv_span_name</code>).</li>
+</ul>
+<p>This is the collector-side complement to OpenPipeline ingest-time masking (OPLOGS / OPIPE): use collector redaction when data must be scrubbed <strong>before it leaves your network</strong>, OpenPipeline masking when it is scrubbed at ingest.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector-use-cases/redact">Mask sensitive data with the OTel Collector (DT docs)</a> — <code>redaction</code> (<code>blocked_values</code>/<code>allow_all_keys</code>/<code>summary</code>) and <code>transform</code> (<code>replace_all_patterns</code>, per-signal statements); processor-order and span-name caveats.</sub></p>
+</blockquote>
+<p><a id="exporters"></a></p>
+<h2>5. Exporters</h2>
+<p>Exporters send processed telemetry to backends.</p>
+<h3>Common Exporters</h3>
+<table>
+<thead>
+<tr>
+<th>Exporter</th>
+<th>Target</th>
+<th>Signals</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>otlphttp</code></td>
+<td>OTLP over HTTP</td>
+<td>All</td>
+<td>Dynatrace, many backends</td>
+</tr>
+<tr>
+<td><code>otlp</code></td>
+<td>OTLP over gRPC</td>
+<td>All</td>
+<td>Lower overhead</td>
+</tr>
+<tr>
+<td><code>debug</code></td>
+<td>Console/logs</td>
+<td>All</td>
+<td>Development</td>
+</tr>
+<tr>
+<td><code>prometheus</code></td>
+<td>Prometheus endpoint</td>
+<td>Metrics</td>
+<td>Pull model</td>
+</tr>
+<tr>
+<td><code>file</code></td>
+<td>Local files</td>
+<td>All</td>
+<td>Debugging</td>
+</tr>
+</tbody>
+</table>
+<h3>OTLP HTTP Exporter (Dynatrace)</h3>
+<pre><code class="language-yaml">exporters:
+  otlphttp:
+    endpoint: https://{your-env}.live.dynatrace.com/api/v2/otlp
+    headers:
+      Authorization: Api-Token ${DT_API_TOKEN}
+</code></pre>
+<h3>Debug Exporter</h3>
+<pre><code class="language-yaml">exporters:
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+</code></pre>
+<h3>Multiple Exporters (Fan-Out)</h3>
+<pre><code class="language-yaml">exporters:
+  otlphttp/dynatrace:
+    endpoint: https://${DT_ENV_ID}.live.dynatrace.com/api/v2/otlp
+    headers:
+      Authorization: Api-Token ${DT_API_TOKEN}
+  otlphttp/backup:
+    endpoint: https://backup-backend.example.com
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/dynatrace, otlphttp/backup]  # Both!
+</code></pre>
+<p><a id="extensions"></a></p>
+<h2>6. Extensions</h2>
+<p>Extensions provide operational capabilities for the Collector itself.</p>
+<h3>Common Extensions</h3>
+<table>
+<thead>
+<tr>
+<th>Extension</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>health_check</code></td>
+<td>Liveness/readiness endpoints</td>
+</tr>
+<tr>
+<td><code>pprof</code></td>
+<td>Go profiling data</td>
+</tr>
+<tr>
+<td><code>zpages</code></td>
+<td>Debug pages for pipelines</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> The <code>memory_ballast</code> extension is <strong>deprecated</strong> and was removed from default Helm chart configurations. Use the <code>GOMEMLIMIT</code> environment variable instead (set to ~80% of the container memory limit). See <a href="https://github.com/open-telemetry/opentelemetry-collector/discussions/9264">Collector discussion #9264</a>.</p>
+</blockquote>
+<h3>Configuration</h3>
+<pre><code class="language-yaml">extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+</code></pre>
+<p><a id="connectors"></a></p>
+<h2>7. Connectors</h2>
+<p>Connectors link pipelines, acting as both exporter and receiver.</p>
+<h3>Use Cases</h3>
+<table>
+<thead>
+<tr>
+<th>Connector</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>span_metrics</code> (<code>spanmetrics</code> before contrib v0.151.0)</td>
+<td>Generate metrics from spans</td>
+</tr>
+<tr>
+<td><code>servicegraph</code></td>
+<td>Build service dependency graph</td>
+</tr>
+<tr>
+<td><code>count</code></td>
+<td>Count data points</td>
+</tr>
+</tbody>
+</table>
+<h3>Span Metrics Connector</h3>
+<pre><code class="language-yaml">connectors:
+  span_metrics:
+    dimensions:
+      - name: http.request.method
+      - name: http.response.status_code
+    histogram:
+      explicit:
+        buckets: [100ms, 500ms, 1s, 5s]
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [span_metrics, otlphttp]
+    metrics:
+      receivers: [span_metrics]  # Receives from connector
+      exporters: [otlphttp]
+</code></pre>
+<p><a id="configuration-basics"></a></p>
+<h2>8. Configuration Basics</h2>
+<h3>Minimal Configuration</h3>
+<pre><code class="language-yaml">receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 10s
+
+exporters:
+  otlphttp:
+    endpoint: https://${DT_ENV_ID}.live.dynatrace.com/api/v2/otlp
+    headers:
+      Authorization: Api-Token ${DT_API_TOKEN}
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp]
+</code></pre>
+<h3>Configuration Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Always use <code>batch</code> processor</td>
+<td>Efficiency</td>
+</tr>
+<tr>
+<td>Always use <code>memory_limiter</code></td>
+<td>Stability</td>
+</tr>
+<tr>
+<td>Put <code>memory_limiter</code> first</td>
+<td>Fail fast</td>
+</tr>
+<tr>
+<td>Use environment variables for secrets</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>Validate config before deploy</td>
+<td>Catch errors early</td>
+</tr>
+</tbody>
+</table>
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Collector overview and distributions</li>
+<li>Pipeline architecture: receivers → processors → exporters</li>
+<li>Common receivers (OTLP, Prometheus, Jaeger)</li>
+<li>Essential processors (batch, memory_limiter, filter)</li>
+<li>Exporters for Dynatrace and other backends</li>
+<li>Extensions for operational capabilities</li>
+<li>Connectors for pipeline linking</li>
+<li>Configuration fundamentals</li>
+</ul>
+<hr />
+<h2>Next Steps</h2>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OTEL-03: Collector Deployment</strong></td>
+<td>Deployment patterns</td>
+</tr>
+<tr>
+<td><strong>OTEL-04: Trace Instrumentation</strong></td>
+<td>Instrumenting code</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://opentelemetry.io/docs/collector/">OTel Collector Documentation</a></li>
+<li><a href="https://opentelemetry.io/docs/collector/configuration/">Collector Configuration</a></li>
+<li><a href="https://github.com/open-telemetry/opentelemetry-collector-releases">Collector Releases</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

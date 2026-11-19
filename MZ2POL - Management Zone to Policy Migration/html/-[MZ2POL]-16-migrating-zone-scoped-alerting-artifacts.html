@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-16: Migrating the Rest of Zone-Scoped Alerting</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-16</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-16: Migrating the Rest of Zone-Scoped Alerting</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 17 of 17 | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/19/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Purpose:</strong> MZ2POL-09 moves zone-scoped alerting profiles and problem notifications onto problem-triggered workflows. A zone also scopes metric events, maintenance windows and classic SLOs, and notification payloads may have printed it. Each of these has its own successor, its own upgrade guide and its own trap. This notebook migrates them, then proves the result per problem before anything classic is switched off.</p>
+</blockquote>
+<h2>What This Notebook Does</h2>
+<ol>
+<li><strong>Maps each remaining zone consumer to its successor</strong> — the rows MZ2POL-15 §3 finds besides alerting profiles</li>
+<li><strong>Migrates metric events</strong> without the transform silently widening their scope</li>
+<li><strong>Recreates maintenance windows</strong> on the new model, and keeps notification suppression working during the parallel run</li>
+<li><strong>Moves classic SLOs</strong> from zone filters to segments, and runs both for one evaluation period</li>
+<li><strong>Rewrites notification payloads</strong> that relied on zone names or the classic JSON</li>
+<li><strong>Proves parity per problem</strong> — which problems a classic profile matched, and which a workflow acted on</li>
+<li><strong>Measures overlap</strong> that turns into duplicate pages, and where de-duplication actually happens</li>
+<li><strong>Sets the rollback window and cutover order</strong> for all of the above</li>
+</ol>
+<p>This notebook complements MZ2POL-09 (alerting profiles and notifications), MZ2POL-15 (finding the consumers) and MZ2POL-06 §8–§9 (cleanup and rollback).</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#the-other-zone-consumers">The Other Zone Consumers</a></li>
+<li><a href="#metric-events">Metric Events: the Transform Drops the Zone</a></li>
+<li><a href="#maintenance-windows">Maintenance Windows</a></li>
+<li><a href="#classic-slos">Classic SLOs</a></li>
+<li><a href="#notification-payloads">Notification Payloads</a></li>
+<li><a href="#proving-parity">Proving Parity per Problem</a></li>
+<li><a href="#overlap-and-duplicate-pages">Overlap and Duplicate Pages</a></li>
+<li><a href="#rollback-and-cutover-order">Rollback and Cutover Order</a></li>
+<li><a href="#checklist-and-summary">Checklist and Summary</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail, with management zones still configured and classic alerting still in use — the parity queries in §6 need both sides running</td>
+</tr>
+<tr>
+<td><strong>Permissions (DQL cells)</strong></td>
+<td><code>storage:events:read</code> for <code>dt.davis.events</code>, <code>dt.davis.problems</code> and <code>dt.maintenance.windows</code>; <code>storage:system:read</code> for workflow execution events in <code>dt_system_events</code></td>
+</tr>
+<tr>
+<td><strong>Permissions (configuration)</strong></td>
+<td>Custom alerts: Anomaly Detection permissions, plus <code>storage:filter-segments:read</code> / <code>write</code> to apply segments (§2). Maintenance windows: <code>settings:objects:read</code>, <code>settings:objects:write</code>, <code>settings:schemas:read</code> on <code>builtin:maintenance-windows</code> (§3)</td>
+</tr>
+<tr>
+<td><strong>Inventory</strong></td>
+<td>The MZ2POL-15 dependency matrix — §3 of that notebook finds the metric events, maintenance windows and SLOs that name each zone</td>
+</tr>
+<tr>
+<td><strong>Routing values</strong></td>
+<td>The dimension each zone stood for, set on the data as a primary field or <code>primary_tags.*</code> (MZ2POL-10, MZ2POL-11) — every successor in this notebook filters on it</td>
+</tr>
+<tr>
+<td><strong>Before this</strong></td>
+<td>MZ2POL-09 — the workflows that replace alerting profiles. §6 and §7 here measure them</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="the-other-zone-consumers"></a></p>
+<h2>1. The Other Zone Consumers</h2>
+<p>MZ2POL-15 §3 searches five zone-aware schemas. MZ2POL-09 handles two of them, alerting profiles and problem notifications. This notebook handles the rest, plus the one zone dependency that lives outside any schema — the payload a receiver parses.</p>
+<table>
+<thead>
+<tr>
+<th>Consumer (MZ2POL-15 §3)</th>
+<th>Where the zone lives</th>
+<th>Successor</th>
+<th>Section</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Metric event — <code>builtin:anomaly-detection.metric-events</code></td>
+<td><code>managementZone</code>; entity-filter conditions of type <code>MANAGEMENT_ZONE</code></td>
+<td>Custom alert (anomaly detector), scoped by a segment</td>
+<td>§2</td>
+</tr>
+<tr>
+<td>Maintenance window — <code>builtin:alerting.maintenance-window</code></td>
+<td><code>filters[].managementZones</code></td>
+<td><code>builtin:maintenance-windows</code>, scoped by a DQL filter</td>
+<td>§3</td>
+</tr>
+<tr>
+<td>SLO Classic — <code>builtin:monitoring.slo</code></td>
+<td><code>mzName(…)</code> / <code>mzId(…)</code> in the entity-selector <code>filter</code></td>
+<td>An SLO with a DQL SLI, scoped by a segment</td>
+<td>§4</td>
+</tr>
+<tr>
+<td>Problem notification payload</td>
+<td>Zone names, if the receiver read them from the classic JSON</td>
+<td>Jinja over the problem record</td>
+<td>§5</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+VGhlIE90aGVyIFpvbmUtU2NvcGVkIEFsZXJ0aW5nIEFydGlmYWN0czwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyLjUiPldoZXJlIHRoZSB6b25lIGdvZXMgaW4gZWFjaCBzdWNjZXNzb3IsIGFuZCB3aGF0IGRvZXMgbm90IGNhcnJ5IG92ZXI8L3RleHQ+CgogIDx0ZXh0IHg9IjEyNSIgeT0iODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+Q2xhc3NpYyBhcnRpZmFjdDwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9Ijg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPlN1Y2Nlc3NvciDigJQgd2hlcmUgdGhlIHpvbmUgZ29lczwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9Ijg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPkRvZXMgbm90IGNhcnJ5IG92ZXI8L3RleHQ+CgogIDxnIGZvbnQtc2l6ZT0iMTEuNSI+CiAgICA8IS0tIFJvdyAxOiBtZXRyaWMgZXZlbnRzIC0tPgogICAgPHJlY3QgeD0iMjAiIHk9IjEwMCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI4MiIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9IjM0IiB5PSIxMjQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+TWV0cmljIGV2ZW50PC90ZXh0PgogICAgPHRleHQgeD0iMzQiIHk9IjE0NiIgZmlsbD0iIzk0QTNCOCI+bWFuYWdlbWVudFpvbmUsPC90ZXh0PgogICAgPHRleHQgeD0iMzQiIHk9IjE2NCIgZmlsbD0iIzk0QTNCOCI+TUFOQUdFTUVOVF9aT05FIGZpbHRlcjwvdGV4dD4KICAgIDxsaW5lIHgxPSIyMzAiIHkxPSIxNDEiIHgyPSIyNjgiIHkyPSIxNDEiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgICA8cmVjdCB4PSIyNzAiIHk9IjEwMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI4MiIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9IjI4NCIgeT0iMTI0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPkN1c3RvbSBhbGVydCAoYW5vbWFseSBkZXRlY3Rvcik8L3RleHQ+CiAgICA8dGV4dCB4PSIyODQiIHk9IjE0NiIgZmlsbD0iIzk0QTNCOCI+U2NvcGU6IGEgc2VnbWVudCwgb3IgYSBmaWx0ZXIgaW4gdGhlIHF1ZXJ5PC90ZXh0PgogICAgPHRleHQgeD0iMjg0IiB5PSIxNjQiIGZpbGw9IiM5NEEzQjgiPlNldHRpbmdzIGZyb20gU2FhUyAxLjM0NDsgYXBwIGJlZm9yZSB0aGF0PC90ZXh0PgogICAgPHJlY3QgeD0iNjEwIiB5PSIxMDAiIHdpZHRoPSIzMDAiIGhlaWdodD0iODIiIHJ4PSI4IiBmaWxsPSIjREUzNTBCIiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9IjYyNCIgeT0iMTI0IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPlRoZSB6b25lIGl0c2VsZjwvdGV4dD4KICAgIDx0ZXh0IHg9IjYyNCIgeT0iMTQ2IiBmaWxsPSIjOTRBM0I4Ij5UcmFuc2Zvcm0gZHJvcHMgaXQ7IHRoZSBuZXcgYWxlcnQ8L3RleHQ+CiAgICA8dGV4dCB4PSI2MjQiIHk9IjE2NCIgZmlsbD0iIzk0QTNCOCI+aXMgYWN0aXZlIGF0IG9uY2Ug4oCUIMKnMjwvdGV4dD4KCiAgICA8IS0tIFJvdyAyOiBtYWludGVuYW5jZSB3aW5kb3dzIC0tPgogICAgPHJlY3QgeD0iMjAiIHk9IjE5NCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI4MiIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9IjM0IiB5PSIyMTgiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+TWFpbnRlbmFuY2Ugd2luZG93PC90ZXh0PgogICAgPHRleHQgeD0iMzQiIHk9IjI0MCIgZmlsbD0iIzk0QTNCOCI+ZmlsdGVyc1tdLm1hbmFnZW1lbnRab25lczwvdGV4dD4KICAgIDx0ZXh0IHg9IjM0IiB5PSIyNTgiIGZpbGw9IiM5NEEzQjgiPnRocmVlIHN1cHByZXNzaW9uIG1vZGVzPC90ZXh0PgogICAgPGxpbmUgeDE9IjIzMCIgeTE9IjIzNSIgeDI9IjI2OCIgeTI9IjIzNSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICAgIDxyZWN0IHg9IjI3MCIgeT0iMTk0IiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjgyIiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogICAgPHRleHQgeD0iMjg0IiB5PSIyMTgiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+YnVpbHRpbjptYWludGVuYW5jZS13aW5kb3dzIChQcmV2aWV3KTwvdGV4dD4KICAgIDx0ZXh0IHg9IjI4NCIgeT0iMjQwIiBmaWxsPSIjOTRBM0I4Ij5EUUwgZmlsdGVyIG9uIHByaW1hcnkgZmllbGRzIGFuZCB0YWdzOzwvdGV4dD4KICAgIDx0ZXh0IHg9IjI4NCIgeT0iMjU4IiBmaWxsPSIjOTRBM0I4Ij53b3JrZmxvdyBmaWx0ZXIgc3VwcHJlc3NlcyB0aGUgcGFnZTwvdGV4dD4KICAgIDxyZWN0IHg9IjYxMCIgeT0iMTk0IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjgyIiByeD0iOCIgZmlsbD0iI0RFMzUwQiIgZmlsbC1vcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgICA8dGV4dCB4PSI2MjQiIHk9IjIxOCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMy41IiBmb250LXdlaWdodD0iNzAwIj5ObyBhdXRvbWF0aWMgbWlncmF0aW9uPC90ZXh0PgogICAgPHRleHQgeD0iNjI0IiB5PSIyMzciIGZpbGw9IiM5NEEzQjgiPk5vICJkaXNhYmxlIGRldGVjdGlvbiI7PC90ZXh0PgogICAgPHRleHQgeD0iNjI0IiB5PSIyNTIiIGZpbGw9IiM5NEEzQjgiPm5vIHJldHJvYWN0aXZlIHdpbmRvd3M7PC90ZXh0PgogICAgPHRleHQgeD0iNjI0IiB5PSIyNjciIGZpbGw9IiM5NEEzQjgiPjEwMCB1cGNvbWluZywgbm90IDIsMDAwIOKAlCDCpzM8L3RleHQ+CgogICAgPCEtLSBSb3cgMzogU0xPcyAtLT4KICAgIDxyZWN0IHg9IjIwIiB5PSIyODgiIHdpZHRoPSIyMTAiIGhlaWdodD0iODIiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgICA8dGV4dCB4PSIzNCIgeT0iMzEyIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPlNMTyBDbGFzc2ljPC90ZXh0PgogICAgPHRleHQgeD0iMzQiIHk9IjMzNCIgZmlsbD0iIzk0QTNCOCI+bXpOYW1lIC8gbXpJZCBpbiBmaWx0ZXI7PC90ZXh0PgogICAgPHRleHQgeD0iMzQiIHk9IjM1MiIgZmlsbD0iIzk0QTNCOCI+YnVybi1yYXRlIGFsZXJ0ID0gbWV0cmljIGV2ZW50PC90ZXh0PgogICAgPGxpbmUgeDE9IjIzMCIgeTE9IjMyOSIgeDI9IjI2OCIgeTI9IjMyOSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICAgIDxyZWN0IHg9IjI3MCIgeT0iMjg4IiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjgyIiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogICAgPHRleHQgeD0iMjg0IiB5PSIzMTIiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+U0xPIHdpdGggYSBEUUwgU0xJPC90ZXh0PgogICAgPHRleHQgeD0iMjg0IiB5PSIzMzQiIGZpbGw9IiM5NEEzQjgiPiJtYW5hZ2VtZW50IHpvbmVzIGJlY29tZSBzZWdtZW50cyI7PC90ZXh0PgogICAgPHRleHQgeD0iMjg0IiB5PSIzNTIiIGZpbGw9IiM5NEEzQjgiPmJvdGggcnVuIGZvciBvbmUgZXZhbHVhdGlvbiBwZXJpb2Q8L3RleHQ+CiAgICA8cmVjdCB4PSI2MTAiIHk9IjI4OCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI4MiIgcng9IjgiIGZpbGw9IiNGRkI4MDAiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogICAgPHRleHQgeD0iNjI0IiB5PSIzMTIiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+TWFudWFsIHJld3JpdGU8L3RleHQ+CiAgICA8dGV4dCB4PSI2MjQiIHk9IjMzNCIgZmlsbD0iIzk0QTNCOCI+Tm8gYXV0b21hdGVkIHVwZ3JhZGU7IHRoZSBhbGVydCBvbiBpdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjYyNCIgeT0iMzUyIiBmaWxsPSIjOTRBM0I4Ij5pcyBhIHNlY29uZCB6b25lIGhvcCDigJQgwqc0PC90ZXh0PgoKICAgIDwhLS0gUm93IDQ6IHBheWxvYWRzIC0tPgogICAgPHJlY3QgeD0iMjAiIHk9IjM4MiIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI4MiIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9IjM0IiB5PSI0MDYiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm90aWZpY2F0aW9uIHBheWxvYWQ8L3RleHQ+CiAgICA8dGV4dCB4PSIzNCIgeT0iNDI4IiBmaWxsPSIjOTRBM0I4Ij57UGxhY2Vob2xkZXJzfTs8L3RleHQ+CiAgICA8dGV4dCB4PSIzNCIgeT0iNDQ2IiBmaWxsPSIjOTRBM0I4Ij57UHJvYmxlbURldGFpbHNKU09OdjJ9PC90ZXh0PgogICAgPGxpbmUgeDE9IjIzMCIgeTE9IjQyMyIgeDI9IjI2OCIgeTI9IjQyMyIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICAgIDxyZWN0IHg9IjI3MCIgeT0iMzgyIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjgyIiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogICAgPHRleHQgeD0iMjg0IiB5PSI0MDYiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+SmluamEgb24gdGhlIHByb2JsZW0gcmVjb3JkPC90ZXh0PgogICAgPHRleHQgeD0iMjg0IiB5PSI0MjgiIGZpbGw9IiM5NEEzQjgiPlByaW50IHRoZSByb3V0aW5nIGZpZWxkIGl0c2VsZiDigJQgZXZlcnk8L3RleHQ+CiAgICA8dGV4dCB4PSIyODQiIHk9IjQ0NiIgZmlsbD0iIzk0QTNCOCI+dmFsdWUsIHNpbmNlIHByb2JsZW0gZmllbGRzIGFyZSBhcnJheXM8L3RleHQ+CiAgICA8cmVjdCB4PSI2MTAiIHk9IjM4MiIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI4MiIgcng9IjgiIGZpbGw9IiNERTM1MEIiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogICAgPHRleHQgeD0iNjI0IiB5PSI0MDYiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+Wm9uZSBuYW1lczsgdGhlIGNsYXNzaWMgSlNPTjwvdGV4dD4KICAgIDx0ZXh0IHg9IjYyNCIgeT0iNDI4IiBmaWxsPSIjOTRBM0I4Ij5ObyB6b25lIGZpZWxkIG9uIHRoZSBwcm9ibGVtIHJlY29yZDs8L3RleHQ+CiAgICA8dGV4dCB4PSI2MjQiIHk9IjQ0NiIgZmlsbD0iIzk0QTNCOCI+Y2xhc3NpYyBKU09OICJjYW4ndCBiZSByZXByb2R1Y2VkIiDigJQgwqc1PC90ZXh0PgogIDwvZz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QWxlcnRpbmcgcHJvZmlsZXMgYW5kIHByb2JsZW0gbm90aWZpY2F0aW9ucyB0aGVtc2VsdmVzIOKGkiBNWjJQT0wtMDk8L3RleHQ+Cjwvc3ZnPgo=" alt="The other zone-scoped alerting artifacts" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Classic artifact | Successor — where the zone goes | Does not carry over |
+|---|---|---|
+| Metric event (managementZone, MANAGEMENT_ZONE filter) | Custom alert: scope with a segment or a filter in the query; in Settings from SaaS 1.344, the Anomaly Detection app before that | The zone itself — the transform drops it, and the new alert is active at once (§2) |
+| Maintenance window (filters[].managementZones, three suppression modes) | builtin:maintenance-windows (Preview): DQL filter on primary fields and tags; a workflow filter suppresses the page | No automatic migration; no "disable detection"; no retroactive windows; 100 upcoming, not 2,000 (§3) |
+| SLO Classic (mzName / mzId in the filter; burn-rate alert = metric event) | SLO with a DQL SLI: "management zones become segments"; run both for one evaluation period | Manual rewrite — no automated upgrade; the alert on it is a second zone hop (§4) |
+| Notification payload ({Placeholders}, {ProblemDetailsJSONv2}) | Jinja on the problem record: print the routing field itself, every value | Zone names; the classic JSON "can't be reproduced" (§5) |
+| Alerting profiles and problem notifications | MZ2POL-09 | |
+For environments where SVG doesn't render
+-->
+<h3>The classic schemas are on the removal list</h3>
+<p>All five schemas are listed on Dynatrace's <em>Removed settings schemas</em> page (published 08/12/2026), each with its successor: metric events → custom alerts, maintenance windows → maintenance windows, SLO definitions → Service-Level Objectives, alerting profiles and problem notifications → Workflows. The page says <em>&quot;None of the schemas on this page are visible in Latest Dynatrace&quot;</em>, and asks for automations that reference them by ID to be updated <em>&quot;before the schemas are removed from your environment.&quot;</em> §8 explains what that does to rollback.</p>
+<p>The alert-notification upgrade guide describes alerting profiles and problem notifications as Dynatrace Classic that <em>&quot;continue to work and are not being removed on a published schedule&quot;</em>. The two pages do not conflict: one describes Classic, the other what Latest Dynatrace shows. Neither gives a removal date.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Removed settings schemas (DT docs)</a> — <em>&quot;None of the schemas on this page are visible in Latest Dynatrace&quot;</em>; <em>&quot;If you use configuration-as-code or other automations that reference these schemas by ID, you need to update these automations before the schemas are removed from your environment.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;They continue to work and are not being removed on a published schedule, but they'll not receive new capabilities.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-metric-events">Metric events settings schema (DT docs)</a> — <code>managementZone</code>; filter type <code>MANAGEMENT_ZONE</code></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="metric-events"></a></p>
+<h2>2. Metric Events: the Transform Drops the Zone</h2>
+<p>The successor to a metric event is a custom alert: <em>&quot;To create a custom alert, use Anomaly Detection.&quot;</em> ALERT-02 §4 covers the first decision — measure which metric events still fire, then retire or migrate each one — and that only metric-selector events can be transformed. This section covers the step after it for a zone-scoped event, which no upgrade guide spells out.</p>
+<h3>What the transform does to a zone</h3>
+<p>The <em>Configure a simple custom alert</em> page, under <em>Transform a metric event configuration</em>, says:</p>
+<blockquote>
+<p><em>&quot;Management zones aren't supported in Anomaly Detection and will be lost after transforming metric events.&quot;</em></p>
+<p><em>&quot;The converted metric event is automatically disabled, and the newly created configuration is active instead.&quot;</em></p>
+</blockquote>
+<p>The <em>Upgrade Metric Alerting</em> guide does not mention zones. Read together, the two sentences mean that transforming a zone-scoped metric event disables the scoped original and activates a successor without the zone, in one step. Until a scope is set on the successor, it evaluates whatever its query returns — potentially the whole environment rather than the zone. More entities in scope can mean more alerts, more problems and more pages.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItcmVkIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNERTM1MEIiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1ncmVlbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNzNCRTI4Ii8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+VGhlIE1ldHJpYy1FdmVudCBUcmFuc2Zvcm0gRHJvcHMgdGhlIFpvbmU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMi41Ij5PbmUgY2xpY2sgZGlzYWJsZXMgdGhlIHNjb3BlZCBvcmlnaW5hbCBhbmQgYWN0aXZhdGVzIGFuIHVuc2NvcGVkIHN1Y2Nlc3NvcjwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMS41Ij4KICAgIDwhLS0gQmVmb3JlIC0tPgogICAgPHJlY3QgeD0iMjAiIHk9Ijg0IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjE1MCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9IjM0IiB5PSIxMDgiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+QmVmb3JlOiBjbGFzc2ljIG1ldHJpYyBldmVudDwvdGV4dD4KICAgIDx0ZXh0IHg9IjM0IiB5PSIxMzIiIGZpbGw9IiM5NEEzQjgiPk1ldHJpYyBzZWxlY3RvciArIHpvbmUgZmlsdGVyPC90ZXh0PgogICAgPHRleHQgeD0iMzQiIHk9IjE1MCIgZmlsbD0iIzk0QTNCOCI+RmlyZXMgZm9yIGVudGl0aWVzIGluIHRoZSB6b25lPC90ZXh0PgogICAgPHRleHQgeD0iMzQiIHk9IjE3NCIgZmlsbD0iIzk0QTNCOCI+U3RhdGU6IGVuYWJsZWQ8L3RleHQ+CiAgICA8dGV4dCB4PSIzNCIgeT0iMjEwIiBmaWxsPSIjODZFRkFDIj5TY29wZTogb25lIHpvbmU8L3RleHQ+CgogICAgPGxpbmUgeDE9IjI3MCIgeTE9IjE1OSIgeDI9IjMzOCIgeTI9IjE1OSIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuOCIgbWFya2VyLWVuZD0idXJsKCNhcnItcmVkKSIvPgogICAgPHRleHQgeD0iMzA0IiB5PSIxNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPlRyYW5zZm9ybTwvdGV4dD4KCiAgICA8IS0tIEFmdGVyIC0tPgogICAgPHJlY3QgeD0iMzQwIiB5PSI4NCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSIjREUzNTBCIiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSIzNTQiIHk9IjEwOCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMy41IiBmb250LXdlaWdodD0iNzAwIj5BZnRlcjogdHdvIG9iamVjdHM8L3RleHQ+CiAgICA8dGV4dCB4PSIzNTQiIHk9IjEzMiIgZmlsbD0iIzk0QTNCOCI+Q2xhc3NpYyBldmVudDogZGlzYWJsZWQ8L3RleHQ+CiAgICA8dGV4dCB4PSIzNTQiIHk9IjE1MCIgZmlsbD0iIzk0QTNCOCI+Q3VzdG9tIGFsZXJ0OiBhY3RpdmUgaW1tZWRpYXRlbHk8L3RleHQ+CiAgICA8dGV4dCB4PSIzNTQiIHk9IjE3NCIgZmlsbD0iIzk0QTNCOCI+Ik1hbmFnZW1lbnQgem9uZXMg4oCmIHdpbGwgYmUgbG9zdCI8L3RleHQ+CiAgICA8dGV4dCB4PSIzNTQiIHk9IjIxMCIgZmlsbD0iI0ZDQTVBNSI+U2NvcGU6IHdoYXRldmVyIHRoZSBxdWVyeSBjb3ZlcnM8L3RleHQ+CgogICAgPGxpbmUgeDE9IjYxMCIgeTE9IjE1OSIgeDI9IjY1OCIgeTI9IjE1OSIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuOCIgbWFya2VyLWVuZD0idXJsKCNhcnItcmVkKSIvPgoKICAgIDxyZWN0IHg9IjY2MCIgeT0iODQiIHdpZHRoPSIyNTAiIGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iI0RFMzUwQiIgZmlsbC1vcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgICA8dGV4dCB4PSI2NzQiIHk9IjEwOCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMy41IiBmb250LXdlaWdodD0iNzAwIj5Qb3NzaWJsZSByZXN1bHQ8L3RleHQ+CiAgICA8dGV4dCB4PSI2NzQiIHk9IjEzMiIgZmlsbD0iIzk0QTNCOCI+QWxlcnRzIGZvciBlbnRpdGllcyBvdXRzaWRlIHRoZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjY3NCIgeT0iMTUwIiBmaWxsPSIjOTRBM0I4Ij5vbGQgem9uZSwgdW50aWwgYSBzY29wZSBpcyBzZXQ8L3RleHQ+CiAgICA8dGV4dCB4PSI2NzQiIHk9IjE3NCIgZmlsbD0iIzk0QTNCOCI+V2lkZXIgc2NvcGUg4oeSIG1vcmUgYWxlcnRzLDwvdGV4dD4KICAgIDx0ZXh0IHg9IjY3NCIgeT0iMTkyIiBmaWxsPSIjOTRBM0I4Ij5tb3JlIHByb2JsZW1zLCBtb3JlIHBhZ2VzPC90ZXh0PgoKICAgIDwhLS0gU2FmZSBvcmRlciAtLT4KICAgIDx0ZXh0IHg9IjQ2NSIgeT0iMjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5TYWZlIG9yZGVyIOKAlCBzY29wZSByZWFkeSBiZWZvcmUgdGhlIGNsaWNrLCBzZXQgcmlnaHQgYWZ0ZXIgaXQ8L3RleHQ+CgogICAgPHJlY3QgeD0iMjAiIHk9IjI5MCIgd2lkdGg9IjE2NiIgaGVpZ2h0PSIxMzAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgICA8dGV4dCB4PSIzMiIgeT0iMzEzIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4xIMK3IFNlZ21lbnQgZmlyc3Q8L3RleHQ+CiAgICA8dGV4dCB4PSIzMiIgeT0iMzM1IiBmaWxsPSIjOTRBM0I4Ij5GaW5kIG9yIGJ1aWxkIHRoZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjMyIiB5PSIzNTMiIGZpbGw9IiM5NEEzQjgiPnNlZ21lbnQgZm9yIHRoZSB6b25lJ3M8L3RleHQ+CiAgICA8dGV4dCB4PSIzMiIgeT0iMzcxIiBmaWxsPSIjOTRBM0I4Ij5kaW1lbnNpb24gKE1aMlBPTC0wNSk8L3RleHQ+CgogICAgPGxpbmUgeDE9IjE4NiIgeTE9IjM1NSIgeDI9IjIwNCIgeTI9IjM1NSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JlZW4pIi8+CiAgICA8cmVjdCB4PSIyMDYiIHk9IjI5MCIgd2lkdGg9IjE2NiIgaGVpZ2h0PSIxMzAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgICA8dGV4dCB4PSIyMTgiIHk9IjMxMyIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+MiDCtyBNZWFzdXJlPC90ZXh0PgogICAgPHRleHQgeD0iMjE4IiB5PSIzMzUiIGZpbGw9IiM5NEEzQjgiPkRhaWx5IGJyZWFkdGggb2YgdGhlPC90ZXh0PgogICAgPHRleHQgeD0iMjE4IiB5PSIzNTMiIGZpbGw9IiM5NEEzQjgiPmNsYXNzaWMgZXZlbnQgKGNlbGwgMSk7PC90ZXh0PgogICAgPHRleHQgeD0iMjE4IiB5PSIzNzEiIGZpbGw9IiM5NEEzQjgiPnJldGlyZSBvciBtaWdyYXRlPC90ZXh0PgogICAgPHRleHQgeD0iMjE4IiB5PSIzODkiIGZpbGw9IiM5NEEzQjgiPihBTEVSVC0wMiDCpzQpPC90ZXh0PgoKICAgIDxsaW5lIHgxPSIzNzIiIHkxPSIzNTUiIHgyPSIzOTAiIHkyPSIzNTUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZWVuKSIvPgogICAgPHJlY3QgeD0iMzkyIiB5PSIyOTAiIHdpZHRoPSIxNjYiIGhlaWdodD0iMTMwIiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogICAgPHRleHQgeD0iNDA0IiB5PSIzMTMiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjMgwrcgVHJhbnNmb3JtPC90ZXh0PgogICAgPHRleHQgeD0iNDA0IiB5PSIzMzUiIGZpbGw9IiM5NEEzQjgiPkluIGEgcXVpZXQgcGVyaW9kOzwvdGV4dD4KICAgIDx0ZXh0IHg9IjQwNCIgeT0iMzUzIiBmaWxsPSIjOTRBM0I4Ij50aGUgc3VjY2Vzc29yIGlzIGxpdmU8L3RleHQ+CiAgICA8dGV4dCB4PSI0MDQiIHk9IjM3MSIgZmlsbD0iIzk0QTNCOCI+ZnJvbSB0aGlzIG1vbWVudDwvdGV4dD4KCiAgICA8bGluZSB4MT0iNTU4IiB5MT0iMzU1IiB4Mj0iNTc2IiB5Mj0iMzU1IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmVlbikiLz4KICAgIDxyZWN0IHg9IjU3OCIgeT0iMjkwIiB3aWR0aD0iMTY2IiBoZWlnaHQ9IjEzMCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9IjU5MCIgeT0iMzEzIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj40IMK3IFNldCBzY29wZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjU5MCIgeT0iMzM1IiBmaWxsPSIjOTRBM0I4Ij5TZXQgc2NvcGUg4oaSIFNlZ21lbnRzOzwvdGV4dD4KICAgIDx0ZXh0IHg9IjU5MCIgeT0iMzUzIiBmaWxsPSIjOTRBM0I4Ij5hZGQgaW50ZXJ2YWw6MW07PC90ZXh0PgogICAgPHRleHQgeD0iNTkwIiB5PSIzNzEiIGZpbGw9IiM5NEEzQjgiPlByZXZpZXcsIHRoZW4gU2F2ZTwvdGV4dD4KCiAgICA8bGluZSB4MT0iNzQ0IiB5MT0iMzU1IiB4Mj0iNzYyIiB5Mj0iMzU1IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmVlbikiLz4KICAgIDxyZWN0IHg9Ijc2NCIgeT0iMjkwIiB3aWR0aD0iMTQ2IiBoZWlnaHQ9IjEzMCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9Ijc3NiIgeT0iMzEzIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj41IMK3IFZlcmlmeTwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc3NiIgeT0iMzM1IiBmaWxsPSIjOTRBM0I4Ij5TdGF0dXMgaGFzIG5vIGVycm9yczs8L3RleHQ+CiAgICA8dGV4dCB4PSI3NzYiIHk9IjM1MyIgZmlsbD0iIzk0QTNCOCI+ZGFpbHkgYnJlYWR0aCBiYWNrPC90ZXh0PgogICAgPHRleHQgeD0iNzc2IiB5PSIzNzEiIGZpbGw9IiM5NEEzQjgiPnRvIHRoZSBjbGFzc2ljIGxldmVsPC90ZXh0PgogIDwvZz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UXVvdGVzOiBDb25maWd1cmUgYSBzaW1wbGUgY3VzdG9tIGFsZXJ0IChEVCBkb2NzKS4gU3RlcHMgMSwgMiBhbmQgNSBhcmUgdGhpcyBub3RlYm9vaydzIHJlY29tbWVuZGF0aW9uOzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ3NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bm8gcGFnZSBkb2N1bWVudHMgYW4gb3JkZXIgZm9yIHJlLXNjb3BpbmcgYSB0cmFuc2Zvcm1lZCBldmVudC48L3RleHQ+Cjwvc3ZnPgo=" alt="The metric-event transform drops the zone" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | State | Scope |
+|---|---|---|
+| Before | Classic metric event, metric selector + zone filter, enabled | One zone |
+| Transform (one click) | Classic event disabled; custom alert active immediately; "Management zones … will be lost" | Whatever the query covers |
+| Possible result | Alerts for entities outside the old zone until a scope is set | Wider scope means more alerts, problems and pages |
+| Safe order 1 | Find or build the segment for the zone's dimension (MZ2POL-05) | |
+| Safe order 2 | Measure the classic event's daily breadth (cell below); retire or migrate (ALERT-02 §4) | |
+| Safe order 3 | Transform in a quiet period — the successor is live from this moment | |
+| Safe order 4 | Set scope → Segments; add interval:1m; Preview, then Save | |
+| Safe order 5 | Status has no errors; daily breadth back to the classic level | |
+| Note | Steps 1, 2 and 5 are this notebook's recommendation; no page documents an order for re-scoping a transformed event | |
+For environments where SVG doesn't render
+-->
+<h3>Re-scoping the successor</h3>
+<p>Scope a custom alert with a segment. In <em>Set scope</em>: <em>&quot;In Segments, choose one or more segments you want to filter by.&quot;</em> The segments page adds two rules: <em>&quot;Don't duplicate filters that are already covered by segments you've selected. Segment filters are automatically applied to your query during execution.&quot;</em>, and <em>&quot;Select Preview to verify that the segments have been applied to your query.&quot;</em> Applying segments needs <code>storage:filter-segments:write</code> and <code>storage:filter-segments:read</code>.</p>
+<p>A filter written into the DQL query also narrows the scope. No page maps a zone to a segment or says which of the two to prefer for a migrated zone. A segment is reusable across alerts and dashboards, so a zone that scoped several metric events usually maps to one segment (MZ2POL-05 builds one segment per dimension).</p>
+<p><strong>Recommended order</strong> (this notebook's recommendation — no page documents one):</p>
+<ol>
+<li><strong>Segment first.</strong> Before the transform, find or build the segment for the dimension the zone stood for.</li>
+<li><strong>Measure.</strong> Record the classic event's daily breadth with the cell below, so there is a baseline to compare against.</li>
+<li><strong>Transform</strong> in a quiet period. From this moment the successor is live and unscoped.</li>
+<li><strong>Set scope</strong> on the successor: select the segment, add <code>interval:1m</code> to the query as the transform steps say, <em>Preview</em>, <em>Save</em>.</li>
+<li><strong>Verify.</strong> <em>&quot;Check the Status of the new configuration shortly after creation to ensure there are no errors in the execution.&quot;</em> Then re-run the breadth cell and compare.</li>
+</ol>
+<p>Metric-key events cannot be transformed (<em>&quot;You can only transform metric selectors.&quot;</em>). They are rebuilt by hand, and the scope is set in the same form before the first save, so the trap does not arise.</p>
+<blockquote>
+<p><strong>Where custom alerts live (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> The UI path is <em>Settings &gt; Analyze and alert &gt; Alerts &gt; All alerts</em> → <em>Custom alerts</em>. SaaS 1.344's rollout started 07/29/2026 and reaches tenants in stages — confirm your tenant's version. Before 1.344 arrives, the Anomaly Detection app is where you create and scope custom alerts, and the <em>Improve metric events with DQL</em> transform is in that app.</p>
+</blockquote>
+<h3>Measure the breadth before and after</h3>
+<p>Each alert carries the settings object that raised it, so the history shows how widely a configuration fires. The cell counts distinct source entities per day for every classic metric event and every custom alert. A successor whose daily count is well above its classic predecessor's is the signature of a dropped zone. Classic and successor objects have different IDs; match them by name in the respective settings list.</p>
+<pre><code class="language-dql">// Daily breadth of each classic metric event and each custom alert: distinct source entities per day.
+// Compare a classic event's breadth before its transform with its successor's breadth after it.
+// Days with no alert are absent from sources_per_day.
+fetch dt.davis.events, from:-7d
+| filter in(dt.settings.schema_id, {&quot;builtin:anomaly-detection.metric-events&quot;, &quot;builtin:davis.anomaly-detectors&quot;})
+| fieldsKeep timestamp, dt.settings.schema_id, dt.settings.object_id, dt.source_entity
+| summarize {sources = countDistinctExact(dt.source_entity)},
+    by:{dt.settings.schema_id, dt.settings.object_id, day = bin(timestamp, 24h)}
+| sort day asc
+| summarize {days_firing = count(), sources_per_day = collectArray(sources), max_sources = max(sources)},
+    by:{dt.settings.schema_id, dt.settings.object_id}
+| sort max_sources desc
+| limit 20
+</code></pre>
+<p>On the validation tenant (10/14/2026, 7 days): 1 classic metric event and 5 custom alerts raised alerts, each from one source entity per day. The query scanned about 7 GB of events; narrow the window or filter on <code>dt.settings.object_id</code> once you know which configurations you are watching.</p>
+<p>Filter on <code>dt.settings.schema_id</code>, not on <code>event.provider</code> — ALERT-02 §4 shows that the provider value is shared with built-in detection.</p>
+<blockquote>
+<p><strong>The custom-alert actor is not a zone.</strong> <em>&quot;Every execution of custom alert is performed in the context of a user.&quot;</em> No page says whether that user's permissions narrow what the detector evaluates. Do not rely on the actor's access to replace a zone; set the scope explicitly.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting">Upgrade Metric Alerting (DT docs)</a> — <em>&quot;To create a custom alert, use&quot;</em>; <em>&quot;You can only transform metric selectors.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad">Configure a simple custom alert (DT docs)</a> — <em>&quot;Management zones aren't supported in&quot;</em>, <em>&quot;and will be lost after transforming metric events.&quot;</em>; <em>&quot;The converted metric event is automatically disabled, and the newly created configuration is active instead.&quot;</em>; <em>&quot;Check the Status of the new configuration shortly after creation to ensure there are no errors in the execution.&quot;</em>; <em>&quot;Settings &gt; Analyze and alert &gt; Alerts &gt; All alerts&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection">Use segments with Anomaly Detection custom alerts (DT docs)</a> — <em>&quot;In Segments , choose one or more segments you want to filter by.&quot;</em>; <em>&quot;Don't duplicate filters that are already covered by segments you've selected.&quot;</em>; <em>&quot;Segment filters are automatically applied to your query during execution.&quot;</em>; <em>&quot;storage:filter-segments:write and storage:filter-segments:read permissions.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection app (DT docs)</a> — <em>&quot;custom alerts have moved to&quot;</em>; <em>&quot;Every execution of custom alert is performed in the context of a user.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">SaaS 1.344 release notes (DT docs)</a> — <em>&quot;Rollout start on Jul 29, 2026&quot;</em></sub></li>
+<li><sub><strong>Dictionary:</strong> <code>dt.settings.schema_id</code> (<code>experimental</code>), <code>dt.settings.object_id</code> (<code>experimental</code>), read 10/14/2026 (<a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-351">Semantic Dictionary 1.351 (DT docs)</a>, published 10/05/2026, promotes the <code>dt.settings.*</code> fields to <code>stable</code>; the validation tenant still returned <code>experimental</code> on 10/23/2026). <strong>Derived:</strong> the widening follows from the two <em>Configure a simple custom alert</em> quotes together.</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="maintenance-windows"></a></p>
+<h2>3. Maintenance Windows</h2>
+<p>A dedicated upgrade guide for maintenance windows was published on 09/09/2026. Its summary: <em>&quot;Latest Dynatrace scopes windows with DQL matcher expressions on Grail data instead of management zones, and suppresses notifications through a workflow Problem trigger filter instead of built-in detection modes.&quot;</em></p>
+<blockquote>
+<p><strong>New maintenance windows are in Early Access and labelled Preview.</strong> SaaS 1.341 (rollout started 06/16/2026) introduced them: <em>&quot;Maintenance windows are available in Early Access.&quot;</em> The four <em>Maintenance windows</em> pages (overview, create, lifecycle, use data) carry a <em>Preview</em> label; the upgrade guide does not. Confirm that <em>Settings &gt; General &gt; Maintenance windows</em> exists on your tenant before planning around it. Until it does, classic maintenance windows remain the working path, and nothing below replaces them.</p>
+</blockquote>
+<h3>What changes</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Classic (<code>builtin:alerting.maintenance-window</code>)</th>
+<th>Latest (<code>builtin:maintenance-windows</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope</td>
+<td>Filters by entity type, entity, tags and management zones; <em>&quot;If no filter is defined, the maintenance window is valid for the whole environment.&quot;</em></td>
+<td>A <code>filter</code> property, <em>&quot;DQL Filter&quot;</em>, marked Required — on <em>&quot;Grail primary fields such as host.name or k8s.cluster.name, and Grail primary tags&quot;</em></td>
+</tr>
+<tr>
+<td>What happens to problems</td>
+<td>Three modes: <code>DETECT_PROBLEMS_AND_ALERT</code>, <code>DETECT_PROBLEMS_DONT_ALERT</code>, <code>DONT_DETECT_PROBLEMS</code></td>
+<td><em>&quot;Dynatrace always detects problems.&quot;</em> Suppression is a workflow trigger filter; <em>&quot;There is no equivalent to disabling problem detection entirely.&quot;</em></td>
+</tr>
+<tr>
+<td>Count</td>
+<td>Two thousand</td>
+<td><em>&quot;up to 100 upcoming maintenance window configurations&quot;</em></td>
+</tr>
+<tr>
+<td>Duration</td>
+<td>—</td>
+<td><em>&quot;The maximum duration of a maintenance window is 7 days.&quot;</em></td>
+</tr>
+<tr>
+<td>Past windows</td>
+<td>Retroactive windows allowed</td>
+<td><em>&quot;Retroactive maintenance windows are not supported.&quot;</em></td>
+</tr>
+<tr>
+<td>Migration</td>
+<td>—</td>
+<td><em>&quot;Classic maintenance windows aren't migrated automatically.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>Two consequences need a decision before the rebuild:</p>
+<ul>
+<li><strong>More than 100 windows.</strong> <em>&quot;If you currently use more than 100 active or upcoming maintenance windows, you need to consolidate them before migrating.&quot;</em> The guide notes that the newer scheduling rules let one window replace several classic ones.</li>
+<li><strong>Availability reporting.</strong> <em>&quot;If your availability reporting relies on retroactive maintenance windows, plan for that gap as part of your upgrade.&quot;</em></li>
+</ul>
+<p>The capability map lists maintenance windows as <em>&quot;Recreated as Latest Dynatrace settings&quot;</em> and <em>&quot;No action needed&quot;</em>. The upgrade guide, which is specific to maintenance windows, says they are not migrated automatically and walks through recreating them. Follow the upgrade guide.</p>
+<h3>Translating the zone into the filter</h3>
+<p>The guide's step: <em>&quot;Translate the scope from management zones and entity IDs to DQL matcher filter criteria on Grail primary fields.&quot;</em> A zone is not on the telemetry, so translate it into the field or tag its rules stood for (MZ2POL-11), then keep the classic logic:</p>
+<ul>
+<li>Within one classic filter, zones combine with AND: <em>&quot;Entities which are part of all the configured management zones will match this maintenance window.&quot;</em></li>
+<li>Across classic filters, OR: <em>&quot;Each filter is evaluated separately (OR).&quot;</em></li>
+</ul>
+<p>So a classic window with filter 1 = zones A and B, and filter 2 = zone C, becomes <code>(&lt;field for A&gt; and &lt;field for B&gt;) or &lt;field for C&gt;</code>. The create page gives the forms — <code>k8s.cluster.name == &quot;k8s-02&quot;</code>, <code>primary_tags.environment == &quot;staging&quot;</code>, and for several values <code>matchesValue(primary_tags.environment, {&quot;staging&quot;, &quot;production&quot;, &quot;testing&quot;})</code>.</p>
+<p>Keep the new filter as narrow as the classic one. A broad filter written to keep things simple marks more telemetry as under maintenance, and every workflow that filters on the flag then pages less.</p>
+<h3>Suppressing the page</h3>
+<p>Suppression moves to the workflow. The upgrade guide's step 2: <em>&quot;In the Problem trigger of your workflow, add maintenance.is_under_maintenance == false as a filter to exclude problems that occur during a maintenance window.&quot;</em> The <em>Use maintenance window data</em> page gives the same filter as <code>maintenance.is_under_maintenance != true</code>.</p>
+<p>On the <strong>Davis event trigger</strong>, the trigger has its own <em>Maintenance window</em> option: <em>&quot;Always&quot;</em> (the default), <em>&quot;Inside maintenance window only&quot;</em> or <em>&quot;Outside maintenance window only&quot;</em>. The problem trigger has no such option, so it needs the custom filter. WFLOW-02 §2–§3 cover both triggers.</p>
+<p>The two filter forms behave the same where the flag is always set, and differently where it is absent. The cell measures both surfaces.</p>
+<pre><code class="language-dql">// The maintenance flag is true, false or absent. Count each, and what each filter form lets through.
+fetch dt.davis.events, from:-24h
+| summarize {records = count(),
+    flag_true = countIf(maintenance.is_under_maintenance == true),
+    flag_false = countIf(maintenance.is_under_maintenance == false),
+    flag_absent = countIf(isNull(maintenance.is_under_maintenance)),
+    passes_ne_true = countIf(maintenance.is_under_maintenance != true),
+    passes_coalesce = countIf(coalesce(maintenance.is_under_maintenance, false) == false),
+    with_window_ids = countIf(arraySize(dt.maintenance_window_ids) &gt; 0)}
+| fieldsAdd surface = &quot;dt.davis.events&quot;
+| append [fetch dt.davis.problems, from:-24h
+    | summarize {records = count(),
+        flag_true = countIf(maintenance.is_under_maintenance == true),
+        flag_false = countIf(maintenance.is_under_maintenance == false),
+        flag_absent = countIf(isNull(maintenance.is_under_maintenance)),
+        passes_ne_true = countIf(maintenance.is_under_maintenance != true),
+        passes_coalesce = countIf(coalesce(maintenance.is_under_maintenance, false) == false),
+        with_window_ids = countIf(arraySize(dt.maintenance_window_ids) &gt; 0)}
+    | fieldsAdd surface = &quot;dt.davis.problems&quot;]
+| fields surface, records, flag_true, flag_false, flag_absent, passes_ne_true, passes_coalesce, with_window_ids
+</code></pre>
+<p>On the validation tenant (10/14/2026, 24 hours):</p>
+<table>
+<thead>
+<tr>
+<th><code>surface</code></th>
+<th style="text-align:right"><code>records</code></th>
+<th style="text-align:right"><code>flag_true</code></th>
+<th style="text-align:right"><code>flag_false</code></th>
+<th style="text-align:right"><code>flag_absent</code></th>
+<th style="text-align:right"><code>passes_ne_true</code></th>
+<th style="text-align:right"><code>passes_coalesce</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.davis.problems</code></td>
+<td style="text-align:right">559</td>
+<td style="text-align:right">134</td>
+<td style="text-align:right">425</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">425</td>
+<td style="text-align:right">425</td>
+</tr>
+<tr>
+<td><code>dt.davis.events</code></td>
+<td style="text-align:right">28,661</td>
+<td style="text-align:right">316</td>
+<td style="text-align:right">28,013</td>
+<td style="text-align:right">332</td>
+<td style="text-align:right">28,013</td>
+<td style="text-align:right">28,345</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>On problems the flag was always set</strong> (0 absent here, and 0 of 5,290 over 7 days in a wider run the same day), so <code>== false</code> and <code>!= true</code> matched the same problems. The problem trigger is the documented place for this filter.</li>
+<li><strong>On Davis events the flag was absent on about 1% of records</strong> — all 332 from the <code>ROOT_CAUSE_ANALYSIS</code> provider. In DQL both documented forms drop those records; <code>coalesce(…, false) == false</code> keeps them. Whether the trigger's matcher evaluates an absent field the same way is not documented. If you filter a <strong>Davis event trigger</strong> on the flag, prefer its built-in <em>Maintenance window</em> option, or test the matcher against a record without the field.</li>
+<li><code>maintenance.is_under_maintenance</code> has no row in the semantic dictionary; <code>dt.maintenance_window_ids</code> is <code>experimental</code>.</li>
+</ul>
+<h3>Which model set the flag?</h3>
+<p>The lifecycle page documents the new model's enrichment: Davis events get <em>&quot;maintenance.is_under_maintenance=true , dt.maintenance_window_ids&quot;</em>, and start and end events are <em>&quot;aggregated into the dt.maintenance.windows view for querying.&quot;</em> It does not say whether classic windows set the same flag. The next two cells show what one tenant does.</p>
+<pre><code class="language-dql">// New-model maintenance windows that have run: one row per configuration.
+fetch dt.maintenance.windows, from:-30d
+| summarize {runs = count(), first_start = min(start_time), last_end = max(end_time),
+    titles = collectDistinct(maintenance_window.title), filters = collectDistinct(maintenance_window.filter)},
+    by:{dt.settings.object_id}
+| sort last_end desc
+</code></pre>
+<pre><code class="language-dql">// Problems flagged as under maintenance per day, and how many carry a new-model window ID.
+fetch dt.davis.problems, from:-14d
+| filter maintenance.is_under_maintenance == true
+| summarize {problems = count(), with_window_ids = countIf(arraySize(dt.maintenance_window_ids) &gt; 0)},
+    by:{day = bin(event.start, 24h)}
+| sort day asc
+</code></pre>
+<p>On the validation tenant (10/14/2026): one new-model window ran in 30 days — a single 5-minute run on 10/08/2026 with the filter <code>matchesValue(dt.host_group.id, &quot;…&quot;)</code>. Yet 103–669 problems a day were flagged <code>maintenance.is_under_maintenance == true</code> on each of the 14 days, and only <strong>1</strong> of them carried <code>dt.maintenance_window_ids</code>, on the day of that run.</p>
+<p><strong>Tenant observation, not documentation:</strong> on this tenant something other than the new model — most likely its classic maintenance windows — sets the same flag on problems, and only the new model adds the window IDs. If that holds on your tenant, a workflow filtered on the flag keeps suppressing during the parallel run whichever model raised it. Run both cells on your own tenant before relying on it, and use <code>dt.maintenance_window_ids</code> to tell the two apart.</p>
+<h3>Order of work</h3>
+<ol>
+<li>Export the classic windows and decide which are still needed. Consolidate below 100.</li>
+<li>Recreate each one on <code>builtin:maintenance-windows</code> with the translated filter, <em>Preview</em> the matched data, and save.</li>
+<li>Add the maintenance filter to every problem-triggered workflow that replaces a profile (MZ2POL-09). A classic window in <code>DETECT_PROBLEMS_DONT_ALERT</code> mode maps onto this filter; a window in <code>DONT_DETECT_PROBLEMS</code> mode has no equivalent, and problems will now open during the window.</li>
+<li>Check that the new window's start and end appear in <code>dt.maintenance.windows</code>, and that problems in scope carry <code>dt.maintenance_window_ids</code>.</li>
+<li>Disable the classic window only after its replacement has run once.</li>
+</ol>
+<p>Pausing or deleting a running window does not end it: <em>&quot;Neither action stops a window that is already running; it continues until its configured end time.&quot;</em></p>
+<blockquote>
+<p><strong>Synthetic monitors and availability — version-gated.</strong> SaaS 1.343 (rollout started 07/14/2026) added maintenance-window-aware availability for hosts and process group instances: <em>&quot;Infrastructure &amp; Operations now supports maintenance-window-aware availability reporting for hosts and process group instances (PGIs).&quot;</em> SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout) adds <em>&quot;Support for maintenance windows defined in Settings&quot;</em> for Synthetic. Verify both versions on your tenant. Until they arrive, synthetic monitors and availability calculations keep using classic windows. The 1.341 note also listed <em>&quot;Problem suppression, synthetic disabling, and SLO time exclusions&quot;</em> as <em>&quot;planned for upcoming releases&quot;</em>; the newer upgrade guide says there is no equivalent to disabling problem detection — follow the newer page.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/upgrade-from-classic-maintenance-windows">Upgrade from Classic maintenance windows to Latest maintenance windows (DT docs)</a> — <em>&quot;Latest Dynatrace scopes windows with DQL matcher expressions on Grail data instead of management zones, and suppresses notifications through a workflow Problem trigger filter instead of built-in detection modes.&quot;</em>; <em>&quot;Classic maintenance windows aren't migrated automatically.&quot;</em>; <em>&quot;Latest Dynatrace supports up to 100 upcoming maintenance window configurations, compared to two thousand in Dynatrace Classic.&quot;</em>; <em>&quot;If you currently use more than 100 active or upcoming maintenance windows, you need to consolidate them before migrating.&quot;</em>; <em>&quot;Translate the scope from management zones and entity IDs to DQL matcher filter criteria on Grail primary fields .&quot;</em>; <em>&quot;There is no equivalent to disabling problem detection entirely.&quot;</em>; <em>&quot;Retroactive maintenance windows are not supported.&quot;</em>; <em>&quot;If your availability reporting relies on retroactive maintenance windows, plan for that gap as part of your upgrade.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/maintenance-windows">Maintenance windows (DT docs)</a> — <em>&quot;The maximum duration of a maintenance window is 7 days.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/maintenance-windows/create-maintenance-window">Create a maintenance window (DT docs)</a> — <em>&quot;You can filter on Grail primary fields such as host.name or k8s.cluster.name , and Grail primary tags .&quot;</em>; <em>&quot;Neither action stops a window that is already running; it continues until its configured end time.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/maintenance-windows/maintenance-windows-lifecycle">Maintenance window lifecycle (DT docs)</a> — <em>&quot;Start and end events are aggregated into the dt.maintenance.windows view for querying.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/maintenance-windows/use-maintenance-window-data-grail">Use maintenance window data (DT docs)</a> — <em>&quot;During maintenance, Dynatrace still creates alerts and groups them into problems.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-alerting-maintenance-window">Maintenance windows settings schema, classic (DT docs)</a> — <em>&quot;If no filter is defined, the maintenance window is valid for the whole environment.&quot;</em>; <em>&quot;Each filter is evaluated separately ( OR ).&quot;</em>; <em>&quot;Entities which are part of all the configured management zones will match this maintenance window.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-maintenance-windows">Maintenance Windows settings schema (DT docs)</a> — <code>filter</code>: <em>&quot;DQL Filter&quot;</em>, Required</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a> — <em>&quot;Inside maintenance window only&quot;</em>; <em>&quot;Outside maintenance window only&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/capability-mapping-classic-to-latest">Capability mapping, Classic to Latest (DT docs)</a> — <em>&quot;Recreated as Latest Dynatrace settings&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-341">SaaS 1.341 release notes (DT docs)</a> — <em>&quot;Maintenance windows are available in Early Access.&quot;</em>; <em>&quot;Problem suppression, synthetic disabling, and SLO time exclusions are planned for upcoming releases.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">SaaS 1.343 release notes (DT docs)</a> — <em>&quot;Infrastructure &amp; Operations now supports maintenance-window-aware availability reporting for hosts and process group instances (PGIs).&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 release notes (DT docs)</a> — <em>&quot;Support for maintenance windows defined in Settings&quot;</em></sub></li>
+<li><sub><strong>Dictionary:</strong> no row for <code>maintenance.is_under_maintenance</code> under <code>filter contains(name, &quot;under_maintenance&quot;)</code>, read 10/14/2026 (control: the same query matched 4 <code>dt.automation_engine.workflow.*</code> rows); <code>dt.maintenance_window_ids</code> (<code>experimental</code>). <strong>Derived:</strong> the AND-within / OR-across translation combines the two classic schema quotes.</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="classic-slos"></a></p>
+<h2>4. Classic SLOs</h2>
+<p>The SLO upgrade guide replaces the zone with a segment. Its capability table lists <em>Segmenting</em> as <em>&quot;Management zones&quot;</em> in SLO Classic and <em>&quot;Segments&quot;</em> in the new app, and the procedure says: <em>&quot;In this step, management zones become segments&quot;</em>. For the selectors, <em>&quot;mzId / mzName&quot;</em> map to <em>&quot;Use Segments.&quot;</em>, with a caution: <em>&quot;Segments aren't related to permissions or access control.&quot;</em> A zone that also restricted who could see an SLO needs the access model of MZ2POL-04 and MZ2POL-12, not only a segment.</p>
+<p>This section covers only what the zone changes. <strong>SLO-07</strong> is the full upgrade procedure for any Classic SLO, zoned or not: inventory, translating the SLI to DQL, alerts and guardian objectives, Terraform, and the order to retire things in.</p>
+<h3>Run both for one evaluation period</h3>
+<p>The guide's verification rule is the SLO counterpart of the parallel run for workflows: <em>&quot;To verify the upgraded SLO, keep both SLOs running for one evaluation period and compare the values before you remove the Classic SLO.&quot;</em> For a 30-day SLO, that is 30 days. Put the date in the cutover plan (§8).</p>
+<h3>The alert on the SLO is a metric event</h3>
+<p>The <em>Upgrade Metric Alerting</em> guide lists SLO alerts among metric events created by other solutions: <em>&quot;In Service-Level Objectives Classic you have the option to create a burn rate or status alerts.&quot;</em> — and adds <em>&quot;SLO use functional metrics which behave different during transformation. We're working on a separated guide&quot;</em>. A zone-scoped SLO with an alert therefore has two zone dependencies: the SLO's filter, and the metric event that alerts on it. Rebuild the SLO first, then build its burn-rate alert on the new SLO (SLO-04). Do not transform the classic SLO's metric event; until the separate guide exists, the transform's behavior for it is undocumented.</p>
+<p>If the SLO's <code>filter</code> also selects services by name, check the new query's scope before relying on it. The classic entity name that <code>entityName(dt.entity.service)</code> returns is not always the same string as <code>dt.service.name</code>, and filtering on the wrong one measures different services (SLO-07 §4). For configuration as code, SLO-07 §8 and SLO-05 §2 cover <code>dynatrace_platform_slo</code> and its segment argument.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic">Upgrade from Service-Level Objectives Classic to Service-Level Objectives (DT docs)</a> — <em>&quot;In this step, management zones become segments&quot;</em>; <em>&quot;Segments aren't related to permissions or access control.&quot;</em>; <em>&quot;To verify the upgraded SLO, keep both SLOs running for one evaluation period and compare the values before you remove the Classic SLO.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting">Upgrade Metric Alerting (DT docs)</a> — <em>&quot;In Service-Level Objectives Classic you have the option to create a burn rate or status alerts.&quot;</em>; <em>&quot;SLO use functional metrics which behave different during transformation. We're working on a separated guide&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="notification-payloads"></a></p>
+<h2>5. Notification Payloads</h2>
+<p>A notification can depend on a zone without filtering on one: the receiver may have read the zone from the payload — to pick an assignment group, a channel or a ticket field. The workflow that replaces the notification (MZ2POL-09 §5) has no zone to print.</p>
+<h3>Where a zone name could have come from</h3>
+<ul>
+<li><strong>No zone placeholder.</strong> The classic problem-notification schema documents seventeen placeholders — <code>{State}</code>, <code>{ProblemID}</code>, <code>{PID}</code>, <code>{ProblemTitle}</code>, <code>{ProblemSeverity}</code>, <code>{ProblemImpact}</code>, <code>{ImpactedEntity}</code>, <code>{ImpactedEntities}</code>, <code>{ImpactedEntityNames}</code>, <code>{NamesOfImpactedEntities}</code>, <code>{Tags}</code>, <code>{ProblemDetailsText}</code>, <code>{ProblemDetailsMarkdown}</code>, <code>{ProblemDetailsHTML}</code>, <code>{ProblemDetailsJSON}</code>, <code>{ProblemDetailsJSONv2}</code>, and <code>{ProblemURL}</code>. None is a zone (read 10/14/2026).</li>
+<li><strong>The classic JSON.</strong> <code>{ProblemDetailsJSONv2}</code> is <em>&quot;Problem as json object following the structure from the Dynatrace Problems V2 API&quot;</em>, and that API's problem object has <code>managementZones</code>: <em>&quot;A list of all management zones that the problem belongs to.&quot;</em> A receiver that parsed this payload may have read zone names from it.</li>
+</ul>
+<p>That second path does not survive: <em>&quot;ProblemDetailsJSON and ProblemDetailsJSONv2 can't be reproduced from a workflow.&quot;</em> The guide offers two options — adapt the receiver to the Grail problem record (<code>{{ event() | to_json }}</code>), or build the payload explicitly from Grail fields. The problem record has no zone field (MZ2POL-09 §5 measured it), so either way the receiver loses the zone.</p>
+<h3>What to print instead</h3>
+<p>Print the field the workflow routes on. If the workflow selects a team with <code>primary_tags.team</code>, put <code>primary_tags.team</code> in the payload; the receiver then sees exactly what decided the route.</p>
+<p>The upgrade guide's placeholder table maps the rest. WFLOW-02 §7 already carries the Jinja side of it; the rows that matter for a zone migration:</p>
+<table>
+<thead>
+<tr>
+<th>Classic</th>
+<th>Problem record</th>
+<th>Note from the guide</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>{Tags}</code></td>
+<td><code>primary_tags.*</code></td>
+<td><em>&quot;entity_tags still exists but is deprecated (Dynatrace Classic)&quot;</em></td>
+</tr>
+<tr>
+<td><code>{ImpactedEntity}</code>, <code>{ImpactedEntities}</code></td>
+<td><code>smartscape.affected_entities</code></td>
+<td><em>&quot;Record array; each element has id , type , name&quot;</em></td>
+</tr>
+<tr>
+<td><code>{ProblemDetailsJSON}</code>, <code>{ProblemDetailsJSONv2}</code></td>
+<td><code>{{ event() | to_json }}</code></td>
+<td><em>&quot;Different structure and content from Dynatrace Classic.&quot;</em></td>
+</tr>
+<tr>
+<td><code>{ProblemDetailsHTML}</code></td>
+<td>—</td>
+<td><em>&quot;Not supported&quot;</em></td>
+</tr>
+<tr>
+<td>— (new)</td>
+<td><code>dt.security_context</code></td>
+<td><em>&quot;Access-scoping context propagated from the affected entities&quot;</em></td>
+</tr>
+<tr>
+<td>— (new)</td>
+<td><code>dt.cost.costcenter</code>, <code>dt.cost.product</code></td>
+<td><em>&quot;Cost Allocation, propagated from the affected entities&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>These fields hold <strong>every</strong> value from the problem's events: <em>&quot;If two affected services carry primary_tags.team with different values, the problem holds both. There is no way to determine which value came from which entity.&quot;</em> A zone gave one name per notification; the replacement field can give several. Template it as a list (<code>| join(&quot;, &quot;)</code>) and make sure the receiver accepts more than one value. The cell measures how often that happens.</p>
+<pre><code class="language-dql">// What a payload that used to print a zone name can print instead, and how often it holds more than one value.
+fetch dt.davis.problems, from:-7d
+| summarize {problems = count(),
+    with_security_context = countIf(arraySize(dt.security_context) &gt; 0),
+    multi_security_context = countIf(arraySize(dt.security_context) &gt; 1),
+    with_entity_tags = countIf(arraySize(entity_tags) &gt; 0),
+    with_cost_center = countIf(arraySize(dt.cost.costcenter) &gt; 0),
+    with_affected_entities = countIf(arraySize(smartscape.affected_entities) &gt; 0)}
+</code></pre>
+<p>On the validation tenant (10/14/2026, 7 days, 5,290 problems): 1,391 carried a <code>dt.security_context</code>, and <strong>512 of those carried more than one value</strong>; 2,897 carried classic <code>entity_tags</code>; 4,157 carried <code>smartscape.affected_entities</code>; none carried <code>dt.cost.costcenter</code> (cost allocation is not configured there). Replace <code>dt.security_context</code> with your own routing field — <code>primary_tags.&lt;key&gt;</code> — before reading the result; MZ2POL-09 §4 measures routing coverage.</p>
+<p>WFLOW-06 covers templates and enrichment, and WFLOW-05 the receivers (ServiceNow, PagerDuty).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-problem-notifications">Problem notifications settings schema (DT docs)</a> — <em>&quot;Problem as json object following the structure from the Dynatrace Problems V2 API&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/problems-v2/problems/get-problem-details">Problems API v2 - GET problem details (DT docs)</a> — <code>managementZones</code>: <em>&quot;A list of all management zones that the problem belongs to.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;ProblemDetailsJSON and ProblemDetailsJSONv2 can't be reproduced from a workflow.&quot;</em>; <em>&quot;entity_tags still exists but is deprecated (Dynatrace Classic)&quot;</em>; <em>&quot;Access-scoping context propagated from the affected entities&quot;</em>; <em>&quot;If two affected services carry primary_tags.team with different values, the problem holds both. There is no way to determine which value came from which entity.&quot;</em></sub></li>
+<li><sub><strong>Dictionary:</strong> <code>dt.security_context</code> (<code>stable</code>), <code>dt.cost.costcenter</code> (<code>stable</code>), no row for <code>entity_tags</code> or <code>smartscape.affected_entities</code> under <code>filter in(name, …)</code>, read 10/14/2026 (control: <code>event.id</code> → <code>stable</code> in the same query). <strong>Derived:</strong> that a receiver may have read zone names from <code>{ProblemDetailsJSONv2}</code> combines the schema and Problems API quotes.</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="proving-parity"></a></p>
+<h2>6. Proving Parity per Problem</h2>
+<p>MZ2POL-09 §9 makes alert parity the acceptance test. The upgrade guide's procedure is volume-based: <em>&quot;Leave the Dynatrace Classic notification enabled for one full business cycle and compare volumes on both sides. Disable the Dynatrace Classic pair only once the counts match.&quot;</em> Matching totals can hide a problem the workflow misses and another it adds. This section measures per problem.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+UHJvdmluZyBQYXJpdHkgcGVyIFByb2JsZW0sIE5vdCBwZXIgVm9sdW1lPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+Qm90aCBzaWRlcyBvZiB0aGUgcGFyYWxsZWwgcnVuIGpvaW4gb24gdGhlIHByb2JsZW0ncyBldmVudC5pZDwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMS41Ij4KICAgIDwhLS0gQ2xhc3NpYyBzaWRlIC0tPgogICAgPHJlY3QgeD0iMjAiIHk9Ijg0IiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjE3MCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9IjM0IiB5PSIxMDgiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+Q2xhc3NpYyBzaWRlPC90ZXh0PgogICAgPHRleHQgeD0iMzQiIHk9IjEzMiIgZmlsbD0iIzk0QTNCOCI+ZHQuZGF2aXMucHJvYmxlbXM8L3RleHQ+CiAgICA8dGV4dCB4PSIzNCIgeT0iMTUwIiBmaWxsPSIjOTRBM0I4Ij5sYWJlbHMuYWxlcnRpbmdfcHJvZmlsZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjM0IiB5PSIxNjgiIGZpbGw9IiM5NEEzQjgiPj0gcHJvZmlsZXMgdGhhdCBtYXRjaGVkIHRoZSBwcm9ibGVtPC90ZXh0PgogICAgPHRleHQgeD0iMzQiIHk9IjE5NiIgZmlsbD0iI0ZDRDM0RCI+RGVwcmVjYXRlZCBmaWVsZDsgcmVjb3JkcyBhIHByb2ZpbGU8L3RleHQ+CiAgICA8dGV4dCB4PSIzNCIgeT0iMjE0IiBmaWxsPSIjRkNEMzREIj5tYXRjaCwgbm90IGEgZGVsaXZlcnkg4oCUIGNsYXNzaWM8L3RleHQ+CiAgICA8dGV4dCB4PSIzNCIgeT0iMjMyIiBmaWxsPSIjRkNEMzREIj5mYWlsdXJlcyAid2VyZSBub3QgcmVjb3JkZWQiPC90ZXh0PgoKICAgIDwhLS0gTmV3IHNpZGUgLS0+CiAgICA8cmVjdCB4PSI2NDAiIHk9Ijg0IiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjE3MCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9IjY1NCIgeT0iMTA4IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPldvcmtmbG93IHNpZGU8L3RleHQ+CiAgICA8dGV4dCB4PSI2NTQiIHk9IjEzMiIgZmlsbD0iIzk0QTNCOCI+ZHQuc3lzdGVtLmV2ZW50cywgV09SS0ZMT1dfRVhFQ1VUSU9OPC90ZXh0PgogICAgPHRleHQgeD0iNjU0IiB5PSIxNTAiIGZpbGw9IiM5NEEzQjgiPnN0YXRlLmlzX2ZpbmFsID09IHRydWUgb25seTwvdGV4dD4KICAgIDx0ZXh0IHg9IjY1NCIgeT0iMTY4IiBmaWxsPSIjOTRBM0I4Ij53b3JrZmxvd19leGVjdXRpb24udHJpZ2dlci5ldmVudC5pZDwvdGV4dD4KICAgIDx0ZXh0IHg9IjY1NCIgeT0iMTk2IiBmaWxsPSIjRkNBNUE1Ij5XaXRob3V0IGlzX2ZpbmFsOiBhIFJVTk5JTkcgYW5kIGE8L3RleHQ+CiAgICA8dGV4dCB4PSI2NTQiIHk9IjIxNCIgZmlsbD0iI0ZDQTVBNSI+ZmluYWwgcmVjb3JkIHBlciBleGVjdXRpb24g4oCUIGNvdW50KCk8L3RleHQ+CiAgICA8dGV4dCB4PSI2NTQiIHk9IjIzMiIgZmlsbD0iI0ZDQTVBNSI+ZG91YmxlcywgYW5kIGNvdW50cyBmYWlsdXJlcyBhcyBzZW50PC90ZXh0PgoKICAgIDwhLS0gSm9pbiAtLT4KICAgIDxsaW5lIHgxPSIyOTAiIHkxPSIxNjkiIHgyPSIzNTgiIHkyPSIxNjkiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgICA8bGluZSB4MT0iNjQwIiB5MT0iMTY5IiB4Mj0iNTcyIiB5Mj0iMTY5IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogICAgPHJlY3QgeD0iMzYwIiB5PSIxMjQiIHdpZHRoPSIyMTAiIGhlaWdodD0iOTAiIHJ4PSI4IiBmaWxsPSIjQTc4QkZBIiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI0NjUiIHk9IjE1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMy41IiBmb250LXdlaWdodD0iNzAwIj5Kb2luIG9uIGV2ZW50LmlkPC90ZXh0PgogICAgPHRleHQgeD0iNDY1IiB5PSIxNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiPm9uZSByb3cgcGVyIHByb2JsZW08L3RleHQ+CiAgICA8dGV4dCB4PSI0NjUiIHk9IjE5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCI+cHJvZmlsZSBYIG1hdGNoZWQ/IHdvcmtmbG93IFkgcmFuPzwvdGV4dD4KCiAgICA8IS0tIE91dGNvbWVzIC0tPgogICAgPGxpbmUgeDE9IjQ2NSIgeTE9IjIxNCIgeDI9IjQ2NSIgeTI9IjI3NiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICAgIDxyZWN0IHg9IjIwIiB5PSIyODAiIHdpZHRoPSIyMTAiIGhlaWdodD0iMTEwIiByeD0iOCIgZmlsbD0iIzczQkUyOCIgZmlsbC1vcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgICA8dGV4dCB4PSIzNCIgeT0iMzA0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPmJvdGg8L3RleHQ+CiAgICA8dGV4dCB4PSIzNCIgeT0iMzI4IiBmaWxsPSIjOTRBM0I4Ij5QYXJpdHkgZm9yIHRoaXMgcHJvYmxlbS48L3RleHQ+CiAgICA8dGV4dCB4PSIzNCIgeT0iMzQ2IiBmaWxsPSIjOTRBM0I4Ij5UaGVuIGNoZWNrIHRoZSBleGVjdXRpb248L3RleHQ+CiAgICA8dGV4dCB4PSIzNCIgeT0iMzY0IiBmaWxsPSIjOTRBM0I4Ij5zdWNjZWVkZWQuPC90ZXh0PgoKICAgIDxyZWN0IHg9IjI1MCIgeT0iMjgwIiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjExMCIgcng9IjgiIGZpbGw9IiNERTM1MEIiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogICAgPHRleHQgeD0iMjY0IiB5PSIzMDQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+Y2xhc3NpYyBvbmx5PC90ZXh0PgogICAgPHRleHQgeD0iMjY0IiB5PSIzMjgiIGZpbGw9IiM5NEEzQjgiPlRoZSB3b3JrZmxvdyBtaXNzZXMgaXQ6PC90ZXh0PgogICAgPHRleHQgeD0iMjY0IiB5PSIzNDYiIGZpbGw9IiM5NEEzQjgiPnNpbGVudCBsb3NzIGFmdGVyIGN1dG92ZXIuPC90ZXh0PgogICAgPHRleHQgeD0iMjY0IiB5PSIzNjQiIGZpbGw9IiM5NEEzQjgiPkZpeCB0aGUgdHJpZ2dlciBmaWx0ZXIuPC90ZXh0PgoKICAgIDxyZWN0IHg9IjQ4MCIgeT0iMjgwIiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjExMCIgcng9IjgiIGZpbGw9IiNGRkI4MDAiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogICAgPHRleHQgeD0iNDk0IiB5PSIzMDQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+d29ya2Zsb3cgb25seTwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ5NCIgeT0iMzI4IiBmaWxsPSIjOTRBM0I4Ij5XaWRlciB0aGFuIHRoZSBwcm9maWxlOjwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ5NCIgeT0iMzQ2IiBmaWxsPSIjOTRBM0I4Ij5uZXcgcGFnZXMgYWZ0ZXIgY3V0b3Zlci48L3RleHQ+CiAgICA8dGV4dCB4PSI0OTQiIHk9IjM2NCIgZmlsbD0iIzk0QTNCOCI+SW50ZW5kZWQsIG9yIGEgbGVhaz88L3RleHQ+CgogICAgPHJlY3QgeD0iNzEwIiB5PSIyODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTEwIiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogICAgPHRleHQgeD0iNzI0IiB5PSIzMDQiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+bmVpdGhlcjwvdGV4dD4KICAgIDx0ZXh0IHg9IjcyNCIgeT0iMzI4IiBmaWxsPSIjOTRBM0I4Ij5PdXQgb2Ygc2NvcGUgZm9yIHRoaXM8L3RleHQ+CiAgICA8dGV4dCB4PSI3MjQiIHk9IjM0NiIgZmlsbD0iIzk0QTNCOCI+cGFpci4gRXhwZWN0ZWQgZm9yPC90ZXh0PgogICAgPHRleHQgeD0iNzI0IiB5PSIzNjQiIGZpbGw9IiM5NEEzQjgiPm1vc3QgcHJvYmxlbXMuPC90ZXh0PgogIDwvZz4KICA8dGV4dCB4PSI0NjUiIHk9IjQyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RGlzYWJsZSB0aGUgY2xhc3NpYyBwYWlyIHdoZW4gImNsYXNzaWMgb25seSIgYW5kICJ3b3JrZmxvdyBvbmx5IiBhcmUgYm90aCBleHBsYWluZWQg4oCUIG5vdCB3aGVuIHRvdGFscyBtYXRjaDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Vm9sdW1lIHBhcml0eSBjYW4gaGlkZSBhIG1pc3MgYW5kIGEgbGVhayB0aGF0IGNhbmNlbCBvdXQuIFRoZSBwZXItcHJvYmxlbSB2aWV3IGNhbm5vdC48L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlJ1biBpdCB3aGlsZSB0aGUgcHJvZmlsZXMgc3RpbGwgZXhpc3Qg4oCUIHRoZSBjbGFzc2ljIHNpZGUgb2YgdGhlIGpvaW4gY29tZXMgZnJvbSB0aGVtLjwvdGV4dD4KPC9zdmc+Cg==" alt="Proving parity per problem" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Part | Detail |
+|---|---|
+| Classic side | dt.davis.problems, labels.alerting_profile = profiles that matched the problem. Deprecated field; records a profile match, not a delivery; classic failures "were not recorded" |
+| Workflow side | dt.system.events WORKFLOW_EXECUTION, state.is_final == true only, workflow_execution.trigger.event.id. Without is_final, each execution has a RUNNING and a final record — count() doubles and counts failures as sent |
+| Join | On the problem's event.id: one row per problem — did profile X match, did workflow Y run? |
+| both | Parity for this problem; then check the execution succeeded |
+| classic only | The workflow misses it — silent loss after cutover; fix the trigger filter |
+| workflow only | Wider than the profile — new pages after cutover; intended or a leak? |
+| neither | Out of scope for this pair; expected for most problems |
+| Rule | Disable the classic pair when "classic only" and "workflow only" are both explained — not when totals match |
+For environments where SVG doesn't render
+-->
+<h3>Before the first run: Query past events</h3>
+<p>The trigger's <em>Query past events</em> <em>&quot;reports how many events would have matched over the last hour, day, and seven days.&quot;</em> A zero in all three windows on a busy tenant <em>&quot;almost always means your default category selection and your custom filter contradict each other.&quot;</em> Run it for each new trigger before the parallel run starts.</p>
+<h3>Count executions, not records</h3>
+<p>The guide's query counts records: <code>fetch dt.system.events | filter event.kind == &quot;WORKFLOW_EVENT&quot; and … | summarize count = count(), by: {dt.automation_engine.workflow.title}</code>. On the validation tenant each execution wrote a <code>RUNNING</code> record and a final record (<code>SUCCESS</code> or <code>ERROR</code>), so that query returned 9,392 for a workflow that ran 4,696 times — every one of which failed. Count distinct execution IDs on final records, split by outcome:</p>
+<pre><code class="language-dql">// Executions per workflow, counted once each, split by outcome.
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot; and event.provider == &quot;AUTOMATION_ENGINE&quot; and event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter dt.automation_engine.workflow_execution.trigger.type == &quot;Event&quot;
+| filter dt.automation_engine.state.is_final == true
+| summarize {executions = countDistinctExact(dt.automation_engine.workflow_execution.id),
+    succeeded = countDistinctExact(if(dt.automation_engine.state == &quot;SUCCESS&quot;, dt.automation_engine.workflow_execution.id)),
+    failed = countDistinctExact(if(dt.automation_engine.state == &quot;ERROR&quot;, dt.automation_engine.workflow_execution.id))},
+    by:{workflow = dt.automation_engine.workflow.title}
+| sort executions desc
+| limit 20
+</code></pre>
+<p>On the validation tenant (10/14/2026, 7 days, event-triggered workflows; names anonymized):</p>
+<table>
+<thead>
+<tr>
+<th>Workflow</th>
+<th style="text-align:right">Records (guide's query)</th>
+<th style="text-align:right"><code>executions</code></th>
+<th style="text-align:right"><code>succeeded</code></th>
+<th style="text-align:right"><code>failed</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ServiceNow incident workflow</td>
+<td style="text-align:right">9,392</td>
+<td style="text-align:right">4,696</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">4,696</td>
+</tr>
+<tr>
+<td>Email workflow</td>
+<td style="text-align:right">3,096</td>
+<td style="text-align:right">1,548</td>
+<td style="text-align:right">43</td>
+<td style="text-align:right">1,505</td>
+</tr>
+<tr>
+<td>A third workflow</td>
+<td style="text-align:right">98</td>
+<td style="text-align:right">49</td>
+<td style="text-align:right">0</td>
+<td style="text-align:right">49</td>
+</tr>
+</tbody>
+</table>
+<p>Across all trigger types in the same week: 160,998 records for 80,499 executions. A record count reads twice the real volume, and a volume comparison that ignores <code>failed</code> reports deliveries that never happened.</p>
+<h3>Per problem: which side acted on which problem</h3>
+<p>For an event-triggered workflow, <code>dt.automation_engine.workflow_execution.trigger.event.id</code> is the <code>event.id</code> of the problem that triggered it. On the validation tenant, every final execution of the three workflows over two days matched a problem in <code>dt.davis.problems</code> (984 of 984, 379 of 379, 11 of 11). Executions can outnumber problems — the third workflow ran 11 times on 6 problems, because the <em>Updates</em> option and the closed phase re-trigger.</p>
+<p>The classic side is on the problem record too: <code>labels.alerting_profile</code> lists the profiles that matched the problem. The guide says <em>&quot;The labels.alerting_profile field on the problem record is deprecated.&quot;</em> — and asks you to stop routing on it. It is still the only Grail-side record of which classic profile matched, so use it <strong>for the comparison, during the parallel run, and nothing else</strong>. Two limits: it records that a profile matched, not that a notification was delivered (<em>&quot;Classic notification failures were not recorded.&quot;</em>), and the comparison is only possible while the profiles exist.</p>
+<p>Set the profile name and the workflow title on the second line, then run:</p>
+<pre><code class="language-dql">// Parity for one classic profile and the workflow that replaces it. Set both names on the next line.
+fetch dt.davis.problems, from:-7d
+| fieldsAdd profile_name = &quot;Default Alerting Profile&quot;, workflow_name = &quot;Route - Team A&quot;
+| fields event.id, labels.alerting_profile, profile_name, workflow_name
+| lookup [fetch dt.system.events, from:-7d
+    | filter event.kind == &quot;WORKFLOW_EVENT&quot; and event.provider == &quot;AUTOMATION_ENGINE&quot; and event.type == &quot;WORKFLOW_EXECUTION&quot;
+    | filter dt.automation_engine.workflow_execution.trigger.type == &quot;Event&quot; and dt.automation_engine.state.is_final == true
+    | summarize workflows = collectDistinct(dt.automation_engine.workflow.title), by:{trigger_event_id = dt.automation_engine.workflow_execution.trigger.event.id}],
+    sourceField:event.id, lookupField:trigger_event_id, fields:{workflows}
+| fieldsAdd classic = coalesce(in(profile_name, labels.alerting_profile), false), new = coalesce(in(workflow_name, workflows), false)
+| fieldsAdd outcome = if(classic and new, &quot;both&quot;, else: if(classic, &quot;classic only&quot;, else: if(new, &quot;workflow only&quot;, else: &quot;neither&quot;)))
+| summarize problems = countDistinctExact(event.id), by:{outcome}
+| sort problems desc
+</code></pre>
+<p>As written, with a workflow that does not exist, the cell returned <code>classic only</code> 3,030 and <code>neither</code> 2,258 on the validation tenant (10/14/2026) — the shape of a cutover that would lose every page. With a real workflow title it returned <code>both</code> 1,548, <code>classic only</code> 1,482 and <code>neither</code> 2,258. That pair is not a profile and its replacement; it shows that the join works and what a partial match looks like.</p>
+<p>To read the result:</p>
+<ul>
+<li><strong><code>classic only</code></strong> — problems the profile matched and the workflow did not act on. After cutover these stop paging. Fix the trigger filter, or record why the problem should not page.</li>
+<li><strong><code>workflow only</code></strong> — problems the workflow acted on that the profile did not match. After cutover these start paging. Usually the routing field is broader than the zone was.</li>
+<li><strong>Then check <code>failed</code></strong> from the first cell. A workflow that acts on the right problems and fails every time has parity only on paper.</li>
+</ul>
+<p>Disable the classic pair when both mismatch rows are zero or explained. The guide also advises: <em>&quot;Test against a low-impact source first.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;Leave the Dynatrace Classic notification enabled for one full business cycle and compare volumes on both sides.&quot;</em>; <em>&quot;Disable the Dynatrace Classic pair only once the counts match.&quot;</em>; <em>&quot;It reports how many events would have matched over the last hour, day, and seven days.&quot;</em>; <em>&quot;almost always means your default category selection and your custom filter contradict each other.&quot;</em>; <em>&quot;Classic notification failures were not recorded.&quot;</em>; <em>&quot;The labels.alerting_profile field on the problem record is deprecated.&quot;</em>; <em>&quot;Test against a low-impact source first.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a> — <em>&quot;Each distinct combination of selected field values triggers the workflow at most once&quot;</em></sub></li>
+<li><sub><strong>Dictionary:</strong> <code>dt.automation_engine.state</code> (<code>experimental</code>), <code>dt.automation_engine.state.is_final</code> (<code>experimental</code>), <code>dt.automation_engine.workflow_execution.id</code> (<code>experimental</code>), <code>dt.automation_engine.workflow_execution.trigger.event.id</code> (<code>experimental</code>), <code>dt.automation_engine.workflow_execution.trigger.type</code> (<code>experimental</code>), <code>dt.automation_engine.workflow.title</code> (<code>experimental</code>); no row for <code>labels.alerting_profile</code> under <code>filter contains(name, &quot;alerting_profile&quot;)</code>, read 10/14/2026 (control: the same query returned 4 <code>dt.automation_engine.workflow.*</code> rows).</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="overlap-and-duplicate-pages"></a></p>
+<h2>7. Overlap and Duplicate Pages</h2>
+<p>Zones overlap, so one problem could match several zone-scoped profiles: <em>&quot;Keep in mind that management zones can overlap. If a problem is detected on a service that is defined within multiple management zones, multiple filters will be applied.&quot;</em> Workflows keep that property — a problem whose routing field holds two values matches both teams' workflows (§5). Before cutover, measure how much overlap the classic estate already has, and how much the workflow fleet produces.</p>
+<pre><code class="language-dql">// How many classic profiles matched each problem? Overlap on the classic side, measured before cutover.
+fetch dt.davis.problems, from:-7d
+| fieldsAdd non_default = arrayRemoveNulls(iCollectArray(if(not(in(labels.alerting_profile[], {&quot;Default&quot;, &quot;Default Alerting Profile&quot;})), labels.alerting_profile[])))
+| fieldsAdd matched = if(isNull(labels.alerting_profile), &quot;no profile label&quot;,
+    else: if(arraySize(non_default) == 0, &quot;default profile only&quot;,
+    else: if(arraySize(non_default) == 1, &quot;one non-default profile&quot;, else: &quot;two or more non-default profiles&quot;)))
+| summarize problems = count(), by:{matched}
+| sort problems desc
+</code></pre>
+<pre><code class="language-dql">// Workflow side: how many event-triggered workflows acted on each problem?
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot; and event.provider == &quot;AUTOMATION_ENGINE&quot; and event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter dt.automation_engine.workflow_execution.trigger.type == &quot;Event&quot; and dt.automation_engine.state.is_final == true
+| summarize {workflows = countDistinctExact(dt.automation_engine.workflow.id), executions = countDistinctExact(dt.automation_engine.workflow_execution.id)},
+    by:{trigger_event_id = dt.automation_engine.workflow_execution.trigger.event.id}
+// Event triggers also fire on Davis events and logs: keep only trigger IDs that are problems
+| lookup [fetch dt.davis.problems, from:-30d | summarize n = count(), by:{event.id}], sourceField:trigger_event_id, lookupField:event.id, fields:{n}
+| filter isNotNull(n)
+| summarize {problems = count(), executions = sum(executions)}, by:{workflows_per_problem = workflows}
+| sort workflows_per_problem asc
+</code></pre>
+<p>On the validation tenant (10/14/2026, 7 days): of 5,288 problems, <strong>542 (10.2%) matched two or more non-default profiles</strong>, 816 exactly one, 1,672 only a default profile, and 2,258 carried no profile label. On the workflow side (11/15/2026, 7 days), 2,535 of 6,193 problems that triggered a workflow (40.9%) were acted on by two workflows and 1,194 (19.3%) by three; event triggers that were not problems are excluded. Edit the default-profile names in the first cell if yours differ.</p>
+<p>A problem acted on by two workflows is not necessarily a duplicate page — two workflows can send to different destinations on purpose. It is a duplicate when they reach the same people.</p>
+<h3>Where to remove duplicates</h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>What the docs say</th>
+<th>Use it for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Workflow design</strong></td>
+<td><em>&quot;Consolidate by destination, not by filter.&quot;</em> — and <em>&quot;Trigger on problems, not on Davis events.&quot;</em>, because <em>&quot;Triggering on raw events bypasses that grouping and floods the channel.&quot;</em></td>
+<td>One workflow per destination (MZ2POL-09 §5). Two overlapping profiles that paged the same channel become one workflow</td>
+</tr>
+<tr>
+<td><strong>Team isolation</strong></td>
+<td><em>&quot;Split workflows when teams need isolation, even if the destination is identical.&quot;</em></td>
+<td>Accept two workflows to one destination only when the teams own them separately</td>
+</tr>
+<tr>
+<td><strong>Re-triggering</strong></td>
+<td><em>&quot;Each distinct combination of selected field values triggers the workflow at most once&quot;</em>; <em>&quot;Any change to the set of selected fields for Updates may cause one extra trigger on the next change to each affected problem.&quot;</em></td>
+<td>Expect one extra execution after editing <em>Updates</em></td>
+</tr>
+<tr>
+<td><strong>Receiver</strong></td>
+<td>No page documents de-duplication across workflows</td>
+<td>Key the receiver on the problem: PagerDuty <code>dedupKey</code>, ServiceNow search-before-create (WFLOW-05 §7, ALERT-04)</td>
+</tr>
+</tbody>
+</table>
+<p>Escalation that classic profiles achieved with several delayed profiles on the same zone — page the team, then the lead after 30 minutes — is a workflow pattern now, not a second profile: WFLOW-04 §6 covers timed and multi-tier escalation, and MZ2POL-09 §6.1 the <em>Minimum duration</em> option.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/alerting-profiles">Problem alerting profiles (DT docs)</a> — <em>&quot;Keep in mind that management zones can overlap. If a problem is detected on a service that is defined within multiple management zones, multiple filters will be applied.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;Consolidate by destination, not by filter.&quot;</em>; <em>&quot;Trigger on problems, not on Davis events.&quot;</em>; <em>&quot;Triggering on raw events bypasses that grouping and floods the channel.&quot;</em>; <em>&quot;Split workflows when teams need isolation, even if the destination is identical.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a> — <em>&quot;Each distinct combination of selected field values triggers the workflow at most once&quot;</em>; <em>&quot;Any change to the set of selected fields for Updates may cause one extra trigger on the next change to each affected problem.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="rollback-and-cutover-order"></a></p>
+<h2>8. Rollback and Cutover Order</h2>
+<h3>Rollback lasts only as long as Classic does</h3>
+<p>Every rollback in this migration is &quot;re-enable the classic object&quot;: the profile and notification pair (MZ2POL-06 §9), the disabled metric event, the classic maintenance window, the classic SLO. Two things limit it:</p>
+<ul>
+<li><strong>The removed-schemas page.</strong> <em>&quot;None of the schemas on this page are visible in Latest Dynatrace&quot;</em> — so once the environment runs on Latest Dynatrace, the classic objects cannot be re-enabled from the UI. Rollback to a classic object is available only while the environment is still on Classic.</li>
+<li><strong>The zone.</strong> A re-enabled classic object that names a zone works only while the zone exists, which is why MZ2POL-09 §8 deletes zones last.</li>
+</ul>
+<p>What re-enabling does is documented for none of them. One case can be reasoned from the docs: the transformed metric event is disabled and its successor is active, so re-enabling the classic event without disabling the successor runs both. Disable one when you enable the other, the same rule MZ2POL-06 §9 gives for profiles and workflows.</p>
+<h3>Cutover order</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Proof before the next step</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Routing values on the data (MZ2POL-10, MZ2POL-11); segments for each zone dimension (MZ2POL-05)</td>
+<td>MZ2POL-09 §4 coverage at 100</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Build the workflows (MZ2POL-09) with the maintenance filter (§3)</td>
+<td><em>Query past events</em> non-zero for each trigger</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Recreate maintenance windows on the new model (§3), where your tenant has it</td>
+<td>A run appears in <code>dt.maintenance.windows</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Rebuild SLOs on segments (§4); transform or rebuild metric events with scope set (§2)</td>
+<td>SLOs: one full evaluation period side by side. Alerts: breadth back to the classic level</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Parallel run for one full business cycle</td>
+<td>§6: mismatch rows zero or explained; <code>failed</code> zero. §7: duplicates explained</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Disable</strong> classic profiles, notifications, windows, SLOs and metric events — do not delete</td>
+<td>One soak period with no regressions</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Delete management zones, in a separate change window, through the MZ2POL-15 §9 gate</td>
+<td>The MZ2POL-09 §8 deletion test recorded</td>
+</tr>
+</tbody>
+</table>
+<p>The guide's last step for the profile pair is <em>&quot;Delete it once you're confident you're getting the right notification.&quot;</em> Keep the disabled classic objects until step 7 is done and the rollback window has passed.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Removed settings schemas (DT docs)</a> — <em>&quot;None of the schemas on this page are visible in Latest Dynatrace&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad">Configure a simple custom alert (DT docs)</a> — <em>&quot;The converted metric event is automatically disabled, and the newly created configuration is active instead.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;Delete it once you're confident you're getting the right notification.&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> the rollback limit combines the removed-schemas quote with the transform quote; that both objects fire when both are enabled is an inference, not a documented behavior.</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="checklist-and-summary"></a></p>
+<h2>9. Checklist and Summary</h2>
+<p><strong>Metric events (§2)</strong></p>
+<ul>
+<li>[ ] Retire-or-migrate decision per event (ALERT-02 §4)</li>
+<li>[ ] Segment for each zone exists <strong>before</strong> the transform</li>
+<li>[ ] Breadth measured before; scope, <code>interval:1m</code>, <em>Preview</em> and <em>Status</em> checked right after</li>
+<li>[ ] Custom alerts created where your tenant's version puts them — Settings from SaaS 1.344</li>
+</ul>
+<p><strong>Maintenance windows (§3)</strong></p>
+<ul>
+<li>[ ] New model available on your tenant (Early Access, SaaS 1.341); classic windows kept until it is</li>
+<li>[ ] Upcoming windows consolidated to 100 or fewer</li>
+<li>[ ] Zone filters translated: AND within a classic filter, OR across filters</li>
+<li>[ ] Maintenance filter on every replacement problem trigger; <em>Maintenance window</em> option on Davis event triggers</li>
+<li>[ ] <code>DONT_DETECT_PROBLEMS</code> windows and retroactive-window reporting have a recorded decision</li>
+</ul>
+<p><strong>SLOs (§4)</strong></p>
+<ul>
+<li>[ ] Zone filter replaced by a segment; access needs handled separately</li>
+<li>[ ] Both SLOs run for one evaluation period and compared</li>
+<li>[ ] Burn-rate alerts rebuilt on the new SLO, not transformed</li>
+</ul>
+<p><strong>Payloads (§5)</strong></p>
+<ul>
+<li>[ ] Receivers that read zone names or the classic JSON identified</li>
+<li>[ ] Payload prints the routing field, as a list</li>
+</ul>
+<p><strong>Parity, overlap, cutover (§6–§8)</strong></p>
+<ul>
+<li>[ ] Executions counted on final records; <code>failed</code> checked</li>
+<li>[ ] Per-problem parity run for every profile and its workflow, while the profiles still exist</li>
+<li>[ ] Overlap measured on both sides; duplicates removed by destination or at the receiver</li>
+<li>[ ] Classic objects disabled, not deleted, until zones are gone and the rollback window has passed</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Finding</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Transforming a zone-scoped metric event drops the zone and activates the successor at once</td>
+<td>Segment first; set the scope straight after the transform; compare breadth (§2)</td>
+</tr>
+<tr>
+<td>Maintenance windows have an upgrade guide, a Preview model and no automatic migration</td>
+<td>Recreate them with DQL filters; suppress in the workflow; nothing replaces disabling detection (§3)</td>
+</tr>
+<tr>
+<td>The maintenance flag can be absent on Davis events</td>
+<td>Prefer the Davis event trigger's <em>Maintenance window</em> option; test the matcher (§3)</td>
+</tr>
+<tr>
+<td>SLOs move zone → segment by hand and need one evaluation period side by side</td>
+<td>Plan the date; rebuild the SLO alert on the new SLO (§4)</td>
+</tr>
+<tr>
+<td>No problem field carries the zone, and the classic JSON cannot be reproduced</td>
+<td>Print the routing field; accept several values (§5)</td>
+</tr>
+<tr>
+<td>The documented execution query counts records and failures</td>
+<td>Count final executions, split by outcome; compare per problem (§6)</td>
+</tr>
+<tr>
+<td>Overlap carries over through multi-value routing fields</td>
+<td>Consolidate by destination; de-duplicate at the receiver (§7)</td>
+</tr>
+<tr>
+<td>Rollback means re-enabling classic objects</td>
+<td>Possible only while the environment is on Classic and the zone exists (§8)</td>
+</tr>
+</tbody>
+</table>
+<h3>Related Notebooks</h3>
+<ul>
+<li><strong>MZ2POL-05</strong>: Segments Implementation — the segments §2 and §4 scope with</li>
+<li><strong>MZ2POL-06</strong>: Migration Execution — §8 cleanup, §9 rollback</li>
+<li><strong>MZ2POL-09</strong>: Migrating Management Zone-Scoped Alerting and Notifications — profiles, notifications, §8 deletion test, §9 validation</li>
+<li><strong>MZ2POL-11</strong>: Translating Management Zone Rules to Source Attributes — the field each zone becomes</li>
+<li><strong>MZ2POL-15</strong>: Finding Every Zone Consumer — §3 inventory, §9 deletion gate</li>
+<li><strong>ALERT-02</strong>: Choosing and Building Detection — §4 metric-event triage</li>
+<li><strong>AIOPS-02</strong>: Anomaly Detection — building and tuning detectors</li>
+<li><strong>SLO-04</strong>: Burn-Rate Alerting; <strong>SLO-05</strong>: SLOs as Code</li>
+<li><strong>WFLOW-02</strong>: Triggers — §2–§3 trigger options, §7 placeholder mapping</li>
+<li><strong>WFLOW-04</strong>: Notification Routing — §6 escalation</li>
+<li><strong>WFLOW-05</strong>: Incident Management — §7 de-duplication</li>
+<li><strong>WFLOW-06</strong>: Custom Templates</li>
+<li><strong>FAQ-21</strong>: Getting the Right Alerts to the Right People</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

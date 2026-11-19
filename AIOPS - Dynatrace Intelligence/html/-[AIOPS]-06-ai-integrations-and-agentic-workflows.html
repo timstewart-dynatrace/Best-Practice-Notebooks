@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIOPS-06: AI Integrations and Agentic Workflows</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AIOPS — Dynatrace Intelligence</a><span class="sep">/</span><span aria-current="page">AIOPS-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AIOPS-06: AI Integrations and Agentic Workflows</h1>
+<blockquote>
+<p><strong>Series:</strong> AIOPS — Dynatrace Intelligence | <strong>Notebook:</strong> 6 of 8 | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Dynatrace Intelligence is not a closed system. The same AI capabilities are available via Workflow tasks (for in-platform automation) and via the Dynatrace MCP server (for external IDEs, CLI agents, and bring-your-own AI orchestration).</p>
+<p>This notebook covers three integration surfaces: AI tasks inside Workflows, the Dynatrace MCP server for IDE / agent integration, and the canonical workflow tutorials from the documentation.</p>
+<p><strong>Audience:</strong> Platform engineer building automation; SRE integrating Dynatrace into IDE and CLI workflows; AI / governance lead reviewing the integration surface.</p>
+<p><strong>Outcome:</strong> Working knowledge of where Dynatrace Intelligence connects out — and which patterns are settled vs. still emerging.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+QUkgSW50ZWdyYXRpb24gU3VyZmFjZXM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+VGhyZWUgaW50ZWdyYXRpb24gcGF0dGVybnMg4oCUIGluLXBsYXRmb3JtIGF1dG9tYXRpb24sIElERS9hZ2VudCBpbnRlZ3JhdGlvbiwgYWdlbnRpYyBvcmNoZXN0cmF0aW9uPC90ZXh0PgoKICA8IS0tIENlbnRlcjogRHluYXRyYWNlIEludGVsbGlnZW5jZSAtLT4KICA8cmVjdCB4PSIzNTAiIHk9IjIwMCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2UgSW50ZWxsaWdlbmNlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5DYXVzYWwgwrcgUHJlZGljdGl2ZSDCtyBHZW5lcmF0aXZlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EYXZpcyBhbmFseXplcnMgwrcgQXNzaXN0IMK3IENhdXNhbCBBSTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+b3ZlciBTbWFydHNjYXBlICsgR3JhaWw8L3RleHQ+CgogIDwhLS0gVG9wOiBXb3JrZmxvd3MgKGluLXBsYXRmb3JtKSAtLT4KICA8cmVjdCB4PSIyODUiIHk9IjkwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5Xb3JrZmxvd3MgKyBBdXRvbWF0aW9uRW5naW5lPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5Jbi1wbGF0Zm9ybSBhdXRvbWF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTUzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TY2hlZHVsZSBhbmFseXplcnMgwrcgU3VtbWFyaXplIHByb2JsZW1zIMK3IEZvcmVjYXN0IGNhcGFjaXR5PC90ZXh0PgoKICA8bGluZSB4MT0iNDY1IiB5MT0iMTcwIiB4Mj0iNDY1IiB5Mj0iMTk1IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxsaW5lIHgxPSI0NjUiIHkxPSIyMDAiIHgyPSI0NjUiIHkyPSIxNzUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gTGVmdDogTUNQIFNlcnZlciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjAwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxNjAiIHk9IjIyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlIE1DUCBTZXJ2ZXI8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIyNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkV4dGVybmFsIGFnZW50IGludGVncmF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iMjYzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5DbGF1ZGUgQ29kZSDCtyBDdXJzb3IgwrcgR2l0SHViIENvcGlsb3Q8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmNyZWF0ZS1kcWwgwrcgZXhlY3V0ZS1kcWwgwrcgYW5hbHl6ZXJzPC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iMjk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hc2stZHluYXRyYWNlLWRvY3MgwrcgcXVlcnktcHJvYmxlbXM8L3RleHQ+CgogIDxsaW5lIHgxPSIyODAiIHkxPSIyNTAiIHgyPSIzNDUiIHkyPSIyNTAiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPGxpbmUgeDE9IjM1MCIgeTE9IjI1MCIgeDI9IjI4NSIgeTI9IjI1MCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPCEtLSBSaWdodDogRXh0ZXJuYWwgQUkgLS0+CiAgPHJlY3QgeD0iNjUwIiB5PSIyMDAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijc3MCIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5FeHRlcm5hbCBBSSBQcm92aWRlcnM8L3RleHQ+CiAgPHRleHQgeD0iNzcwIiB5PSIyNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkJZTyBtb2RlbCBpbnRlZ3JhdGlvbnM8L3RleHQ+CiAgPHRleHQgeD0iNzcwIiB5PSIyNjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk9wZW5BSSDCtyBBbnRocm9waWMgwrcgQmVkcm9jayDCtyBWZXJ0ZXg8L3RleHQ+CiAgPHRleHQgeD0iNzcwIiB5PSIyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnZpYSBXb3JrZmxvdyBBSSB0YXNrczwvdGV4dD4KICA8dGV4dCB4PSI3NzAiIHk9IjI5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Y3JlZGVudGlhbHMgbWFuYWdlZCBieSBEeW5hdHJhY2U8L3RleHQ+CgogIDxsaW5lIHgxPSI1ODUiIHkxPSIyNTAiIHgyPSI2NDUiIHkyPSIyNTAiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPGxpbmUgeDE9IjY1MCIgeTE9IjI1MCIgeDI9IjU5MCIgeTI9IjI1MCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPCEtLSBCb3R0b206IFVzZSBjYXNlcyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMzQwIiB3aWR0aD0iODUwIiBoZWlnaHQ9IjEzMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+VXNlIENhc2VzIGJ5IFBhdHRlcm48L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIzOTUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPldvcmtmbG93czwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNDEyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgRFFMIGNvc3Qgb3B0aW1pemF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSI0MjciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBEYWlseSBwcm9ibGVtIGRpZ2VzdDwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNDQyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgQ2FwYWNpdHkgZm9yZWNhc3Rpbmc8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjQ1NyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIFByZWRpY3RpdmUgbWFpbnRlbmFuY2U8L3RleHQ+CgogIDx0ZXh0IHg9IjM0MCIgeT0iMzk1IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5NQ1AgLyBBZ2VudGljPC90ZXh0PgogIDx0ZXh0IHg9IjM0MCIgeT0iNDEyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgSW4tSURFIG5vdGVib29rIGF1dGhvcmluZzwvdGV4dD4KICA8dGV4dCB4PSIzNDAiIHk9IjQyNyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIEluY2lkZW50LXJlc3BvbnNlIGNoYXRvcHM8L3RleHQ+CiAgPHRleHQgeD0iMzQwIiB5PSI0NDIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBDdXN0b20gTGFuZ0NoYWluIC8gYWdlbnQgZmxvd3M8L3RleHQ+CiAgPHRleHQgeD0iMzQwIiB5PSI0NTciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBQUi1iYXNlZCByZW1lZGlhdGlvbiByZXZpZXc8L3RleHQ+CgogIDx0ZXh0IHg9IjYyMCIgeT0iMzk1IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5FeHRlcm5hbCBBSTwvdGV4dD4KICA8dGV4dCB4PSI2MjAiIHk9IjQxMiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIEJZTyBMTE0gZm9yIHNlbnNpdGl2ZSBwcm9tcHRzPC90ZXh0PgogIDx0ZXh0IHg9IjYyMCIgeT0iNDI3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgRG9tYWluLXNwZWNpZmljIHN1bW1hcml6YXRpb248L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSI0NDIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBNdWx0aS1tb2RhbCBleHRlbnNpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjYyMCIgeT0iNDU3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgQ29tcGxpYW5jZS1ib3VuZCBtb2RlbCB1c2U8L3RleHQ+Cjwvc3ZnPgo=" alt="AI Integration Surfaces" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Integration | Direction | Use |
+|-------------|-----------|-----|
+| Workflow AI tasks | In-platform automation | Schedule analyzers; summarize; notify |
+| Dynatrace MCP server | Out to agent / IDE | DQL gen, doc retrieval, analyzer calls from Claude Code, Cursor, GitHub Copilot |
+| AutomationEngine | In-platform orchestration | Predictive maintenance; remediation flows |
+For environments where SVG doesn't render
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#surfaces">Three Integration Surfaces</a>
+<ul>
+<li><a href="#ai-observability">AI Observability: Monitoring Your Own GenAI Applications</a></li>
+</ul>
+</li>
+<li><a href="#wf-dql-cost">Workflow Tutorial: Optimize DQL Cost</a></li>
+<li><a href="#wf-summary">Workflow Tutorial: Summarize Open Problems</a></li>
+<li><a href="#wf-forecast">Workflow Tutorial: Forecast Resource Utilization</a></li>
+<li><a href="#mcp">The Dynatrace MCP Server</a></li>
+<li><a href="#agentic">Agentic Patterns: AutomationEngine and Approval-Based Remediation</a></li>
+<li><a href="#cross">Cross-Series Pointers</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3</td>
+</tr>
+<tr>
+<td><strong>Apps</strong></td>
+<td>Workflows app; Notebooks app</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>davis:analyzers:execute</code>, <code>storage:events:read</code>, <code>automation:workflows:run</code>, <code>automation:workflows:write</code> (§2–§4 build workflows)</td>
+</tr>
+<tr>
+<td><strong>For MCP integrations</strong></td>
+<td>Dynatrace MCP server installed in your IDE / CLI agent (Claude Code, Cursor, GitHub Copilot)</td>
+</tr>
+<tr>
+<td><strong>For external LLMs</strong></td>
+<td>Provider credentials (OpenAI / Anthropic / Bedrock / Vertex) configured as Dynatrace credentials</td>
+</tr>
+</tbody>
+</table>
+<p><a id="surfaces"></a></p>
+<h2>1. Three Integration Surfaces</h2>
+<p><strong>Workflow AI tasks (in-platform).</strong> Dynatrace Workflows can call AI tasks: run an analyzer, generate a summary, route through an external LLM. Best for <em>scheduled</em> and <em>event-driven</em> automation that lives entirely inside the platform.</p>
+<p><strong>Dynatrace MCP server (platform → external agent).</strong> Exposes the platform's AI surface as MCP tools — <code>create-dql</code>, <code>execute-dql</code>, the analyzer family, <code>ask-dynatrace-docs</code>, <code>find-troubleshooting-guides</code>. Best when your team wants Dynatrace context inside Claude Code, Cursor, or GitHub Copilot.</p>
+<p><strong>AutomationEngine.</strong> The orchestration layer that wraps workflows for higher-level automation patterns — predictive maintenance, approval-based remediation, ChatOps integration.</p>
+<p>These three are complementary, not exclusive. A mature observability practice uses all three for different jobs.</p>
+<blockquote>
+<p><strong>Adjacent capability — AI Observability (monitoring <em>your own</em> GenAI apps).</strong> Distinct from the three Dynatrace-Intelligence integration surfaces above: <strong>AI Observability</strong> ingests GenAI / LLM telemetry from your <em>own</em> applications as OpenTelemetry spans. It reads Dynatrace's native <code>gen_ai.*</code> attributes — so OpenTelemetry instrumentation that follows the GenAI semantic conventions and OneAgent's Python GenAI auto-instrumentation (Bedrock / OpenAI / Azure OpenAI / LangChain, OneAgent 1.339+) flow straight in. For OpenTelemetry-based ingestion the AI Observability page now recommends <strong>OpenInference</strong> (the Arize AI standard), and <strong>OpenLLMetry reaches end of support on January 31, 2027</strong> (corrected 11/11/2026 — this paragraph previously listed OpenLLMetry as a native path). OpenInference uses its own <code>llm.*</code> attributes: enable native <code>gen_ai.*</code> emission where the instrumentor supports it (<code>OPENINFERENCE_ENABLE_GENAI_SEMCONV=true</code>), and normalize the remaining attributes with an OTel Collector that bundles the <code>genainormalizer</code> processor. Prerequisites: a DPS license with Traces powered by Grail, OTLP ingestion enabled, and a platform token with the <code>openpipeline:traces:ingest</code> scope, or a Classic access token with the Ingest OpenTelemetry traces (<code>openTelemetryTrace.ingest</code>) scope.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability/get-started/openinference">Get started with OpenInference and AI Observability (DT docs)</a> — <em>&quot;Enable native GenAI semantic-convention emission when the instrumentor supports it. Otherwise, normalize the OpenInference attributes with an OTel Collector.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability">AI Observability (DT docs)</a> — <em>&quot;For OpenTelemetry-based ingestion, use OpenInference.&quot;</em>, <em>&quot;OpenLLMetry reaches end of support on January 31, 2027.&quot;</em> (read 11/11/2026).</sub></p>
+</blockquote>
+<p><a id="ai-observability"></a></p>
+<h3>1a. AI Observability: monitoring your own GenAI applications</h3>
+<h4>Where it surfaces</h4>
+<p><strong>SaaS 1.344 (rollout from 07/29/2026)</strong> added two dedicated surfaces: a <strong>Smartscape view</strong> for GenAI topology, and a standalone <strong>Evaluations</strong> screen for prompt evaluations. On a tenant still below 1.344, prompt evaluations surface inside the general app views — the underlying span data is identical either way.</p>
+<blockquote>
+<p><strong><code>dt-evals</code> and the Evaluations tab are being retired (AI Observability docs, updated 10/30/2026).</strong> <em>&quot;dt-evals and the Evaluations tab in the AI Observability app are being retired.&quot;</em> Evaluation results already written to Dynatrace remain available as business events (<code>event.type == &quot;gen_ai.evaluation.result&quot;</code>) for as long as your bucket retention keeps them. To run and analyze new evaluations, the page points to <strong>Arize AX</strong>.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability">AI Observability (DT docs)</a> — <em>&quot;dt-evals and the Evaluations tab in the AI Observability app are being retired.&quot;</em>; <em>&quot;To run and analyze evaluations of your LLM applications and agents, use Arize AX&quot;</em> (read 11/11/2026)</sub></p>
+</blockquote>
+<h4>The conversation-reconstruction problem</h4>
+<p>Each turn of a conversational GenAI application is a <strong>separate HTTP request with its own trace ID</strong>. Traces are therefore per-turn by construction, and nothing in the default span data stitches turn 1 to turn 7. End-to-end session analysis — cost per conversation, where a multi-turn agent went wrong, which sessions got a bad answer — needs a <strong>shared identifier carried across turns</strong>.</p>
+<h4>Key attributes</h4>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gen_ai.conversation.id</code></td>
+<td>Groups every LLM span belonging to one browser session — the join key for reconstruction</td>
+</tr>
+<tr>
+<td><code>session.id</code></td>
+<td>Alias for the same value within AI Observability</td>
+</tr>
+<tr>
+<td><code>dt.rum.session.id</code></td>
+<td>The RUM session identifier, propagated by the RUM JavaScript in the <code>tracestate</code> header — links the conversation to the frontend session</td>
+</tr>
+<tr>
+<td><code>traceparent</code></td>
+<td>W3C header injected by RUM to link browser and backend spans (see <strong>OTEL-04 § 4</strong>)</td>
+</tr>
+</tbody>
+</table>
+<p>Supporting attributes for cost and model analysis: <code>gen_ai.provider.name</code>, <code>gen_ai.request.model</code>, <code>gen_ai.usage.input_tokens</code>, <code>gen_ai.usage.output_tokens</code>.</p>
+<blockquote>
+<p><strong>Attribute-existence note.</strong> <code>gen_ai.provider.name</code>, <code>gen_ai.request.model</code>, <code>gen_ai.usage.input_tokens</code> and <code>gen_ai.usage.output_tokens</code> are present in the Dynatrace semantic dictionary (stability: <em>experimental</em>), as is <code>dt.rum.session.id</code> (stability: <em>stable</em>). <strong><code>gen_ai.conversation.id</code> and <code>session.id</code> are not</strong> — they are application-set span attributes that you populate, per the implementation below, not platform-declared fields. That is expected for this pattern, but it means a typo in the attribute name fails silently: the query returns zero rows rather than an error. Confirm the attribute is arriving before you build on it.</p>
+</blockquote>
+<h4>Implementation shape</h4>
+<p>The identifier has to be created on the frontend and survive all the way to span export:</p>
+<ol>
+<li><strong>Frontend</strong> generates a UUID once per conversation and stores it in <code>sessionStorage</code>.</li>
+<li>Every request to the backend <strong>passes that UUID in the request body</strong>.</li>
+<li>The backend holds it in a <strong><code>ContextVar</code></strong> (or the equivalent request-scoped store for your runtime) so it is reachable from code that has no access to the request object.</li>
+<li>A <strong>span processor</strong> stages the value under a private attribute as spans are created.</li>
+<li>An <strong>exporter wrapper</strong> writes it to <strong><code>gen_ai.conversation.id</code></strong> immediately before export.</li>
+</ol>
+<p>Steps 4 and 5 are the part people skip. Setting the attribute at span <em>creation</em> only works where you control the span; the processor-plus-exporter pair is what gets the identifier onto spans created by auto-instrumentation and SDK internals too.</p>
+<h4>Reconstructing a conversation</h4>
+<p>The queries below are the documented reconstruction pattern. Both queries were executed against a live tenant (07/30/2026, re-run 09/24/2026): they parse and run, but that tenant carries no GenAI spans at all, so field population is unconfirmed — see the note under each cell.</p>
+<pre><code class="language-dql">// Reconstruct one conversation, turn by turn.
+// Source: Dynatrace docs: Conversation ID and agent session tracking (sample use case) —
+// adapted: sorts on start_time, not timestamp.
+// Executed against a live tenant 07/30/2026: the query runs, but that tenant has no
+// GenAI telemetry, so it returned 0 rows. Shape confirmed; field population is not.
+// Replace the id with one you captured from the frontend's sessionStorage.
+fetch spans, from:-24h
+| filter gen_ai.conversation.id == &quot;1f0c4d2e-9a3b-4c71-8e55-6d2a0b7f1c34&quot;
+| fields start_time,
+         span.name,
+         gen_ai.request.model,
+         gen_ai.usage.input_tokens,
+         gen_ai.usage.output_tokens,
+         feedback.rating
+| sort start_time asc
+| limit 200
+</code></pre>
+<p><strong>Reading the result:</strong> one row per LLM span, in conversation order — the turn sequence, which model served each turn, and the token cost of each. <code>feedback.rating</code> appears only if your application writes a user-feedback attribute onto the span; it is not a platform field, so expect nulls until you add it.</p>
+<p><strong>Verification status:</strong> syntax-verified <strong>and executed</strong> against a live tenant on 07/30/2026 — the query parses and runs. It returned <strong>0 rows</strong>, because that tenant ingests no GenAI telemetry. So the query <em>shape</em> is confirmed; <em>field population</em> is not, and cannot be from this environment. Note also that <code>gen_ai.conversation.id</code>, <code>session.id</code> and <code>feedback.rating</code> are <strong>application-set attributes, not platform fields</strong> — they exist only if your instrumentation writes them, they will not appear in the semantic dictionary, and a misspelling fails <strong>silently</strong> with zero rows rather than an error. Confirm the attributes are populated in your own environment before building on it.</p>
+<p>Aggregating across conversations turns the same join key into a cost view:</p>
+<pre><code class="language-dql">// Token usage per conversation — which sessions drive spend.
+// Uses the same gen_ai.conversation.id join key, aggregated.
+// Executed against a live tenant 07/30/2026: the query runs, but that tenant has no
+// GenAI telemetry, so it returned 0 rows. Shape confirmed; field population is not.
+fetch spans, from:-24h
+| filter isNotNull(gen_ai.conversation.id)
+| summarize {
+    turns = count(),
+    input_tokens = sum(gen_ai.usage.input_tokens),
+    output_tokens = sum(gen_ai.usage.output_tokens),
+    models = collectDistinct(gen_ai.request.model)
+  }, by: {gen_ai.conversation.id}
+| fieldsAdd total_tokens = input_tokens + output_tokens
+| sort total_tokens desc
+| limit 50
+</code></pre>
+<p><strong>Reading the result:</strong> the long-tail conversations at the top of this list are where token spend concentrates — usually a small number of sessions with many turns, or one model being called where a cheaper one would do. Cross-reference <strong>FINOPS-01</strong> for how that translates into DPS consumption.</p>
+<p><strong>Verification status:</strong> syntax-verified <strong>and executed</strong> 07/30/2026; returned 0 rows for the same reason as above — no GenAI telemetry on the validation tenant, not a query defect.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/dynatrace-for-ai-observability/sample-use-cases/conversation-and-session-tracking">Conversation ID and agent session tracking (DT docs)</a> — <em>&quot;A <code>SessionIdExporter</code> wrapper copies the staged value to <code>gen_ai.conversation.id</code>&quot;</em>, <a href="https://docs.dynatrace.com/docs/semantic-dictionary">Semantic Dictionary — <code>gen_ai</code> fields (DT docs)</a>. <strong>Dictionary:</strong> <code>gen_ai.provider.name</code>, <code>gen_ai.request.model</code>, <code>gen_ai.usage.input_tokens</code>, <code>gen_ai.usage.output_tokens</code> (<code>experimental</code>), <code>dt.rum.session.id</code> (<code>stable</code>); no row for <code>gen_ai.conversation.id</code> or <code>session.id</code> under <code>filter contains(name, &quot;conversation&quot;) or name == &quot;session.id&quot;</code>, read 09/28/2026 (control: the same filter returned <code>messaging.message.conversation_id</code>).</sub></p>
+</blockquote>
+<p><a id="wf-dql-cost"></a></p>
+<h2>2. Workflow Tutorial: Optimize DQL Cost</h2>
+<p><strong>Pattern:</strong> schedule a workflow that periodically analyzes DQL execution against ingestion / scan budgets, surfaces high-cost queries, and generates a summary recommending optimization.</p>
+<p><strong>When to use:</strong> any tenant with material DQL spend — typically OpenPipeline-heavy deployments, ad-hoc analytics workloads, dashboard-heavy environments.</p>
+<p><strong>The shape:</strong></p>
+<ol>
+<li><strong>Trigger</strong> — scheduled (e.g., weekly) or threshold-based (e.g., daily DQL spend &gt; X)</li>
+<li><strong>Analyze</strong> — DQL query against <code>dt.system.events</code> and the DPS metering streams to identify highest-cost queries</li>
+<li><strong>Summarize</strong> — Generative AI task composes a recommendation</li>
+<li><strong>Notify / file</strong> — workflow notification or ticket</li>
+</ol>
+<p>Below is a starter query for the analyze step. Tune <code>from:</code> and the cost threshold for your tenant.</p>
+<pre><code class="language-dql">// Top DQL users by scanned bytes — last 7 days
+// (Use as the analyze step in a cost-optimization workflow.)
+fetch dt.system.query_executions, from:-7d
+| filter status == &quot;SUCCEEDED&quot;
+| summarize {
+    total_scanned_bytes = sum(scanned_bytes),
+    execution_count     = count(),
+    avg_duration_ms     = avg(execution_duration_ms)
+  },
+  by:{user.email}
+| sort total_scanned_bytes desc
+| limit 25
+</code></pre>
+<p>Drop <code>user.email</code> from the <code>by:</code> clause and add <code>query_string</code> (truncated) to surface the biggest individual queries. Then pass the top queries to a Dynatrace Intelligence generative AI task in the same workflow for a plain-English explanation and optimization suggestion — the pattern in the <em>Optimize DQL cost with Workflows</em> tutorial. (The MCP <code>explain-dql</code> tool does the same job for an external agent; a workflow cannot call MCP tools.)</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/dynatrace-generative-ai-in-workflows-dql">Optimize DQL cost with Workflows (DT docs)</a> — tutorial built on Dynatrace Intelligence (Preview).</sub></p>
+</blockquote>
+<p><a id="wf-summary"></a></p>
+<h2>3. Workflow Tutorial: Summarize Open Problems</h2>
+<p><strong>Pattern:</strong> scheduled workflow runs every shift / every morning, gathers active problems, sends to a Generative AI task for narrative summary, and posts to Slack / Teams / email.</p>
+<p><strong>When to use:</strong> ops teams running shift handoffs; leadership wanting a daily problem digest without staring at the Problems app.</p>
+<p><strong>The shape:</strong></p>
+<ol>
+<li><strong>Trigger</strong> — cron (e.g., 8 AM weekdays)</li>
+<li><strong>Fetch</strong> — query active problems</li>
+<li><strong>Summarize</strong> — Generative AI task composes the digest</li>
+<li><strong>Post</strong> — Slack / Teams / email notification</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/generative-ai-in-workflows-examples">Summarize open problems with Workflows (DT docs)</a> — tutorial built on Dynatrace Intelligence (Preview).</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Active and recently-closed problems for a daily digest
+fetch dt.davis.problems, from:-24h
+| fields display_id, event.name, event.category, event.status,
+         event.start, event.end, root_cause_entity_name
+| sort event.start desc
+| limit 100
+</code></pre>
+<p><a id="wf-forecast"></a></p>
+<h2>4. Workflow Tutorial: Forecast Resource Utilization</h2>
+<p><strong>Pattern:</strong> scheduled workflow forecasts capacity-relevant series (host disk, namespace CPU, ingestion volume) using the workflow <strong>Analyze data</strong> action with the <em>Generic Forecast Analysis</em> analyzer, and notifies when projected exhaustion hits the threshold.</p>
+<p><strong>When to use:</strong> capacity planning. Catching disk-full / quota-exhaust scenarios before they fire is the canonical forecast use case.</p>
+<p><strong>The shape:</strong></p>
+<ol>
+<li><strong>Trigger</strong> — scheduled (e.g., daily)</li>
+<li><strong>Query</strong> — capacity series for the relevant resource</li>
+<li><strong>Forecast</strong> — analyzer task with confidence interval</li>
+<li><strong>Branch</strong> — if projected exhaustion within N days → escalate</li>
+<li><strong>Notify</strong> — workflow notification</li>
+</ol>
+<p>The tutorial is explicit that this is a workflow action, not an MCP call: <em>&quot;To trigger the forecast from a workflow, you need the Analyze data action.&quot;</em> External agents reach the same forecasting capability through the MCP <code>timeseries-forecast</code> tool (§5).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/dynatrace-intelligence-for-workflows">Forecast disk and resource utilization (DT docs)</a> — tutorial built on Dynatrace Intelligence (Preview).</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Disk usage timeseries — input to the forecast analyzer
+// Per host, hourly, last 30 days
+timeseries disk_used = avg(dt.host.disk.used.percent),
+  by:{dt.entity.host, dt.entity.disk},
+  from:-30d,
+  interval:1h
+| limit 100
+</code></pre>
+<p><a id="mcp"></a></p>
+<h2>5. The Dynatrace MCP Server</h2>
+<p>The MCP server is how your agent (Claude Code, Cursor, GitHub Copilot, etc.) calls Dynatrace as a tool. From a single chat prompt, your agent can generate DQL, execute it, and call analyzers.</p>
+<p><strong>Tool families exposed:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Tools</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DQL</strong></td>
+<td><code>create-dql</code>, <code>execute-dql</code>, <code>explain-dql</code></td>
+</tr>
+<tr>
+<td><strong>Davis analyzers</strong></td>
+<td><code>static-threshold-analyzer</code>, <code>seasonal-baseline-anomaly-detector</code>, <code>adaptive-anomaly-detector</code>, <code>timeseries-novelty-detection</code>, <code>timeseries-forecast</code>, <code>log-pattern-extractor</code></td>
+</tr>
+<tr>
+<td><strong>Discovery</strong></td>
+<td><code>find-documents</code>, <code>find-troubleshooting-guides</code>, <code>ask-dynatrace-docs</code></td>
+</tr>
+<tr>
+<td><strong>Topology</strong></td>
+<td><code>get-entity-id</code>, <code>get-entity-name</code></td>
+</tr>
+<tr>
+<td><strong>Davis problems &amp; security</strong></td>
+<td><code>query-problems</code>, <code>get-problem-by-id</code>, <code>get-events-for-kubernetes-cluster</code>, <code>get-dynatrace-vulnerabilities</code>, <code>get-dynatrace-compliance-findings</code>, <code>get-security-events-summary</code>, <code>get-security-event-details</code></td>
+</tr>
+</tbody>
+</table>
+<p>Tool names as registered by the Dynatrace MCP gateway, 09/24/2026 — the catalog changes; list your server's tools before scripting against a name.</p>
+<p><strong>Setup outline:</strong></p>
+<ol>
+<li>Create a Platform Token with <code>mcp-gateway:servers:invoke</code> and <code>mcp-gateway:servers:read</code>, plus the data scopes the tools need (<code>davis:analyzers:execute</code>, <code>storage:events:read</code>, …)</li>
+<li>Add the Dynatrace MCP server config to your agent (Claude Code: <code>.mcp.json</code> at the project root, or <code>claude mcp add</code> (stored in <code>~/.claude.json</code>); Cursor: settings.json; GitHub Copilot: similar)</li>
+<li>Test with a tool call from the agent</li>
+</ol>
+<p><strong>Use cases:</strong></p>
+<ul>
+<li><em>In-IDE notebook authoring</em> — generate DQL while writing the markdown around it</li>
+<li><em>Incident response</em> — Claude Code investigates a deployed service, calls <code>query-problems</code> and <code>execute-dql</code>, summarizes findings</li>
+<li><em>Custom agents</em> — your own LangChain / LangGraph agent uses Dynatrace MCP as one of many tools</li>
+</ul>
+<p>Auth and IAM bind the MCP integration to your IAM policy — same <code>davis:analyzers:execute</code> scope as the Anomaly Detection app, same <code>storage:events:read</code> for problem queries.</p>
+<blockquote>
+<p><strong>Custom alerts move from the app to Settings (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created, and it is the app the scope comparison above refers to.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp">Dynatrace MCP server (DT docs)</a> — <em>&quot;both the user and the token must have the following permissions to access and invoke server tools&quot;</em> (<code>mcp-gateway:servers:invoke</code>, <code>mcp-gateway:servers:read</code>)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a></sub></li>
+<li><sub><a href="https://code.claude.com/docs/en/mcp">Connect Claude Code to tools via MCP (Anthropic docs)</a> — <em>&quot;Project-scoped servers enable team collaboration by storing configurations in a <code>.mcp.json</code> file at your project's root directory.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="agentic"></a></p>
+<h2>6. Agentic Patterns: AutomationEngine and Approval-Based Remediation</h2>
+<p>Agentic workflows are an emerging area in 2026. The intent: detect a problem (Causal AI), propose a remediation (Generative AI), execute under policy guardrails (workflow + AutomationEngine), surface the human approval / post-action audit.</p>
+<blockquote>
+<p><strong>Two platform moves in this space (SaaS 1.344 and 1.346).</strong> An <strong>SRE Agent workflow template</strong> ships with 1.344 (rollout from 07/29/2026): production problems trigger automated root-cause analysis and impact annotations. It is a worked instance of exactly the pattern below — detect, analyse, annotate — and lands on the <em>suggest</em> side of the line, annotating rather than acting, which is why it is a reasonable first agentic workflow to adopt. Separately, <strong>Dynatrace Assist gains an agentic mode</strong> in 1.346 (rollout from 08/25/2026), where embedded conversation starters perform live environment analysis rather than answering from documentation; 1.344 added role, expertise-level, language, and tone personalisation. Assist moving from answering to analysing puts it inside the guardrail model below — the Scope, Policy and Audit questions now apply to it, not just to workflows you author. The suggest-mode posture below is unchanged by either.</p>
+<p><sub>Sources: <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">What's new in Dynatrace SaaS 1.344 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Run agent workflow action — licensing, permission and limits (Dynatrace 1.347+).</strong> <em>&quot;Starting with Dynatrace version 1.347+, using Dynatrace Intelligence AI outside the Assist UI, Dashboards, and Notebooks is subject to license consumption according to your existing licensing agreement and requires a DPS license that includes AI Units capabilities.&quot;</em> On a non-DPS licensing model, or without that capability, you are <em>&quot;no longer able to use agentic AI workflow actions.&quot;</em> The action needs <code>ai:operator:execute</code> alongside <code>mcp-gateway:servers:invoke</code>, <code>mcp-gateway:servers:read</code> and <code>document:documents:read</code>, and the standard agentic and generative AI limits apply: 25 requests per 15 minutes per user, 60 per 15 minutes across the environment, and 120 seconds per request. A frequently scheduled agent workflow can throttle every other agentic and generative AI use in the environment.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-intelligence-integrations/dynatrace-intelligence-run-agent-workflows">Run agents in Workflows (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.347+, using Dynatrace Intelligence AI outside the Assist UI, Dashboards, and Notebooks is subject to license consumption&quot;</em>; <em>&quot;no longer able to use agentic AI workflow actions&quot;</em>; <em>&quot;all other Dynatrace Intelligence agentic and generative AI functionality might be throttled due to reaching the request limit&quot;</em> (read 11/11/2026)</sub></p>
+</blockquote>
+<p><strong>Three guardrails to enforce:</strong></p>
+<ol>
+<li><strong>Scope</strong> — which environments / namespaces / clusters can the agent act on?</li>
+<li><strong>Policy</strong> — what action types are allowed without human approval (read-only / limited write / restart) vs. require approval (config change, scaling)?</li>
+<li><strong>Audit</strong> — where is the agent's reasoning logged? Audit must capture the prompt, the data the agent saw, and the action taken.</li>
+</ol>
+<p><strong>Practical 2026 posture:</strong> keep agentic remediation in <strong>suggest mode</strong> for the first 60–90 days. The agent posts the proposed remediation as a Slack / Teams / ticket comment — a human approves, a workflow executes. Move to fully automated only once the suggested-action quality is consistently high in your environment.</p>
+<p><a id="cross"></a></p>
+<h2>7. Cross-Series Pointers</h2>
+<ul>
+<li><strong>WFLOW</strong> — workflows fundamentals (this notebook adds the AI-task lens)</li>
+<li><strong>AUTOM</strong> — config-as-code, deployment automation</li>
+<li><strong>AIOPS-04</strong> — Dynatrace Assist as the chat surface that calls many of these same APIs</li>
+<li><strong>AIOPS-07</strong> — end-to-end Detect → Investigate → Remediate use cases that compose all of the above</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

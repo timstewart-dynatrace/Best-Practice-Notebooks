@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-15: Finding Every Zone Consumer</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-15</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-15: Finding Every Zone Consumer</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 16 of 17 | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Purpose:</strong> Before a zone can be deleted, everything that still uses it has to be found. A zone has no &quot;used by&quot; view, consumers store it in three different identifier formats, and some consumers reach it only through another object. This notebook finds them — in tenant settings, in classic configuration, in the account, and in code outside Dynatrace — and turns the result into the dependency matrix that gates deletion.</p>
+</blockquote>
+<h2>What This Notebook Does</h2>
+<ol>
+<li><strong>Explains why a zone outlives its rules</strong> — first-hop consumers that name it, second-hop consumers that inherit it</li>
+<li><strong>Builds the identifier triple per zone</strong> — name, numeric ID and settings objectId, because each consumer stores a different one</li>
+<li><strong>Searches tenant settings</strong> — the five zone-aware schemas, the notification-to-profile second hop, and the security-context mapping that consumes every zone at once</li>
+<li><strong>Searches classic configuration</strong> — dashboards, reports, calculated service metrics, request naming and synthetic monitors</li>
+<li><strong>Asks the SLO API</strong> which classic SLOs it relates to each zone</li>
+<li><strong>Searches the account</strong> — zone-scoped group permissions, policies and boundaries</li>
+<li><strong>Searches code outside the tenant</strong> — API clients, Terraform, Monaco</li>
+<li><strong>Reads the change history in Grail</strong> — zone references in settings changes, zone renames, and which API callers to chase</li>
+<li><strong>Assembles the dependency matrix and the deletion gate</strong></li>
+<li><strong>Names the replacement per consumer</strong> — only where Dynatrace documents one</li>
+</ol>
+<p>This notebook complements MZ2POL-00 (zone rules and usage), MZ2POL-03 §6 (the dependency checklist this notebook fills in), MZ2POL-09 §3 and §8 (alerting-profile inventory and the deletion test) and the evidence column of the MZ2POL-14 workshop, Session 1.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-a-zone-outlives-its-rules">Why a Zone Outlives Its Rules</a></li>
+<li><a href="#one-zone-three-identifiers">One Zone, Three Identifiers</a></li>
+<li><a href="#settings-consumers">Settings Consumers</a></li>
+<li><a href="#classic-configuration-api-consumers">Classic Configuration API Consumers</a></li>
+<li><a href="#classic-slos">Classic SLOs</a></li>
+<li><a href="#access-consumers">Access Consumers</a></li>
+<li><a href="#code-outside-the-tenant">Code Outside the Tenant</a></li>
+<li><a href="#evidence-from-grail">Evidence from Grail</a></li>
+<li><a href="#dependency-matrix-and-the-deletion-gate">Dependency Matrix and the Deletion Gate</a></li>
+<li><a href="#replacement-per-consumer">Replacement per Consumer</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with management zones still configured — see <em>Transition status</em> in §1</td>
+</tr>
+<tr>
+<td><strong>Permissions (notebook cells)</strong></td>
+<td><code>settings:objects:read</code> for the TypeScript cells in §2, §3 and §5 (the SLO API accepts it too); for the DQL cells in §8, <code>storage:system:read</code> on <code>AUDIT_EVENT</code> records and <code>storage:buckets:read</code> on <code>dt_system_events</code></td>
+</tr>
+<tr>
+<td><strong>Classic access token (§4 script)</strong></td>
+<td><code>ReadConfig</code> for dashboards, reports, calculated metrics and request naming; <code>ReadSyntheticData</code> for synthetic monitors</td>
+</tr>
+<tr>
+<td><strong>Account OAuth client (§6 script)</strong></td>
+<td><code>account-idm-read</code> and <code>iam-policies-management</code>; token exchange as in IAM-12 §1</td>
+</tr>
+<tr>
+<td><strong>Runtime</strong></td>
+<td>A Dynatrace notebook for §2, §3, §5 and §8 (<code>@dynatrace-sdk/client-classic-environment-v2</code>); <code>bash</code>, <code>curl</code> and <code>jq</code> for §4 and §6; a code search tool for §7</td>
+</tr>
+<tr>
+<td><strong>Identity</strong></td>
+<td>Run the settings cells as a user who can see every object: the Settings API returns only <em>accessible</em> objects (§3)</td>
+</tr>
+<tr>
+<td><strong>Before this</strong></td>
+<td>MZ2POL-00 — the zone export and the 90-day usage metric</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="why-a-zone-outlives-its-rules"></a></p>
+<h2>1. Why a Zone Outlives Its Rules</h2>
+<p>Translating a zone's rules (MZ2POL-11) answers <em>what the zone selected</em>. It does not answer <em>who still depends on the zone</em>. Those are different lists, kept in different places, and only the second one decides whether the zone can be deleted.</p>
+<p>Nothing in Dynatrace keeps the second list. A zone is referenced <em>by</em> other objects — an alerting profile, a metric event, a group permission, a script — and the zone object itself records none of them. MZ2POL-03 §6 lists the categories; this notebook finds the actual objects.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItYW1iZXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0ZGQjgwMCIvPjwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iOTMwIiBoZWlnaHQ9IjUwMCIgZmlsbD0iIzBGMTcyQSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMjEiIGZvbnQtd2VpZ2h0PSI3MDAiPldobyBTdGlsbCBVc2VzIFRoaXMgWm9uZT88L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMi41Ij5GaXJzdC1ob3AgY29uc3VtZXJzIG5hbWUgdGhlIHpvbmUuIFNlY29uZC1ob3AgY29uc3VtZXJzIGluaGVyaXQgaXQg4oCUIGFuZCBubyB6b25lIHBhZ2UgbGlzdHMgZWl0aGVyLjwvdGV4dD4KCiAgPCEtLSBab25lIC0tPgogIDxyZWN0IHg9IjM3MCIgeT0iMjA4IiB3aWR0aD0iMTkwIiBoZWlnaHQ9Ijg0IiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+TWFuYWdlbWVudCB6b25lPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5uYW1lIMK3IG51bWVyaWMgSUQgwrcgb2JqZWN0SWQ8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyNzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm5vICJ1c2VkIGJ5IiB2aWV3PC90ZXh0PgoKICA8IS0tIExlZnQgY29sdW1uOiB0ZW5hbnQgc2V0dGluZ3MgYW5kIGNsYXNzaWMgY29uZmlnIC0tPgogIDxyZWN0IHg9IjIwIiB5PSI3OCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMzAiIHJ4PSI4IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iMTcwIiB5PSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+SW4gdGhlIHRlbmFudDwvdGV4dD4KICA8ZyBmb250LXNpemU9IjExLjUiPgogICAgPHJlY3QgeD0iMzYiIHk9IjExMiIgd2lkdGg9IjI2OCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIvPgogICAgPHRleHQgeD0iNDgiIHk9IjEzMiIgZmlsbD0iI0JGREJGRSI+QWxlcnRpbmcgcHJvZmlsZXM8L3RleHQ+PHRleHQgeD0iMjkyIiB5PSIxMzIiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiPsKnMzwvdGV4dD4KICAgIDxyZWN0IHg9IjM2IiB5PSIxNDgiIHdpZHRoPSIyNjgiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiLz4KICAgIDx0ZXh0IHg9IjQ4IiB5PSIxNjgiIGZpbGw9IiNCRkRCRkUiPk1ldHJpYyBldmVudHMgwrcgbWFpbnRlbmFuY2Ugd2luZG93czwvdGV4dD48dGV4dCB4PSIyOTIiIHk9IjE2OCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCI+wqczPC90ZXh0PgogICAgPHJlY3QgeD0iMzYiIHk9IjE4NCIgd2lkdGg9IjI2OCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIvPgogICAgPHRleHQgeD0iNDgiIHk9IjIwNCIgZmlsbD0iI0JGREJGRSI+U0xPIENsYXNzaWMgZmlsdGVycyBhbmQgc2VsZWN0b3JzPC90ZXh0Pjx0ZXh0IHg9IjI5MiIgeT0iMjA0IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4Ij7CpzMsIMKnNTwvdGV4dD4KICAgIDxyZWN0IHg9IjM2IiB5PSIyMjAiIHdpZHRoPSIyNjgiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiLz4KICAgIDx0ZXh0IHg9IjQ4IiB5PSIyNDAiIGZpbGw9IiNCRkRCRkUiPlNlY3VyaXR5LWNvbnRleHQgbWFwcGluZyAoZXZlcnkgem9uZSk8L3RleHQ+PHRleHQgeD0iMjkyIiB5PSIyNDAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiPsKnMzwvdGV4dD4KICAgIDxyZWN0IHg9IjM2IiB5PSIyNTYiIHdpZHRoPSIyNjgiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiLz4KICAgIDx0ZXh0IHg9IjQ4IiB5PSIyNzYiIGZpbGw9IiNCRkRCRkUiPkNsYXNzaWMgZGFzaGJvYXJkcyBhbmQgdGlsZSBxdWVyaWVzPC90ZXh0Pjx0ZXh0IHg9IjI5MiIgeT0iMjc2IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4Ij7CpzQ8L3RleHQ+CiAgICA8cmVjdCB4PSIzNiIgeT0iMjkyIiB3aWR0aD0iMjY4IiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIi8+CiAgICA8dGV4dCB4PSI0OCIgeT0iMzEyIiBmaWxsPSIjQkZEQkZFIj5DYWxjdWxhdGVkIG1ldHJpY3MgwrcgcmVxdWVzdCBuYW1pbmc8L3RleHQ+PHRleHQgeD0iMjkyIiB5PSIzMTIiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiPsKnNDwvdGV4dD4KICAgIDxyZWN0IHg9IjM2IiB5PSIzMjgiIHdpZHRoPSIyNjgiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiLz4KICAgIDx0ZXh0IHg9IjQ4IiB5PSIzNDgiIGZpbGw9IiNDQkQ1RTEiPlN5bnRoZXRpYyBtb25pdG9ycyAoY29tcHV0ZWQgbWVtYmVyKTwvdGV4dD48dGV4dCB4PSIyOTIiIHk9IjM0OCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCI+wqc0PC90ZXh0PgogICAgPHRleHQgeD0iNDgiIHk9IjM4NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Q2hhbmdlIGhpc3Rvcnkgb2YgYWxsIG9mIHRoZXNlOiBhdWRpdCBldmVudHMsIMKnODwvdGV4dD4KICA8L2c+CgogIDwhLS0gUmlnaHQgY29sdW1uOiBhY2NvdW50IGFuZCBvdXRzaWRlIC0tPgogIDxyZWN0IHg9IjYxMCIgeT0iNzgiIHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiByeD0iOCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9Ijc2MCIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPkluIHRoZSBhY2NvdW50PC90ZXh0PgogIDxnIGZvbnQtc2l6ZT0iMTEuNSI+CiAgICA8cmVjdCB4PSI2MjYiIHk9IjExMiIgd2lkdGg9IjI2OCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIvPgogICAgPHRleHQgeD0iNjM4IiB5PSIxMzIiIGZpbGw9IiNEREQ2RkUiPkdyb3VwIHBlcm1pc3Npb25zIHNjb3BlZCB0byBhIHpvbmU8L3RleHQ+PHRleHQgeD0iODgyIiB5PSIxMzIiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiPsKnNjwvdGV4dD4KICAgIDxyZWN0IHg9IjYyNiIgeT0iMTQ4IiB3aWR0aD0iMjY4IiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIi8+CiAgICA8dGV4dCB4PSI2MzgiIHk9IjE2OCIgZmlsbD0iI0RERDZGRSI+UG9saWNpZXMgd2l0aCB6b25lIGNvbmRpdGlvbnM8L3RleHQ+PHRleHQgeD0iODgyIiB5PSIxNjgiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiPsKnNjwvdGV4dD4KICAgIDxyZWN0IHg9IjYyNiIgeT0iMTg0IiB3aWR0aD0iMjY4IiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIi8+CiAgICA8dGV4dCB4PSI2MzgiIHk9IjIwNCIgZmlsbD0iI0RERDZGRSI+Qm91bmRhcmllcyB3aXRoIHpvbmUgY29uZGl0aW9uczwvdGV4dD48dGV4dCB4PSI4ODIiIHk9IjIwNCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCI+wqc2PC90ZXh0PgogICAgPHJlY3QgeD0iNjI2IiB5PSIyMjAiIHdpZHRoPSIyNjgiIGhlaWdodD0iNDQiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiLz4KICAgIDx0ZXh0IHg9IjYzOCIgeT0iMjM4IiBmaWxsPSIjRERENkZFIj5TZWN1cml0eS1jb250ZXh0IHZhbHVlcyB0aGF0IGFyZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjYzOCIgeT0iMjU1IiBmaWxsPSIjRERENkZFIj56b25lIG5hbWVzPC90ZXh0Pjx0ZXh0IHg9Ijg4MiIgeT0iMjU1IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4Ij7CpzY8L3RleHQ+CiAgPC9nPgogIDxyZWN0IHg9IjYxMCIgeT0iMjkyIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjExNiIgcng9IjgiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI3NjAiIHk9IjMxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMy41IiBmb250LXdlaWdodD0iNzAwIj5PdXRzaWRlIER5bmF0cmFjZTwvdGV4dD4KICA8ZyBmb250LXNpemU9IjExLjUiPgogICAgPHJlY3QgeD0iNjI2IiB5PSIzMjYiIHdpZHRoPSIyNjgiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiLz4KICAgIDx0ZXh0IHg9IjYzOCIgeT0iMzQ2IiBmaWxsPSIjQTVGM0ZDIj5BUEkgY2xpZW50czogbXpTZWxlY3RvciwgbXpOYW1lKCApPC90ZXh0Pjx0ZXh0IHg9Ijg4MiIgeT0iMzQ2IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4Ij7Cpzc8L3RleHQ+CiAgICA8cmVjdCB4PSI2MjYiIHk9IjM2MiIgd2lkdGg9IjI2OCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIvPgogICAgPHRleHQgeD0iNjM4IiB5PSIzODIiIGZpbGw9IiNBNUYzRkMiPlRlcnJhZm9ybSDCtyBNb25hY28gwrcgc2NyaXB0czwvdGV4dD48dGV4dCB4PSI4ODIiIHk9IjM4MiIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCI+wqc3PC90ZXh0PgogIDwvZz4KCiAgPCEtLSBhcnJvd3Mgem9uZSAtPiBjb2x1bW5zIC0tPgogIDxsaW5lIHgxPSIzNzAiIHkxPSIyNTAiIHgyPSIzMjQiIHkyPSIyNTAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPGxpbmUgeDE9IjU2MCIgeTE9IjIzMCIgeDI9IjYwNiIgeTI9IjE5MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8bGluZSB4MT0iNTYwIiB5MT0iMjcwIiB4Mj0iNjA2IiB5Mj0iMzQwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgoKICA8IS0tIHNlY29uZCBob3AgLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjQyMCIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSI2NiIgcng9IjgiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIzNiIgeT0iNDQyIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TZWNvbmQgaG9wIOKAlCBpbmhlcml0cyB0aGUgem9uZSB3aXRob3V0IG5hbWluZyBpdDwvdGV4dD4KICA8ZyBmb250LXNpemU9IjExLjUiIGZpbGw9IiM5NEEzQjgiPgogICAgPHRleHQgeD0iMzYiIHk9IjQ2NCI+UHJvYmxlbSBub3RpZmljYXRpb248L3RleHQ+CiAgICA8bGluZSB4MT0iMTYwIiB5MT0iNDYwIiB4Mj0iMTk2IiB5Mj0iNDYwIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS40IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1hbWJlcikiLz4KICAgIDx0ZXh0IHg9IjIwMiIgeT0iNDY0Ij5hbGVydGluZyBwcm9maWxlPC90ZXh0PgogICAgPHRleHQgeD0iMzMwIiB5PSI0NjQiPlJlcG9ydDwvdGV4dD4KICAgIDxsaW5lIHgxPSIzNzQiIHkxPSI0NjAiIHgyPSI0MTAiIHkyPSI0NjAiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjQiIG1hcmtlci1lbmQ9InVybCgjYXJyLWFtYmVyKSIvPgogICAgPHRleHQgeD0iNDE2IiB5PSI0NjQiPmNsYXNzaWMgZGFzaGJvYXJkPC90ZXh0PgogICAgPHRleHQgeD0iNTYwIiB5PSI0NjQiPkVudGl0eS1hY2Nlc3MgcG9saWN5PC90ZXh0PgogICAgPGxpbmUgeDE9IjY4MiIgeTE9IjQ2MCIgeDI9IjcxOCIgeTI9IjQ2MCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNCIgbWFya2VyLWVuZD0idXJsKCNhcnItYW1iZXIpIi8+CiAgICA8dGV4dCB4PSI3MjQiIHk9IjQ2NCI+c2VjdXJpdHkgY29udGV4dCA9IHpvbmUgbmFtZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjM2IiB5PSI0ODAiIGZvbnQtc2l6ZT0iMTAuNSI+Q291bnQgdGhlIHNlY29uZCBob3Agd2l0aCB0aGUgZmlyc3Q6IGRlbGV0aW5nIHRoZSB6b25lIHJlYWNoZXMgYm90aC48L3RleHQ+CiAgPC9nPgo8L3N2Zz4K" alt="Who still uses this zone" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Where | Consumer | How it reaches the zone | Section |
+|---|---|---|---|
+| Tenant settings | Alerting profiles | Names the zone (first hop) | §3 |
+| Tenant settings | Metric events, maintenance windows | Name the zone | §3 |
+| Tenant settings | SLO Classic | Selector in the SLO filter; SLO API relation | §3, §5 |
+| Tenant settings | Grail security-context mapping | Copies every zone name onto entities | §3 |
+| Classic configuration | Classic dashboards and tile queries | Dashboard and tile filters, selectors in queries | §4 |
+| Classic configuration | Calculated service metrics, request naming | managementZones arrays | §4 |
+| Classic configuration | Synthetic monitors | Computed membership, not configured | §4 |
+| Account | Group permissions, policies, boundaries | Zone scope or zone condition | §6 |
+| Account | Policies on dt.security_context | A value that is a zone name | §6 |
+| Outside Dynatrace | API clients, Terraform, Monaco, scripts | Selectors and resource references | §7 |
+| Second hop | Problem notification → alerting profile; report → classic dashboard; entity-access policy → security context copied from a zone | Inherits the zone without naming it | §3, §4, §6 |
+For environments where SVG doesn't render
+-->
+<h3>First hop and second hop</h3>
+<p>A <strong>first-hop</strong> consumer names the zone. A <strong>second-hop</strong> consumer names a first-hop consumer and inherits the zone through it:</p>
+<table>
+<thead>
+<tr>
+<th>Second-hop consumer</th>
+<th>Reaches the zone through</th>
+<th>What the documentation says</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Problem notification</td>
+<td>Its alerting profile</td>
+<td>The notification's <code>alertingProfile</code> property selects <em>&quot;an alerting profile … to control the delivery of problem notifications&quot;</em>; the profile's <code>managementZone</code> property selects the entities</td>
+</tr>
+<tr>
+<td>Report</td>
+<td>Its classic dashboard</td>
+<td>A report carries only <code>dashboardId</code> — <em>&quot;The ID of the associated dashboard.&quot;</em></td>
+</tr>
+<tr>
+<td>Entity-access policy</td>
+<td>An entity security context copied from zone names</td>
+<td><em>&quot;By default, Grail uses the management zones to set the dt.security_context.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>A deletion reaches both hops. A notification with no zone of its own still stops — or starts — paging when its profile's zone goes.</p>
+<h3>Transition status</h3>
+<p>The upgrade guide for scoped settings says <em>&quot;Management zones have been discontinued as part of the Smartscape transition.&quot;</em> and that zone conditions on scoped-settings statements <em>&quot;never match&quot;</em> once the change arrives. It asks for a review <em>&quot;before this change reaches your environment&quot;</em>, so it is rolling out rather than everywhere at once. On a tenant the transition has not reached, zones are still created and used: on the validation tenant, the Settings audit log recorded 2 zone creations and 3 zone updates in the 90 days to 10/13/2026, and 11 zones answered queries in the same window.</p>
+<p>Run the inventory whichever side of the transition your tenant is on. Before the transition, it is the deletion gate. After it, the zone conditions on settings statements have already stopped matching (MZ2POL-12 §5), and the inventory tells you what else is still waiting for a replacement.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-problem-notifications">Problem notifications settings schema (DT docs)</a> — <code>alertingProfile</code>: <em>&quot;Select an alerting profile&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-alerting-profile">Alerting profile settings schema (DT docs)</a> — <code>managementZone</code>: <em>&quot;Entities which are part of the configured management zones will match this alerting profile.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/reports-api/get-report">Reports API - GET a report (DT docs)</a> — <em>&quot;The ID of the associated dashboard.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-monitoredentities-grail-security-context">Grail security context settings schema (DT docs)</a> — <em>&quot;By default, Grail uses the management zones to set the dt.security_context.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-scoped-settings-objects">Upgrade your security policies for scoped settings access (DT docs)</a> — <em>&quot;Management zones have been discontinued as part of the Smartscape transition.&quot;</em>, <em>&quot;Because management zones no longer exist, these conditions never match.&quot;</em>, <em>&quot;before this change reaches your environment&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="one-zone-three-identifiers"></a></p>
+<h2>2. One Zone, Three Identifiers</h2>
+<p>Every zone has three identifiers, and consumers do not agree on which one to store:</p>
+<table>
+<thead>
+<tr>
+<th>Identifier</th>
+<th>Example shape</th>
+<th>Stored by (documented or observed)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Name</strong></td>
+<td><code>Payments Prod</code></td>
+<td><code>mzName(…)</code> in entity selectors and SLO filters; <code>mzName(…)</code> inside <code>mzSelector</code> on metric queries; <code>managementZones(…)</code> on the Problems API (<em>&quot;contains, case-insensitive&quot;</em>); the settings-service <code>environment:management-zone</code> condition (<em>&quot;The name of a management zone.&quot;</em>); Monaco group bindings; entity security contexts copied from zones</td>
+</tr>
+<tr>
+<td><strong>Numeric ID</strong></td>
+<td><code>1234567890123456789</code></td>
+<td><code>mzId(…)</code> and <code>managementZoneIds(…)</code> selectors; group-permission scope <em>&quot;in {environment-id}:{management-zone-id} format&quot;</em>; classic dashboard and tile filters; the synthetic-monitor filter; Terraform <code>legacy_id</code>; metric events (observed)</td>
+</tr>
+<tr>
+<td><strong>Settings objectId</strong></td>
+<td><code>vu9U3hXa3q0AAAAB…</code></td>
+<td>Alerting profiles (observed — the property is documented as type <code>setting</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5PbmUgWm9uZSwgVGhyZWUgSWRlbnRpZmllcnM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMi41Ij5FYWNoIGNvbnN1bWVyIHN0b3JlcyB3aGljaGV2ZXIgb25lIGl0cyBBUEkgdXNlcyDigJQgYSBzZWFyY2ggZm9yIG9ubHkgb25lIG9mIHRoZW0gbWlzc2VzIHRoZSBvdGhlcnM8L3RleHQ+CgogIDwhLS0gZXhhbXBsZSBzdHJpcCAtLT4KICA8cmVjdCB4PSIyMCIgeT0iNzIiIHdpZHRoPSI4OTAiIGhlaWdodD0iNTQiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iMzYiIHk9Ijk0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5WYWxpZGF0aW9uIHRlbmFudCwgb25lIHpvbmUgKDEwLzEzLzIwMjYpOjwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iMTE0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPm5hbWUgIlBheW1lbnRzIFByb2QiIMK3IG51bWVyaWMgSUQgMTIzNDU2Nzg5MDEyMzQ1Njc4OSDCtyBvYmplY3RJZCB2dTlVM2hYYTNxMEFBQUFC4oCmICDigJQgaXRzIG1ldHJpYyBldmVudCBzdG9yZWQgdGhlIElELCBpdHMgYWxlcnRpbmcgcHJvZmlsZSB0aGUgb2JqZWN0SWQ8L3RleHQ+CgogIDwhLS0gTmFtZSAtLT4KICA8cmVjdCB4PSIyMCIgeT0iMTQwIiB3aWR0aD0iMjg2IiBoZWlnaHQ9IjMwMCIgcng9IjgiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIxNjMiIHk9IjE2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+TmFtZTwvdGV4dD4KICA8dGV4dCB4PSIxNjMiIHk9IjE4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YnJlYWtzIHNpbGVudGx5IG9uIHJlbmFtZTwvdGV4dD4KICA8ZyBmb250LXNpemU9IjExLjUiIGZpbGw9IiNDQkQ1RTEiPgogICAgPHRleHQgeD0iMzYiIHk9IjIxMiI+bXpOYW1lKCApIGluIGVudGl0eSBhbmQgU0xPIHNlbGVjdG9yczwvdGV4dD4KICAgIDx0ZXh0IHg9IjM2IiB5PSIyMzYiPm16U2VsZWN0b3IgbXpOYW1lKCApIG9uIG1ldHJpYyBxdWVyaWVzPC90ZXh0PgogICAgPHRleHQgeD0iMzYiIHk9IjI2MCI+bWFuYWdlbWVudFpvbmVzKCApIG9uIHByb2JsZW1zIOKAlCBjb250YWlucyw8L3RleHQ+CiAgICA8dGV4dCB4PSI0OCIgeT0iMjc2Ij5jYXNlLWluc2Vuc2l0aXZlPC90ZXh0PgogICAgPHRleHQgeD0iMzYiIHk9IjMwMCI+ZW52aXJvbm1lbnQ6bWFuYWdlbWVudC16b25lIG9uPC90ZXh0PgogICAgPHRleHQgeD0iNDgiIHk9IjMxNiI+c2V0dGluZ3Mgc3RhdGVtZW50czwvdGV4dD4KICAgIDx0ZXh0IHg9IjM2IiB5PSIzNDAiPk1vbmFjbyBncm91cCBiaW5kaW5nczwvdGV4dD4KICAgIDx0ZXh0IHg9IjM2IiB5PSIzNjQiPmR0LnNlY3VyaXR5X2NvbnRleHQgdmFsdWVzIGNvcGllZDwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ4IiB5PSIzODAiPmZyb20gem9uZSBuYW1lczwvdGV4dD4KICA8L2c+CgogIDwhLS0gTnVtZXJpYyAtLT4KICA8cmVjdCB4PSIzMjIiIHk9IjE0MCIgd2lkdGg9IjI4NiIgaGVpZ2h0PSIzMDAiIHJ4PSI4IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxNjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPk51bWVyaWMgSUQ8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjY0LWJpdCwgbWF5IGJlIG5lZ2F0aXZlIOKAlCBrZWVwIGFzIGEgc3RyaW5nPC90ZXh0PgogIDxnIGZvbnQtc2l6ZT0iMTEuNSIgZmlsbD0iI0NCRDVFMSI+CiAgICA8dGV4dCB4PSIzMzgiIHk9IjIxMiI+TWV0cmljIGV2ZW50cyAob2JzZXJ2ZWQpPC90ZXh0PgogICAgPHRleHQgeD0iMzM4IiB5PSIyMzYiPm16SWQoICkgYW5kIG1hbmFnZW1lbnRab25lSWRzKCApIHNlbGVjdG9yczwvdGV4dD4KICAgIDx0ZXh0IHg9IjMzOCIgeT0iMjYwIj5Hcm91cCBwZXJtaXNzaW9uIHNjb3BlPC90ZXh0PgogICAgPHRleHQgeD0iMzUwIiB5PSIyNzYiPntlbnZpcm9ubWVudC1pZH06e3pvbmUtaWR9PC90ZXh0PgogICAgPHRleHQgeD0iMzM4IiB5PSIzMDAiPkNsYXNzaWMgZGFzaGJvYXJkIGFuZCB0aWxlIGZpbHRlcnM8L3RleHQ+CiAgICA8dGV4dCB4PSIzMzgiIHk9IjMyNCI+U3ludGhldGljIG1vbml0b3IgZmlsdGVyPC90ZXh0PgogICAgPHRleHQgeD0iMzM4IiB5PSIzNDgiPlRlcnJhZm9ybSBsZWdhY3lfaWQ8L3RleHQ+CiAgICA8dGV4dCB4PSIzMzgiIHk9IjM3MiI+U0xPIHNlbGVjdG9yIG1hbmFnZW1lbnRab25lSUQoICk8L3RleHQ+CiAgPC9nPgoKICA8IS0tIG9iamVjdElkIC0tPgogIDxyZWN0IHg9IjYyNCIgeT0iMTQwIiB3aWR0aD0iMjg2IiBoZWlnaHQ9IjMwMCIgcng9IjgiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI3NjciIHk9IjE2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+U2V0dGluZ3Mgb2JqZWN0SWQ8L3RleHQ+CiAgPHRleHQgeD0iNzY3IiB5PSIxODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNldHRpbmdzIDIuMCBpZGVudGl0eSBvZiB0aGUgem9uZSBvYmplY3Q8L3RleHQ+CiAgPGcgZm9udC1zaXplPSIxMS41IiBmaWxsPSIjQ0JENUUxIj4KICAgIDx0ZXh0IHg9IjY0MCIgeT0iMjEyIj5BbGVydGluZyBwcm9maWxlcyAob2JzZXJ2ZWQpPC90ZXh0PgogICAgPHRleHQgeD0iNjQwIiB5PSIyMzYiPk90aGVyIHByb3BlcnRpZXMgb2YgdHlwZSAic2V0dGluZyI8L3RleHQ+CiAgICA8dGV4dCB4PSI2NDAiIHk9IjI3NiIgZmlsbD0iIzk0QTNCOCI+Q29udmVydGluZyBvYmplY3RJZCDihpIgbnVtZXJpYyBJRDo8L3RleHQ+CiAgICA8dGV4dCB4PSI2NDAiIHk9IjI5NiIgZmlsbD0iIzk0QTNCOCI+bWFuYWdlbWVudC16b25lIGRldGFpbHMgZW5kcG9pbnQsPC90ZXh0PgogICAgPHRleHQgeD0iNjQwIiB5PSIzMTYiIGZpbGw9IiM5NEEzQjgiPnNldHRpbmdzTWFuYWdlbWVudFpvbmVzQ2xpZW50PC90ZXh0PgogICAgPHRleHQgeD0iNjQwIiB5PSIzNTYiIGZpbGw9IiM5NEEzQjgiPk5vdCBkb2N1bWVudGVkIHBlciBzY2hlbWEg4oCUPC90ZXh0PgogICAgPHRleHQgeD0iNjQwIiB5PSIzNzYiIGZpbGw9IiM5NEEzQjgiPm1hdGNoIGFsbCB0aHJlZSBldmVyeXdoZXJlPC90ZXh0PgogIDwvZz4KCiAgPHJlY3QgeD0iMjAiIHk9IjQ1MiIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSIzNCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPlRoZSBzZWFyY2gga2V5IGlzIHRoZSB0cmlwbGUsIGJ1aWx0IHBlciB6b25lIGluIMKnMiDigJQgbmV2ZXIgb25lIGlkZW50aWZpZXIgYWxvbmU8L3RleHQ+Cjwvc3ZnPgo=" alt="One zone, three identifiers" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Identifier | Notes | Consumers |
+|---|---|---|
+| Name | Breaks silently on rename | mzName() selectors, mzSelector on metric queries, managementZones() on problems (contains, case-insensitive), environment:management-zone on settings statements, Monaco group bindings, security contexts copied from zone names |
+| Numeric ID | 64-bit, may be negative; keep as a string | Metric events (observed), mzId() and managementZoneIds() selectors, group permission scope {environment-id}:{zone-id}, classic dashboard and tile filters, synthetic monitor filter, Terraform legacy_id, SLO selector managementZoneID() |
+| Settings objectId | Settings 2.0 identity of the zone object | Alerting profiles (observed); convert objectId to numeric ID with the management-zone details endpoint |
+| Rule | | Search for all three identifiers of every zone, never one alone |
+For environments where SVG doesn't render
+-->
+<p><strong>Observed on the validation tenant (10/13/2026; zone names and IDs anonymized).</strong> One zone, <code>Payments Prod</code>, is referenced by a metric event and by an alerting profile. The metric event's <code>queryDefinition.managementZone</code> holds the numeric ID <code>1234567890123456789</code>; the alerting profile's <code>managementZone</code> holds the zone's settings objectId. A search for the zone's name finds neither. Of the 11 zones with query activity in the last 90 days, 3 had a <strong>negative</strong> numeric ID — so treat IDs as strings, never as numbers. A JavaScript <code>number</code> cannot hold a 19-digit ID exactly.</p>
+<p><strong>Names change.</strong> The same tenant's audit log shows a zone renamed from <code>Payments prod</code> to <code>Payments Prod</code> on 10/08/2026. Every name-based consumer of that zone — a selector, a policy condition, a Monaco binding — stopped matching it at that moment, because name matching is exact and case-sensitive outside the Problems API. The Terraform provider warns about the same thing: <em>&quot;Be careful when renaming&quot;</em>. §8 lists renames from the audit log.</p>
+<h3>Build the triple</h3>
+<p>This cell lists every zone with all three identifiers. The numeric ID comes from the management-zone details endpoint, which exists for exactly this conversion: <em>&quot;Allows to convert from an objectId to the ID of the management zone&quot;</em>. Save the result — the scripts in §4 and §6 read it as <code>zones.tsv</code> (name, numeric ID, objectId; tab-separated, no header).</p>
+<blockquote>
+<p><strong>Execution status:</strong> executed on the validation tenant (10/19/2026) through <code>dtctl exec function</code>: 46 zones, each with a numeric ID and an objectId. 19 of the numeric IDs are negative, and they come back intact as strings. The count matches an independent listing of <code>builtin:management-zones</code>.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/">Classic environment v2 SDK (Dynatrace Developer)</a> — <code>getManagementZoneDetails</code>: <em>&quot;Allows to convert from an objectId to the ID of the management zone&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/entity-v2/entity-selector">Entity selector (DT docs)</a> — <code>mzId</code>: <em>&quot;The ID of the management zone to which the requested entities belong.&quot;</em>; <code>mzName</code>: <em>&quot;The name of the management zone to which the requested entities belong.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/problems-v2/problems/get-problems-list">Problems API v2 - GET problems list (DT docs)</a> — <code>managementZoneIds(&quot;mZId-1&quot;, &quot;mzId-2&quot;)</code>; <em>&quot;Management zone name (contains, case-insensitive): managementZones(&quot;value-1&quot;,&quot;value-2&quot;)&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/permission-management-api/get-permissions">Permission management API - GET permissions (DT docs)</a> — <em>&quot;The ID of the management zone from an environment in {environment-id}:{management-zone-id} format.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — settings-service <code>environment:management-zone</code>: <em>&quot;The name of a management zone.&quot;</em></sub></li>
+<li><sub><a href="https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/docs/resources/management_zone_v2.md">dynatrace_management_zone_v2 (Dynatrace GitHub)</a> — <code>legacy_id</code>: <em>&quot;The ID of this setting when referred to by the Config REST API V1&quot;</em>; <em>&quot;Be careful when renaming&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> the metric-event and alerting-profile formats are read from the validation tenant's Settings audit events (§8), 10/13/2026.</sub></li>
+</ul>
+</blockquote>
+<pre><code class="language-python">import { settingsObjectsClient, settingsManagementZonesClient } from &quot;@dynatrace-sdk/client-classic-environment-v2&quot;;
+
+// One row per zone: the three identifiers a consumer can store.
+// numericId stays a string — zone IDs are 64-bit and can be negative; a JS number would round them.
+interface ZoneIds { name: string; numericId: string; objectId: string }
+
+async function getZones(): Promise&lt;ZoneIds[]&gt; {
+  const zones: ZoneIds[] = [];
+  const add = (items: { objectId?: string; value?: unknown }[]) =&gt; items.forEach((o) =&gt; zones.push({
+    // The Settings API returns value as an untyped object; builtin:management-zones always has a name.
+    name: String((o.value as { name?: string } | undefined)?.name ?? &quot;&quot;),
+    numericId: &quot;&quot;,
+    objectId: o.objectId ?? &quot;&quot;,
+  }));
+  let resp = await settingsObjectsClient.getSettingsObjects({
+    schemaIds: &quot;builtin:management-zones&quot;, pageSize: 500, fields: &quot;objectId,value&quot;,
+  });
+  add(resp.items);
+  while (resp.nextPageKey) {
+    // On later pages every other parameter must be omitted.
+    resp = await settingsObjectsClient.getSettingsObjects({ nextPageKey: resp.nextPageKey });
+    add(resp.items);
+  }
+  // objectId -&gt; numeric ID: the management-zone details endpoint exists for exactly this conversion.
+  for (const zone of zones) {
+    const details = await settingsManagementZonesClient.getManagementZoneDetails({ objectId: zone.objectId });
+    zone.numericId = details.id ?? &quot;&quot;;
+  }
+  return zones;
+}
+
+export default async function () {
+  return (await getZones()).sort((a, b) =&gt; a.name.localeCompare(b.name));
+}
+</code></pre>
+<hr />
+<p><a id="settings-consumers"></a></p>
+<h2>3. Settings Consumers</h2>
+<p>Dynatrace publishes its own list of zone-aware settings schemas — in the IAM policy reference, under the settings-service <code>environment:management-zone</code> condition. It applies to <em>&quot;settings objects of the schemas builtin:alerting.maintenance-window, builtin:alerting.profile,&quot;</em> <em>&quot;builtin:anomaly-detection.metric-events, builtin:monitoring.slo and builtin:problem.notifications.&quot;</em> That list is the seed for this search:</p>
+<table>
+<thead>
+<tr>
+<th>Schema</th>
+<th>Where the zone lives</th>
+<th>Hop</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>builtin:alerting.profile</code></td>
+<td><code>managementZone</code> — <em>&quot;Entities which are part of the configured management zones will match this alerting profile.&quot;</em> One zone per profile</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>builtin:alerting.maintenance-window</code></td>
+<td><code>filters[].managementZones</code> — <em>&quot;Entities which are part of all the configured management zones will match this maintenance window.&quot;</em></td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>builtin:anomaly-detection.metric-events</code></td>
+<td><code>queryDefinition.managementZone</code>, and entity-filter conditions of type <code>MANAGEMENT_ZONE</code>; a metric selector can also carry <code>mzName(…)</code> inside an entity selector</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>builtin:monitoring.slo</code></td>
+<td>The <code>filter</code> property is an entity selector — the zone appears as <code>mzName(…)</code> or <code>mzId(…)</code></td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>builtin:problem.notifications</code></td>
+<td>No zone property — <code>alertingProfile</code> points at a profile</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<p>Two schema pages add the same advice next to the zone property: <em>&quot;It is recommended to use manual tags instead.&quot;</em></p>
+<h3>One more consumer: the security-context mapping</h3>
+<p><code>builtin:monitoredentities.grail.security.context</code> does not name a zone — it consumes all of them. Where an entity type's destination property is <code>managementZones</code>, the entity's <code>dt.security_context</code> is a copy of its zone names, and <em>&quot;managementZones is the default value for the majority of entity types.&quot;</em> Every entity-access policy or boundary that matches on such a value is a hidden consumer of that zone's <strong>name</strong> (§6). The cell reports these mappings as <code>(every zone)</code> rows. MZ2POL-00 §5 Check C measures how many entities carry such copies.</p>
+<p>The schema itself is on Dynatrace's list of Settings 2.0 schemas removed in Latest Dynatrace — <code>builtin:monitoredentities.grail.security.context</code>, <em>Grail security context for monitored entities</em>, status <strong>Removed</strong> — and the list states: <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em> The cell reads this schema by ID, so it first checks that the environment still offers it: where it does not, the cell returns a single <code>(not checked)</code> row for the schema instead of reading it, because the docs do not say what a read returns once the schema is gone. The same page says: <em>&quot;If you use configuration-as-code or other automations that reference these schemas by ID, you need to update these automations before the schemas are removed from your environment.&quot;</em></p>
+<h3>How the cell matches</h3>
+<p>The cell reads every object of the five schemas plus the mapping schema, walks each object's value, and checks every string against all three identifiers of every zone:</p>
+<ul>
+<li><strong>objectId or numeric ID</strong> — an exact match anywhere in the value</li>
+<li><strong>name</strong> — an exact match only under a property whose name contains <code>managementZone</code>, <code>mzId</code> or <code>mzName</code> (an alerting profile is often <em>named</em> after its zone; that is not a reference)</li>
+<li><strong>selector arguments</strong> — <code>mzName(…)</code>, <code>mzId(…)</code>, <code>managementZone(…)</code>, <code>managementZoneID(…)</code>, <code>managementZoneIds(…)</code> and <code>managementZones(…)</code> inside any string, with <code>~&quot;</code> unescaped; <code>managementZones(…)</code> matches by <em>contains, case-insensitive</em>, as the Problems API does</li>
+<li><strong>dangling references</strong> — a zone property whose value matches no current zone is reported as <code>(no current zone)</code>. That is the evidence that something already points at a deleted zone</li>
+<li><strong>second hop</strong> — each problem notification whose <code>alertingProfile</code> is a matched profile is reported with <code>hop = 2</code> and the profile it goes through</li>
+</ul>
+<blockquote>
+<p><strong>Read the result as a floor, not a total.</strong> The Settings API answers <em>&quot;Accessible objects returned.&quot;</em> — an identity that cannot see an object gets no row for it, not an error. Run the cell as a user with read access to every object. If your identity also holds <code>settings:objects:admin</code>, <code>adminAccess: true</code> on the request makes it <em>&quot;act as if the user is the owner of all objects&quot;</em>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Execution status:</strong> executed on the validation tenant (10/19/2026): 27 rows across the five schemas — 15 alerting profiles (matched by objectId), 8 problem notifications reached through their alerting profile, 2 maintenance windows (objectId) and 2 metric events (numeric ID). 4 of them point at zones that no longer exist. Every settings object the §8 audit-log query found is in this output, and every match is on a zone-typed property, so objects that only mention a zone in free text add no rows. The security-context mapping added one <code>(every zone)</code> row for each of the 323 entity types it copies zone names to. Re-run 11/11/2026 with the schema check: the schema was still offered, and the result was unchanged — the same 27 rows and 323 <code>(every zone)</code> rows. With the schema ID replaced by one that does not exist, the cell returned a single <code>(not checked)</code> row in place of the mapping rows.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — <em>&quot;or settings objects of the schemas builtin:alerting.maintenance-window, builtin:alerting.profile,&quot;</em> <em>&quot;builtin:anomaly-detection.metric-events, builtin:monitoring.slo and builtin:problem.notifications.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-alerting-profile">Alerting profile settings schema (DT docs)</a> — <em>&quot;It is recommended to use manual tags instead.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;an alerting profile can also select only one management zone&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-alerting-maintenance-window">Maintenance window settings schema (DT docs)</a> — <em>&quot;Entities which are part of all the configured management zones will match this maintenance window.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-anomaly-detection-metric-events">Metric events settings schema (DT docs)</a> — <code>managementZone</code>; entity filter type <code>MANAGEMENT_ZONE</code></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-monitoring-slo">SLO settings schema (DT docs)</a> — <code>filter</code>: <em>&quot;Entity selector&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context">Grant access to entities with security context (DT docs)</a> — <em>&quot;managementZones is the default value for the majority of entity types.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a> — <code>builtin:monitoredentities.grail.security.context</code> listed as <em>Removed</em>; <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/get-objects">Settings API - GET objects (DT docs)</a> — <em>&quot;Accessible objects returned.&quot;</em>; <code>adminAccess</code>: <em>&quot;act as if the user is the owner of all objects&quot;</em>; on later pages <em>&quot;you must omit all other query parameters&quot;</em></sub></li>
+</ul>
+</blockquote>
+<pre><code class="language-python">import { settingsObjectsClient, settingsManagementZonesClient, settingsSchemasClient } from &quot;@dynatrace-sdk/client-classic-environment-v2&quot;;
+
+// The five schemas the IAM policy reference lists as zone-aware, plus the Grail security-context mapping.
+const SCHEMAS = [
+  &quot;builtin:alerting.profile&quot;,
+  &quot;builtin:alerting.maintenance-window&quot;,
+  &quot;builtin:anomaly-detection.metric-events&quot;,
+  &quot;builtin:monitoring.slo&quot;,
+  &quot;builtin:problem.notifications&quot;,
+];
+const SECURITY_CONTEXT_SCHEMA = &quot;builtin:monitoredentities.grail.security.context&quot;;
+
+interface ZoneIds { name: string; numericId: string; objectId: string }
+interface SettingsItem { objectId?: string; schemaId?: string; summary?: string; value?: unknown }
+interface Hit { zone: string; matchedBy: string; hop: number; schema: string; objectId: string; summary: string; path: string; via: string }
+
+async function getObjects(schemaIds: string): Promise&lt;SettingsItem[]&gt; {
+  const items: SettingsItem[] = [];
+  let resp = await settingsObjectsClient.getSettingsObjects({
+    schemaIds, pageSize: 500, fields: &quot;objectId,schemaId,summary,value&quot;,
+  });
+  items.push(...resp.items);
+  while (resp.nextPageKey) {
+    resp = await settingsObjectsClient.getSettingsObjects({ nextPageKey: resp.nextPageKey });
+    items.push(...resp.items);
+  }
+  return items;
+}
+
+async function getZones(): Promise&lt;ZoneIds[]&gt; {
+  const objects = await getObjects(&quot;builtin:management-zones&quot;);
+  const zones: ZoneIds[] = [];
+  for (const o of objects) {
+    const details = await settingsManagementZonesClient.getManagementZoneDetails({ objectId: o.objectId ?? &quot;&quot; });
+    // value is untyped in the SDK; builtin:management-zones always carries a name.
+    zones.push({ name: String((o.value as { name?: string } | undefined)?.name ?? &quot;&quot;), numericId: details.id ?? &quot;&quot;, objectId: o.objectId ?? &quot;&quot; });
+  }
+  return zones;
+}
+
+// Every string leaf of a settings value, with its JSON path.
+function leaves(value: unknown, path = &quot;value&quot;): { path: string; text: string }[] {
+  if (typeof value === &quot;string&quot;) return [{ path, text: value }];
+  if (typeof value === &quot;number&quot;) return [{ path, text: String(value) }];
+  if (Array.isArray(value)) return value.flatMap((v, i) =&gt; leaves(v, `${path}[${i}]`));
+  if (value &amp;&amp; typeof value === &quot;object&quot;) {
+    return Object.entries(value as Record&lt;string, unknown&gt;).flatMap(([k, v]) =&gt; leaves(v, `${path}.${k}`));
+  }
+  return [];
+}
+
+// Arguments of selector functions inside a string: mzName(&quot;a&quot;,&quot;b&quot;), mzId(1,2), managementZone(&quot;a&quot;), managementZoneIds(...).
+const SELECTOR = /\b(mzName|mzId|managementZones?|managementZoneIds|managementZoneID)\(([^)]*)\)/g;
+function selectorArgs(text: string): { fn: string; arg: string }[] {
+  const out: { fn: string; arg: string }[] = [];
+  for (const m of text.matchAll(SELECTOR)) {
+    // Unescape ~&quot; (selector escaping) before stripping the surrounding quotes.
+    m[2].split(&quot;,&quot;).map((a) =&gt; a.trim().replace(/~&quot;/g, &quot;\&quot;&quot;).replace(/^&quot;|&quot;$/g, &quot;&quot;)).filter(Boolean)
+      .forEach((arg) =&gt; out.push({ fn: m[1], arg }));
+  }
+  return out;
+}
+
+const isZoneKey = (path: string) =&gt; /managementzone|mzid|mzname/i.test(path.split(&quot;.&quot;).pop() ?? &quot;&quot;);
+
+// Which zone, and by which identifier, does one string leaf reference?
+function match(path: string, text: string, zones: ZoneIds[]): { zone: string; matchedBy: string }[] {
+  const found: { zone: string; matchedBy: string }[] = [];
+  zones.forEach((z) =&gt; {
+    if (text === z.objectId) found.push({ zone: z.name, matchedBy: &quot;objectId&quot; });
+    else if (z.numericId &amp;&amp; text === z.numericId) found.push({ zone: z.name, matchedBy: &quot;numeric ID&quot; });
+    else if (isZoneKey(path) &amp;&amp; text === z.name) found.push({ zone: z.name, matchedBy: &quot;name&quot; });
+    selectorArgs(text).forEach(({ fn, arg }) =&gt; {
+      if (z.numericId &amp;&amp; arg === z.numericId) found.push({ zone: z.name, matchedBy: `numeric ID in ${fn}()` });
+      // managementZones() on the Problems API is &quot;contains, case-insensitive&quot;; the others match exactly.
+      else if (fn === &quot;managementZones&quot; ? z.name.toLowerCase().includes(arg.toLowerCase()) : arg === z.name) {
+        found.push({ zone: z.name, matchedBy: `name in ${fn}()` });
+      }
+    });
+  });
+  return found;
+}
+
+export default async function () {
+  const zones = await getZones();
+  const objects = await getObjects(SCHEMAS.join(&quot;,&quot;));
+  const hits: Hit[] = [];
+
+  objects.forEach((o) =&gt; {
+    leaves(o.value).forEach(({ path, text }) =&gt; {
+      const matched = match(path, text, zones);
+      matched.forEach((m) =&gt; hits.push({ ...m, hop: 1, schema: o.schemaId ?? &quot;&quot;, objectId: o.objectId ?? &quot;&quot;, summary: o.summary ?? &quot;&quot;, path, via: &quot;&quot; }));
+      // A zone-typed property whose value matches no current zone: a dangling reference.
+      if (matched.length === 0 &amp;&amp; isZoneKey(path) &amp;&amp; text !== &quot;&quot;) {
+        hits.push({ zone: &quot;(no current zone)&quot;, matchedBy: `unresolved: ${text}`, hop: 1, schema: o.schemaId ?? &quot;&quot;, objectId: o.objectId ?? &quot;&quot;, summary: o.summary ?? &quot;&quot;, path, via: &quot;&quot; });
+      }
+    });
+  });
+
+  // Second hop: problem notifications reach a zone only through their alerting profile.
+  const profileHits = hits.filter((h) =&gt; h.schema === &quot;builtin:alerting.profile&quot; &amp;&amp; h.hop === 1);
+  objects.filter((o) =&gt; o.schemaId === &quot;builtin:problem.notifications&quot;).forEach((n) =&gt; {
+    // problem.notifications always carries an alertingProfile objectId; the SDK types value as unknown.
+    const profileId = (n.value as { alertingProfile?: string } | undefined)?.alertingProfile;
+    profileHits.filter((p) =&gt; p.objectId === profileId).forEach((p) =&gt; hits.push({
+      zone: p.zone, matchedBy: p.matchedBy, hop: 2, schema: n.schemaId ?? &quot;&quot;, objectId: n.objectId ?? &quot;&quot;,
+      summary: n.summary ?? &quot;&quot;, path: &quot;value.alertingProfile&quot;, via: `alerting profile: ${p.summary}`,
+    }));
+  });
+
+  // Zone-wide consumer: entity types whose Grail security context is copied from zone names.
+  // This schema is on the list of schemas removed in Latest Dynatrace, and the docs do not say what reading it
+  // returns once it is gone. Check that the environment still offers it, and say so in a row if it does not,
+  // so a removed schema is never mistaken for &quot;no mappings&quot;.
+  const schemas = await settingsSchemasClient.getAvailableSchemaDefinitions();
+  if (!schemas.items.some((s) =&gt; s.schemaId === SECURITY_CONTEXT_SCHEMA)) {
+    hits.push({ zone: &quot;(not checked)&quot;, matchedBy: &quot;schema not offered on this environment&quot;, hop: 1, schema: SECURITY_CONTEXT_SCHEMA, objectId: &quot;&quot;, summary: &quot;&quot;, path: &quot;&quot;, via: &quot;&quot; });
+  } else {
+    const scMappings = await getObjects(SECURITY_CONTEXT_SCHEMA);
+    scMappings.forEach((o) =&gt; {
+      // The schema has two text properties: entityType and destinationProperty.
+      const v = (o.value ?? {}) as { entityType?: string; destinationProperty?: string };
+      if (v.destinationProperty === &quot;managementZones&quot;) {
+        hits.push({ zone: &quot;(every zone)&quot;, matchedBy: &quot;zone names copied to dt.security_context&quot;, hop: 1, schema: SECURITY_CONTEXT_SCHEMA, objectId: o.objectId ?? &quot;&quot;, summary: `entity type: ${v.entityType ?? &quot;&quot;}`, path: &quot;value.destinationProperty&quot;, via: &quot;&quot; });
+      }
+    });
+  }
+
+  return hits.sort((a, b) =&gt; a.zone.localeCompare(b.zone) || a.hop - b.hop || a.schema.localeCompare(b.schema));
+}
+</code></pre>
+<hr />
+<p><a id="classic-configuration-api-consumers"></a></p>
+<h2>4. Classic Configuration API Consumers</h2>
+<p>Classic dashboards, reports, calculated service metrics and request naming rules are not Settings 2.0 objects. They are read through Configuration API v1, which has <strong>no <code>@dynatrace-sdk</code> client</strong> — the classic-environment SDK packages checked on 10/13/2026 (<code>client-classic-environment-v1</code> 2.1.1, <code>-v2</code> 9.1.0) cover none of these endpoints. This section is therefore a script, run outside the notebook with a classic access token. It only sends GET requests.</p>
+<table>
+<thead>
+<tr>
+<th>Consumer</th>
+<th>Endpoint</th>
+<th>Zone field</th>
+<th>Format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Classic dashboard</td>
+<td><code>GET /api/config/v1/dashboards</code>, then <code>/{id}</code></td>
+<td><code>dashboardMetadata.dashboardFilter.managementZone</code>, <code>tiles[].tileFilter.managementZone</code> — <em>&quot;The short representation of a Dynatrace entity.&quot;</em>; plus <code>mzName(…)</code> / <code>mzId(…)</code> written into tile queries</td>
+<td><code>{id, name}</code>; the documented example ID is numeric</td>
+</tr>
+<tr>
+<td>Report</td>
+<td><code>GET /api/config/v1/reports</code></td>
+<td>None — <code>dashboardId</code> only (second hop)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Calculated service metric</td>
+<td><code>GET /api/config/v1/calculatedMetrics/service</code>, then <code>/{metricKey}</code></td>
+<td><code>managementZones</code> — <em>&quot;Restricts the metric usage to specified management zones.&quot;</em></td>
+<td>Not stated — the script matches all three</td>
+</tr>
+<tr>
+<td>Request naming rule</td>
+<td><code>GET /api/config/v1/service/requestNaming</code>, then <code>/{id}</code></td>
+<td><code>managementZones</code> — DEPRECATED</td>
+<td>Not stated — the script matches all three</td>
+</tr>
+<tr>
+<td>Synthetic monitor</td>
+<td><code>GET /api/v1/synthetic/monitors?managementZone={id}</code></td>
+<td>Membership: <em>&quot;A set of management zones to which the monitor belongs to.&quot;</em></td>
+<td>Numeric ID</td>
+</tr>
+</tbody>
+</table>
+<p>Three of these deserve a note, and synthetic monitors a fourth:</p>
+<ul>
+<li>
+<p><strong>The platform Synthetic API has no zone filter.</strong> <code>GET /platform/synthetic/v1/monitors</code> (Dynatrace recommends migrating to it; all of its endpoints are Early Adopter) filters <code>monitor-selector</code> by type, location, entity, tag, enablement and <code>securityContext(…)</code> — not by zone. Its form of <em>monitors in this zone</em> is <em>monitors with this security context</em>, the scoping SYNTH-01 describes. Keep the classic call above for the zone inventory.
+<sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/monitors-get">GET monitors — platform API (DT docs)</a> — <em>&quot;Security context: securityContext(value1,value2)&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control">Access control — Synthetic (DT docs)</a> — <em>&quot;Dynatrace recommends migrating to the Synthetic platform permissions and the Synthetic Platform API&quot;</em>; <em>&quot;All Synthetic Platform API endpoints are currently in Early Adopter maturity.&quot;</em>; <em>&quot;can change in non-compatible ways&quot;</em></sub></p>
+</li>
+<li>
+<p><strong>Dashboards carry a usage signal.</strong> The dashboard list returns <code>lastViewed</code> — <em>&quot;The timestamp of the last dashboard view, in UTC milliseconds.&quot;</em> A zone-filtered dashboard nobody has opened in months is a weaker reason to keep the zone than one opened daily. Pull it into the matrix (§9).</p>
+</li>
+<li>
+<p><strong>Calculated metrics and request naming already lose the zone in Phase 3.</strong> The request naming rule's <code>managementZones</code> is documented as <em>&quot;Not available in Phase 3.&quot;</em> and <em>&quot;Management zones are not supported and this field will be ignored.&quot;</em>; the calculated metric's request-attribute <code>managementZone</code> carries the same notice. MZ2POL-01 records the API 1.337 deprecation of these properties. List them anyway — a metric that silently loses its zone restriction counts different requests.</p>
+</li>
+<li>
+<p><strong>Synthetic monitors are members, not consumers.</strong> A monitor's zones are computed by the zone rules; nothing on the monitor is configured. The script lists them so you know which monitors lose zone-scoped visibility. The zone ID is passed as a string — the SDK types this parameter as a <code>number</code>, which cannot hold a 19-digit ID exactly, which is one more reason this section uses REST.</p>
+</li>
+</ul>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# Zone references in Configuration API v1 objects and synthetic monitors. READ-ONLY: GET requests only.
+# Needs: curl, jq; a classic access token with ReadConfig (dashboards, reports, calculated metrics,
+# request naming) and ReadSyntheticData (synthetic monitors).
+# Input: zones.tsv — the §2 result exported as name&lt;TAB&gt;numericId&lt;TAB&gt;objectId, no header.
+# Output: one TSV row per reference: consumer, id, name, field, reference, zone.
+set -euo pipefail
+
+ENV_URL=&quot;https://&lt;your-environment-id&gt;.live.dynatrace.com&quot;   # classic environment URL, no trailing slash
+API_TOKEN=&quot;${DT_CLASSIC_TOKEN:?export DT_CLASSIC_TOKEN first}&quot;
+ZONES_FILE=&quot;zones.tsv&quot;
+
+api() { curl -sSf --header &quot;Authorization: Api-Token ${API_TOKEN}&quot; &quot;${ENV_URL}$1&quot;; }   # -S: print the HTTP error
+
+# Map any identifier (name, numeric ID, objectId) to the zone name.
+ZONES_JSON=$(jq -R -s 'split(&quot;\n&quot;) | map(select(length &gt; 0) | split(&quot;\t&quot;))
+  | map({key: .[0], value: .[0]}, {key: .[1], value: .[0]}, {key: .[2], value: .[0]}) | from_entries' &quot;${ZONES_FILE}&quot;)
+emit() { # consumer id name field reference
+  jq -r -n --argjson z &quot;${ZONES_JSON}&quot; --arg c &quot;$1&quot; --arg i &quot;$2&quot; --arg n &quot;$3&quot; --arg f &quot;$4&quot; --arg r &quot;$5&quot; \
+    '[$c, $i, $n, $f, $r, ($z[$r] // (if $r == &quot;all&quot; then &quot;(all zones)&quot; else &quot;(no current zone)&quot; end))] | @tsv'
+}
+
+printf 'consumer\tid\tname\tfield\treference\tzone\n'
+
+# 1. Classic dashboards: dashboard-wide filter, per-tile filters, and selectors written into tile queries.
+for id in $(api &quot;/api/config/v1/dashboards&quot; | jq -r '.dashboards[].id'); do
+  d=$(api &quot;/api/config/v1/dashboards/${id}&quot;)
+  name=$(jq -r '.dashboardMetadata.name' &lt;&lt;&lt;&quot;$d&quot;)
+  jq -r '.dashboardMetadata.dashboardFilter.managementZone.id // empty' &lt;&lt;&lt;&quot;$d&quot; | while read -r r; do
+    emit dashboard &quot;$id&quot; &quot;$name&quot; dashboardFilter &quot;$r&quot;; done
+  jq -r '.tiles[].tileFilter.managementZone.id // empty' &lt;&lt;&lt;&quot;$d&quot; | while read -r r; do
+    emit dashboard &quot;$id&quot; &quot;$name&quot; tileFilter &quot;$r&quot;; done
+  # Selector arguments, unescaped (~&quot; and \&quot; both occur) and stripped of quotes.
+  jq -r '[.. | strings | scan(&quot;(?:mzName|mzId)\\(([^)]*)\\)&quot;)[0] | split(&quot;,&quot;)[]
+      | gsub(&quot;~\&quot;|\\\\\&quot;&quot;; &quot;\&quot;&quot;) | gsub(&quot;^\\s*\&quot;|\&quot;\\s*$&quot;; &quot;&quot;)] | unique[]' \
+    &lt;&lt;&lt;&quot;$d&quot; | while read -r r; do emit dashboard &quot;$id&quot; &quot;$name&quot; &quot;tile query selector&quot; &quot;$r&quot;; done
+done
+
+# 2. Reports: no zone field of their own — they inherit it from the dashboard they mail out (second hop).
+api &quot;/api/config/v1/reports&quot; | jq -r '.values[] | [.id, .dashboardId] | @tsv' | while IFS=$'\t' read -r rid did; do
+  printf 'report\t%s\t\tdashboardId (second hop)\t%s\t(see the dashboard rows)\n' &quot;$rid&quot; &quot;$did&quot;
+done
+
+# 3. Calculated service metrics and 4. request naming rules: managementZones arrays.
+for key in $(api &quot;/api/config/v1/calculatedMetrics/service&quot; | jq -r '.values[].id'); do
+  m=$(api &quot;/api/config/v1/calculatedMetrics/service/${key}&quot;)
+  jq -r '.managementZones[]? ' &lt;&lt;&lt;&quot;$m&quot; | while read -r r; do emit calculated-metric &quot;$key&quot; &quot;$(jq -r .name &lt;&lt;&lt;&quot;$m&quot;)&quot; managementZones &quot;$r&quot;; done
+done
+for id in $(api &quot;/api/config/v1/service/requestNaming&quot; | jq -r '.values[].id'); do
+  n=$(api &quot;/api/config/v1/service/requestNaming/${id}&quot;)
+  jq -r '.managementZones[]?' &lt;&lt;&lt;&quot;$n&quot; | while read -r r; do emit request-naming &quot;$id&quot; &quot;$(jq -r .namingPattern &lt;&lt;&lt;&quot;$n&quot;)&quot; managementZones &quot;$r&quot;; done
+done
+
+# 5. Synthetic monitors: membership is computed by the zone rules, not configured on the monitor.
+#    Listed so you know which monitors lose zone-scoped visibility. The ID stays a string here.
+cut -f1,2 &quot;${ZONES_FILE}&quot; | while IFS=$'\t' read -r zname zid; do
+  api &quot;/api/v1/synthetic/monitors?managementZone=${zid}&quot; | jq -r '.monitors[] | [.entityId, .name] | @tsv' |
+    while IFS=$'\t' read -r mid mname; do emit synthetic-monitor &quot;$mid&quot; &quot;$mname&quot; &quot;member of zone (computed)&quot; &quot;$zid&quot;; done
+done
+</code></pre>
+<p>The script prints one TSV row per reference. <code>zone</code> is resolved from any of the three identifiers; <code>(no current zone)</code> is a dangling reference. <code>(all zones)</code> is a dashboard or tile filter set to <em>All</em> — the API returns it as <code>{&quot;id&quot;: &quot;all&quot;, &quot;name&quot;: &quot;All&quot;}</code>, which names no zone.</p>
+<blockquote>
+<p><strong>Execution status:</strong> executed on the validation tenant (10/19/2026), exit 0: 427 synthetic-monitor memberships, 235 dashboard references (5 dashboard-wide filters, 230 tile filters), 5 reports and 3 calculated metrics; request naming returned none. 150 of the tile filters point at 3 deleted zones, and 34 dashboard references are the <em>All</em> setting. With a token the environment rejects, the script stops at the first call and prints curl's HTTP error.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/dashboards-api/get-dashboard">Dashboards Classic API - GET a dashboard (DT docs)</a> — <code>managementZone</code>: <em>&quot;The short representation of a Dynatrace entity.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/dashboards-api/get-all">Dashboards Classic API - GET all dashboards (DT docs)</a> — <code>lastViewed</code>: <em>&quot;The timestamp of the last dashboard view, in UTC milliseconds.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/reports-api/get-all">Reports API - GET all reports (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/calculated-metrics/service-metrics/get-calculated-metric">Service metrics API - GET a metric (DT docs)</a> — <code>managementZones</code>: <em>&quot;Restricts the metric usage to specified management zones.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/calculated-metrics/service-metrics/put-calculated-metric">Service metrics API - PUT a metric (DT docs)</a> — <em>&quot;Not available in Phase 3.&quot;</em>, <em>&quot;Management zones are not supported and configurations using this field will be ignored.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/service-api/request-naming-api/get-a-rule">Request naming API - GET a request naming rule (DT docs)</a> — <code>managementZones</code>: <em>&quot;Management zones are not supported and this field will be ignored.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic/synthetic-monitors/get-all-monitors">Synthetic monitors API - GET all monitors (DT docs)</a> — <code>managementZone</code>: <em>&quot;Filters the resulting set of monitors to those which are part of the specified management zone.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic/synthetic-monitors/get-a-monitor">Synthetic monitors API - GET a monitor (DT docs)</a> — <em>&quot;A set of management zones to which the monitor belongs to.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="classic-slos"></a></p>
+<h2>5. Classic SLOs</h2>
+<p>§3 already finds SLO Classic objects whose <code>filter</code> names a zone. The SLO API offers a second, server-side view: its <code>sloSelector</code> accepts <code>managementZoneID(&quot;123&quot;)</code>, which <em>&quot;Filters for all SLOs that are related to the given management zone ID. Returned SLOs are evaluated against the given management zone.&quot;</em></p>
+<p>The two views answer different questions, and the docs do not define &quot;related to&quot;:</p>
+<table>
+<thead>
+<tr>
+<th>View</th>
+<th>Answers</th>
+<th>Use it for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>§3 text match on <code>filter</code></td>
+<td>Which SLO definitions <strong>name</strong> the zone</td>
+<td>The rewrite list — these SLOs break when the zone goes</td>
+</tr>
+<tr>
+<td>§5 <code>sloSelector</code> per zone</td>
+<td>Which SLOs the SLO API <strong>relates</strong> to the zone, evaluated in its scope</td>
+<td>The visibility list — SLOs a zone-scoped user sees today</td>
+</tr>
+</tbody>
+</table>
+<p>The cell flags <code>filterNamesZone</code> for each row. A row with <code>filterNamesZone = false</code> is an SLO the API relates to the zone without the definition naming it — record it, and confirm what it means on your tenant before relying on it. The zone's numeric ID is passed inside the selector string, so it is never rounded. <code>enabledSlos: &quot;all&quot;</code> includes disabled SLOs; <code>showGlobalSlos: false</code> leaves out SLOs that would be returned <em>&quot;regardless of the selected filter&quot;</em>.</p>
+<blockquote>
+<p><strong>Execution status:</strong> executed in a notebook Code section on the validation tenant (10/19/2026): no rows. The tenant had 52 classic SLOs and none names a zone in its filter, so the empty result is consistent with them — but it does not settle whether <em>related to</em> also returns SLOs whose filter does not name the zone. Test that on a tenant with a zone-scoped SLO before relying on it. The cell needs <code>environment-api:slo:read</code>, which the Notebooks app declares; <code>dtctl exec function</code> could not run it because the dtctl OAuth client does not hold that scope.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/service-level-objectives-classic/get-all">Service-level objectives API - GET all SLOs (DT docs)</a> — <em>&quot;Filters for all SLOs that are related to the given management zone ID. Returned SLOs are evaluated against the given management zone.&quot;</em>; <code>showGlobalSlos</code>: <em>&quot;regardless of the selected filter&quot;</em></sub></li>
+<li><sub><a href="https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/">Classic environment v2 SDK (Dynatrace Developer)</a> — <code>serviceLevelObjectivesClient.getSlo</code> parameters <code>sloSelector</code>, <code>enabledSlos</code>, <code>showGlobalSlos</code>, <code>evaluate</code>, <code>nextPageKey</code></sub></li>
+</ul>
+</blockquote>
+<pre><code class="language-python">import { settingsObjectsClient, settingsManagementZonesClient, serviceLevelObjectivesClient } from &quot;@dynatrace-sdk/client-classic-environment-v2&quot;;
+
+interface ZoneIds { name: string; numericId: string; objectId: string }
+
+async function getZones(): Promise&lt;ZoneIds[]&gt; {
+  const zones: ZoneIds[] = [];
+  let resp = await settingsObjectsClient.getSettingsObjects({
+    schemaIds: &quot;builtin:management-zones&quot;, pageSize: 500, fields: &quot;objectId,value&quot;,
+  });
+  const add = (items: { objectId?: string; value?: unknown }[]) =&gt; items.forEach((o) =&gt;
+    // value is untyped in the SDK; builtin:management-zones always carries a name.
+    zones.push({ name: String((o.value as { name?: string } | undefined)?.name ?? &quot;&quot;), numericId: &quot;&quot;, objectId: o.objectId ?? &quot;&quot; }));
+  add(resp.items);
+  while (resp.nextPageKey) {
+    resp = await settingsObjectsClient.getSettingsObjects({ nextPageKey: resp.nextPageKey });
+    add(resp.items);
+  }
+  for (const z of zones) {
+    z.numericId = (await settingsManagementZonesClient.getManagementZoneDetails({ objectId: z.objectId })).id ?? &quot;&quot;;
+  }
+  return zones;
+}
+
+// SLOs the SLO API relates to one zone. The ID goes inside the selector string, so it is never rounded.
+async function slosForZone(numericId: string) {
+  const slos: { id: string; name: string; filter: string; enabled: boolean }[] = [];
+  let resp = await serviceLevelObjectivesClient.getSlo({
+    sloSelector: `managementZoneID(&quot;${numericId}&quot;)`, pageSize: 500,
+    evaluate: &quot;false&quot;, enabledSlos: &quot;all&quot;, showGlobalSlos: false,
+  });
+  slos.push(...resp.slo.map((s) =&gt; ({ id: s.id, name: s.name, filter: s.filter, enabled: s.enabled })));
+  while (resp.nextPageKey) {
+    resp = await serviceLevelObjectivesClient.getSlo({ nextPageKey: resp.nextPageKey });
+    slos.push(...resp.slo.map((s) =&gt; ({ id: s.id, name: s.name, filter: s.filter, enabled: s.enabled })));
+  }
+  return slos;
+}
+
+export default async function () {
+  const rows: Record&lt;string, string | boolean&gt;[] = [];
+  for (const zone of await getZones()) {
+    for (const s of await slosForZone(zone.numericId)) {
+      const named = s.filter.includes(zone.name) || s.filter.includes(zone.numericId);
+      rows.push({ zone: zone.name, slo: s.name, sloId: s.id, enabled: s.enabled, filter: s.filter, filterNamesZone: named });
+    }
+  }
+  return rows;
+}
+</code></pre>
+<hr />
+<p><a id="access-consumers"></a></p>
+<h2>6. Access Consumers</h2>
+<p>Access is configured in the <strong>account</strong>, not the tenant, so a tenant identity cannot read it. This is a script for an account-level OAuth client — the same setup as IAM-12 §1, which carries the token exchange and error handling this script leaves out. It only sends GET requests.</p>
+<table>
+<thead>
+<tr>
+<th>Consumer</th>
+<th>Endpoint</th>
+<th>What marks a zone</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Classic group permission</td>
+<td><code>GET /iam/v1/accounts/{accountUuid}/groups</code>, then <code>/groups/{groupUuid}/permissions</code></td>
+<td><code>scopeType</code> = <code>management-zone</code>; <code>scope</code> is <em>&quot;in {environment-id}:{management-zone-id} format&quot;</em></td>
+<td><code>account-idm-read</code></td>
+</tr>
+<tr>
+<td>Policy</td>
+<td><code>GET /iam/v1/repo/{levelType}/{levelId}/policies/aggregate</code>, then <code>/policies/{policyUuid}</code></td>
+<td>A condition named <code>environment:management-zone</code> or <code>extensions:management-zone</code> in <code>statements[].conditions[]</code></td>
+<td><code>iam-policies-management</code></td>
+</tr>
+<tr>
+<td>Boundary</td>
+<td><code>GET /iam/v1/repo/account/{accountId}/boundaries</code></td>
+<td>The same condition names in <code>boundaryConditions[]</code></td>
+<td><code>iam-policies-management</code></td>
+</tr>
+<tr>
+<td>Policy or boundary on <code>dt.security_context</code></td>
+<td>as above</td>
+<td>A value that <strong>equals a zone name</strong>, where entity security contexts are copied from zones (§3)</td>
+<td>as above</td>
+</tr>
+</tbody>
+</table>
+<p>What each condition means:</p>
+<ul>
+<li><code>environment:management-zone</code> on the <strong>environment</strong> service scopes the classic roles — <code>environment:roles:viewer</code>, <code>manage-settings</code>, <code>logviewer</code> and the rest — to a zone. The role-migration guide shows the form: <code>ALLOW environment:roles:viewer WHERE environment:management-zone=…</code> (MZ2POL-12 §8 maps each role).</li>
+<li><strong>Request naming access follows zones until you opt in to IAM (SaaS 1.349, rollout start 10/27/2026).</strong> SaaS 1.349 moves request naming permissions to IAM policies <em>&quot;instead of management zones&quot;</em>, with the security context setting which services each policy covers. It is an opt-in switch in Settings, and <em>&quot;Users without a matching policy lose access.&quot;</em> Until the switch is on, zone scoping still decides who may change request naming rules — so write the policies before you turn it on, and before you delete the zones.</li>
+<li><code>environment:management-zone</code> on the <strong>settings</strong> service scopes <code>settings:objects:read</code> / <code>write</code>. This is the condition the scoped-settings upgrade says will <em>&quot;never match&quot;</em> after the transition (MZ2POL-12 §5).</li>
+<li><code>extensions:management-zone</code> — <em>&quot;A string that uniquely identifies a single management zone for monitoring configuration assignment&quot;</em> — scopes Extensions 2.0 monitoring-configuration permissions to a zone.</li>
+<li>A <code>dt.security_context</code> value that is a zone name names no zone at all, yet it stops matching the moment the zone is renamed, deleted, or the mapping in §3 is changed. The upgrade guide lists <em>&quot;Security context conditions that are derived from management zones.&quot;</em> among the affected conditions.</li>
+</ul>
+<p>Group permissions are filtered to the environments you list, because a zone ID is only unique within its environment.</p>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# Zone references in account-level access: classic group permissions, policies, boundaries.
+# READ-ONLY: GET requests only. Not run inside a notebook — it needs an account-level OAuth client.
+# Scopes: account-idm-read (groups, permissions) and iam-policies-management (policies, boundaries).
+# Token exchange and error handling: see the IAM-12 auth boilerplate; this script assumes ${TOKEN}.
+# Input: zones.tsv from §2 (name&lt;TAB&gt;numericId&lt;TAB&gt;objectId).
+set -euo pipefail
+
+ACCOUNT_UUID=&quot;&lt;your-account-uuid&gt;&quot;
+ENVIRONMENT_IDS=(&quot;&lt;environment-id&gt;&quot;)          # every environment whose zones you are inventorying
+TOKEN=&quot;${TOKEN:?obtain a bearer token first (IAM-12, section 1)}&quot;
+ZONES_FILE=&quot;zones.tsv&quot;
+IAM=&quot;https://api.dynatrace.com/iam/v1&quot;
+
+api() { curl -sSf --header &quot;Authorization: Bearer ${TOKEN}&quot; &quot;${IAM}$1&quot;; }   # -S: print the HTTP error
+ZONES_JSON=$(jq -R -s 'split(&quot;\n&quot;) | map(select(length &gt; 0) | split(&quot;\t&quot;))
+  | map({key: .[0], value: .[0]}, {key: .[1], value: .[0]}, {key: .[2], value: .[0]}) | from_entries' &quot;${ZONES_FILE}&quot;)
+
+printf 'kind\tid\tname\tcondition\tvalue\tzone\n'
+
+# 1. Classic group permissions scoped to a zone: scope is &quot;{environment-id}:{management-zone-id}&quot;.
+api &quot;/accounts/${ACCOUNT_UUID}/groups&quot; | jq -r '.items[] | [.uuid, .name] | @tsv' |
+while IFS=$'\t' read -r guuid gname; do
+  api &quot;/accounts/${ACCOUNT_UUID}/groups/${guuid}/permissions&quot; | jq -r --argjson z &quot;${ZONES_JSON}&quot; --arg g &quot;$gname&quot; --arg u &quot;$guuid&quot; \
+      --argjson envs &quot;$(printf '%s\n' &quot;${ENVIRONMENT_IDS[@]}&quot; | jq -R . | jq -s .)&quot; '
+    .permissions[] | select(.scopeType == &quot;management-zone&quot;)
+    | (.scope | split(&quot;:&quot;)) as $s | select($s[0] | IN($envs[]))     # zone IDs are per environment
+    | [&quot;group-permission&quot;, $u, $g, .permissionName, .scope, ($z[$s[1]] // &quot;(no current zone)&quot;)] | @tsv'
+done
+
+# 2. Policies (account level, and environment level for each environment). Global policies are
+#    Dynatrace-managed and are skipped. A statement can name a zone directly (environment:management-zone,
+#    extensions:management-zone) or indirectly: a dt.security_context value that is a zone name, where
+#    entity security contexts are still copied from zones (§3, last row type).
+policy_refs() { # levelType levelId uuid name
+  api &quot;/repo/$1/$2/policies/$3&quot; | jq -r --argjson z &quot;${ZONES_JSON}&quot; --arg u &quot;$3&quot; --arg n &quot;$4&quot; '
+    .statements[]?.conditions[]? | select(.name | test(&quot;management-zone|security_context&quot;)) as $c
+    | $c.values[] | . as $v
+    # A zone condition always reports; a security-context value only when it equals a zone name.
+    | ($z[$v] // (if ($c.name | test(&quot;management-zone&quot;)) then (if ($v | startswith(&quot;${bindParam:&quot;)) then &quot;(binding parameter)&quot; elif ($v | test(&quot;[*]&quot;)) then &quot;(pattern)&quot; else &quot;(no current zone)&quot; end) else null end)) as $zone
+    | select($zone != null) | [&quot;policy&quot;, $u, $n, $c.name, $v, $zone] | @tsv'
+}
+{ api &quot;/repo/account/${ACCOUNT_UUID}/policies/aggregate&quot;
+  for env in &quot;${ENVIRONMENT_IDS[@]}&quot;; do api &quot;/repo/environment/${env}/policies/aggregate&quot;; done
+} | jq -r -s '[.[].policyOverviewList[] | select(.levelType != &quot;global&quot;)] | unique_by(.uuid)[]
+      | [.levelType, .levelId, .uuid, .name] | @tsv' |
+while IFS=$'\t' read -r ltype lid puuid pname; do policy_refs &quot;$ltype&quot; &quot;$lid&quot; &quot;$puuid&quot; &quot;$pname&quot;; done
+
+# 3. Boundaries (account level), paged.
+page=1
+while :; do
+  b=$(api &quot;/repo/account/${ACCOUNT_UUID}/boundaries?page=${page}&amp;size=100&quot;)
+  jq -r --argjson z &quot;${ZONES_JSON}&quot; '.content[] | . as $b | .boundaryConditions[]?
+    | select(.name | test(&quot;management-zone|security_context&quot;)) as $c | $c.values[]
+    | . as $v | ($z[$v] // (if ($c.name | test(&quot;management-zone&quot;)) then (if ($v | startswith(&quot;${bindParam:&quot;)) then &quot;(binding parameter)&quot; elif ($v | test(&quot;[*]&quot;)) then &quot;(pattern)&quot; else &quot;(no current zone)&quot; end) else null end)) as $zone
+    | select($zone != null) | [&quot;boundary&quot;, $b.uuid, $b.name, $c.name, $v, $zone] | @tsv' &lt;&lt;&lt;&quot;$b&quot;
+  [[ $(jq '.pageNumber * .pageSize &lt; .totalCount' &lt;&lt;&lt;&quot;$b&quot;) == &quot;true&quot; ]] || break
+  page=$((page + 1))
+done
+</code></pre>
+<blockquote>
+<p><strong>Execution status:</strong> executed against the validation tenant's account (10/19/2026) with an OAuth client holding <code>account-idm-read</code> and <code>iam-policies-management</code>, exit 0: 7 zone-scoped group permissions (the scope is <code>{environment-id}:{management-zone-id}</code>, negative IDs included), 30 policy-condition rows and 27 boundary-condition rows. A <code>${bindParam:…}</code> value is reported as <code>(binding parameter)</code> — the zone is set per binding — and a value containing <code>*</code> as <code>(pattern)</code>. A value used with <code>startsWith</code> is a pattern too, but still shows as <code>(no current zone)</code>: check those rows by hand.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/group-management-api/get-all-groups">Group management API - GET all groups (DT docs)</a> — scope <code>account-idm-read</code></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/permission-management-api/get-permissions">Permission management API - GET permissions (DT docs)</a> — <em>&quot;The ID of the management zone from an environment in {environment-id}:{management-zone-id} format.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/policy-management-api/policies/get-all-policies">Policy management API - GET all policies (DT docs)</a> — <em>&quot;Lists all access policies that are available at a policy level, including those inherited from higher levels.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/policy-management-api/policies/get-policy">Policy management API - GET a policy (DT docs)</a> — <code>statementQuery</code>, <code>statements[].conditions[]</code></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/policy-management-api/boundaries/get-all-boundaries">Policy management API - GET all policy boundaries (DT docs)</a> — <code>boundaryQuery</code>, <code>boundaryConditions</code></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — <code>extensions:management-zone</code>: <em>&quot;A string that uniquely identifies a single management zone for monitoring configuration assignment&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles">Upgrade role-based permissions to Dynatrace IAM policies (DT docs)</a> — <em>&quot;Classic RBAC roles can also be expressed in policies.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-scoped-settings-objects">Upgrade your security policies for scoped settings access (DT docs)</a> — <em>&quot;Security context conditions that are derived from management zones.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-349">Dynatrace SaaS release notes 1.349 (DT docs)</a> — <em>&quot;Request naming permissions now follow your IAM policies, like the rest of the latest Dynatrace, instead of management zones.&quot;</em>, <em>&quot;Users without a matching policy lose access.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="code-outside-the-tenant"></a></p>
+<h2>7. Code Outside the Tenant</h2>
+<p>Scripts, integrations and configuration-as-code repositories reference zones in request parameters and resource definitions. Dynatrace cannot list them: the classic API audit record keeps the request <strong>path</strong> but not its query string (checked below), so a <code>mzSelector</code> sent by a client leaves no trace of the zone it named. The search has to happen in the code.</p>
+<table>
+<thead>
+<tr>
+<th>Where</th>
+<th>Search for</th>
+<th>Identifier it carries</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Metric queries (API v2)</td>
+<td><code>mzSelector</code> — <em>&quot;The management zone scope of the query.&quot;</em> — with <code>mzId(…)</code> / <code>mzName(…)</code></td>
+<td>numeric ID, name</td>
+</tr>
+<tr>
+<td>Entity selectors (entities, SLOs, settings filters)</td>
+<td><code>mzId(</code>, <code>mzName(</code></td>
+<td>numeric ID, name</td>
+</tr>
+<tr>
+<td>Problems API v2</td>
+<td><code>managementZoneIds(</code>, <code>managementZones(</code></td>
+<td>numeric ID, name (contains, case-insensitive)</td>
+</tr>
+<tr>
+<td>SLO API</td>
+<td><code>managementZone(</code>, <code>managementZoneID(</code></td>
+<td>name, numeric ID</td>
+</tr>
+<tr>
+<td>Synthetic API v1</td>
+<td><code>managementZone=</code></td>
+<td>numeric ID</td>
+</tr>
+<tr>
+<td>Terraform</td>
+<td><code>dynatrace_management_zone_v2</code>, <code>dynatrace_management_zone</code>, <code>management_zone</code>, <code>management_zones</code>, <code>legacy_id</code></td>
+<td>resource reference, numeric ID</td>
+</tr>
+<tr>
+<td>Monaco</td>
+<td><code>builtin:management-zones</code>, <code>managementZoneId</code>, <code>managementZones:</code> in account group files</td>
+<td>reference, numeric ID, name</td>
+</tr>
+<tr>
+<td>Anything else</td>
+<td>each zone's name, numeric ID and objectId from §2</td>
+<td>all three</td>
+</tr>
+</tbody>
+</table>
+<p>One search over every repository that talks to Dynatrace covers the first seven rows. Run it from the root of each repository, or from a directory that holds all of them:</p>
+<pre><code class="language-bash">rg -n --hidden -g '!.git' \
+  -e 'mzSelector' -e 'mzName\(' -e 'mzId\(' -e 'managementZoneIds?\(' -e 'managementZones?\(' -e 'managementZoneID\(' \
+  -e 'managementZone=' -e 'dynatrace_management_zone' -e 'management_zones?\b' -e 'legacy_id' \
+  -e 'builtin:management-zones' -e 'managementZoneId' -e 'managementZones:'
+</code></pre>
+<p>Then search for each zone's three identifiers from §2. That last step catches zone IDs hard-coded into dashboards-as-JSON, runbooks and alert templates that none of the patterns above describe.</p>
+<p><strong>The Problems API v2 is deprecated (API 1.349, rollout start 10/27/2026).</strong> The API changelog tags <code>GET /problems</code>, <code>GET /problems/{problemId}</code> and the problem-comment endpoints <em>Deprecated</em>. Deprecated is not removed, so a caller the search finds is still live and still filters by zone. Treat it as code to move rather than re-point: the zone-free replacement for problem routing is the problem-triggered workflow in MZ2POL-09.</p>
+<p>Monaco's documentation marks zone-scoped group permissions as <code># classic Dynatrace only</code>, and its classic-dashboard example binds a zone by ID: <code>&quot;id&quot;: &quot;{{ .managementZoneId }}&quot;</code>, a dashboard filter that <em>&quot;Sets a management zone filter on the entire dashboard&quot;</em>.</p>
+<h3>Which API callers to chase</h3>
+<p>The audit log cannot show the selector, but it can name the callers that use the endpoints that accept one. Each token and origin in the result is an owner to ask, or a repository to search.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/get-data-points">Metrics API - GET metric data points (DT docs)</a> — <code>mzSelector</code>: <em>&quot;The management zone scope of the query.&quot;</em>, <em>&quot;Only metrics data relating to the specified management zones are included to the response.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/entity-v2/entity-selector">Entity selector (DT docs)</a> — <code>mzId(&quot;123456789&quot;,&quot;987654321&quot;)</code></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/problems-v2/problems/get-problems-list">Problems API v2 - GET problems list (DT docs)</a> — <code>managementZoneIds(&quot;mZId-1&quot;, &quot;mzId-2&quot;)</code></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-349">Dynatrace API changelog 1.349 (DT docs)</a> — Environment API v2: <em>&quot;GET /problems Deprecated&quot;</em>, <em>&quot;Rollout start on Oct 27, 2026&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields">Monaco configuration YAML - type fields (DT docs)</a> — <em>&quot;classic Dynatrace only&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/special-configuration-types-saas">Monaco configuration YAML - special configuration types (DT docs)</a> — <em>&quot;Sets a management zone filter on the entire dashboard&quot;</em></sub></li>
+<li><sub><a href="https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/docs/resources/management_zone_v2.md">dynatrace_management_zone_v2 (Dynatrace GitHub)</a> — <em>&quot;The resource <code>dynatrace_management_zone_v2</code> covers configuration for management zones&quot;</em></sub></li>
+</ul>
+</blockquote>
+<pre><code class="language-dql">// API callers of the classic endpoints that accept zone selectors. The audit record keeps the path only,
+// so this names the callers whose code to search — it cannot show the selector itself.
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.provider == &quot;CLASSIC_API&quot;
+| filter startsWith(resource, &quot;/api/v2/metrics/query&quot;) or startsWith(resource, &quot;/api/v2/entities&quot;)
+    or startsWith(resource, &quot;/api/v2/problems&quot;) or startsWith(resource, &quot;/api/v2/slo&quot;)
+    or startsWith(resource, &quot;/api/config/v1/dashboards&quot;)
+| summarize {calls = count(), endpoints = collectDistinct(resource, maxLength: 5), last_call = max(timestamp)},
+    by:{caller = authentication.token, origin = origin.address}
+| sort calls desc
+| limit 50
+</code></pre>
+<p>On the validation tenant (10/13/2026), 30 days of classic API audit events held 204,923 records, all with a <code>resource</code> path and none with a query string. The caller query returned 6 token-and-origin pairs — 3 distinct tokens — with 50 calls to the entities, problems and classic dashboard endpoints.</p>
+<blockquote>
+<p><strong>Never read an empty result here as &quot;no API clients use zones&quot;.</strong> Callers that ran outside the window, used another endpoint, or authenticate in a way the audit does not attribute are all absent. The code search above is the inventory; this query only tells you where to start.</p>
+</blockquote>
+<hr />
+<p><a id="evidence-from-grail"></a></p>
+<h2>8. Evidence from Grail</h2>
+<p>Grail holds no consumer list, but its audit log records every settings change with the value before and after. <em>&quot;Audit events are stored as dt.system.events in the dt_system_events bucket, retained for one year&quot;</em>. That makes it a <strong>change log</strong> — it finds zone references in objects that were created or changed in the last year, shows the exact identifier each one stored, and records zone renames. It does <strong>not</strong> find an object nobody has touched in a year, so it confirms and dates the §3–§4 results; it never replaces them. All three queries scan zero billable bytes on the validation tenant.</p>
+<p>The fields used — <code>details.dt.settings.schema_id</code>, <code>details.dt.settings.object_id</code>, <code>details.json_after</code> — were observed on the validation tenant's <code>SETTINGS</code> audit events. The two <code>dt.settings.*</code> names are in the semantic dictionary as <code>experimental</code>; <code>json_after</code> is not in the dictionary at all, so re-check it on your tenant.</p>
+<p>For zone <strong>usage</strong> — query activity per zone over 90 days — use MZ2POL-00 §3; it is not repeated here.</p>
+<p><strong>Query 1 — which schemas have zone references in the change log?</strong></p>
+<pre><code class="language-dql">// Settings changes in the last year whose new value mentions a zone. A change log, not an inventory.
+fetch dt.system.events, from:-365d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.provider == &quot;SETTINGS&quot;
+| filter contains(details.json_after, &quot;managementZone&quot;) or contains(details.json_after, &quot;mzName(&quot;)
+    or contains(details.json_after, &quot;mzId(&quot;) or contains(details.json_after, &quot;mzSelector&quot;)
+| summarize {changes = count(), objects = countDistinct(details.dt.settings.object_id), last_change = max(timestamp)},
+    by:{schema = details.dt.settings.schema_id}
+| sort changes desc
+</code></pre>
+<p>On the validation tenant (10/13/2026, 365 days): <code>builtin:monitoredentities.grail.security.context</code> 1,630 changes across 255 objects (the mapping consumes every zone — §3); <code>builtin:anomaly-detection.metric-events</code> 4 changes, 1 object; <code>builtin:alerting.profile</code> 2 changes, 2 objects; <code>SERVICE_REQUEST_NAMING</code> 1 change, 1 object. The last row is a Configuration API v1 request naming rule — classic configuration changes appear in the same audit stream, under their own schema names.</p>
+<p>A looser filter that also matched the bare text <code>management-zone</code> returned 7 classic <code>MARKDOWN</code> tile changes whose text merely <em>mentioned</em> zones. The filter above requires the property name <code>managementZone</code> (with any suffix) or a selector call, which excludes them.</p>
+<p><strong>Query 2 — one row per changed object, with the identifier it stored.</strong></p>
+<pre><code class="language-dql">// One row per changed object, with the zone identifier its most recent value stored.
+// The security-context mapping is left out: it consumes every zone and names none (section 3).
+fetch dt.system.events, from:-365d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.provider == &quot;SETTINGS&quot;
+| filter details.dt.settings.schema_id != &quot;builtin:monitoredentities.grail.security.context&quot;
+| filter contains(details.json_after, &quot;managementZone&quot;) or contains(details.json_after, &quot;mzName(&quot;)
+    or contains(details.json_after, &quot;mzId(&quot;) or contains(details.json_after, &quot;mzSelector&quot;)
+| sort timestamp asc
+| summarize {changes = count(), last_change = max(timestamp), last_action = takeLast(event.type),
+    last_value = takeLast(details.json_after)},
+    by:{schema = details.dt.settings.schema_id, object_id = details.dt.settings.object_id}
+| parse last_value, &quot;LD 'managementZone' ALPHA* PUNCT{2} SPACE? '['? DQS:zone_property&quot;
+| parse last_value, &quot;LD 'mzName' PUNCT LD:name_selector ')'&quot;
+| parse last_value, &quot;LD 'mzId' PUNCT LD:id_selector ')'&quot;
+// Strip selector escaping (~&quot; and \&quot;) from names taken out of selector strings.
+| fieldsAdd reference = replacePattern(coalesce(zone_property, name_selector, id_selector), &quot;('~' | '\\\\' | '\&quot;')&quot;, &quot;&quot;)
+| fields schema, object_id, changes, last_change, last_action, reference
+| sort last_change desc
+</code></pre>
+<p>On the validation tenant: the metric event stored a numeric ID; both alerting profiles stored a zone objectId; the request naming rule's <code>managementZoneIds</code> was an empty array, so <code>reference</code> is empty — the property exists, no zone is set. Resolve each <code>reference</code> with the §2 triple. A reference that matches no current zone is a consumer of a zone that no longer exists.</p>
+<p><strong>Query 3 — zone objects changed in the last year, with every name each one has carried.</strong></p>
+<pre><code class="language-dql">// Zone objects changed in the last year: objectId, every name it has carried, and the last action.
+fetch dt.system.events, from:-365d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.provider == &quot;SETTINGS&quot;
+| filter details.dt.settings.schema_id == &quot;builtin:management-zones&quot;
+| parse details.json_after, &quot;JSON:after&quot;
+| parse details.json_before, &quot;JSON:before&quot;
+| fieldsAdd zone_name = coalesce(after[name], before[name])
+| sort timestamp asc
+| summarize {names = collectDistinct(zone_name), changes = count(), last_change = max(timestamp),
+    last_action = takeLast(event.type)}, by:{object_id = details.dt.settings.object_id}
+| fieldsAdd renamed = arraySize(names) &gt; 1
+| sort last_change desc
+</code></pre>
+<p>On the validation tenant: 10 zone objects changed in 365 days, and one was renamed (<code>Payments prod</code> → <code>Payments Prod</code>, 10/08/2026). Every row with <code>renamed = true</code> is a zone whose name-based consumers (§2) may still use the old spelling — search §3, §6 and §7 for each old name too.</p>
+<blockquote>
+<p><strong>Proving the surface.</strong> Before reading an empty result as &quot;nothing references zones&quot;, run <code>fetch dt.system.events, from:-90d | filter event.kind == &quot;AUDIT_EVENT&quot; and event.provider == &quot;SETTINGS&quot; | summarize count()</code>. On the validation tenant it returned 19,787 settings audit events across 132 schemas in 90 days. A zero there is a permission problem, not an empty tenant.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail">Audit logs on Grail (DT docs)</a> — <em>&quot;Audit events are stored as dt.system.events in the dt_system_events bucket, retained for one year&quot;</em>; required permissions <code>storage:system:read</code> and <code>storage:buckets:read</code> on <code>dt_system_events</code>. <strong>Dictionary:</strong> <code>dt.settings.schema_id</code> (<code>experimental</code>), <code>dt.settings.object_id</code> (<code>experimental</code>) (<a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-351">Semantic Dictionary 1.351 (DT docs)</a>, published 10/05/2026, promotes the <code>dt.settings.*</code> fields to <code>stable</code>; the validation tenant still returned <code>experimental</code> on 10/23/2026), no row for <code>json_after</code> under <code>filter contains(name, &quot;json_after&quot;)</code>, read 10/13/2026 (control: the same query matched <code>event.provider</code> → 1 row).</sub></p>
+</blockquote>
+<hr />
+<p><a id="dependency-matrix-and-the-deletion-gate"></a></p>
+<h2>9. Dependency Matrix and the Deletion Gate</h2>
+<p>Put every row from §3–§8 into one matrix: one row per <strong>zone × consumer</strong>. It is the evidence column for MZ2POL-14 Session 1 (<em>&quot;queries / roles / profiles / dashboards&quot;</em>) and the &quot;referenced anywhere&quot; check in MZ2POL-06 §8, Step 2.</p>
+<table>
+<thead>
+<tr>
+<th>Zone</th>
+<th>Consumer type</th>
+<th>Consumer (ID, name)</th>
+<th>Hop</th>
+<th>Identifier stored</th>
+<th>Found by</th>
+<th>Owner</th>
+<th>Replacement (§10)</th>
+<th>Deletion behaviour tested?</th>
+<th>Row closed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td>alerting profile / metric event / maintenance window / SLO / notification / dashboard / report / calculated metric / request naming / synthetic monitor / group permission / policy / boundary / security-context mapping / code</td>
+<td></td>
+<td>1 / 2</td>
+<td>name / numeric ID / objectId</td>
+<td>§3 … §8</td>
+<td></td>
+<td>live and proven / retired / none documented</td>
+<td>MZ2POL-09 §8 result</td>
+<td>date, by</td>
+</tr>
+</tbody>
+</table>
+<p>Add two kinds of rows that belong to no single zone:</p>
+<ul>
+<li><strong><code>(no current zone)</code> rows</strong> — consumers already pointing at a deleted zone. Decide now what they should do; they are evidence of what a deletion leaves behind.</li>
+<li><strong><code>(every zone)</code> rows</strong> — security-context mappings. Each zone deletion or rename changes the security context of its entities, and therefore what every policy on <code>dt.security_context</code> grants.</li>
+</ul>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItcmVkIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNERTM1MEIiLz48L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5UaGUgRGVsZXRpb24gR2F0ZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyLjUiPkEgem9uZSBpcyBkZWxldGVkIHdoZW4gZXZlcnkgcm93IG9mIGl0cyBjb25zdW1lciBsaXN0IGlzIGNsb3NlZCDigJQgbm90IHdoZW4gaXRzIHJ1bGVzIGFyZSB0cmFuc2xhdGVkPC90ZXh0PgoKICA8ZyBmb250LXNpemU9IjExLjUiPgogICAgPHJlY3QgeD0iMjAiIHk9Ijg0IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9IjM0IiB5PSIxMDgiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMuNSIgZm9udC13ZWlnaHQ9IjcwMCI+MSDCtyBJbnZlbnRvcnk8L3RleHQ+CiAgICA8dGV4dCB4PSIzNCIgeT0iMTMyIiBmaWxsPSIjOTRBM0I4Ij5FdmVyeSBjb25zdW1lciwgYm90aDwvdGV4dD4KICAgIDx0ZXh0IHg9IjM0IiB5PSIxNTAiIGZpbGw9IiM5NEEzQjgiPmhvcHMsIGFsbCB0aHJlZSBpZGVudGlmaWVyczwvdGV4dD4KICAgIDx0ZXh0IHg9IjM0IiB5PSIxNzQiIGZpbGw9IiM5NEEzQjgiPsKnM+KAk8KnOCDihpIgbWF0cml4IMKnOTwvdGV4dD4KICAgIDx0ZXh0IHg9IjM0IiB5PSIxOTgiIGZpbGw9IiM5NEEzQjgiPkRhbmdsaW5nIHJlZmVyZW5jZXMgdG9vPC90ZXh0PgoKICAgIDxsaW5lIHgxPSIyMjAiIHkxPSIxNTkiIHgyPSIyNDgiIHkyPSIxNTkiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgICA8cmVjdCB4PSIyNTAiIHk9Ijg0IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9IjI2NCIgeT0iMTA4IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPjIgwrcgQ2xvc2UgZWFjaCByb3c8L3RleHQ+CiAgICA8dGV4dCB4PSIyNjQiIHk9IjEzMiIgZmlsbD0iIzk0QTNCOCI+UmVwbGFjZW1lbnQgbGl2ZSBhbmQ8L3RleHQ+CiAgICA8dGV4dCB4PSIyNjQiIHk9IjE1MCIgZmlsbD0iIzk0QTNCOCI+cHJvdmVuICjCpzEwKSwgb3IgdGhlPC90ZXh0PgogICAgPHRleHQgeD0iMjY0IiB5PSIxNjgiIGZpbGw9IiM5NEEzQjgiPmNvbnN1bWVyIHJldGlyZWQ8L3RleHQ+CiAgICA8dGV4dCB4PSIyNjQiIHk9IjE5MiIgZmlsbD0iIzk0QTNCOCI+T3duZXIgc2lnbnMgdGhlIHJvdzwvdGV4dD4KCiAgICA8bGluZSB4MT0iNDUwIiB5MT0iMTU5IiB4Mj0iNDc4IiB5Mj0iMTU5IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogICAgPHJlY3QgeD0iNDgwIiB5PSI4NCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgICA8dGV4dCB4PSI0OTQiIHk9IjEwOCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMy41IiBmb250LXdlaWdodD0iNzAwIj4zIMK3IERpc2FibGUsIHNvYWs8L3RleHQ+CiAgICA8dGV4dCB4PSI0OTQiIHk9IjEzMiIgZmlsbD0iIzk0QTNCOCI+RGlzYWJsZSB0aGUgY2xhc3NpYzwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ5NCIgeT0iMTUwIiBmaWxsPSIjOTRBM0I4Ij5jb25zdW1lcnMg4oCUIG5vdCBkZWxldGU8L3RleHQ+CiAgICA8dGV4dCB4PSI0OTQiIHk9IjE3NCIgZmlsbD0iIzk0QTNCOCI+UmUtcnVuIHRoZSBpbnZlbnRvcnk6PC90ZXh0PgogICAgPHRleHQgeD0iNDk0IiB5PSIxOTIiIGZpbGw9IiM5NEEzQjgiPm5vIG5ldyByb3dzIGFwcGVhcmVkPC90ZXh0PgoKICAgIDxsaW5lIHgxPSI2ODAiIHkxPSIxNTkiIHgyPSI3MDgiIHkyPSIxNTkiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgICA8cmVjdCB4PSI3MTAiIHk9Ijg0IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICAgIDx0ZXh0IHg9IjcyNCIgeT0iMTA4IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPjQgwrcgRGVsZXRlIHRoZSB6b25lPC90ZXh0PgogICAgPHRleHQgeD0iNzI0IiB5PSIxMzIiIGZpbGw9IiM5NEEzQjgiPlNlcGFyYXRlIGNoYW5nZSB3aW5kb3c8L3RleHQ+CiAgICA8dGV4dCB4PSI3MjQiIHk9IjE1MCIgZmlsbD0iIzk0QTNCOCI+RXhwb3J0IGFyY2hpdmVkIGZpcnN0PC90ZXh0PgogICAgPHRleHQgeD0iNzI0IiB5PSIxNzQiIGZpbGw9IiM5NEEzQjgiPlRyZWF0IGFzIGlycmV2ZXJzaWJsZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjcyNCIgeT0iMTkyIiBmaWxsPSIjOTRBM0I4Ij4oTVoyUE9MLTA2IMKnOCk8L3RleHQ+CiAgPC9nPgoKICA8cmVjdCB4PSIyMCIgeT0iMjU4IiB3aWR0aD0iODkwIiBoZWlnaHQ9IjEyOCIgcng9IjgiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIzNiIgeT0iMjgyIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEzLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPlVuZG9jdW1lbnRlZDogd2hhdCBhIGNvbnN1bWVyIGRvZXMgd2hlbiBpdHMgem9uZSBpcyBkZWxldGVkPC90ZXh0PgogIDxnIGZvbnQtc2l6ZT0iMTEuNSIgZmlsbD0iI0NCRDVFMSI+CiAgICA8dGV4dCB4PSIzNiIgeT0iMzA2Ij5ObyBwYWdlIGNoZWNrZWQgb24gMTAvMTMvMjAyNiBzdGF0ZXMgaXQgZm9yIGFsZXJ0aW5nIHByb2ZpbGVzLCBtZXRyaWMgZXZlbnRzLCBtYWludGVuYW5jZSB3aW5kb3dzLCBTTE8gc2VsZWN0b3JzLDwvdGV4dD4KICAgIDx0ZXh0IHg9IjM2IiB5PSIzMjQiPmRhc2hib2FyZCBmaWx0ZXJzLCBjYWxjdWxhdGVkIG1ldHJpY3MsIHBlcm1pc3Npb25zIG9yIHBvbGljaWVzLiBBIGNvbnN1bWVyIHRoYXQgZmFpbHMgb3BlbiBtYXRjaGVzIGV2ZXJ5dGhpbmc7PC90ZXh0PgogICAgPHRleHQgeD0iMzYiIHk9IjM0MiI+b25lIHRoYXQgZmFpbHMgY2xvc2VkIG1hdGNoZXMgbm90aGluZywgc2lsZW50bHkuIFJ1biB0aGUgTVoyUE9MLTA5IMKnOCB0ZXN0IGluIG5vbi1wcm9kIGZvciBlYWNoIGNvbnN1bWVyIHR5cGU8L3RleHQ+CiAgICA8dGV4dCB4PSIzNiIgeT0iMzYwIj55b3Ugc3RpbGwgaGF2ZSwgYW5kIHJlY29yZCB0aGUgYW5zd2VyIGluIHRoZSBtYXRyaXggYmVmb3JlIHN0ZXAgNC48L3RleHQ+CiAgPC9nPgoKICA8cmVjdCB4PSIyMCIgeT0iNDAwIiB3aWR0aD0iODkwIiBoZWlnaHQ9Ijg2IiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIi8+CiAgPHRleHQgeD0iMzYiIHk9IjQyNCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+V2hlcmUgdGhlIHRyYW5zaXRpb24gaGFzIGFscmVhZHkgcmVhY2hlZCB0aGUgdGVuYW50PC90ZXh0PgogIDxnIGZvbnQtc2l6ZT0iMTEuNSIgZmlsbD0iIzk0QTNCOCI+CiAgICA8dGV4dCB4PSIzNiIgeT0iNDQ2Ij5ab25lIGNvbmRpdGlvbnMgb24gc2NvcGVkLXNldHRpbmdzIElBTSBzdGF0ZW1lbnRzIGFscmVhZHkgbmV2ZXIgbWF0Y2gg4oCUIHRoZSBkZWxldGlvbiBoYXMsIGluIGVmZmVjdCwgaGFwcGVuZWQ8L3RleHQ+CiAgICA8dGV4dCB4PSIzNiIgeT0iNDY0Ij5mb3IgdGhhdCBjb25zdW1lci4gUnVuIHRoZSBpbnZlbnRvcnkgYW55d2F5OiBldmVyeSBvdGhlciByb3cgb24gdGhlIGxpc3Qgc3RpbGwgbmVlZHMgYSByZXBsYWNlbWVudC48L3RleHQ+CiAgPC9nPgo8L3N2Zz4K" alt="The deletion gate" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action | Detail |
+|---|---|---|
+| 1 · Inventory | Every consumer, both hops, all three identifiers | §3–§8 into the matrix (§9); dangling references too |
+| 2 · Close each row | Replacement live and proven (§10), or the consumer retired | The owner signs the row |
+| 3 · Disable, soak | Disable the classic consumers — do not delete | Re-run the inventory: no new rows appeared |
+| 4 · Delete the zone | Separate change window, export archived first | Treat as irreversible (MZ2POL-06 §8) |
+| Undocumented | What a consumer does when its zone is deleted | No page checked on 10/13/2026 states it for any consumer type; run the MZ2POL-09 §8 test in non-prod per consumer type and record the answer before step 4 |
+| After the transition | Zone conditions on scoped-settings IAM statements already never match | Run the inventory anyway: every other row still needs a replacement |
+For environments where SVG doesn't render
+-->
+<h3>What deletion does to a consumer is not documented</h3>
+<p>No Dynatrace page checked on 10/13/2026 states what an alerting profile, metric event, maintenance window, SLO selector, dashboard filter, calculated metric, group permission or policy does when the zone it names is deleted. The one documented case is the scoped-settings transition, where zone conditions <em>&quot;never match&quot;</em>, and where the guide warns that <em>&quot;DENY statements stop blocking access&quot;</em> — so a failure can widen access as well as narrow it.</p>
+<p>So the matrix carries a column for it. For every consumer <strong>type</strong> you still have, run the MZ2POL-09 §8 test in a non-production tenant — positive baseline, negative baseline, delete, re-run — and record whether it failed open or closed. MZ2POL-09 §8 also explains what each answer changes about the order of disabling and deleting.</p>
+<h3>The gate</h3>
+<p>A zone is deleted when — and only when —</p>
+<ol>
+<li>every row for that zone is closed: a replacement is live and proven, or the consumer is retired, and the owner has signed the row;</li>
+<li>the classic consumers have been <strong>disabled</strong> and have soaked, and a re-run of §3–§8 finds no new rows;</li>
+<li>the deletion behaviour of each remaining consumer type is known from the test above;</li>
+<li>the deletion happens in its own change window, after the export in MZ2POL-06 §8 Step 1 has been archived.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-scoped-settings-objects">Upgrade your security policies for scoped settings access (DT docs)</a> — <em>&quot;Because management zones no longer exist, these conditions never match.&quot;</em>, <em>&quot;DENY statements stop blocking access.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="replacement-per-consumer"></a></p>
+<h2>10. Replacement per Consumer</h2>
+<p>Only replacements a Dynatrace page names are listed. Where no page does, the cell says <strong>not documented</strong> — that is a decision for your migration plan, not a gap this notebook can fill.</p>
+<table>
+<thead>
+<tr>
+<th>Consumer</th>
+<th>Documented replacement</th>
+<th>Where in this series</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alerting profile</td>
+<td>Problem-triggered workflow — the trigger <em>&quot;filters problems directly with DQL matchers&quot;</em> on the problem</td>
+<td>MZ2POL-09</td>
+</tr>
+<tr>
+<td>Problem notification</td>
+<td>The same workflow, which owns routing and destination</td>
+<td>MZ2POL-09 §5, §6</td>
+</tr>
+<tr>
+<td>Metric event</td>
+<td>Custom alert — <em>&quot;To create a custom alert, use&quot;</em> Anomaly Detection; scope it with segments: <em>&quot;Segment filters are automatically applied to your query during execution.&quot;</em> The transform drops the zone: <em>&quot;Management zones aren't supported in Anomaly Detection and will be lost after transforming metric events.&quot;</em> Set the segment scope before relying on the new alert</td>
+<td>MZ2POL-05 for the segments</td>
+</tr>
+<tr>
+<td>Maintenance window</td>
+<td>A Latest maintenance window, recreated by hand. The upgrade guide (published 09/09/2026): <em>&quot;Classic maintenance windows are not migrated automatically, so use this guide to recreate them in Latest Dynatrace.&quot;</em> and <em>&quot;Translate the scope from management zones and entity IDs to DQL matcher filter criteria on Grail primary fields.&quot;</em> The classic schema already recommends tags over zones: <em>&quot;It is recommended to use manual tags instead.&quot;</em> <strong>Version-gated:</strong> the new windows arrived with SaaS 1.341 (staged tenant rollout from 06/16/2026) — <em>&quot;Maintenance windows are available in Early Access.&quot;</em> Verify they have reached your tenant; classic windows remain the working path until then.</td>
+<td>MZ2POL-10 for the primary fields; WFLOW-02 §2 for the workflow filter</td>
+</tr>
+<tr>
+<td>SLO Classic</td>
+<td>New SLO with segments — <em>&quot;In this step, management zones become segments&quot;</em></td>
+<td>MZ2POL-05; SLO series</td>
+</tr>
+<tr>
+<td>Classic dashboard</td>
+<td>Dashboards with segments — <em>&quot;Instead of management zones, use segments in the latest Dynatrace for data segmentation.&quot;</em> No automatic upgrade of the zone filter</td>
+<td>MZ2POL-05</td>
+</tr>
+<tr>
+<td>Report</td>
+<td>Not documented</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Calculated service metric, request naming rule</td>
+<td>Not documented; the zone fields are documented as ignored in Phase 3</td>
+<td>MZ2POL-01</td>
+</tr>
+<tr>
+<td>Synthetic monitor</td>
+<td>Not applicable — membership is computed, nothing to rewrite</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Group permission (classic role on a zone)</td>
+<td>A policy with the zone condition keeps classic pages working: <em>&quot;Classic RBAC roles can also be expressed in policies.&quot;</em> Grail access is separate: <em>&quot;This guide does not cover how to migrate your use of management zones into Grail permissions.&quot;</em></td>
+<td>MZ2POL-04, MZ2POL-12 §8</td>
+</tr>
+<tr>
+<td>Policy or boundary with a settings zone condition</td>
+<td><code>settings:schemaId</code> — <em>&quot;Scope access by schema instead of by management zone&quot;</em> — or <code>settings:dt.security_context</code>, where <em>&quot;security context must be set at the edge&quot;</em></td>
+<td>MZ2POL-12 §5</td>
+</tr>
+<tr>
+<td>Security-context mapping from zones</td>
+<td>Security context set at the source rather than copied from zones</td>
+<td>MZ2POL-10, MZ2POL-12 §5</td>
+</tr>
+<tr>
+<td>API client using zone selectors</td>
+<td>For SLO filters, the upgrade table maps <code>mzId / mzName</code> to <em>&quot;Use Segments&quot;</em>; for other clients, not documented — DQL with built-in fields or segments</td>
+<td>FAQ-16</td>
+</tr>
+<tr>
+<td>Terraform, Monaco</td>
+<td>Not documented — rewrite onto the replacement resources above</td>
+<td>AUTOM series</td>
+</tr>
+</tbody>
+</table>
+<p>Three cautions from the same pages:</p>
+<ul>
+<li><strong>Segments are filters, not access.</strong> <em>&quot;Segments aren't related to permissions or access control.&quot;</em> A zone that did an access job needs a policy and boundary, not only a segment (MZ2POL-14 Session 2).</li>
+<li><strong>Custom alerts moved.</strong> The Anomaly Detection page says that starting with Dynatrace version 1.344, <em>&quot;custom alerts have moved to Settings&quot;</em>, and <em>&quot;Because Anomaly Detection is deprecated&quot;</em> it recommends Settings. Check which surface your tenant shows before writing a runbook against it.</li>
+<li><strong>The mapping from zone to segment is yours to define.</strong> No page maps a given zone to a given segment; MZ2POL-11 translates the rules and MZ2POL-05 builds one segment per dimension.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;filters problems directly with DQL matchers&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting">Upgrade Metric Alerting (DT docs)</a> — <em>&quot;To create a custom alert, use&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad">Configure a simple custom alert (DT docs)</a> — <em>&quot;Management zones aren't supported in Anomaly Detection and will be lost after transforming metric events.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection">Use segments with Anomaly Detection custom alerts (DT docs)</a> — <em>&quot;Segment filters are automatically applied to your query during execution.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection app (DT docs)</a> — <em>&quot;custom alerts have moved to Settings&quot;</em>, <em>&quot;Because Anomaly Detection is deprecated&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-alerting-maintenance-window">Maintenance window settings schema (DT docs)</a> — <em>&quot;It is recommended to use manual tags instead.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/upgrade-from-classic-maintenance-windows">Upgrade from Classic maintenance windows to Latest maintenance windows (DT docs)</a> — <em>&quot;Classic maintenance windows are not migrated automatically, so use this guide to recreate them in Latest Dynatrace.&quot;</em>, <em>&quot;Translate the scope from management zones and entity IDs to DQL matcher filter criteria on Grail primary fields.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-341">SaaS 1.341 release notes (DT docs)</a> — <em>&quot;Maintenance windows are available in Early Access.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic">Upgrade from Service-Level Objectives Classic to Service-Level Objectives (DT docs)</a> — <em>&quot;In this step, management zones become segments&quot;</em>, <em>&quot;Segments aren't related to permissions or access control.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/get-apps-and-surfaces-working/upgrade-guide-dashboards">Upgrade from Dashboards Classic to Dashboards (DT docs)</a> — <em>&quot;Management zones no longer exist in the latest Dynatrace, however, so there is no automatic upgrade available.&quot;</em>, <em>&quot;Instead of management zones, use segments in the latest Dynatrace for data segmentation.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles">Upgrade role-based permissions to Dynatrace IAM policies (DT docs)</a> — <em>&quot;Classic RBAC roles can also be expressed in policies.&quot;</em>, <em>&quot;This guide does not cover how to migrate your use of management zones into Grail permissions.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-scoped-settings-objects">Upgrade your security policies for scoped settings access (DT docs)</a> — <em>&quot;Scope access by schema instead of by management zone&quot;</em>, <em>&quot;security context must be set at the edge&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="summary-and-next-steps"></a></p>
+<h2>11. Summary and Next Steps</h2>
+<table>
+<thead>
+<tr>
+<th>Finding</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A zone has no &quot;used by&quot; view; consumers live in settings, classic configuration, the account and code</td>
+<td>Run §3–§8 for every zone you plan to delete</td>
+</tr>
+<tr>
+<td>Consumers store the name, the numeric ID or the objectId</td>
+<td>Search with the §2 triple; keep IDs as strings — they can be negative and exceed a JavaScript <code>number</code></td>
+</tr>
+<tr>
+<td>Notifications, reports and entity-access policies reach zones through another object</td>
+<td>Count the second hop (§3, §4, §6)</td>
+</tr>
+<tr>
+<td>The security-context mapping consumes every zone at once</td>
+<td>Treat each zone deletion or rename as an access change (§3, §6)</td>
+</tr>
+<tr>
+<td>The audit log is a one-year change log</td>
+<td>Use it to date and confirm findings and to catch renames (§8) — never as the inventory</td>
+</tr>
+<tr>
+<td>What a consumer does when its zone is deleted is undocumented</td>
+<td>Test each consumer type with MZ2POL-09 §8 before the gate (§9)</td>
+</tr>
+<tr>
+<td>Some consumers have no documented replacement</td>
+<td>Mark them <strong>not documented</strong> in the matrix and decide explicitly (§10)</td>
+</tr>
+</tbody>
+</table>
+<h3>Next steps</h3>
+<ol>
+<li>Fill the §9 matrix and bring it to MZ2POL-14 Session 1 as the evidence column.</li>
+<li>For every consumer with a documented replacement, build it: workflows (MZ2POL-09), segments (MZ2POL-05), policies and boundaries (MZ2POL-04, MZ2POL-12).</li>
+<li>Run the MZ2POL-09 §8 deletion test per consumer type in non-prod.</li>
+<li>Delete zones through the gate in §9, in the order MZ2POL-06 §8 sets out.</li>
+</ol>
+<h3>Related Notebooks</h3>
+<ul>
+<li><strong>MZ2POL-00</strong>: SDK Management Zone Analysis Tool — zone rules and 90-day usage</li>
+<li><strong>MZ2POL-03</strong>: Assessment and Migration Planning — §6 dependency checklist</li>
+<li><strong>MZ2POL-06</strong>: Migration Execution — §8 cleanup</li>
+<li><strong>MZ2POL-09</strong>: Migrating Management Zone-Scoped Alerting and Notifications — §3 inventory, §8 deletion test</li>
+<li><strong>MZ2POL-12</strong>: IAM Reference Architecture for a Former Management-Zone Estate — §5 scoped settings, §8 classic role mapping</li>
+<li><strong>MZ2POL-14</strong>: Zone Disposition Workshop — Session 1 triage</li>
+<li><strong>IAM-12</strong>: API Provisioning &amp; Validation Scripts — OAuth setup for §6</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

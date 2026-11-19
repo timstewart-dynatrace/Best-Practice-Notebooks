@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SLO-01: SLO and SLI Fundamentals</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SLO — Service Level Objectives</a><span class="sep">/</span><span aria-current="page">SLO-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SLO-01: SLO and SLI Fundamentals</h1>
+<blockquote>
+<p><strong>Series:</strong> SLO — Service Level Objectives | <strong>Notebook:</strong> 1 of 7 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 11/19/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Service Level Objectives turn &quot;is the service healthy?&quot; from a matter of opinion into a measured, agreed number. This notebook defines the three building blocks — <strong>SLI</strong>, <strong>SLO</strong>, <strong>error budget</strong> — explains how Dynatrace models them in the modern SLO app, and helps you choose your first handful of SLOs.</p>
+<p>This is the conceptual foundation for the series. SLO-02 builds the SLI queries, SLO-03 covers composition and error budgets in depth, SLO-04 covers alerting, SLO-05 covers provisioning SLOs as code, and SLO-06 covers Site Reliability Guardians — the point-in-time deployment-gating counterpart to the ongoing reliability target defined here.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#blocks">The Three Building Blocks</a></li>
+<li><a href="#why">Why SLOs Matter</a></li>
+<li><a href="#model">The Dynatrace SLO Model</a></li>
+<li><a href="#anatomy">Anatomy of an SLO</a></li>
+<li><a href="#choosing">Choosing Your First SLOs</a></li>
+<li><a href="#cross">Cross-Series Pointers</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3 with Grail and the SLO app</td>
+</tr>
+<tr>
+<td><strong>IAM permissions (SLO app itself)</strong></td>
+<td><code>slo:slos:read</code>, <code>slo:slos:write</code>, <code>slo:objective-templates:read</code> — the gating permissions for the app; a minimal read/write grant is <code>ALLOW slo:slos:read, slo:objective-templates:read; ALLOW slo:slos:write;</code></td>
+</tr>
+<tr>
+<td><strong>Data-source permissions</strong></td>
+<td><code>storage:buckets:read</code>, <code>storage:files:read</code>, plus whichever of <code>storage:metrics:read</code> / <code>storage:logs:read</code> / <code>storage:bizevents:read</code> / <code>storage:events:read</code> / <code>storage:security.events:read</code> your SLI queries touch (the SLO app's documented list). <code>storage:spans:read</code> is not in that list; add it only if an SLI queries spans</td>
+</tr>
+<tr>
+<td><strong>Concepts</strong></td>
+<td>Basic DQL (see the SPANS and DBMON series); familiarity with your service topology</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-Level Objectives (DT docs)</a>, permissions table read 10/12/2026.</sub></p>
+</blockquote>
+<p><a id="blocks"></a></p>
+<h2>1. The Three Building Blocks</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>What it is</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SLI</strong> — Service Level Indicator</td>
+<td>A measured ratio of <em>good</em> events to <em>total</em> events, expressed as a percentage</td>
+<td>99.61% of requests succeeded</td>
+</tr>
+<tr>
+<td><strong>SLO</strong> — Service Level Objective</td>
+<td>A target for an SLI over a defined window</td>
+<td>availability ≥ 99.5% over 30 days</td>
+</tr>
+<tr>
+<td><strong>Error budget</strong></td>
+<td>The allowed shortfall: <code>100% − target</code></td>
+<td>0.5% of requests may fail before the SLO is breached</td>
+</tr>
+</tbody>
+</table>
+<p>An <strong>SLI</strong> answers <em>how are we doing right now</em>. An <strong>SLO</strong> sets <em>how good is good enough</em>. The <strong>error budget</strong> converts the gap into a spendable quantity — once it is gone, the SLO is breached, and that is the signal teams act on.</p>
+<p>A note on SLAs: an <strong>SLA</strong> (Service Level Agreement) is a contract with consequences (credits, penalties). SLOs are your internal targets, and you almost always set them <em>stricter</em> than any SLA so you find out before the customer does.</p>
+<p><a id="why"></a></p>
+<h2>2. Why SLOs Matter</h2>
+<ul>
+<li><strong>They translate technical health into business language.</strong> &quot;p95 checkout latency under 1s, 99.9% of the month&quot; is something a product owner can reason about.</li>
+<li><strong>They give you an error budget.</strong> A budget reframes reliability from &quot;zero errors&quot; (impossible, paralysing) to &quot;errors are fine until the budget runs low&quot; — which then drives concrete decisions: keep shipping, or slow down and harden.</li>
+<li><strong>They are the highest-signal alert source.</strong> Alerting on <em>burn rate</em> against the budget catches both the acute outage and the slow leak, with far less noise than threshold alerts on raw metrics (SLO-04).</li>
+</ul>
+<p><a id="model"></a></p>
+<h2>3. The Dynatrace SLO Model</h2>
+<p>Dynatrace has two generations of SLO tooling:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>SLO Classic</th>
+<th>Modern SLO app (use this)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SLI definition</td>
+<td>Metric expressions, fixed indicator types</td>
+<td><strong>DQL-based</strong> — any <code>good ÷ total</code> query over metrics, spans, logs, or bizevents</td>
+</tr>
+<tr>
+<td>API</td>
+<td>Service-level Objectives API classic (<code>/api/v2/slo</code>)</td>
+<td><strong>SLO Service Public API</strong></td>
+</tr>
+<tr>
+<td>Backing store</td>
+<td>classic config; Settings 2.0 schema <code>builtin:monitoring.slo</code></td>
+<td>the SLO service itself, not a Settings schema</td>
+</tr>
+<tr>
+<td>As code</td>
+<td><code>dynatrace_slo_v2</code> Terraform resource (metric-selector SLIs only)</td>
+<td><strong><code>dynatrace_platform_slo</code></strong> Terraform resource (provider v1.78.0+) / Monaco (v2.22+)</td>
+</tr>
+<tr>
+<td>Data scope</td>
+<td>service metrics</td>
+<td>all Grail data types</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>A correction worth reading if you have codified SLOs already (07/31/2026).</strong> This notebook and SLO-05 previously placed <code>builtin:monitoring.slo</code> and <code>dynatrace_slo_v2</code> in the modern column. They belong to the classic generation: <code>dynatrace_slo_v2</code> authenticates with classic <code>slo.read</code>/<code>slo.write</code> plus <code>settings.*</code> scopes and writes through <code>builtin:monitoring.slo</code>, whereas the modern app has its own <strong>SLO Service Public API</strong> and a separate <code>dynatrace_platform_slo</code> resource using OAuth <code>slo:slos:*</code> scopes. The readiness scan additionally flags both <code>/api/v2/slo</code> and <code>builtin:monitoring.slo</code> as blocked at upgrade.</p>
+<p><strong>Where &quot;blocked at upgrade&quot; comes from — and what the docs say instead (checked 08/28/2026; quote re-read 09/28/2026).</strong> That phrase is the <strong>tenant-side upgrade readiness scan's</strong> classification, read 07/31/2026. It is not documentation: no Dynatrace page states it, and the published upgrade guidance (<a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic">Upgrade from Service-Level Objectives Classic (DT docs)</a>) is markedly softer — <em>&quot;An automated upgrade flow is under consideration; however, given the highly customized nature of SLOs, manual review is expected to yield the best results.&quot;</em> The two are not in conflict — a readiness scan reports what your tenant will not carry across, while the docs describe the migration you are expected to perform by hand — but they carry different urgency, so <strong>run the readiness scan against your own tenant</strong> rather than planning from either this notebook or the docs page alone. If your SLOs are in Terraform as <code>dynatrace_slo_v2</code>, they are on the classic path — see SLO-05 §2.</p>
+</blockquote>
+<p>New work should use the <strong>modern SLO app</strong> with DQL-based SLIs — it covers every data type and is the path that is actively developed. Dynatrace's own guidance is to still prefer a metric-based SLI over a DQL one where a suitable pre-aggregated metric exists, since metric queries are faster and cheaper to evaluate; use <code>makeTimeseries</code> for event/log-derived SLIs where no such metric exists (SLO-02). If you have SLO Classic definitions, Dynatrace publishes an upgrade path, and SLO-07 walks through it.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5BbmF0b215IG9mIGEgRHluYXRyYWNlIFNMTzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5BbiBTTEkgcXVlcnksIGEgdGFyZ2V0LCBhbiBldmFsdWF0aW9uIHdpbmRvdyDigJQgYW5kIHRoZSBlcnJvciBidWRnZXQgdGhhdCBmYWxscyBvdXQgb2YgdGhlbTwvdGV4dD4KCiAgPCEtLSBTTEkgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjkyIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxNzAiIHk9IjExOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+U0xJIOKAlCB0aGUgbWVhc3VyZW1lbnQ8L3RleHQ+CiAgPHJlY3QgeD0iNDgiIHk9IjEzNCIgd2lkdGg9IjI0NCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICA8dGV4dCB4PSIxNzAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Z29vZCDDtyB0b3RhbCwgYXMgYSAlPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hIERRTCBxdWVyeSByZXR1cm5zIHRoZSByYXRpbzwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YXZhaWxhYmlsaXR5IMK3IGxhdGVuY3kgwrcgZXJyb3JzPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMjIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5vciBhIGN1c3RvbSBidXNpbmVzcyBzaWduYWw8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIyNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiPmUuZy4gOTkuNjElIHRoaXMgd2luZG93PC90ZXh0PgoKICA8IS0tIFRhcmdldCAtLT4KICA8cmVjdCB4PSIzMzAiIHk9IjkyIiB3aWR0aD0iMjgwIiBoZWlnaHQ9Ijg2IiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ3MCIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5UYXJnZXQg4oCUIHRoZSBnb2FsPC90ZXh0PgogIDx0ZXh0IHg9IjQ3MCIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj45OS41JTwvdGV4dD4KICA8dGV4dCB4PSI0NzAiIHk9IjE2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+b3B0aW9uYWwgd2FybmluZyBsZXZlbCBhYm92ZSBpdDwvdGV4dD4KCiAgPCEtLSBXaW5kb3cgLS0+CiAgPHJlY3QgeD0iMzMwIiB5PSIxODYiIHdpZHRoPSIyODAiIGhlaWdodD0iODYiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDcwIiB5PSIyMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPldpbmRvdyDigJQgdGhlIHBlcmlvZDwvdGV4dD4KICA8dGV4dCB4PSI0NzAiIHk9IjI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+cm9sbGluZyAzMCBkYXlzPC90ZXh0PgogIDx0ZXh0IHg9IjQ3MCIgeT0iMjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5vciBhIGNhbGVuZGFyIG1vbnRoPC90ZXh0PgoKICA8IS0tIEVycm9yIGJ1ZGdldCAtLT4KICA8cmVjdCB4PSI2MzAiIHk9IjkyIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NjUiIHk9IjExOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+RXJyb3IgYnVkZ2V0PC90ZXh0PgogIDxyZWN0IHg9IjY0OCIgeT0iMTM0IiB3aWR0aD0iMjM0IiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc2NSIgeT0iMTU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4xMDAlIOKIkiB0YXJnZXQ8L3RleHQ+CiAgPHRleHQgeD0iNzY1IiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjk5LjUlIHRhcmdldCDihpIgMC41JSBidWRnZXQ8L3RleHQ+CiAgPHRleHQgeD0iNzY1IiB5PSIyMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmhvdyBtdWNoIGZhaWx1cmUgaXMgYWxsb3dlZDwvdGV4dD4KICA8dGV4dCB4PSI3NjUiIHk9IjIyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YmVmb3JlIHRoZSBTTE8gaXMgYnJlYWNoZWQ8L3RleHQ+CiAgPHRleHQgeD0iNzY1IiB5PSIyNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiPmJ1cm4gcmF0ZSA9IGhvdyBmYXN0IGl0IGRyYWluczwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz48L21hcmtlcj4KICA8L2RlZnM+CiAgPGxpbmUgeDE9IjMxMCIgeTE9IjE4MiIgeDI9IjMzMCIgeTI9IjE2MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogIDxsaW5lIHgxPSIzMTAiIHkxPSIyMDAiIHgyPSIzMzAiIHkyPSIyMjIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KICA8bGluZSB4MT0iNjEwIiB5MT0iMTgyIiB4Mj0iNjMwIiB5Mj0iMTgyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CgogIDwhLS0gYm90dG9tIGZsb3cgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjMyMCIgd2lkdGg9Ijg3MCIgaGVpZ2h0PSIxMzAiIGZpbGw9IiMxRTI5M0IiIG9wYWNpdHk9IjAuNSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPldoZW4gdGhlIGJ1ZGdldCBydW5zIGxvdzwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzYyIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjY4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIzODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPmJ1cm4tcmF0ZSBhbGVydCBmaXJlczwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjQwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZmFzdC1idXJuIC8gc2xvdy1idXJuPC90ZXh0PgogIDxyZWN0IHg9IjM0NSIgeT0iMzYyIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjY4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPndvcmtmbG93IHJvdXRlcyBpdDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dG8gdGhlIG93bmluZyB0ZWFtPC90ZXh0PgogIDxyZWN0IHg9IjYzMCIgeT0iMzYyIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjY4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzUwIiB5PSIzODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPnJlbGVhc2UgZGVjaXNpb248L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSI0MDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnNsb3cgZG93biBvciBzaGlwPC90ZXh0PgogIDxsaW5lIHgxPSIzMDAiIHkxPSIzOTYiIHgyPSIzNDUiIHkyPSIzOTYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KICA8bGluZSB4MT0iNTg1IiB5MT0iMzk2IiB4Mj0iNjMwIiB5Mj0iMzk2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CgogIDxsaW5lIHgxPSI0MCIgeTE9IjQ3OCIgeDI9Ijg5MCIgeTI9IjQ3OCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+TW9kZXJuIFNMTyBhcHAgwrcgRFFMLWJhc2VkIFNMSXM8L3RleHQ+Cjwvc3ZnPgo=" alt="Anatomy of a Dynatrace SLO" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Part | Role | Example |
+|------|------|---------|
+| SLI | the measurement (good÷total %) | 99.61% this window |
+| Target | the goal | 99.5% |
+| Window | the period | rolling 30 days |
+| Error budget | 100% − target | 0.5% |
+| Burn rate | how fast the budget drains | drives alerting (SLO-04) |
+For environments where SVG doesn't render
+-->
+<p><a id="anatomy"></a></p>
+<h2>4. Anatomy of an SLO</h2>
+<p>Every modern Dynatrace SLO is four decisions:</p>
+<ol>
+<li><strong>The SLI query</strong> — a DQL query that returns the good-versus-total ratio. This is the bulk of the work and is covered in SLO-02.</li>
+<li><strong>The target</strong> — the percentage you commit to (e.g. <code>99.5</code>). Optionally a <strong>warning</strong> level above the target that surfaces &quot;getting close&quot; before an actual breach.</li>
+<li><strong>The evaluation window</strong> — <em>rolling</em> (e.g. last 30 days, always moving) or <em>calendar</em> (this month). Rolling windows give smoother trend signals; calendar windows align to business reporting. SLO-03 covers the trade-off.</li>
+<li><strong>What happens on breach</strong> — burn-rate alerting and routing, covered in SLO-04.</li>
+</ol>
+<p>The error budget is not a separate decision — it falls out of the target (<code>100% − target</code>). The art is in the first three choices.</p>
+<p><a id="choosing"></a></p>
+<h2>5. Choosing Your First SLOs</h2>
+<p>The most common failure mode is too many SLOs, none trusted. Start narrow:</p>
+<ul>
+<li><strong>Pick 2–4 business-critical services</strong> — the user journeys that matter (checkout, login, search), not every microservice.</li>
+<li><strong>1–2 SLIs per service</strong> — availability plus either latency or error rate. Resist the urge to measure everything.</li>
+<li><strong>Set achievable targets first.</strong> Measure the current SLI for a week, then set the target slightly below observed performance. A target you breach on day one teaches the team to ignore SLOs.</li>
+<li><strong>Tighten over time.</strong> SLOs are living guidance — review quarterly, ratchet up as the service matures.</li>
+</ul>
+<blockquote>
+<p><strong>Anti-pattern:</strong> copying &quot;99.9%&quot; onto every service because it sounds rigorous. A target must reflect what the service can actually deliver and what its users actually need.</p>
+</blockquote>
+<p><a id="cross"></a></p>
+<h2>6. Cross-Series Pointers</h2>
+<ul>
+<li><strong>SLO-02</strong> — building the SLI queries (availability, latency, error rate, custom).</li>
+<li><strong>SLO-03</strong> — error budgets, burn rate, composite and weighted SLOs.</li>
+<li><strong>SLO-04</strong> — burn-rate alerting and routing SLO breaches.</li>
+<li><strong>SLO-05</strong> — provisioning SLOs as code (<code>dynatrace_platform_slo</code> with a DQL SLI, Monaco; classic <code>dynatrace_slo_v2</code> for existing SLOs only).</li>
+<li><strong>SLO-06</strong> — Site Reliability Guardians: point-in-time deployment validation gates that complement the ongoing reliability target defined here.</li>
+<li><strong>SLO-07</strong> — upgrading SLO Classic definitions to the SLO app, with their alerts, guardian objectives and Terraform.</li>
+<li><strong>AIOPS-02</strong> — anomaly detection; SLO breaches and anomalies are complementary detection inputs.</li>
+<li><strong>WFLOW</strong> — routing the burn-rate events your SLO alerts raise, or the problems they join (SLO-04 §4).</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-Level Objectives (DT docs)</a>, <a href="https://www.dynatrace.com/news/blog/slos-for-all-data-types/">SLOs for all data types (Dynatrace News)</a>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic">Upgrade from Service-Level Objectives Classic (DT docs)</a> — the config-as-code version gates in the table above, verbatim: <em>&quot;Configuration as Code via Terraform overview support the SLO Service Public API since v1.78.0&quot;</em> and <em>&quot;Configuration as Code via Monaco overview supports the SLO Service Public API since v2.22.&quot;</em>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-slo-v1">SLO Service Public API (DT docs)</a> — the modern app's own API, whose endpoints are <code>/slos</code> and <code>/objective-templates</code>; the classic surface is a separate reference titled <em>Service-level Objectives API classic</em>, which is what makes <code>/api/v2/slo</code> the classic path, <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/platform_slo">dynatrace_platform_slo resource (Dynatrace provider docs)</a> — <em>&quot;covers configuration for platform service-level objectives&quot;</em>, Dynatrace SaaS only, OAuth <strong>View SLOs</strong> (<code>slo:slos:read</code>) / <strong>Create and edit SLOs</strong> (<code>slo:slos:write</code>). <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md">platform_slo.md (Dynatrace GitHub)</a> — the same resource doc at its source; the registry page renders client-side, so it is the repository copy that makes the two quotes above machine-verifiable. <strong>Readiness scan:</strong> the &quot;blocked at upgrade&quot; classification for <code>/api/v2/slo</code> and <code>builtin:monitoring.slo</code> is from the tenant upgrade readiness scan, read 07/31/2026; re-checked 08/28/2026 against both upgrade pages and the API references, where it is not restated.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-05: Dynatrace Workflows</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-05: Dynatrace Workflows</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 5 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<p>Dynatrace Workflows is a built-in automation engine that enables event-driven actions directly within the platform. Unlike external tools, workflows run inside Dynatrace with full access to observability data.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#workflow-components">Workflow Components</a></li>
+<li><a href="#creating-workflows">Creating Workflows</a></li>
+<li><a href="#actions-and-integrations">Actions and Integrations</a></li>
+<li><a href="#auto-remediation-patterns">Auto-Remediation Patterns</a></li>
+<li><a href="#best-practices">Best Practices</a></li>
+<li><a href="#recent-enhancements">Recent Enhancements</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this notebook, ensure you have:</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dynatrace SaaS</td>
+<td>Tenant with Workflows enabled</td>
+</tr>
+<tr>
+<td>Permissions</td>
+<td><code>automation:workflows:read</code> to view workflows; <code>automation:workflows:write</code>, <code>automation:workflows:run</code> and <code>app-engine:functions:run</code> to build and run them (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Workflows security (DT docs)</a>)</td>
+</tr>
+<tr>
+<td>Basic DQL</td>
+<td>Understanding of Dynatrace Query Language</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Understand Dynatrace Workflows architecture</li>
+<li>Know how to create event-driven automations</li>
+<li>Be able to implement auto-remediation patterns</li>
+<li>Connect workflows to external systems</li>
+</ul>
+<hr />
+<p><a id="introduction"></a></p>
+<h2>1. Introduction</h2>
+<h3>Why Workflows?</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Native Integration</strong></td>
+<td>Direct access to all Dynatrace data</td>
+</tr>
+<tr>
+<td><strong>No Infrastructure</strong></td>
+<td>No external systems to manage</td>
+</tr>
+<tr>
+<td><strong>Event-Driven</strong></td>
+<td>React to problems, alerts, schedules</td>
+</tr>
+<tr>
+<td><strong>Context-Aware</strong></td>
+<td>Full Dynatrace Intelligence context available</td>
+</tr>
+<tr>
+<td><strong>Secure</strong></td>
+<td>Credentials stored in Dynatrace vault</td>
+</tr>
+</tbody>
+</table>
+<h3>Common Use Cases</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Notifications</strong></td>
+<td>Send alerts to Slack, Teams, email</td>
+</tr>
+<tr>
+<td><strong>Auto-Remediation</strong></td>
+<td>Restart services, scale resources</td>
+</tr>
+<tr>
+<td><strong>Ticketing</strong></td>
+<td>Create ServiceNow, Jira tickets</td>
+</tr>
+<tr>
+<td><strong>Enrichment</strong></td>
+<td>Add context to problems</td>
+</tr>
+<tr>
+<td><strong>Reporting</strong></td>
+<td>Generate scheduled reports</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="workflow-components"></a></p>
+<h2>2. Workflow Components</h2>
+<h3>Workflow Architecture</h3>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Component | Purpose |
+|-----------|----------|
+| Trigger | What starts the workflow: a problem, an event, a schedule, a manual run, or an API request (run endpoint) |
+| Tasks | Actions to perform, linked by predecessors; they run in sequence or in parallel |
+| Conditions | Logic to control flow |
+| Results | A task's output, readable by the tasks downstream of it |
+| Outputs | ServiceNow ticket, Slack / Teams message, PagerDuty incident, webhook call, auto-remediation |
+-->
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2UgV29ya2Zsb3cgQXJjaGl0ZWN0dXJlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlRyaWdnZXJzIOKGkiBUYXNrcyDihpIgT3V0cHV0cyDigJQgZXZlbnQtZHJpdmVuIGF1dG9tYXRpb24gKEdlbjMpPC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9IndmYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFRyaWdnZXJzIHBhbmVsIChsZWZ0KSAtLT4KICA8cmVjdCB4PSI0MCIgeT0iOTAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMzMwIiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjM2NmYxIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxNjAiIHk9IjExOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+VHJpZ2dlcnM8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSIxMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPldoYXQgc3RhcnRzIHRoZSB3b3JrZmxvdzwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMiI+CiAgICA8cmVjdCB4PSI2MCIgeT0iMTU1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzYzNjZmMSIgb3BhY2l0eT0iMC42NSIvPgogICAgPHRleHQgeD0iMTYwIiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiPkRldGVjdGVkIFByb2JsZW0gZXZlbnQ8L3RleHQ+CiAgICA8cmVjdCB4PSI2MCIgeT0iMjA1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzYzNjZmMSIgb3BhY2l0eT0iMC42NSIvPgogICAgPHRleHQgeD0iMTYwIiB5PSIyMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiPlNjaGVkdWxlIChjcm9uKTwvdGV4dD4KICAgIDxyZWN0IHg9IjYwIiB5PSIyNTUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjNjM2NmYxIiBvcGFjaXR5PSIwLjY1Ii8+CiAgICA8dGV4dCB4PSIxNjAiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiI+Q3VzdG9tIGV2ZW50PC90ZXh0PgogICAgPHJlY3QgeD0iNjAiIHk9IjMwNSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiM2MzY2ZjEiIG9wYWNpdHk9IjAuNjUiLz4KICAgIDx0ZXh0IHg9IjE2MCIgeT0iMzMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIj5NYW51YWwgLyBvbiBkZW1hbmQ8L3RleHQ+CiAgICA8cmVjdCB4PSI2MCIgeT0iMzU1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzYzNjZmMSIgb3BhY2l0eT0iMC42NSIvPgogICAgPHRleHQgeD0iMTYwIiB5PSIzODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiPkFQSSByZXF1ZXN0IChydW4gZW5kcG9pbnQpPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBUYXNrcyBwYW5lbCAobWlkZGxlKSAtLT4KICA8cmVjdCB4PSIzMTAiIHk9IjkwIiB3aWR0aD0iMzEwIiBoZWlnaHQ9IjMzMCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0YjhhNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlRhc2tzIChBY3Rpb25zKTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjEzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U3RlcHMgbGlua2VkIGJ5IHByZWRlY2Vzc29yczwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMSI+CiAgICA8cmVjdCB4PSIzMzAiIHk9IjE1NSIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI2MCIgcng9IjQiIGZpbGw9IiMxNGI4YTYiLz4KICAgIDx0ZXh0IHg9IjM5NSIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5EUUwgUXVlcnk8L3RleHQ+CiAgICA8dGV4dCB4PSIzOTUiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2NjZmJmMSI+Z2F0aGVyIGNvbnRleHQ8L3RleHQ+CgogICAgPHJlY3QgeD0iNDcwIiB5PSIxNTUiIHdpZHRoPSIxMzAiIGhlaWdodD0iNjAiIHJ4PSI0IiBmaWxsPSIjMTRiOGE2Ii8+CiAgICA8dGV4dCB4PSI1MzUiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+SmF2YVNjcmlwdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjUzNSIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjY2NmYmYxIj5jdXN0b20gbG9naWM8L3RleHQ+CgogICAgPHJlY3QgeD0iMzMwIiB5PSIyMjUiIHdpZHRoPSIxMzAiIGhlaWdodD0iNjAiIHJ4PSI0IiBmaWxsPSIjMTRiOGE2Ii8+CiAgICA8dGV4dCB4PSIzOTUiIHk9IjI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+SFRUUCBSZXF1ZXN0PC90ZXh0PgogICAgPHRleHQgeD0iMzk1IiB5PSIyNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjY2ZiZjEiPmNhbGwgZXh0ZXJuYWwgQVBJPC90ZXh0PgoKICAgIDxyZWN0IHg9IjQ3MCIgeT0iMjI1IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjYwIiByeD0iNCIgZmlsbD0iIzE0YjhhNiIvPgogICAgPHRleHQgeD0iNTM1IiB5PSIyNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPnNlbmRfc2xhY2s8L3RleHQ+CiAgICA8dGV4dCB4PSI1MzUiIHk9IjI3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2NjZmJmMSI+U2xhY2sgbm90aWZpY2F0aW9uPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBDb25kaXRpb24gZGlhbW9uZCAtLT4KICA8cG9seWdvbiBwb2ludHM9IjQ2NSwzMDUgNTI1LDM0MCA0NjUsMzc1IDQwNSwzNDAiIGZpbGw9IiNmOTczMTYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjMzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+Q29uZGl0aW9uYWw8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZmZmYiIGZvbnQtc2l6ZT0iMTAiPmJyYW5jaDwvdGV4dD4KCiAgPCEtLSBJbnRlcm5hbCBhcnJvd3Mgd2l0aGluIFRhc2tzIHBhbmVsIC0tPgogIDxnIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiPgogICAgPGxpbmUgeDE9IjQ2MCIgeTE9IjE4NSIgeDI9IjQ3MCIgeTI9IjE4NSIgbWFya2VyLWVuZD0idXJsKCN3ZmFycikiLz4KICAgIDxsaW5lIHgxPSIzOTUiIHkxPSIyMTUiIHgyPSIzOTUiIHkyPSIyMjUiIG1hcmtlci1lbmQ9InVybCgjd2ZhcnIpIi8+CiAgICA8bGluZSB4MT0iNDYwIiB5MT0iMjU1IiB4Mj0iNDcwIiB5Mj0iMjU1IiBtYXJrZXItZW5kPSJ1cmwoI3dmYXJyKSIvPgogICAgPGxpbmUgeDE9IjQ2NSIgeTE9IjI4NSIgeDI9IjQ2NSIgeTI9IjMwNSIgbWFya2VyLWVuZD0idXJsKCN3ZmFycikiLz4KICA8L2c+CgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPlRhc2tzIHJ1biBpbiBzZXF1ZW5jZSBvciBpbiBwYXJhbGxlbDsgcmVzdWx0cyBwYXNzIGRvd25zdHJlYW08L3RleHQ+CgogIDwhLS0gT3V0cHV0cyBwYW5lbCAocmlnaHQpIC0tPgogIDxyZWN0IHg9IjY1MCIgeT0iOTAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMzMwIiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjOGI1Y2Y2IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjExOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+T3V0cHV0czwvdGV4dD4KICA8dGV4dCB4PSI3NzAiIHk9IjEzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2hhdCB0aGUgd29ya2Zsb3cgcHJvZHVjZXM8L3RleHQ+CgogIDxnIGZvbnQtc2l6ZT0iMTIiPgogICAgPHJlY3QgeD0iNjcwIiB5PSIxNTUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjOGI1Y2Y2IiBvcGFjaXR5PSIwLjY1Ii8+CiAgICA8dGV4dCB4PSI3NzAiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiI+U2VydmljZU5vdyB0aWNrZXQ8L3RleHQ+CiAgICA8cmVjdCB4PSI2NzAiIHk9IjIwNSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiM4YjVjZjYiIG9wYWNpdHk9IjAuNjUiLz4KICAgIDx0ZXh0IHg9Ijc3MCIgeT0iMjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIj5TbGFjayAvIFRlYW1zIG1lc3NhZ2U8L3RleHQ+CiAgICA8cmVjdCB4PSI2NzAiIHk9IjI1NSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiM4YjVjZjYiIG9wYWNpdHk9IjAuNjUiLz4KICAgIDx0ZXh0IHg9Ijc3MCIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIj5QYWdlckR1dHkgaW5jaWRlbnQ8L3RleHQ+CiAgICA8cmVjdCB4PSI2NzAiIHk9IjMwNSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiM4YjVjZjYiIG9wYWNpdHk9IjAuNjUiLz4KICAgIDx0ZXh0IHg9Ijc3MCIgeT0iMzMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIj5XZWJob29rIGNhbGw8L3RleHQ+CiAgICA8cmVjdCB4PSI2NzAiIHk9IjM1NSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiM4YjVjZjYiIG9wYWNpdHk9IjAuNjUiLz4KICAgIDx0ZXh0IHg9Ijc3MCIgeT0iMzgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIj5BdXRvLXJlbWVkaWF0aW9uPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBJbnRlci1wYW5lbCBhcnJvd3MgLS0+CiAgPGcgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiPgogICAgPGxpbmUgeDE9IjI4MCIgeTE9IjI1NSIgeDI9IjMxMCIgeTI9IjI1NSIgbWFya2VyLWVuZD0idXJsKCN3ZmFycikiLz4KICAgIDxsaW5lIHgxPSI2MjAiIHkxPSIyNTUiIHgyPSI2NTAiIHkyPSIyNTUiIG1hcmtlci1lbmQ9InVybCgjd2ZhcnIpIi8+CiAgPC9nPgoKICA8IS0tIEJvdHRvbSBub3RlIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIiBmb250LXN0eWxlPSJpdGFsaWMiPkdlbjMgcmVwbGFjZXMgbGVnYWN5IEFsZXJ0aW5nIFByb2ZpbGUgKyBOb3RpZmljYXRpb24gQ2hhbm5lbCB3aXRoIFdvcmtmbG93czwvdGV4dD4KPC9zdmc+Cg==" alt="Workflow Architecture" /></p>
+<h3>Triggers</h3>
+<p><em>&quot;A trigger can be a schedule, an event, a manual interaction (on demand), or an API request.&quot;</em> There is no inbound-webhook trigger; an external system starts a workflow by calling its run endpoint (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows (DT docs)</a>).</p>
+<table>
+<thead>
+<tr>
+<th>Trigger Type</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Problem</strong></td>
+<td>detected problem event</td>
+<td>Availability issue detected</td>
+</tr>
+<tr>
+<td><strong>Event</strong></td>
+<td>Custom or ingest event</td>
+<td>Deployment completed</td>
+</tr>
+<tr>
+<td><strong>Schedule</strong></td>
+<td>Time-based (cron)</td>
+<td>Daily at 9 AM</td>
+</tr>
+<tr>
+<td><strong>Manual</strong></td>
+<td>User-initiated</td>
+<td>On-demand execution</td>
+</tr>
+<tr>
+<td><strong>API request</strong></td>
+<td>Call to the workflow's run endpoint (API or SDK)</td>
+<td>External system trigger</td>
+</tr>
+</tbody>
+</table>
+<h3>Tasks</h3>
+<table>
+<thead>
+<tr>
+<th>Task Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HTTP Request</strong></td>
+<td>Call external APIs</td>
+</tr>
+<tr>
+<td><strong>Run JavaScript</strong></td>
+<td>Custom logic</td>
+</tr>
+<tr>
+<td><strong>DQL Query</strong></td>
+<td>Query Grail data</td>
+</tr>
+<tr>
+<td><strong>Send Notification</strong></td>
+<td>Slack, Teams, email</td>
+</tr>
+<tr>
+<td><strong>Create Issue</strong></td>
+<td>Jira, ServiceNow</td>
+</tr>
+<tr>
+<td><strong>Run Workflow</strong></td>
+<td>Call other workflows</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="creating-workflows"></a></p>
+<h2>3. Creating Workflows</h2>
+<h3>Access Workflows</h3>
+<p>Navigate to: <strong>Apps → Workflows</strong></p>
+<p>Or via URL: <code>https://{tenant}.apps.dynatrace.com/ui/apps/dynatrace.automations/workflows</code></p>
+<h3>Simple Notification Workflow</h3>
+<p>The examples in this notebook use the workflow <strong>template</strong> format (<code>schemaVersion: 3</code>) that the Workflows app imports and exports, trimmed for reading: the <code>metadata</code> block and each task's <code>position</code> are left out, and connection fields are empty — select the connection in the editor after import.</p>
+<blockquote>
+<p><strong>Action IDs</strong> come from Dynatrace's own workflow samples: <code>dynatrace.slack:slack-send-message</code>, <code>dynatrace.servicenow:snow-create-incident</code> and <code>dynatrace.email:send-email</code>, plus the core <code>dynatrace.automations:execute-dql-query</code>, <code>dynatrace.automations:run-javascript</code> and <code>dynatrace.automations:http-function</code>. Connector actions need the connector installed from Dynatrace Hub. If the editor shows a different ID for an action, use the one it shows. (<a href="https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/AGENTS.md">Dynatrace-workflow-samples AGENTS.md (Dynatrace GitHub)</a>)</p>
+</blockquote>
+<pre><code class="language-yaml">workflow:
+  title: Problem Notification
+  description: Send a Slack message for availability and error problems
+  tasks:
+    send_slack:
+      name: send_slack
+      description: Send Slack alert
+      action: dynatrace.slack:slack-send-message
+      input:
+        connection: &quot;&quot;          # select the Slack connection in the editor
+        channel: &quot;&lt;channel-id&gt;&quot; # Slack channel ID
+        message: |-
+          :warning: *Problem Detected*
+          *Problem:* {{ event()[&quot;display_id&quot;] }} — {{ event()[&quot;event.name&quot;] }}
+          *Category:* {{ event()[&quot;event.category&quot;] }}
+          *Status:* {{ event()[&quot;event.status&quot;] }}
+      predecessors: []
+  trigger:
+    eventTrigger:
+      isActive: true
+      triggerConfiguration:
+        type: davis-problem
+        value:
+          categories:
+            availability: true
+            error: true
+  schemaVersion: 3
+</code></pre>
+<p>Slack calls leave the platform, so allow <code>slack.com</code> under <strong>Settings → General → External requests</strong> before the first run.</p>
+<p>Problem-trigger event fields are the Grail problem-record field names (<code>event.name</code>, <code>event.category</code>, <code>event.status</code>, <code>display_id</code>, <code>root_cause.smartscape_entity</code>, <code>smartscape.affected_entities</code>) — the same fields <code>fetch dt.davis.problems</code> returns — not the Classic problem-API names (<code>title</code>, <code>severity</code>, <code>impactLevel</code>, <code>rootCauseEntity</code>). The older <code>root_cause_entity_id</code>, <code>root_cause_entity_name</code> and <code>affected_entity_ids</code> still exist but are deprecated: <em>&quot;root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity , and affected_entity_ids in favor of smartscape.affected_entities . Build new payloads against the Smartscape fields.&quot;</em> Most problems carry no root cause, so read it with <code>.get()</code> as the examples below do.</p>
+<h3>Problem Trigger Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Problem state</td>
+<td>Active (default), active or closed, or closed only</td>
+</tr>
+<tr>
+<td>Event category</td>
+<td>Availability, Error, Slowdown, Resource, Custom, Info, Monitoring unavailable (<code>resource</code> matches <code>event.category == &quot;RESOURCE_CONTENTION&quot;</code>)</td>
+</tr>
+<tr>
+<td>Severity</td>
+<td>The level at or above which problems start the workflow</td>
+</tr>
+<tr>
+<td>Affected entities</td>
+<td>Filter by entity tags — all defined tags, or any of them</td>
+</tr>
+<tr>
+<td>Minimum duration</td>
+<td>Postpone the trigger until the problem has been open 5 minutes to one week</td>
+</tr>
+<tr>
+<td>Wait for root cause analysis</td>
+<td>Start only after root-cause analysis has finished</td>
+</tr>
+<tr>
+<td>Additional custom filter query</td>
+<td>A DQL matcher, for example <code>maintenance.is_under_maintenance == false</code></td>
+</tr>
+</tbody>
+</table>
+<p>There is no management-zone or entity-type option: scope with entity tags or affected entities. Do not scope on the root cause — the alert-notification upgrade guide: <em>&quot;Do not filter on root_cause.smartscape_entity.&quot;</em> … <em>&quot;A root-cause condition silently drops those problems. Filter on tags or affected entities instead.&quot;</em> (<a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers (DT docs)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/automation_workflow.md">dynatrace_automation_workflow resource (Dynatrace GitHub)</a>, <a href="https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml">ServiceNow incident sample (Dynatrace GitHub)</a>)</p>
+<hr />
+<h3>Using JavaScript Tasks</h3>
+<p>Custom logic with JavaScript:</p>
+<pre><code class="language-javascript">// Task: Enrich problem data
+import { execution } from '@dynatrace-sdk/automation-utils';
+
+export default async function () {
+  // The triggering event is on the execution, not a global
+  const ex = await execution();
+  const problem = ex.event() ?? {};
+
+  // Build enrichment data
+  return {
+    problemId: problem['display_id'],
+    name: problem['event.name'],
+    affectedEntities: (problem['smartscape.affected_entities'] ?? problem['affected_entity_ids'] ?? []).length,
+    rootCauseEntity: problem['root_cause.smartscape_entity']?.name || 'Unknown',
+    timestamp: new Date().toISOString()
+  };
+}
+</code></pre>
+<p>A predecessor task's output is <code>await ex.result('task_name')</code> (or the standalone <code>result('task_name')</code> export) — see the <a href="https://developer.dynatrace.com/develop/sdks/automation-utils/">automation-utils SDK reference (Dynatrace Developer)</a>. List that task under <code>predecessors</code>: <em>&quot;A task can reference only the outputs of its direct predecessors in the workflow graph. If the producing task is not a direct predecessor, the expression resolves to Undefined variables at runtime.&quot;</em> A task with no predecessors starts as soon as the workflow does. (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a>)</p>
+<h3>Using DQL Tasks</h3>
+<p>Query data within workflows:</p>
+<pre><code class="language-yaml">tasks:
+  get_metrics:
+    name: Get CPU Metrics
+    action: dynatrace.automations:execute-dql-query
+    input:
+      query: |
+        timeseries cpu = avg(dt.host.cpu.usage), from:-30m, filter: {dt.smartscape.host == toSmartscapeId(&quot;{{ (event().get('root_cause.smartscape_entity') or {}).get('id', '') }}&quot;)}
+</code></pre>
+<hr />
+<p><a id="actions-and-integrations"></a></p>
+<h2>4. Actions and Integrations</h2>
+<h3>Built-in Connectors</h3>
+<table>
+<thead>
+<tr>
+<th>Connector</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Slack</strong></td>
+<td>Send message, post to channel</td>
+</tr>
+<tr>
+<td><strong>Microsoft Teams</strong></td>
+<td>Send adaptive card</td>
+</tr>
+<tr>
+<td><strong>Jira</strong></td>
+<td>Create/update issue</td>
+</tr>
+<tr>
+<td><strong>ServiceNow</strong></td>
+<td>Create, search and comment on incidents; import ServiceNow groups as Ownership teams</td>
+</tr>
+<tr>
+<td><strong>PagerDuty</strong></td>
+<td>Create incident</td>
+</tr>
+<tr>
+<td><strong>Jenkins</strong></td>
+<td>Trigger builds and query build status</td>
+</tr>
+<tr>
+<td><strong>Email</strong></td>
+<td>Send email notification</td>
+</tr>
+</tbody>
+</table>
+<p>Connectors other than Email are installed from Dynatrace Hub. (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions">Workflow actions (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now">ServiceNow Connector (DT docs)</a>)</p>
+<h3>HTTP Request Task</h3>
+<p>Call any REST API:</p>
+<pre><code class="language-yaml">tasks:
+  call_api:
+    name: Call External API
+    action: dynatrace.automations:http-function
+    input:
+      url: &quot;https://api.example.com/incidents&quot;
+      method: POST
+      headers:
+        Content-Type: application/json
+        # No Authorization header: select a Credential Vault token in the
+        # action's Authentication input instead (see Credential Management below)
+      payload: |
+        {
+          &quot;title&quot;: &quot;{{ event()['event.name'] }}&quot;,
+          &quot;category&quot;: &quot;{{ event()['event.category'] }}&quot;,
+          &quot;source&quot;: &quot;dynatrace&quot;
+        }
+</code></pre>
+<p>The request body goes in <code>payload</code> (<em>&quot;The payload of the HTTP request. Set an appropriate content-type header.&quot;</em>); <code>body</code> is a field of the action's <em>result</em>, not an input. Add the target domain under <strong>Settings → General → External requests</strong> first: <em>&quot;All HTTP calls are validated against the global allowlist.&quot;</em> (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action">HTTP Request action (DT docs)</a>)</p>
+<h3>Credential Management</h3>
+<p>Store credentials securely:</p>
+<ol>
+<li>Go to <strong>Settings → Credential Vault</strong></li>
+<li>Create a new credential (Token or Basic)</li>
+<li>In an HTTP Request task, select it in the <strong>Authentication</strong> input: <em>&quot;The HTTP Request action supports using credentials from the credential vault for Basic and Token authentication.&quot;</em> In a Run JavaScript task, read it with <code>credentialVaultClient</code>.</li>
+</ol>
+<p>The workflow expression language has no <code>env</code> or <code>credential</code> object, so <code>{{ env.API_TOKEN }}</code> and <code>{{ credential.MY_API_KEY }}</code> are not valid references. Do not fall back to a literal header either — header values show in the workflow monitor, and Dynatrace advises: <em>&quot;We strongly advise you not to expose any secret, but instead to use the authentication configuration via Credential Vault.&quot;</em> (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action">HTTP Request action (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Jinja expressions for Workflows (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a>)</p>
+<hr />
+<p><a id="auto-remediation-patterns"></a></p>
+<h2>5. Auto-Remediation Patterns</h2>
+<h3>Pattern: Restart Service</h3>
+<pre><code class="language-yaml">workflow:
+  title: Auto-Restart on Crash
+  tasks:
+    check_entity:
+      name: check_entity
+      description: Validate the root-cause entity type
+      action: dynatrace.automations:run-javascript
+      input:
+        script: |-
+          import { execution } from '@dynatrace-sdk/automation-utils';
+          export default async function () {
+            const ex = await execution();
+            const rootCause = (ex.event() ?? {})['root_cause.smartscape_entity'] ?? {};
+            if (rootCause.type !== 'PROCESS') {
+              return { skip: true };
+            }
+            return { entityId: rootCause.id, skip: false };
+          }
+      predecessors: []
+    restart_service:
+      name: restart_service
+      description: Call the restart runbook
+      action: dynatrace.automations:http-function
+      input:
+        url: &quot;https://runbook.example.com/restart&quot;
+        method: POST
+        headers:
+          Content-Type: application/json
+        payload: |-
+          { &quot;entityId&quot;: &quot;{{ result('check_entity').entityId }}&quot; }
+      predecessors:
+        - check_entity
+      conditions:
+        states:
+          check_entity: OK
+        custom: &quot;{{ result('check_entity').skip == false }}&quot;
+        else: SKIP
+  trigger:
+    eventTrigger:
+      isActive: true
+      triggerConfiguration:
+        type: davis-problem
+        value:
+          categories:
+            availability: true
+  schemaVersion: 3
+</code></pre>
+<h3>Pattern: Scale on High CPU</h3>
+<pre><code class="language-yaml">workflow:
+  title: Auto-Scale on Resource Pressure
+  tasks:
+    check_cpu:
+      name: check_cpu
+      description: Query current CPU of the root-cause host
+      action: dynatrace.automations:execute-dql-query
+      input:
+        query: |-
+          timeseries cpu = avg(dt.host.cpu.usage), from:-30m, filter: {dt.smartscape.host == toSmartscapeId(&quot;{{ (event().get('root_cause.smartscape_entity') or {}).get('id', '') }}&quot;)}
+          | fieldsAdd avg_cpu = arrayAvg(cpu)
+      predecessors: []
+    scale_up:
+      name: scale_up
+      description: Trigger scale event
+      action: dynatrace.automations:http-function
+      input:
+        url: &quot;https://api.cloud.example.com/scale&quot;
+        method: POST
+      predecessors:
+        - check_cpu
+      conditions:
+        states:
+          check_cpu: OK
+        custom: &quot;{{ result('check_cpu').records | length &gt; 0 and result('check_cpu').records[0].avg_cpu &gt; 90 }}&quot;
+        else: SKIP
+  trigger:
+    eventTrigger:
+      isActive: true
+      triggerConfiguration:
+        type: davis-problem
+        value:
+          categories:
+            resource: true
+  schemaVersion: 3
+</code></pre>
+<p>This pattern only fits problems whose root cause is a host. On a validation tenant over seven days (10/02/2026), 16 resource-contention problems had a host as root cause, 45 a process group, and 1,477 no root-cause entity at all; for anything but a host the query returns no records, and <code>records[0].avg_cpu</code> would be undefined. The trigger deliberately has no root-cause filter — <em>&quot;A root-cause condition silently drops those problems.&quot;</em> — so the query does the narrowing: it filters on the root-cause host, returns no records for any other root cause or none, and the <code>length &gt; 0</code> guard then skips the scale call. A <code>PROCESS</code> root cause in the restart pattern carries a Smartscape ID (<code>PROCESS-…</code>), not the classic <code>PROCESS_GROUP_INSTANCE-…</code>, so point the runbook at that ID. (<a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a>)</p>
+<blockquote>
+<p>A bare <code>timeseries avg(dt.host.cpu.usage) | filter dt.entity.host == …</code> fails with <code>FIELD_DOES_NOT_EXIST</code>: without <code>by:{dt.entity.host}</code> the series carries no host dimension to filter on. Filter inside <code>timeseries</code> (as above) or add the <code>by:</code> clause. Compare <code>dt.smartscape.host</code> through <code>toSmartscapeId(…)</code>: a <code>smartscape_id</code> never equals a plain string.</p>
+</blockquote>
+<hr />
+<h3>Pattern: Create Incident Ticket</h3>
+<pre><code class="language-yaml">workflow:
+  title: ServiceNow Incident Creation
+  tasks:
+    create_incident:
+      name: create_incident
+      description: Create a ServiceNow incident
+      action: dynatrace.servicenow:snow-create-incident
+      input:
+        connectionId: &quot;&quot;        # select the ServiceNow connection in the editor
+        shortDescription: &quot;Dynatrace: {{ event()['event.name'] }}&quot;
+        description: |-
+          Problem detected by Dynatrace Intelligence
+
+          Problem: {{ event()['display_id'] }}
+          Name: {{ event()['event.name'] }}
+          Category: {{ event()['event.category'] }}
+          Root Cause: {{ (event().get('root_cause.smartscape_entity') or {}).get('name', 'not yet determined') }}
+        urgency: &quot;2&quot;
+        impact: &quot;2&quot;
+        correlationId: DT_{{ event()['event.id'] }}
+      predecessors: []
+    record_ticket:
+      name: record_ticket
+      description: Keep the incident reference for later tasks
+      action: dynatrace.automations:run-javascript
+      input:
+        script: |-
+          import { result } from '@dynatrace-sdk/automation-utils';
+          export default async function () {
+            const incident = await result('create_incident');
+            return { incidentUrl: incident?.url, status: 'created' };
+          }
+      predecessors:
+        - create_incident
+      conditions:
+        states:
+          create_incident: OK
+  trigger:
+    eventTrigger:
+      isActive: true
+      triggerConfiguration:
+        type: davis-problem
+        value:
+          categories:
+            availability: true
+            error: true
+  schemaVersion: 3
+</code></pre>
+<p>Input names follow Dynatrace's ServiceNow sample, which also searches for an existing incident by <code>correlationId</code> (<code>snow-search-incidents</code>) before creating one, so a re-triggered problem does not open a second ticket. (<a href="https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/samples/Messaging%20and%20Incident%20Management/wftpl_sample_servicenow_incident_man.yaml">ServiceNow incident sample (Dynatrace GitHub)</a>)</p>
+<hr />
+<p><a id="best-practices"></a></p>
+<h2>6. Best Practices</h2>
+<h3>Workflow Design</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single responsibility</strong></td>
+<td>One workflow, one purpose</td>
+</tr>
+<tr>
+<td><strong>Idempotency</strong></td>
+<td>Safe to run multiple times</td>
+</tr>
+<tr>
+<td><strong>Error handling</strong></td>
+<td>Handle failures gracefully</td>
+</tr>
+<tr>
+<td><strong>Logging</strong></td>
+<td>Add descriptive task names</td>
+</tr>
+<tr>
+<td><strong>Testing</strong></td>
+<td>Use manual triggers for testing</td>
+</tr>
+</tbody>
+</table>
+<h3>Trigger Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Scope narrowly</strong></td>
+<td>Use the trigger's entity-tag filter and a custom filter query</td>
+</tr>
+<tr>
+<td><strong>Avoid duplicates</strong></td>
+<td>Check if action already taken</td>
+</tr>
+<tr>
+<td><strong>Debounce</strong></td>
+<td>Use the trigger's <strong>Minimum duration</strong> option (5 minutes to one week) for flapping problems</td>
+</tr>
+</tbody>
+</table>
+<h3>Security</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Credential vault</strong></td>
+<td>Never hardcode secrets</td>
+</tr>
+<tr>
+<td><strong>Least privilege</strong></td>
+<td>Minimal API permissions</td>
+</tr>
+<tr>
+<td><strong>Audit trail</strong></td>
+<td>Log all remediation actions</td>
+</tr>
+</tbody>
+</table>
+<h3>Error Handling</h3>
+<p>Workflows have no <code>on_error</code> or <code>error()</code> construct. Retries are a task property (<code>count</code> 1–99, <code>delay</code> in <strong>seconds</strong> 1–3600), and error routing is a downstream task whose <strong>condition</strong> is the upstream task's state (<code>SUCCESS</code>, <code>ERROR</code>, <code>ANY</code>, <code>OK</code>, <code>NOK</code>):</p>
+<pre><code class="language-yaml">tasks:
+  api_call:
+    name: Call API
+    action: dynatrace.automations:http-function
+    retry:
+      count: 3
+      delay: 30          # seconds
+
+  error_handler:
+    name: error_handler
+    action: dynatrace.slack:slack-send-message
+    predecessors:
+      - api_call
+    conditions:
+      states:
+        api_call: ERROR
+    input:
+      connection: &quot;&quot;          # select the Slack connection in the editor
+      channel: &quot;&lt;channel-id&gt;&quot;
+      message: &quot;Task api_call failed after 3 retries&quot;
+</code></pre>
+<p>The same fields in Terraform form are documented on the <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/automation_workflow.md">dynatrace_automation_workflow resource (Dynatrace GitHub)</a> — <code>retry { count, delay, failed_loop_iterations_only }</code> and <code>conditions { states = { … } }</code>.</p>
+<hr />
+<p><a id="recent-enhancements"></a></p>
+<h2>7. Recent Enhancements</h2>
+<h3>New Workflow Features (2025-2026)</h3>
+<p>Dynatrace has added several capabilities to the Workflows engine:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Sub-workflows</strong></td>
+<td>Call reusable workflows from within other workflows for modular automation</td>
+</tr>
+<tr>
+<td><strong>Approval Requests</strong></td>
+<td>Built-in human approval gates for governed automation</td>
+</tr>
+<tr>
+<td><strong>Workflow Drafts</strong></td>
+<td>Save work-in-progress workflows without deploying them</td>
+</tr>
+<tr>
+<td><strong>Simple Workflows</strong></td>
+<td>Quickly automate single-step tasks (e.g., send a Slack notification) at no additional cost</td>
+</tr>
+<tr>
+<td><strong>Persistent Execution Data</strong></td>
+<td>Retain execution history for analysis and refinement</td>
+</tr>
+<tr>
+<td><strong>Real-time Notifications</strong></td>
+<td>Get notified when workflows complete or fail</td>
+</tr>
+<tr>
+<td><strong>ServiceNow Connector</strong></td>
+<td>Create, search and comment on incidents; import ServiceNow groups as Ownership teams</td>
+</tr>
+</tbody>
+</table>
+<h3>Agentic Workflows</h3>
+<p>An agentic workflow is a workflow with at least one agentic action — a task that reasons over live environment data instead of producing a fixed output:</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Prompt generative AI</strong></td>
+<td>Agentic action for generative tasks, such as a summary</td>
+</tr>
+<tr>
+<td><strong>Prompt agentic AI</strong></td>
+<td>Agentic action that calls tools to query and act on your environment</td>
+</tr>
+<tr>
+<td><strong>Request Approval</strong></td>
+<td>A task that pauses for a human decision before a consequential step</td>
+</tr>
+</tbody>
+</table>
+<p>Dynatrace's guidance: <em>&quot;When an agentic workflow drives consequential actions, consider adding a Request Approval task to keep a human in the loop.&quot;</em> Agentic actions are tasks like any other, so the trigger, predecessor and condition patterns above apply unchanged. (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/concepts">Workflows concepts (DT docs)</a>)</p>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>8. Next Steps</h2>
+<h3>Workflows vs External Automation</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Tool Choice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Event-driven from Dynatrace</td>
+<td>Workflows</td>
+</tr>
+<tr>
+<td>Config deployment</td>
+<td>Monaco/Terraform</td>
+</tr>
+<tr>
+<td>Complex orchestration</td>
+<td>External (Ansible, etc.)</td>
+</tr>
+<tr>
+<td>Cross-platform actions</td>
+<td>Workflows with HTTP tasks</td>
+</tr>
+</tbody>
+</table>
+<h3>Continue the Series</h3>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AUTOM-06: Dynatrace SDKs</strong></td>
+<td>Programmatic access with TypeScript/Python</td>
+</tr>
+</tbody>
+</table>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions">Workflow Actions Reference</a></li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Dynatrace Workflows architecture and components</li>
+<li>Creating event-driven automations with triggers and tasks</li>
+<li>Implementing auto-remediation patterns</li>
+<li>Best practices for workflow design and security</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> Workflows provide native automation inside Dynatrace. Use them for event-driven actions like notifications, ticketing, and auto-remediation. For configuration management, continue using Monaco or Terraform.</p>
+</blockquote>
+<hr />
+<p><em>Continue to <strong>AUTOM-06: Dynatrace SDKs</strong> to learn programmatic access patterns.</em></p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2S-94 LAB: Retiring AWS for Azure — Moving the Environment and the Workloads</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2S — SaaS to SaaS Migration</a><span class="sep">/</span><span aria-current="page">S2S-94 LAB</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2S-94 LAB: Retiring AWS for Azure — Moving the Environment and the Workloads</h1>
+<blockquote>
+<p><strong>Series:</strong> S2S — SaaS to SaaS Migration | <strong>Reference:</strong> 94 — AWS-to-Azure Cloud Retirement LAB | <strong>Created:</strong> September 2026 | <strong>Last Updated:</strong> 10/06/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>An appendix LAB for an organization that is <strong>completely retiring AWS in favor of Azure</strong>. Two moves happen at once, and they are easy to conflate:</p>
+<ol>
+<li><strong>The Dynatrace environment moves</strong> from an AWS-hosted SaaS cluster to an Azure-hosted one. That is a tenant move: a new target environment, and everything in S2S-01 to S2S-09 applies.</li>
+<li><strong>The monitored workloads move</strong> from AWS to Azure. That is a monitoring change: new cloud connections, new log ingest paths, agents on new hosts.</li>
+</ol>
+<p>Because workloads move in waves, there is a <strong>dual-cloud window</strong>: the new Azure-hosted environment monitors workloads still running on AWS <em>and</em> workloads already on Azure. The window ends when the last AWS workload is gone, and only then are the AWS connection and the AWS-hosted source environment retired.</p>
+<p>This LAB is the ordered runbook for that case. It does not repeat the nine steps; it sequences them for this scenario and adds what is specific to it. Two FAQ entries frame it: <strong>FAQ-25</strong> (what carries over to a new tenant) and <strong>FAQ-17</strong> (the cutover invariants — Go/No-Go gate, parallel-run window, rollback triggers, decommission).</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#the-scenario">The Scenario in One Table</a></li>
+<li><a href="#phase-0-provision">Phase 0 — Decide and Provision the Azure-Hosted Target</a></li>
+<li><a href="#phase-1-identity-and-config">Phase 1 — Identity, Access, and Configuration</a></li>
+<li><a href="#phase-2-connect-both-clouds">Phase 2 — Connect Both Clouds to the Target</a></li>
+<li><a href="#phase-3-agent-waves">Phase 3 — Agent Waves</a></li>
+<li><a href="#phase-4-log-and-event-cutover">Phase 4 — Log and Event Ingest Cut-over</a></li>
+<li><a href="#phase-5-validate">Phase 5 — Validate the Dual-Cloud Window</a></li>
+<li><a href="#phase-6-decommission">Phase 6 — Decommission AWS and the Source Environment</a></li>
+<li><a href="#open-questions">Open Questions and Unverified Items</a></li>
+<li><a href="#summary">Summary</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>S2S series</strong></td>
+<td>S2S-01 to S2S-05 read; S2S-06 §1–2 for cloud connections</td>
+</tr>
+<tr>
+<td><strong>Source environment</strong></td>
+<td>The AWS-hosted Dynatrace SaaS environment, admin access</td>
+</tr>
+<tr>
+<td><strong>Commercial agreement</strong></td>
+<td>An Azure-hosted target agreed with your Dynatrace account team (Azure regions are available on request)</td>
+</tr>
+<tr>
+<td><strong>AWS access</strong></td>
+<td>Rights to deploy CloudFormation stacks in every monitored AWS account</td>
+</tr>
+<tr>
+<td><strong>Azure access</strong></td>
+<td>Rights to create a service principal and assign it on each monitored subscription</td>
+</tr>
+<tr>
+<td><strong>Tooling</strong></td>
+<td>Monaco v2.x, Terraform (IAM), <code>oneagentctl</code> on hosts, <code>kubectl</code> for DynaKube</td>
+</tr>
+</tbody>
+</table>
+<p><a id="the-scenario"></a></p>
+<h2>1. The Scenario in One Table</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Before</th>
+<th>Dual-cloud window</th>
+<th>After</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace environment</strong></td>
+<td>AWS-hosted source</td>
+<td>Azure-hosted target is primary; source readable, no longer ingesting from migrated waves</td>
+<td>Azure-hosted target only</td>
+</tr>
+<tr>
+<td><strong>AWS workloads</strong></td>
+<td>Monitored by the source</td>
+<td>Re-pointed to the target, wave by wave, while they still run</td>
+<td>Gone</td>
+</tr>
+<tr>
+<td><strong>Azure workloads</strong></td>
+<td>— (or monitored by the source)</td>
+<td>Monitored by the target from day one</td>
+<td>Monitored by the target</td>
+</tr>
+<tr>
+<td><strong>AWS connection</strong></td>
+<td>On the source</td>
+<td>On the <strong>target</strong> (and removed from the source)</td>
+<td>Removed</td>
+</tr>
+<tr>
+<td><strong>Azure connection</strong></td>
+<td>— (or classic integration on the source)</td>
+<td>On the target, one subscription at a time</td>
+<td>On the target</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sequencing recommendation.</strong> Stand up the Azure-hosted target <strong>before</strong> the workload migration starts, so that new Azure workloads install OneAgent against the target directly. A workload that moves to Azure while still reporting to the AWS-hosted source has to be re-pointed a second time later. This follows from the one-destination rule for OneAgent (<strong>FAQ-25</strong> §6) rather than from a Dynatrace document, so treat it as planning guidance.</p>
+<p><a id="phase-0-provision"></a></p>
+<h2>2. Phase 0 — Decide and Provision the Azure-Hosted Target</h2>
+<p>Dynatrace documents that <em>&quot;Data is stored in Amazon Web Services (AWS), Microsoft Azure, or Google Cloud data centers&quot;</em>, and lists Azure regions (East US, West US 3, West Europe, Canada Central, UAE, Switzerland North, Australia East) as <em>&quot;Available on request. Talk to your Dynatrace sales contact.&quot;</em> It also states <em>&quot;Environments hosted on Azure use dedicated Azure storage accounts&quot;</em> — useful for the data-residency conversation.</p>
+<p>Choose between the two ways of getting an Azure-hosted environment (the full comparison is in <strong>S2S-04</strong> §1):</p>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Standard SaaS on an Azure region</th>
+<th>Azure Native Dynatrace Service</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Provisioned by</td>
+<td>Your Dynatrace account team</td>
+<td>You, from the Azure portal — <em>&quot;available via a private offer&quot;</em></td>
+</tr>
+<tr>
+<td>Account</td>
+<td>Settled with the account team</td>
+<td><em>&quot;The integration will create a new Dynatrace environment and account; it can't run on an existing Dynatrace SaaS environment.&quot;</em></td>
+</tr>
+<tr>
+<td>Billing</td>
+<td>Your Dynatrace agreement</td>
+<td><em>&quot;your Dynatrace license consumption becomes a part of your regular Azure bill&quot;</em></td>
+</tr>
+<tr>
+<td>SSO</td>
+<td>SAML — Microsoft Entra ID is a documented IdP</td>
+<td>Entra ID; <em>&quot;The integration works across a single Entra ID environment.&quot;</em></td>
+</tr>
+<tr>
+<td>Azure Cloud Platform Monitoring on it</td>
+<td>Documented</td>
+<td><strong>Not stated</strong> — see §9</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Runbook:</strong></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Action</th>
+<th>Done when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.1</td>
+<td>Agree region and path with the account team and your Azure commercial owner</td>
+<td>Written decision, including how the source commitment and target consumption overlap</td>
+</tr>
+<tr>
+<td>0.2</td>
+<td>Provision the target</td>
+<td>Environment reachable; admin can sign in</td>
+</tr>
+<tr>
+<td>0.3</td>
+<td>Record both environments' platform state (Classic vs Latest surfaces, versions)</td>
+<td>Recorded in the migration plan (<strong>S2S-01</strong> §8)</td>
+</tr>
+<tr>
+<td>0.4</td>
+<td>Freeze the source configuration once the export is taken</td>
+<td>Freeze communicated (<strong>S2S-04</strong> §6)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-security/data-security-controls">Data security controls (DT docs)</a> — <em>&quot;Environments hosted on Azure use dedicated Azure storage accounts.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/azure-native-integration">Azure Native Dynatrace Service (DT docs)</a> — <em>&quot;When you purchase Dynatrace SaaS through the Azure Marketplace, your Dynatrace license consumption becomes a part of your regular Azure bill.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="phase-1-identity-and-config"></a></p>
+<h2>3. Phase 1 — Identity, Access, and Configuration</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Action</th>
+<th>Reference</th>
+<th>Done when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.1</td>
+<td>Configure SAML SSO with Microsoft Entra ID as a <strong>new</strong> enterprise application for the target</td>
+<td><strong>S2S-04</strong> §2</td>
+<td>Two users in different groups sign in with the expected permissions</td>
+</tr>
+<tr>
+<td>1.2</td>
+<td>Keep group claims under Entra ID's limit — <em>&quot;The number of groups emitted in a token is limited to 150 for SAML assertions&quot;</em></td>
+<td><strong>S2S-99</strong> #43</td>
+<td>Group claims arrive for your largest user</td>
+</tr>
+<tr>
+<td>1.3</td>
+<td>Rebuild the IP allowlist on the target (per environment, inbound)</td>
+<td><strong>S2S-04</strong> §2</td>
+<td>CI/CD runners and admins reach the target API</td>
+</tr>
+<tr>
+<td>1.4</td>
+<td>Deploy IAM with Terraform</td>
+<td><strong>S2S-04</strong> §2, <strong>S2S-05</strong> §3</td>
+<td>Groups, policies, bindings applied</td>
+</tr>
+<tr>
+<td>1.5</td>
+<td>Export with <code>monaco download</code>, deploy with <code>monaco deploy</code> — the SaaS Upgrade Assistant is documented for a Managed source only, so import through it only after rehearsing that field practice</td>
+<td><strong>S2S-10</strong></td>
+<td>Dry-run clean; deploy to the target succeeds</td>
+</tr>
+<tr>
+<td>1.6</td>
+<td>Deploy ActiveGates the target needs (routing, extensions, private synthetic locations) — on Azure where the workloads are going</td>
+<td><strong>S2S-04</strong> §4</td>
+<td><code>smartscapeNodes &quot;ACTIVEGATE&quot;</code> lists them in the target</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Unverified — egress addresses.</strong> If your firewalls, webhook receivers or ITSM tools admit Dynatrace by source IP, the Azure-hosted cluster's egress addresses will differ from the AWS-hosted source's. No primary source for them was found for this LAB; request them from Dynatrace before cutover rather than reusing the old list.</p>
+<p><sub><strong>Sources:</strong> <a href="https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/how-to-connect-fed-group-claims">Group claims (Microsoft Learn)</a> — <em>&quot;The number of groups emitted in a token is limited to 150 for SAML assertions and 200 for JWT, including nested groups.&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/account-management/settings/ip-allowlist">IP allowlist (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="phase-2-connect-both-clouds"></a></p>
+<h2>4. Phase 2 — Connect Both Clouds to the Target</h2>
+<p>The target needs <strong>both</strong> connections during the window: AWS for the workloads that have not moved yet, Azure for the ones that have. Both are Latest Dynatrace Cloud Platform Monitoring connections, and neither needs an ActiveGate for polling (<strong>S2S-06</strong> §1).</p>
+<p><strong>Azure — switch per subscription, never overlap.</strong> The docs: <em>&quot;Do not onboard Azure subscriptions already monitored by the classic Azure integration, and avoid monitoring the same subscription across multiple Azure connections—both increase the risk of API throttling and service interruptions.&quot;</em> If the source already monitors some Azure subscriptions, move each one in a single change window:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Action</th>
+<th>Done when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2.1</td>
+<td>Create a <strong>dedicated</strong> service principal for the target — <em>&quot;Do not share it across Dynatrace environments&quot;</em></td>
+<td>Principal exists, assigned on the subscription</td>
+</tr>
+<tr>
+<td>2.2</td>
+<td>Remove the subscription from the source's integration (classic or Latest)</td>
+<td>Source no longer polls it</td>
+</tr>
+<tr>
+<td>2.3</td>
+<td>Add the subscription to the target's Azure connection</td>
+<td>Its resources appear in the target (query in §7)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>AWS — a new connection from the target.</strong> <em>&quot;All AWS connection creation methods are powered by CloudFormation&quot;</em>: create the connection in the target and deploy its stack into each account. The AWS onboarding page read for this LAB carries no double-monitoring warning; keep any period in which both source and target poll the same account short, and confirm cost and API-quota implications with your account team.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Action</th>
+<th>Done when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2.4</td>
+<td>Create the AWS connection in the target; deploy its CloudFormation stack per account</td>
+<td>AWS resources appear in the target</td>
+</tr>
+<tr>
+<td>2.5</td>
+<td>Remove the AWS integration from the source once the target shows the same accounts</td>
+<td>Source stops polling AWS</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/create-an-azure-connection">Create your first Azure connection (DT docs)</a> — <em>&quot;Use a dedicated service principal exclusively for Dynatrace. Do not share it across Dynatrace environments or use it for other non-Dynatrace workloads.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-onboarding">AWS Cloud Platform Monitoring (DT docs)</a> — <em>&quot;All AWS connection creation methods are powered by CloudFormation as Infrastructure-as-Code (IaC) engine.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="phase-3-agent-waves"></a></p>
+<h2>5. Phase 3 — Agent Waves</h2>
+<p>Two kinds of wave run side by side:</p>
+<table>
+<thead>
+<tr>
+<th>Wave type</th>
+<th>What happens</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Re-point</strong> — AWS workloads still running</td>
+<td>The host stays on AWS; its OneAgent moves to the target</td>
+<td><code>oneagentctl --set-server=… --set-tenant=… --set-tenant-token=… --restart-service</code>, then restart monitored applications (<strong>S2S-05</strong> §5)</td>
+</tr>
+<tr>
+<td><strong>Re-platform</strong> — workloads rebuilt on Azure</td>
+<td>New hosts on Azure; OneAgent installed from the target</td>
+<td>Standard OneAgent installation against the target — no re-point</td>
+</tr>
+<tr>
+<td><strong>Kubernetes</strong> — EKS clusters still running / new AKS clusters</td>
+<td>EKS: delete the DynaKube and apply one for the target. AKS: apply a DynaKube for the target</td>
+<td><em>&quot;starting with Dynatrace Operator version 1.3.0, editing spec.apiUrl is not allowed&quot;</em> (<strong>S2S-05</strong> §6)</td>
+</tr>
+</tbody>
+</table>
+<p>A host reports to one environment at a time, so the source/target overlap is <strong>per wave</strong> (<strong>FAQ-25</strong> §6). After each wave, check where hosts are — by cloud and region — in the target:</p>
+<pre><code class="language-dql">// Target: hosts by cloud provider and region — run after every wave
+// cloud.provider is aws / azure / gcp on cloud-hosted hosts; the region field differs per cloud
+// (aws.region vs azure.location), so coalesce them into one column.
+smartscapeNodes &quot;HOST&quot;, from:-2h
+| fieldsAdd provider = coalesce(cloud.provider, &quot;none (on-premises or undetected)&quot;),
+    region = coalesce(aws.region, azure.location)
+| summarize hosts = count(), by:{provider, region}
+| sort provider asc, hosts desc
+</code></pre>
+<p>Over the window, the <code>aws</code> rows should shrink and the <code>azure</code> rows grow; the sum across the source and the target should match your discovery baseline (allowing for hosts that were retired rather than migrated).</p>
+<p><a id="phase-4-log-and-event-cutover"></a></p>
+<h2>6. Phase 4 — Log and Event Ingest Cut-over</h2>
+<table>
+<thead>
+<tr>
+<th>Source of data</th>
+<th>On the source</th>
+<th>On the target</th>
+<th>Cut-over rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OneAgent log collection</td>
+<td>Follows the agent</td>
+<td>Follows the agent</td>
+<td>Moves with each wave automatically</td>
+</tr>
+<tr>
+<td>AWS CloudWatch logs</td>
+<td>Source's forwarder or Firehose streams</td>
+<td>Firehose streams from the target's AWS connection</td>
+<td>Switch per log group with its workload's wave; retire at AWS decommission</td>
+</tr>
+<tr>
+<td>Azure resource / activity logs</td>
+<td>Classic log forwarder, if any</td>
+<td>Event Hubs ingest on the target</td>
+<td>Switch per subscription with 2.2–2.3</td>
+</tr>
+<tr>
+<td>Azure resource events</td>
+<td>—</td>
+<td>Event Grid system topics</td>
+<td>Enable per subscription</td>
+</tr>
+<tr>
+<td>Classic Azure log forwarder (if kept as fallback)</td>
+<td>Direct via Cluster API, or through an ActiveGate</td>
+<td>Redeployed against the target</td>
+<td><em>&quot;Logs older than 24 hours are rejected&quot;</em> — switch within the change window; a forwarder repointed after a longer gap cannot backfill</td>
+</tr>
+</tbody>
+</table>
+<p>OpenPipeline rules and bucket routing that match on AWS log sources need Azure equivalents before the Azure ingest starts, or those records land in the default buckets (<strong>S2S-07</strong>).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-onboarding">AWS Cloud Platform Monitoring (DT docs)</a> — <em>&quot;Subscribe CloudWatch log groups to auto-generated Firehose streams for immediate ingestion and analysis.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/azure-onboarding">Azure Cloud Platform Monitoring (DT docs)</a> — <em>&quot;Subscribe Azure resources to Event Grid system topics and forward resource lifecycle events such as blob creation and deletion, resource group changes, and service health alerts to Dynatrace.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-integrations/set-up-log-forwarder-azure">Set up the Azure log forwarder (DT docs, Dynatrace Classic)</a> — <em>&quot;Logs older than 24 hours are rejected (considered too old by the Dynatrace log ingest endpoint).&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="phase-5-validate"></a></p>
+<h2>7. Phase 5 — Validate the Dual-Cloud Window</h2>
+<p>Run these in the <strong>target</strong> throughout the window. First, connection coverage — cloud resources per provider:</p>
+<pre><code class="language-dql">// Target: cloud resources per provider, from the AWS and Azure connections
+smartscapeNodes &quot;*&quot;, from:-2h
+| filter startsWith(type, &quot;AWS_&quot;) or startsWith(type, &quot;AZURE_&quot;)
+| fieldsAdd provider = if(startsWith(type, &quot;AWS_&quot;), then: &quot;aws&quot;, else: &quot;azure&quot;)
+| summarize {resources = count(), resource_types = countDistinct(type)}, by:{provider}
+</code></pre>
+<p>A provider with no row means its connection is missing or not yet polling. Next, compare what the connections see with what OneAgent sees — virtual machines from each connection against OneAgent hosts on each cloud:</p>
+<pre><code class="language-dql">// Target: VM coverage — connection-discovered instances vs OneAgent-monitored hosts
+smartscapeNodes &quot;AWS_EC2_INSTANCE&quot;, from:-2h
+| summarize instances = count()
+| fieldsAdd resource = &quot;AWS EC2 instances (AWS connection)&quot;
+| append [smartscapeNodes &quot;AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES&quot;, from:-2h
+    | summarize instances = count()
+    | fieldsAdd resource = &quot;Azure virtual machines (Azure connection)&quot;]
+| append [smartscapeNodes &quot;HOST&quot;, from:-2h
+    | filter in(cloud.provider, {&quot;aws&quot;, &quot;azure&quot;})
+    | summarize instances = count(), by:{cloud.provider}
+    | fieldsAdd resource = concat(&quot;OneAgent hosts on &quot;, cloud.provider)
+    | fieldsRemove cloud.provider]
+</code></pre>
+<p>The two numbers per cloud are not expected to match — a connection sees every instance in its scope, OneAgent only the hosts you installed it on. What matters is the trend: on Azure, OneAgent hosts should grow with each re-platform wave; on AWS, both should fall toward zero.</p>
+<p>Finally, the <strong>baseline clock</strong> from <strong>FAQ-25</strong> §5: how much history each host has in the target. Migrated and newly built hosts start at zero, and their detectors are only as good as that history:</p>
+<pre><code class="language-dql">// Target: days of history per host (the FAQ-25 baseline clock)
+// interval:24h rather than 1d — calendar durations are not supported here.
+timeseries cpu = avg(dt.host.cpu.usage), from:-30d, interval:24h, by:{dt.entity.host}
+| fieldsAdd days_in_window = arraySize(cpu)
+| fieldsAdd days_with_data = arraySize(arrayRemoveNulls(cpu))
+| fields dt.entity.host, days_in_window, days_with_data
+| sort days_with_data asc
+| limit 20
+</code></pre>
+<p>Route the noise from low-history hosts to a staging channel rather than disabling alerting (<strong>FAQ-25</strong> §5). Log ingest per cloud is a quick cross-check that Phase 4 is complete:</p>
+<pre><code class="language-dql">// Target: log records per cloud provider (last hour)
+// cloud.provider is populated only on records that carry cloud context; a large null row is
+// normal (OneAgent-collected logs from on-premises hosts, API ingest, and similar).
+fetch logs, from:-1h
+| summarize records = count(), by:{cloud.provider}
+| sort records desc
+</code></pre>
+<p><a id="phase-6-decommission"></a></p>
+<h2>8. Phase 6 — Decommission AWS and the Source Environment</h2>
+<p>AWS goes last, and in this order. First confirm, in the target, that no AWS host is still reporting — widening the window so a host that stopped recently is still listed:</p>
+<pre><code class="language-dql">// Target: AWS hosts seen in the last 7 days, split by whether they still report
+// still_reporting = false means the host was seen in the window but not in the last 2 hours.
+smartscapeNodes &quot;HOST&quot;, from:-7d
+| filter cloud.provider == &quot;aws&quot;
+| fieldsAdd still_reporting = lifetime[end] &gt; now() - 2h
+| summarize hosts = count(), by:{still_reporting, aws.region}
+| sort hosts desc
+</code></pre>
+<p>Without <code>from:-7d</code>, only nodes seen in the default window are returned, and a host that went quiet a day ago would not appear at all. The decommission gate is <strong>no <code>still_reporting = true</code> rows</strong> — and a zero here is only meaningful if the same query returned AWS hosts earlier in the window (never trust a zero on its own).</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Action</th>
+<th>Done when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>6.1</td>
+<td>Last AWS workload retired or moved</td>
+<td>Query above shows no <code>still_reporting = true</code> rows</td>
+</tr>
+<tr>
+<td>6.2</td>
+<td>CloudWatch log groups unsubscribed; Firehose streams idle</td>
+<td>No AWS rows in the log query (§7)</td>
+</tr>
+<tr>
+<td>6.3</td>
+<td>Remove the AWS connection from the target, and remove what its CloudFormation stacks created in each account (deleting a stack removes the resources it created — confirm against your AWS change process)</td>
+<td>No AWS resources in the connection-coverage query</td>
+</tr>
+<tr>
+<td>6.4</td>
+<td>Stop ingest into the source: revoke its ingest tokens, disable its remaining integrations; its data stays readable for its bucket retention</td>
+<td><strong>S2S-09</strong> §5</td>
+</tr>
+<tr>
+<td>6.5</td>
+<td>Export what must outlive the source (audit logs, key problem reports)</td>
+<td><strong>S2S-09</strong> §5 pre-decommission checklist</td>
+</tr>
+<tr>
+<td>6.6</td>
+<td>Request deprovisioning of the AWS-hosted source environment from the account team</td>
+<td>Formal confirmation received</td>
+</tr>
+<tr>
+<td>6.7</td>
+<td>Remove the source's SAML application from Entra ID, revoke its tokens and OAuth clients</td>
+<td><strong>S2S-09</strong> §5</td>
+</tr>
+</tbody>
+</table>
+<p><strong>FAQ-17</strong> covers the invariants that apply to this final step as to any cutover: the rollback triggers are decided before the decommission starts, and the decommission is not reversible.</p>
+<p><a id="open-questions"></a></p>
+<h2>9. Open Questions and Unverified Items</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Status</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Azure Cloud Platform Monitoring / Clouds app on an Azure-Native-created environment</strong></td>
+<td>The Azure Native Dynatrace Service page (labelled Dynatrace Classic) does not mention either; read 09/28/2026</td>
+<td>Confirm with Dynatrace before choosing the Azure Native path</td>
+</tr>
+<tr>
+<td><strong>Egress IP addresses of the Azure-hosted cluster</strong></td>
+<td>No primary source found</td>
+<td>Request them from Dynatrace; update firewall and webhook allowlists before cutover</td>
+</tr>
+<tr>
+<td><strong>Parallel AWS polling from two environments</strong></td>
+<td>No documented limit or warning found on the AWS onboarding page (the Azure page does warn)</td>
+<td>Keep it short; confirm cost and API-quota implications with the account team</td>
+</tr>
+<tr>
+<td><strong>Commercial overlap</strong> (source commitment vs target consumption; Azure Marketplace billing for Azure Native)</td>
+<td>Not a documentation question</td>
+<td>Settle with the account team in Phase 0</td>
+</tr>
+</tbody>
+</table>
+<p><a id="summary"></a></p>
+<h2>10. Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0</strong></td>
+<td>Azure-hosted target agreed and provisioned; path (standard vs Azure Native) chosen with the open question settled</td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td>Entra ID SSO, IP allowlist, IAM and configuration on the target; egress addresses requested</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Target holds both an AWS and an Azure connection; no Azure subscription on two connections</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>AWS hosts re-pointed and Azure hosts installed against the target, wave by wave</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>Log and event ingest follows the waves; classic forwarders switched inside the 24-hour window</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>Dual-cloud coverage and per-host history measured in the target</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>No AWS host reporting; AWS connection removed; source environment deprovisioned</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2S-09: Step 9 — Optimize: Cutover Validation and Decommission</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2S — SaaS to SaaS Migration</a><span class="sep">/</span><span aria-current="page">S2S-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2S-09: Step 9 — Optimize: Cutover Validation and Decommission</h1>
+<blockquote>
+<p><strong>Series:</strong> S2S — SaaS to SaaS Migration | <strong>Notebook:</strong> 9 of 9 | <strong>Phase:</strong> Run | <strong>Step:</strong> Optimize | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/01/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This is the final step of the SaaS-to-SaaS migration. With parallel operation validated (Step 8), Dynatrace Intelligence baselines established, and stakeholders trained, you are ready to execute the cutover. This notebook covers the go/no-go decision, cutover execution steps, post-cutover validation, rollback procedures, source tenant decommission, and a lessons learned framework.</p>
+<blockquote>
+<p><strong>S2S Migration Journey — 3 Phases / 9 Steps</strong></p>
+<p><strong>Plan:</strong> 1. Discover | 2. Strategize | 3. Design</p>
+<p><strong>Upgrade:</strong> 4. Prepare | 5. Execute | 6. Integrate</p>
+<p><strong>Run:</strong> 7. Expand | 8. Enable | <strong>9. Optimize</strong></p>
+</blockquote>
+<h3>Order of Operations (Steps 9–11)</h3>
+<p>Within the 9-step framework, Step 9 maps to three operational actions:</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Action</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>9</strong></td>
+<td>Validate</td>
+<td>Final data flow and performance validation</td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td>Cutover</td>
+<td>Full switch to target tenant</td>
+</tr>
+<tr>
+<td><strong>11</strong></td>
+<td>Decommission</td>
+<td>Source tenant deactivation and deprovisioning</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#go-no-go-checklist">Go/No-Go Checklist</a></li>
+<li><a href="#cutover-execution-steps">Cutover Execution Steps</a></li>
+<li><a href="#post-cutover-validation-queries">Post-Cutover Validation Queries</a></li>
+<li><a href="#rollback-procedures">Rollback Procedures</a></li>
+<li><a href="#source-tenant-decommission">Source Tenant Decommission</a></li>
+<li><a href="#documentation-and-handover">Documentation and Handover</a></li>
+<li><a href="#lessons-learned-framework">Lessons Learned Framework</a></li>
+<li><a href="#series-conclusion">Series Conclusion</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Step 8 Complete</strong></td>
+<td>Parallel operation validated, stakeholders trained, baselines established</td>
+</tr>
+<tr>
+<td><strong>Go/No-Go Authority</strong></td>
+<td>Decision-maker identified and available for cutover approval</td>
+</tr>
+<tr>
+<td><strong>Maintenance Window</strong></td>
+<td>Scheduled and communicated to all stakeholders</td>
+</tr>
+<tr>
+<td><strong>Rollback Plan</strong></td>
+<td>Documented and tested — source tenant still active and receiving data</td>
+</tr>
+<tr>
+<td><strong>Communication Ready</strong></td>
+<td>Cutover announcement drafted for all stakeholder audiences</td>
+</tr>
+</tbody>
+</table>
+<p><a id="go-no-go-checklist"></a></p>
+<h2>1. Go/No-Go Checklist</h2>
+<p>The go/no-go decision should be made in a structured meeting with all stakeholders present. Every item below must be <strong>Go</strong> for cutover to proceed. Any <strong>No-Go</strong> item requires documented remediation and a reschedule.</p>
+<h3>Infrastructure Readiness</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+<th>Verified By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All hosts reporting to target tenant</td>
+<td>[ ]</td>
+<td>Platform team</td>
+</tr>
+<tr>
+<td>All K8s clusters monitored via DynaKube in target</td>
+<td>[ ]</td>
+<td>Platform team</td>
+</tr>
+<tr>
+<td>Cloud integrations (AWS/Azure/GCP) active in target</td>
+<td>[ ]</td>
+<td>Cloud team</td>
+</tr>
+<tr>
+<td>ActiveGates routing to target tenant</td>
+<td>[ ]</td>
+<td>Platform team</td>
+</tr>
+</tbody>
+</table>
+<h3>Configuration Readiness</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+<th>Verified By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All Settings 2.0 configuration deployed</td>
+<td>[ ]</td>
+<td>Platform team</td>
+</tr>
+<tr>
+<td>OpenPipeline rules validated (enrichment, routing, masking)</td>
+<td>[ ]</td>
+<td>Platform team</td>
+</tr>
+<tr>
+<td>SLO definitions deployed and evaluating</td>
+<td>[ ]</td>
+<td>SRE team</td>
+</tr>
+<tr>
+<td>Alerting profiles and notification rules active</td>
+<td>[ ]</td>
+<td>SRE team</td>
+</tr>
+<tr>
+<td>Dashboards and notebooks accessible</td>
+<td>[ ]</td>
+<td>All teams</td>
+</tr>
+<tr>
+<td>Workflows and automations tested</td>
+<td>[ ]</td>
+<td>Platform team</td>
+</tr>
+</tbody>
+</table>
+<h3>Security Readiness</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+<th>Verified By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IAM policies deployed (groups, bindings)</td>
+<td>[ ]</td>
+<td>Security team</td>
+</tr>
+<tr>
+<td>SSO/SAML configured and tested</td>
+<td>[ ]</td>
+<td>Identity team</td>
+</tr>
+<tr>
+<td>API tokens generated and distributed</td>
+<td>[ ]</td>
+<td>Platform team</td>
+</tr>
+<tr>
+<td>Credential vault populated</td>
+<td>[ ]</td>
+<td>Security team</td>
+</tr>
+</tbody>
+</table>
+<h3>Data Readiness</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+<th>Verified By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Log volumes match between source and target (±10%)</td>
+<td>[ ]</td>
+<td>Platform team</td>
+</tr>
+<tr>
+<td>Span volumes match between source and target (±10%)</td>
+<td>[ ]</td>
+<td>Platform team</td>
+</tr>
+<tr>
+<td>Dynatrace Intelligence baselines stable (2+ weeks of data)</td>
+<td>[ ]</td>
+<td>SRE team</td>
+</tr>
+<tr>
+<td>SLOs evaluating within expected range</td>
+<td>[ ]</td>
+<td>SRE team</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cutover-execution-steps"></a></p>
+<h2>2. Cutover Execution Steps</h2>
+<p>Execute these steps in order during the scheduled maintenance window. Each step includes estimated duration and rollback instructions.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Duration</th>
+<th>Rollback</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Announce</strong> — Send cutover start notification to all stakeholders</td>
+<td>5 min</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Suppress</strong> — Enable maintenance window in source tenant</td>
+<td>5 min</td>
+<td>Disable maintenance window</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Redirect</strong> — Update DNS/proxy for API endpoints to target tenant</td>
+<td>15 min</td>
+<td>Revert DNS/proxy</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Verify</strong> — Confirm agents are reporting to target tenant only</td>
+<td>15 min</td>
+<td>Redirect the affected wave back to source</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Enable</strong> — Activate alerting in target tenant (remove staging routing)</td>
+<td>10 min</td>
+<td>Re-route to staging</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Validate</strong> — Run post-cutover validation queries (Section 3)</td>
+<td>30 min</td>
+<td>If validation fails, rollback</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Disable</strong> — Stop ingest into the source tenant (disable its integrations, revoke its ingest tokens); its data stays queryable for its bucket retention</td>
+<td>10 min</td>
+<td>Re-enable integrations</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Communicate</strong> — Send cutover complete notification</td>
+<td>5 min</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Monitor</strong> — Active monitoring for 4–24 hours post-cutover</td>
+<td>Ongoing</td>
+<td>Full rollback if critical issues</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Total estimated cutover window: 2–4 hours</strong> (including monitoring buffer)</p>
+</blockquote>
+<h3>Cutover Timing Recommendations</h3>
+<table>
+<thead>
+<tr>
+<th>Timing</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Weekend morning (low traffic)</strong></td>
+<td>Minimal user impact, low alert volume</td>
+<td>Less staff available</td>
+</tr>
+<tr>
+<td><strong>Mid-week morning</strong></td>
+<td>Full team available</td>
+<td>Higher traffic, more visible</td>
+</tr>
+<tr>
+<td><strong>End of business Friday</strong></td>
+<td>Weekend to stabilize</td>
+<td>Fatigue risk, limited weekend support</td>
+</tr>
+</tbody>
+</table>
+<p><a id="post-cutover-validation-queries"></a></p>
+<h2>3. Post-Cutover Validation Queries</h2>
+<p>Run these queries in the <strong>target tenant</strong> immediately after cutover to confirm that all data sources are flowing correctly.</p>
+<h3>Host Count Validation</h3>
+<pre><code class="language-dql">// Post-cutover: total host count by cloud provider (Smartscape)
+smartscapeNodes &quot;HOST&quot;, from:-24h
+| fieldsAdd provider = coalesce(cloud.provider, &quot;none (on-premises or undetected)&quot;)
+| summarize hosts = count(), by:{provider}
+| sort hosts desc
+
+// Compare with the Step 4 baseline taken with the same Smartscape query. Classic fallback:
+// fetch dt.entity.host | summarize hosts = count() — its cloud-tag fields (awsNameTag /
+// azureResourceGroupName) are not on the Smartscape node, so the old tag-presence if-chain
+// does not port.
+</code></pre>
+<h3>Service Count Validation</h3>
+<pre><code class="language-dql">// Post-cutover: service count (Smartscape)
+smartscapeNodes &quot;SERVICE&quot;, from:-24h
+| summarize services = count()
+
+// Technology breakdown: the SERVICE node carries no populated service-type field (on the
+// validation tenant dt.service.sdv1_type was null for all 38 services, 09/28/2026). Classic
+// fallback for a by-technology view: fetch dt.entity.service | summarize count = count(), by:{serviceType}
+</code></pre>
+<h3>Log Flow Validation</h3>
+<pre><code class="language-dql">// Post-cutover: Log volume by loglevel (last 1 hour)
+// Compare with pre-cutover baseline from source tenant
+fetch logs, from:-1h
+| summarize record_count = count(), by:{loglevel}
+| sort record_count desc
+</code></pre>
+<h3>Span Flow Validation</h3>
+<pre><code class="language-dql">// Post-cutover: Span volume by span.kind (last 1 hour)
+fetch spans, from:-1h
+| summarize span_count = count(), by:{span.kind}
+| sort span_count desc
+</code></pre>
+<h3>Enrichment Validation</h3>
+<pre><code class="language-dql">// Post-cutover: Verify OpenPipeline enrichment is active
+fetch logs, from:-1h
+| fieldsAdd has_security_context = isNotNull(dt.security_context)
+| summarize
+    total = count(),
+    enriched = countIf(has_security_context == true)
+| fieldsAdd enrichment_pct = round(toDouble(enriched) / toDouble(total) * 100.0, decimals: 1)
+| fieldsAdd status = if(enrichment_pct &gt; 50.0, then: &quot;Enrichment healthy&quot;, else: &quot;Check OpenPipeline config&quot;)
+</code></pre>
+<h3>Detected Problem Validation</h3>
+<pre><code class="language-dql">// Post-cutover: Active detected problems (should be normal operational level)
+fetch dt.davis.problems, from:-24h
+| filter event.status == &quot;ACTIVE&quot;
+| summarize active_problems = count()
+| fieldsAdd assessment = if(active_problems &lt; 10, then: &quot;Normal range&quot;,
+    else: if(active_problems &lt; 50, then: &quot;Elevated — review problems&quot;, else: &quot;High — investigate immediately&quot;))
+</code></pre>
+<h3>Problem Duration (MTTR) Baseline</h3>
+<p>A problem closes when its events close, so this measures how long anomalies lasted in the target, not time to human resolution (ADOPT-03 § 3).</p>
+<pre><code class="language-dql">// Post-cutover: Mean time to resolve (MTTR) for closed problems
+// This establishes the MTTR baseline in the target tenant
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| filter dt.davis.is_duplicate == false
+| fieldsAdd duration_hours = resolved_problem_duration / 1h
+| summarize
+    avg_mttr_hours = avg(duration_hours),
+    median_mttr_hours = median(duration_hours),
+    problems_resolved = count()
+| fieldsAdd avg_mttr_hours = round(avg_mttr_hours, decimals: 2),
+    median_mttr_hours = round(median_mttr_hours, decimals: 2)
+</code></pre>
+<p><a id="rollback-procedures"></a></p>
+<h2>4. Rollback Procedures</h2>
+<p>If critical issues are discovered during or after cutover, follow these rollback procedures by component.</p>
+<h3>Rollback Decision Criteria</h3>
+<table>
+<thead>
+<tr>
+<th>Severity</th>
+<th>Criteria</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Critical</strong></td>
+<td>&gt;25% of hosts not reporting, or no log/span flow</td>
+<td>Full rollback immediately</td>
+</tr>
+<tr>
+<td><strong>High</strong></td>
+<td>Key SLOs evaluating at 0%, or critical alerts not firing</td>
+<td>Partial rollback — redirect the affected wave back to source</td>
+</tr>
+<tr>
+<td><strong>Medium</strong></td>
+<td>Minor data gaps, non-critical dashboards missing data</td>
+<td>Continue with remediation plan</td>
+</tr>
+<tr>
+<td><strong>Low</strong></td>
+<td>Cosmetic issues, minor configuration differences</td>
+<td>Fix forward</td>
+</tr>
+</tbody>
+</table>
+<h3>Rollback by Component</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Rollback Action</th>
+<th>Time to Rollback</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Re-run <code>oneagentctl --set-server=&lt;source-url&gt;/communication --set-tenant=&lt;source-env-id&gt; --set-tenant-token=&lt;source-token&gt; --restart-service</code> (a host group change does not move an agent between tenants)</td>
+<td>5–15 min per host (automated via deployment tool)</td>
+</tr>
+<tr>
+<td><strong>DynaKube</strong></td>
+<td>Delete the target DynaKube and re-apply the source CR saved in S2S-04 (<code>apiUrl</code> is immutable — see S2S-05 §6)</td>
+<td>5 min + pod restart</td>
+</tr>
+<tr>
+<td><strong>Cloud integrations</strong></td>
+<td>Re-enable in source tenant, disable in target</td>
+<td>15 min</td>
+</tr>
+<tr>
+<td><strong>Alerting</strong></td>
+<td>Disable target alerting, re-enable source</td>
+<td>10 min</td>
+</tr>
+<tr>
+<td><strong>SLOs</strong></td>
+<td>No rollback needed — source SLOs still evaluating during parallel</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>DNS/proxy</strong></td>
+<td>Revert API endpoint routing to source tenant</td>
+<td>15 min</td>
+</tr>
+</tbody>
+</table>
+<p><a id="source-tenant-decommission"></a></p>
+<h2>5. Source Tenant Decommission</h2>
+<p>After a successful cutover and monitoring buffer period, the source tenant can be decommissioned. This is a gradual process — do not rush it.</p>
+<h3>Decommission Timeline</h3>
+<table>
+<thead>
+<tr>
+<th>Week</th>
+<th>Action</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Week 0</strong></td>
+<td>Cutover complete — ingest into source stopped (agents and integrations redirected, ingest tokens revoked)</td>
+<td>No new data ingested; existing data stays queryable for its bucket retention</td>
+</tr>
+<tr>
+<td><strong>Week 1–2</strong></td>
+<td>Active monitoring buffer — source available for historical queries</td>
+<td>Keep source accessible</td>
+</tr>
+<tr>
+<td><strong>Week 3–4</strong></td>
+<td>Export any remaining artifacts (problem reports, session replay screenshots)</td>
+<td>Document what was exported</td>
+</tr>
+<tr>
+<td><strong>Week 5–6</strong></td>
+<td>Disable source tenant monitoring agents (remove OneAgents, delete DynaKube CRs)</td>
+<td>Confirm no data flowing to source</td>
+</tr>
+<tr>
+<td><strong>Week 7</strong></td>
+<td>Revoke all API tokens and OAuth clients in source tenant</td>
+<td>Security cleanup</td>
+</tr>
+<tr>
+<td><strong>Week 8</strong></td>
+<td>Request tenant deprovisioning from Dynatrace account team</td>
+<td>Final step</td>
+</tr>
+</tbody>
+</table>
+<h3>Pre-Decommission Checklist</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Action</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Historical problem reports exported</td>
+<td>Export as PDF or CSV for compliance records</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Key dashboards screenshotted</td>
+<td>Capture for reference</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Audit log exported</td>
+<td>Required for compliance in some industries</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>All users notified</td>
+<td>Source tenant access will be revoked</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>API tokens revoked</td>
+<td>Remove all active tokens</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>OAuth clients deleted</td>
+<td>Remove all client credentials</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>SSO/SAML disconnected</td>
+<td>Remove identity provider integration</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Account team notified</td>
+<td>Request formal deprovisioning</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<p><a id="documentation-and-handover"></a></p>
+<h2>6. Documentation and Handover</h2>
+<p>After migration, update all documentation to reflect the new environment.</p>
+<h3>Documents to Update</h3>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Updates Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Architecture diagrams</strong></td>
+<td>New tenant URLs, updated network flows</td>
+</tr>
+<tr>
+<td><strong>Runbooks</strong></td>
+<td>API endpoints, token references, escalation paths</td>
+</tr>
+<tr>
+<td><strong>Disaster recovery plan</strong></td>
+<td>New tenant in DR procedures</td>
+</tr>
+<tr>
+<td><strong>Change management records</strong></td>
+<td>Migration completion, lessons learned</td>
+</tr>
+<tr>
+<td><strong>Vendor management</strong></td>
+<td>Updated contract references, licensing terms</td>
+</tr>
+<tr>
+<td><strong>Security documentation</strong></td>
+<td>New IAM architecture, token inventory</td>
+</tr>
+<tr>
+<td><strong>Onboarding guides</strong></td>
+<td>New tenant URLs, access request procedures</td>
+</tr>
+</tbody>
+</table>
+<p><a id="lessons-learned-framework"></a></p>
+<h2>7. Lessons Learned Framework</h2>
+<p>Capture lessons learned while the migration is still fresh. Organize by category for maximum reusability.</p>
+<h3>Capture Template</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>What Went Well</th>
+<th>What Could Improve</th>
+<th>Action Items</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Planning</strong></td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+<tr>
+<td><strong>Configuration</strong></td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+<tr>
+<td><strong>Agent Migration</strong></td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+<tr>
+<td><strong>Data Validation</strong></td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+<tr>
+<td><strong>Stakeholder Communication</strong></td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+<tr>
+<td><strong>Cutover Execution</strong></td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+<tr>
+<td><strong>Tooling (Monaco/Terraform)</strong></td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Intelligence / Baselines</strong></td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+</tbody>
+</table>
+<h3>Common Lessons from S2S Migrations</h3>
+<table>
+<thead>
+<tr>
+<th>Lesson</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Entity ID remapping takes longer than expected</td>
+<td>Audit dashboards and SLOs <strong>before</strong> migration, not during</td>
+</tr>
+<tr>
+<td>Baselines need history, not a calendar</td>
+<td>Measure per-host history depth in the target after each wave (<strong>FAQ-25</strong> §5) instead of planning to a fixed number of weeks</td>
+</tr>
+<tr>
+<td>Credential recreation is a bottleneck</td>
+<td>Involve cloud and security teams early</td>
+</tr>
+<tr>
+<td>Stakeholder fatigue is real</td>
+<td>Keep communication concise and predictable</td>
+</tr>
+<tr>
+<td>Extensions 2.0 need their own migration path</td>
+<td>Monaco does not export extension installations; Terraform can install/activate (<code>dynatrace_hub_extension_active_version</code>) and configure (<code>dynatrace_hub_extension_v2_config</code>) them — otherwise reinstall from Hub</td>
+</tr>
+<tr>
+<td>Webhook URLs are easily missed</td>
+<td>Audit all notification integrations systematically</td>
+</tr>
+</tbody>
+</table>
+<p><a id="series-conclusion"></a></p>
+<h2>8. Series Conclusion</h2>
+<p>This completes the 9-step SaaS-to-SaaS migration framework.</p>
+<h3>Journey Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Step</th>
+<th>Notebook</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Plan</strong></td>
+<td>1</td>
+<td>S2S-01</td>
+<td>Discover — Inventory source tenant, identify migration scenario</td>
+</tr>
+<tr>
+<td><strong>Plan</strong></td>
+<td>2</td>
+<td>S2S-02</td>
+<td>Strategize — Select approach, timeline, risk assessment</td>
+</tr>
+<tr>
+<td><strong>Plan</strong></td>
+<td>3</td>
+<td>S2S-03</td>
+<td>Design — Target tenant architecture (IAM, buckets, pipelines)</td>
+</tr>
+<tr>
+<td><strong>Upgrade</strong></td>
+<td>4</td>
+<td>S2S-04</td>
+<td>Prepare — Build target tenant, deploy configuration</td>
+</tr>
+<tr>
+<td><strong>Upgrade</strong></td>
+<td>5</td>
+<td>S2S-05</td>
+<td>Execute — Redirect agents, migrate OneAgent and DynaKube</td>
+</tr>
+<tr>
+<td><strong>Upgrade</strong></td>
+<td>6</td>
+<td>S2S-06</td>
+<td>Integrate — Reconnect cloud integrations and extensions</td>
+</tr>
+<tr>
+<td><strong>Run</strong></td>
+<td>7</td>
+<td>S2S-07</td>
+<td>Expand — OpenPipeline, SLOs, alerting migration</td>
+</tr>
+<tr>
+<td><strong>Run</strong></td>
+<td>8</td>
+<td>S2S-08</td>
+<td>Enable — Parallel operation, stakeholder handover</td>
+</tr>
+<tr>
+<td><strong>Run</strong></td>
+<td>9</td>
+<td>S2S-09</td>
+<td>Optimize — Cutover, validation, decommission</td>
+</tr>
+</tbody>
+</table>
+<h3>Key Principles Reinforced Throughout</h3>
+<table>
+<thead>
+<tr>
+<th>Principle</th>
+<th>Why It Matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>The 90/10 shape</strong></td>
+<td>Most configuration moves with tooling; the small remainder takes most of the effort (community heuristic)</td>
+</tr>
+<tr>
+<td><strong>Tags over entity IDs</strong></td>
+<td>Tag-based selectors survive migration; hardcoded entity IDs do not</td>
+</tr>
+<tr>
+<td><strong>Monaco for config, Terraform for IAM</strong></td>
+<td>A common split — Monaco can also manage IAM with <code>monaco account</code>; Terraform adds state and drift detection</td>
+</tr>
+<tr>
+<td><strong>Parallel operation is mandatory</strong></td>
+<td>Historical data does not migrate — plan for dual-tenant operation</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Intelligence needs time</strong></td>
+<td>Baselines rebuild from the target's own data; measure progress per host and communicate it to stakeholders</td>
+</tr>
+<tr>
+<td><strong>Communicate early and often</strong></td>
+<td>Migration success is as much about people as technology</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-completion-checklist"></a></p>
+<h2>9. Step Completion Checklist</h2>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Go/no-go meeting completed — all four categories green</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Cutover executed during scheduled maintenance window</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Post-cutover validation queries all pass (hosts, services, logs, spans, enrichment)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>detected problem volume within normal range</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>MTTR baseline established in target tenant</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Rollback plan confirmed not needed (or rollback executed and re-cutover scheduled)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Source tenant ingest stopped (agents and integrations redirected, ingest tokens revoked)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Source tenant decommission timeline agreed</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>All documentation updated (runbooks, architecture, DR, security)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Lessons learned captured and shared</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Migration formally closed with stakeholder sign-off</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In Step 9 — the final step — you:</p>
+<ul>
+<li>Conducted a structured go/no-go assessment across infrastructure, configuration, security, and data readiness</li>
+<li>Executed the cutover following a 9-step sequence with defined rollback procedures for each step</li>
+<li>Validated the target tenant with DQL queries confirming host counts, service counts, log flow, span flow, and enrichment</li>
+<li>Established MTTR and detected problem baselines in the target tenant</li>
+<li>Planned source tenant decommission on an 8-week timeline</li>
+<li>Captured lessons learned for future migrations</li>
+</ul>
+<p><strong>The SaaS-to-SaaS migration is complete.</strong> The target tenant is now the production monitoring environment.</p>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail">Dynatrace Grail Data Lakehouse</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection">Dynatrace Intelligence Anomaly Detection</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco">Monaco Configuration as Code</a></li>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest">Dynatrace Terraform Provider</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Reference</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

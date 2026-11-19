@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADOPT-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ADOPT — Observability Adoption &amp; Maturity</a><span class="sep">/</span><span aria-current="page">ADOPT-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ADOPT-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> ADOPT — Observability Adoption &amp; Maturity | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/23/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook consolidates every actionable best practice from the ADOPT series (notebooks 01 through 06) into definitive, categorized guidance. Each practice specifies exactly what to set, the priority level, and the source notebook. Use this as a checklist for platform maturity and adoption readiness. Numeric targets are community starting points, not Dynatrace-published thresholds — replace them with your own once you have a baseline.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#agent-deployment">Agent Deployment and Host Monitoring</a></li>
+<li><a href="#data-ingestion">Data Ingestion and Grail Configuration</a></li>
+<li><a href="#alerting-davis">Alerting and Dynatrace Intelligence</a></li>
+<li><a href="#slos-metrics">SLOs and Success Metrics</a></li>
+<li><a href="#cost-optimization">Cost Optimization</a></li>
+<li><a href="#automation-workflows">Automation and Workflows</a></li>
+<li><a href="#iam-access">IAM and Access Control</a></li>
+<li><a href="#team-enablement">Team Enablement and Organizational Readiness</a></li>
+<li><a href="#dashboards-reporting">Dashboards and Reporting</a></li>
+<li><a href="#config-management">Configuration Management</a></li>
+<li><a href="#tracing-spans">Distributed Tracing and Spans</a></li>
+<li><a href="#business-observability">Business Observability</a></li>
+<li><a href="#coverage-enablement">Coverage Audit and Staged Enablement</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS (Grail). Not applicable to Dynatrace Managed, which has no Grail.</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:spans:read</code>, <code>storage:metrics:read</code>, <code>storage:entities:read</code>, <code>storage:smartscape:read</code>, <code>storage:events:read</code>, <code>storage:system:read</code>, <code>storage:buckets:read</code></td>
+</tr>
+<tr>
+<td><strong>Context</strong></td>
+<td>Familiarity with ADOPT-01 through ADOPT-06</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform engineers, SREs, engineering managers, leadership</td>
+</tr>
+</tbody>
+</table>
+<p><a id="agent-deployment"></a></p>
+<h2>1. Agent Deployment and Host Monitoring</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.1</td>
+<td><strong>OneAgent host coverage</strong></td>
+<td>&gt; 95% of all known hosts monitored (compare entity count against CMDB)</td>
+<td>Critical</td>
+<td>ADOPT-02</td>
+</tr>
+<tr>
+<td>1.2</td>
+<td><strong>Monitoring mode for application hosts</strong></td>
+<td>Set to <code>FULL_STACK</code> for all hosts running application workloads</td>
+<td>Critical</td>
+<td>ADOPT-01, ADOPT-02</td>
+</tr>
+<tr>
+<td>1.3</td>
+<td><strong>Monitoring mode for non-application hosts</strong></td>
+<td>Set to <code>INFRASTRUCTURE</code> for hosts that only need OS-level metrics (billed per host-hour instead of per GiB-hour of memory)</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>1.4</td>
+<td><strong>Agent version currency</strong></td>
+<td>Every host on a OneAgent release still inside its support window (9 months Standard, 12 months Enterprise, from release); keep the number of distinct releases small</td>
+<td>Critical</td>
+<td>ADOPT-02, ADOPT-05</td>
+</tr>
+<tr>
+<td>1.5</td>
+<td><strong>Auto-update for non-production</strong></td>
+<td>Enable OneAgent auto-update on all non-production hosts</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>1.6</td>
+<td><strong>Automated agent deployment</strong></td>
+<td>Use cloud-init, Ansible, or equivalent to deploy OneAgent on every new host automatically</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>1.7</td>
+<td><strong>Host CPU/memory health check</strong></td>
+<td>Run a weekly health query confirming that every host without a <code>paasVendorType</code> reports CPU and memory metrics; a missing series there is an agent issue. PaaS hosts (Kubernetes application-only, Fargate) report no host metrics, so check them through their workloads instead</td>
+<td>Recommended</td>
+<td>ADOPT-02</td>
+</tr>
+<tr>
+<td>1.8</td>
+<td><strong>Read monitoring mode from billing</strong></td>
+<td>Use the billing usage events, not the classic <code>monitoringMode</code> property, which is empty for many hosts</td>
+<td>Recommended</td>
+<td>ADOPT-02, ADOPT-06</td>
+</tr>
+</tbody>
+</table>
+<p><a id="data-ingestion"></a></p>
+<h2>2. Data Ingestion and Grail Configuration</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2.1</td>
+<td><strong>Multi-signal ingestion</strong></td>
+<td>Ingest all 5 telemetry types: metrics, logs, spans, events, and business events</td>
+<td>Critical</td>
+<td>ADOPT-01</td>
+</tr>
+<tr>
+<td>2.2</td>
+<td><strong>Log ingestion stability</strong></td>
+<td>Daily variance &lt; 10%; monitor billed log ingest (GiB per day) over 7 days</td>
+<td>Recommended</td>
+<td>ADOPT-02</td>
+</tr>
+<tr>
+<td>2.3</td>
+<td><strong>Span ingestion active</strong></td>
+<td>Confirm &gt; 0 spans per hour at all times; a zero reading means broken instrumentation</td>
+<td>Critical</td>
+<td>ADOPT-02</td>
+</tr>
+<tr>
+<td>2.4</td>
+<td><strong>Grail bucket naming convention</strong></td>
+<td><code>&lt;team&gt;_&lt;datatype&gt;_&lt;env&gt;</code> (e.g., <code>checkout_logs_prod</code>)</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>2.5</td>
+<td><strong>Bucket-specific retention</strong></td>
+<td>High-value logs: 35+ days. Medium-value: 7-14 days. Debug/verbose: drop at ingest, or 7 days</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>2.6</td>
+<td><strong>OpenPipeline log routing</strong></td>
+<td>Route logs to the correct bucket by source using OpenPipeline rules; never leave all data in <code>default_logs</code></td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>2.7</td>
+<td><strong>Drop DEBUG/TRACE in production</strong></td>
+<td>Configure an OpenPipeline rule to discard <code>DEBUG</code> and <code>TRACE</code> records from production sources</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>2.8</td>
+<td><strong>Use bucket targeting in queries</strong></td>
+<td>Specify <code>bucket:{&quot;name&quot;}</code> in recurring DQL fetch commands when you know which bucket holds the data, to reduce scanned bytes</td>
+<td>Optional</td>
+<td>ORGNZ</td>
+</tr>
+</tbody>
+</table>
+<p><a id="alerting-davis"></a></p>
+<h2>3. Alerting and Dynatrace Intelligence</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3.1</td>
+<td><strong>Alert quality</strong></td>
+<td>Track the share of problems that close within 5 minutes and the problems that recur on one component; both should trend down. Do not use the frequent-issue flag — frequent issue detection is being phased out</td>
+<td>Critical</td>
+<td>ADOPT-01, ADOPT-03</td>
+</tr>
+<tr>
+<td>3.2</td>
+<td><strong>Dynatrace Intelligence enabled</strong></td>
+<td>Dynatrace Intelligence problem detection must be active; verify by confirming problems are detected in the last 7 days</td>
+<td>Critical</td>
+<td>ADOPT-01, ADOPT-02</td>
+</tr>
+<tr>
+<td>3.3</td>
+<td><strong>Keep transient problems away from people</strong></td>
+<td>For problem types that consistently resolve within 5 minutes, set a Minimum duration on the notifying problem-triggered workflow (FAQ-21), or tune the detector</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>3.4</td>
+<td><strong>Maintenance windows</strong></td>
+<td>Configure maintenance windows for all planned change periods; a high share of problems raised during maintenance is a prompt to check detection sensitivity</td>
+<td>Recommended</td>
+<td>ADOPT-03, ADOPT-05</td>
+</tr>
+<tr>
+<td>3.5</td>
+<td><strong>Alert ownership</strong></td>
+<td>Route every problem to an owning team through ownership tags and problem-triggered workflows; no unowned alerts (FAQ-21)</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>3.6</td>
+<td><strong>Monthly alert review</strong></td>
+<td>Review the top 10 problem types by volume and short-lived share monthly; tune detectors or set a Minimum duration on notifications</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>3.7</td>
+<td><strong>Filter duplicate problems from metrics</strong></td>
+<td>Exclude <code>dt.davis.is_duplicate == true</code> when calculating MTTD and problem duration</td>
+<td>Critical</td>
+<td>ADOPT-03</td>
+</tr>
+<tr>
+<td>3.8</td>
+<td><strong>Exclude maintenance from MTTR</strong></td>
+<td>Always exclude <code>maintenance.is_under_maintenance == true</code> when calculating MTTR</td>
+<td>Recommended</td>
+<td>ADOPT-03</td>
+</tr>
+</tbody>
+</table>
+<p><a id="slos-metrics"></a></p>
+<h2>4. SLOs and Success Metrics</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4.1</td>
+<td><strong>Define SLOs for top 10 services</strong></td>
+<td>Set availability and latency SLOs for the 10 most business-critical services</td>
+<td>Critical</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>4.2</td>
+<td><strong>SLO burn-rate alerting</strong></td>
+<td>Build burn-rate alerting for every SLO as described in SLO-04; static thresholds are insufficient</td>
+<td>Critical</td>
+<td>ADOPT-01, ADOPT-05</td>
+</tr>
+<tr>
+<td>4.3</td>
+<td><strong>Track MTTD</strong></td>
+<td>Target: median under 5 minutes. Measure weekly as the gap between <code>event.start</code> and the problem's <code>CREATED</code> transition on <code>fetch events</code></td>
+<td>Critical</td>
+<td>ADOPT-03</td>
+</tr>
+<tr>
+<td>4.4</td>
+<td><strong>Track problem duration (MTTR)</strong></td>
+<td>Set the target from your own 30-day baseline; measure weekly and trend by category. It measures how long a problem stayed open, not DORA's failed deployment recovery time</td>
+<td>Critical</td>
+<td>ADOPT-03</td>
+</tr>
+<tr>
+<td>4.5</td>
+<td><strong>Track weekly problem count</strong></td>
+<td>Trend must be flat or declining; an increasing trend signals environmental degradation</td>
+<td>Recommended</td>
+<td>ADOPT-03</td>
+</tr>
+<tr>
+<td>4.6</td>
+<td><strong>Track change failure rate</strong></td>
+<td>Send deployment events, then measure the share of deployments followed within an hour by a problem on the same entity; compare with current DORA benchmarks</td>
+<td>Recommended</td>
+<td>ADOPT-03</td>
+</tr>
+<tr>
+<td>4.7</td>
+<td><strong>Establish 30-day baselines</strong></td>
+<td>Record current MTTD, problem duration, short-lived problem share, problem count, and CFR using a 30-day window before setting targets</td>
+<td>Critical</td>
+<td>ADOPT-03</td>
+</tr>
+<tr>
+<td>4.8</td>
+<td><strong>Re-baseline quarterly</strong></td>
+<td>Recalculate baselines every 90 days to account for growth and environmental changes</td>
+<td>Recommended</td>
+<td>ADOPT-03</td>
+</tr>
+<tr>
+<td>4.9</td>
+<td><strong>Set 3-month and 6-month targets</strong></td>
+<td>Define explicit improvement targets for each metric at 3-month and 6-month horizons</td>
+<td>Recommended</td>
+<td>ADOPT-03</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cost-optimization"></a></p>
+<h2>5. Cost Optimization</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5.1</td>
+<td><strong>Audit high-volume log sources</strong></td>
+<td>Identify top 15 log sources by volume weekly; evaluate each for filtering, sampling, or reduced retention</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>5.2</td>
+<td><strong>Log retention tiers</strong></td>
+<td>High-value logs: 35+ days. Standard logs: 7-14 days. Debug/verbose: drop at ingest, or 7 days</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>5.3</td>
+<td><strong>Span sampling for high-volume services</strong></td>
+<td>Low-value spans: sample at 10:1. Medium-value: 2:1. High-value: full retention</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>5.4</td>
+<td><strong>Use <code>samplingRatio</code> for exploratory queries</strong></td>
+<td>Set <code>samplingRatio:10</code> or <code>samplingRatio:100</code> on ad-hoc <code>fetch logs</code> queries against large datasets; multiply counts back up</td>
+<td>Optional</td>
+<td>OPLOGS-99</td>
+</tr>
+<tr>
+<td>5.5</td>
+<td><strong>Bound expensive queries with <code>scanLimitGBytes</code></strong></td>
+<td><code>scanLimitGBytes:100</code> stops one query after 100 GB (whole GB only; the default is 500). A stopped query returns <strong>partial results</strong> with a <code>SCAN_LIMIT_GBYTES</code> warning, so treat it as a per-query safety stop, not a cost budget. Never set <code>-1</code> (no limit) on a recurring query</td>
+<td>Optional</td>
+<td>ORGNZ-02</td>
+</tr>
+<tr>
+<td>5.6</td>
+<td><strong>Replace raw log storage with metric extraction</strong></td>
+<td>For log patterns you only need to count (not inspect), extract as metrics via OpenPipeline instead of storing raw records</td>
+<td>Optional</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>5.7</td>
+<td><strong>Review monitoring mode quarterly</strong></td>
+<td>Verify from the billing events that Full-Stack hosts genuinely need Full-Stack; move hosts that run nothing you trace to Infrastructure</td>
+<td>Recommended</td>
+<td>ADOPT-05, ADOPT-06</td>
+</tr>
+<tr>
+<td>5.8</td>
+<td><strong>Track daily log ingestion over 7 days</strong></td>
+<td>Run the 7-day billed-log-ingest query monthly; flag any day exceeding 2x the baseline as a cost anomaly</td>
+<td>Recommended</td>
+<td>ADOPT-02, ADOPT-05</td>
+</tr>
+</tbody>
+</table>
+<p><a id="automation-workflows"></a></p>
+<h2>6. Automation and Workflows</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>6.1</td>
+<td><strong>Automate alert triage and routing</strong></td>
+<td>Create a Dynatrace Workflow that routes detected problems to the correct team channel; run daily</td>
+<td>Critical</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>6.2</td>
+<td><strong>Automate top 5 frequent problem responses</strong></td>
+<td>Build Workflows for the 5 most frequent, well-understood problem types; start with triage, progress to remediation</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>6.3</td>
+<td><strong>Minimum duration for transient problems</strong></td>
+<td>Set a 5-minute Minimum duration on the problem-triggered workflows that notify people, for problem types that auto-resolve within 5 minutes (FAQ-21)</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>6.4</td>
+<td><strong>Scheduled DQL reports for leadership</strong></td>
+<td>Create a weekly scheduled notebook that runs MTTR, MTTD, noise ratio, and problem count queries automatically</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>6.5</td>
+<td><strong>Automated postmortem data collection</strong></td>
+<td>Build a Workflow triggered by problem closure that collects timeline, root cause, affected entities, and duration into a structured record</td>
+<td>Optional</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>6.6</td>
+<td><strong>Dynatrace Intelligence forecasting for capacity</strong></td>
+<td>Enable Dynatrace Intelligence metric forecasting for CPU, memory, and disk on all production hosts; review monthly</td>
+<td>Optional</td>
+<td>ADOPT-01, ADOPT-05</td>
+</tr>
+</tbody>
+</table>
+<p><a id="iam-access"></a></p>
+<h2>7. IAM and Access Control</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7.1</td>
+<td><strong>Eliminate shared admin accounts</strong></td>
+<td>Replace shared admin credentials with individual user accounts bound to IAM groups</td>
+<td>Critical</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>7.2</td>
+<td><strong>Least-privilege IAM policies</strong></td>
+<td>Define policies per team granting only the permissions required for their role</td>
+<td>Critical</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>7.3</td>
+<td><strong>Data-scoped access</strong></td>
+<td>Restrict data access with security context and policy boundaries (ORGNZ, IAM). Segments only filter what a user sees on screen — they are not access control (FAQ-24). Management zones remain the classic equivalent</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>7.4</td>
+<td><strong>IAM group per team</strong></td>
+<td>Create an IAM group for every team that uses Dynatrace (e.g., <code>sre-team</code>, <code>platform-team</code>, <code>app-dev</code>)</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+</tbody>
+</table>
+<p><a id="team-enablement"></a></p>
+<h2>8. Team Enablement and Organizational Readiness</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8.1</td>
+<td><strong>1 Dynatrace champion per team</strong></td>
+<td>Identify and train at least 1 internal champion per engineering team; complete the platform engineer track within 6 weeks</td>
+<td>Critical</td>
+<td>ADOPT-04</td>
+</tr>
+<tr>
+<td>8.2</td>
+<td><strong>2 DQL-literate members per team</strong></td>
+<td>Every team must have at least 2 people who can write <code>fetch</code>, <code>filter</code>, <code>summarize</code> queries independently</td>
+<td>Critical</td>
+<td>ADOPT-04</td>
+</tr>
+<tr>
+<td>8.3</td>
+<td><strong>100% teams with self-service dashboards</strong></td>
+<td>Every team creates and maintains their own service dashboard within 6 months</td>
+<td>Recommended</td>
+<td>ADOPT-04</td>
+</tr>
+<tr>
+<td>8.4</td>
+<td><strong>12-week enablement program</strong></td>
+<td>Run a structured 12-week program: Weeks 1-2 orientation, 3-4 DQL, 5-6 role-specific, 7-8 dashboards, 9-10 incident practice, 11-12 champion certification</td>
+<td>Recommended</td>
+<td>ADOPT-04</td>
+</tr>
+<tr>
+<td>8.5</td>
+<td><strong>Reduce escalation tickets by 50%</strong></td>
+<td>Track escalation tickets to the platform team; target 50% reduction within 3 months of champion program launch</td>
+<td>Recommended</td>
+<td>ADOPT-04</td>
+</tr>
+<tr>
+<td>8.6</td>
+<td><strong>Monthly champion sync</strong></td>
+<td>Hold a monthly meeting for all Dynatrace champions to share learnings and review platform changes</td>
+<td>Recommended</td>
+<td>ADOPT-04</td>
+</tr>
+<tr>
+<td>8.7</td>
+<td><strong>Quarterly skills refresh</strong></td>
+<td>Run a quarterly training session for champions covering new features and advanced patterns</td>
+<td>Optional</td>
+<td>ADOPT-04</td>
+</tr>
+<tr>
+<td>8.8</td>
+<td><strong>Role-based learning paths</strong></td>
+<td>Assign the notebook study sequence per role: SRE (ONBRD, OPLOGS, SPANS, ALERT, WFLOW, SLO, SYNTH, AIOPS), Developer (ONBRD 1-5, SPANS, OTEL, ORGNZ 1-3, FAQ-03/15), Platform (ONBRD, K8S, IAM, AUTOM, ORGNZ, OPMIG, FINOPS), Manager (ADOPT, ONBRD 1-3, ORGNZ 1, ALERT-01/SLO-01, FINOPS-01)</td>
+<td>Recommended</td>
+<td>ADOPT-04</td>
+</tr>
+</tbody>
+</table>
+<p><a id="dashboards-reporting"></a></p>
+<h2>9. Dashboards and Reporting</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>9.1</td>
+<td><strong>3 standard dashboard templates</strong></td>
+<td>Create exactly 3 organizational templates: Infrastructure Health, Application Health, Business KPIs</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>9.2</td>
+<td><strong>Retire unused dashboards</strong></td>
+<td>Audit dashboards quarterly; delete any dashboard with no views in the last 90 days</td>
+<td>Optional</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>9.3</td>
+<td><strong>Weekly platform health scorecard</strong></td>
+<td>Review 8 metrics weekly: host coverage, agent version currency, service discovery, log ingestion stability, span ingestion, ActiveGate health, Dynatrace Intelligence activity, alert quality</td>
+<td>Critical</td>
+<td>ADOPT-02</td>
+</tr>
+<tr>
+<td>9.4</td>
+<td><strong>Scorecard thresholds</strong></td>
+<td>8/8 green = Healthy. 6-7 = Minor gaps (fix this sprint). 4-5 = Significant (prioritize). &lt; 4 = Critical (escalate)</td>
+<td>Critical</td>
+<td>ADOPT-02</td>
+</tr>
+<tr>
+<td>9.5</td>
+<td><strong>Monthly ROI report</strong></td>
+<td>Combine MTTR/MTTD trends, problem count trends, data volume, enablement progress, and estimated cost avoidance into a single monthly report for leadership</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>9.6</td>
+<td><strong>SLO dashboard for leadership</strong></td>
+<td>Create a dedicated SLO dashboard showing burn rate and compliance for the top 10 services</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+</tbody>
+</table>
+<p><a id="config-management"></a></p>
+<h2>10. Configuration Management</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10.1</td>
+<td><strong>Configuration as code</strong></td>
+<td>Export Dynatrace configuration with Monaco or the Terraform provider and store it in a Git repository</td>
+<td>Recommended</td>
+<td>ADOPT-01, ADOPT-05</td>
+</tr>
+<tr>
+<td>10.2</td>
+<td><strong>CI/CD pipeline for config deployment</strong></td>
+<td>Deploy Dynatrace configuration changes through a CI/CD pipeline; never apply changes manually in production</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>10.3</td>
+<td><strong>Drift detection</strong></td>
+<td>Check weekly for manual configuration changes — Terraform <code>plan</code> reports drift natively; with Monaco, download the live configuration on a schedule and diff it against the repository</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>10.4</td>
+<td><strong>Dashboard-as-code templates</strong></td>
+<td>Store dashboard JSON templates in the config repo; provision new service dashboards from templates via Monaco or Terraform</td>
+<td>Optional</td>
+<td>ADOPT-05</td>
+</tr>
+</tbody>
+</table>
+<p><a id="tracing-spans"></a></p>
+<h2>11. Distributed Tracing and Spans</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>11.1</td>
+<td><strong>OpenTelemetry for uninstrumented services</strong></td>
+<td>Implement OpenTelemetry SDKs for any service not covered by OneAgent auto-instrumentation</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>11.2</td>
+<td><strong>OTLP endpoint routing</strong></td>
+<td>Send OTel data to the Dynatrace OTLP endpoint; add an OpenTelemetry Collector when you need batching, sampling, or fan-out (OTEL)</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>11.3</td>
+<td><strong>Validate trace context propagation</strong></td>
+<td>Verify end-to-end trace context propagation across all service boundaries; broken propagation = blind spots</td>
+<td>Critical</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>11.4</td>
+<td><strong>Span volume monitoring</strong></td>
+<td>Query top 10 services by span count weekly; apply head-based or tail-based sampling to high-volume, low-value services</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+</tbody>
+</table>
+<p><a id="business-observability"></a></p>
+<h2>12. Business Observability</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>12.1</td>
+<td><strong>Instrument 3-5 key business transactions</strong></td>
+<td>Identify the 3-5 highest-value business transactions (e.g., checkout, login, search) and emit business events for each</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>12.2</td>
+<td><strong>Business-context alerting</strong></td>
+<td>Create alerts that trigger on business metric thresholds (e.g., revenue drop, conversion rate decline), not just technical metrics</td>
+<td>Recommended</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>12.3</td>
+<td><strong>Correlate technical health with business KPIs</strong></td>
+<td>Build dashboards that show service latency/error rate alongside business metrics (conversion, revenue) on the same view</td>
+<td>Optional</td>
+<td>ADOPT-05</td>
+</tr>
+<tr>
+<td>12.4</td>
+<td><strong>Entity ownership assignment</strong></td>
+<td>Assign an owning team to every monitored service and application entity in Dynatrace</td>
+<td>Recommended</td>
+<td>ADOPT-01, ADOPT-04</td>
+</tr>
+</tbody>
+</table>
+<p><a id="coverage-enablement"></a></p>
+<h2>13. Coverage Audit and Staged Enablement</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>13.1</td>
+<td><strong>Run a Wave-0 coverage audit</strong></td>
+<td>Measure hosts by monitoring mode, log coverage, consumption by mode, and deep-monitoring exceptions; record as the enablement baseline</td>
+<td>Critical</td>
+<td>ADOPT-06</td>
+</tr>
+<tr>
+<td>13.2</td>
+<td><strong>Segment the estate before enabling</strong></td>
+<td>Match mode to segment: revenue-path apps → Full-Stack, backing services → Infrastructure, long-tail fleet → Discovery</td>
+<td>Critical</td>
+<td>ADOPT-06</td>
+</tr>
+<tr>
+<td>13.3</td>
+<td><strong>Enable in connected segments, not layers</strong></td>
+<td>Bring one application's full path (Full-Stack + logs + RUM) online before spreading a single layer estate-wide</td>
+<td>Recommended</td>
+<td>ADOPT-06</td>
+</tr>
+<tr>
+<td>13.4</td>
+<td><strong>Sequence Waves 1–4 in order</strong></td>
+<td>Core apps to Full-Stack → logs → RUM/synthetic → AppSec and optimization; each wave rides the modules the prior wave already enabled</td>
+<td>Recommended</td>
+<td>ADOPT-06</td>
+</tr>
+<tr>
+<td>13.5</td>
+<td><strong>Gate each wave on a moved metric</strong></td>
+<td>Use ADOPT-03's success metrics as value gates (MTTR delta, log-evidence rate, user-impact rate, vulnerability-backlog trend) before funding the next wave</td>
+<td>Critical</td>
+<td>ADOPT-06</td>
+</tr>
+<tr>
+<td>13.6</td>
+<td><strong>Re-run the Wave-0 audit at every gate</strong></td>
+<td>Coverage decays between waves as new hosts land in default modes and exclusion rules outlive their incidents; re-audit quarterly</td>
+<td>Recommended</td>
+<td>ADOPT-06</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

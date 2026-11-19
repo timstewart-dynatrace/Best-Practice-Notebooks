@@ -1,0 +1,2771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-04: Terraform Provider</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-04: Terraform Provider</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 4 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<p>The Dynatrace Terraform provider enables infrastructure-as-code management of Dynatrace configurations. It integrates with Terraform's ecosystem for state management, planning, and CI/CD integration.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#getting-started">Getting Started</a></li>
+<li><a href="#provider-configuration">Provider Configuration</a></li>
+<li><a href="#resource-types">Resource Types</a></li>
+<li><a href="#state-management">State Management</a></li>
+<li><a href="#advanced-patterns">Advanced Patterns</a></li>
+<li><a href="#governance-architecture">Governance Architecture</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this notebook, ensure you have:</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Terraform CLI</td>
+<td>Version 1.0+ installed</td>
+</tr>
+<tr>
+<td>Authentication</td>
+<td>One or more of: <strong>API Token</strong> (classic), <strong>Platform Token</strong>, or <strong>OAuth Client</strong> (see <a href="#provider-configuration">Provider Configuration</a>)</td>
+</tr>
+<tr>
+<td>Tenant URL</td>
+<td>Your Dynatrace SaaS tenant URL</td>
+</tr>
+<tr>
+<td>HCL Knowledge</td>
+<td>Basic familiarity with Terraform syntax</td>
+</tr>
+</tbody>
+</table>
+<h3>Authentication Methods — Three Token Types</h3>
+<p>The Dynatrace Terraform provider supports three authentication methods. Each covers a different set of resources:</p>
+<table>
+<thead>
+<tr>
+<th>Token Type</th>
+<th>Format</th>
+<th>Covers</th>
+<th>Cannot Cover</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>API Token</strong> (classic)</td>
+<td><code>dt0c01.xxxx</code></td>
+<td>Settings 2.0, Synthetics, SLOs</td>
+<td>Gen3 Platform (workflows, documents, segments)</td>
+</tr>
+<tr>
+<td><strong>Platform Token</strong></td>
+<td><code>dt0s16.xxxx</code></td>
+<td>Settings 2.0 + Gen3 Platform</td>
+<td>Synthetics, SLOs (removed in v1.88.0)</td>
+</tr>
+<tr>
+<td><strong>OAuth Client</strong></td>
+<td>Client ID + Secret</td>
+<td>Gen3 Platform, IAM, Settings 2.0 (<code>HTTP_OAUTH_PREFERENCE</code>)</td>
+<td>Synthetics (v1.88.0+)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important (v1.88.0):</strong> As of Dynatrace Terraform provider <strong>v1.88.0</strong>, OAuth-based authentication (including Platform Tokens acting as OAuth) <strong>can no longer manage synthetic monitors or SLO definitions</strong>. These resources require a classic <strong>API Token</strong> with the appropriate scopes. When both tokens are configured, the provider automatically uses the correct one for each resource.</p>
+</blockquote>
+<blockquote>
+<p><strong>Recommended setup:</strong> Use <strong>Platform Token + API Token</strong> together for full resource coverage. The Platform Token handles Settings 2.0 and Gen3 resources; the API Token handles Synthetics and SLOs.</p>
+</blockquote>
+<hr />
+<p><strong>Preference order (current Dynatrace guidance):</strong></p>
+<ol>
+<li><strong>Platform Token</strong> — recommended default for most integrations. Gen3 Platform resources (workflows, documents, segments) use it directly; set <code>DYNATRACE_HTTP_OAUTH_PREFERENCE=true</code> when an API token is configured alongside it, so Settings 2.0 resources use the Platform Token too (see §3). Any user can create one (no admin required); long-lived; inherits the creating user's privileges.</li>
+<li><strong>Classic API Token</strong> — legacy; being phased out. Use only for surfaces Platform Token does not yet cover (synthetic monitors primarily).</li>
+<li><strong>OAuth Client</strong> — specialized. Use for external-system integrations and account-level IAM automation (policies, groups, service users). Requires account admin to create.</li>
+</ol>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Understand the Dynatrace Terraform provider</li>
+<li>Know how to configure resources in HCL</li>
+<li>Be able to manage state and handle drift</li>
+<li>Implement multi-environment deployments</li>
+</ul>
+<hr />
+<p><a id="introduction"></a></p>
+<h2>1. Introduction</h2>
+<h3>Why Terraform?</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>State Management</strong></td>
+<td>Track what exists vs. what's defined</td>
+</tr>
+<tr>
+<td><strong>Drift Detection</strong></td>
+<td>Identify manual changes</td>
+</tr>
+<tr>
+<td><strong>Planning</strong></td>
+<td>Preview changes before applying</td>
+</tr>
+<tr>
+<td><strong>Ecosystem</strong></td>
+<td>Integrate with other Terraform providers</td>
+</tr>
+<tr>
+<td><strong>Modules</strong></td>
+<td>Reusable configuration packages</td>
+</tr>
+</tbody>
+</table>
+<h3>Terraform vs Monaco</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Terraform</th>
+<th>Monaco</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>State file</td>
+<td>Required</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Drift detection</td>
+<td>Built-in</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Learning curve</td>
+<td>Higher</td>
+<td>Lower</td>
+</tr>
+<tr>
+<td>Multi-cloud</td>
+<td>Yes</td>
+<td>Dynatrace only</td>
+</tr>
+<tr>
+<td>Dependencies</td>
+<td>Explicit</td>
+<td>Implicit</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="getting-started"></a></p>
+<h2>2. Getting Started</h2>
+<h3>Installation</h3>
+<p><strong>Install Terraform:</strong></p>
+<p>macOS:</p>
+<pre><code class="language-bash">brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
+</code></pre>
+<p>Linux:</p>
+<pre><code class="language-bash">wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo &quot;deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main&quot; | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update &amp;&amp; sudo apt install terraform
+</code></pre>
+<p><strong>Verify installation:</strong></p>
+<pre><code class="language-bash">terraform version
+</code></pre>
+<hr />
+<p><a id="provider-configuration"></a></p>
+<h2>3. Provider Configuration</h2>
+<p>The Dynatrace Terraform provider supports three authentication methods. Which you need depends on the resources you manage.</p>
+<h3>Method 1: API Token (Classic)</h3>
+<p>Use for <strong>Settings 2.0</strong> resources and resources that require classic API token auth (synthetic monitors, SLOs, legacy config APIs).</p>
+<pre><code class="language-hcl">terraform {
+  required_providers {
+    dynatrace = {
+      source  = &quot;dynatrace-oss/dynatrace&quot;
+      version = &quot;~&gt; 1.105&quot;       # v1.105.0 at time of writing (released 09/23/2026)
+    }
+  }
+}
+
+provider &quot;dynatrace&quot; {
+  dt_env_url   = var.dynatrace_url
+  dt_api_token = var.dynatrace_token  # Classic API token (dt0c01.xxxx)
+}
+</code></pre>
+<blockquote>
+<p><strong>Provider version — v1.105.0, released 09/23/2026 (at time of writing, 09/2026).</strong> Version-specific claims in this notebook were last re-checked against this release on 09/28/2026; earlier sections were written against v1.100.0 and v1.104.1. Breaking changes since v1.100: <strong>v1.101.0</strong> made breaking changes to <code>dynatrace_activegate_updates</code> (removed <code>auto_update</code>; added required <code>target_version</code> and <code>update_mode</code>) and removed <code>dynatrace_golden_state</code>, the legacy HTTP client and the <code>DYNATRACE_HTTP_LEGACY</code> / <code>DYNATRACE_HTTP_RESPONSE</code> environment variables; <strong>v1.102.0</strong> removed <code>enable_resource_attribute_rules</code>; <strong>v1.104.0</strong> removed the <code>DA</code> / <code>NONE</code> consumers from <code>dynatrace_aws_connection</code> / <code>dynatrace_azure_connection</code>; <strong>v1.105.0</strong> makes <code>match</code> required on a <code>dynatrace_browser_monitor</code> navigate-event <code>validate</code> of type <code>text_match</code> or <code>content_match</code>. Non-breaking but relevant here: <strong>v1.102.0</strong> added <code>trigger_on</code> and <code>problem_open_duration</code> to workflow Davis triggers (used in §4 and §6), deprecating <code>on_problem_close</code>. Unlike a SaaS sprint, a provider release reaches nobody automatically: the version in play is whatever your <code>required_providers</code> block resolves to, and <code>terraform init</code> pins it in <code>.terraform.lock.hcl</code> until you deliberately run <code>terraform init -upgrade</code>. Check your lock file before assuming a resource or attribute described here is available to you, and check the <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest">registry</a> or the <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases">provider releases (Dynatrace GitHub)</a> for releases newer than v1.105.0.</p>
+</blockquote>
+<blockquote>
+<p><strong>Important:</strong> Synthetic monitors and SLO definitions require a classic API Token (<code>dt0c01.*</code>). OAuth/Platform Token authentication does not support these resource types as of provider v1.88.0.</p>
+</blockquote>
+<h4>API Token Scopes — Full Access Reference</h4>
+<p>To manage <strong>all</strong> resources that require API Token authentication, create a token with the following scopes:</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>settings.read</code></td>
+<td>Read Settings 2.0 objects</td>
+</tr>
+<tr>
+<td><code>settings.write</code></td>
+<td>Create/update Settings 2.0 objects</td>
+</tr>
+<tr>
+<td><code>ReadConfig</code></td>
+<td>Read legacy configuration API</td>
+</tr>
+<tr>
+<td><code>WriteConfig</code></td>
+<td>Write legacy configuration API</td>
+</tr>
+<tr>
+<td><code>CaptureRequestData</code></td>
+<td>Request attributes and data privacy</td>
+</tr>
+<tr>
+<td><code>ExternalSyntheticIntegration</code></td>
+<td>Synthetic monitors (v1 API)</td>
+</tr>
+<tr>
+<td><code>activeGateTokenManagement.create</code></td>
+<td>Create ActiveGate tokens</td>
+</tr>
+<tr>
+<td><code>activeGateTokenManagement.read</code></td>
+<td>Read ActiveGate tokens</td>
+</tr>
+<tr>
+<td><code>activeGateTokenManagement.write</code></td>
+<td>Update/revoke ActiveGate tokens</td>
+</tr>
+<tr>
+<td><code>apiTokens.read</code></td>
+<td>Read API tokens</td>
+</tr>
+<tr>
+<td><code>apiTokens.write</code></td>
+<td>Create/update API tokens</td>
+</tr>
+<tr>
+<td><code>attacks.read</code></td>
+<td>Read Application Security attacks</td>
+</tr>
+<tr>
+<td><code>attacks.write</code></td>
+<td>Write Application Security attacks</td>
+</tr>
+<tr>
+<td><code>credentialVault.read</code></td>
+<td>Read credential vault entries</td>
+</tr>
+<tr>
+<td><code>credentialVault.write</code></td>
+<td>Create/update credential vault entries</td>
+</tr>
+<tr>
+<td><code>entities.read</code></td>
+<td>Read monitored entities</td>
+</tr>
+<tr>
+<td><code>extensions.write</code></td>
+<td>Upload Extensions 2.0</td>
+</tr>
+<tr>
+<td><code>extensionEnvironment.read</code></td>
+<td>Read extension environment config</td>
+</tr>
+<tr>
+<td><code>extensionEnvironment.write</code></td>
+<td>Write extension environment config</td>
+</tr>
+<tr>
+<td><code>networkZones.read</code></td>
+<td>Read network zones</td>
+</tr>
+<tr>
+<td><code>networkZones.write</code></td>
+<td>Create/update network zones</td>
+</tr>
+<tr>
+<td><code>securityProblems.read</code></td>
+<td>Read security problems</td>
+</tr>
+<tr>
+<td><code>securityProblems.write</code></td>
+<td>Update security problems</td>
+</tr>
+<tr>
+<td><code>slo.read</code></td>
+<td>Read SLO definitions</td>
+</tr>
+<tr>
+<td><code>slo.write</code></td>
+<td>Create/update SLO definitions</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Principle of least privilege:</strong> For production, grant only the scopes your pipeline actually needs. The table above represents the <strong>full-access superset</strong> as documented in the <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs">Terraform Registry</a>. A pipeline managing only Settings 2.0 resources needs only <code>settings.read</code> + <code>settings.write</code>.</p>
+</blockquote>
+<h3>Method 2: Platform Token</h3>
+<p><strong>Platform Tokens</strong> (<code>dt0s16.xxxx</code>) are a newer token type that bridges Settings 2.0 and Gen3 Platform in a single credential. They work within the assigned user's permissions.</p>
+<pre><code class="language-hcl">provider &quot;dynatrace&quot; {
+  # Platform Token handles Settings 2.0 + Gen3 Platform resources
+  # Set via DYNATRACE_ENV_URL and DYNATRACE_PLATFORM_TOKEN env vars
+}
+</code></pre>
+<p><strong>Key env var:</strong> <code>DYNATRACE_HTTP_OAUTH_PREFERENCE=true</code> makes Settings 2.0 resources use the Platform Token or OAuth client instead of the API token when both are configured, which gives the objects an owner (see the owner-empty note below). Workflows, documents, segments and Grail buckets always use the platform credentials and do not need the flag.</p>
+<blockquote>
+<p><strong>How <code>DYNATRACE_HTTP_OAUTH_PREFERENCE</code> works:</strong> When set to <code>true</code> and OAuth/Platform Token credentials are provided, the provider <strong>prefers REST endpoints that support OAuth</strong> over API Token endpoints. When not set (or <code>false</code>), the provider defaults to API Token authentication. Not all resources support OAuth — for example, <code>dynatrace_json_dashboard</code> can only be configured using API Tokens regardless of this setting. The flag only arbitrates on resources that accept both credential types: in the provider source, the hybrid client falls back to the API token when the flag is off, while the workflow, document, segment and bucket services build a platform client unconditionally (<a href="https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/dynatrace/rest/hybrid_client.go"><code>hybrid_client.go</code> (Dynatrace GitHub)</a>, read 10/02/2026 at v1.105.0).</p>
+</blockquote>
+<blockquote>
+<p><strong>Owner-empty failure mode (combined auth):</strong> When both API Token and OAuth/Platform Token are configured but <code>DYNATRACE_HTTP_OAUTH_PREFERENCE=true</code> is <strong>not</strong> set, the provider routes through API Token endpoints and Dynatrace records the resulting Settings 2.0 objects with an <strong>empty owner field</strong>. The provider docs flag this verbatim across 18+ resource pages (<a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/generic_setting.md"><code>generic_setting</code> (Dynatrace GitHub)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/aws_connection.md"><code>aws_connection</code></a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/github_connection.md"><code>github_connection</code></a>, and others): <em>&quot;If a resource is created using an API token or without setting <code>DYNATRACE_HTTP_OAUTH_PREFERENCE=true</code> (when both are used), the settings object's owner will remain empty.&quot;</em> Owner-empty settings are harder to audit, can't be filtered by owner in IAM policies, and lose creator attribution in the UI. For any combined-auth pipeline, set <code>DYNATRACE_HTTP_OAUTH_PREFERENCE=true</code> even if your immediate use case doesn't seem to need it.</p>
+</blockquote>
+<blockquote>
+<p><strong>Settings object ownership:</strong> When a settings object is created using Platform Token or OAuth credentials, the owner is set to the credential owner. By default, the object is <strong>private</strong> — only the owner can read/modify it. Use the <code>dynatrace_settings_permissions</code> resource to manage access modifiers.</p>
+</blockquote>
+<h3>Method 3: OAuth Client Credentials</h3>
+<p><strong>Required</strong> for Account Management (IAM) resources and <code>dynatrace_platform_slo</code>; an alternative to a Platform Token for Automation (Workflows), Document, Segment and Grail-bucket resources (the bucket resource page documents only the OAuth client — see the note in §4). The provider exchanges your client ID and secret for short-lived OAuth access tokens automatically.</p>
+<blockquote>
+<p><strong>IAM is OAuth-only in the provider.</strong> Unlike Workflows and Documents (which accept a Platform Token), the provider's IAM resources take only an OAuth client. Its <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md">configuration reference (Dynatrace GitHub)</a> states <em>&quot;Platform tokens can't be used for IAM (Account Management)&quot;</em>, and the <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group"><code>dynatrace_iam_group</code> resource (Dynatrace provider docs)</a> explicitly requires <em>&quot;the environment variables <code>DT_CLIENT_ID</code>, <code>DT_CLIENT_SECRET</code>, <code>DT_ACCOUNT_ID</code> with an OAuth client.&quot;</em> The minimum-viable OAuth client for IAM needs four scopes: <code>account-idm-read</code>, <code>account-idm-write</code>, <code>iam-policies-management</code>, <code>account-env-read</code>. For the full IAM lifecycle (groups + policies + boundaries + bindings + bulk export + DSL discovery), see <strong>AUTOM-95 LAB: Terraform IAM Management</strong>.</p>
+</blockquote>
+<pre><code class="language-hcl">provider &quot;dynatrace&quot; {
+  dt_env_url   = var.dynatrace_url
+  dt_api_token = var.dynatrace_token  # For settings/classic resources
+
+  # OAuth credentials — required for automation, document, and IAM resources
+  client_id     = var.oauth_client_id        # Falls back for both automation + IAM
+  client_secret = var.oauth_client_secret
+  account_id    = var.account_id             # Required for IAM resources
+}
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> If you only manage automation/document resources, you can omit <code>dt_api_token</code> and use OAuth alone.</p>
+</blockquote>
+<h3>Method 4: Combined Auth — Full Coverage (Recommended)</h3>
+<p>For <strong>full resource coverage</strong>, use <strong>Platform Token + API Token</strong> together. The provider automatically uses the correct token for each resource type:</p>
+<pre><code class="language-hcl"># provider.tf — Combined auth for full coverage
+provider &quot;dynatrace&quot; {
+  # Auth is read from environment variables automatically.
+  # The provider uses the correct token for each resource type.
+}
+</code></pre>
+<pre><code class="language-bash"># --- Platform Token (covers Settings 2.0 + Gen3 Platform) ---
+export DYNATRACE_ENV_URL=&quot;https://abc12345.live.dynatrace.com&quot;
+export DYNATRACE_PLATFORM_TOKEN=&quot;dt0s16.xxxx.yyyy&quot;
+export DYNATRACE_HTTP_OAUTH_PREFERENCE=true
+
+# --- API Token (covers Synthetics — v1.88.0 requirement) ---
+export DYNATRACE_API_TOKEN=&quot;dt0c01.xxxx.yyyy&quot;
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Token Used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settings 2.0 (maintenance windows; classic auto-tags, management zones, alerting profiles)</td>
+<td>Platform Token</td>
+</tr>
+<tr>
+<td>Gen3 Platform (workflows, documents, segments, Davis anomaly detectors)</td>
+<td>Platform Token (via OAuth)</td>
+</tr>
+<tr>
+<td>SLO definitions — Classic (<code>dynatrace_slo_v2</code>, <code>builtin:monitoring.slo</code>)</td>
+<td><strong>API Token</strong> (<code>slo.read</code>/<code>slo.write</code> + <code>settings.read</code>/<code>settings.write</code>, per the provider's <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/slo_v2.md"><code>slo_v2</code> resource docs (Dynatrace GitHub)</a>)</td>
+</tr>
+<tr>
+<td>SLO definitions — Latest Dynatrace (<code>dynatrace_platform_slo</code>)</td>
+<td><strong>OAuth client</strong> (<code>slo:slos:read</code>/<code>slo:slos:write</code>, per the <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md"><code>platform_slo</code> resource docs (Dynatrace GitHub)</a>) — see SLO-05</td>
+</tr>
+<tr>
+<td>Synthetic monitors (<code>dynatrace_http_monitor</code>)</td>
+<td><strong>API Token</strong> (v1.88.0)</td>
+</tr>
+</tbody>
+</table>
+<h3>Environment Variables — Complete Reference</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DYNATRACE_ENV_URL</code> / <code>DT_ENV_URL</code> / <code>DT_ENVIRONMENT_URL</code></td>
+<td>Tenant URL</td>
+</tr>
+<tr>
+<td><code>DYNATRACE_API_TOKEN</code> / <code>DT_API_TOKEN</code></td>
+<td>Classic API token (<code>dt0c01</code>)</td>
+</tr>
+<tr>
+<td><code>DYNATRACE_PLATFORM_TOKEN</code> / <code>DT_PLATFORM_TOKEN</code></td>
+<td>Platform token (<code>dt0s16</code>)</td>
+</tr>
+<tr>
+<td><code>DYNATRACE_HTTP_OAUTH_PREFERENCE</code></td>
+<td>Set to <code>true</code> so resources that accept either credential (Settings 2.0) use the Platform Token / OAuth client instead of the API token</td>
+</tr>
+<tr>
+<td><code>DT_CLIENT_ID</code> / <code>DYNATRACE_CLIENT_ID</code></td>
+<td>OAuth client ID (for automation/document/IAM resources)</td>
+</tr>
+<tr>
+<td><code>DT_CLIENT_SECRET</code> / <code>DYNATRACE_CLIENT_SECRET</code></td>
+<td>OAuth client secret</td>
+</tr>
+<tr>
+<td><code>DT_ACCOUNT_ID</code> / <code>DYNATRACE_ACCOUNT_ID</code></td>
+<td>Account UUID (required for account-level IAM resources)</td>
+</tr>
+</tbody>
+</table>
+<h3>Which Authentication for Which Resources?</h3>
+<table>
+<thead>
+<tr>
+<th>Resource Category</th>
+<th>API Token</th>
+<th>Platform Token</th>
+<th>OAuth Client</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settings 2.0 (maintenance windows; classic management zones, auto-tags, alerting profiles)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes (<code>HTTP_OAUTH_PREFERENCE</code>)</td>
+</tr>
+<tr>
+<td>SLO — Latest Dynatrace (<code>dynatrace_platform_slo</code>)</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Yes (required)</strong></td>
+</tr>
+<tr>
+<td>Gen3: Davis anomaly detectors (<code>dynatrace_davis_anomaly_detectors</code>)</td>
+<td>No</td>
+<td>Yes</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>SLO — Classic (<code>dynatrace_slo_v2</code>)</td>
+<td><strong>Yes (required)</strong></td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Synthetic monitors</td>
+<td><strong>Yes (required)</strong></td>
+<td>No (v1.88.0)</td>
+<td>No (v1.88.0)</td>
+</tr>
+<tr>
+<td>Gen3: Workflows, scheduling</td>
+<td>No</td>
+<td>Yes</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>Gen3: Documents (dashboards, notebooks)</td>
+<td>No</td>
+<td>Yes</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>Gen3: Segments</td>
+<td>No</td>
+<td>Yes</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>Grail buckets (<code>dynatrace_platform_bucket</code>)</td>
+<td>No</td>
+<td>Yes (code path — see §4 note)</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>OpenPipeline (<code>dynatrace_openpipeline_v2_*</code>)</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Account Management (IAM, policies, groups)</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Yes</strong> (<code>DT_ACCOUNT_ID</code> also needed)</td>
+</tr>
+<tr>
+<td>Legacy dashboards (<code>dynatrace_json_dashboard</code>)</td>
+<td><strong>Yes (only)</strong></td>
+<td>No</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h3>Creating an OAuth Client</h3>
+<ol>
+<li>Go to <strong>Account Management</strong> &gt; <strong>Identity &amp; Access Management</strong> &gt; <strong>OAuth clients</strong></li>
+<li>Create a new client with the required scopes (see table below)</li>
+<li>Copy the generated <strong>client ID</strong> and <strong>client secret</strong> immediately — the secret is only shown once</li>
+<li>Store credentials securely (vault, CI/CD secrets, etc.)</li>
+<li>Ensure the <strong>service user's groups</strong> grant the same scopes as the OAuth client for all target environments</li>
+</ol>
+<h4>OAuth Client Scopes — Full Access Reference</h4>
+<p>To manage <strong>all</strong> resources that require OAuth authentication, create an OAuth client with the following scopes:</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Settings</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><code>settings:objects:read</code></td>
+<td>Read settings objects</td>
+</tr>
+<tr>
+<td><code>settings:objects:write</code></td>
+<td>Create/update settings objects</td>
+</tr>
+<tr>
+<td><code>settings:objects:admin</code></td>
+<td>Admin — manage all settings objects</td>
+</tr>
+<tr>
+<td><strong>Automation</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><code>automation:workflows:read</code></td>
+<td>Read workflow definitions</td>
+</tr>
+<tr>
+<td><code>automation:workflows:write</code></td>
+<td>Create/update workflows</td>
+</tr>
+<tr>
+<td><code>automation:workflows:admin</code></td>
+<td>Admin — manage all workflows</td>
+</tr>
+<tr>
+<td><code>automation:calendars:read</code></td>
+<td>Read scheduling calendars</td>
+</tr>
+<tr>
+<td><code>automation:calendars:write</code></td>
+<td>Create/update scheduling calendars</td>
+</tr>
+<tr>
+<td><code>automation:rules:read</code></td>
+<td>Read scheduling rules</td>
+</tr>
+<tr>
+<td><code>automation:rules:write</code></td>
+<td>Create/update scheduling rules</td>
+</tr>
+<tr>
+<td><strong>Documents</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><code>document:documents:read</code></td>
+<td>Read documents (dashboards, notebooks)</td>
+</tr>
+<tr>
+<td><code>document:documents:write</code></td>
+<td>Create/update documents</td>
+</tr>
+<tr>
+<td><code>document:documents:delete</code></td>
+<td>Delete documents</td>
+</tr>
+<tr>
+<td><code>document:trash.documents:delete</code></td>
+<td>Permanently delete trashed documents</td>
+</tr>
+<tr>
+<td><code>document:direct-shares:read</code></td>
+<td>Read document shares</td>
+</tr>
+<tr>
+<td><code>document:direct-shares:write</code></td>
+<td>Create/update document shares</td>
+</tr>
+<tr>
+<td><code>document:direct-shares:delete</code></td>
+<td>Delete document shares</td>
+</tr>
+<tr>
+<td><strong>OpenPipeline</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><code>settings:objects:read</code> / <code>settings:objects:write</code></td>
+<td>OpenPipeline pipelines, ingest sources and routing (<code>dynatrace_openpipeline_v2_*</code>) are Settings 2.0 objects, so the <strong>Settings</strong> scopes above cover them. Routing has no owner-based sharing — see the note below the table.</td>
+</tr>
+<tr>
+<td><strong>SLO</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><code>slo:slos:read</code></td>
+<td>Read SLO definitions</td>
+</tr>
+<tr>
+<td><code>slo:slos:write</code></td>
+<td>Create/update SLO definitions</td>
+</tr>
+<tr>
+<td><code>slo:objective-templates:read</code></td>
+<td>Read SLO objective templates</td>
+</tr>
+<tr>
+<td><strong>Storage</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><code>storage:bizevents:read</code></td>
+<td>Read business events</td>
+</tr>
+<tr>
+<td><code>storage:bucket-definitions:read</code></td>
+<td>Read Grail bucket definitions</td>
+</tr>
+<tr>
+<td><code>storage:bucket-definitions:write</code></td>
+<td>Create/update Grail bucket definitions</td>
+</tr>
+<tr>
+<td><code>storage:bucket-definitions:delete</code></td>
+<td>Delete Grail bucket definitions (needed to destroy or replace a bucket)</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:read</code></td>
+<td>Read segments</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:write</code></td>
+<td>Create/update segments</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:share</code></td>
+<td>Share segments</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:delete</code></td>
+<td>Delete segments</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:admin</code></td>
+<td>Admin — manage all segments</td>
+</tr>
+<tr>
+<td><strong>Account Management (IAM)</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><code>account-idm-read</code></td>
+<td>Read IAM users, groups, service users</td>
+</tr>
+<tr>
+<td><code>account-idm-write</code></td>
+<td>Create/update IAM users, groups, service users</td>
+</tr>
+<tr>
+<td><code>iam-policies-management</code></td>
+<td>Create/update/delete IAM policies</td>
+</tr>
+<tr>
+<td><code>account-env-read</code></td>
+<td>Read account environment metadata</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>OpenPipeline permissions are Settings 2.0 permissions.</strong> Each <code>dynatrace_openpipeline_v2_*</code> resource (for example <code>dynatrace_openpipeline_v2_logs_pipelines</code>, <code>_ingestsources</code> and <code>_routing</code>) states that it requires the API token scopes <code>settings.read</code> and <code>settings.write</code>, or the OAuth scopes <code>settings:objects:read</code> and <code>settings:objects:write</code>. <strong>Routing has no owner-based sharing:</strong> <em>&quot;Owner-based control is available for pipelines and ingest sources, and not routing.&quot;</em> A write grant on a routing schema therefore covers every route in that scope — <em>&quot;This policy gives users write permissions to all routes for a configuration scope and should therefore be used with caution.&quot;</em> Grant it with a policy such as <code>ALLOW settings:objects:write WHERE settings:schemaId = &quot;builtin:openpipeline.logs.routing&quot;</code>.</p>
+<p><strong>Older guides list <code>openpipeline:configurations:read</code> / <code>openpipeline:configurations:write</code>.</strong> Those scopes belonged to the OpenPipeline Configurations API (<code>GET</code> / <code>POST /platform/openpipeline/v1/configurations/{id}</code>, deprecated in SaaS 1.327) and the deprecated <code>dynatrace_openpipeline_&lt;scope&gt;</code> resources built on it. That API reached end of life on June 29, 2026. Don't request those scopes for <code>dynatrace_openpipeline_v2_*</code> resources. The read scope is still the one every endpoint on the current OpenPipeline API reference requires — Preview, Matcher, DQL processor, Technology and <strong>List configurations</strong> (<code>GET /platform/openpipeline/v1/configurations</code>, which lists configuration identifiers).</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control">Owner-based access control in OpenPipeline (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-342">SaaS 1.342 release notes (DT docs)</a> — <em>&quot;On June 29, 2026, we will deactivate the legacy Configurations API and migrate all environments to the new configuration based on the Settings API.&quot;</em>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-openpipeline-v1/configurations-get">List configurations (DT docs)</a> — <em>&quot;you need a platform token or OAuth access token with openpipeline:configurations:read scope&quot;</em>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/openpipeline_v2_logs_pipelines.md"><code>openpipeline_v2_logs_pipelines</code> (Dynatrace GitHub)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/openpipeline_v2_logs_routing.md"><code>openpipeline_v2_logs_routing</code> (Dynatrace GitHub)</a>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Principle of least privilege:</strong> The table above is the <strong>full-access superset</strong> from the <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs">Terraform Registry</a>. For production, grant only the scopes your pipeline requires. A pipeline managing only workflows needs <code>automation:workflows:read</code> + <code>automation:workflows:write</code>.</p>
+</blockquote>
+<blockquote>
+<p><strong>Security:</strong> Never commit OAuth client secrets or API tokens to version control. Use environment variables, HashiCorp Vault, AWS Secrets Manager, or your CI/CD platform's secret store.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note on scope formats:</strong> API token scopes use dot notation (<code>settings.read</code>, <code>settings.write</code>). OAuth scopes and IAM policy actions use colon notation (<code>settings:objects:read</code>, <code>settings:objects:write</code>). These are different identifiers for the same capability in different auth contexts.</p>
+</blockquote>
+<p><a id="service-user-credentials"></a></p>
+<h3>Service User Credentials for Terraform — Platform Token vs Classic API Token</h3>
+<p>A common enterprise pattern: run Terraform as a <strong>Service User</strong> so the automation is not tied to any individual human. Two questions follow:</p>
+<ol>
+<li>Which token type does the Service User hold — Platform Token, classic API Token, or both?</li>
+<li>What permissions need to align for it to work?</li>
+</ol>
+<h4>The three-things-align model (Platform Token on a Service User)</h4>
+<p>When a Platform Token is created <strong>on behalf of</strong> a Service User, three independent things must line up — granting just one is the common mistake:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>What</th>
+<th>Who grants it</th>
+<th>Why it's needed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Service User's IAM permissions</strong></td>
+<td>Account admin (group/policy)</td>
+<td>The bearer can only do what the assigned user is permitted to do.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Creator's <code>iam:service-users:use</code></strong> (optionally <code>iam:service-user-email</code>)</td>
+<td>Account admin</td>
+<td>The human creating the token must be allowed to mint one <em>on behalf of</em> that service user.</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Token scope selection at creation time</strong></td>
+<td>Token creator</td>
+<td>Effective permission = token scopes ∩ assigned user's IAM permissions. Missing the right scope at creation produces silent permission denials.</td>
+</tr>
+</tbody>
+</table>
+<p>Verbatim from the <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform Tokens docs (DT docs)</a>: <em>&quot;A platform token will only work within the limits of the assigned user's permissions. This means that a selected scope is only granting access if that user has the respective permissions.&quot;</em></p>
+<h4>No <code>dynatrace_platform_token</code> Terraform resource exists</h4>
+<p>The Dynatrace Terraform provider has <strong>no resource for minting Platform Tokens</strong> (verified against provider source 2026-05-22; <strong>re-verified at v1.100.0 on 2026-07-08</strong> — the <code>dynatrace/api/iam/</code> directory contains <code>bindings</code>, <code>boundaries</code>, <code>groups</code>, <code>permissions</code>, <code>policies</code>, <code>serviceusers</code>, <code>users</code>, and <code>v2bindings</code>, still with no token subdirectory). The provider's v1.88.1 release notes describe Platform Token <strong>consumption</strong> by other resources (<code>dynatrace_davis_anomaly_detectors</code>, <code>dynatrace_generic_setting</code>, <code>dynatrace_site_reliability_guardian</code>, <code>dynatrace_slack_notification</code>), not Platform Token creation.</p>
+<p>Platform Tokens are minted <strong>out-of-band</strong> via either:</p>
+<ul>
+<li>The DT UI (Account Management → Identity &amp; access management → Service users → <em>Generate token</em>), or</li>
+<li><code>POST https://api.dynatrace.com/iam/v1/accounts/{accountUuid}/platform-tokens</code> (<a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/platform-tokens-api/post-platform-token">endpoint docs</a>), called by an OAuth client whose scope catalog includes Platform Token minting.</li>
+</ul>
+<p>The minted token is then delivered to CI/Terraform via a secret manager or env var. The token value never enters Terraform state (in contrast to <code>dynatrace_api_token</code>, which by design persists the minted classic API Token as a plain-text attribute in state — see <em>Operational Safety</em> subsection below). For the composed <em>OAuth client → mints ephemeral Platform Token on behalf of a Service User → Terraform applies</em> CI/CD pattern, see <strong>AUTOM-07 §11</strong>.</p>
+<p>By contrast, the <code>dynatrace_api_token</code> resource <strong>does</strong> exist and is the provider's resource for minting Access Tokens — see the <em>Special case</em> subsection below. (The provider also mints ActiveGate tokens through <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/ag_token.md"><code>dynatrace_ag_token</code> (Dynatrace GitHub)</a>, which carries the same plain-text-in-state warning; no resource mints Platform Tokens.)</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/iam_group"><code>dynatrace_iam_group</code> (Dynatrace provider docs)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/iam_group.md"><code>iam_group.md</code> (Dynatrace GitHub)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases">Provider release notes v1.88.1 (Dynatrace GitHub)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/account-management-api/platform-tokens-api/post-platform-token">POST /iam/v1/accounts/{accountUuid}/platform-tokens (DT docs)</a>. <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/ag_token.md"><code>ag_token.md</code> (Dynatrace GitHub)</a>. <strong>Observed 09/28/2026:</strong> no <code>dynatrace_platform_token</code> resource — the provider's <code>docs/resources/</code> and <code>dynatrace/api/iam/</code> directories on <code>main</code> list none, with v1.105.0 the latest release (first checked 05/22/2026).</sub></p>
+</blockquote>
+<h4>Decision: Which token does the Service User need for your Terraform resources?</h4>
+<p>Map your resource mix to the token type the Service User should hold:</p>
+<table>
+<thead>
+<tr>
+<th>Resource the Service User manages</th>
+<th>Service User token to issue</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settings 2.0 (maintenance windows; OpenPipeline <code>dynatrace_openpipeline_v2_*</code>; classic management zones, auto-tags, alerting profiles)</td>
+<td>Platform Token (<code>dt0s16</code>)</td>
+<td>Platform Token service catalog includes <code>settings</code>.</td>
+</tr>
+<tr>
+<td>Gen3 Platform (workflows, documents, segments, Davis anomaly detectors, Grail buckets)</td>
+<td>Platform Token (<code>dt0s16</code>)</td>
+<td>Platform Token service catalog includes <code>automation</code>, <code>document</code>, <code>storage</code>. The bucket resource page documents only an OAuth client — see the §4 note.</td>
+</tr>
+<tr>
+<td>Synthetic monitors, <code>dynatrace_slo</code> / <code>dynatrace_slo_v2</code>, legacy config APIs</td>
+<td>Classic API Token (<code>dt0c01</code>)</td>
+<td>Provider v1.88.0 removed OAuth for these resources: <em>&quot;For these resources, an API token must be provided&quot;</em>.</td>
+</tr>
+<tr>
+<td>SLOs on the modern SLO app (<code>dynatrace_platform_slo</code>)</td>
+<td>OAuth Client (+ <code>DT_ACCOUNT_ID</code>)</td>
+<td>The resource docs require <code>DT_CLIENT_ID</code> / <code>DT_CLIENT_SECRET</code>, and <code>slo</code> is not among the services the platform-tokens page lists.</td>
+</tr>
+<tr>
+<td><strong>Access Tokens (the <code>dynatrace_api_token</code> resource itself)</strong></td>
+<td><strong>Classic API Token (<code>dt0c01</code>) — see disclaimer below</strong></td>
+<td>Documented requirement: <code>apiTokens.read</code> + <code>apiTokens.write</code> scopes, which are classic-API-Token scopes.</td>
+</tr>
+<tr>
+<td>Account Management / IAM (policies, groups, service users)</td>
+<td>OAuth Client + <code>DT_ACCOUNT_ID</code></td>
+<td>IAM resources are account-level; Platform Token cannot manage them.</td>
+</tr>
+</tbody>
+</table>
+<h4>Sprint update (SaaS 1.340–1.342) — classic REST APIs now accept Platform Tokens</h4>
+<p>The decision table above routes Synthetics / SLO v1 / legacy <em>Terraform resources</em> to classic API Tokens because the provider requires them. For <strong>direct REST API calls</strong> (outside Terraform), the classic-token-only constraint has loosened: as of SaaS 1.340 the classic <strong>ActiveGate</strong> REST APIs, and from SaaS 1.342 the classic <strong>OneAgent-management and network-zone</strong> REST APIs, accept Platform Tokens as an authentication option alongside classic API tokens.</p>
+<table>
+<thead>
+<tr>
+<th>Classic REST API</th>
+<th>Before</th>
+<th>Since</th>
+<th>Accepted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Network-zone REST API</td>
+<td>Classic API Token only</td>
+<td>SaaS 1.342</td>
+<td>Classic API Token <strong>or</strong> Platform Token</td>
+</tr>
+<tr>
+<td>ActiveGate REST API</td>
+<td>Classic API Token only</td>
+<td>SaaS 1.340</td>
+<td>Classic API Token <strong>or</strong> Platform Token</td>
+</tr>
+<tr>
+<td>OneAgent REST API</td>
+<td>Classic API Token only</td>
+<td>SaaS 1.342</td>
+<td>Classic API Token <strong>or</strong> Platform Token</td>
+</tr>
+</tbody>
+</table>
+<p>This narrows the set of surfaces that <em>force</em> a classic token. Two caveats: (1) it applies to <strong>direct REST API consumption</strong>, not the Terraform provider — the provider's resource-level token requirements are unchanged until a provider release says otherwise; (2) the release note adds the capability but does not publish the exact Platform Token <strong>scope</strong> required for each API — verify the scope against the API Explorer / Swagger before relying on it. The auth-scheme rule still holds: a Platform Token uses <code>Authorization: Bearer</code>, a classic token uses <code>Authorization: Api-Token</code> — sending the wrong scheme returns 401 even when the token is otherwise valid.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-340">Dynatrace SaaS 1.340 release notes (DT docs)</a> — <em>&quot;Added support for platform tokens for classic ActiveGate REST APIs.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-342">Dynatrace SaaS 1.342 release notes (DT docs)</a> — <em>&quot;Platform tokens can now be used to authenticate classic REST APIs for OneAgent management and network zones, in addition to the existing access token support.&quot;</em> (both re-read 10/02/2026). <strong>Softened:</strong> the exact Platform Token scope per classic API is not stated in the release note — verify at the API Explorer before relying on it.</sub></p>
+</blockquote>
+<h4>Sprint update (SaaS 1.342–1.343) — platform tokens reach effectively all classic APIs</h4>
+<p><em>(SaaS 1.343 released July 7, 2026 with a staged tenant rollout from mid-July — the 1.343 items below are forthcoming for most tenants; verify availability in your tenant before switching automation. The classic-token guidance in the decision table above remains the working model until then.)</em></p>
+<p>The 1.340 loosening has since widened substantially:</p>
+<ul>
+<li><strong>SaaS 1.342</strong> extends platform-token authentication to the classic <strong>OneAgent management and network-zones</strong> REST APIs (GA framing of the 1.340 addition), and the <strong>Latest Dynatrace REST API for ActiveGate tokens</strong> becomes generally available (enabled by default via the platform domain).</li>
+<li><strong>SaaS 1.343</strong> announces <strong>platform-token support across all classic and ingest endpoints</strong>, plus the <strong>fleet-management APIs</strong> for OneAgent and ActiveGate endpoints, and new <strong>ActiveGate deployment platform APIs with fine-grained OAuth scopes</strong> (the legacy ActiveGate deployment API is deprecated).</li>
+<li><strong>Breaking (SaaS 1.343):</strong> ActiveGate token management moves to <code>/platform/fleet-management/v1/activegate/tokens</code> with platform tokens — migrate automation that manages AG tokens via the classic endpoint.</li>
+</ul>
+<p>The practical effect on the decision table above: for <strong>direct REST calls</strong>, the classic-token-only column keeps shrinking — a platform token on the Service User now covers most API surfaces. The two persistent exceptions remain <strong>the Terraform provider's own resource-level token requirements</strong> (unchanged until a provider release says otherwise) and <strong>Access Token minting</strong> (<code>apiTokens.*</code> — see the special case below). Per-endpoint platform-token <em>scopes</em> are still not enumerated in the release notes — verify at the API Explorer.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-342">SaaS 1.342 release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">SaaS 1.343 release notes (DT docs)</a>. <strong>Softened:</strong> &quot;all classic and ingest endpoints&quot; is the release-note phrasing — per-endpoint scope names are not published there; verify at the API Explorer before relying on a specific endpoint.</sub></p>
+</blockquote>
+<h4>Special case — Terraform minting Access Tokens (<code>dynatrace_api_token</code>)</h4>
+<p>If your Terraform automation needs to <strong>mint or rotate Access Tokens</strong> (for example, generating per-team OneAgent install tokens or per-pipeline ingest tokens), you are managing the <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/api_token.md"><code>dynatrace_api_token</code> provider resource</a>, which requires the API Token scopes <code>apiTokens.read</code> and <code>apiTokens.write</code> (also confirmed at the underlying API: <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/tokens-v2/api-tokens/post-token">POST /api/v2/apiTokens (DT docs)</a> requires <code>apiTokens.write</code>).</p>
+<blockquote>
+<p><strong>Updated 09/24/2026 — two changes to the picture above.</strong> First, the Access Tokens API page now documents a platform-token path for the <strong>direct REST call</strong>: <em>&quot;Platform Token / OAuth: Required scope: api-tokens:tokens:write&quot;</em> (<a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/tokens-v2/api-tokens/post-token">POST /api/v2/apiTokens (DT docs)</a>). The <strong><code>dynatrace_api_token</code> Terraform resource has not followed</strong> — it still documents classic scopes only: <em>&quot;This resource requires the API token scopes <strong>Read API tokens</strong> (<code>apiTokens.read</code>) and <strong>Write API tokens</strong> (<code>apiTokens.write</code>)&quot;</em>. So for Terraform-managed minting the Service User still holds a classic API Token (<code>dt0c01</code>) with <code>apiTokens.read</code> + <code>apiTokens.write</code>; for a one-shot REST mint, a platform token with <code>api-tokens:tokens:write</code> is now the documented alternative — verify in your own tenant before relying on it.</p>
+</blockquote>
+<blockquote>
+<p><strong>Deprecation — Dynatrace API 1.348 (rollout start 10/12/2026, staged tenant rollout).</strong> The API 1.348 changelog marks the whole <code>/apiTokens</code> family deprecated — <em>&quot;The following endpoints are deprecated&quot;</em>: <code>GET</code>/<code>POST /apiTokens</code>, <code>POST /apiTokens/lookup</code>, and <code>GET</code>/<code>PUT</code>/<code>DELETE /apiTokens/{id}</code>. That changelog names no successor. Deprecated endpoints keep working during the deprecation period, so the patterns in this section remain the working path; design new token automation expecting to move off these endpoints, and re-check the changelog for a successor. Separately, once an environment opts into <strong>Phase 3</strong> of the upgrade to Latest Dynatrace, <em>&quot;classic API token creation is disabled; all new integrations must use platform tokens&quot;</em> (<a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-11-api-tokens/upgrade-api-endpoints">Best practices for upgrading App Observability API endpoints (DT docs)</a>) — check your environment's upgrade phase before building classic-token minting into Terraform.</p>
+</blockquote>
+<h4>What IAM permission the Service User needs (for managing Access Tokens)</h4>
+<p>On the IAM side, the <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> documents a dedicated <code>api-tokens</code> service: <code>api-tokens:tokens:read</code> (<em>&quot;Grants permission to read API tokens&quot;</em>) and <code>api-tokens:tokens:write</code> (<em>&quot;Grants permission to write API tokens&quot;</em>). The <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/tokens-v2/api-tokens/post-token">POST /api/v2/apiTokens (DT docs)</a> page names the same permission for personal access tokens — <em>&quot;One of the following permissions is required for personal access tokens&quot;</em>, listing <code>environment:roles:viewer</code> and <code>api-tokens:tokens:write</code>. Neither page states which IAM permission governs a Service User creating a non-personal Access Token, so validate the policy by attempting a mint in a non-production tenant before relying on it.</p>
+<blockquote>
+<p><strong>Corrected 09/28/2026.</strong> Earlier revisions of this section, following community guidance, named <code>environment:roles:manage-settings</code> (<em>Change monitoring settings</em>) or <strong>Monitoring Admin</strong> group membership as the permission that gates Access Token management. No Dynatrace page states that, and the IAM reference now documents the dedicated <code>api-tokens</code> permissions above — do not build a policy on the <code>manage-settings</code> assumption.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> — <em>&quot;Grants permission to write API tokens&quot;</em> (<code>api-tokens:tokens:write</code>), re-read 09/28/2026.</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/tokens-v2/api-tokens/post-token">POST /api/v2/apiTokens (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: api-tokens:tokens:write&quot;</em>.</sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/api_token.md">dynatrace_api_token resource (Dynatrace GitHub)</a> — the classic-scope requirement for Terraform-managed minting, quoted above.</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348">Dynatrace API 1.348 changelog (DT docs)</a> — the <code>/apiTokens</code> deprecation quoted above.</sub></li>
+</ul>
+</blockquote>
+<p><a id="service-user-state-leakage"></a></p>
+<h3>Operational Safety — State File Leakage When Minting Tokens</h3>
+<p>Even when the IAM and scope plumbing is correct, minting tokens via Terraform introduces a separate problem: the generated token value lands <strong>in plaintext inside the Terraform state file</strong>, regardless of <code>sensitive = true</code>.</p>
+<h4>What the provider docs say</h4>
+<p>Verbatim from the <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/api_token.md"><code>dynatrace_api_token</code> resource docs (Dynatrace GitHub)</a>: <em>&quot;The usage of <code>dynatrace_api_token</code> will introduce sensitive data within your Terraform state. The <code>token</code> property is flagged as <code>sensitive</code>, but the field will be stored as plain-text.&quot;</em></p>
+<p>HashiCorp's own guidance on <a href="https://developer.hashicorp.com/terraform/language/manage-sensitive-data">sensitive data in state (Terraform docs)</a> is explicit about why: <em>&quot;Terraform stores values with the <code>sensitive</code> argument in both state and plan files, and anyone who can access those files can access your sensitive values.&quot;</em> The <code>sensitive</code> flag redacts values from CLI plan/apply output and from HCP Terraform's UI — it does <strong>not</strong> encrypt them at rest in state.</p>
+<h4>Implications — state security is mandatory, not optional</h4>
+<p>When a pipeline manages <code>dynatrace_api_token</code>, state hygiene becomes part of the token's security perimeter. State exfiltration equals token compromise.</p>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Status when minting tokens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Commit <code>terraform.tfstate</code> to source control</td>
+<td><strong>Forbidden</strong></td>
+</tr>
+<tr>
+<td>Local state file on a shared workstation</td>
+<td><strong>Forbidden</strong></td>
+</tr>
+<tr>
+<td>Remote backend with at-rest encryption (S3+SSE-KMS, GCS+CMEK, Azure SSE, HCP Terraform native)</td>
+<td><strong>Required</strong></td>
+</tr>
+<tr>
+<td>IAM-restricted backend access (least-privilege state read/write)</td>
+<td><strong>Required</strong></td>
+</tr>
+<tr>
+<td>Audit logging on state access</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>State backups with the same encryption and access controls</td>
+<td><strong>Required</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Backend hardening details for each option (S3+DynamoDB IAM scopes, GCS service-account bindings, Azure storage account network rules, HCP Terraform workspace ACLs) are covered in <strong>AUTOM-09 §3 State Backend Setup</strong>. End-to-end secrets handling — including <code>sensitive = true</code> semantics, plan-output discipline, and at-rest encryption per backend — is in <strong>AUTOM-09 §8 Secrets Handling End-to-End</strong>.</p>
+<h4>Recommended architectural pattern — mint out-of-band, deliver in-band</h4>
+<p>Because state security is always a concern when Terraform mints secrets, the recommended pattern is to <strong>not mint the long-lived token from Terraform at all</strong>:</p>
+<ol>
+<li><strong>Generate the Access Token out-of-band</strong> — Dynatrace Access Tokens UI, an admin-run one-shot script against <code>POST /api/v2/apiTokens</code>, or a Dynatrace-side workflow that mints the token on demand.</li>
+<li><strong>Deposit the token into your downstream secret store</strong> via that platform's own API — GitHub Actions repo/org secrets, GitLab CI/CD variables, Bitbucket workspace variables, Bamboo encrypted plan variables, Azure DevOps variable groups (optionally Key Vault-linked), AWS Secrets Manager, HashiCorp Vault, etc.</li>
+<li><strong>Terraform consumes the token</strong> via a data source (e.g. <code>vault_kv_secret_v2</code>, <code>aws_secretsmanager_secret_version</code>) or a pipeline-injected environment variable — Terraform never <em>creates</em> the token, so state never contains it.</li>
+</ol>
+<p>This pattern decouples three concerns: who <em>creates</em> the long-lived secret (an admin, infrequently), where it <em>lives</em> (a hardened secret store), and how the pipeline <em>consumes</em> it (at apply time, ephemerally). State files contain only references — not values.</p>
+<h4>When you must mint tokens from Terraform</h4>
+<p>Legitimate use cases for <code>dynatrace_api_token</code> exist — for example, per-team or per-application tokens whose lifecycle should track the Terraform-managed resource that owns them, or short-lived tokens rotated on every apply. In those cases:</p>
+<ul>
+<li>Use a remote encrypted backend, not local state — non-negotiable.</li>
+<li>Mark every output that references the token with <code>sensitive = true</code> so it doesn't leak into CLI logs (the value is still in state, but at least it isn't in stdout).</li>
+<li>Treat state-backend permissions as token permissions — anyone with <code>s3:GetObject</code> on the state bucket effectively has the token.</li>
+<li>Rotate the bootstrap credential (the one Terraform itself uses) on a schedule and on any state-backend permission change.</li>
+</ul>
+<p><strong>Worked example — three-workflow ephemeral mint.</strong> A defensible architecture when minting is unavoidable: a separate <code>environments/&lt;env&gt;/security/</code> Terraform stack per environment, calling a reusable <code>modules/dynatrace_api_token</code> module with a <strong>short <code>expiration_date</code> baked into the resource itself</strong> (e.g. a 1-hour <code>var.dt_esa_api_token_duration</code> default applied via <code>timeadd(timestamp(), var.dt_esa_api_token_duration)</code>). Three composable reusable CI/CD workflows form the lifecycle: <code>generate_api_token</code> (runs <code>terraform apply</code> on the security stack and persists the token in state), <code>extract_api_token</code> (reusable workflow exposing the token as a job output), and <code>delete_api_token</code> (invoked with <code>if: always()</code> after the consuming job). The deploy and export workflows compose them via <code>uses:</code>. This shrinks the leakage window in three ways: (a) the token only lives in state for the pipeline run, (b) it's revoked even on pipeline failure, (c) the bootstrap credential that mints it (a long-lived classic API Token with <code>apiTokens.write</code>) is the <em>only</em> standing secret — and is itself rotatable without breaking any consumer pipelines. The pattern doesn't make state-leakage safe; it makes it survivable.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/api_token.md"><code>dynatrace_api_token</code> resource (Dynatrace GitHub)</a> — verbatim <em>plain-text in state</em> warning, <a href="https://developer.hashicorp.com/terraform/language/manage-sensitive-data">Sensitive data in state (Terraform docs)</a> — verbatim <em>anyone who can access those files can access your sensitive values</em> + the recommendation to exclude state from Git. <strong>Derived:</strong> the <em>mint-out-of-band, deliver-in-band</em> pattern and the <em>three-workflow ephemeral-mint</em> worked example are syntheses from the two cited warnings — neither source recommends them by name, but both make them the only practices consistent with their stated risks when state hygiene is uncertain.</sub></p>
+</blockquote>
+<p><a id="service-user-bridging-trust-boundary"></a></p>
+<h3>Bridging the Trust Boundary — How the Token Actually Crosses</h3>
+<p>The previous subsection recommended <em>minting out-of-band, delivering in-band</em> — generate the Access Token in the Dynatrace UI (or via an admin one-shot script), then deposit it into the pipeline's secret store. This subsection answers the operational question that pattern leaves open: <strong>how does the token get from the Dynatrace side to the GitHub side?</strong></p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5NaW50IE91dC1vZi1CYW5kLCBEZWxpdmVyIEluLUJhbmQ8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+VG9rZW4gbGlmZWN5Y2xlIHdoZW4gVGVycmFmb3JtIGNvbnN1bWVzIGJ1dCBkb2VzIG5vdCBjcmVhdGUgdGhlIHNlY3JldDwvdGV4dD4KCiAgPCEtLSBBcnJvdyBtYXJrZXIgZGVmaW5pdGlvbnMgLS0+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdy1pbmZvIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93LXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iI0E3OEJGQSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvdy13YXJuaW5nIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjRkZCODAwIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycm93LXN1Y2Nlc3MiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM3M0JFMjgiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSA9PT09PT09PT09PT0gRFlOQVRSQUNFIFpPTkUgKGxlZnQpID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIyMCIgeT0iNzAiIHdpZHRoPSI0MjAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQwIiB5PSI5MiIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlPC90ZXh0PgoKICA8IS0tIERUIFVzZXIgLS0+CiAgPGNpcmNsZSBjeD0iNzAiIGN5PSIxNzAiIHI9IjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjcwIiB5MT0iMTgwIiB4Mj0iNzAiIHkyPSIyMTAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iNTUiIHkxPSIxOTUiIHgyPSI4NSIgeTI9IjE5NSIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSI3MCIgeTE9IjIxMCIgeDI9IjU4IiB5Mj0iMjMwIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjcwIiB5MT0iMjEwIiB4Mj0iODIiIHkyPSIyMzAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI3MCIgeT0iMjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EVCBBZG1pbjwvdGV4dD4KCiAgPCEtLSBBY2Nlc3MgVG9rZW4gQXBwIC0tPgogIDxyZWN0IHg9IjEzMCIgeT0iMTQwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjIxNSIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5BY2Nlc3MgVG9rZW5zIEFwcDwvdGV4dD4KICA8dGV4dCB4PSIyMTUiIHk9IjE5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+KFVJIG9yIG9uZS1zaG90IGFkbWluIHNjcmlwdCk8L3RleHQ+CgogIDwhLS0gQ3JlZGVudGlhbCBWYXVsdCAoRFQgc2lkZSkgLS0+CiAgPHJlY3QgeD0iMzMwIiB5PSIxNDAiIHdpZHRoPSI5MCIgaGVpZ2h0PSI3MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIzNzUiIHk9IjE2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+VG9rZW48L3RleHQ+CiAgPHRleHQgeD0iMzc1IiB5PSIxODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPnNob3duIG9uY2U8L3RleHQ+CiAgPHRleHQgeD0iMzc1IiB5PSIxOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPihjb3B5IGl0KTwvdGV4dD4KCiAgPCEtLSBBdXRoIC0tPgogIDxyZWN0IHg9IjEzMCIgeT0iMzcwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjE5MCIgeT0iMzk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5BdXRoPC90ZXh0PgogIDx0ZXh0IHg9IjE5MCIgeT0iNDEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj52YWxpZGF0ZSDCtyBhdXRob3JpemU8L3RleHQ+CgogIDwhLS0gU3ludGhldGljcyAvIG1vbml0b3JlZCBydW50aW1lIC0tPgogIDxyZWN0IHg9IjI4MCIgeT0iMzcwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5TeW50aGV0aWNzIC8gQVBJPC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iNDEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4odG9rZW4gY29uc3VtZXIpPC90ZXh0PgoKICA8IS0tID09PT09PT09PT09PSBHSVRIVUIgWk9ORSAocmlnaHQpID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI0OTAiIHk9IjcwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI1MTAiIHk9IjkyIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5HaXRIdWI8L3RleHQ+CgogIDwhLS0gR2l0SHViIFVzZXIgLS0+CiAgPGNpcmNsZSBjeD0iNTQwIiBjeT0iMTcwIiByPSIxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSI1NDAiIHkxPSIxODAiIHgyPSI1NDAiIHkyPSIyMTAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iNTI1IiB5MT0iMTk1IiB4Mj0iNTU1IiB5Mj0iMTk1IiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjU0MCIgeTE9IjIxMCIgeDI9IjUyOCIgeTI9IjIzMCIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSI1NDAiIHkxPSIyMTAiIHgyPSI1NTIiIHkyPSIyMzAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI1NDAiIHk9IjI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+R2l0SHViIFVzZXI8L3RleHQ+CgogIDwhLS0gR2l0SHViIEFjdGlvbiAtLT4KICA8cmVjdCB4PSI2MDAiIHk9IjE0MCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI3MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2NjUiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+R2l0SHViIEFjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2NjUiIHk9IjE5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+d29ya2Zsb3cgcnVuPC90ZXh0PgoKICA8IS0tIFRlcnJhZm9ybSAtLT4KICA8cmVjdCB4PSI3NjAiIHk9IjE0MCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI3MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI4MjUiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+VGVycmFmb3JtPC90ZXh0PgogIDx0ZXh0IHg9IjgyNSIgeT0iMTkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hcHBseTwvdGV4dD4KCiAgPCEtLSBHaXRIdWIgU2VjcmV0cyAob3IgZXh0ZXJuYWwgU00pIC0tPgogIDxyZWN0IHg9IjcwMCIgeT0iMzYwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc5NSIgeT0iMzg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5HaXRIdWIgU2VjcmV0czwvdGV4dD4KICA8dGV4dCB4PSI3OTUiIHk9IjQwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCUIG9yIGV4dGVybmFsIOKAlDwvdGV4dD4KICA8dGV4dCB4PSI3OTUiIHk9IjQyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VmF1bHQgLyBBV1MgU00gLyBBenVyZSBLVjwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gQVJST1dTID09PT09PT09PT09PSAtLT4KCiAgPCEtLSAxOiBEVCBVc2VyIOKGkiBBY2Nlc3MgVG9rZW4gQXBwIC0tPgogIDxsaW5lIHgxPSI4OCIgeTE9IjE3NSIgeDI9IjEyOCIgeTI9IjE3NSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdy1pbmZvKSIvPgogIDxjaXJjbGUgY3g9IjEwOCIgY3k9IjE2MCIgcj0iOSIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC44NSIvPgogIDx0ZXh0IHg9IjEwOCIgeT0iMTY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMEYxNzJBIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj4xPC90ZXh0PgoKICA8IS0tIDI6IEFjY2VzcyBUb2tlbiBBcHAg4oaSIENyZWRlbnRpYWwgVmF1bHQgLS0+CiAgPGxpbmUgeDE9IjMwMiIgeTE9IjE3NSIgeDI9IjMyOCIgeTI9IjE3NSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdy1pbmZvKSIvPgogIDxjaXJjbGUgY3g9IjMxNSIgY3k9IjE2MCIgcj0iOSIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC44NSIvPgogIDx0ZXh0IHg9IjMxNSIgeT0iMTY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMEYxNzJBIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj4yPC90ZXh0PgoKICA8IS0tIDM6IFBST1ZJU0lPTiBhY3Jvc3MgYm91bmRhcnkgKFZhdWx0IOKGkiBHaXRIdWIgU2VjcmV0cykg4oCUIHRoZSBxdWVzdGlvbiAtLT4KICA8bGluZSB4MT0iNDIwIiB5MT0iMjAwIiB4Mj0iNDk1IiB5Mj0iMjAwIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNiwzIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93LXdhcm5pbmcpIi8+CiAgPGxpbmUgeDE9IjQ5OCIgeTE9IjIwMCIgeDI9IjcwMCIgeTI9IjM4MCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYsMyIgbWFya2VyLWVuZD0idXJsKCNhcnJvdy13YXJuaW5nKSIgZmlsbD0ibm9uZSIvPgogIDxjaXJjbGUgY3g9IjQ1NSIgY3k9IjE4MyIgcj0iMTEiIGZpbGw9IiNGRkI4MDAiLz4KICA8dGV4dCB4PSI0NTUiIHk9IjE4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzBGMTcyQSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MzwvdGV4dD4KICA8dGV4dCB4PSI0NTUiIHk9IjIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+cHJvdmlzaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjQ1NSIgeT0iMjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPihob3c/IOKGkiDCpyAzKTwvdGV4dD4KCiAgPCEtLSA0OiBHaXRIdWIgVXNlciDihpIgR2l0SHViIEFjdGlvbiAodHJpZ2dlcikgLS0+CiAgPGxpbmUgeDE9IjU1OCIgeTE9IjE3NSIgeDI9IjU5OCIgeTI9IjE3NSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdy1wdXJwbGUpIi8+CiAgPGNpcmNsZSBjeD0iNTc4IiBjeT0iMTYwIiByPSI5IiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjg1Ii8+CiAgPHRleHQgeD0iNTc4IiB5PSIxNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwRjE3MkEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPjQ8L3RleHQ+CgogIDwhLS0gNTogR2l0SHViIEFjdGlvbiDihpIgVGVycmFmb3JtIChydW4pIC0tPgogIDxsaW5lIHgxPSI3MzIiIHkxPSIxNzUiIHgyPSI3NTgiIHkyPSIxNzUiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3ctcHVycGxlKSIvPgogIDxjaXJjbGUgY3g9Ijc0NSIgY3k9IjE2MCIgcj0iOSIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC44NSIvPgogIDx0ZXh0IHg9Ijc0NSIgeT0iMTY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMEYxNzJBIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj41PC90ZXh0PgoKICA8IS0tIDY6IFRlcnJhZm9ybSDihpIgR2l0SHViIFNlY3JldHMgKHJlYWQgdG9rZW4pIC0tPgogIDxsaW5lIHgxPSI4MjUiIHkxPSIyMTIiIHgyPSI4MjUiIHkyPSIzNTgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3ctcHVycGxlKSIvPgogIDxjaXJjbGUgY3g9Ijg1MCIgY3k9IjI4NSIgcj0iOSIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC44NSIvPgogIDx0ZXh0IHg9Ijg1MCIgeT0iMjg5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMEYxNzJBIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj42PC90ZXh0PgogIDx0ZXh0IHg9Ijg1MCIgeT0iMjY1IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEwIj5yZWFkPC90ZXh0PgoKICA8IS0tIDc6IFRlcnJhZm9ybSDihpIgQXV0aCAocHJlc2VudCB0b2tlbiwgY3Jvc3NlcyBib3VuZGFyeSkgLS0+CiAgPHBhdGggZD0iTSA3NjAgMjEwIFEgNzAwIDI5MCAyNTAgNDAwIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdy1zdWNjZXNzKSIvPgogIDxjaXJjbGUgY3g9IjUwMCIgY3k9IjMzMCIgcj0iMTAiIGZpbGw9IiM3M0JFMjgiLz4KICA8dGV4dCB4PSI1MDAiIHk9IjMzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzBGMTcyQSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+NzwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjMxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+cHJlc2VudCB0b2tlbjwvdGV4dD4KCiAgPCEtLSA4OiBBdXRoIOKGkiBTeW50aGV0aWNzIChhbGxvdykgLS0+CiAgPGxpbmUgeDE9IjI1MiIgeTE9IjQwMCIgeDI9IjI3OCIgeTI9IjQwMCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdy1zdWNjZXNzKSIvPgogIDx0ZXh0IHg9IjI2NSIgeT0iMzkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5hbGxvdzwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gTEVHRU5EIC8gS0VZID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIyMCIgeT0iNDYwIiB3aWR0aD0iODkwIiBoZWlnaHQ9IjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIwLjUiLz4KICA8dGV4dCB4PSI0MCIgeT0iNDg3IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5GbG93OjwvdGV4dD4KICA8bGluZSB4MT0iODAiIHkxPSI0ODMiIHgyPSIxMDUiIHkyPSI0ODMiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIxMTAiIHk9IjQ4NyIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMCI+bWludDwvdGV4dD4KICA8bGluZSB4MT0iMTUwIiB5MT0iNDgzIiB4Mj0iMTc1IiB5Mj0iNDgzIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNCwyIi8+CiAgPHRleHQgeD0iMTgwIiB5PSI0ODciIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAiPnByb3Zpc2lvbiAodGhlIGdhcCk8L3RleHQ+CiAgPGxpbmUgeDE9IjMwMCIgeTE9IjQ4MyIgeDI9IjMyNSIgeTI9IjQ4MyIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjMzMCIgeT0iNDg3IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEwIj5jb25zdW1lPC90ZXh0PgogIDxsaW5lIHgxPSIzODUiIHkxPSI0ODMiIHgyPSI0MTAiIHkyPSI0ODMiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI0MTUiIHk9IjQ4NyIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCI+YXV0aG9yaXplZCByZXF1ZXN0PC90ZXh0PgoKICA8dGV4dCB4PSI5MTAiIHk9IjQ4NyIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5TdGF0ZSBuZXZlciBob2xkcyB0aGUgdG9rZW4g4oCUIFRlcnJhZm9ybSBjb25zdW1lcywgZG9lcyBub3QgbWludDwvdGV4dD4KCjwvc3ZnPgo=" alt="Mint Out-of-Band, Deliver In-Band — Token Lifecycle Across Dynatrace and GitHub" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Zone | Action |
+|------|------|--------|
+| 1 | Dynatrace | DT Admin opens the Access Tokens app (or runs an admin one-shot script) |
+| 2 | Dynatrace | The token value is shown once — the admin copies it (nothing stores it automatically) |
+| 3 | Boundary | **Provision** — the token crosses from DT to GitHub. THIS is the question. |
+| 4 | GitHub | GitHub User triggers a workflow |
+| 5 | GitHub | GitHub Action invokes Terraform |
+| 6 | GitHub | Terraform reads the token (from GitHub Secrets, or an external secret manager at runtime) |
+| 7 | Boundary | Terraform presents the token to Dynatrace Auth |
+| 8 | Dynatrace | Auth validates and authorizes the request against Synthetics / API |
+Step 3 is the gap this subsection bridges.
+-->
+<h4>Five mechanisms — choose by trust model and rotation cadence</h4>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Where the token lives at rest</th>
+<th>Rotation effort</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Admin pastes into GitHub Secrets UI</strong></td>
+<td>GitHub Secrets</td>
+<td>Manual every rotation</td>
+<td>Small team, infrequent rotation, no existing secret manager</td>
+</tr>
+<tr>
+<td><strong><code>gh secret set</code> from admin workstation or CI</strong></td>
+<td>GitHub Secrets</td>
+<td>Scriptable, still manually triggered</td>
+<td>Same as above plus you want repeatable scripting</td>
+</tr>
+<tr>
+<td><strong>External secret manager + runtime fetch via GitHub Action</strong> (Vault, AWS Secrets Manager, Azure Key Vault, GCP Secret Manager)</td>
+<td>Secret manager only — <strong>GitHub Secrets is bypassed</strong></td>
+<td>Centralized in the secret manager; pipelines auto-pick up rotations</td>
+<td><strong>Recommended default for any team with a secret manager already in place</strong></td>
+</tr>
+<tr>
+<td><strong>OIDC federation → cloud secret manager</strong></td>
+<td>Secret manager only; the GitHub side holds <strong>no</strong> long-lived credential</td>
+<td>Centralized + short-lived federated access</td>
+<td>Strongest posture; requires cloud-IdP trust setup</td>
+</tr>
+<tr>
+<td><strong>Dynatrace-side workflow pushes to GitHub API</strong></td>
+<td>Both GitHub Secrets and DT side (the workflow needs a GitHub PAT)</td>
+<td>Triggerable from DT side</td>
+<td>Niche — only when DT-side automation owns the rotation event</td>
+</tr>
+</tbody>
+</table>
+<p>Mechanisms 3 and 4 are the strong defaults: they <strong>eliminate the long-lived secret from GitHub Secrets entirely</strong> and concentrate rotation in one system (the secret manager) that's purpose-built for it. The token still crosses the boundary at step 3 of the diagram, but it does so <em>ephemerally at workflow runtime</em> — not at rest.</p>
+<h4>Recommended pattern — runtime fetch via Vault with GitHub OIDC</h4>
+<p>The cleanest version of mechanism 3 uses GitHub Actions' built-in OIDC identity to authenticate to Vault (no static Vault token in GitHub Secrets either), and pulls the Dynatrace token at workflow runtime:</p>
+<pre><code class="language-yaml"># .github/workflows/terraform-apply.yml
+name: Terraform Apply
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write   # required for GitHub OIDC → Vault JWT auth
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Fetch Dynatrace token from Vault
+        id: secrets
+        uses: hashicorp/vault-action@v4
+        with:
+          url: https://vault.example.com:8200
+          method: jwt
+          role: dynatrace-terraform-apply
+          secrets: |
+            secret/data/dynatrace/terraform dt_api_token | DT_API_TOKEN
+            secret/data/dynatrace/terraform dt_env_url   | DT_ENV_URL
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: latest
+
+      - name: Terraform Apply
+        env:
+          DYNATRACE_API_TOKEN: ${{ steps.secrets.outputs.DT_API_TOKEN }}
+          DYNATRACE_ENV_URL:   ${{ steps.secrets.outputs.DT_ENV_URL }}
+        run: |
+          terraform init
+          terraform apply -auto-approve
+</code></pre>
+<p>Key properties of this pattern:</p>
+<ul>
+<li><strong>The Dynatrace token never appears in GitHub Secrets</strong> — it lives in Vault, and the workflow fetches it at runtime into the runner's process memory only.</li>
+<li><strong>No static Vault credential in GitHub either</strong> — GitHub's OIDC identity (<code>id-token: write</code>) authenticates to Vault via the <code>jwt</code> auth method bound to the <code>dynatrace-terraform-apply</code> role; Vault returns a short-lived response. Rotating the Dynatrace token = update one secret path in Vault; no GitHub change.</li>
+<li><strong>Log masking is automatic.</strong> Per the <a href="https://github.com/hashicorp/vault-action"><code>hashicorp/vault-action</code> README (HashiCorp GitHub)</a>: <em>&quot;This action uses GitHub Action's built-in masking, so all variables will automatically be masked (aka hidden) if printed to the console or to logs.&quot;</em></li>
+<li><strong>Vault role + policy bind which workflow can read which secret path</strong> — the same Vault-side authorization model that gates every other secret in your org. Audit log is one place.</li>
+</ul>
+<h4>Same shape, other secret managers</h4>
+<p>The pattern transposes cleanly to other secret managers — pick whichever your org already operates:</p>
+<table>
+<thead>
+<tr>
+<th>Secret manager</th>
+<th>GitHub Action</th>
+<th>Auth to secret manager</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HashiCorp Vault</td>
+<td><code>hashicorp/vault-action</code></td>
+<td>JWT via GitHub OIDC (above)</td>
+</tr>
+<tr>
+<td>AWS Secrets Manager</td>
+<td><code>aws-actions/aws-secretsmanager-get-secrets</code> (pair with <code>aws-actions/configure-aws-credentials</code> for OIDC)</td>
+<td>OIDC → IAM role</td>
+</tr>
+<tr>
+<td>Azure Key Vault</td>
+<td><code>azure/login</code> for OIDC, then <code>azure/cli</code> running <code>az keyvault secret show</code> (the dedicated <code>Azure/get-keyvault-secrets</code> action is deprecated and archived)</td>
+<td>OIDC → Azure AD service principal</td>
+</tr>
+<tr>
+<td>GCP Secret Manager</td>
+<td><code>google-github-actions/get-secretmanager-secrets</code> (pair with <code>google-github-actions/auth</code> for OIDC)</td>
+<td>OIDC → Workload Identity Federation</td>
+</tr>
+</tbody>
+</table>
+<p>All four follow the same shape as the Vault example: federated identity in step 1, fetch secrets in step 2, consume in <code>env:</code> in step 3. None of them require a long-lived credential in GitHub Secrets. The Azure path is a hand-written script step rather than a dedicated secrets action, so mask the value yourself (<code>echo &quot;::add-mask::$VALUE&quot;</code>) before writing it to <code>$GITHUB_ENV</code> or an output — the automatic masking quoted above for <code>vault-action</code> does not apply to it.</p>
+<h4>Cross-CI-platform note</h4>
+<p>The mechanisms table generalizes to other CI/CD platforms — GitLab CI variables, Bitbucket workspace variables, Bamboo encrypted plan variables, and Azure DevOps variable groups (optionally Key Vault‐linked) all play the role of &quot;GitHub Secrets&quot; in this discussion. Platform-specific worked examples for those platforms are in <strong>AUTOM-07</strong> (§3 GitHub Actions, §4 GitLab, §5 Bitbucket Pipelines, §6 Atlassian Bamboo, §7 Azure DevOps). The architectural pattern — mint out-of-band, fetch at runtime from an external secret manager via federated identity, never let the long-lived token sit at rest in the CI platform — applies identically.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/hashicorp/vault-action"><code>hashicorp/vault-action</code> (HashiCorp GitHub)</a> — current major version v4 (May 2026), JWT/OIDC method, automatic log masking; <a href="https://github.com/Azure/get-keyvault-secrets"><code>Azure/get-keyvault-secrets</code> (Microsoft GitHub)</a> — <em>&quot;This Action is deprecated.&quot;</em>, archived (checked 10/02/2026); <a href="https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets">Using secrets in GitHub Actions (GitHub docs)</a> — log redaction behavior, OIDC alternative to long-lived credentials. <strong>Derived:</strong> the five-mechanism comparison table is a synthesis — each row maps to a documented GitHub Actions integration pattern but no primary source ranks them against one another. The recommendation of mechanisms 3 and 4 follows from combining the prior subsection's state-security mandate with each mechanism's at-rest exposure surface.</sub></p>
+</blockquote>
+<h3>Initialize and Validate</h3>
+<pre><code class="language-bash"># Initialize provider
+terraform init
+
+# Validate configuration
+terraform validate
+
+# Format code
+terraform fmt
+</code></pre>
+<hr />
+<p><a id="resource-types"></a></p>
+<h2>4. Resource Types</h2>
+<p>This section is the repo's consolidated Terraform resource catalog, organized by domain — <strong>platform-native (Gen3) resources first</strong>, then the classic resources you may still be maintaining. Worked examples follow in the same order. Series covering a domain in depth (SLO, S2S, NRLC, SL2DT, MZ2POL, OPIPE, IAM) point back here by name rather than repeating the resource shape.</p>
+<table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>Resource</th>
+<th>Auth requirement</th>
+<th>Upgrade status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Automation / Workflows</td>
+<td><code>dynatrace_automation_workflow</code></td>
+<td>Platform Token or OAuth client</td>
+<td>Carries forward</td>
+<td>Below — the successor to alerting profiles + problem notifications (WFLOW, ALERT-03)</td>
+</tr>
+<tr>
+<td>Documents (dashboards, notebooks)</td>
+<td><code>dynatrace_document</code></td>
+<td>Platform Token or OAuth client</td>
+<td>Carries forward</td>
+<td>Below — the successor to <code>dynatrace_json_dashboard</code></td>
+</tr>
+<tr>
+<td>Segments</td>
+<td><code>dynatrace_segment</code></td>
+<td>Platform Token or OAuth client</td>
+<td>Carries forward</td>
+<td>Below — the data-filtering successor to management zones (MZ2POL-05); access moves to IAM policies</td>
+</tr>
+<tr>
+<td>SLO</td>
+<td><code>dynatrace_platform_slo</code> (modern SLO app, provider v1.78.0+)</td>
+<td><strong>OAuth client only</strong></td>
+<td>Carries forward</td>
+<td>Below — DQL SLI in <code>custom_sli.indicator</code>; full treatment in SLO-05</td>
+</tr>
+<tr>
+<td>Anomaly detection</td>
+<td><code>dynatrace_davis_anomaly_detectors</code> (Davis Anomaly Detection app)</td>
+<td>Platform Token or OAuth client</td>
+<td>Carries forward</td>
+<td>Below — the successor to <code>dynatrace_metric_events</code>; DQL-based (AIOPS-02)</td>
+</tr>
+<tr>
+<td>Maintenance</td>
+<td><code>dynatrace_maintenance_windows</code> (v1.98+) · <code>dynatrace_maintenance</code> (provider ≤ v1.97, deprecated)</td>
+<td>Classic API token (<code>settings.read</code>/<code>settings.write</code>)</td>
+<td>Carries forward / <strong>Blocked</strong></td>
+<td>Below. The provider-deprecation fix and the upgrade fix are the same move: <code>dynatrace_maintenance</code> → <code>builtin:alerting.maintenance-window</code> is blocked, <code>dynatrace_maintenance_windows</code> → <code>builtin:maintenance-windows</code> survives</td>
+</tr>
+<tr>
+<td>OpenPipeline</td>
+<td><code>dynatrace_openpipeline_v2_&lt;type&gt;_pipelines</code> / <code>_pipelinegroups</code> / <code>_routing</code> / <code>_ingestsources</code> (per-data-type family — e.g. <code>dynatrace_openpipeline_v2_logs_pipelines</code>; no single generic <code>dynatrace_openpipeline</code> resource exists)</td>
+<td>API token (<code>settings.read</code>/<code>settings.write</code>), Platform Token or OAuth client (<code>settings:objects:*</code>; a routing write grant covers every route in the scope) — prefer platform credentials so the object gets an owner</td>
+<td>Carries forward</td>
+<td>Below — see also SL2DT-03, NRLC-09, OPIPE for the schema family (<code>builtin:openpipeline.&lt;scope&gt;.*</code>)</td>
+</tr>
+<tr>
+<td>Grail buckets</td>
+<td><code>dynatrace_platform_bucket</code></td>
+<td>OAuth client (<code>storage:bucket-definitions:*</code>) per the resource page; Platform Token per the provider's code path — see the note below</td>
+<td>Carries forward</td>
+<td>Below — see also ORGNZ for bucket strategy</td>
+</tr>
+<tr>
+<td>IAM (Gen3)</td>
+<td><code>dynatrace_iam_group</code>, <code>dynatrace_iam_policy</code>, <code>dynatrace_iam_policy_bindings_v2</code>, <code>dynatrace_iam_service_user</code></td>
+<td><strong>OAuth client only</strong> — Platform Token cannot drive IAM resources</td>
+<td>Carries forward</td>
+<td>Below — full hands-on walkthrough in AUTOM-95 LAB</td>
+</tr>
+<tr>
+<td>Synthetic</td>
+<td><code>dynatrace_http_monitor</code>, <code>dynatrace_browser_monitor</code></td>
+<td>Classic API token (<code>ExternalSyntheticIntegration</code>)</td>
+<td>Carries forward</td>
+<td>Below. Third-party synthetic monitors are a separate, blocked surface — see SYNTH</td>
+</tr>
+<tr>
+<td><em>Classic</em> — config</td>
+<td><code>dynatrace_management_zone_v2</code>, <code>dynatrace_autotag_v2</code></td>
+<td>Classic API token (<code>settings.read</code>/<code>settings.write</code>)</td>
+<td><strong>Blocked</strong></td>
+<td><em>Classic Resources</em> below. Successors: <code>dynatrace_segment</code> (filtering) + IAM policies (access) — MZ2POL</td>
+</tr>
+<tr>
+<td><em>Classic</em> — alerting</td>
+<td><code>dynatrace_alerting</code> (alerting profile), <code>dynatrace_metric_events</code> (custom metric alert, <code>builtin:anomaly-detection.metric-events</code>)</td>
+<td>Classic API token (<code>settings.read</code>/<code>settings.write</code>)</td>
+<td><strong>Blocked</strong></td>
+<td><em>Classic Resources</em> below. Successors: <code>dynatrace_automation_workflow</code>, <code>dynatrace_davis_anomaly_detectors</code></td>
+</tr>
+<tr>
+<td><em>Classic</em> — SLO</td>
+<td><code>dynatrace_slo_v2</code> (<code>builtin:monitoring.slo</code>)</td>
+<td>Classic API token (<code>slo.read</code>/<code>slo.write</code>, <code>settings.read</code>/<code>settings.write</code>)</td>
+<td><strong>Blocked</strong></td>
+<td><em>Classic Resources</em> below. Successor: <code>dynatrace_platform_slo</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Reading the Upgrade status column.</strong> <code>Blocked</code> means the resource's underlying Settings 2.0 schema stops answering once your tenant upgrades to the latest Dynatrace — the Terraform resource goes with it, because the provider writes through that schema. Statuses are read from the ready-made <em>Check your upgrade readiness</em> dashboard, observed <strong>07/31/2026</strong>, cross-checked <strong>09/18/2026</strong> against Dynatrace's published <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a>, and each resource-to-schema mapping was confirmed against the provider's own resource documentation. The provider registry does not flag these resources, so a resource can read as entirely current there and still be <code>Blocked</code> here. See AUTOM-02 for the full schema catalog and the deprecated-versus-blocked distinction.</p>
+</blockquote>
+<blockquote>
+<p><strong>Auth requirement is a strong predictor here, but not a rule.</strong> Every blocked row is a <strong>Classic API token</strong> row, and every Platform-Token-or-OAuth row carries forward — which makes sense, since the Gen3-native resources were built on the surfaces that survive. The exception worth remembering is <strong>Synthetic</strong>: it authenticates with a classic token and still carries forward. Do not infer status from the auth column alone.</p>
+</blockquote>
+<blockquote>
+<p><strong>The OAuth-client-only resources above are a distinct category, not a version nuance.</strong> Unlike most Gen3 resources (which accept either a Platform Token or an OAuth client), IAM objects and <code>dynatrace_platform_slo</code> only work with <code>DT_CLIENT_ID</code>/<code>DT_CLIENT_SECRET</code>/<code>DT_ACCOUNT_ID</code> OAuth client credentials. The provider's configuration reference states <em>&quot;Platform tokens can't be used for IAM (Account Management) or classic resources.&quot;</em>, and <code>slo</code> is not among the services the platform-tokens page lists as covered.</p>
+<p><strong>Grail buckets are not in that category.</strong> The <code>platform_bucket</code> resource page asks for an OAuth client in the same words the <code>document</code> page uses, and the provider builds both on the same platform client — which uses a Platform Token in preference to the OAuth client when one is configured. <code>storage</code> is a platform-token service. A Platform Token for buckets is therefore supported by the provider's code path rather than stated on the resource page: confirm it in a non-production tenant before relying on it.</p>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/index.md">Provider configuration reference (Dynatrace GitHub)</a> — <em>&quot;When specified, it is used in preference to <code>client_id</code>, <code>client_secret</code>&quot;</em> (the <code>platform_token</code> attribute); <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a> — <em>&quot;The following services are covered by platform tokens&quot;</em> (lists <code>storage</code>, not <code>slo</code>); <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_bucket.md"><code>platform_bucket</code> (Dynatrace GitHub)</a>; <a href="https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/dynatrace/api/platform/buckets/service.go"><code>buckets/service.go</code> (Dynatrace GitHub)</a> — <code>clientSet.PlatformClient()</code>, read 10/02/2026 at v1.105.0.</sub></p>
+</blockquote>
+<h3>Gen3 Platform Resources — start here</h3>
+<p>Most Gen3 resources (Workflow, Document, Segment, Davis anomaly detector, Grail bucket, Maintenance below) accept <strong>either</strong> a Platform Token <strong>or</strong> OAuth Client Credentials. <strong>Two categories below are the exception and require OAuth Client Credentials only:</strong> <code>dynatrace_platform_slo</code> (<code>slo</code> is not a platform-token service) and the IAM resources (the provider states <em>&quot;Platform tokens can't be used for IAM (Account Management)&quot;</em>). Grail buckets sit in between — see the note above the examples.</p>
+<h4>Automation Workflow</h4>
+<pre><code class="language-hcl">resource &quot;dynatrace_automation_workflow&quot; &quot;problem_email&quot; {
+  title       = &quot;Problem Email Notification&quot;
+  description = &quot;Sends an email when a Davis problem opens&quot;
+  private     = false
+
+  trigger {
+    event {
+      active = true
+      config {
+        davis_problem {
+          categories {
+            error = true
+          }
+          entity_tags = {
+            Environment = &quot;production&quot;
+          }
+          entity_tags_match = &quot;all&quot;
+          trigger_on        = &quot;open&quot; # provider v1.102.0+; replaces the deprecated on_problem_close
+        }
+      }
+    }
+  }
+
+  tasks {
+    task {
+      name        = &quot;send_email&quot;
+      description = &quot;Send email notification&quot;
+      action      = &quot;dynatrace.email:send-email&quot;
+      active      = true
+      input = jsonencode({
+        to          = [&quot;team@example.com&quot;]
+        cc          = []
+        bcc         = []
+        subject     = &quot;Dynatrace Problem: {{event()['event.name']}}&quot;
+        content     = &quot;Problem detected.\nName: {{event()['event.name']}}\nSeverity: {{event()['event.category']}}&quot;
+        taskId      = &quot;{{ task().id }}&quot;
+        executionId = &quot;{{ execution().id }}&quot;
+      })
+      position {
+        x = 0
+        y = 1
+      }
+    }
+  }
+}
+</code></pre>
+<p><strong>The email task's action ID and input keys are not checked by Terraform.</strong> <code>action</code> is a free string and <code>input</code> is opaque JSON, so a wrong action ID or input key applies cleanly and then fails, or sends nothing, at run time. The email action is <code>dynatrace.email:send-email</code>, and the message body goes in <code>content</code>; the field set above follows Dynatrace's published <a href="https://github.com/Dynatrace/Dynatrace-workflow-samples/blob/main/samples/Messaging%20and%20Incident%20Management/wftpl_send_email.yaml">Send Email workflow sample (Dynatrace GitHub)</a>. Build the task in the Workflows app and export it when in doubt.</p>
+<h4>Service-Level Objective — OAuth client only</h4>
+<pre><code class="language-hcl">resource &quot;dynatrace_platform_slo&quot; &quot;service_availability&quot; {
+  name        = &quot;Service Availability - 30d&quot;
+  description = &quot;Request success ratio, rolling 30 days&quot;
+
+  criteria {
+    criteria_detail {
+      target         = 99.5
+      warning        = 99.9
+      timeframe_from = &quot;now-30d&quot;
+      timeframe_to   = &quot;now&quot;
+    }
+  }
+
+  custom_sli {
+    # DQL producing a timeseries field named `sli`; the criteria block supplies the timeframe
+    indicator = &lt;&lt;-EOT
+      timeseries {
+        total    = sum(dt.service.request.count),
+        failures = sum(dt.service.request.failure_count)
+      }
+      | fieldsAdd sli = ((total[] - failures[]) / total[]) * 100
+      | fieldsRemove total, failures
+    EOT
+  }
+}
+</code></pre>
+<p>The modern SLO app's resource — the replacement for <code>dynatrace_slo_v2</code>. <strong>SaaS only; OAuth client only</strong> (<code>DT_CLIENT_ID</code> / <code>DT_CLIENT_SECRET</code> / <code>DT_ACCOUNT_ID</code> with <code>slo:slos:read</code> / <code>slo:slos:write</code>). The SLI is the DQL query you validated in a notebook, minus <code>from:</code> / <code>interval:</code> (the SLI above is SLO-02's availability query). It is <strong>excluded from a default export</strong> — name it explicitly: <code>terraform-provider-dynatrace -export dynatrace_platform_slo</code>. Scoping (<code>filter_segments</code>), <code>sli_reference</code> and the classic-to-modern move are in <strong>SLO-05</strong>.</p>
+<h4>Davis Anomaly Detector</h4>
+<pre><code class="language-hcl">resource &quot;dynatrace_davis_anomaly_detectors&quot; &quot;disk_usage_high&quot; {
+  title       = &quot;Disk usage critical&quot;
+  description = &quot;Host disk usage above 90% for 3 of 5 minutes&quot;
+  enabled     = true
+  source      = &quot;Terraform&quot;
+
+  analyzer {
+    name = &quot;dt.statistics.ui.anomaly_detection.StaticThresholdAnomalyDetectionAnalyzer&quot;
+    input {
+      analyzer_input_field {
+        key   = &quot;query&quot;
+        value = &quot;timeseries disk_used = avg(dt.host.disk.used.percent), by:{dt.entity.host, dt.entity.disk}&quot;
+      }
+      analyzer_input_field {
+        key   = &quot;threshold&quot;
+        value = &quot;90&quot;
+      }
+      analyzer_input_field {
+        key   = &quot;alertCondition&quot;
+        value = &quot;ABOVE&quot;
+      }
+      analyzer_input_field {
+        key   = &quot;slidingWindow&quot;
+        value = &quot;5&quot;
+      }
+      analyzer_input_field {
+        key   = &quot;violatingSamples&quot;
+        value = &quot;3&quot;
+      }
+      analyzer_input_field {
+        key   = &quot;dealertingSamples&quot;
+        value = &quot;5&quot;
+      }
+      analyzer_input_field {
+        key   = &quot;alertOnMissingData&quot;
+        value = &quot;false&quot;
+      }
+    }
+  }
+
+  event_template {
+    properties {
+      property {
+        key   = &quot;event.type&quot;
+        value = &quot;CUSTOM_ALERT&quot;
+      }
+      property {
+        key   = &quot;event.name&quot;
+        value = &quot;Disk usage critical&quot;
+      }
+      property {
+        key   = &quot;dt.source_entity&quot;
+        value = &quot;{dims:dt.entity.host}&quot;
+      }
+    }
+  }
+
+  # Required — the detector's query runs on behalf of this service user
+  execution_settings {
+    actor = dynatrace_iam_service_user.detectors.id
+  }
+}
+
+# IAM resource — needs the OAuth client credentials described under IAM below
+resource &quot;dynatrace_iam_service_user&quot; &quot;detectors&quot; {
+  name = &quot;davis-anomaly-detectors&quot;
+}
+</code></pre>
+<p>The Davis Anomaly Detection app's resource — the replacement for <code>dynatrace_metric_events</code>. The detection query is <strong>DQL</strong>, not a metric key, so the same resource covers logs, spans and business events as well as metrics. <strong>SaaS only</strong>; Platform Token or OAuth client. <code>execution_settings</code> is a required block; its <code>actor</code> is the service user the query runs as. Since provider v1.97.2 <code>actor</code> may be omitted and defaults to the user behind the provider's credentials — set it explicitly so a detector does not depend on a person's account, and give that service user read access to the data the query touches, or the detector evaluates to nothing. Analyzer input keys follow the provider's <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/davis_anomaly_detectors.md"><code>davis_anomaly_detectors</code> example (Dynatrace GitHub)</a>, read 09/28/2026 (v1.105.0); the query is the disk-usage timeseries AIOPS-06/07 use, one series per host and disk. Build and tune the detector in the app first, then export it (<code>terraform-provider-dynatrace -export dynatrace_davis_anomaly_detectors</code>) rather than hand-writing analyzer inputs. See AIOPS-02 for choosing the analyzer (static threshold vs auto-adaptive vs seasonal baseline).</p>
+<blockquote>
+<p><strong>Where to build the detector before export (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created, and &quot;build and tune the detector in the app first&quot; above refers to it.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em></sub></p>
+</blockquote>
+<h4>Grail Dashboard (Document)</h4>
+<pre><code class="language-hcl">resource &quot;dynatrace_document&quot; &quot;team_dashboard&quot; {
+  type    = &quot;dashboard&quot;
+  name    = &quot;Production Overview&quot;
+  private = false
+  content = jsonencode({
+    version = 13
+    variables = []
+    tiles = {
+      &quot;tile-1&quot; = {
+        type  = &quot;data&quot;
+        title = &quot;Error Rate&quot;
+        # dt.service.request.failure_rate does not exist — derive the rate from the two counts
+        query = &quot;timeseries { failures = sum(dt.service.request.failure_count), total = sum(dt.service.request.count) }, by:{dt.entity.service}\n| fieldsAdd failure_rate = 100 * failures[] / total[]\n| fieldsRemove failures, total&quot;
+        visualization = &quot;lineChart&quot;
+        visualizationSettings = {
+          chartSettings = {}
+        }
+      }
+    }
+    layouts = {
+      &quot;tile-1&quot; = { x = 0, y = 0, w = 12, h = 6 }
+    }
+  })
+}
+</code></pre>
+<p><strong>A data tile needs <code>visualization</code> and <code>visualizationSettings</code>, not just <code>query</code>.</strong> A tile carrying only <code>type</code>/<code>title</code>/<code>query</code> is incomplete — nothing states how the result should be drawn. The full <code>visualizationSettings</code> block is large and differs per visualization type, so the reliable way to get its exact shape is to build the tile in the UI and export the document; do not hand-write it from memory. The canonical document shape is in <strong>NRLC-03 §2</strong>.</p>
+<blockquote>
+<p><strong>Forthcoming/rolling out (SaaS 1.344) — a dashboard that fails validation will no longer load.</strong> SaaS 1.344 was published 07/27/2026 with a <strong>staged tenant rollout from 07/29/2026</strong>; verify whether it has reached your tenant before relying on the new behavior. Before 1.344, a dashboard whose payload failed validation still loaded and surfaced validation warnings. Once 1.344 reaches your tenant, it does not load at all. Dynatrace names dashboards <strong>created externally via API or by AI tooling</strong> as the most affected population — which is exactly what a <code>dynatrace_document</code> dashboard payload is. Treat the warning state as a grace period, not a supported state.</p>
+<p><strong>Gate every payload before you merge it:</strong></p>
+<ol>
+<li>Apply it against a <strong>non-production tenant</strong> and open the dashboard in the Dashboards app.</li>
+<li>Confirm <strong>zero validation warnings</strong> — not &quot;warnings we have decided to live with.&quot;</li>
+<li>Prefer <strong>exporting a working UI-authored dashboard</strong> as your template over hand-writing the <code>tiles</code> / <code>layouts</code> map. The UI only emits shapes it can render.</li>
+</ol>
+<p><code>terraform plan</code> and provider-side schema checks validate the <em>HCL</em>, not the dashboard document inside <code>jsonencode(...)</code> — to Terraform that payload is an opaque string. The export → modify → review → deploy workflow remains the working path; 1.344 raises the cost of skipping its validation step, it does not replace the workflow. Full gate: <strong>DASH-07 §5</strong>.</p>
+</blockquote>
+<h4>Grail Notebook (Document)</h4>
+<pre><code class="language-hcl">resource &quot;dynatrace_document&quot; &quot;runbook&quot; {
+  type    = &quot;notebook&quot;
+  name    = &quot;Incident Runbook&quot;
+  private = false
+  content = jsonencode({
+    version = &quot;7&quot;
+    sections = [
+      {
+        id       = &quot;section-1&quot;
+        type     = &quot;markdown&quot;
+        markdown = &quot;## Step 1: Check Error Rate\nRun the query below to identify affected services.&quot;
+      },
+      {
+        id    = &quot;section-2&quot;
+        type  = &quot;dql&quot;
+        title = &quot;Error Rate by Service&quot;
+        state = {
+          input = {
+            value = &quot;timeseries { failures = sum(dt.service.request.failure_count), total = sum(dt.service.request.count) }, by:{dt.entity.service}\n| fieldsAdd failure_rate = 100 * failures[] / total[]\n| fieldsRemove failures, total&quot;
+          }
+        }
+      }
+    ]
+  })
+}
+</code></pre>
+<p><strong>Notebook-document schema — two things are easy to get wrong here.</strong> <code>version</code> is the string <strong><code>&quot;7&quot;</code></strong> for current notebook documents (older documents may still carry <code>&quot;5&quot;</code> or <code>&quot;6&quot;</code>; migrate on next touch). And <strong>there is no <code>content</code> key on a section</strong> — the two section types carry their payload under different keys: a <code>markdown</code> section carries <strong><code>markdown</code></strong>, and a <code>dql</code> section carries its query under <strong><code>state.input.value</code></strong>. A section shaped with <code>content</code> does not match the schema, so the resulting document has sections the Notebooks app cannot render.</p>
+<blockquote>
+<p><strong>SaaS 1.349 (rollout start 10/27/2026, staged tenant rollout): notebooks are validated when uploaded or opened.</strong> If a notebook's structure is invalid, it cannot be displayed at all. If only some sections are invalid, the valid sections display and the invalid ones are omitted. Terraform sees neither outcome, because <code>content</code> is an opaque string to it, so open each applied notebook in a non-production tenant before you promote it. Two of the documented errors are typical of generated JSON: a numeric <code>version</code> (it must be the string <code>&quot;7&quot;</code>), and a section <code>type</code> other than <code>markdown</code>, <code>dql</code> or <code>function</code>. The schema rules above apply before and after 1.349; 1.349 changes what the app does with a notebook that breaks them.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks#notebook-validation-errors">Notebooks (DT docs)</a> — <em>&quot;If the notebook structure itself is invalid, the notebook cannot be displayed at all.&quot;</em> and <em>&quot;If only some sections are invalid, the valid sections are displayed and the invalid sections are omitted.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/document-api/document-structure-notebooks#notebook-validation">Dynatrace document structure - Notebooks (DT docs)</a> — <em>&quot;Supported values are markdown, dql, and function.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-349">What's new in Dynatrace SaaS 1.349 (DT docs)</a> — <em>&quot;Dynatrace now validates notebook JSON when you upload or open a notebook.&quot;</em></sub></p>
+</blockquote>
+<h4>Segment (Gen3 Management Zone Replacement)</h4>
+<p>A segment filter is <strong>not</strong> a DQL query string. <code>includes.items.filter</code> holds the segment editor's JSON filter tree (the shape below follows the provider's <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/segment.md"><code>segment</code> example (Dynatrace GitHub)</a>), so the reliable workflow is to build the segment in the UI and export it with <code>terraform-provider-dynatrace -export dynatrace_segment</code>.</p>
+<pre><code class="language-hcl">resource &quot;dynatrace_segment&quot; &quot;cluster_scope&quot; {
+  name        = &quot;Kubernetes cluster&quot;
+  description = &quot;All data from one Kubernetes cluster, selected by variable&quot;
+  is_public   = true
+
+  includes {
+    items {
+      data_object = &quot;_all_data_object&quot;
+      # Segment filter AST as emitted by the segment editor — k8s.cluster.name = $cluster
+      filter = jsonencode({
+        &quot;children&quot; : [
+          {
+            &quot;key&quot; : { &quot;range&quot; : { &quot;from&quot; : 0, &quot;to&quot; : 16 }, &quot;textValue&quot; : &quot;k8s.cluster.name&quot;, &quot;type&quot; : &quot;Key&quot;, &quot;value&quot; : &quot;k8s.cluster.name&quot; },
+            &quot;operator&quot; : { &quot;range&quot; : { &quot;from&quot; : 17, &quot;to&quot; : 18 }, &quot;textValue&quot; : &quot;=&quot;, &quot;type&quot; : &quot;ComparisonOperator&quot;, &quot;value&quot; : &quot;=&quot; },
+            &quot;range&quot; : { &quot;from&quot; : 0, &quot;to&quot; : 27 },
+            &quot;type&quot; : &quot;Statement&quot;,
+            &quot;value&quot; : { &quot;range&quot; : { &quot;from&quot; : 19, &quot;to&quot; : 27 }, &quot;textValue&quot; : &quot;$cluster&quot;, &quot;type&quot; : &quot;String&quot;, &quot;value&quot; : &quot;$cluster&quot; }
+          }
+        ],
+        &quot;explicit&quot; : false,
+        &quot;logicalOperator&quot; : &quot;AND&quot;,
+        &quot;range&quot; : { &quot;from&quot; : 0, &quot;to&quot; : 27 },
+        &quot;type&quot; : &quot;Group&quot;
+      })
+    }
+  }
+
+  variables {
+    type  = &quot;query&quot;
+    # Smartscape node query (the classic form was `fetch dt.entity.kubernetes_cluster`,
+    # deprecated for new content). The node's `name` is the cluster name the
+    # k8s.cluster.name filter above matches against.
+    value = &lt;&lt;-EOT
+      smartscapeNodes &quot;K8S_CLUSTER&quot;
+      | fields cluster = name
+      | sort cluster
+    EOT
+  }
+}
+</code></pre>
+<p>The variable query lists the values the segment's <code>$cluster</code> picker offers. It uses the Smartscape shape K8S-04 and K8S-08 validate (<code>smartscapeNodes &quot;K8S_CLUSTER&quot;</code> with <code>name</code>), not the classic entity table — a segment is a Gen3 object, and its own query should not depend on the classic entity model.</p>
+<h4>Maintenance Window</h4>
+<p>Use <code>dynatrace_maintenance_windows</code> (schema <code>builtin:maintenance-windows</code>, carries forward). The older <code>dynatrace_maintenance</code> resource writes <code>builtin:alerting.maintenance-window</code>, which is on the removed-schemas list.</p>
+<pre><code class="language-hcl">// Which days an instance is created on comes from a Workflows scheduling rule. This is an
+// automation resource: its credential needs automation:rules:read / automation:rules:write.
+resource &quot;dynatrace_automation_scheduling_rule&quot; &quot;sundays&quot; {
+  title = &quot;Every Sunday&quot;
+  recurrence {
+    datestart = &quot;2026-01-01&quot;
+    frequency = &quot;WEEKLY&quot;
+    weekdays  = [&quot;SU&quot;]
+  }
+}
+
+resource &quot;dynatrace_maintenance_windows&quot; &quot;weekly_patch&quot; {
+  name        = &quot;Weekly Patch Window&quot;
+  description = &quot;Weekly 02:00-04:00 UTC patching&quot;
+  enabled     = true
+  auto_delete = false
+  # Required DQL filter selecting what is under maintenance. Build it in the
+  # maintenance-windows UI, then export (see note below) rather than hand-writing it.
+  filter = var.maintenance_filter
+
+  schedule {
+    duration = 120
+    timezone = &quot;UTC&quot;
+
+    trigger {
+      type = &quot;time&quot;
+
+      recurring {
+        time           = &quot;02:00:00&quot;
+        earliest_start = &quot;2026-01-01&quot;
+        until          = &quot;2027-12-31&quot;
+        # The days an instance is created on come from the scheduling rule above
+        rule           = dynatrace_automation_scheduling_rule.sundays.id
+      }
+    }
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>Provider version note (v1.98.0, June 2026):</strong> <code>dynatrace_maintenance</code> is <strong>deprecated</strong> in provider v1.98+ in favor of <strong><code>dynatrace_maintenance_windows</code></strong> (example above; shape from the provider's <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/maintenance_windows.md"><code>maintenance_windows</code> resource docs (Dynatrace GitHub)</a>, <code>terraform validate</code> clean on v1.105.0, 10/02/2026). <code>rule</code> is the <em>&quot;Reference to rule which specifies on which days instance of this maintenance window should be created&quot;</em>, so the example sets it; the page does not say which days a recurring window uses without one. If you are pinned below v1.98, <code>dynatrace_maintenance</code> is still the working resource there, but it takes <code>general_properties</code> and <code>schedule</code> blocks rather than top-level <code>name</code>/<code>type</code>/<code>suppression</code> — export an existing window (<code>terraform-provider-dynatrace -export dynatrace_maintenance</code>) for the exact shape, and plan the move to <code>dynatrace_maintenance_windows</code> before your tenant upgrades.</p>
+</blockquote>
+<h4>OpenPipeline (per-data-type resource family)</h4>
+<pre><code class="language-hcl">resource &quot;dynatrace_openpipeline_v2_logs_pipelines&quot; &quot;custom_logs&quot; {
+  # see the provider's openpipeline_v2_logs_pipelines resource docs for the full pipeline/processor schema
+  # (structure mirrors the builtin:openpipeline.logs.pipelines Settings 2.0 schema)
+}
+</code></pre>
+<p><strong>There is no single <code>dynatrace_openpipeline</code> resource.</strong> OpenPipeline is Terraform-managed as a per-data-type family — <code>dynatrace_openpipeline_v2_logs_pipelines</code>, <code>_logs_pipelinegroups</code>, <code>_logs_routing</code>, <code>_logs_ingestsources</code>, and equivalents for <code>spans</code>/<code>metrics</code>/<code>events</code>/<code>bizevents</code> — each backed by its own <code>builtin:openpipeline.&lt;scope&gt;.*</code> Settings 2.0 schema. This corrected a NRLC-09 and SL2DT-03 error found 07/01/2026 (both had referenced a single generic resource, and SL2DT-03 additionally reflected the now-deprecated OpenPipeline Configurations API JSON shape, EOL June 29, 2026). See OPIPE and OPMIG for the full pipeline-configuration walkthrough, and OPIPE-07 for pipeline groups.</p>
+<h4>Grail Bucket</h4>
+<pre><code class="language-hcl">resource &quot;dynatrace_platform_bucket&quot; &quot;custom_logs&quot; {
+  name         = &quot;custom_logs_bucket&quot;
+  display_name = &quot;Custom logs bucket&quot;
+  retention    = 67
+  table        = &quot;logs&quot; # logs | spans | events | bizevents
+}
+</code></pre>
+<p><strong>SaaS only.</strong> The resource page documents an OAuth client with <code>storage:bucket-definitions:read</code>, <code>storage:bucket-definitions:write</code>, and <code>storage:bucket-definitions:delete</code> (re-read 10/02/2026). The provider also drives buckets with a Platform Token when one is configured (see the note under the resource table) — verify that in a non-production tenant before relying on it. See ORGNZ for bucket-strategy guidance and <code>terraform-provider-dynatrace -export dynatrace_platform_bucket</code> to bootstrap from existing buckets.</p>
+<h4>IAM (group, policy, binding) — OAuth client only</h4>
+<pre><code class="language-hcl">resource &quot;dynatrace_iam_group&quot; &quot;platform_engineers&quot; {
+  name = &quot;Platform Engineers&quot;
+}
+
+resource &quot;dynatrace_iam_policy&quot; &quot;read_only&quot; {
+  name            = &quot;Read-Only Access&quot;
+  account         = var.account_uuid
+  statement_query = &quot;ALLOW environment:roles:viewer;&quot;
+}
+
+resource &quot;dynatrace_iam_policy_bindings_v2&quot; &quot;binding&quot; {
+  group   = dynatrace_iam_group.platform_engineers.id
+  account = var.account_uuid
+
+  policy {
+    id = dynatrace_iam_policy.read_only.id
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong><code>dynatrace_iam_policy_bindings_v2</code> re-assigns all policies bound to a group</strong> — every policy that should remain bound must be specified in the configuration; otherwise, it will be unbound (verbatim from the provider docs). This is the single most common Terraform-IAM footgun in this repo's own history.</p>
+</blockquote>
+<p>IAM resources require an OAuth client with <code>account-idm-read</code>/<code>account-idm-write</code> and <code>iam-policies-management</code> scopes — never a Platform Token. Full hands-on walkthrough (DSL discovery, bulk export, import, gotchas table) is in <strong>AUTOM-95 LAB</strong>, not repeated here.</p>
+<hr />
+<h3>HTTP Monitor (Synthetic)</h3>
+<pre><code class="language-hcl">resource &quot;dynatrace_http_monitor&quot; &quot;homepage&quot; {
+  name      = &quot;Homepage Check&quot;
+  enabled   = true
+  frequency = 5
+
+  locations = [&quot;GEOLOCATION-1234567890ABCDEF&quot;]
+
+  anomaly_detection {
+    loading_time_thresholds {
+      enabled = true
+    }
+    outage_handling {
+      global_outage = true
+      local_outage  = false
+    }
+  }
+
+  script {
+    request {
+      description = &quot;Homepage&quot;
+      method      = &quot;GET&quot;
+      url         = &quot;https://example.com&quot;
+
+      validation {
+        rule {
+          type  = &quot;httpStatusesList&quot;
+          value = &quot;&gt;=400&quot;
+          pass_if_found = false
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<h3>Browser Monitor (Synthetic)</h3>
+<pre><code class="language-hcl">data &quot;dynatrace_synthetic_location&quot; &quot;location&quot; {
+  name = &quot;Location&quot;
+}
+
+resource &quot;dynatrace_browser_monitor&quot; &quot;homepage_clickpath&quot; {
+  name      = &quot;Homepage Clickpath&quot;
+  frequency = 15
+  locations = [data.dynatrace_synthetic_location.location.id]
+  enabled   = true
+
+  anomaly_detection {
+    loading_time_thresholds {
+      enabled = true
+    }
+    outage_handling {
+      global_outage = true
+    }
+  }
+
+  key_performance_metrics {
+    load_action_kpm = &quot;VISUALLY_COMPLETE&quot;
+    xhr_action_kpm  = &quot;VISUALLY_COMPLETE&quot;
+  }
+
+  script {
+    type = &quot;clickpath&quot;
+    events {
+      event {
+        description = &quot;Load homepage&quot;
+        navigate {
+          url = &quot;https://example.com&quot;
+          wait {
+            wait_for = &quot;page_complete&quot;
+          }
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<p>Requires the classic API token scope <code>ExternalSyntheticIntegration</code> (same as <code>dynatrace_http_monitor</code> — verified at the provider registry 07/01/2026). A clickpath script needs <code>type = &quot;clickpath&quot;</code>, each event a <code>description</code>, and the monitor a <code>key_performance_metrics</code> block — the shape above follows the provider's own <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/browser_monitor.md"><code>browser_monitor</code> example (Dynatrace GitHub)</a> (<code>terraform validate</code> clean on v1.104.1, 09/18/2026). NRLC-09 points here for New-Relic-synthetic-check migrations; treat this and <code>dynatrace_http_monitor</code> as Config-v1 (classic) objects, not Settings 2.0 — there is no <code>builtin:synthetic_*</code> schema.</p>
+<hr />
+<h3>Classic Resources — existing configuration on unupgraded tenants</h3>
+<blockquote>
+<p><strong>Dynatrace Classic — maintain, don't author.</strong> Every resource in this subsection writes a Settings 2.0 schema (or classic API) that the readiness scan marks <strong>Blocked</strong> at upgrade (table above). Keep these examples for estates you still have to manage until the upgrade; author new configuration with the Gen3 successor named in each heading. A Conftest ratchet that stops new classic resources entering the repo is in AUTOM-07 §3.</p>
+</blockquote>
+<h4>Management Zone → successor <code>dynatrace_segment</code> + IAM policies</h4>
+<pre><code class="language-hcl">resource &quot;dynatrace_management_zone_v2&quot; &quot;production&quot; {
+  name = &quot;Production&quot;
+
+  rules {
+    rule {
+      type    = &quot;ME&quot;
+      enabled = true
+      attribute_rule {
+        entity_type = &quot;SERVICE&quot;
+        attribute_conditions {
+          condition {
+            key      = &quot;SERVICE_TAGS&quot;
+            operator = &quot;EQUALS&quot;
+            tag      = &quot;environment:production&quot;
+          }
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<h4>Auto-Tagging Rule → successor: primary fields/tags set at ingest (FAQ-02)</h4>
+<pre><code class="language-hcl">resource &quot;dynatrace_autotag_v2&quot; &quot;application&quot; {
+  name = &quot;Application&quot;
+
+  rules {
+    rule {
+      type                = &quot;ME&quot;
+      enabled             = true
+      value_format        = &quot;{Service:DetectedName}&quot;
+      value_normalization = &quot;Leave text as-is&quot;
+      attribute_rule {
+        entity_type = &quot;SERVICE&quot;
+        conditions {
+          condition {
+            key      = &quot;SERVICE_DETECTED_NAME&quot;
+            operator = &quot;EXISTS&quot;
+          }
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<h4>Alerting Profile → successor <code>dynatrace_automation_workflow</code></h4>
+<blockquote>
+<p><strong>Dynatrace Classic.</strong> <em>&quot;Alerting profiles and problem notifications are Dynatrace Classic.&quot;</em> They keep working on Classic tenants, but <code>builtin:alerting.profile</code> (the schema behind <code>dynatrace_alerting</code>) is on Dynatrace's list of <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a> — <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em> Delay has no field on the alerting profile's successor schema: per the <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">alert-notification upgrade guide (DT docs)</a>, <em>&quot;The delay, update, and severity capabilities described in this guide exist only on the workflow trigger.&quot;</em> The provider exposes that delay as <code>problem_open_duration</code> on the workflow's Davis trigger (v1.102.0+, see §6). The example shows the resource shape for estates you still maintain; build new routing with <code>dynatrace_automation_workflow</code> (below, and WFLOW / ALERT-03).</p>
+</blockquote>
+<pre><code class="language-hcl">resource &quot;dynatrace_alerting&quot; &quot;production_alerts&quot; {
+  name            = &quot;Production Alerting&quot;
+  management_zone = dynatrace_management_zone_v2.production.id
+
+  rules {
+    rule {
+      include_mode     = &quot;NONE&quot;
+      delay_in_minutes = 0
+      severity_level   = &quot;AVAILABILITY&quot;
+    }
+    rule {
+      include_mode     = &quot;NONE&quot;
+      delay_in_minutes = 5
+      severity_level   = &quot;ERRORS&quot;
+    }
+    rule {
+      include_mode     = &quot;NONE&quot;
+      delay_in_minutes = 10
+      severity_level   = &quot;PERFORMANCE&quot;
+    }
+  }
+}
+</code></pre>
+<h4>SLO (classic) → successor <code>dynatrace_platform_slo</code></h4>
+<pre><code class="language-hcl">resource &quot;dynatrace_slo_v2&quot; &quot;availability&quot; {
+  name              = &quot;Production Availability&quot;
+  enabled           = true
+  evaluation_type   = &quot;AGGREGATE&quot;
+  evaluation_window = &quot;-1w&quot;
+  target_success    = 99.9
+  target_warning    = 99.95
+  
+  metric_expression = &quot;builtin:synthetic.http.availability.location.total:splitBy()&quot;
+  
+  filter            = &quot;type(HTTP_CHECK)&quot; # HTTP monitors are HTTP_CHECK entities (SYNTHETIC_TEST is browser monitors)
+
+  # required block (fixed 07/01/2026 — missing this causes terraform apply to fail schema validation;
+  # confirmed against the current provider schema, same fix applied to SLO-05 / S2S-07 the same day)
+  error_budget_burn_rate {
+    burn_rate_visualization_enabled = true
+  }
+}
+</code></pre>
+<h4>Metric Event (custom metric alert) → successor <code>dynatrace_davis_anomaly_detectors</code></h4>
+<pre><code class="language-hcl">resource &quot;dynatrace_metric_events&quot; &quot;disk_usage_high&quot; {
+  enabled                    = true
+  event_entity_dimension_key = &quot;dt.entity.host&quot;
+  summary                    = &quot;Disk usage critical&quot;
+
+  event_template {
+    description = &quot;Disk usage exceeded threshold&quot;
+    event_type  = &quot;CUSTOM_ALERT&quot;
+    title       = &quot;Disk usage critical&quot;
+    davis_merge = false
+  }
+
+  model_properties {
+    type               = &quot;STATIC_THRESHOLD&quot;
+    alert_condition    = &quot;ABOVE&quot;
+    alert_on_no_data   = false
+    samples            = 5
+    violating_samples  = 3
+    dealerting_samples = 5
+    threshold          = 90
+  }
+
+  query_definition {
+    type        = &quot;METRIC_KEY&quot;
+    aggregation = &quot;AVG&quot;
+    metric_key  = &quot;builtin:host.disk.usedPct&quot;
+  }
+}
+</code></pre>
+<p>Settings 2.0 schema <code>builtin:anomaly-detection.metric-events</code>. Requires classic API token scopes <code>settings.read</code>/<code>settings.write</code> (verified at the provider registry 07/01/2026). This is the resource NRLC-04/09 point to for New-Relic-alert-condition migrations — do not confuse it with the singular, nonexistent <code>dynatrace_metric_event</code>.</p>
+<hr />
+<p><a id="state-management"></a></p>
+<h2>5. State Management</h2>
+<h3>Understanding Terraform State</h3>
+<p>Terraform tracks resources in a state file (<code>terraform.tfstate</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>State</strong></td>
+<td>JSON file mapping config to real resources</td>
+</tr>
+<tr>
+<td><strong>Plan</strong></td>
+<td>Comparison of state vs. desired config</td>
+</tr>
+<tr>
+<td><strong>Apply</strong></td>
+<td>Execute changes to reach desired state</td>
+</tr>
+<tr>
+<td><strong>Drift</strong></td>
+<td>Difference between state and actual</td>
+</tr>
+</tbody>
+</table>
+<h3>Remote State Storage</h3>
+<p>For team collaboration, use remote state:</p>
+<pre><code class="language-hcl">terraform {
+  backend &quot;s3&quot; {
+    bucket = &quot;my-terraform-state&quot;
+    key    = &quot;dynatrace/production/terraform.tfstate&quot;
+    region = &quot;us-east-1&quot;
+  }
+}
+</code></pre>
+<p>Or using Terraform Cloud:</p>
+<pre><code class="language-hcl">terraform {
+  cloud {
+    organization = &quot;my-org&quot;
+    workspaces {
+      name = &quot;dynatrace-production&quot;
+    }
+  }
+}
+</code></pre>
+<hr />
+<h3>Common State Commands</h3>
+<pre><code class="language-bash"># Preview changes
+terraform plan
+
+# Apply changes
+terraform apply
+
+# Show current state
+terraform show
+
+# List resources in state
+terraform state list
+
+# Import existing resource
+terraform import dynatrace_segment.cluster_scope &quot;&lt;segment-id&gt;&quot;
+
+# Remove resource from state (without deleting)
+terraform state rm dynatrace_segment.cluster_scope
+</code></pre>
+<h3>Importing Existing Resources</h3>
+<p>To manage existing configurations:</p>
+<ol>
+<li>Write the resource block in HCL</li>
+<li>Find the object ID in Dynatrace</li>
+<li>Import into state</li>
+</ol>
+<pre><code class="language-bash"># Gen3 resources import by their platform ID (workflow ID, document ID, segment ID, SLO ID)
+terraform import dynatrace_automation_workflow.problem_email &quot;&lt;workflow-id&gt;&quot;
+</code></pre>
+<p>For <strong>classic</strong> Settings 2.0 objects you still maintain (a management zone, an alerting profile), the ID is the settings object ID — a long opaque string, not the display name:</p>
+<pre><code class="language-bash">terraform import dynatrace_management_zone_v2.production &quot;vu9U3hXa3q0AAAABABhidWlsdGluOm1hbmFnZW1lbnQtem9uZXMABnRlbmFudAAGdGVuYW50ABp2dTlVM2hYYTNxMERUVF9fUHJvZHVjdGlvbr7vFJ4&quot;
+</code></pre>
+<p>For more than a handful of objects, skip hand-written imports and use the export utility (§8) — it writes the HCL and the import together.</p>
+<hr />
+<p><a id="advanced-patterns"></a></p>
+<h2>6. Advanced Patterns</h2>
+<h3>Modules for Reusability</h3>
+<p>Create reusable modules:</p>
+<p><strong>modules/team-problem-routing/versions.tf</strong> — every module that uses Dynatrace resources must declare the <code>dynatrace-oss/dynatrace</code> source itself. Without it, Terraform looks for an implied <code>hashicorp/dynatrace</code> provider, which does not exist, and <code>terraform init</code> fails:</p>
+<pre><code class="language-hcl">terraform {
+  required_providers {
+    dynatrace = {
+      source = &quot;dynatrace-oss/dynatrace&quot;
+    }
+  }
+}
+</code></pre>
+<p><strong>modules/team-problem-routing/main.tf</strong> — one problem-notification workflow per owning team, routed on the <code>owner</code> tag (FAQ-21):</p>
+<pre><code class="language-hcl">variable &quot;team&quot; {
+  type = string
+}
+
+variable &quot;recipients&quot; {
+  type = list(string)
+}
+
+resource &quot;dynatrace_automation_workflow&quot; &quot;problem_route&quot; {
+  title       = &quot;Problem routing - ${var.team}&quot;
+  description = &quot;Emails ${var.team} when a Davis problem affects an entity they own&quot;
+  private     = false
+
+  trigger {
+    event {
+      active = true
+      config {
+        davis_problem {
+          categories {
+            availability = true
+            error        = true
+            slowdown     = true
+          }
+          entity_tags = {
+            owner = var.team
+          }
+          entity_tags_match = &quot;all&quot;
+          trigger_on        = &quot;open&quot;
+        }
+      }
+    }
+  }
+
+  tasks {
+    task {
+      name   = &quot;notify_team&quot;
+      action = &quot;dynatrace.email:send-email&quot;
+      active = true
+      input = jsonencode({
+        to          = var.recipients
+        cc          = []
+        bcc         = []
+        subject     = &quot;[${var.team}] {{event()['event.name']}}&quot;
+        content     = &quot;Problem affecting an entity owned by ${var.team}.\nName: {{event()['event.name']}}&quot;
+        taskId      = &quot;{{ task().id }}&quot;
+        executionId = &quot;{{ execution().id }}&quot;
+      })
+      position {
+        x = 0
+        y = 1
+      }
+    }
+  }
+}
+
+output &quot;workflow_id&quot; {
+  value = dynatrace_automation_workflow.problem_route.id
+}
+</code></pre>
+<p><strong>Use the module:</strong></p>
+<pre><code class="language-hcl">module &quot;payments&quot; {
+  source     = &quot;./modules/team-problem-routing&quot;
+  team       = &quot;payments&quot;
+  recipients = [&quot;payments-oncall@example.com&quot;]
+}
+
+module &quot;checkout&quot; {
+  source     = &quot;./modules/team-problem-routing&quot;
+  team       = &quot;checkout&quot;
+  recipients = [&quot;checkout-oncall@example.com&quot;]
+}
+</code></pre>
+<blockquote>
+<p><strong>Classic equivalent.</strong> Estates built before the upgrade often have the same module shape wrapped around <code>dynatrace_management_zone_v2</code> (one zone per environment) plus <code>dynatrace_alerting</code> (one profile per zone). That pairing is exactly what this module replaces: ownership tags do the scoping the zone used to do, and the workflow trigger does the filtering the profile used to do. See the <em>Classic Resources</em> block in §4 for the resource shapes and MZ2POL-09 for the migration.</p>
+</blockquote>
+<hr />
+<h3>Workspaces for Environments</h3>
+<p>Use workspaces to manage multiple environments:</p>
+<pre><code class="language-bash"># Create workspaces
+terraform workspace new development
+terraform workspace new staging
+terraform workspace new production
+
+# Switch workspace
+terraform workspace select production
+
+# List workspaces
+terraform workspace list
+</code></pre>
+<p><strong>Use workspace in config</strong> (run in a named workspace — in <code>default</code>, the map lookup below fails <code>terraform validate</code>):</p>
+<pre><code class="language-hcl">locals {
+  environment = terraform.workspace
+
+  config = {
+    development = {
+      min_problem_minutes = 30
+      recipients          = [&quot;dev-team@example.com&quot;]
+    }
+    staging = {
+      min_problem_minutes = 15
+      recipients          = [&quot;qa-team@example.com&quot;]
+    }
+    production = {
+      min_problem_minutes = 5
+      recipients          = [&quot;oncall@example.com&quot;]
+    }
+  }
+}
+
+resource &quot;dynatrace_automation_workflow&quot; &quot;problem_alerts&quot; {
+  title = &quot;${local.environment} problem alerts&quot;
+
+  trigger {
+    event {
+      active = true
+      config {
+        davis_problem {
+          categories {
+            availability = true
+            error        = true
+            slowdown     = true
+          }
+          entity_tags = {
+            environment = local.environment
+          }
+          entity_tags_match = &quot;all&quot;
+          # Minimum problem duration before the trigger fires (provider v1.102.0+) — the successor
+          # to the classic alerting profile's delay_in_minutes. Allowed: 5, 10, 15, 30, 60, 120, 240, 1440, 10080
+          problem_open_duration = local.config[local.environment].min_problem_minutes
+        }
+      }
+    }
+  }
+
+  tasks {
+    task {
+      name   = &quot;notify&quot;
+      action = &quot;dynatrace.email:send-email&quot;
+      active = true
+      input = jsonencode({
+        to          = local.config[local.environment].recipients
+        cc          = []
+        bcc         = []
+        subject     = &quot;[${local.environment}] {{event()['event.name']}}&quot;
+        content     = &quot;{{event()['event.name']}}&quot;
+        taskId      = &quot;{{ task().id }}&quot;
+        executionId = &quot;{{ execution().id }}&quot;
+      })
+      position {
+        x = 0
+        y = 1
+      }
+    }
+  }
+}
+</code></pre>
+<p><code>problem_open_duration</code> is where the classic alerting profile's <code>delay_in_minutes</code> went — the upgrade guide places delay on the workflow trigger, and the provider exposes it there as a minimum problem duration with a fixed set of allowed values — added in <strong>provider v1.102.0</strong> (08/06/2026) together with <code>trigger_on</code>, which replaces the now-deprecated <code>on_problem_close</code> (per the <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/automation_workflow.md"><code>automation_workflow</code> resource docs (Dynatrace GitHub)</a>, read 09/28/2026).</p>
+<hr />
+<h3>Modules with Governance Inputs</h3>
+<p>For multi-team environments, modules can enforce governance through input validation, mandatory tags, and scoping:</p>
+<pre><code class="language-hcl"># modules/team-problem-routing/variables.tf
+
+variable &quot;team_name&quot; {
+  type        = string
+  description = &quot;Name of the team owning this routing workflow&quot;
+  validation {
+    condition     = can(regex(&quot;^[a-z][a-z0-9-]{2,20}$&quot;, var.team_name))
+    error_message = &quot;Team name must be lowercase alphanumeric with hyphens, 3-21 characters.&quot;
+  }
+}
+
+variable &quot;owner_tag&quot; {
+  type        = string
+  description = &quot;Value of the owner tag the workflow trigger routes on (required — an empty value would match every entity)&quot;
+  validation {
+    condition     = length(var.owner_tag) &gt; 0
+    error_message = &quot;owner_tag is required.&quot;
+  }
+}
+
+variable &quot;environment&quot; {
+  type        = string
+  description = &quot;Target environment&quot;
+  validation {
+    condition     = contains([&quot;dev&quot;, &quot;staging&quot;, &quot;prod&quot;], var.environment)
+    error_message = &quot;Environment must be one of: dev, staging, prod.&quot;
+  }
+}
+
+variable &quot;min_problem_minutes&quot; {
+  type    = number
+  default = 5
+  validation {
+    condition     = contains([5, 10, 15, 30, 60, 120, 240, 1440, 10080], var.min_problem_minutes)
+    error_message = &quot;Must be a problem_open_duration value the workflow trigger accepts.&quot;
+  }
+}
+</code></pre>
+<p>This pattern ensures teams cannot create unscoped or untagged resources — governance is built into the module itself. The unscoped case is the one to guard hardest: a problem trigger with no <code>entity_tags</code> matches <strong>every</strong> entity, so a missing owner tag turns one team's route into an all-hands page. (Classic-era modules validated a required <code>management_zone_name</code> for the same reason.)</p>
+<h3>IAM Policy Management via Terraform</h3>
+<p>The Dynatrace Terraform provider can manage IAM policies, groups, and bindings. This enables <strong>schema-level access restrictions</strong> — something API tokens cannot do.</p>
+<blockquote>
+<p><strong>Important:</strong> Managing IAM resources requires OAuth client credentials with <code>DT_ACCOUNT_ID</code>. API tokens cannot manage IAM.</p>
+</blockquote>
+<blockquote>
+<p><strong>Hands-on lab:</strong> This subsection covers IAM at lecture depth. For a full hands-on walkthrough — OAuth client setup with the four minimal scopes, DSL discovery (no public catalog), the four IAM resource types (groups + policies + boundaries + bindings_v2), the <code>bindings_v2</code> re-assigns-all caveat, deprecated arguments to avoid, bulk export of an existing account, and HTTP 400 troubleshooting with <code>TF_LOG=DEBUG</code> — see <strong>AUTOM-95 LAB: Terraform IAM Management</strong>. Note the deprecated-arguments section (AUTOM-95 §13): <code>dynatrace_iam_policy.environment</code> is deprecated in favor of <code>account = var.account_uuid</code>, and the provider itself emits a deprecation warning for environment-level policies — the example below defines and binds the policy at account level.</p>
+</blockquote>
+<pre><code class="language-hcl"># Create a policy that restricts a team to specific settings schemas
+resource &quot;dynatrace_iam_policy&quot; &quot;team_settings&quot; {
+  name            = &quot;Payments Team - Settings Access&quot;
+  account         = var.account_uuid
+  statement_query = &lt;&lt;-EOT
+    ALLOW settings:objects:read, settings:objects:write
+      WHERE settings:schemaId IN (
+        &quot;builtin:davis.anomaly-detectors&quot;,
+        &quot;builtin:maintenance-windows&quot;
+      );
+  EOT
+}
+
+# Create an IAM group for the team
+resource &quot;dynatrace_iam_group&quot; &quot;payments_team&quot; {
+  name        = &quot;Payments Team&quot;
+  description = &quot;IAM group for the Payments team&quot;
+}
+
+# Bind the policy to the group (account level)
+resource &quot;dynatrace_iam_policy_bindings_v2&quot; &quot;payments_binding&quot; {
+  group   = dynatrace_iam_group.payments_team.id
+  account = var.account_uuid
+
+  policy {
+    id = dynatrace_iam_policy.team_settings.id
+  }
+}
+</code></pre>
+<p>The schema IDs in a <code>settings:schemaId</code> condition must exist: a misspelled ID (for example <code>builtin:maintenance-window</code>, which is not a schema) makes the condition silently match nothing. Pick schemas that survive the upgrade — <code>builtin:alerting.profile</code> and <code>builtin:problem.notifications</code> are on the removed-schemas list.</p>
+<p>IAM policy conditions support several operators. For <code>settings:schemaId</code> on <code>settings:objects:write</code> these are <code>IN</code>, <code>=</code>, <code>!=</code>, <code>startsWith</code> and <code>NOT startsWith</code> — there is no substring operator, so a policy using <code>contains</code> on a schema ID is rejected:</p>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Example</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IN</code></td>
+<td><code>settings:schemaId IN (&quot;builtin:davis.anomaly-detectors&quot;, ...)</code></td>
+<td>Explicit list</td>
+</tr>
+<tr>
+<td><code>startsWith</code></td>
+<td><code>settings:schemaId startsWith &quot;builtin:alerting&quot;</code></td>
+<td>Schema family</td>
+</tr>
+<tr>
+<td><code>NOT startsWith</code></td>
+<td><code>settings:schemaId NOT startsWith &quot;builtin:alerting&quot;</code></td>
+<td>Exclude a schema family</td>
+</tr>
+<tr>
+<td><code>!=</code></td>
+<td><code>settings:schemaId != &quot;builtin:maintenance-windows&quot;</code></td>
+<td>Exclude one schema</td>
+</tr>
+<tr>
+<td><code>=</code></td>
+<td><code>storage:bucket-name = &quot;team_logs&quot;</code></td>
+<td>Data isolation</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a> — operator list for <code>settings:schemaId</code>, re-read 10/02/2026.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Key insight:</strong> The API token scope <code>settings.write</code> grants access to ALL schemas. IAM policies with <code>WHERE settings:schemaId</code> clauses (using the IAM action <code>settings:objects:write</code>) are the only way to restrict schema access at the platform level.</p>
+</blockquote>
+<hr />
+<p><a id="governance-architecture"></a></p>
+<h2>7. Governance Architecture</h2>
+<h3>Token Scoping &amp; the Synthetic Access Problem</h3>
+<p>A common enterprise requirement is <strong>scoped API access</strong> — allowing Team A to manage only their Synthetic monitors via Terraform while preventing them from modifying Team B's monitors. <strong>Through the Terraform provider this is still not possible:</strong> the provider manages synthetics only through classic resources (<code>dynatrace_http_monitor</code>, <code>dynatrace_browser_monitor</code>) that require <em>&quot;the API token scope <strong>Create and read synthetic monitors, locations, and nodes</strong> (<code>ExternalSyntheticIntegration</code>)&quot;</em>, and classic permissions are tenant-wide.</p>
+<blockquote>
+<p><strong>Latest Dynatrace — Synthetic access can be scoped per monitor, outside Terraform.</strong> On Latest Dynatrace, Synthetic monitors carry security contexts, and IAM policies can restrict the Synthetic platform permissions to them: <em>&quot;A user with this policy has platform API access only to monitors with the team-a or platform-ops security context.&quot;</em> (for <code>ALLOW synthetic:monitors:read WHERE synthetic:dt.security_context IN (&quot;team-a&quot;, &quot;platform-ops&quot;);</code>). Dynatrace <em>&quot;recommends migrating to the Synthetic platform permissions and the Synthetic Platform API to manage Synthetic in Latest Dynatrace&quot;</em>, and <em>&quot;Classic permissions remain functional, but they always apply tenant-wide.&quot;</em> For environments created before January 2026, <strong>SaaS 1.343</strong> (staged tenant rollout — verify it has reached yours) performs a one-time migration of each monitor's management zone to a security context of the same name. For automation that calls the Synthetic Platform API as a service user with a security-context-scoped <code>synthetic:monitors:write</code> policy, this replaces the workaround patterns below. For <strong>Terraform-managed</strong> synthetics, which still go through the classic resources, the patterns below remain the working path.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control">Synthetic access control (DT docs)</a> — updated 08/05/2026, re-read 10/02/2026; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">SaaS 1.343 release notes (DT docs)</a> — <em>&quot;One-time migration from management zones to security contexts&quot;</em>; <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/http_monitor.md"><code>http_monitor</code> (Dynatrace GitHub)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/browser_monitor.md"><code>browser_monitor</code> (Dynatrace GitHub)</a> — classic-token scope quoted above.</sub></p>
+</blockquote>
+<p>Here is why each token approach fails for scoped Synthetic access <strong>through Terraform</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Token Approach</th>
+<th>Why It Fails for Synthetic Scoping</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Platform Token</strong> (cluster page)</td>
+<td>The Terraform provider requires a classic token for its synthetic resources (v1.88.0+). On classic endpoints (SaaS 1.343+, staged rollout) a platform token gets only classic, tenant-wide synthetic access; per-monitor scoping applies on the Synthetic Platform API, which the provider does not use</td>
+</tr>
+<tr>
+<td><strong>OAuth Client</strong></td>
+<td>Provider v1.88.0 removed OAuth for <code>dynatrace_http_monitor</code> and <code>dynatrace_browser_monitor</code> — they take a classic API token (<code>dt0c01</code>) with <code>ExternalSyntheticIntegration</code> scope. A security-context-scoped service user works only through the Synthetic Platform API, outside the provider</td>
+</tr>
+<tr>
+<td><strong>Personal Access Token</strong></td>
+<td>Still a classic API token — scopes are broad and environment-wide</td>
+</tr>
+<tr>
+<td><strong>Environment Token</strong></td>
+<td>Cannot be restricted to specific objects or teams. This is how classic tokens work by design.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Key insight:</strong> There is no way today to say &quot;Team A can manage only their Synthetic monitors&quot; <strong>through the Terraform provider</strong>. On Latest Dynatrace you can say it through the Synthetic Platform API with security-context policies. For Gen3/platform resources (workflows, documents, segments, Settings 2.0), Service User + OAuth provides genuinely scoped access through IAM policies. Terraform-managed synthetics remain the gap.</p>
+</blockquote>
+<h3>Dual-Auth: Bridging Gen3 and v1</h3>
+<p>When a pipeline manages both Gen3 resources (scoped via OAuth) and v1 resources (synthetics, requiring a classic API token), use <strong>dual authentication</strong>:</p>
+<pre><code class="language-hcl">provider &quot;dynatrace&quot; {
+  dt_env_url       = var.dynatrace_env_url
+
+  # Service User + OAuth — for Gen3/platform resources (scoped via IAM)
+  client_id     = var.dt_client_id           # Also the fallback for iam_client_id / automation_client_id
+  client_secret = var.dt_client_secret
+  account_id    = var.dt_account_id
+
+  # Classic API Token — still required for v1 resources (synthetics)
+  dt_api_token     = var.dynatrace_api_token
+}
+</code></pre>
+<p>The service user's group memberships and IAM policies provide <strong>real, scoped access</strong> for Gen3 resources. The classic API token covers synthetics with compensating controls (see workaround patterns below).</p>
+<blockquote>
+<p><strong>Migration timeline:</strong> The Synthetic Platform API with security-context scoping already exists on Latest Dynatrace (above). The dual-auth requirement disappears for Terraform once the provider manages synthetics through it — as of v1.105.0 its HTTP and browser monitor resources still require the classic token. Track <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/releases">provider releases (Dynatrace GitHub)</a> and <a href="https://docs.dynatrace.com/docs/whats-new">Dynatrace release notes</a> for updates.</p>
+</blockquote>
+<hr />
+<h3>Synthetic Monitor Workaround Patterns</h3>
+<p>For <strong>Terraform-managed</strong> synthetics — classic resources, classic token, tenant-wide access — OAuth and Sentinel cannot provide scoped access, so these are the realistic enterprise patterns. (Automation outside Terraform can use the Synthetic Platform API with security-context policies instead — see above.)</p>
+<h4>Pattern 1: Brokered Self-Service (Recommended)</h4>
+<p>Teams submit <strong>declarative requests</strong> (YAML, Terraform variables, or JSON) describing their desired Synthetic monitors. A <strong>central pipeline</strong> owns the environment-wide API token, validates team intent, and applies synthetics on their behalf.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+QnJva2VyZWQgU2VsZi1TZXJ2aWNlIOKAlCBTeW50aGV0aWMgTW9uaXRvciBXb3JrYXJvdW5kIFBhdHRlcm48L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+VGVhbXMgZGVjbGFyZSBpbnRlbnQ7IGEgY2VudHJhbCBwaXBlbGluZSBvd25zIGNyZWRlbnRpYWxzIGFuZCBlbmZvcmNlcyBwb2xpY3kgb24gdGhlaXIgYmVoYWxmPC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93LTA0YnMiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gTGVmdCBjb2x1bW46IFRlYW0gUmVwbyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iODAiIHdpZHRoPSIzODAiIGhlaWdodD0iMjgwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjIzMCIgeT0iMTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5UZWFtIFJlcG88L3RleHQ+CiAgPHRleHQgeD0iMjMwIiB5PSIxMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk93bmVkIGJ5IHRoZSBwcm9kdWN0IHRlYW08L3RleHQ+CgogIDwhLS0gQ2FyZCAxOiBkZWNsYXJlIGludGVudCAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMTQ1IiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSIyMzAiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RGVjbGFyZSBkZXNpcmVkIHN5bnRoZXRpY3M8L3RleHQ+CiAgPHRleHQgeD0iMjMwIiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPllBTUwgZmlsZXMgLyBUZXJyYWZvcm0gYCoudGZ2YXJzYDwvdGV4dD4KICA8dGV4dCB4PSIyMzAiIHk9IjIwNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+SlNPTiBpbnRlbnQgZG9jdW1lbnRzPC90ZXh0PgoKICA8IS0tIENhcmQgMjogbm8gY3JlZGVudGlhbHMgLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjI0MCIgd2lkdGg9IjM0MCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjIzMCIgeT0iMjY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5ObyBEeW5hdHJhY2UgY3JlZGVudGlhbHM8L3RleHQ+CiAgPHRleHQgeD0iMjMwIiB5PSIyODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlRlYW0gcmVwb3MgbmV2ZXIgaG9sZCBhbiBBUEkgdG9rZW48L3RleHQ+CiAgPHRleHQgeD0iMjMwIiB5PSIzMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkNvbXByb21pc2Ugb2YgYSB0ZWFtIHJlcG8gY2Fubm90PC90ZXh0PgogIDx0ZXh0IHg9IjIzMCIgeT0iMzE5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5pc3N1ZSBEeW5hdHJhY2UgQVBJIGNhbGxzPC90ZXh0PgoKICA8IS0tIFJpZ2h0IGNvbHVtbjogQ2VudHJhbCBUZXJyYWZvcm0gUmVwbyAtLT4KICA8cmVjdCB4PSI1MTAiIHk9IjgwIiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjI4MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3MDAiIHk9IjEwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+Q2VudHJhbCBUZXJyYWZvcm0gUmVwbzwvdGV4dD4KICA8dGV4dCB4PSI3MDAiIHk9IjEyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T3duZWQgYnkgdGhlIHBsYXRmb3JtIHRlYW08L3RleHQ+CgogIDwhLS0gQ2FyZCAxOiB0b2tlbiAtLT4KICA8cmVjdCB4PSI1MzAiIHk9IjE0NSIgd2lkdGg9IjM0MCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzAwIiB5PSIxNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPk93bnMgZW52aXJvbm1lbnQtd2lkZSBBUEkgdG9rZW48L3RleHQ+CiAgPHRleHQgeD0iNzAwIiB5PSIxODciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkxvbmctbGl2ZWQ7IHJvdGF0ZWQgb24gYSBjYWRlbmNlPC90ZXh0PgoKICA8IS0tIENhcmQgMjogU2VudGluZWwvT1BBIGVuZm9yY2VzIC0tPgogIDxyZWN0IHg9IjUzMCIgeT0iMjE1IiB3aWR0aD0iMzQwIiBoZWlnaHQ9Ijg1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MDAiIHk9IjIzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U2VudGluZWwgLyBPUEEgZW5mb3JjZXM8L3RleHQ+CiAgPHRleHQgeD0iNzAwIiB5PSIyNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKAoiBUZWFtIG93bmVyc2hpcCB0YWdzICDigKIgTmFtaW5nIGNvbnZlbnRpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMjczIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgU2VjdXJpdHktY29udGV4dCBhc3NpZ25tZW50PC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMjkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgQWxsb3dlZCBzeW50aGV0aWMgbG9jYXRpb25zPC90ZXh0PgoKICA8IS0tIENhcmQgMzogYXBwbGllcyAtLT4KICA8cmVjdCB4PSI1MzAiIHk9IjMxNSIgd2lkdGg9IjM0MCIgaGVpZ2h0PSI0MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzAwIiB5PSIzNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkFwcGxpZXMgc3ludGhldGljcyBvbiBiZWhhbGYgb2YgdGVhbXM8L3RleHQ+CgogIDwhLS0gTGVmdC10by1yaWdodCBpbnRlbnQgZmxvdyAtLT4KICA8bGluZSB4MT0iNDAwIiB5MT0iMTg1IiB4Mj0iNTI1IiB5Mj0iMTcwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0LDMiIG1hcmtlci1lbmQ9InVybCgjYXJyb3ctMDRicykiLz4KICA8dGV4dCB4PSI0NjIiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5kZWNsYXJlZCBpbnRlbnQ8L3RleHQ+CgogIDwhLS0gRG93biBhcnJvdyBmcm9tIHJpZ2h0IGNvbHVtbiB0byBEeW5hdHJhY2UgLS0+CiAgPGxpbmUgeDE9IjcwMCIgeTE9IjM2MCIgeDI9IjcwMCIgeTI9IjM5NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdy0wNGJzKSIvPgoKICA8IS0tIEJvdHRvbTogRHluYXRyYWNlIHRlbmFudCAtLT4KICA8cmVjdCB4PSIyNzAiIHk9IjM5NSIgd2lkdGg9IjM5MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TeW50aGV0aWMgbW9uaXRvcnMgY3JlYXRlZCB3aXRoIG1hbmRhdG9yeSB0YWdzICs8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnNlY3VyaXR5LWNvbnRleHQgYXNzaWdubWVudDsgb3duZXJzaGlwIGF1ZGl0YWJsZSB2aWEgdGFnczwvdGV4dD4KPC9zdmc+Cg==" alt="Brokered Self-Service — Synthetic Monitor Workaround Pattern" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Team Repo (product team) | Central Terraform Repo (platform team) |
+|---|---|
+| Declares desired synthetics (YAML / Terraform vars / JSON intent) | Owns the environment-wide API token (long-lived, rotated) |
+| No Dynatrace credentials in the repo | Sentinel/OPA enforces team ownership tags, naming conventions, security-context assignment (management zones on Classic tenants), allowed locations |
+| Repo compromise cannot issue Dynatrace API calls | Applies synthetics on behalf of teams |
+| | Result: synthetics in Dynatrace with mandatory tags + security-context assignment; ownership auditable via tags |
+For environments where SVG doesn't render
+-->
+<blockquote>
+<p><strong>Key principle:</strong> Teams never get direct API access. They get <strong>intent-based self-service</strong>, not credentials.</p>
+</blockquote>
+<h4>Pattern 2: Tag and Security-Context Fencing (Soft Isolation)</h4>
+<p>Every Synthetic monitor must include a mandatory tag (e.g., <code>team=payments</code>) and belong to its team's fence: a management zone on Classic tenants, a security context on Latest Dynatrace. Terraform modules hard-code the tag and naming prefix. Sentinel or OPA ensures the team repo can only reference its own fence. <em>(SaaS 1.343 — staged rollout — migrates each monitor's management zone to a security context of the same name, so an existing MZ fence carries over. Management zones themselves are blocked at upgrade.)</em></p>
+<blockquote>
+<p><strong>Limitation:</strong> This is <strong>policy enforcement</strong>, not permission enforcement. A compromised pipeline token still has full environment-wide access.</p>
+</blockquote>
+<h4>Pattern 3: Split Environments (True Isolation)</h4>
+<p>One Dynatrace environment per business unit, platform, or trust boundary. Synthetic API tokens become effectively scoped by environment since each environment has its own token. This is heavy-handed, but for <strong>Terraform-managed</strong> synthetics it is the only pattern here that isolates the credential itself. (On Latest Dynatrace, automation outside Terraform can get per-monitor isolation from security-context policies instead.) Recommended in regulated or multi-tenant scenarios.</p>
+<h4>Pattern 4: UI Self-Service + API Read-Only</h4>
+<p>Teams create Synthetic monitors via the Dynatrace UI, where RBAC applies and scoping works. The Terraform pipeline is limited to <strong>reads, drift reporting, and configuration auditing</strong> — not writes. This avoids distributing broad write tokens entirely.</p>
+<h4>What Does Not Work</h4>
+<p>These approaches <strong>do not</strong> overcome the limitation for Terraform-managed synthetics:</p>
+<ul>
+<li>Per-team OAuth clients for Terraform-managed synthetics (the provider's synthetic resources take only a classic API token)</li>
+<li>Sentinel-only enforcement without pipeline architecture (Sentinel constrains Terraform plans, not API permissions)</li>
+<li>Terraform modules alone without CI governance (modules can be bypassed without pipeline guardrails)</li>
+<li>Expecting a platform token on the <em>classic</em> synthetic endpoints to give per-team scoping (from SaaS 1.343 it can reach them, but classic permissions always apply tenant-wide; scoping comes from the Synthetic platform permissions on the Synthetic Platform API)</li>
+</ul>
+<hr />
+<h3>Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Remote state</strong></td>
+<td>Never use local state for teams</td>
+</tr>
+<tr>
+<td><strong>State locking</strong></td>
+<td>Enable to prevent concurrent changes</td>
+</tr>
+<tr>
+<td><strong>Modular design</strong></td>
+<td>Use modules for reusable patterns</td>
+</tr>
+<tr>
+<td><strong>Version pinning</strong></td>
+<td>Pin provider versions</td>
+</tr>
+<tr>
+<td><strong>Plan before apply</strong></td>
+<td>Always review plan output</td>
+</tr>
+<tr>
+<td><strong>Meaningful names</strong></td>
+<td>Resource names should be descriptive</td>
+</tr>
+<tr>
+<td><strong>Synthetic access</strong></td>
+<td>Use brokered self-service for Terraform-managed synthetics (classic token); on Latest Dynatrace, scope non-Terraform synthetic automation with security-context policies; never distribute environment-wide write tokens to teams</td>
+</tr>
+</tbody>
+</table>
+<h3>Common Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&quot;Resource already exists&quot;</td>
+<td>State out of sync</td>
+<td>Import the resource</td>
+</tr>
+<tr>
+<td>&quot;Provider error&quot;</td>
+<td>Invalid token</td>
+<td>Check credentials</td>
+</tr>
+<tr>
+<td>&quot;Drift detected&quot;</td>
+<td>Manual changes</td>
+<td>Re-apply or update state</td>
+</tr>
+<tr>
+<td>Slow plan/apply</td>
+<td>Many resources</td>
+<td>Use targets or modules</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>8. Next Steps</h2>
+<h3>Terraform Export Utility — the canonical &quot;bulk-import existing tenant config&quot; path</h3>
+<p>The provider binary itself can export existing Dynatrace configuration directly to HCL <code>.tf</code> files. <strong>This is different from <code>terraform import</code></strong> (the Terraform CLI feature, which is per-resource and requires you to author matching HCL skeleton first). The provider's <code>-export</code> produces ready-to-use HCL in one command:</p>
+<pre><code class="language-bash"># Linux
+./terraform-provider-dynatrace -export [options] [resourcename[=id]]
+
+# Windows
+terraform-provider-dynatrace.exe -export [options] [resourcename[=id]]
+</code></pre>
+<p><strong>Recommended invocation</strong> (canonical Dynatrace-documented form): <code>./terraform-provider-dynatrace -export -ref -id</code>. The <code>-ref</code> flag emits inter-resource data-source references instead of hardcoded UUIDs (much more maintainable HCL); <code>-id</code> adds commented resource IDs above each block for traceability. Skipping <code>-ref</code> leaves you with HCL that hard-codes IDs and is painful to maintain. Source: <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands">Terraform CLI commands (DT docs)</a> — verbatim: <em>&quot;Export all configurations with data sources/dependencies and include commented IDs: <code>./terraform-provider-dynatrace -export -ref -id</code>&quot;</em>. Supply credentials via env vars per §3 — never via shell args (visible in process listings).</p>
+<p>After <code>terraform init</code>, the executable is the file <code>.terraform/providers/registry.terraform.io/dynatrace-oss/dynatrace/&lt;version&gt;/&lt;os_arch&gt;/terraform-provider-dynatrace_v&lt;version&gt;</code> — for example <code>…/1.105.0/darwin_arm64/terraform-provider-dynatrace_v1.105.0</code>. Run it by that name, or copy it to <code>./terraform-provider-dynatrace</code> in your working directory so the commands here work as written. (The DT docs page describes a <code>terraform-provider-dynatrace_x.y.z/</code> directory; with v1.105.0 it is a single executable file, observed 10/02/2026.)</p>
+<p><strong>Env vars:</strong></p>
+<ul>
+<li><code>DYNATRACE_ENV_URL</code> (required) — tenant endpoint</li>
+<li>At least one credential (required): <code>DYNATRACE_API_TOKEN</code>, <code>DYNATRACE_PLATFORM_TOKEN</code>, or an OAuth client (<code>DT_CLIENT_ID</code> / <code>DT_CLIENT_SECRET</code>). Each resource type needs a credential it supports (§3): classic-only resources such as synthetic monitors need the API token, and platform resources such as workflows and documents need the platform token or OAuth client — supply both kinds to export everything.</li>
+<li><code>DYNATRACE_TARGET_FOLDER</code> (optional) — output directory; defaults to <code>./configuration</code></li>
+<li><strong>IAM resources</strong> additionally need an OAuth client and <code>DT_ACCOUNT_ID</code>.</li>
+</ul>
+<p>The provider's export check fails only when none is set — <em>&quot;No API Token, Platform Token, or OAuth has been specified for export&quot;</em> (<a href="https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/provider/config/config.go"><code>provider/config/config.go</code> (Dynatrace GitHub)</a>, read 10/02/2026).</p>
+<p><strong>Output structure:</strong></p>
+<ul>
+<li>Default: module structure (one directory per resource family)</li>
+<li><code>-flat</code> flag: single-directory HCL</li>
+<li><code>.flawed/</code> — deprecated configs requiring modification</li>
+<li><code>.requires_attention/</code> — items missing essentials (e.g., credential payloads the API can't return); triage before committing. The DT docs page spells it <code>.required_attention</code>; the utility writes <code>.requires_attention</code> (<a href="https://raw.githubusercontent.com/dynatrace-oss/terraform-provider-dynatrace/main/dynatrace/export/environment.go"><code>export/environment.go</code> (Dynatrace GitHub)</a>, read 10/02/2026).</li>
+</ul>
+<p><strong>Caveats:</strong></p>
+<ul>
+<li><strong>Dashboards excluded by default</strong> — opt in by naming the resource explicitly, or use <code>-list-exclusions</code> to see the full opt-in list</li>
+<li>Sensitive data (e.g., <code>dynatrace_credentials</code> confidential strings) lands in <code>.requires_attention/</code></li>
+</ul>
+<p><strong>Flag reference</strong> (verified against <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/dynatrace/export/initialize.go"><code>dynatrace/export/initialize.go</code></a>):</p>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Effect</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-ref</code></td>
+<td>Emits data-source references and inter-resource dependencies instead of hardcoded IDs. Mutually exclusive with <code>-migrate</code>.</td>
+<td><strong>Default</strong> for new Terraform-managed environments — produces idiomatic, maintainable HCL.</td>
+</tr>
+<tr>
+<td><code>-id</code></td>
+<td>Adds commented resource IDs above each exported HCL block.</td>
+<td><strong>Always</strong> — aids debugging and lineage tracing.</td>
+</tr>
+<tr>
+<td><code>-migrate</code></td>
+<td>Like <code>-ref</code> but output is geared for moving config between tenants. Mutually exclusive with <code>-ref</code>.</td>
+<td>Tenant-to-tenant migration (Managed → SaaS, or tenant consolidation).</td>
+</tr>
+<tr>
+<td><code>-import-state</code></td>
+<td>After export, auto-runs <code>terraform init</code> and imports the resources into state.</td>
+<td>When you want a fully bootstrapped Terraform workspace, not just HCL files.</td>
+</tr>
+<tr>
+<td><code>-flat</code></td>
+<td>Skip module structure — all resources land in the target folder.</td>
+<td>When you don't want per-resource-type submodules.</td>
+</tr>
+<tr>
+<td><code>-exclude &lt;type&gt;</code></td>
+<td>Exclude specific resource types from export.</td>
+<td>Skip resources you don't want under Terraform control.</td>
+</tr>
+<tr>
+<td><code>-list-exclusions</code></td>
+<td>Print the resource types <code>-export</code> excludes by default and exit.</td>
+<td>Discover what <code>-export</code> skips out-of-the-box (e.g., dashboards).</td>
+</tr>
+</tbody>
+</table>
+<p>See <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands">Terraform CLI commands (DT docs)</a> for the full reference.</p>
+<h3>From Export to GitOps Pipeline — the sequence</h3>
+<p>Running <code>-export</code> is step 3 of the full setup path. The remaining steps:</p>
+<ol>
+<li>✅ Install Terraform CLI (this notebook §2)</li>
+<li>✅ Configure provider + combined auth (this notebook §3)</li>
+<li>✅ Run <code>terraform-provider-dynatrace -export</code> (above) → triage <code>.flawed/</code> + <code>.requires_attention/</code></li>
+<li><strong>Stand up the repo layout</strong> — see <strong>AUTOM-09 §2 Opinionated Repo Layout</strong> (single-repo or two-repo model)</li>
+<li><strong>Configure the state backend</strong> — see <strong>AUTOM-09 §3 State Backend Setup</strong> (S3+DynamoDB / GCS / Azure / HCP)</li>
+<li><strong>Add lifecycle protections</strong> on critical resources — see <strong>AUTOM-09 §9 Lifecycle Protections</strong></li>
+<li><strong>Wire up CI/CD</strong> — pick your platform from <strong>AUTOM-07</strong>: §3 GitHub Actions · §4 GitLab CI/CD · §5 Bitbucket Pipelines · §6 Atlassian Bamboo · §7 Azure DevOps Pipelines</li>
+<li><strong>Onboard app teams</strong> — see <strong>AUTOM-09 §10 Onboarding New App Teams</strong></li>
+</ol>
+<p>For the full sequenced path from &quot;no automation today&quot; to &quot;PR-driven plan-then-apply pipeline,&quot; see <strong>AUTOM-01 §6 First-Time Setup Path — Path A (Terraform target)</strong>.</p>
+<h3>When Monaco Belongs Alongside Terraform</h3>
+<p>A Terraform shop doesn't need Monaco for most use cases, but four specific patterns make Monaco worth adding. See <strong>AUTOM-01 §5: When a Terraform Shop Should Add Monaco</strong>.</p>
+<h3>Continue the Series</h3>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AUTOM-09: Terraform GitOps Setup Recipe</strong></td>
+<td>Repo layout, state backends, modules, multi-env, lifecycle, onboarding, operational realities</td>
+</tr>
+<tr>
+<td><strong>AUTOM-07: CI/CD Integration</strong></td>
+<td>GitOps patterns for both Monaco and Terraform across 5 CI/CD platforms</td>
+</tr>
+<tr>
+<td><strong>AUTOM-05: Dynatrace Workflows</strong></td>
+<td>Event-driven automation (different concern; complementary, not alternative)</td>
+</tr>
+</tbody>
+</table>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs">Terraform Provider Documentation</a> (v1.105.0 at time of writing, 09/2026)</li>
+<li><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace">Provider GitHub Repository</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-cli-commands">Terraform CLI commands (DT docs)</a> — <code>-export</code> utility reference</li>
+<li><a href="https://developer.hashicorp.com/terraform/language/style">Terraform Style Guide</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform/terraform-api-support-access-permission-handling">Dynatrace OAuth Client Guide</a></li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>How to configure the Dynatrace Terraform provider with three authentication methods</li>
+<li>Creating resources like management zones, auto-tags, SLOs, and Gen3 platform resources</li>
+<li>State management and drift detection</li>
+<li>Advanced patterns with modules, workspaces, and governance inputs</li>
+<li>Why Terraform-managed Synthetic monitors require classic API tokens, the workaround patterns, and where Latest Dynatrace's security-context policies change that</li>
+<li>IAM policy management for schema-level access restrictions</li>
+<li>Brokered self-service as the recommended pattern for governed Synthetic access</li>
+<li>The provider's built-in <code>-export</code> utility for bulk-importing an existing tenant's configuration</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> Use Service User + OAuth for Gen3 resources where IAM provides real scoped access. For Terraform-managed Synthetic monitors (classic API token), use brokered self-service with compensating controls — never distribute environment-wide write tokens directly to teams. For first-time setup, see <strong>AUTOM-01 §6 Path A</strong> for the sequenced from-zero-to-pipeline path.</p>
+</blockquote>
+<hr />
+<p><em>Continue to <strong>AUTOM-09: Terraform GitOps Setup Recipe</strong> for the repo layout + state backend + lifecycle protections + team onboarding, or jump to <strong>AUTOM-07: CI/CD Integration</strong> to wire Terraform into a pipeline.</em></p>
+<h2>Community Resources &amp; Examples</h2>
+<p>The following GitHub repositories provide starter templates, reusable modules, and real-world examples for the Dynatrace Terraform provider:</p>
+<h3>Official Repositories</h3>
+<table>
+<thead>
+<tr>
+<th>Repository</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace">terraform-provider-dynatrace</a></td>
+<td>Official provider (v1.105.0 at time of writing, 09/2026) -- supports hundreds of resource types with export capability</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code">community-examples / configuration-as-code</a></td>
+<td>Dynatrace's configuration-as-code samples, including the Terraform directories below. They moved here from the archived <code>Dynatrace/dynatrace-configuration-as-code-samples</code> repo</td>
+</tr>
+</tbody>
+</table>
+<h3>Starter Templates &amp; Modules (in <code>community-examples/configuration-as-code</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Template Directory</th>
+<th>What It Demonstrates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/basic-templates-terraform"><code>basic-templates-terraform</code></a></td>
+<td>A single <code>main.tf</code> with 10 example resources: management zone, alerting profile, auto-tag, web application + detection rule, ownership, email notification, HTTP monitor, SLO. Several (management zone, alerting profile, auto-tag, email notification, <code>dynatrace_slo_v2</code>) are Classic resources blocked at upgrade (§4) — use them as shape references on unupgraded tenants only</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/terraform_modules"><code>terraform_modules</code></a></td>
+<td>Reusable module pattern for synthetic HTTP and NAM monitors</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/terraform_dql_example"><code>terraform_dql_example</code></a></td>
+<td>DQL as a Terraform <code>data</code> source -- query entities and create configs dynamically</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/terraform_team_onboarding"><code>terraform_team_onboarding</code></a></td>
+<td>IAM policies, groups, and Azure Entra ID integration for team onboarding</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/iam_tf_sample"><code>iam_tf_sample</code></a></td>
+<td>IAM policies, Grail buckets, OpenPipelines, segments, and team access</td>
+</tr>
+</tbody>
+</table>
+<h3>Pipeline Observability Samples (Terraform Variants)</h3>
+<table>
+<thead>
+<tr>
+<th>Directory</th>
+<th>CI/CD Platform</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/github_pipeline_observability_terraform"><code>github_pipeline_observability_terraform</code></a></td>
+<td>GitHub Actions</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/gitlab_pipeline_observability_terraform"><code>gitlab_pipeline_observability_terraform</code></a></td>
+<td>GitLab CI</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/argocd_observability_terraform"><code>argocd_observability_terraform</code></a></td>
+<td>ArgoCD</td>
+</tr>
+</tbody>
+</table>
+<h3>Provider Export Feature</h3>
+<p>The provider binary can export existing Dynatrace configuration to <code>.tf</code> files:</p>
+<pre><code class="language-bash"># Export all configs from a tenant as HCL (canonical Dynatrace-recommended form)
+./terraform-provider-dynatrace -export -ref -id
+# Credentials supplied via env vars (DYNATRACE_ENV_URL plus an API token
+# and/or a platform token or OAuth client) per §3 and §8 — never via shell
+# args, which appear in process listings. See §8 for the full flag table.
+</code></pre>
+<p>This is the fastest path from an existing tenant to Terraform-managed configuration.</p>
+<hr />
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

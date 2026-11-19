@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doorway 3 — Deployment Migration</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../">Best Practice Notebooks</a><span class="sep">/</span><a href="./">Start here</a><span class="sep">/</span><span aria-current="page">Doorway 3 — Deployment Migration</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="doorway-3--deployment-migration">Doorway 3 — Deployment Migration</h1>
+<blockquote>
+<p><strong>Purpose:</strong> Reading order for existing Dynatrace customers changing deployment model — Managed → SaaS or SaaS → SaaS. Focused on migration mechanics; selective Foundation refresh where Gen3 differs from prior generations.
+<strong>Last Updated:</strong> 10/25/2026</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5EZXBsb3ltZW50IE1pZ3JhdGlvbiDigJQgVHdvIFN1Yi1QYXRoczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5TYW1lIDktc3RlcCBydW5ib29rIHNoYXBlOyBkaWZmZXJlbnQgbWVjaGFuaWNzPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSIxMDAiIHdpZHRoPSI0MjAiIGhlaWdodD0iMzUwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5BIOKAlCBNYW5hZ2VkIOKGkiBTYWFTIChNMlMpPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMTQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4xMCBub3RlYm9va3MgKDkgc3RlcHMgKyBzdW1tYXJ5KTwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMTcwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMTUwIiB5PSIxODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjEuIERpc2NvdmVyPC90ZXh0PgogIDxyZWN0IHg9IjI2MCIgeT0iMTcwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMzUwIiB5PSIxODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjIuIFN0cmF0ZWdpemU8L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjIwNSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiByeD0iNCIvPgogIDx0ZXh0IHg9IjE1MCIgeT0iMjIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj4zLiBEZXNpZ248L3RleHQ+CiAgPHJlY3QgeD0iMjYwIiB5PSIyMDUiIHdpZHRoPSIxODAiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjQiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjIyMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+NC4gUHJlcGFyZTwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMjQwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMTUwIiB5PSIyNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjUuIEV4ZWN1dGU8L3RleHQ+CiAgPHJlY3QgeD0iMjYwIiB5PSIyNDAiIHdpZHRoPSIxODAiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjQiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+Ni4gSW50ZWdyYXRlPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIyNzUiIHdpZHRoPSIxODAiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjQiLz4KICA8dGV4dCB4PSIxNTAiIHk9IjI5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+Ny4gRXhwYW5kPC90ZXh0PgogIDxyZWN0IHg9IjI2MCIgeT0iMjc1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMzUwIiB5PSIyOTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjguIEVuYWJsZTwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzEwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMTUwIiB5PSIzMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjkuIE9wdGltaXplPC90ZXh0PgogIDxyZWN0IHg9IjI2MCIgeT0iMzEwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMzUwIiB5PSIzMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjk5LiBCZXN0IFByYWN0aWNlPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMzY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Gb3VuZGF0aW9uIHJlZnJlc2ggaW4gc3RlcHMgMyArIDc8L3RleHQ+CiAgPHRleHQgeD0iMjUwIiB5PSIzODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPklBTSwgT1JHTlogYnVja2V0cywgc2VjdXJpdHlfY29udGV4dCwgT3BlblBpcGVsaW5lPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iNDIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Ub3RhbDogNOKAkzggbW9udGhzPC90ZXh0PgogIDxyZWN0IHg9IjQ3MCIgeT0iMTAwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjM1MCIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2ODAiIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCI+QiDigJQgU2FhUyDihpIgU2FhUyAoUzJTKTwvdGV4dD4KICA8dGV4dCB4PSI2ODAiIHk9IjE0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+MTEgbm90ZWJvb2tzICg5IHN0ZXBzICsgc2NyaXB0cyArIHN1bW1hcnkpPC90ZXh0PgogIDxyZWN0IHg9IjQ5MCIgeT0iMTcwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNTgwIiB5PSIxODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjEuIERpc2NvdmVyPC90ZXh0PgogIDxyZWN0IHg9IjY5MCIgeT0iMTcwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNzgwIiB5PSIxODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjIuIFN0cmF0ZWdpemU8L3RleHQ+CiAgPHJlY3QgeD0iNDkwIiB5PSIyMDUiIHdpZHRoPSIxODAiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjQiLz4KICA8dGV4dCB4PSI1ODAiIHk9IjIyMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+My4gRGVzaWduPC90ZXh0PgogIDxyZWN0IHg9IjY5MCIgeT0iMjA1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNzgwIiB5PSIyMjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjQuIFByZXBhcmU8L3RleHQ+CiAgPHJlY3QgeD0iNDkwIiB5PSIyNDAiIHdpZHRoPSIxODAiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjQiLz4KICA8dGV4dCB4PSI1ODAiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+NS4gRXhlY3V0ZTwvdGV4dD4KICA8cmVjdCB4PSI2OTAiIHk9IjI0MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiByeD0iNCIvPgogIDx0ZXh0IHg9Ijc4MCIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj42LiBJbnRlZ3JhdGU8L3RleHQ+CiAgPHJlY3QgeD0iNDkwIiB5PSIyNzUiIHdpZHRoPSIxODAiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgcng9IjQiLz4KICA8dGV4dCB4PSI1ODAiIHk9IjI5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+Ny4gRXhwYW5kPC90ZXh0PgogIDxyZWN0IHg9IjY5MCIgeT0iMjc1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNzgwIiB5PSIyOTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjguIEVuYWJsZTwvdGV4dD4KICA8cmVjdCB4PSI0OTAiIHk9IjMxMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiByeD0iNCIvPgogIDx0ZXh0IHg9IjU4MCIgeT0iMzI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj45LiBPcHRpbWl6ZTwvdGV4dD4KICA8cmVjdCB4PSI2OTAiIHk9IjMxMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiByeD0iNCIvPgogIDx0ZXh0IHg9Ijc4MCIgeT0iMzI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4xMC4gU2NyaXB0cyAvIDk5PC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iMzY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Gb3VuZGF0aW9uIHJlZnJlc2ggaW4gc3RlcHMgMyArIDc8L3RleHQ+CiAgPHRleHQgeD0iNjgwIiB5PSIzODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlNhbWUgR2VuMyB0b3BpY3MgYXMgTTJTPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iNDIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Ub3RhbDogNOKAkzggbW9udGhzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5Cb3RoIHN1Yi1wYXRocyBsYW5kIG9uIEdlbjMgU2FhUyDigJQgRm91bmRhdGlvbiByZWZyZXNoIGNoZWNrcG9pbnRzIGFyZSBpZGVudGljYWw8L3RleHQ+Cjwvc3ZnPgo=" alt="Deployment Migration Sub-Paths" /></p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#you-are-here-if">You Are Here If…</a></li>
+<li><a href="#pick-your-sub-path">Pick Your Sub-Path</a></li>
+<li><a href="#sub-path-a--managed--saas-m2s">Sub-Path A — Managed → SaaS (M2S)</a></li>
+<li><a href="#sub-path-b--saas--saas-s2s">Sub-Path B — SaaS → SaaS (S2S)</a></li>
+<li><a href="#foundation-refresh-checkpoints">Foundation Refresh Checkpoints</a></li>
+<li><a href="#where-to-next">Where to Next</a></li>
+</ol>
+<hr />
+<h2 id="you-are-here-if">You Are Here If…</h2>
+<ul>
+<li>You are an existing Dynatrace customer with a working tenant</li>
+<li>You are moving to a different deployment model — Dynatrace Managed → Dynatrace SaaS, or one SaaS tenant → another SaaS tenant</li>
+<li>The migration is the deployment model itself, not a tool replacement; your underlying observability practice continues</li>
+</ul>
+<p>If you are net-new to Dynatrace, see <a href="01-net-new.html">Doorway 1 — Net New</a>. If you are expanding scope or consolidating data into your existing tenant, see <a href="02-expand-consolidate.html">Doorway 2 — Expanding or Consolidating</a>. If your deployment model is staying put and what you actually need to change is the constructs you operate — management zones as permissions, metric events, alerting profiles, Classic Logs — see <a href="04-gen2-to-gen3.html">Doorway 4 — Classic → Gen3 Platform</a>.</p>
+<hr />
+<h2 id="pick-your-sub-path">Pick Your Sub-Path</h2>
+<table>
+<thead>
+<tr>
+<th>If you are doing…</th>
+<th>Go to…</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Migrating from Dynatrace Managed to Dynatrace SaaS</td>
+<td><a href="#sub-path-a--managed--saas-m2s">Sub-Path A — Managed → SaaS</a></td>
+</tr>
+<tr>
+<td>Migrating from one Dynatrace SaaS tenant to another (consolidation, region change, end-of-life of tenant generation)</td>
+<td><a href="#sub-path-b--saas--saas-s2s">Sub-Path B — SaaS → SaaS</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sub-path-a--managed--saas-m2s">Sub-Path A — Managed → SaaS (M2S)</h2>
+<p>The <a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> series provides a 9-step procedural runbook. Read each step in order.</p>
+<p><strong>Before step 1:</strong> confirm the source cluster is healthy — a node down, a full disk, or a failing backup during a migration is much harder to untangle than before one. <a href="../DTM%20-%20Dynatrace%20Managed/">DTM</a> — DTM-10 gives the five-layer health model, DTM-99 turns it into a checklist, and DTM-17 runs it as a one-off rated assessment with an evidence list.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Reading</th>
+<th>Time</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> — notebook 01 (Discover)</td>
+<td>1–2 weeks</td>
+<td>Inventory current Managed tenant: agents, configurations, integrations, users, dashboards</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> — notebook 02 (Strategize)</td>
+<td>1–2 weeks</td>
+<td>Decide what migrates as-is, what gets redesigned for Gen3 capabilities</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> — notebook 03 (Design)</td>
+<td>2–4 weeks</td>
+<td>Tenant region, IAM model, bucket strategy, tagging</td>
+</tr>
+<tr>
+<td>4</td>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> — notebook 04 (Prepare)</td>
+<td>2–3 weeks</td>
+<td>Provision SaaS tenant, set up SSO, deploy ActiveGates</td>
+</tr>
+<tr>
+<td>5</td>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> — notebook 05 (Execute)</td>
+<td>4–8 weeks</td>
+<td>Move agents, migrate configurations, validate data flow</td>
+</tr>
+<tr>
+<td>6</td>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> — notebook 06 (Integrate)</td>
+<td>2–4 weeks</td>
+<td>Re-establish integrations (cloud connectors, ITSM, alerting destinations)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> — notebook 07 (Enable)</td>
+<td>2–3 weeks</td>
+<td>Train users on new capabilities; document new patterns</td>
+</tr>
+<tr>
+<td>8</td>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> — notebook 08 (Expand)</td>
+<td>2–3 weeks</td>
+<td>Take advantage of Gen3-only features (Grail, OpenPipeline, Davis CoPilot, Workflows)</td>
+</tr>
+<tr>
+<td>9</td>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> — notebook 09 (Optimize)</td>
+<td>Ongoing</td>
+<td>Cost optimization, governance, FinOps</td>
+</tr>
+<tr>
+<td>Reference</td>
+<td><a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a> — notebook 99 (Best Practice Summary)</td>
+<td>Reference</td>
+<td>One-page synthesis</td>
+</tr>
+</tbody>
+</table>
+<p>Foundation refresh is woven into steps 3 and 7 — see <a href="#foundation-refresh-checkpoints">Foundation Refresh Checkpoints</a> below.</p>
+<hr />
+<h2 id="sub-path-b--saas--saas-s2s">Sub-Path B — SaaS → SaaS (S2S)</h2>
+<p>The <a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> series provides a 9-step procedural runbook with the same shape as M2S but mechanics specific to SaaS-to-SaaS migration.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Reading</th>
+<th>Time</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> — notebook 01 (Discover)</td>
+<td>1–2 weeks</td>
+<td>Inventory source SaaS tenant</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> — notebook 02 (Strategize)</td>
+<td>1–2 weeks</td>
+<td>Decide migration approach (clean rebuild vs lift-and-shift)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> — notebook 03 (Design)</td>
+<td>2–4 weeks</td>
+<td>Target tenant design</td>
+</tr>
+<tr>
+<td>4</td>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> — notebook 04 (Prepare)</td>
+<td>2–3 weeks</td>
+<td>Provision target, configure SSO, deploy ActiveGates</td>
+</tr>
+<tr>
+<td>5</td>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> — notebook 05 (Execute)</td>
+<td>4–8 weeks</td>
+<td>Re-deploy agents to target; migrate configurations</td>
+</tr>
+<tr>
+<td>6</td>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> — notebook 06 (Integrate)</td>
+<td>2–4 weeks</td>
+<td>Re-establish integrations</td>
+</tr>
+<tr>
+<td>7</td>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> — notebook 07 (Expand)</td>
+<td>2–3 weeks</td>
+<td>New tenant capabilities</td>
+</tr>
+<tr>
+<td>8</td>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> — notebook 08 (Enable)</td>
+<td>2–3 weeks</td>
+<td>User enablement</td>
+</tr>
+<tr>
+<td>9</td>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> — notebook 09 (Optimize)</td>
+<td>Ongoing</td>
+<td>Cost and governance</td>
+</tr>
+<tr>
+<td>Scripts</td>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> — notebook 10 (Migration Scripts)</td>
+<td>Reference</td>
+<td>Tooling for repeatable migration steps</td>
+</tr>
+<tr>
+<td>Reference</td>
+<td><a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a> — notebook 99 (Best Practice Summary)</td>
+<td>Reference</td>
+<td>One-page synthesis</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="foundation-refresh-checkpoints">Foundation Refresh Checkpoints</h2>
+<p>Both M2S and S2S land you on a Gen3 SaaS tenant. Several Foundation topics differ from earlier generations and warrant a refresh:</p>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Why refresh</th>
+<th>Reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gen3 IAM model</td>
+<td>Gen3 IAM is policy-based with security_context boundaries; Gen2 management zones do not translate one-to-one</td>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM</a> — notebooks 01 (governance foundations), 04 (policy authoring), 05 (boundary design); <a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> — full series for Gen2 MZ → Gen3 policy migration, or notebook 05 alone if the MZs are used for filtering rather than permissions</td>
+</tr>
+<tr>
+<td>Grail buckets</td>
+<td>Storage model is fundamentally different from Managed; bucket choices affect cost, retention, and access</td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebooks 02 (understanding buckets), 03 (bucket strategy and design)</td>
+</tr>
+<tr>
+<td>security_context</td>
+<td>Universal scope field for Gen3 access control; not present in earlier generations</td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> — notebook 06</td>
+</tr>
+<tr>
+<td>OpenPipeline (Logs)</td>
+<td>Replaces Classic Logs in Gen3; if your Managed tenant used Classic Logs, OpenPipeline migration is a separate workstream</td>
+<td><a href="../OPMIG%20-%20OpenPipeline%20Migration/">OPMIG</a> — full series</td>
+</tr>
+<tr>
+<td>Workflows</td>
+<td>First-class capability in Gen3; replaces some legacy alerting integrations</td>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> — full series</td>
+</tr>
+<tr>
+<td>Business events</td>
+<td>Do not exist on Managed — classic business analytics (request attributes + calculated service metrics, USQL, log metrics) maps onto Grail business events after migration; a Grail-enabled SaaS tenant can adopt them before the full experience move</td>
+<td><a href="../BIZEV%20-%20Business%20Events%20&amp;%20Funnel%20Analysis/">BIZEV</a> — notebook 07 (Gen2 vs Gen3 adoption paths), then the full series</td>
+</tr>
+<tr>
+<td>AppEngine apps</td>
+<td>Some Gen2 features are now delivered as Dynatrace apps</td>
+<td>Covered in series-specific reading where relevant</td>
+</tr>
+</tbody>
+</table>
+<p>These should run alongside the M2S or S2S step that introduces them — typically in step 3 (Design) and the Expand step (M2S step 8, S2S step 7).</p>
+<p>If most of this table applies — that is, you are carrying a substantially classic configuration across the deployment move — treat the surface migration as its own workstream rather than a set of refresh notes. <a href="04-gen2-to-gen3.html">Doorway 4 — Classic → Gen3 Platform</a> sequences it into phases and covers the constructs this table does not (metric events, alerting profiles, classic dashboards, USQL, metric and entity selectors).</p>
+<hr />
+<h2 id="where-to-next">Where to Next</h2>
+<p>After deployment migration completes:</p>
+<ul>
+<li><a href="06-domain-enablement.html">Domain Enablement Module</a> — to add domains that may have been deferred during the migration</li>
+<li><a href="07-operationalize.html">Operationalize Module</a> — to take advantage of Gen3-only operations capabilities (Workflows, Davis intelligence, AppEngine apps)</li>
+<li><a href="08-maturity.html">Maturity Module</a> — for ongoing optimization and governance</li>
+<li><a href="04-gen2-to-gen3.html">Doorway 4 — Classic → Gen3 Platform</a> — if classic constructs came across with you and still need retiring</li>
+</ul>
+<p>If you find yourself also consolidating from another tool during or after the deployment migration (for example, taking the opportunity to retire Splunk while you are already in transition), see <a href="02-expand-consolidate.html">Doorway 2 — Expanding or Consolidating</a>, Sub-Path B or C.</p>
+<hr />
+<blockquote>
+<p><em>This playbook was AI-generated from community-submitted and publicly available sources. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

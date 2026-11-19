@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-27: How Do I Get Microsoft 365 Audit Logs Into Dynatrace?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-27</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-27: How Do I Get Microsoft 365 Audit Logs Into Dynatrace?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 27 — Microsoft 365 Audit Logs Into Dynatrace | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>The request usually arrives as one line — &quot;get the O365 audit logs into Dynatrace&quot; — and the design that comes back is usually one pipeline: a collector polls the Office 365 Management Activity API and posts everything to the Dynatrace log ingest API. That design is half right. Three things about this integration change it:</p>
+<ul>
+<li><strong>There is a Microsoft 365 extension on the Dynatrace Hub, and it is not an audit feed.</strong> It runs on an ActiveGate and produces service-health, usage and license metrics. Its documentation says it reads audit logs only to count users and that no change logs are recorded or exported. Installing it is worthwhile for those metrics; it does not answer the audit question.</li>
+<li><strong>Microsoft Entra ID sign-ins already have a documented Dynatrace route.</strong> Entra ID diagnostic settings stream to an Event Hub, Azure log forwarding sends them to Dynatrace, and OpenPipeline has a built-in bundle for them. Collecting the same sign-ins a second time through the Management Activity API is duplication, not coverage.</li>
+<li><strong>The workload audit — Exchange, SharePoint and OneDrive, Teams and the rest, DLP — has no documented Dynatrace route.</strong> A ready-made OpenTelemetry Collector receiver exists, but its current version misses rules this entry depends on (§ 8.1). Either way, you run and own a collector. It has to cope with a feed that Microsoft delivers late, out of order and with duplicates, against an ingest API that drops records stamped more than 24 hours in the past.</li>
+</ul>
+<p>That last pairing is the expensive one. A collector that stamps each record with its event time works on the first day and then loses records quietly — after any outage longer than a day, and whenever Microsoft is late. Nothing errors: the ingest API answers <code>200</code> instead of <code>204</code>, and the records are gone.</p>
+<p>This entry is the third <strong>worked example of FAQ-19</strong>, after Zscaler (<strong>FAQ-20</strong>) and Box (<strong>FAQ-23</strong>). The generic decisions — signal classes, route choice, extract-then-discard, bucket isolation — are made there; here they are made for Microsoft 365.</p>
+<blockquote>
+<p><strong>A note on the code and the DQL in this entry.</strong> Both collectors (§ 9 and § 10) were checked against Microsoft's Management Activity API reference and exercised against mocked Microsoft and Dynatrace endpoints on 10/27/2026 — pagination, duplicate removal, the timestamp rule, the partial-ingest stop and the 7-day gap check. <strong>They have not been run against a live Microsoft 365 tenant.</strong> Run them against a test tenant before production. The assessment of the <code>m365</code> Collector receiver in § 8.1 comes from reading its v1.2.0 source on 10/29/2026; it was not run either. The parse and duplicate queries (§ 13.1, § 13.2) run against synthetic records with <code>data record(...)</code> at zero bytes scanned; the rest read real logs and are billed as queries — each scanned up to about a gigabyte on the validation tenant with no Microsoft 365 data present, so keep their timeframes short and scope them to your bucket once it exists. All queries were executed against a live tenant on 10/27/2026.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#what-exists">What Exists Today — and What It Does Not Do</a></li>
+<li><a href="#two-routes">Two Routes, Split by Signal</a></li>
+<li><a href="#api-constraints">The Management Activity API — Constraints That Shape the Collector</a></li>
+<li><a href="#timestamp-trap">The 24-Hour Timestamp Trap</a></li>
+<li><a href="#checkpoint">Duplicates and the Checkpoint</a></li>
+<li><a href="#app-registration">App Registration and Credentials</a></li>
+<li><a href="#choosing">Choosing the Collector — Python, Workflow or the Collector Receiver</a></li>
+<li><a href="#python">Implementation A — Python</a></li>
+<li><a href="#workflow">Implementation B — Dynatrace Workflow</a></li>
+<li><a href="#ingestion">Ingestion, Processing, and Storage</a></li>
+<li><a href="#field-mapping">Field Mapping Starting Point</a></li>
+<li><a href="#querying">Querying Audit Records in Grail</a></li>
+<li><a href="#operating">Operating the Collector</a></li>
+<li><a href="#sequence">Implementation Sequence and Checklist</a></li>
+<li><a href="#gotchas">Common Gotchas</a></li>
+<li><a href="#recommended-approach">Recommended Approach</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Microsoft 365 auditing</strong></td>
+<td>On by default for most organizations, but <strong>not</strong> for small and medium business licenses or free enterprise trials. Verify in Exchange Online PowerShell with <code>Get-AdminAuditLogConfig | Format-List UnifiedAuditLogIngestionEnabled</code> — run it there, not in Security &amp; Compliance PowerShell, where the property always reads <code>False</code> (§ 7)</td>
+</tr>
+<tr>
+<td><strong>Entra ID app registration</strong></td>
+<td>An app with the <strong>Office 365 Management APIs</strong> application permission <em>Read activity data for your organization</em>, and admin consent granted. Add the DLP permission only if you collect <code>DLP.All</code> (§ 7)</td>
+</tr>
+<tr>
+<td><strong>Credential</strong></td>
+<td>A certificate for the Python collector; a client secret in the Credential Vault for the Workflow collector (§ 7)</td>
+</tr>
+<tr>
+<td><strong>Dynatrace environment</strong></td>
+<td>SaaS with <strong>Grail</strong> and <strong>OpenPipeline</strong></td>
+</tr>
+<tr>
+<td><strong>Ingest credential</strong></td>
+<td>Platform token with <code>openpipeline:logs:ingest</code> (Python). On a classic or hybrid environment a classic access token with <code>logs.ingest</code> also works</td>
+</tr>
+<tr>
+<td><strong>Outbound connectivity</strong></td>
+<td>Workflow path: <code>login.microsoftonline.com</code> and <code>manage.office.com</code> under <strong>Settings &gt; General &gt; External requests</strong></td>
+</tr>
+<tr>
+<td><strong>Security sign-off</strong></td>
+<td>This feed names people, the files they opened and the mail they read. Decide retention, masking and who can read it before switching anything on (§ 11)</td>
+</tr>
+<tr>
+<td><strong>Related reading</strong></td>
+<td><strong>FAQ-19</strong> (the pattern), <strong>FAQ-23</strong> (Box — the closest sibling), <strong>FAQ-24</strong> (data trust), <strong>ORGNZ</strong> (buckets), <strong>OPIPE</strong> / <strong>OPLOGS</strong> (OpenPipeline), <strong>CLOUD</strong> (Azure), <strong>WFLOW</strong> / <strong>FAQ-21</strong> (alert routing)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p>Use two routes. Send <strong>Entra ID sign-ins and directory audit</strong> through the documented Azure log forwarding route. Build a scheduled collector on the <strong>Office 365 Management Activity API</strong> for everything else. Do not expect the Microsoft 365 Hub extension to deliver audit events — it does not.</p>
+<p><strong>The decisions, made:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Answer</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Entra ID sign-ins and audit</strong></td>
+<td>Diagnostic settings → Event Hub → Azure log forwarding</td>
+<td>Documented by Dynatrace, with a built-in OpenPipeline bundle for sign-ins (§ 2.2)</td>
+</tr>
+<tr>
+<td><strong>Workload audit</strong></td>
+<td>Pull from the Management Activity API</td>
+<td>No documented Dynatrace route; Microsoft is de-emphasizing webhooks (§ 4)</td>
+</tr>
+<tr>
+<td><strong>Content types</strong></td>
+<td><code>Audit.Exchange</code>, <code>Audit.SharePoint</code>, <code>Audit.General</code>, plus <code>DLP.All</code> if needed</td>
+<td>Leave out <code>Audit.AzureActiveDirectory</code> while Entra arrives by the other route (§ 3.1)</td>
+</tr>
+<tr>
+<td><strong>Collector</strong></td>
+<td><strong>Python</strong> by default; a <strong>Workflow</strong> for small tenants; the <strong><code>m365</code> Collector receiver</strong> only where its v1.2.0 gaps are acceptable</td>
+<td>Microsoft's volume is set by your tenant, not by you; a Workflow run stops at 120 s; the receiver reads only the first page of each content listing (§ 8)</td>
+</tr>
+<tr>
+<td><strong>Timestamp</strong></td>
+<td>Event time only when it is under 23 h old; always keep it in <code>m365.creation_time</code></td>
+<td>Ingest drops older timestamps — and Microsoft keeps content for 7 days (§ 5)</td>
+</tr>
+<tr>
+<td><strong>Checkpoint</strong></td>
+<td>Per content type, on <code>contentCreated</code>, written only after a successful ingest</td>
+<td>The API lists content by when it was published, not when the event happened (§ 6)</td>
+</tr>
+<tr>
+<td><strong>Duplicates</strong></td>
+<td>Remove within a run; count once with <code>dedup</code> at query time</td>
+<td>Microsoft says duplicates are expected and removing them is the consumer's job (§ 6)</td>
+</tr>
+<tr>
+<td><strong>Destination</strong></td>
+<td>Log Ingestion API v2, <code>log.source</code> <code>microsoft365.audit</code>, a dedicated bucket</td>
+<td>Separate retention and a separate access boundary (§ 11)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="what-exists"></a></p>
+<h2>2. What Exists Today — and What It Does Not Do</h2>
+<p>Microsoft 365 is a service you do not run, so everything you learn about it comes through Microsoft's APIs — the same position as Zscaler (<strong>FAQ-20</strong>) and Box (<strong>FAQ-23</strong>). The difference here is that two pieces already exist, and both are easy to misread.</p>
+<h3>2.1 The Hub extension is not an audit feed</h3>
+<p>The <strong>Microsoft 365, Office 365</strong> extension on the Dynatrace Hub is real and current. It runs on an ActiveGate, calls Microsoft Graph, the Office 365 Management API and the reporting web services, and produces metrics: service health, Outlook, OneDrive, Teams, SharePoint, licenses, and optional per-user usage reports.</p>
+<p>What it does with audit logs is narrow. Its documentation says it uses them to count users, and that no change logs are recorded or exported. Its per-user reports are counts, not events — no timestamps, no individual actions.</p>
+<p><strong>Install it for what it does.</strong> Service health and adoption metrics are useful, and they cost no collector. Then build the audit route separately. Treating the extension as the audit integration is the Microsoft 365 version of FAQ-23's webhook trap: something real, correctly configured, that never carries the events you needed.</p>
+<h3>2.2 Entra ID has a documented route</h3>
+<p>For identity, Dynatrace documents the route end to end. In the Azure portal, <strong>Microsoft Entra ID &gt; Diagnostic settings</strong> streams the categories you choose — <code>AuditLogs</code>, <code>SignInLogs</code>, <code>NonInteractiveUserSignInLogs</code>, <code>ServicePrincipalSignInLogs</code>, <code>ManagedIdentitySignInLogs</code>, <code>ProvisioningLogs</code> — to an Event Hub, and Azure log forwarding sends them to Dynatrace. The setting is tenant-wide, so one setting covers every user and application. For sign-ins, OpenPipeline has a built-in technology bundle, <strong>Azure Entra ID Audit Logs</strong>, that maps them onto the semantic dictionary's security-event model.</p>
+<h3>2.3 Nothing documented covers the workload audit</h3>
+<p>For Exchange, SharePoint and OneDrive, Teams and the other workloads, and for DLP events, there is no Dynatrace extension or documented route as of 10/27/2026.</p>
+<p>There is one ready-made component. The <code>m365</code> receiver for the OpenTelemetry Collector polls the same Management Activity API. It is maintained in a Dynatrace GitHub repository and built into the Dynatrace Bindplane Distribution of the Collector. In v1.2.0 it reads only the first page of each content listing and shares one checkpoint across all content types; § 8.1 sets out where that matters and how to configure it safely. Whether you adopt it or build your own, you run and own the collector, and the rest of this entry is about doing that well.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/microsoft-365-office-365">Microsoft 365, Office 365 extension (DT docs)</a> — <em>&quot;The extension uses audit logs to count O365 service users.&quot;</em>; <em>&quot;No change logs are recorded or exported by the extension.&quot;</em>; <em>&quot;The extension runs on Dynatrace ActiveGate.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/ingest-telemetry/azure-logs-and-events/azure-logs">Forward Azure logs (DT docs)</a> — <em>&quot;Entra ID diagnostic settings are tenant-scoped, not subscription-scoped.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/secure/threat-observability/security-events-ingest/ingest-microsoft-entra-id">Ingest Microsoft Entra ID sign-in logs (DT docs)</a></sub></li>
+<li><sub><a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/m365receiver/README.md">m365receiver README (Dynatrace GitHub)</a></sub></li>
+<li><sub><strong>Catalog observation (10/27/2026):</strong> § 2.3's no-route claim rests on the Dynatrace documentation assistant, a web search of dynatrace.com and the extension page above, which covers metrics only — re-check the Hub before quoting it, because listings appear over time</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="two-routes"></a></p>
+<h2>3. Two Routes, Split by Signal</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+TWljcm9zb2Z0IDM2NSBBdWRpdCAmIzg1OTQ7IER5bmF0cmFjZTogVHdvIFJvdXRlczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5TcGxpdCBieSBzaWduYWwuIEVudHJhIElEIGFscmVhZHkgaGFzIGEgZG9jdW1lbnRlZCByb3V0ZTsgd29ya2xvYWQgYXVkaXQgbmVlZHMgYSBjb2xsZWN0b3IgeW91IG93bi48L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI4IiByZWZYPSI5IiByZWZZPSI0IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw0IEwwLDggWiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFNvdXJjZSBjb2x1bW4gLS0+CiAgPHJlY3QgeD0iMjQiIHk9Ijg0IiB3aWR0aD0iMTk2IiBoZWlnaHQ9IjMwMCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIxMjIiIHk9IjEwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+TWljcm9zb2Z0IDM2NSB0ZW5hbnQ8L3RleHQ+CgogIDxyZWN0IHg9IjM4IiB5PSIxMjIiIHdpZHRoPSIxNjgiIGhlaWdodD0iOTYiIHJ4PSI2IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMzgiIHk9IjEyMiIgd2lkdGg9IjE2OCIgaGVpZ2h0PSI5NiIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIxMjIiIHk9IjE0MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+TWljcm9zb2Z0IEVudHJhIElEPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIxNjQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNpZ24taW5zIChpbnRlcmFjdGl2ZSw8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjE3OSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bm9uLWludGVyYWN0aXZlLCBzZXJ2aWNlPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIxOTQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnByaW5jaXBhbCwgbWFuYWdlZCBJRCk8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjIwOSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RGlyZWN0b3J5IGF1ZGl0PC90ZXh0PgoKICA8cmVjdCB4PSIzOCIgeT0iMjM2IiB3aWR0aD0iMTY4IiBoZWlnaHQ9IjEzNCIgcng9IjYiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSIzOCIgeT0iMjM2IiB3aWR0aD0iMTY4IiBoZWlnaHQ9IjEzNCIgcng9IjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIxMjIiIHk9IjI1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+VW5pZmllZCBhdWRpdCBsb2c8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjI3OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+QXVkaXQuRXhjaGFuZ2U8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjI5NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+QXVkaXQuU2hhcmVQb2ludDwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMzEwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5BdWRpdC5HZW5lcmFsPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIzMjYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPkRMUC5BbGw8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjM0NSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSI5LjUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPkF1ZGl0LkF6dXJlQWN0aXZlRGlyZWN0b3J5PC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIzNjAiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAuNSI+c2tpcCBpZiBSb3V0ZSBBIGNhcnJpZXMgRW50cmE8L3RleHQ+CgogIDwhLS0gUm91dGUgQSAtLT4KICA8dGV4dCB4PSIyNDAiIHk9IjEzMiIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Uk9VVEUgQSAmIzgyMTI7IGRvY3VtZW50ZWQgYnkgRHluYXRyYWNlPC90ZXh0PgogIDxsaW5lIHgxPSIyMDYiIHkxPSIxNzAiIHgyPSIyNDAiIHkyPSIxNzAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8cmVjdCB4PSIyNDIiIHk9IjE0MiIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI1NiIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIzMTciIHk9IjE2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RGlhZ25vc3RpYyBzZXR0aW5nczwvdGV4dD4KICA8dGV4dCB4PSIzMTciIHk9IjE4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij50ZW5hbnQtc2NvcGVkLCBvbmUgc2V0dGluZzwvdGV4dD4KICA8bGluZSB4MT0iMzkyIiB5MT0iMTcwIiB4Mj0iNDIwIiB5Mj0iMTcwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPHJlY3QgeD0iNDIyIiB5PSIxNDIiIHdpZHRoPSIxMzAiIGhlaWdodD0iNTYiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNDg3IiB5PSIxNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkV2ZW50IEh1YjwvdGV4dD4KICA8dGV4dCB4PSI0ODciIHk9IjE4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5kdC1sb2dzLWV2aDwvdGV4dD4KICA8bGluZSB4MT0iNTUyIiB5MT0iMTcwIiB4Mj0iNTgwIiB5Mj0iMTcwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPHJlY3QgeD0iNTgyIiB5PSIxNDIiIHdpZHRoPSIxNTAiIGhlaWdodD0iNTYiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNjU3IiB5PSIxNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkF6dXJlIGxvZyBmb3J3YXJkaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjY1NyIgeT0iMTgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmZvcndhcmRzIHRvIER5bmF0cmFjZTwvdGV4dD4KICA8bGluZSB4MT0iNzMyIiB5MT0iMTcwIiB4Mj0iNzYwIiB5Mj0iMTcwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPCEtLSBSb3V0ZSBCIC0tPgogIDx0ZXh0IHg9IjI0MCIgeT0iMjY4IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5ST1VURSBCICYjODIxMjsgYSBjb2xsZWN0b3IgeW91IGJ1aWxkIGFuZCBvd248L3RleHQ+CiAgPGxpbmUgeDE9IjIwNiIgeTE9IjMwNCIgeDI9IjI0MCIgeTI9IjMwNCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDxyZWN0IHg9IjI0MiIgeT0iMjc2IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjU2IiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjMxNyIgeT0iMjk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5NYW5hZ2VtZW50PC90ZXh0PgogIDx0ZXh0IHg9IjMxNyIgeT0iMzE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BY3Rpdml0eSBBUEk8L3RleHQ+CiAgPGxpbmUgeDE9IjM5MiIgeTE9IjMwNCIgeDI9IjQyMCIgeTI9IjMwNCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDxyZWN0IHg9IjQyMiIgeT0iMjc2IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjU2IiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjQ4NyIgeT0iMjk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Db2xsZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iNDg3IiB5PSIzMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+UHl0aG9uIG9yIFdvcmtmbG93PC90ZXh0PgogIDxsaW5lIHgxPSI1NTIiIHkxPSIzMDQiIHgyPSI1ODAiIHkyPSIzMDQiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8cmVjdCB4PSI1ODIiIHk9IjI3NiIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI1NiIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI2NTciIHk9IjI5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+TG9nIEluZ2VzdCBBUEkgdjI8L3RleHQ+CiAgPHRleHQgeD0iNjU3IiB5PSIzMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+L2FwaS92Mi9sb2dzL2luZ2VzdDwvdGV4dD4KICA8bGluZSB4MT0iNzMyIiB5MT0iMzA0IiB4Mj0iNzYwIiB5Mj0iMzA0IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPHRleHQgeD0iMjQyIiB5PSIzNTQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+UmVhZHktbWFkZSBhbHRlcm5hdGl2ZTogbTM2NSBDb2xsZWN0b3IgcmVjZWl2ZXIgKGJldGEsIE9UTFA7IG91dHNpZGUgRHluYXRyYWNlIENvbGxlY3RvciBzdXBwb3J0KSAmIzgyMTI7ICYjMTY3OyA4LjE8L3RleHQ+CgogIDwhLS0gRGVzdGluYXRpb24gLS0+CiAgPHJlY3QgeD0iNzYyIiB5PSIxNDIiIHdpZHRoPSIxNDYiIGhlaWdodD0iMTkwIiByeD0iOCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIvPgogIDxyZWN0IHg9Ijc2MiIgeT0iMTQyIiB3aWR0aD0iMTQ2IiBoZWlnaHQ9IjE5MCIgcng9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iODM1IiB5PSIxNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk9wZW5QaXBlbGluZTwvdGV4dD4KICA8dGV4dCB4PSI3NzYiIHk9IjE5MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Um91dGUgQTogYnVpbHQtaW48L3RleHQ+CiAgPHRleHQgeD0iNzc2IiB5PSIyMDciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkVudHJhIElEIGJ1bmRsZTwvdGV4dD4KICA8dGV4dCB4PSI3NzYiIHk9IjIzMiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Um91dGUgQjogeW91ciBvd248L3RleHQ+CiAgPHRleHQgeD0iNzc2IiB5PSIyNDciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnBpcGVsaW5lPC90ZXh0PgogIDx0ZXh0IHg9Ijc3NiIgeT0iMjc2IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj4mIzg1OTQ7IGRlZGljYXRlZCBidWNrZXQ8L3RleHQ+CiAgPHRleHQgeD0iNzc2IiB5PSIyOTIiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPiYjODU5NDsgc2VjdXJpdHkgY29udGV4dDwvdGV4dD4KICA8dGV4dCB4PSI3NzYiIHk9IjMxMiIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+JiM4NTk0OyBtYXNraW5nPC90ZXh0PgoKICA8IS0tIEV4dGVuc2lvbiBub3RlIC0tPgogIDxyZWN0IHg9IjI0IiB5PSI0MDQiIHdpZHRoPSI4ODQiIGhlaWdodD0iNzQiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGODcxNzEiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNDQiIHk9IjQyOCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Tm90IGEgdGhpcmQgcm91dGU6IHRoZSBNaWNyb3NvZnQgMzY1LCBPZmZpY2UgMzY1IEh1YiBleHRlbnNpb248L3RleHQ+CiAgPHRleHQgeD0iNDQiIHk9IjQ0OSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5SdW5zIG9uIGFuIEFjdGl2ZUdhdGUgYW5kIHByb2R1Y2VzIHNlcnZpY2UtaGVhbHRoLCB1c2FnZSBhbmQgbGljZW5zZSBtZXRyaWNzLiBJdCByZWFkcyBhdWRpdCBsb2dzIG9ubHkgdG8gY291bnQgdXNlcnM8L3RleHQ+CiAgPHRleHQgeD0iNDQiIHk9IjQ2NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5hbmQgcmVjb3JkcyBubyBjaGFuZ2UgbG9ncy4gSW5zdGFsbCBpdCBmb3IgdGhvc2UgbWV0cmljcyAmIzgyMTI7IGl0IGRvZXMgbm90IGRlbGl2ZXIgdGhlIGF1ZGl0IHRyYWlsLjwvdGV4dD4KPC9zdmc+Cg==" alt="Microsoft 365 Audit to Dynatrace: Two Routes" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Route | Covers | Path | Owner |
+|-------|--------|------|-------|
+| A | Entra ID sign-ins (interactive, non-interactive, service principal, managed identity) and directory audit | Entra ID diagnostic settings, then Event Hub, then Azure log forwarding, then OpenPipeline (built-in Entra ID bundle) | Documented by Dynatrace |
+| B | Workload audit: Audit.Exchange, Audit.SharePoint, Audit.General, DLP.All | Management Activity API, then your collector (Python or Workflow), then Log Ingest API v2, then your own pipeline. Ready-made alternative: the m365 Collector receiver (beta, OTLP; outside Dynatrace Collector support) — § 8.1 | You build and own it |
+| Not a route | Microsoft 365, Office 365 Hub extension | ActiveGate; service-health, usage and license metrics | Counts users from audit logs; records no change logs |
+-->
+<p>FAQ-19 § 2 says to choose the signals before the transport. For Microsoft 365 the split falls out of what already exists: identity has a route, the workloads do not, so each gets the route that fits it. Both land in the same bucket with the same retention and the same access boundary, and query side by side.</p>
+<h3>3.1 Do not collect Entra ID twice</h3>
+<p>The Management Activity API has an <code>Audit.AzureActiveDirectory</code> content type, and it overlaps Route A. Microsoft's own troubleshooting page says that Entra ID sign-in activity reaches the unified audit log <em>from</em> Entra ID's Event Hubs — so Route A reads the same events closer to their source, with categories (non-interactive, service-principal and managed-identity sign-ins) that you choose individually.</p>
+<p><strong>While Route A is running, leave <code>Audit.AzureActiveDirectory</code> out of the collector.</strong> If you cannot use Route A — no Azure subscription for the Event Hub, say — add it to the collector's content types instead. Do not run both and plan to deduplicate later: you pay for every sign-in twice, and the two routes produce records of different shapes, so a <code>dedup</code> on one field will not merge them.</p>
+<h3>3.2 Is Route A already running?</h3>
+<p>Many organizations already forward Azure logs. Check before building anything:</p>
+<pre><code class="language-dql">// Is Route A (Entra ID via Azure log forwarding) already delivering sign-ins?
+// Matches the routing condition of the built-in Entra ID bundle.
+// Control on the validation tenant (10/27/2026): cloud.provider == &quot;azure&quot; alone
+// returned 35,750 records in the same hour, so an empty result here means no
+// sign-in forwarding — not a broken query.
+fetch logs, from:-1h
+| filter cloud.provider == &quot;azure&quot; and contains(content, &quot;SignInLogs&quot;)
+| summarize {records = count(), last_seen = takeMax(timestamp)}
+</code></pre>
+<p>A non-zero count means sign-ins are arriving, and § 3.1 applies. Zero means one of three things — Route A is not set up, Entra ID's diagnostic setting does not include <code>SignInLogs</code>, or nothing is forwarding Azure logs at all. Run the query without the <code>contains</code> clause to tell the last one apart.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://learn.microsoft.com/en-us/office/office-365-management-api/troubleshooting-the-office-365-management-activity-api">Troubleshooting the Management Activity API (Microsoft Learn)</a> — <em>&quot;audit logs for Microsoft Entra sign-in activities are ingested into the unified audit log from Microsoft Entra Event Hubs.&quot;</em>; <a href="https://docs.dynatrace.com/docs/secure/threat-observability/security-events-ingest/ingest-microsoft-entra-id">Ingest Microsoft Entra ID sign-in logs (DT docs)</a>. <strong>Derived:</strong> § 3.1's leave-it-out rule combines Microsoft's statement that the API's sign-ins come from Entra ID's Event Hubs with the Dynatrace route that reads those Event Hubs directly.</sub></p>
+</blockquote>
+<hr />
+<p><a id="api-constraints"></a></p>
+<h2>4. The Management Activity API — Constraints That Shape the Collector</h2>
+<p>The API does not hand you events. You <strong>subscribe</strong> to a content type, <strong>list</strong> the content blobs Microsoft has published for it, and <strong>fetch</strong> each blob, which holds one or more audit records. Every constraint below comes from that shape.</p>
+<table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Value</th>
+<th>Design consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Content types</strong></td>
+<td><code>Audit.AzureActiveDirectory</code>, <code>Audit.Exchange</code>, <code>Audit.SharePoint</code>, <code>Audit.General</code>, <code>DLP.All</code></td>
+<td>One subscription and one checkpoint per type. <code>Audit.General</code> is every workload not in the other types</td>
+</tr>
+<tr>
+<td><strong>Listing window</strong></td>
+<td><code>startTime</code>/<code>endTime</code> at most <strong>24 h</strong> apart; start at most <strong>7 days</strong> back</td>
+<td>Catch-up after an outage walks forward one day at a time</td>
+</tr>
+<tr>
+<td><strong>What the window filters on</strong></td>
+<td><code>contentCreated</code> — when Microsoft published the blob</td>
+<td>You cannot ask for events by when they happened (§ 6)</td>
+</tr>
+<tr>
+<td><strong>Pagination</strong></td>
+<td><code>NextPageUri</code> response header</td>
+<td>Keep following it until it is absent. Stopping at page one loses data with no error</td>
+</tr>
+<tr>
+<td><strong>Retention</strong></td>
+<td>Content fetchable for <strong>7 days</strong> after it is published</td>
+<td>The longest outage you can recover from (§ 14.3)</td>
+</tr>
+<tr>
+<td><strong>Latency</strong></td>
+<td>No guaranteed maximum. Core services typically 60–90 minutes; others longer. First content on a new subscription can take up to 12 hours</td>
+<td>Measure it (§ 13.4); it is what makes § 5 matter</td>
+</tr>
+<tr>
+<td><strong>Ordering</strong></td>
+<td>Records inside blobs are not in event order</td>
+<td>Never assume the newest record ends a run</td>
+</tr>
+<tr>
+<td><strong>Duplicates</strong></td>
+<td>Expected; Microsoft does not remove them in the API</td>
+<td>Remove them yourself (§ 6)</td>
+</tr>
+<tr>
+<td><strong>Throttling</strong></td>
+<td>Baseline 2,000 requests/minute per tenant; <code>AF429</code> errors, which can arrive as HTTP 403</td>
+<td>Send <code>PublisherIdentifier</code> on every call — including the blob GET — and back off on <code>AF429</code></td>
+</tr>
+<tr>
+<td><strong>Subscriptions</strong></td>
+<td>Wait 15 minutes between start requests; a stopped subscription cannot recover content published while it was stopped</td>
+<td>Never stop a subscription to &quot;reset&quot; a collector</td>
+</tr>
+</tbody>
+</table>
+<h3>4.1 Poll, do not use the webhook</h3>
+<p>The API can push a notification to a webhook when content is published. Microsoft's own troubleshooting page says webhooks are being de-emphasized, and that webhook notifications have recently been <em>slower</em> than listing content directly. A webhook also needs a public HTTPS listener that answers Microsoft's validation request before the subscription is created. Poll every 5–15 minutes instead.</p>
+<h3>4.2 Government clouds</h3>
+<p>GCC, GCC High and DoD tenants use different API hosts (<code>manage-gcc.office.com</code>, <code>manage.office365.us</code>, <code>manage.protection.apps.mil</code>). Sovereign-cloud tenants may also sign in at a different Entra ID host, so both collectors take the API host and the sign-in host as settings.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference">Management Activity API reference (Microsoft Learn)</a> — <em>&quot;they must be no more than 24 hours apart, with the start time no more than 7 days in the past.&quot;</em>; <em>&quot;Make sure this parameter is specified in all issued requests to get a dedicated quota.&quot;</em>; <em>&quot;Once you submit a subscription request, a waiting period of 15 minutes is required before another request can be made.&quot;</em>; <em>&quot;You will not be able to retrieve content that was available between the time the subscription was stopped and restarted.&quot;</em></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/office/office-365-management-api/troubleshooting-the-office-365-management-activity-api">Troubleshooting the Management Activity API (Microsoft Learn)</a> — <em>&quot;There is no guaranteed maximum latency for notification delivery&quot;</em>; <em>&quot;For core services (such as Exchange, SharePoint, OneDrive, and Teams) event availability is typically 60 to 90 minutes.&quot;</em>; <em>&quot;Webhooks are being de-emphasized by Microsoft because of the difficulty in debugging and troubleshooting.&quot;</em>; <em>&quot;should also be included in the GET request to the contentUri URL when retrieving the content blob.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="timestamp-trap"></a></p>
+<h2>5. The 24-Hour Timestamp Trap</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+VGhlIDI0LUhvdXIgVGltZXN0YW1wIFRyYXA8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+TWljcm9zb2Z0IGtlZXBzIGNvbnRlbnQgZm9yIDcgZGF5cy4gRHluYXRyYWNlIGRyb3BzIGEgcmVjb3JkIHN0YW1wZWQgb2xkZXIgdGhhbiB0aGUgbG9nIGFnZSBsaW1pdCAoMjQgaCBvciA3MiBoKS48L3RleHQ+CgogIDwhLS0gQXhpcyAtLT4KICA8dGV4dCB4PSI2MCIgeT0iMTA0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5BZ2Ugb2YgdGhlIGV2ZW50IHdoZW4gdGhlIGNvbGxlY3RvciBpbmdlc3RzIGl0ICYjODU5NDs8L3RleHQ+CgogIDwhLS0gWm9uZXM6IDAtMjRoLCAyNC03MmgsIDcyaC03ZC4gU2NhbGU6IDBoPTYwLCAxNjhoPTg4MCAtPiA0Ljg4MSBweC9oIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIxMjAiIHdpZHRoPSIxMTciIGhlaWdodD0iNjAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTgiLz4KICA8cmVjdCB4PSIxNzciIHk9IjEyMCIgd2lkdGg9IjIzNCIgaGVpZ2h0PSI2MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4xNCIvPgogIDxyZWN0IHg9IjQxMSIgeT0iMTIwIiB3aWR0aD0iNDY5IiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjg3MTcxIiBvcGFjaXR5PSIwLjE0Ii8+CgogIDx0ZXh0IHg9IjExOCIgeT0iMTQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5hY2NlcHRlZDwvdGV4dD4KICA8dGV4dCB4PSIxMTgiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSI+MCYjODIxMTsyNCBoPC90ZXh0PgogIDx0ZXh0IHg9IjI5NCIgeT0iMTQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5kcm9wcGVkIGF0IGEgMjQgaCBsaW1pdDwvdGV4dD4KICA8dGV4dCB4PSIyOTQiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+YWNjZXB0ZWQgYXQgYSA3MiBoIGxpbWl0PC90ZXh0PgogIDx0ZXh0IHg9IjY0NSIgeT0iMTQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5kcm9wcGVkPC90ZXh0PgogIDx0ZXh0IHg9IjY0NSIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj5zdGlsbCBmZXRjaGFibGUgZnJvbSBNaWNyb3NvZnQgdW50aWwgZGF5IDc8L3RleHQ+CgogIDxsaW5lIHgxPSI2MCIgeTE9IjE4MCIgeDI9IjYwIiB5Mj0iMTk2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNjAiIHk9IjIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+MDwvdGV4dD4KICA8bGluZSB4MT0iMTc3IiB5MT0iMTgwIiB4Mj0iMTc3IiB5Mj0iMTk2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iMTc3IiB5PSIyMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjI0IGg8L3RleHQ+CiAgPGxpbmUgeDE9IjQxMSIgeTE9IjE4MCIgeDI9IjQxMSIgeTI9IjE5NiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjQxMSIgeT0iMjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj43MiBoPC90ZXh0PgogIDxsaW5lIHgxPSI4ODAiIHkxPSIxODAiIHgyPSI4ODAiIHkyPSIxOTYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI4ODAiIHk9IjIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+NyBkPC90ZXh0PgoKICA8IS0tIEhvdyBldmVudHMgZ2V0IG9sZCAtLT4KICA8dGV4dCB4PSI2MCIgeT0iMjUyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5Ib3cgYW4gYXVkaXQgcmVjb3JkIGVuZHMgdXAgbW9yZSB0aGFuIGEgZGF5IG9sZDwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMjY2IiB3aWR0aD0iMjYwIiBoZWlnaHQ9Ijg4IiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9Ijc2IiB5PSIyOTAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPk1pY3Jvc29mdCBpcyBsYXRlPC90ZXh0PgogIDx0ZXh0IHg9Ijc2IiB5PSIzMTAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkNvcmUgc2VydmljZXMgdHlwaWNhbGx5IDYwJiM4MjExOzkwIG1pbjs8L3RleHQ+CiAgPHRleHQgeD0iNzYiIHk9IjMyNiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+b3RoZXJzIGxvbmdlcjsgbm8gZ3VhcmFudGVlZCBtYXhpbXVtPC90ZXh0PgogIDxyZWN0IHg9IjMzNSIgeT0iMjY2IiB3aWR0aD0iMjYwIiBoZWlnaHQ9Ijg4IiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjM1MSIgeT0iMjkwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5UaGUgY29sbGVjdG9yIHdhcyBkb3duPC90ZXh0PgogIDx0ZXh0IHg9IjM1MSIgeT0iMzEwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5DYXRjaC11cCByZXBsYXlzIGJsb2JzIHB1Ymxpc2hlZDwvdGV4dD4KICA8dGV4dCB4PSIzNTEiIHk9IjMyNiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+d2hpbGUgaXQgd2FzIG5vdCBydW5uaW5nPC90ZXh0PgogIDxyZWN0IHg9IjYxMCIgeT0iMjY2IiB3aWR0aD0iMjcwIiBoZWlnaHQ9Ijg4IiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjYyNiIgeT0iMjkwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BIG5ldyBzdWJzY3JpcHRpb248L3RleHQ+CiAgPHRleHQgeD0iNjI2IiB5PSIzMTAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZpcnN0IGJsb2JzIGNhbiB0YWtlIHVwIHRvIDEyIGgsPC90ZXh0PgogIDx0ZXh0IHg9IjYyNiIgeT0iMzI2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hbmQgZXZlbnRzIGluc2lkZSBhcmUgb3V0IG9mIG9yZGVyPC90ZXh0PgoKICA8IS0tIEZpeCAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMzgwIiB3aWR0aD0iODIwIiBoZWlnaHQ9Ijk2IiByeD0iOCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIvPgogIDxyZWN0IHg9IjYwIiB5PSIzODAiIHdpZHRoPSI4MjAiIGhlaWdodD0iOTYiIHJ4PSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjgwIiB5PSI0MDYiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlRoZSBmaXg8L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjQyOCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+QWx3YXlzIHNlbmQgQ3JlYXRpb25UaW1lIGFzIDwvdGV4dD4KICA8dGV4dCB4PSIyNTgiIHk9IjQyOCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+bTM2NS5jcmVhdGlvbl90aW1lPC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNDI4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj4uIFNldCA8L3RleHQ+CiAgPHRleHQgeD0iNDM4IiB5PSI0MjgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPnRpbWVzdGFtcDwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjQyOCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+ZnJvbSBpdCBvbmx5IHdoZW4gaXQgaXMgdW5kZXIgMjMgaCBvbGQuPC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSI0NTAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPk9sZGVyIHJlY29yZHMgbGFuZCBhdCBpbmdlc3QgdGltZSBhbmQgc3RheSBxdWVyeWFibGUgb24gdGhlaXIgcmVhbCB0aW1lLjwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iNDY3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5UcmVhdCBhbiBpbmdlc3QgMjAwIGFzIGEgcGFydGlhbCBmYWlsdXJlICYjODIxMjsgaXQgaXMgaG93IER5bmF0cmFjZSByZXBvcnRzIGRyb3BwZWQgcmVjb3Jkcy48L3RleHQ+Cjwvc3ZnPgo=" alt="The 24-Hour Timestamp Trap" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Age of the event at ingest | 24 h log age limit (environment created before SaaS 1.348) | 72 h log age limit (created after SaaS 1.348, or raised on request) | Microsoft |
+|-------|--------|--------|--------|
+| 0 to 24 h | Accepted | Accepted | Fetchable |
+| 24 to 72 h | Dropped if stamped with event time | Accepted | Fetchable |
+| 72 h to 7 days | Dropped if stamped with event time | Dropped if stamped with event time | Fetchable |
+| How a record ends up old | Microsoft is late (core services typically 60–90 min, others longer, no guaranteed maximum); the collector was down (catch-up replays blobs published while it was not running); a new subscription (first blobs can take up to 12 h, and events inside are out of order) | | |
+| Fix | Always send CreationTime as m365.creation_time; set timestamp from it only when under 23 h old; older records land at ingest time and stay queryable on their real time; treat an ingest 200 as a partial failure | | |
+-->
+<p>Two documented limits disagree by a factor of seven, and the collector sits between them:</p>
+<ul>
+<li><strong>Microsoft keeps content for 7 days</strong>, and delivers it late — typically an hour or so, with no guarantee.</li>
+<li><strong>Dynatrace drops a log record whose timestamp is more than 24 hours in the past.</strong> If some records in a request are too old, the API answers <strong><code>200</code></strong> with a count of what it did not ingest. Only if <em>every</em> record is too old does it answer <code>400</code>.</li>
+</ul>
+<p>So the natural mapping — <code>timestamp = CreationTime</code> — loses data in exactly the situations a collector exists for: catching up after it was down for more than a day, a slow workload, and the first run of a new subscription. Every one of those is a <code>200</code>, which most HTTP code treats as success.</p>
+<p><strong>The fix has two parts, and both collectors in this entry do both:</strong></p>
+<ol>
+<li><strong>Send the event time as its own field</strong>, <code>m365.creation_time</code>, on every record. Set <code>timestamp</code> from it only when it is under 23 hours old; otherwise leave <code>timestamp</code> unset so the record takes its ingest time. Query event time on <code>m365.creation_time</code> — recovered records then sit at the moment they arrived on any chart built on <code>timestamp</code>, but their real time is still there.</li>
+<li><strong>Treat <code>200</code> from the ingest API as a failure.</strong> It means records were dropped. Stop, and do not advance the checkpoint.</li>
+</ol>
+<blockquote>
+<p><strong>Which limit applies depends on when your environment was created.</strong> Environments created after SaaS 1.348 default to 72 hours; older environments default to 24 hours, and Dynatrace Support can raise them to 72 hours on request. Even at 72 hours, Microsoft's 7-day retention is longer, so the fix above still applies — change the 23-hour constant only once you have confirmed which limit your environment has. If you cannot confirm it, plan for 24 hours: assuming 72 on an environment that has 24 drops records while the API still answers <code>200</code>.</p>
+</blockquote>
+<p><code>CreationTime</code> has no time-zone suffix (Microsoft's schema says it is UTC). Append <code>Z</code> before parsing, or a parser that assumes local time shifts every record by your UTC offset.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log ingestion limits (DT docs)</a> — <em>&quot;The event is dropped if it contains a timestamp older than the configured log age limit.&quot;</em> <em>&quot;For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours.&quot;</em> <em>&quot;For environments created before Dynatrace version 1.348 was released, the default log age limit is 24 hours. The limit can be increased to 72 hours on request.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs">POST ingest logs (DT docs)</a> — <em>&quot;Only a part of input events were ingested due to event invalidity.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — <em>&quot;up to 72 hours in the past&quot;</em>; rollout start 10/12/2026, re-read 10/27/2026</sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/office/office-365-management-api/troubleshooting-the-office-365-management-activity-api">Troubleshooting the Management Activity API (Microsoft Learn)</a> — <em>&quot;Content is available to fetch via the API for 7 days after the notification of the content availability.&quot;</em></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-schema">Management Activity API schema (Microsoft Learn)</a> — <em>&quot;The date and time in Coordinated Universal Time (UTC) when the audit log record was generated.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="checkpoint"></a></p>
+<h2>6. Duplicates and the Checkpoint</h2>
+<h3>6.1 Two clocks</h3>
+<p>Every audit record carries two times, and the API only lets you ask about one of them:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Means</th>
+<th>Can you filter on it?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>contentCreated</code> (on the blob)</td>
+<td>When Microsoft <strong>published</strong> the blob</td>
+<td><strong>Yes</strong> — it is what <code>startTime</code>/<code>endTime</code> filter on</td>
+</tr>
+<tr>
+<td><code>CreationTime</code> (on each record)</td>
+<td>When the <strong>event</strong> happened</td>
+<td>No — the API has no event-time query</td>
+</tr>
+</tbody>
+</table>
+<p>The checkpoint therefore follows <code>contentCreated</code>. A checkpoint built on the newest <code>CreationTime</code> seen goes wrong in both directions: a late record from an early event moves it backwards, and out-of-order blobs move it past records that have not arrived yet.</p>
+<h3>6.2 The checkpoint, exactly</h3>
+<p>One checkpoint per content type, holding two values:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Holds</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>since</code></td>
+<td><code>contentCreated</code> of the last blob ingested, to the second</td>
+<td>The start of the next listing window</td>
+</tr>
+<tr>
+<td><code>last_ids</code></td>
+<td>The <code>contentId</code>s already ingested <em>at</em> that second</td>
+<td><code>startTime</code> is inclusive, so the next listing returns them again</td>
+</tr>
+</tbody>
+</table>
+<p>When a whole window has been ingested, <code>since</code> moves to the window's end — which is exclusive — and <code>last_ids</code> empties. The collector writes the checkpoint <strong>only after the ingest succeeds</strong>, so a failed run re-reads blobs instead of skipping them. Re-reading a blob produces duplicates, which the next section deals with; skipping one is a gap nobody can see afterwards.</p>
+<h3>6.3 Duplicates are part of the contract</h3>
+<p>Microsoft states that duplicates are expected: the audit service retries on errors, and the API does not remove the resulting copies, which Purview's export does. Removing them is your job. Both collectors drop repeated record <code>Id</code>s within a run, which is cheap. Copies that span runs — and re-reads after a failed run — are counted once at query time with <code>dedup audit.id</code> (§ 13.2). Watch the duplicate rate; a sudden rise usually means a checkpoint that is not being written.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://learn.microsoft.com/en-us/office/office-365-management-api/troubleshooting-the-office-365-management-activity-api">Troubleshooting the Management Activity API (Microsoft Learn)</a> — <em>&quot;It is the responsibility of the SIEM solution to implement logic to remove such duplicated events upon ingestion.&quot;</em>; <em>&quot;This is the date the notification was created.&quot;</em> (of <code>contentCreated</code>); <a href="https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference">Management Activity API reference (Microsoft Learn)</a>. <strong>Derived:</strong> § 6.2's <code>since</code> / <code>last_ids</code> pair follows from the documented inclusive <code>startTime</code> and exclusive <code>endTime</code>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="app-registration"></a></p>
+<h2>7. App Registration and Credentials</h2>
+<h3>7.1 Turn auditing on, and check it</h3>
+<p>Auditing is on by default for most Microsoft 365 organizations — but not for small and medium business licenses (Business Basic, Standard and Premium) or unmanaged free trials of enterprise licenses. Check it before debugging anything else:</p>
+<pre><code class="language-powershell"># Exchange Online PowerShell — not Security &amp; Compliance PowerShell,
+# where this property always reads False even when auditing is on.
+Get-AdminAuditLogConfig | Format-List UnifiedAuditLogIngestionEnabled
+</code></pre>
+<p><code>True</code> means auditing is on. If you turn it on, allow up to 60 minutes for the change to take effect, and then up to 12 hours for the first content on a new subscription (§ 4).</p>
+<h3>7.2 The app registration</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Register</strong></td>
+<td>Entra ID &gt; <strong>App registrations</strong> &gt; <strong>New registration</strong></td>
+<td>Single-tenant is enough for your own organization</td>
+</tr>
+<tr>
+<td><strong>2. Permission</strong></td>
+<td><strong>API permissions</strong> &gt; <strong>Office 365 Management APIs</strong> (not Microsoft Graph) &gt; <strong>Application permissions</strong> &gt; <em>Read activity data for your organization</em></td>
+<td>Add <em>Read DLP policy events, including detected sensitive information</em> only if you collect <code>DLP.All</code></td>
+</tr>
+<tr>
+<td><strong>3. Consent</strong></td>
+<td><strong>Grant admin consent</strong></td>
+<td>Without it every call fails</td>
+</tr>
+<tr>
+<td><strong>4. Credential</strong></td>
+<td>Upload a certificate, or create a client secret (§ 7.3)</td>
+<td>Record the tenant ID and client ID</td>
+</tr>
+<tr>
+<td><strong>5. Check the token</strong></td>
+<td>Decode one token and look for <code>ActivityFeed.Read</code> in its <code>roles</code> claim</td>
+<td>The API checks for that claim and rejects the call with <code>AF10001</code> if it is missing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Permission names do not match across pages.</strong> Microsoft's API reference names the claim <code>ActivityFeed.Read</code>; the Dynatrace extension page lists <code>ActivityFeed.Read.All</code>. Pick the permission by its description in the portal, then confirm the token carries the claim the API checks — <code>ActivityFeed.Read</code>.</p>
+<h3>7.3 Certificate or secret</h3>
+<p>Microsoft's getting-started guide says to configure an X.509 certificate for app-only tokens, and its troubleshooting page shows the same flow with a client secret. Both work. Prefer the certificate where you can:</p>
+<table>
+<thead>
+<tr>
+<th>Collector</th>
+<th>Credential</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Python</strong> (§ 9)</td>
+<td><strong>Certificate</strong> (<code>.pfx</code>) in Key Vault or your secret store</td>
+<td>No shared secret on the wire; MSAL signs the assertion</td>
+</tr>
+<tr>
+<td><strong>Workflow</strong> (§ 10)</td>
+<td><strong>Client secret</strong> in the Credential Vault</td>
+<td>A certificate would mean writing the signed-assertion code yourself inside the JS runtime; a secret needs one form post</td>
+</tr>
+</tbody>
+</table>
+<p>A client secret expires. Put its expiry date in your calendar, and alert on token failures — an expired secret looks exactly like a quiet tenant until the staleness alert fires (§ 14).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://learn.microsoft.com/en-us/purview/audit-log-enable-disable">Turn auditing on or off (Microsoft Learn)</a> — <em>&quot;Audit logging is on by default for Microsoft 365 organizations.&quot;</em>; <em>&quot;Enabling auditing might take up to 60 minutes to take effect.&quot;</em></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/office/office-365-management-api/get-started-with-office-365-management-apis">Get started with Office 365 Management APIs (Microsoft Learn)</a> — <em>&quot;You must configure an X.509 certificate with your application to be used as client credentials when requesting app-only access tokens from Microsoft Entra ID.&quot;</em></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference">Management Activity API reference (Microsoft Learn)</a> — <em>&quot;the access token must contain the ActivityFeed.Read claim&quot;</em></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/office/office-365-management-api/troubleshooting-the-office-365-management-activity-api">Troubleshooting the Management Activity API (Microsoft Learn)</a> — the client-secret token example</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/extensions/microsoft-365-office-365">Microsoft 365, Office 365 extension (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="choosing"></a></p>
+<h2>8. Choosing the Collector — Python, Workflow or the Collector Receiver</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>Python</strong></th>
+<th><strong>Workflow (JS runtime)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Infrastructure</strong></td>
+<td>You run it — Azure Functions, a container, a VM</td>
+<td>None</td>
+</tr>
+<tr>
+<td><strong>Execution ceiling</strong></td>
+<td>None</td>
+<td><strong>120 s</strong> per run (hard)</td>
+</tr>
+<tr>
+<td><strong>Credential</strong></td>
+<td>Certificate</td>
+<td>Client secret in the Credential Vault</td>
+</tr>
+<tr>
+<td><strong>Checkpoint</strong></td>
+<td>Your own durable store</td>
+<td><code>stateClient</code> app state — verify it works from a workflow first (§ 10.1)</td>
+</tr>
+<tr>
+<td><strong>Catch-up after an outage</strong></td>
+<td>Drains every missed day in one run</td>
+<td>One day-window per content type per run; a long outage drains across many runs</td>
+</tr>
+<tr>
+<td><strong>Scheduling, retry, failure alerting</strong></td>
+<td>You build them</td>
+<td>Built in</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default to Python.</strong> In FAQ-23 the volume was known and a Workflow cleared the ceiling with room to spare. Here the volume is set by your Microsoft 365 tenant: every mailbox access, file view and Teams action is a record, so the only reliable figure is the one you measure. A Python collector has no ceiling, and Microsoft's own sample for this API is an Azure Function.</p>
+<p><strong>Use a Workflow when</strong> the tenant is small enough that one run drains a content type in well under two minutes — measure it: the Workflow returns <code>finished: false</code> for any content type it could not drain. It keeps everything inside Dynatrace, and failure alerting comes free.</p>
+<p>If you have a choice, a sensible split is FAQ-23's: Workflow for steady state, with the Python collector built and tested as the catch-up tool.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.dynatrace.com/develop/reference/javascript-runtime/">JavaScript runtime (Dynatrace Developer)</a> — <em>&quot;Function execution times out after 120 seconds.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a> — <em>&quot;The task result size is limited to 6 MB.&quot;</em>; <a href="https://learn.microsoft.com/en-us/samples/officedev/o365-activityfeed-azurefunction/office-365-activity-feed-sample/">Office 365 Activity Feed Azure Function sample (Microsoft Learn)</a>.</sub></p>
+</blockquote>
+<h3>8.1 The <code>m365</code> Collector receiver</h3>
+<p>A third option needs no code of your own. The <code>m365</code> receiver for the OpenTelemetry Collector subscribes to the Management Activity API, polls it every 5 minutes by default, and emits each audit record as an OTLP log record whose timestamp is the event's <code>CreationTime</code>. It also scrapes Microsoft Graph usage reports as metrics. It is maintained in the <code>dynatrace-bindplane-otel-contrib</code> repository and built into the full Dynatrace Bindplane Distribution of the Collector (DBDOT — the <em>Dynatrace Bindplane OTel Collector</em> in Dynatrace's docs). It is not in the slim DBDOT build or in the Dynatrace OTel Collector distribution, which is where Dynatrace's Collector support ends: <em>&quot;This support covers only the components and their versions that are included in the Dynatrace OTel Collector.&quot;</em> Its README configures it in plain Collector YAML; Bindplane can manage the same receiver as its <strong>Microsoft 365</strong> source, and the README's examples need no Bindplane server. Its stability is <strong>beta</strong>.</p>
+<p>Measured against the rules this entry depends on, v1.2.0 (released 10/28/2026) falls short in several places:</p>
+<table>
+<thead>
+<tr>
+<th>Rule from this entry</th>
+<th><code>m365</code> receiver v1.2.0</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Follow every <code>NextPageUri</code> (§ 4)</td>
+<td>Reads the first page of each content listing only</td>
+<td>A busy tenant loses content blobs, with no error</td>
+</tr>
+<tr>
+<td>Checkpoint per content type, written only after success (§ 6)</td>
+<td>One checkpoint for all content types, advanced after every poll even when a type's listing failed</td>
+<td>A failed poll loses that window for that content type</td>
+</tr>
+<tr>
+<td>Catch up one day-window at a time (§ 4)</td>
+<td>Lists from the checkpoint to now in one request</td>
+<td>After an outage of more than 24 h the listing exceeds Microsoft's limit and fails, and the checkpoint moves past the gap</td>
+</tr>
+<tr>
+<td>Survive a restart (§ 14)</td>
+<td>The checkpoint persists only with a <code>storage</code> extension</td>
+<td>Without one, a restart resumes at now minus the poll interval and the downtime is lost</td>
+</tr>
+<tr>
+<td><code>PublisherIdentifier</code> on every call (§ 4)</td>
+<td>Not sent</td>
+<td>No dedicated throttling quota</td>
+</tr>
+<tr>
+<td>Leave out <code>Audit.AzureActiveDirectory</code> while Route A runs (§ 3.1)</td>
+<td><code>logs.azureAD</code> defaults to <code>true</code></td>
+<td>Every sign-in twice unless you turn it off</td>
+</tr>
+<tr>
+<td>Government clouds (§ 4.2)</td>
+<td>Commercial <code>manage.office.com</code> and <code>login.microsoftonline.com</code> hosts only</td>
+<td>Not usable for GCC, GCC High or DoD</td>
+</tr>
+<tr>
+<td>Certificate credentials (§ 7)</td>
+<td>Client secret only</td>
+<td>Track the secret's expiry and rotate it</td>
+</tr>
+<tr>
+<td>Event time only under 23 h (§ 5)</td>
+<td><code>timestamp</code> is always <code>CreationTime</code></td>
+<td>OTLP log ingest discards records older than the Log Age limit — the same trap</td>
+</tr>
+</tbody>
+</table>
+<p><strong>If you use it, configure it like this:</strong></p>
+<pre><code class="language-yaml">extensions:
+  file_storage:
+    directory: /var/lib/otelcol/m365   # must survive restarts
+receivers:
+  m365:
+    tenant_id: ${env:M365_TENANT_ID}
+    client_id: ${env:M365_CLIENT_ID}
+    client_secret: ${env:M365_CLIENT_SECRET}
+    logs:
+      azureAD: false   # Entra ID arrives by Route A (§ 3.1)
+      dlp: false       # turn on only if you need DLP.All
+    storage: file_storage
+</code></pre>
+<p>Add <code>file_storage</code> to the <code>service.extensions</code> list and the receiver to a logs pipeline that exports to your environment's OTLP endpoint. The queries in § 13 and § 14 read fields the Python and Workflow collectors write — <code>audit.id</code>, <code>m365.content_type</code>, <code>m365.collected_at</code>, <code>log.source == &quot;microsoft365.audit&quot;</code>. The receiver writes the record ID as <code>id</code> and the content type as the resource attribute <code>m365.audit</code>, with short names such as <code>exchange</code> rather than <code>Audit.Exchange</code>, and sets none of the others, so map them in OpenPipeline or adapt the queries before you rely on them.</p>
+<p><strong>When it fits:</strong> a commercial-cloud tenant where you have confirmed that a listing for your busiest content type returns no <code>NextPageUri</code> header, with Route A carrying Entra ID, a <code>storage</code> extension, and a staleness alert that catches an outage within hours. Otherwise use the Python collector. The receiver is new and actively developed, so re-check this table against each release before relying on it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/m365receiver/README.md">m365receiver README (Dynatrace GitHub)</a> — <em>&quot;The storage extension prevents duplication of data after a agent restart by remembering which data were previously collected. No storage is used when omitted.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/receiver/m365receiver/metadata.yaml">m365receiver metadata (Dynatrace GitHub)</a> — <em>&quot;beta: [metrics, logs]&quot;</em></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-bindplane-otel-collector/blob/v1.2.0/manifests/dynatrace-bindplane-otel-collector/manifest.yaml">DBDOT Collector manifest (Dynatrace GitHub)</a> — <em>&quot;receiver/m365receiver v1.2.0&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector">Collector (DT docs)</a> — <em>&quot;This support covers only the components and their versions that are included in the Dynatrace OTel Collector.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/bindplane">Bindplane (DT docs)</a> — product name <em>Dynatrace Bindplane OTel Collector</em></sub></li>
+<li><sub><a href="https://docs.bindplane.com/integrations/sources/microsoft-365">Microsoft 365 source (Bindplane docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs">Ingest OTLP logs (DT docs)</a> — <em>&quot;Log events older than the Log Age limit are discarded.&quot;</em></sub></li>
+<li><sub><a href="https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference">Management Activity API reference (Microsoft Learn)</a> — <em>&quot;they must be no more than 24 hours apart, with the start time no more than 7 days in the past.&quot;</em></sub></li>
+<li><sub><strong>Code read (10/29/2026):</strong> <code>client.go</code> and <code>logs.go</code> at tag <code>v1.2.0</code> contain no reference to <code>NextPageUri</code> or <code>PublisherIdentifier</code> (control: <code>contentUri</code>, <code>startTime</code> and <code>CreationTime</code> are found in the same files); one <code>NextStartTime</code> checkpoint is shared by all content types and advanced after every poll; the listing window runs from that checkpoint to now with no 24-hour split; every content-type flag defaults to <code>true</code>; the only credential field is <code>client_secret</code>; the token and API hosts are hard-coded. Not run against a Microsoft 365 tenant</sub></li>
+<li><sub><strong>Catalog observation (10/29/2026):</strong> no <code>m365receiver</code> entry in the Dynatrace OTel Collector manifest (0.59.0) or the slim DBDOT manifest</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="python"></a></p>
+<h2>9. Implementation A — Python</h2>
+<h3>9.1 Install</h3>
+<pre><code class="language-bash">pip install &quot;msal&gt;=1.29&quot; requests
+</code></pre>
+<p><code>msal</code> is Microsoft's authentication library for Python. Version 1.29 added the <code>.pfx</code> certificate form used below; the older PEM-plus-thumbprint form still works, but MSAL's own documentation marks it deprecated because it uses a SHA-1 thumbprint.</p>
+<h3>9.2 The collector</h3>
+<p>Checked against the Management Activity API reference and <code>msal</code> 1.39.0 on 10/27/2026, and run against mocked Microsoft and Dynatrace endpoints (pagination, duplicates, the timestamp rule, a partial ingest and a 7-day gap). <strong>Not yet run against a live Microsoft 365 tenant.</strong> It authenticates to Dynatrace with a <strong>platform token</strong> (scope <code>openpipeline:logs:ingest</code>); on a classic or hybrid environment a classic access token with <code>logs.ingest</code> also works — send <code>Api-Token &lt;token&gt;</code> instead of <code>Bearer &lt;token&gt;</code>.</p>
+<pre><code class="language-python">&quot;&quot;&quot;Collect Microsoft 365 audit records from the Management Activity API
+and ship them to the Dynatrace Log Ingestion API.
+
+Run every 5-15 minutes. One checkpoint file per content type.
+Requires Python 3.11+, msal&gt;=1.29, requests.
+&quot;&quot;&quot;
+import json
+import os
+import sys
+import time
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import msal
+import requests
+
+TENANT_ID   = os.environ[&quot;M365_TENANT_ID&quot;]
+CLIENT_ID   = os.environ[&quot;M365_CLIENT_ID&quot;]
+CERT_PFX    = os.environ[&quot;M365_CERT_PFX_PATH&quot;]          # certificate + private key
+CERT_PASS   = os.environ.get(&quot;M365_CERT_PASSPHRASE&quot;)
+API_ROOT    = os.environ.get(&quot;M365_API_ROOT&quot;, &quot;https://manage.office.com&quot;)  # GCC etc. differ
+LOGIN_HOST  = os.environ.get(&quot;M365_LOGIN_HOST&quot;, &quot;https://login.microsoftonline.com&quot;)
+PUBLISHER   = os.environ.get(&quot;M365_PUBLISHER_ID&quot;, TENANT_ID)  # your own tenant GUID
+
+DT_ENV_URL        = os.environ[&quot;DT_ENV_URL&quot;]          # https://abc12345.live.dynatrace.com
+DT_PLATFORM_TOKEN = os.environ[&quot;DT_PLATFORM_TOKEN&quot;]   # scope: openpipeline:logs:ingest
+
+CHECKPOINT_DIR = Path(os.environ.get(&quot;M365_CHECKPOINT_DIR&quot;, &quot;/var/lib/m365-audit&quot;))
+
+# Audit.AzureActiveDirectory is left out on purpose when Entra ID logs arrive
+# through Azure log forwarding (section 3). Add it if they do not.
+CONTENT_TYPES = [&quot;Audit.Exchange&quot;, &quot;Audit.SharePoint&quot;, &quot;Audit.General&quot;, &quot;DLP.All&quot;]
+
+LOG_SOURCE    = &quot;microsoft365.audit&quot;
+INGEST_BATCH  = 1000                    # well under 50,000 records / 10 MB
+MAX_EVENT_AGE = timedelta(hours=23)     # ingest drops timestamps &gt; 24 h old (section 5)
+MAX_LOOKBACK  = timedelta(days=7) - timedelta(minutes=10)  # content lives 7 days
+SETTLE        = timedelta(minutes=5)    # do not close a window on the last few minutes
+FEED = f&quot;{API_ROOT}/api/v1.0/{TENANT_ID}/activity/feed&quot;
+
+_app = msal.ConfidentialClientApplication(
+    CLIENT_ID,
+    authority=f&quot;{LOGIN_HOST}/{TENANT_ID}&quot;,
+    client_credential={&quot;private_key_pfx_path&quot;: CERT_PFX, &quot;passphrase&quot;: CERT_PASS},
+)
+
+
+def token() -&gt; str:
+    &quot;&quot;&quot;App-only token; MSAL caches it and renews it before it expires.&quot;&quot;&quot;
+    result = _app.acquire_token_for_client(scopes=[f&quot;{API_ROOT}/.default&quot;])
+    if &quot;access_token&quot; not in result:
+        raise RuntimeError(f&quot;Entra ID token request failed: {result.get('error_description')}&quot;)
+    return result[&quot;access_token&quot;]
+
+
+def m365_get(url: str, params: dict | None = None) -&gt; requests.Response:
+    &quot;&quot;&quot;GET with PublisherIdentifier on every call, retrying throttling and 5xx.&quot;&quot;&quot;
+    params = dict(params or {})
+    if &quot;PublisherIdentifier=&quot; not in url:
+        params[&quot;PublisherIdentifier&quot;] = PUBLISHER
+    for attempt in range(6):
+        resp = requests.get(url, params=params, timeout=60,
+                            headers={&quot;Authorization&quot;: f&quot;Bearer {token()}&quot;})
+        # Throttling arrives as AF429, sometimes with HTTP 403 rather than 429.
+        throttled = resp.status_code == 429 or &quot;AF429&quot; in resp.text[:200]
+        if resp.ok and not throttled:
+            return resp
+        if throttled or resp.status_code &gt;= 500:
+            time.sleep(2 ** attempt)
+            continue
+        raise RuntimeError(f&quot;Management API {resp.status_code}: {resp.text[:500]}&quot;)
+    raise RuntimeError(f&quot;Management API still failing after retries: {url}&quot;)
+
+
+def ensure_subscriptions() -&gt; None:
+    &quot;&quot;&quot;Start any content-type subscription that is not enabled yet.&quot;&quot;&quot;
+    resp = m365_get(f&quot;{FEED}/subscriptions/list&quot;)
+    enabled = {s[&quot;contentType&quot;] for s in resp.json() if s.get(&quot;status&quot;) == &quot;enabled&quot;}
+    for ct in CONTENT_TYPES:
+        if ct not in enabled:
+            r = requests.post(f&quot;{FEED}/subscriptions/start&quot;, timeout=60,
+                              params={&quot;contentType&quot;: ct, &quot;PublisherIdentifier&quot;: PUBLISHER},
+                              headers={&quot;Authorization&quot;: f&quot;Bearer {token()}&quot;})
+            r.raise_for_status()
+            print(f&quot;started subscription {ct}; first content can take up to 12 h&quot;)
+
+
+def utc(ts: str) -&gt; datetime:
+    &quot;&quot;&quot;Parse Microsoft's UTC timestamps; CreationTime carries no offset.&quot;&quot;&quot;
+    dt = datetime.fromisoformat(ts.replace(&quot;Z&quot;, &quot;+00:00&quot;))
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def fmt(dt: datetime) -&gt; str:
+    &quot;&quot;&quot;startTime/endTime format the API accepts: YYYY-MM-DDTHH:MM:SS (UTC).&quot;&quot;&quot;
+    return dt.astimezone(timezone.utc).strftime(&quot;%Y-%m-%dT%H:%M:%S&quot;)
+
+
+def list_blobs(ct: str, start: datetime, end: datetime) -&gt; list[dict]:
+    &quot;&quot;&quot;Every blob published in [start, end), following NextPageUri to the end.&quot;&quot;&quot;
+    blobs: list[dict] = []
+    url = f&quot;{FEED}/subscriptions/content&quot;
+    params: dict | None = {&quot;contentType&quot;: ct, &quot;startTime&quot;: fmt(start), &quot;endTime&quot;: fmt(end)}
+    while url:
+        resp = m365_get(url, params)
+        blobs.extend(resp.json())
+        url, params = resp.headers.get(&quot;NextPageUri&quot;), None
+    return sorted(blobs, key=lambda b: b[&quot;contentCreated&quot;])
+
+
+def to_dt_record(rec: dict, ct: str, content_id: str, now: datetime) -&gt; dict:
+    &quot;&quot;&quot;Map one audit record to a Dynatrace log record.&quot;&quot;&quot;
+    created = rec.get(&quot;CreationTime&quot;)
+    record = {
+        &quot;content&quot;:            json.dumps(rec, separators=(&quot;,&quot;, &quot;:&quot;)),
+        &quot;log.source&quot;:         LOG_SOURCE,
+        &quot;audit.id&quot;:           rec.get(&quot;Id&quot;),
+        &quot;audit.action&quot;:       rec.get(&quot;Operation&quot;),
+        &quot;audit.identity&quot;:     rec.get(&quot;UserId&quot;),
+        &quot;audit.result&quot;:       rec.get(&quot;ResultStatus&quot;),
+        &quot;m365.content_type&quot;:  ct,
+        &quot;m365.workload&quot;:      rec.get(&quot;Workload&quot;),
+        &quot;m365.record_type&quot;:   rec.get(&quot;RecordType&quot;),
+        &quot;m365.client_ip&quot;:     rec.get(&quot;ClientIP&quot;),
+        &quot;m365.object_id&quot;:     rec.get(&quot;ObjectId&quot;),
+        &quot;m365.content_id&quot;:    content_id,
+        &quot;m365.collected_at&quot;:  now.isoformat(),
+    }
+    if created:
+        event_time = utc(created)
+        record[&quot;m365.creation_time&quot;] = event_time.isoformat()
+        # Stamp event time only when ingest will accept it. Older records keep
+        # their ingest time as timestamp; their real time is m365.creation_time.
+        if now - event_time &lt; MAX_EVENT_AGE:
+            record[&quot;timestamp&quot;] = event_time.isoformat()
+    return record
+
+
+def ingest(records: list[dict]) -&gt; None:
+    &quot;&quot;&quot;POST to the Dynatrace Log Ingestion API, batched.&quot;&quot;&quot;
+    url = f&quot;{DT_ENV_URL}/api/v2/logs/ingest&quot;
+    headers = {&quot;Authorization&quot;: f&quot;Bearer {DT_PLATFORM_TOKEN}&quot;,
+               &quot;Content-Type&quot;: &quot;application/json; charset=utf-8&quot;}
+    for i in range(0, len(records), INGEST_BATCH):
+        batch = records[i:i + INGEST_BATCH]
+        for attempt in range(5):
+            resp = requests.post(url, headers=headers, data=json.dumps(batch), timeout=60)
+            if resp.status_code == 204:
+                break
+            # 200 is a PARTIAL success: some records were not ingested.
+            # Fail so the checkpoint does not move past them.
+            if resp.status_code == 200:
+                raise RuntimeError(f&quot;Dynatrace partial ingest: {resp.text}&quot;)
+            if resp.status_code == 413 and len(batch) &gt; 1:
+                mid = len(batch) // 2
+                ingest(batch[:mid])
+                ingest(batch[mid:])
+                break
+            if resp.status_code in (429, 500, 502, 503, 504):
+                time.sleep(2 ** attempt)
+                continue
+            raise RuntimeError(f&quot;Dynatrace ingest {resp.status_code}: {resp.text[:500]}&quot;)
+        else:
+            raise RuntimeError(&quot;Dynatrace ingest failed after 5 attempts&quot;)
+
+
+def read_checkpoint(ct: str, now: datetime) -&gt; dict:
+    path = CHECKPOINT_DIR / f&quot;{ct}.json&quot;
+    if path.exists():
+        return json.loads(path.read_text())
+    return {&quot;since&quot;: fmt(now - timedelta(hours=24)), &quot;last_ids&quot;: []}
+
+
+def write_checkpoint(ct: str, since: datetime, last_ids: list[str]) -&gt; None:
+    &quot;&quot;&quot;Write atomically — a torn checkpoint is worse than none.&quot;&quot;&quot;
+    CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+    path = CHECKPOINT_DIR / f&quot;{ct}.json&quot;
+    tmp = path.with_suffix(&quot;.tmp&quot;)
+    tmp.write_text(json.dumps({&quot;since&quot;: fmt(since), &quot;last_ids&quot;: last_ids}))
+    tmp.replace(path)
+
+
+def collect(ct: str) -&gt; tuple[int, bool]:
+    &quot;&quot;&quot;Drain one content type. Returns (records ingested, gap detected).&quot;&quot;&quot;
+    now = datetime.now(timezone.utc)
+    cp = read_checkpoint(ct, now)
+    since, last_ids = utc(cp[&quot;since&quot;]), list(cp[&quot;last_ids&quot;])
+    gap = False
+    if since &lt; now - MAX_LOOKBACK:
+        # Content older than 7 days cannot be fetched. Say so instead of
+        # pretending the collection is complete.
+        print(f&quot;GAP {ct}: checkpoint {fmt(since)} is beyond the 7-day window&quot;, file=sys.stderr)
+        since, last_ids, gap = now - MAX_LOOKBACK, [], True
+
+    seen: set[str] = set()
+    total = 0
+    while since &lt; now - SETTLE:
+        end = min(since + timedelta(hours=24), now - SETTLE)
+        pending: list[dict] = []
+        cursor, cursor_ids = since, last_ids
+        for blob in list_blobs(ct, since, end):
+            if blob[&quot;contentId&quot;] in last_ids:
+                continue                    # already ingested before a restart
+            for rec in m365_get(blob[&quot;contentUri&quot;]).json():
+                rid = rec.get(&quot;Id&quot;)
+                if rid in seen:
+                    continue                # duplicates are expected (section 6)
+                seen.add(rid)
+                pending.append(to_dt_record(rec, ct, blob[&quot;contentId&quot;], now))
+            created = utc(blob[&quot;contentCreated&quot;]).replace(microsecond=0)
+            cursor_ids = cursor_ids + [blob[&quot;contentId&quot;]] if created == cursor else [blob[&quot;contentId&quot;]]
+            cursor = created
+            if len(pending) &gt;= INGEST_BATCH:
+                ingest(pending)
+                total += len(pending)
+                pending = []
+                write_checkpoint(ct, cursor, cursor_ids)   # only after success
+        if pending:
+            ingest(pending)
+            total += len(pending)
+        # The whole window is done: the next one starts at its exclusive end.
+        since, last_ids = end, []
+        write_checkpoint(ct, since, last_ids)
+    return total, gap
+
+
+if __name__ == &quot;__main__&quot;:
+    ensure_subscriptions()
+    any_gap = False
+    for content_type in CONTENT_TYPES:
+        count, had_gap = collect(content_type)
+        any_gap |= had_gap
+        print(f&quot;{content_type}: ingested {count} records&quot;)
+    sys.exit(2 if any_gap else 0)
+</code></pre>
+<h3>9.3 What in that code is load-bearing</h3>
+<table>
+<thead>
+<tr>
+<th>Detail</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>PublisherIdentifier</code> on every call, including the blob GET</strong></td>
+<td>Without it your calls share a pool with every other caller and are throttled</td>
+</tr>
+<tr>
+<td><strong><code>AF429</code> checked in the body, not just HTTP 429</strong></td>
+<td>Microsoft's own example of throttling arrives as HTTP 403</td>
+</tr>
+<tr>
+<td><strong><code>NextPageUri</code> followed to the end</strong></td>
+<td>A busy tenant's listing is paged; stopping at page one loses blobs silently</td>
+</tr>
+<tr>
+<td><strong><code>timestamp</code> only under 23 h</strong></td>
+<td>§ 5 — the record is otherwise dropped with a <code>200</code></td>
+</tr>
+<tr>
+<td><strong><code>200</code> raises</strong></td>
+<td>It is a partial ingest. The checkpoint stays where it was</td>
+</tr>
+<tr>
+<td><strong>Checkpoint written after ingest, atomically</strong></td>
+<td>A failed run re-reads; a torn file cannot point past unread content</td>
+</tr>
+<tr>
+<td><strong>Exit code 2 on a 7-day gap</strong></td>
+<td>Content older than 7 days cannot be fetched. Report it rather than clamp past it quietly</td>
+</tr>
+<tr>
+<td><strong><code>SETTLE</code> of 5 minutes</strong></td>
+<td>A window is not closed on its newest few minutes, in case a just-published blob is not listed yet</td>
+</tr>
+</tbody>
+</table>
+<h3>9.4 Where to run it</h3>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>Fit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Azure Functions (timer trigger)</strong></td>
+<td>Natural fit — certificate in Key Vault, checkpoint in Table or Blob Storage rather than a file</td>
+</tr>
+<tr>
+<td><strong>Kubernetes <code>CronJob</code></strong></td>
+<td>Good if you already run Kubernetes; persistent volume for the checkpoint</td>
+</tr>
+<tr>
+<td><strong>A VM with cron or a systemd timer</strong></td>
+<td>Works; keep the checkpoint on persistent disk</td>
+</tr>
+</tbody>
+</table>
+<p>Whatever runs it needs monitoring of its own — see § 14.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://pypi.org/project/msal/">msal on PyPI</a>; <a href="https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference">Management Activity API reference (Microsoft Learn)</a>; <a href="https://learn.microsoft.com/en-us/office/office-365-management-api/troubleshooting-the-office-365-management-activity-api">Troubleshooting the Management Activity API (Microsoft Learn)</a> — <em>&quot;Response Code 403&quot;</em> in the throttling example; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs">POST ingest logs (DT docs)</a> — <em>&quot;Only a part of input events were ingested due to event invalidity.&quot;</em> <strong>Observation (10/27/2026):</strong> the <code>private_key_pfx_path</code> form and the deprecation of the SHA-1 form were read from <code>msal</code> 1.39.0's own docstring.</sub></p>
+</blockquote>
+<hr />
+<p><a id="workflow"></a></p>
+<h2>10. Implementation B — Dynatrace Workflow</h2>
+<h3>10.1 Set up first</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Start the subscriptions</strong></td>
+<td>Once per content type: <code>POST /subscriptions/start?contentType=…</code> — or run the Python collector once, which does it</td>
+<td>The Workflow below lists and fetches; it does not start subscriptions</td>
+</tr>
+<tr>
+<td><strong>2. Credential Vault entry</strong></td>
+<td>Client ID as username, client secret as password; <strong>AppEngine</strong> scope, <strong>Allow access without app context</strong> on, workflow actor granted access</td>
+<td>Workflow JavaScript runs without an app context; a credential missing any of the three cannot be read</td>
+</tr>
+<tr>
+<td><strong>3. Outbound allowlist</strong></td>
+<td><code>login.microsoftonline.com</code> and <code>manage.office.com</code> under <strong>Settings &gt; General &gt; External requests</strong></td>
+<td>Every HTTP call from the task is checked against this list</td>
+</tr>
+<tr>
+<td><strong>4. Standard workflow</strong></td>
+<td>Not a simple workflow</td>
+<td>Simple workflows have no <strong>Run JavaScript</strong> action</td>
+</tr>
+<tr>
+<td><strong>5. Test the checkpoint store</strong></td>
+<td>A two-task workflow: <code>setAppState</code> in the first, <code>getAppState</code> in the second</td>
+<td>See the note below</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Verify app state works from a workflow before you schedule this.</strong> The collector keeps its checkpoint in app state through <code>stateClient</code>, as FAQ-23's does. Two Dynatrace pages leave open whether a Run JavaScript task can reach app state: the state service says states <em>&quot;are only accessible from their respective apps&quot;</em>, and the Run JavaScript page says <em>&quot;JavaScript tasks run without an app context.&quot;</em> If the test value does not come back, keep the checkpoint in a store the workflow can read and write; nothing else in the design changes.</p>
+</blockquote>
+<h3>10.2 The collector</h3>
+<p>A single <strong>Run JavaScript</strong> action on a 5–15 minute schedule. Checked against the <code>@dynatrace-sdk/client-classic-environment-v2</code> 9.1.0 and <code>@dynatrace-sdk/client-state</code> 1.11.0 typings and run against mocked SDK and Microsoft endpoints on 10/27/2026; not yet run in a workflow against a live tenant.</p>
+<pre><code class="language-javascript">import { credentialVaultClient, logsClient } from &quot;@dynatrace-sdk/client-classic-environment-v2&quot;;
+import { stateClient, isNotFound } from &quot;@dynatrace-sdk/client-state&quot;;
+
+const M365_CREDENTIAL_ID = &quot;CREDENTIALS_VAULT-XXXXXXXXXXXXXXXX&quot;; // username = client ID, password = secret
+const TENANT_ID     = &quot;00000000-0000-0000-0000-000000000000&quot;;
+const API_ROOT      = &quot;https://manage.office.com&quot;;
+const FEED          = `${API_ROOT}/api/v1.0/${TENANT_ID}/activity/feed`;
+const PUBLISHER     = TENANT_ID;
+const CONTENT_TYPES = [&quot;Audit.Exchange&quot;, &quot;Audit.SharePoint&quot;, &quot;Audit.General&quot;, &quot;DLP.All&quot;];
+const LOG_SOURCE    = &quot;microsoft365.audit&quot;;
+const TIME_BUDGET_MS = 90 * 1000;          // stop well before the 120 s ceiling
+const INGEST_BATCH  = 1000;
+const MAX_EVENT_AGE_MS = 23 * 3600 * 1000; // ingest drops timestamps &gt; 24 h old (§ 5)
+const LOOKBACK_MS   = 7 * 24 * 3600 * 1000 - 10 * 60 * 1000;
+const SETTLE_MS     = 5 * 60 * 1000;
+const DAY_MS        = 24 * 3600 * 1000;
+
+const fmt = (d) =&gt; d.toISOString().slice(0, 19);                 // YYYY-MM-DDTHH:MM:SS
+const utc = (s) =&gt; new Date(/Z|[+-]\d\d:\d\d$/.test(s) ? s : `${s}Z`);
+
+export default async function () {
+  const started = Date.now();
+  const outOfTime = () =&gt; Date.now() - started &gt; TIME_BUDGET_MS;
+
+  // --- 1. Token (client secret from the Credential Vault) -----------------
+  const creds = await credentialVaultClient.getCredentialsDetails({ id: M365_CREDENTIAL_ID });
+  const tokenRes = await fetch(`https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`, {
+    method: &quot;POST&quot;,
+    headers: { &quot;Content-Type&quot;: &quot;application/x-www-form-urlencoded&quot; },
+    body: new URLSearchParams({
+      grant_type: &quot;client_credentials&quot;,
+      client_id: creds.username,
+      client_secret: creds.password,
+      scope: `${API_ROOT}/.default`,
+    }).toString(),
+  });
+  if (!tokenRes.ok) throw new Error(`Entra ID token failed: ${tokenRes.status} ${await tokenRes.text()}`);
+  const { access_token } = await tokenRes.json();
+
+  const m365 = async (url) =&gt; {
+    const u = new URL(url);
+    if (!u.searchParams.has(&quot;PublisherIdentifier&quot;)) u.searchParams.set(&quot;PublisherIdentifier&quot;, PUBLISHER);
+    const res = await fetch(u, { headers: { Authorization: `Bearer ${access_token}` } });
+    const text = await res.text();
+    // Throttling is AF429, sometimes on HTTP 403. Stop; the next run resumes.
+    if (res.status === 429 || text.slice(0, 200).includes(&quot;AF429&quot;)) return { throttled: true };
+    if (!res.ok) throw new Error(`Management API ${res.status}: ${text.slice(0, 500)}`);
+    return { body: JSON.parse(text), next: res.headers.get(&quot;NextPageUri&quot;) };
+  };
+
+  const ingest = async (records) =&gt; {
+    for (let i = 0; i &lt; records.length; i += INGEST_BATCH) {
+      const result = await logsClient.storeLog({
+        type: &quot;application/json; charset=utf-8&quot;,
+        body: records.slice(i, i + INGEST_BATCH),
+      });
+      // storeLog resolves empty on 204 and returns a body on 200, which is a
+      // PARTIAL ingest — some records were dropped. Fail before the checkpoint moves.
+      if (result) throw new Error(`Dynatrace partial ingest: ${JSON.stringify(result)}`);
+    }
+  };
+
+  const summary = {};
+  for (const ct of CONTENT_TYPES) {
+    if (outOfTime()) break;
+    const key = `m365-audit-${ct}`;
+    const now = new Date();
+
+    // --- 2. Checkpoint ------------------------------------------------------
+    let cp = { since: fmt(new Date(now - DAY_MS)), lastIds: [] };
+    try {
+      const saved = await stateClient.getAppState({ key });
+      if (saved?.value) cp = JSON.parse(saved.value);
+    } catch (e) {
+      if (!isNotFound(e)) throw e;     // first run has no checkpoint yet
+    }
+    let since = utc(cp.since);
+    let lastIds = cp.lastIds;
+    let gap = false;
+    if (now - since &gt; LOOKBACK_MS) {   // older than Microsoft keeps content
+      since = new Date(now - LOOKBACK_MS); lastIds = []; gap = true;
+    }
+    const end = new Date(Math.min(since.getTime() + DAY_MS, now - SETTLE_MS));
+    if (end &lt;= since) { summary[ct] = { ingested: 0, gap }; continue; }
+
+    // --- 3. List every blob in [since, end), following NextPageUri -----------
+    const blobs = [];
+    let url = `${FEED}/subscriptions/content?contentType=${ct}&amp;startTime=${fmt(since)}&amp;endTime=${fmt(end)}`;
+    let throttled = false;
+    while (url) {
+      const page = await m365(url);
+      if (page.throttled) { throttled = true; break; }
+      blobs.push(...page.body);
+      url = page.next;
+    }
+    if (throttled) { summary[ct] = { throttled: true, gap }; continue; }
+    blobs.sort((a, b) =&gt; a.contentCreated.localeCompare(b.contentCreated));
+
+    // --- 4. Fetch, transform, ingest, checkpoint -----------------------------
+    const seen = new Set();
+    let pending = [], total = 0, finished = true;
+    let cursor = since, cursorIds = lastIds;
+    for (const blob of blobs) {
+      if (lastIds.includes(blob.contentId)) continue;
+      if (outOfTime()) { finished = false; break; }
+      const got = await m365(blob.contentUri);
+      if (got.throttled) { finished = false; break; }
+      const collectedAt = new Date().toISOString();
+      for (const rec of got.body) {
+        if (seen.has(rec.Id)) continue;    // duplicates are expected (§ 6)
+        seen.add(rec.Id);
+        const record = {
+          content: JSON.stringify(rec),
+          &quot;log.source&quot;: LOG_SOURCE,
+          &quot;audit.id&quot;: rec.Id,
+          &quot;audit.action&quot;: rec.Operation,
+          &quot;audit.identity&quot;: rec.UserId,
+          &quot;audit.result&quot;: rec.ResultStatus,
+          &quot;m365.content_type&quot;: ct,
+          &quot;m365.workload&quot;: rec.Workload,
+          &quot;m365.record_type&quot;: rec.RecordType,
+          &quot;m365.client_ip&quot;: rec.ClientIP,
+          &quot;m365.object_id&quot;: rec.ObjectId,
+          &quot;m365.content_id&quot;: blob.contentId,
+          &quot;m365.collected_at&quot;: collectedAt,
+        };
+        if (rec.CreationTime) {
+          const eventTime = utc(rec.CreationTime);
+          record[&quot;m365.creation_time&quot;] = eventTime.toISOString();
+          if (Date.now() - eventTime &lt; MAX_EVENT_AGE_MS) record.timestamp = eventTime.toISOString();
+        }
+        pending.push(record);
+      }
+      const created = new Date(utc(blob.contentCreated).setUTCMilliseconds(0));
+      cursorIds = created.getTime() === cursor.getTime() ? [...cursorIds, blob.contentId] : [blob.contentId];
+      cursor = created;
+    }
+
+    if (pending.length) { await ingest(pending); total += pending.length; }
+    // A finished window advances to its exclusive end; an interrupted one
+    // resumes after the last blob ingested.
+    const next = finished ? { since: fmt(end), lastIds: [] } : { since: fmt(cursor), lastIds: cursorIds };
+    await stateClient.setAppState({ key, body: { value: JSON.stringify(next) } });
+    summary[ct] = { ingested: total, finished, gap };
+  }
+
+  // Keep the task result small (6 MB limit): counts only.
+  return summary;
+}
+</code></pre>
+<h3>10.3 What in that code is load-bearing</h3>
+<table>
+<thead>
+<tr>
+<th>Detail</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>TIME_BUDGET_MS</code> of 90 s</strong></td>
+<td>Stops fetching before the 120 s ceiling and saves where it got to. The next run resumes</td>
+</tr>
+<tr>
+<td><strong><code>storeLog</code> result checked</strong></td>
+<td>The SDK resolves with nothing on <code>204</code> and with a body on <code>200</code>. A body means records were dropped (§ 5)</td>
+</tr>
+<tr>
+<td><strong><code>finished</code> in the result</strong></td>
+<td><code>false</code> means the content type did not drain in one run. Persistently <code>false</code> means the tenant is too busy for a Workflow — move to Python</td>
+</tr>
+<tr>
+<td><strong>One window per content type per run</strong></td>
+<td>Keeps every run inside the ceiling. A long outage drains across many runs</td>
+</tr>
+<tr>
+<td><strong>Counts only in the return value</strong></td>
+<td>The task result is limited to 6 MB</td>
+</tr>
+<tr>
+<td><strong>No TTL on the app state</strong></td>
+<td>A checkpoint that expires silently restarts the collector at &quot;the last 24 hours&quot;</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a> — <em>&quot;The AppEngine scope is selected.&quot;</em>; <em>&quot;All HTTP calls are validated against the global allowlist.&quot;</em>; <em>&quot;JavaScript tasks run without an app context.&quot;</em></sub></li>
+<li><sub><a href="https://developer.dynatrace.com/develop/platform-services/services/state-service/">State service (Dynatrace Developer)</a> — <em>&quot;These states are only accessible from their respective apps and can't be accessed using a different app or ad-hoc functions.&quot;</em></sub></li>
+<li><sub><a href="https://developer.dynatrace.com/develop/reference/javascript-runtime/">JavaScript runtime (Dynatrace Developer)</a> — <em>&quot;Function execution times out after 120 seconds.&quot;</em></sub></li>
+<li><sub><strong>Observation (10/27/2026):</strong> <code>storeLog</code> returning <code>SuccessEnvelope | void</code> — a body on <code>200</code>, nothing on <code>204</code> — was read from <code>@dynatrace-sdk/client-classic-environment-v2</code> 9.1.0</sub></li>
+</ul>
+</blockquote>
+<hr />
+<p><a id="ingestion"></a></p>
+<h2>11. Ingestion, Processing, and Storage</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+TWFuYWdlbWVudCBBY3Rpdml0eSBBUEkgQ29sbGVjdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPk1pY3Jvc29mdCBsaXN0cyBibG9icyBieSB3aGVuIHRoZXkgd2VyZSBwdWJsaXNoZWQsIG5vdCB3aGVuIHRoZSBldmVudHMgaGFwcGVuZWQuIFRoZSBjaGVja3BvaW50IGZvbGxvd3MgdGhhdCBjbG9jay48L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI4IiByZWZYPSI5IiByZWZZPSI0IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw0IEwwLDggWiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0N5YW4iIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI4IiByZWZYPSI5IiByZWZZPSI0IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw0IEwwLDggWiIgZmlsbD0iIzIyRDNFRSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIDEgVG9rZW4gLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjkwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE1MCIgcng9IjgiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiLz4KICA8cmVjdCB4PSIyMCIgeT0iOTAiIHdpZHRoPSIxNjAiIGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxMDAiIHk9IjExNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+MS4gRW50cmEgSUQgdG9rZW48L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjEzOCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Q2xpZW50IGNyZWRlbnRpYWxzPC90ZXh0PgogIDx0ZXh0IHg9IjM0IiB5PSIxNTQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkNlcnRpZmljYXRlIChQeXRob24pPC90ZXh0PgogIDx0ZXh0IHg9IjM0IiB5PSIxNzAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm9yIHNlY3JldCAoV29ya2Zsb3cpPC90ZXh0PgogIDx0ZXh0IHg9IjM0IiB5PSIxOTIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+bWFuYWdlLm9mZmljZS5jb208L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjIxMCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMC41IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj4vLmRlZmF1bHQ8L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjIyOCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5jbGFpbTogQWN0aXZpdHlGZWVkLlJlYWQ8L3RleHQ+CiAgPGxpbmUgeDE9IjE4MCIgeTE9IjE2NSIgeDI9IjIwMiIgeTI9IjE2NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gMiBMaXN0IC0tPgogIDxyZWN0IHg9IjIwNCIgeT0iOTAiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIvPgogIDxyZWN0IHg9IjIwNCIgeT0iOTAiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIyODkiIHk9IjExNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Mi4gTGlzdCBjb250ZW50PC90ZXh0PgogIDx0ZXh0IHg9IjIxOCIgeT0iMTM4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5QZXIgY29udGVudCB0eXBlPC90ZXh0PgogIDx0ZXh0IHg9IjIxOCIgeT0iMTU0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5XaW5kb3cgJiM4ODA0OyAyNCBoLCBzdGFydDwvdGV4dD4KICA8dGV4dCB4PSIyMTgiIHk9IjE3MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+JiM4ODA0OyA3IGRheXMgYmFjazwvdGV4dD4KICA8dGV4dCB4PSIyMTgiIHk9IjE5MCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMC41IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5jb250ZW50Q3JlYXRlZDwvdGV4dD4KICA8dGV4dCB4PSIyMTgiIHk9IjIxMCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Rm9sbG93IE5leHRQYWdlVXJpPC90ZXh0PgogIDx0ZXh0IHg9IjIxOCIgeT0iMjI2IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj51bnRpbCBpdCBpcyBhYnNlbnQ8L3RleHQ+CiAgPGxpbmUgeDE9IjM3NCIgeTE9IjE2NSIgeDI9IjM5NiIgeTI9IjE2NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gMyBGZXRjaCAtLT4KICA8cmVjdCB4PSIzOTgiIHk9IjkwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE1MCIgcng9IjgiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiLz4KICA8cmVjdCB4PSIzOTgiIHk9IjkwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE1MCIgcng9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNDc4IiB5PSIxMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPjMuIEZldGNoIGJsb2JzPC90ZXh0PgogIDx0ZXh0IHg9IjQxMiIgeT0iMTM4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5HRVQgZWFjaCBjb250ZW50VXJpPC90ZXh0PgogIDx0ZXh0IHg9IjQxMiIgeT0iMTU0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4xIGJsb2IgPSAxLi5OIHJlY29yZHM8L3RleHQ+CiAgPHRleHQgeD0iNDEyIiB5PSIxNzYiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+UHVibGlzaGVySWRlbnRpZmllcjwvdGV4dD4KICA8dGV4dCB4PSI0MTIiIHk9IjE5MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+b24gZXZlcnkgY2FsbDwvdGV4dD4KICA8dGV4dCB4PSI0MTIiIHk9IjIxNCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QmFjayBvZmYgb24gQUY0Mjk8L3RleHQ+CiAgPGxpbmUgeDE9IjU1OCIgeTE9IjE2NSIgeDI9IjU4MCIgeTI9IjE2NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gNCBUcmFuc2Zvcm0gLS0+CiAgPHJlY3QgeD0iNTgyIiB5PSI5MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4Ii8+CiAgPHJlY3QgeD0iNTgyIiB5PSI5MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjY2MiIgeT0iMTE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj40LiBUcmFuc2Zvcm08L3RleHQ+CiAgPHRleHQgeD0iNTk2IiB5PSIxMzgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRlZHVwZSBvbiByZWNvcmQgSWQ8L3RleHQ+CiAgPHRleHQgeD0iNTk2IiB5PSIxNTQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPktlZXAgQ3JlYXRpb25UaW1lIGFzPC90ZXh0PgogIDx0ZXh0IHg9IjU5NiIgeT0iMTcwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwLjUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPm0zNjUuY3JlYXRpb25fdGltZTwvdGV4dD4KICA8dGV4dCB4PSI1OTYiIHk9IjE5MiIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+U3RhbXAgdGltZXN0YW1wIG9ubHk8L3RleHQ+CiAgPHRleHQgeD0iNTk2IiB5PSIyMDgiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPmlmICZsdDsgMjMgaCBvbGQ8L3RleHQ+CiAgPGxpbmUgeDE9Ijc0MiIgeTE9IjE2NSIgeDI9Ijc2NCIgeTI9IjE2NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gNSBJbmdlc3QgLS0+CiAgPHJlY3QgeD0iNzY2IiB5PSI5MCIgd2lkdGg9IjE0NCIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4Ii8+CiAgPHJlY3QgeD0iNzY2IiB5PSI5MCIgd2lkdGg9IjE0NCIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjgzOCIgeT0iMTE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj41LiBJbmdlc3Q8L3RleHQ+CiAgPHRleHQgeD0iNzgwIiB5PSIxMzgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkxvZyBJbmdlc3QgQVBJIHYyPC90ZXh0PgogIDx0ZXh0IHg9Ijc4MCIgeT0iMTU0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4xMCBNQiAvIDUwLDAwMDwvdGV4dD4KICA8dGV4dCB4PSI3ODAiIHk9IjE3MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cmVjb3JkcyBwZXIgcmVxdWVzdDwvdGV4dD4KICA8dGV4dCB4PSI3ODAiIHk9IjE5MiIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+MjAwID0gcGFydGlhbDo8L3RleHQ+CiAgPHRleHQgeD0iNzgwIiB5PSIyMDgiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPnJlY29yZHMgZHJvcHBlZDwvdGV4dD4KCiAgPCEtLSBDaGVja3BvaW50IHN0b3JlIC0tPgogIDxyZWN0IHg9IjIwNCIgeT0iMjkwIiB3aWR0aD0iMzU0IiBoZWlnaHQ9IjEwNCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIzODEiIHk9IjMxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Q2hlY2twb2ludCAmIzgyMTI7IG9uZSBwZXIgY29udGVudCB0eXBlPC90ZXh0PgogIDx0ZXh0IHg9IjIyMCIgeT0iMzM4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5zaW5jZTwvdGV4dD4KICA8dGV4dCB4PSIzMDAiIHk9IjMzOCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Y29udGVudENyZWF0ZWQgb2YgdGhlIGxhc3QgYmxvYiBpbmdlc3RlZDwvdGV4dD4KICA8dGV4dCB4PSIyMjAiIHk9IjM1OCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+bGFzdElkczwvdGV4dD4KICA8dGV4dCB4PSIzMDAiIHk9IjM1OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Y29udGVudElkcyBpbiB0aGF0IHNlY29uZCAoc3RhcnQgaXMgaW5jbHVzaXZlKTwvdGV4dD4KICA8dGV4dCB4PSIyMjAiIHk9IjM4MCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+V3JpdHRlbiBvbmx5IGFmdGVyIHRoZSBpbmdlc3Qgc3VjY2VlZHM8L3RleHQ+CgogIDxwYXRoIGQ9Ik0yODksMjQwIEwyODksMjkwIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0N5YW4pIi8+CiAgPHBhdGggZD0iTTgzOCwyNDAgTDgzOCwzNDIgTDU1OCwzNDIiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93Q3lhbikiLz4KICA8dGV4dCB4PSI3MDAiIHk9IjMzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5hZHZhbmNlIG9uIHN1Y2Nlc3M8L3RleHQ+CgogIDwhLS0gRm9vdGVyIC0tPgogIDxyZWN0IHg9IjIwIiB5PSI0MjAiIHdpZHRoPSI4OTAiIGhlaWdodD0iNTgiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNDAiIHk9IjQ0NCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+T3V0YWdlIGJ1ZGdldDogNyBkYXlzLjwvdGV4dD4KICA8dGV4dCB4PSIyMDAiIHk9IjQ0NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+Q29udGVudCBjYW4gYmUgZmV0Y2hlZCBmb3IgNyBkYXlzIGFmdGVyIGl0IGlzIHB1Ymxpc2hlZC4gQSBjaGVja3BvaW50IG9sZGVyIHRoYW4gdGhhdCBoYXMgYSBnYXA8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjQ2NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+bm8gQVBJIGNhbGwgY2FuIGZpbGwgJiM4MjEyOyB0aGUgY29sbGVjdG9yIHNob3VsZCByZXBvcnQgaXQsIG5vdCBzaWxlbnRseSBjbGFtcCBwYXN0IGl0LjwvdGV4dD4KPC9zdmc+Cg==" alt="Management Activity API Collector" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Component | Key constraint |
+|------|-----------|----------------|
+| 1 | Entra ID token | Client credentials; certificate (Python) or secret (Workflow); scope manage.office.com/.default; token must carry ActivityFeed.Read |
+| 2 | List content | Per content type; window at most 24 h, start at most 7 days back; filters on contentCreated; follow NextPageUri until absent |
+| 3 | Fetch blobs | GET each contentUri; one blob holds one or more records; PublisherIdentifier on every call; back off on AF429 |
+| 4 | Transform | Dedupe on record Id; keep CreationTime as m365.creation_time; stamp timestamp only if under 23 h old |
+| 5 | Ingest | Log Ingest API v2; 10 MB and 50,000 records per request; 200 means records were dropped |
+| Checkpoint | One per content type | since = contentCreated of the last blob ingested; lastIds = contentIds in that second; written only after the ingest succeeds |
+| Outage budget | 7 days | Content can be fetched for 7 days after it is published; an older checkpoint is a gap to report |
+-->
+<h3>11.1 Ingest limits</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Payload per request</td>
+<td><strong>10 MB</strong></td>
+<td>Both collectors send 1,000 records per request</td>
+</tr>
+<tr>
+<td>Records per request</td>
+<td><strong>50,000</strong></td>
+<td>Rarely binding</td>
+</tr>
+<tr>
+<td>After processing</td>
+<td>Rejected above <strong>16 MB</strong></td>
+<td>A batch can grow during processing; halve on <code>413</code> (the Python collector does)</td>
+</tr>
+<tr>
+<td>Log age</td>
+<td><strong>72 h</strong> (environments created after SaaS 1.348) or <strong>24 h</strong> (older; 72 h on request)</td>
+<td>§ 5</td>
+</tr>
+</tbody>
+</table>
+<h3>11.2 Extract, then discard — selectively</h3>
+<p>FAQ-19 § 4 holds the mechanics and the stage-order trap: discard with <strong><code>No storage assignment</code></strong> in the Bucket assignment stage, never <strong><code>Drop record</code></strong> in Processing, or the metrics you meant to extract are never built.</p>
+<p>Audit is the case where discarding needs the most care. Some of it exists to be produced on request, months later, and a counter cannot answer &quot;who opened this file.&quot; Decide with whoever owns compliance:</p>
+<table>
+<thead>
+<tr>
+<th>Records</th>
+<th>Typical posture</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Admin and configuration changes, permission and sharing changes, mailbox-permission changes, DLP matches</td>
+<td><strong>Keep</strong> for the full audit retention period</td>
+</tr>
+<tr>
+<td>Sign-in failures and unusual sign-ins</td>
+<td><strong>Keep</strong> (they arrive by Route A)</td>
+</tr>
+<tr>
+<td>High-volume reads — <code>FileAccessed</code>, <code>MailItemsAccessed</code>, page views</td>
+<td><strong>Extract counts, then decide.</strong> Keep raw only where a regulation or an investigation process requires it</td>
+</tr>
+</tbody>
+</table>
+<h3>11.3 Isolation and masking</h3>
+<p>Put both routes into a <strong>dedicated bucket</strong> (<strong>ORGNZ</strong>): audit retention is usually longer than application-log retention, and this data should be readable by security and compliance, not by everyone who can read logs.</p>
+<p>Set <code>dt.security_context</code> in the pipeline so an IAM policy can scope it — and read <strong>FAQ-24</strong> first: where <code>dt.security_context</code> holds an array, <code>=</code> or <code>IN</code> against it is always false.</p>
+<p>Mask in the Processing stage before storage: for SharePoint and OneDrive, <code>ObjectId</code> holds the full path of the file or folder accessed. Hash where you need correlation without identity — remembering that a hash of a corporate email address can be enumerated.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log ingestion limits (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment">Configure data storage and retention for logs (DT docs)</a> — <em>&quot;This means you can extract metrics and generate alerts from records that you won't store.&quot;</em>; <a href="https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-schema">Management Activity API schema (Microsoft Learn)</a>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="field-mapping"></a></p>
+<h2>12. Field Mapping Starting Point</h2>
+<p>The collectors map Microsoft's common schema onto semantic-dictionary fields where one exists, and onto <code>m365.*</code> where none does. Mapping to <code>audit.*</code> is what lets a Microsoft 365 record sit next to records from other audit sources in one query.</p>
+<table>
+<thead>
+<tr>
+<th>Microsoft field</th>
+<th>Dynatrace field</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td><code>audit.id</code></td>
+<td><strong>Duplicate key</strong> — unique per audit record</td>
+</tr>
+<tr>
+<td><code>Operation</code></td>
+<td><code>audit.action</code></td>
+<td><code>FileDownloaded</code>, <code>MailItemsAccessed</code>, <code>Set-Mailbox</code>, … — the primary dimension</td>
+</tr>
+<tr>
+<td><code>UserId</code></td>
+<td><code>audit.identity</code></td>
+<td>The UPN. Includes system accounts and <code>app@sharepoint</code></td>
+</tr>
+<tr>
+<td><code>ResultStatus</code></td>
+<td><code>audit.result</code></td>
+<td><code>Succeeded</code> / <code>PartiallySucceeded</code> / <code>Failed</code>; <code>True</code> / <code>False</code> for Exchange admin</td>
+</tr>
+<tr>
+<td><code>CreationTime</code></td>
+<td><code>m365.creation_time</code>, and <code>timestamp</code> when under 23 h old</td>
+<td>UTC with no suffix — append <code>Z</code> (§ 5)</td>
+</tr>
+<tr>
+<td><code>Workload</code></td>
+<td><code>m365.workload</code></td>
+<td><code>Exchange</code>, <code>SharePoint</code>, <code>OneDrive</code>, <code>MicrosoftTeams</code>, …</td>
+</tr>
+<tr>
+<td><code>RecordType</code></td>
+<td><code>m365.record_type</code></td>
+<td>An integer enum; <code>6</code> is a SharePoint file operation</td>
+</tr>
+<tr>
+<td><code>ClientIP</code></td>
+<td><code>m365.client_ip</code></td>
+<td>Kept as a string: some services send a trusted application's address, and Entra ID events send none. Convert with <code>toIp()</code> in the pipeline once you have seen your data</td>
+</tr>
+<tr>
+<td><code>ObjectId</code></td>
+<td><code>m365.object_id</code></td>
+<td>File path or object name — mask (§ 11.3)</td>
+</tr>
+<tr>
+<td>(blob) <code>contentId</code></td>
+<td><code>m365.content_id</code></td>
+<td>Ties a record back to the blob it came from</td>
+</tr>
+<tr>
+<td>(collector)</td>
+<td><code>m365.content_type</code>, <code>m365.collected_at</code></td>
+<td>Which subscription, and when it was collected (§ 14.1)</td>
+</tr>
+</tbody>
+</table>
+<p><code>audit.id</code> is <code>experimental</code> in the semantic dictionary and <code>client.ip</code> is too; <code>audit.action</code>, <code>audit.identity</code> and <code>audit.result</code> are <code>stable</code>. An experimental field can change name — check the dictionary before building a dashboard on one.</p>
+<p>If you also forward Entra ID through Route A, map both routes' user field to the same name. Correlating a file download with the sign-in before it is one of the most useful things this data does, and it only works if the user is spelled the same way in both.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-schema">Management Activity API schema (Microsoft Learn)</a> — <em>&quot;Unique identifier of an audit record.&quot;</em>; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/fields">Global field reference (DT docs)</a>. <strong>Dictionary:</strong> <code>audit.action</code>, <code>audit.identity</code>, <code>audit.result</code> (<code>stable</code>); <code>audit.id</code>, <code>audit.time</code>, <code>client.ip</code> (<code>experimental</code>), read 10/27/2026.</sub></p>
+</blockquote>
+<hr />
+<p><a id="querying"></a></p>
+<h2>13. Querying Audit Records in Grail</h2>
+<p>§ 13.1 and § 13.2 run against synthetic records at zero bytes scanned — swap the <code>data record(...)</code> lines for <code>fetch logs, from:-24h | filter log.source == &quot;microsoft365.audit&quot;</code> once data flows. § 13.3 and § 13.4 read real logs and are billed as queries.</p>
+<h3>13.1 Parse a raw record</h3>
+<p>Both collectors put the raw record in <code>content</code> and the main fields alongside it. Parsing <code>content</code> is useful while validating, and for fields the collectors do not lift out:</p>
+<pre><code class="language-dql">// Parse a raw Microsoft 365 audit record into semantic-dictionary fields.
+// Runs standalone against a synthetic record — zero bytes scanned.
+// CreationTime has no time-zone suffix; it is UTC, so append &quot;Z&quot;.
+data record(content = &quot;{\&quot;CreationTime\&quot;:\&quot;2026-10-27T14:03:19\&quot;,\&quot;Id\&quot;:\&quot;80c76bd2-9d81-4c57-a97a-accfc3443dca\&quot;,\&quot;Operation\&quot;:\&quot;FileDownloaded\&quot;,\&quot;OrganizationId\&quot;:\&quot;41463f53-8812-40f4-890f-865bf6e35190\&quot;,\&quot;RecordType\&quot;:6,\&quot;UserKey\&quot;:\&quot;i:0h.f|membership|1003bffd8ec47ca6@live.com\&quot;,\&quot;UserType\&quot;:0,\&quot;Workload\&quot;:\&quot;SharePoint\&quot;,\&quot;ResultStatus\&quot;:\&quot;Succeeded\&quot;,\&quot;ObjectId\&quot;:\&quot;https://contoso.sharepoint.com/sites/finance/Shared Documents/q3-forecast.xlsx\&quot;,\&quot;UserId\&quot;:\&quot;jdoe@contoso.com\&quot;,\&quot;ClientIP\&quot;:\&quot;203.0.113.42\&quot;}&quot;,
+            m365.content_type = &quot;Audit.SharePoint&quot;)
+| parse content, &quot;JSON:rec&quot;
+| fieldsAdd audit.id       = rec[Id],
+            audit.action   = rec[Operation],
+            audit.identity = rec[UserId],
+            audit.result   = rec[ResultStatus],
+            audit.time     = toTimestamp(concat(rec[CreationTime], &quot;Z&quot;)),
+            client.ip      = toIp(rec[ClientIP]),
+            m365.workload  = rec[Workload],
+            m365.record_type = toLong(rec[RecordType]),
+            m365.object_id = rec[ObjectId]
+| fields audit.time, m365.content_type, m365.workload, audit.action, audit.identity, audit.result, client.ip, m365.object_id, audit.id
+</code></pre>
+<h3>13.2 Duplicates — measure them, then count once</h3>
+<p>The first query is the weekly health check: the duplicate rate per content type. The second is the pattern for every report — <code>dedup audit.id</code> before counting, so a record Microsoft delivered twice counts once.</p>
+<pre><code class="language-dql">// Duplicate rate per content type. Microsoft states duplicates are expected
+// and that removing them is the consumer's job.
+// Runs standalone against synthetic records — zero bytes scanned.
+data record(m365.content_type = &quot;Audit.Exchange&quot;,   audit.id = &quot;a1&quot;),
+     record(m365.content_type = &quot;Audit.Exchange&quot;,   audit.id = &quot;a1&quot;),
+     record(m365.content_type = &quot;Audit.Exchange&quot;,   audit.id = &quot;a2&quot;),
+     record(m365.content_type = &quot;Audit.SharePoint&quot;, audit.id = &quot;b1&quot;),
+     record(m365.content_type = &quot;Audit.SharePoint&quot;, audit.id = &quot;b2&quot;)
+| summarize {ingested = count(), unique = countDistinctExact(audit.id)}, by:{m365.content_type}
+| fieldsAdd duplicates = ingested - unique
+| fieldsAdd duplicate_pct = round(100.0 * duplicates / ingested, decimals: 1)
+| sort duplicate_pct desc
+</code></pre>
+<pre><code class="language-dql">// Count each audit record once, however many copies Microsoft delivered.
+// Runs standalone against synthetic records — zero bytes scanned.
+data record(audit.id = &quot;a1&quot;, audit.action = &quot;FileDownloaded&quot;),
+     record(audit.id = &quot;a1&quot;, audit.action = &quot;FileDownloaded&quot;),
+     record(audit.id = &quot;a2&quot;, audit.action = &quot;FileDownloaded&quot;),
+     record(audit.id = &quot;a3&quot;, audit.action = &quot;UserLoggedIn&quot;)
+| dedup audit.id
+| summarize records = count(), by:{audit.action}
+| sort records desc
+</code></pre>
+<h3>13.3 Confirm records landed in the right bucket</h3>
+<p>A record in the wrong bucket is still queryable — it just has the wrong retention and the wrong readers.</p>
+<pre><code class="language-dql">// Which bucket did the audit records land in? Expect your dedicated bucket,
+// not default_logs. An empty result means no data yet — not success.
+fetch logs, from:-24h
+| filter log.source == &quot;microsoft365.audit&quot;
+| summarize records = count(), by:{dt.system.bucket, m365.content_type}
+| sort records desc
+</code></pre>
+<h3>13.4 How late is Microsoft?</h3>
+<p>The number that decides whether § 5 bites. Lag is collection time minus event time; <code>over_23h</code> counts records that arrived with ingest time as <code>timestamp</code>. Checked on 10/27/2026 against two synthetic records 1 hour and 26 hours late, which returned 60 and 1,560 minutes and one record over 23 hours.</p>
+<pre><code class="language-dql">// How late does Microsoft deliver, per content type? Lag is collection time
+// minus event time. Watch p99 against the 24 h ingest window.
+fetch logs, from:-24h
+| filter log.source == &quot;microsoft365.audit&quot;
+| fieldsAdd lag = toTimestamp(m365.collected_at) - toTimestamp(m365.creation_time)
+| summarize {records = count(),
+             p50_min = percentile(lag, 50) / 1m,
+             p99_min = percentile(lag, 99) / 1m,
+             over_23h = countIf(lag &gt; 23h)},
+            by:{m365.content_type}
+| sort p99_min desc
+</code></pre>
+<hr />
+<p><a id="operating"></a></p>
+<h2>14. Operating the Collector</h2>
+<p><strong>The failure mode:</strong> the collector stops — an expired client secret, a revoked consent, a full disk. It produces no records, and no records looks like a quiet tenant. Microsoft keeps content for 7 days, so an outage nobody notices for a week becomes a permanent gap in the audit trail.</p>
+<h3>14.1 The staleness check — on the right clock</h3>
+<p>Measure freshness on <strong>when records were collected</strong> (<code>m365.collected_at</code>), not on <code>timestamp</code>. Microsoft is normally an hour or more behind, so a check on event time reports an outage every morning. And keep the explicit <code>events == 0</code> branch: with no data, <code>null &gt; 30</code> is false, and the check would report <code>OK</code> for a collector that has never run — the trap FAQ-23 § 13.1 reproduced.</p>
+<pre><code class="language-dql">// Collector health, measured on when records were COLLECTED, not when the
+// events happened — Microsoft's own delay would otherwise read as an outage.
+// The events == 0 branch matters: with no data, null &gt; 30 is false and the
+// check would report OK.
+fetch logs, from:-6h
+| filter log.source == &quot;microsoft365.audit&quot;
+| summarize {events = count(),
+             last_collected = takeMax(toTimestamp(m365.collected_at)),
+             content_types = countDistinctExact(m365.content_type)}
+| fieldsAdd minutes_since_last = round((now() - last_collected) / 1m, decimals: 1)
+| fieldsAdd collector_status = if(events == 0, &quot;NO DATA — collector never ran or is misconfigured&quot;,
+                               else: if(minutes_since_last &gt; 30, &quot;STALLED&quot;,
+                               else: &quot;OK&quot;))
+</code></pre>
+<p>On the validation tenant, with no collector, this returned <code>NO DATA</code> on 10/27/2026 — the branch working as intended. Set the threshold from what you see: a tenant whose busiest content type is quiet at night needs a longer one than 30 minutes, or a check per content type.</p>
+<h3>14.2 What to alert on</h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Severity</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No records collected for longer than your threshold</td>
+<td>High</td>
+<td>The collector is down; the 7-day clock is running</td>
+</tr>
+<tr>
+<td><code>NO DATA</code></td>
+<td>High</td>
+<td>Usually auditing off, consent missing, or the token claim (§ 7.2)</td>
+</tr>
+<tr>
+<td>Collector exit code 2, or a Workflow <code>gap: true</code></td>
+<td>High</td>
+<td>Content has already been lost; record the window for the audit file</td>
+</tr>
+<tr>
+<td>Token request failures</td>
+<td>High</td>
+<td>An expiring client secret announces itself here first</td>
+</tr>
+<tr>
+<td><code>over_23h</code> rising (§ 13.4)</td>
+<td>Medium</td>
+<td>Microsoft is running late; check the collector is not falling behind too</td>
+</tr>
+<tr>
+<td>Duplicate rate rising (§ 13.2)</td>
+<td>Medium</td>
+<td>Usually a checkpoint that is not being written</td>
+</tr>
+<tr>
+<td>Workflow <code>finished: false</code> on every run</td>
+<td>Medium</td>
+<td>The tenant has outgrown a Workflow (§ 10.3)</td>
+</tr>
+</tbody>
+</table>
+<h3>14.3 Recovering from an outage</h3>
+<table>
+<thead>
+<tr>
+<th>Outage length</th>
+<th>Recovery</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Under 7 days</strong></td>
+<td>Restart the collector. It resumes from its checkpoint and walks forward a day at a time. Records more than 23 hours old land with ingest time as <code>timestamp</code> and their real time in <code>m365.creation_time</code></td>
+</tr>
+<tr>
+<td><strong>7 days or more</strong></td>
+<td>The API cannot help: content older than 7 days cannot be fetched. Both collectors report the gap. Records in that window are still searchable in Purview Audit for your audit retention period, and exportable from there — outside this pipeline</td>
+</tr>
+<tr>
+<td><strong>Checkpoint lost</strong></td>
+<td>Both collectors start at &quot;the last 24 hours&quot;. Set the checkpoint back by hand to as far as 7 days to replay; <code>dedup audit.id</code> absorbs the overlap</td>
+</tr>
+</tbody>
+</table>
+<p>Never stop and restart a <strong>subscription</strong> as a recovery step. Microsoft says content published while a subscription was stopped cannot be retrieved afterwards.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://learn.microsoft.com/en-us/office/office-365-management-api/troubleshooting-the-office-365-management-activity-api">Troubleshooting the Management Activity API (Microsoft Learn)</a> — <em>&quot;Content is available to fetch via the API for 7 days after the notification of the content availability.&quot;</em>; <a href="https://learn.microsoft.com/en-us/office/office-365-management-api/office-365-management-activity-api-reference">Management Activity API reference (Microsoft Learn)</a> — <em>&quot;You will not be able to retrieve content that was available between the time the subscription was stopped and restarted.&quot;</em> <strong>Tenant observation (10/27/2026):</strong> the § 14.1 query returned <code>NO DATA</code> with zero records on the validation tenant.</sub></p>
+</blockquote>
+<hr />
+<p><a id="sequence"></a></p>
+<h2>15. Implementation Sequence and Checklist</h2>
+<h3>15.1 Sequence</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Do</th>
+<th>Gate before moving on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. Inventory</strong></td>
+<td>Run § 3.2; install the Hub extension if you want service-health metrics</td>
+<td>Know whether Route A already exists</td>
+</tr>
+<tr>
+<td><strong>2. Route A</strong></td>
+<td>Entra ID diagnostic settings → Event Hub → Azure log forwarding; enable the Entra ID bundle</td>
+<td>Sign-ins arriving (§ 3.2)</td>
+</tr>
+<tr>
+<td><strong>3. Microsoft side</strong></td>
+<td>Verify auditing (§ 7.1); register the app, grant consent, check the token's claim (§ 7.2)</td>
+<td>A manual <code>subscriptions/list</code> call succeeds</td>
+</tr>
+<tr>
+<td><strong>4. Dynatrace side</strong></td>
+<td>Bucket, security context, pipeline; token or Credential Vault entry; allowlist and checkpoint test for a Workflow</td>
+<td>A test run reaches Microsoft and writes a checkpoint</td>
+</tr>
+<tr>
+<td><strong>5. Collector</strong></td>
+<td>Python (§ 9) or Workflow (§ 10)</td>
+<td>Records in the right bucket (§ 13.3)</td>
+</tr>
+<tr>
+<td><strong>6. Prove the timestamp rule</strong></td>
+<td>Stop the collector for more than a day, then restart it</td>
+<td>Records over 23 h old arrive with <code>m365.creation_time</code> set, and the ingest log shows no <code>200</code></td>
+</tr>
+<tr>
+<td><strong>7. Operate</strong></td>
+<td>Staleness alert, duplicate check, lag check</td>
+<td>Alerts proven by stopping the collector</td>
+</tr>
+<tr>
+<td><strong>8. Downstream</strong></td>
+<td>Dashboards, alert routing per FAQ-21</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Phase 6 is the one teams skip, and it is the only way to find out whether the collector loses records before an auditor does.</p>
+<h3>15.2 Checklist</h3>
+<p><strong>Microsoft side</strong></p>
+<ul>
+<li>[ ] <code>UnifiedAuditLogIngestionEnabled</code> is <code>True</code> (checked in Exchange Online PowerShell)</li>
+<li>[ ] App registered with the <strong>Office 365 Management APIs</strong> application permission, admin consent granted</li>
+<li>[ ] Token's <code>roles</code> claim includes <code>ActivityFeed.Read</code></li>
+<li>[ ] Certificate (Python) or secret (Workflow) stored, with its expiry date recorded</li>
+<li>[ ] Subscriptions started for each content type you collect — and not for <code>Audit.AzureActiveDirectory</code> while Route A runs</li>
+</ul>
+<p><strong>Dynatrace side</strong></p>
+<ul>
+<li>[ ] Route A configured, or <code>Audit.AzureActiveDirectory</code> added to the collector</li>
+<li>[ ] Dedicated bucket with agreed retention; <code>dt.security_context</code> set</li>
+<li>[ ] Pipeline: parse → mask → extract → <strong><code>No storage assignment</code></strong> in the Bucket assignment stage, never <code>Drop record</code></li>
+<li>[ ] Workflow path: Credential Vault settings, both hosts allowlisted, standard workflow, checkpoint store tested</li>
+</ul>
+<p><strong>Operations</strong></p>
+<ul>
+<li>[ ] Checkpoint per content type, on <code>contentCreated</code>, written only after ingest succeeds</li>
+<li>[ ] <code>200</code> from the ingest API treated as a failure</li>
+<li>[ ] Staleness alert on <code>m365.collected_at</code>, tested by stopping the collector</li>
+<li>[ ] Gap reporting (exit code 2 / <code>gap: true</code>) routed to someone</li>
+<li>[ ] Retention, masking and readers signed off by whoever owns the data</li>
+</ul>
+<hr />
+<p><a id="gotchas"></a></p>
+<h2>16. Common Gotchas</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gotcha</th>
+<th>Symptom</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Treating the Hub extension as the audit integration</strong></td>
+<td>Metrics arrive; no audit events ever do</td>
+<td>It counts users from audit logs and records no change logs. Build Route B (§ 2.1)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong><code>timestamp = CreationTime</code> on every record</strong></td>
+<td>Works for a day; records vanish after any outage over 24 h</td>
+<td>Event time only under 23 h; always send <code>m365.creation_time</code> (§ 5)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Treating ingest <code>200</code> as success</strong></td>
+<td>Dropped records with no error</td>
+<td><code>200</code> is a partial ingest; stop and keep the checkpoint (§ 5)</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Checkpoint on the newest <code>CreationTime</code></strong></td>
+<td>Records skipped or replayed at random</td>
+<td>Checkpoint on <code>contentCreated</code> (§ 6.1)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Not following <code>NextPageUri</code></strong></td>
+<td>Fine on a quiet test tenant; gaps in production</td>
+<td>Loop until the header is absent (§ 4)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>No <code>PublisherIdentifier</code> on the blob GET</strong></td>
+<td><code>AF429</code> throttling</td>
+<td>Add it to every call, including <code>contentUri</code> (§ 4)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Checking only for HTTP 429</strong></td>
+<td>Throttled calls treated as hard failures</td>
+<td><code>AF429</code> can arrive as HTTP 403 — check the body (§ 9.3)</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Collecting <code>Audit.AzureActiveDirectory</code> alongside Route A</strong></td>
+<td>Every sign-in twice, in two shapes <code>dedup</code> cannot match</td>
+<td>Leave it out while Route A runs (§ 3.1)</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Auditing off</strong></td>
+<td>Every call fails or returns nothing</td>
+<td>Check in Exchange Online PowerShell, not Security &amp; Compliance (§ 7.1)</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>Microsoft Graph permissions instead of Office 365 Management APIs</strong></td>
+<td><code>AF10001</code></td>
+<td>The permission sits under <strong>Office 365 Management APIs</strong> (§ 7.2)</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Restarting a subscription to &quot;reset&quot; the collector</strong></td>
+<td>Permanent gap</td>
+<td>Content published while stopped cannot be retrieved (§ 14.3)</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>Staleness measured on <code>timestamp</code></strong></td>
+<td>False outage alerts every quiet hour</td>
+<td>Measure on <code>m365.collected_at</code> (§ 14.1)</td>
+</tr>
+<tr>
+<td>13</td>
+<td><strong>Staleness check with no <code>events == 0</code> branch</strong></td>
+<td>A collector that never ran reports <code>OK</code></td>
+<td>Test the count explicitly (§ 14.1)</td>
+</tr>
+<tr>
+<td>14</td>
+<td><strong><code>CreationTime</code> parsed as local time</strong></td>
+<td>Every record shifted by the UTC offset</td>
+<td>It is UTC with no suffix — append <code>Z</code> (§ 5)</td>
+</tr>
+<tr>
+<td>15</td>
+<td><strong><code>Drop record</code> in Processing</strong></td>
+<td>Raw discarded and metrics never built</td>
+<td><code>No storage assignment</code> in the Bucket assignment stage (§ 11.2)</td>
+</tr>
+<tr>
+<td>16</td>
+<td><strong><code>=</code> or <code>IN</code> on <code>dt.security_context</code></strong></td>
+<td>An IAM policy that matches nothing</td>
+<td>Read FAQ-24 before writing the policy (§ 11.3)</td>
+</tr>
+<tr>
+<td>17</td>
+<td><strong>Running the <code>m365</code> Collector receiver on its defaults</strong></td>
+<td>Sign-ins twice; a gap after every restart</td>
+<td>Set <code>logs.azureAD: false</code> and a <code>storage</code> extension (§ 8.1)</td>
+</tr>
+</tbody>
+</table>
+<p>Gotchas 1, 3, 5 and 13 share FAQ-23's shape: each produces a confident, plausible answer — metrics flowing, <code>200 OK</code>, a first page of results, a health check that says <code>OK</code> — rather than an error.</p>
+<hr />
+<p><a id="recommended-approach"></a></p>
+<h2>17. Recommended Approach</h2>
+<p><strong>Use what exists first.</strong> Install the Hub extension if you want Microsoft 365 service health and adoption metrics, and send Entra ID sign-ins and directory audit through Azure log forwarding. Neither needs a collector.</p>
+<p><strong>Then build one collector for the workload audit, in Python.</strong> Subscribe to <code>Audit.Exchange</code>, <code>Audit.SharePoint</code> and <code>Audit.General</code> — plus <code>DLP.All</code> if you need it, and <code>Audit.AzureActiveDirectory</code> only if Entra ID cannot take the other route. Checkpoint per content type on <code>contentCreated</code>, follow every <code>NextPageUri</code>, and send <code>PublisherIdentifier</code> on every call. Use a Workflow instead only after measuring that your tenant drains inside one run.</p>
+<p><strong>Consider the <code>m365</code> Collector receiver only for a small commercial-cloud tenant.</strong> Turn off <code>azureAD</code>, give it a <code>storage</code> extension, and first confirm that your listings fit on one page — v1.2.0 does not follow <code>NextPageUri</code> (§ 8.1). Re-check its gaps on each release.</p>
+<p><strong>Get the timestamp rule right before anything else.</strong> Send the event time as <code>m365.creation_time</code> on every record, stamp <code>timestamp</code> from it only when it is under 23 hours old, and treat an ingest <code>200</code> as a failure. Then prove it by stopping the collector for more than a day.</p>
+<p><strong>Count each record once.</strong> Duplicates are part of Microsoft's contract. Remove them within a run, and <code>dedup audit.id</code> in every report.</p>
+<p><strong>Alert on the collector, on the right clock.</strong> Measure freshness on collection time, test it by stopping the collector, and route gap reports to someone who will record them. Microsoft keeps content for seven days; after that, an unnoticed outage is permanent.</p>
+<p><strong>What &quot;done&quot; looks like:</strong> sign-ins and workload audit in one dedicated bucket with signed-off retention and readers; a collector that has survived a deliberate day-long stop without losing a record; and a staleness alert that has been tested by breaking it on purpose.</p>
+<hr />
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

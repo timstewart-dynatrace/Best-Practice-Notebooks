@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPLOGS-06: Topology &amp; Entity Context</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPLOGS — OpenPipeline Logs</a><span class="sep">/</span><span aria-current="page">OPLOGS-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPLOGS-06: Topology &amp; Entity Context</h1>
+<blockquote>
+<p><strong>Series:</strong> OPLOGS — OpenPipeline Logs | <strong>Notebook:</strong> 6 of 8 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/06/2026</p>
+</blockquote>
+<h2>Leveraging Entity Relationships in Log Analysis</h2>
+<p>This notebook explores how Dynatrace enriches logs with entity context (hosts, processes, services, Kubernetes) for topology-aware analysis.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#entity-types-overview">Entity Types Overview</a></li>
+<li><a href="#host-topology">Host Topology</a></li>
+<li><a href="#process-group-topology">Process Group Topology</a></li>
+<li><a href="#kubernetes-topology">Kubernetes Topology</a></li>
+<li><a href="#service-mapping">Service Mapping</a></li>
+<li><a href="#cross-entity-correlation">Cross-Entity Correlation</a></li>
+<li><a href="#using-entity-ids-for-lookups">Using Entity IDs for Lookups</a></li>
+<li><a href="#topology-based-alerting-patterns">Topology-Based Alerting Patterns</a></li>
+<li><a href="#summary">📝 Summary</a></li>
+<li><a href="#next-steps">➡️ Next Steps</a></li>
+<li><a href="#references">📚 References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with log data</li>
+<li>✅ Completed OPLOGS-01 through OPLOGS-05</li>
+<li>✅ Understanding of Dynatrace entity model (helpful)</li>
+</ul>
+<p><a id="entity-types-overview"></a></p>
+<h2>1. Entity Types Overview</h2>
+<p>Dynatrace automatically enriches logs with entity context:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzYwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iazhzR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InN2Y0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJob3N0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImxvZ0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0idG9wb1NoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0idG9wb0Fycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iMzYwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FbnRpdHkgVG9wb2xvZ3kgQ29udGV4dCBmb3IgTG9nczwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkxvZ3MgYXV0b21hdGljYWxseSBsaW5rZWQgdG8gZW50aXRpZXMgdmlhIGR0LmVudGl0eS4qIGZpZWxkczwvdGV4dD4KCiAgPCEtLSBLdWJlcm5ldGVzIEhpZXJhcmNoeSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iNzAiIHdpZHRoPSIzODAiIGhlaWdodD0iMTk1IiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMjIwIiB5PSI5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+S3ViZXJuZXRlcyBFbnRpdHkgSGllcmFyY2h5PC90ZXh0PgoKICA8IS0tIENsdXN0ZXIgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjExMCIgd2lkdGg9IjM0MCIgaGVpZ2h0PSIxNDUiIHJ4PSI4IiBmaWxsPSIjZGJlYWZlIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjcwIiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTQwYWYiPktVQkVSTkVURVNfQ0xVU1RFUjwvdGV4dD4KICA8dGV4dCB4PSI3MCIgeT0iMTQ1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjM2I4MmY2Ij5kdC5lbnRpdHkua3ViZXJuZXRlc19jbHVzdGVyPC90ZXh0PgoKICA8IS0tIE5hbWVzcGFjZSAtLT4KICA8cmVjdCB4PSI3MCIgeT0iMTU1IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjkwIiByeD0iNiIgZmlsbD0iI2VjZmRmNSIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI5MCIgeT0iMTc1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDQ3ODU3Ij5DTE9VRF9BUFBMSUNBVElPTl9OQU1FU1BBQ0U8L3RleHQ+CiAgPHRleHQgeD0iOTAiIHk9IjE5MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA1OTY2OSI+ZHQuZW50aXR5LmNsb3VkX2FwcGxpY2F0aW9uX25hbWVzcGFjZTwvdGV4dD4KCiAgPCEtLSBQb2QgLS0+CiAgPHJlY3QgeD0iOTAiIHk9IjIwMCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIzNSIgcng9IjQiIGZpbGw9InVybCgjazhzR3JhZCkiIGZpbHRlcj0idXJsKCN0b3BvU2hhZG93KSIvPgogIDx0ZXh0IHg9IjE1NSIgeT0iMjE1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UE9EPC90ZXh0PgogIDx0ZXh0IHg9IjE1NSIgeT0iMjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jbG91ZF9hcHBsaWNhdGlvbl9pbnN0YW5jZTwvdGV4dD4KCiAgPCEtLSBDb250YWluZXIgLS0+CiAgPHJlY3QgeD0iMjMwIiB5PSIyMDAiIHdpZHRoPSIxMzAiIGhlaWdodD0iMzUiIHJ4PSI0IiBmaWxsPSJ1cmwoI2s4c0dyYWQpIiBmaWx0ZXI9InVybCgjdG9wb1NoYWRvdykiLz4KICA8dGV4dCB4PSIyOTUiIHk9IjIxNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNPTlRBSU5FUjwvdGV4dD4KICA8dGV4dCB4PSIyOTUiIHk9IjIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Y29udGFpbmVyX2dyb3VwX2luc3RhbmNlPC90ZXh0PgoKICA8IS0tIFNlcnZpY2UvSG9zdCBFbnRpdGllcyAtLT4KICA8cmVjdCB4PSI0MzAiIHk9IjcwIiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjE5NSIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNlcnZpY2UgJmFtcDsgSG9zdCBFbnRpdGllczwvdGV4dD4KCiAgPHJlY3QgeD0iNDUwIiB5PSIxMTAiIHdpZHRoPSIxNDUiIGhlaWdodD0iNjUiIHJ4PSI2IiBmaWxsPSJ1cmwoI3N2Y0dyYWQpIiBmaWx0ZXI9InVybCgjdG9wb1NoYWRvdykiLz4KICA8dGV4dCB4PSI1MjIiIHk9IjEzNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNFUlZJQ0U8L3RleHQ+CiAgPHRleHQgeD0iNTIyIiB5PSIxNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kdC5lbnRpdHkuc2VydmljZTwvdGV4dD4KICA8dGV4dCB4PSI1MjIiIHk9IjE2OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRldGVjdGVkIHNlcnZpY2VzPC90ZXh0PgoKICA8cmVjdCB4PSI2MDUiIHk9IjExMCIgd2lkdGg9IjE0NSIgaGVpZ2h0PSI2NSIgcng9IjYiIGZpbGw9InVybCgjaG9zdEdyYWQpIiBmaWx0ZXI9InVybCgjdG9wb1NoYWRvdykiLz4KICA8dGV4dCB4PSI2NzciIHk9IjEzNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhPU1Q8L3RleHQ+CiAgPHRleHQgeD0iNjc3IiB5PSIxNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kdC5lbnRpdHkuaG9zdDwvdGV4dD4KICA8dGV4dCB4PSI2NzciIHk9IjE2OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBoeXNpY2FsL1ZNIGhvc3RzPC90ZXh0PgoKICA8cmVjdCB4PSI0NTAiIHk9IjE4NSIgd2lkdGg9IjE0NSIgaGVpZ2h0PSI2NSIgcng9IjYiIGZpbGw9IiNmZWYzYzciIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNTIyIiB5PSIyMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBST0NFU1NfR1JPVVA8L3RleHQ+CiAgPHRleHQgeD0iNTIyIiB5PSIyMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzc4MzUwZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZHQuZW50aXR5LnByb2Nlc3NfZ3JvdXA8L3RleHQ+CiAgPHRleHQgeD0iNTIyIiB5PSIyNDMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzc4MzUwZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UnVubmluZyBwcm9jZXNzZXM8L3RleHQ+CgogIDxyZWN0IHg9IjYwNSIgeT0iMTg1IiB3aWR0aD0iMTQ1IiBoZWlnaHQ9IjY1IiByeD0iNiIgZmlsbD0iI2ZjZTdmMyIgc3Ryb2tlPSIjZWM0ODk5IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2NzciIHk9IjIxMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzlkMTc0ZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q0xPVURfQVBQTElDQVRJT048L3RleHQ+CiAgPHRleHQgeD0iNjc3IiB5PSIyMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzlkMTc0ZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZHQuZW50aXR5LmNsb3VkX2FwcGxpY2F0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjY3NyIgeT0iMjQzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5ZDE3NGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkt1YmVybmV0ZXMgd29ya2xvYWRzPC90ZXh0PgoKICA8IS0tIExvZyBSZWNvcmQgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjI4MCIgd2lkdGg9Ijc0MCIgaGVpZ2h0PSI2NSIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjMwIiB5PSIyODAiIHdpZHRoPSI3NDAiIGhlaWdodD0iMjUiIHJ4PSIxMCIgZmlsbD0idXJsKCNsb2dHcmFkKSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjk4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TG9nIFJlY29yZCB3aXRoIEVudGl0eSBDb250ZXh0PC90ZXh0PgoKICA8dGV4dCB4PSI1MCIgeT0iMzI1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5mZXRjaCBsb2dzIHwgZmllbGRzIHRpbWVzdGFtcCwgY29udGVudCwgZHQuZW50aXR5Lmhvc3QsIGR0LmVudGl0eS5zZXJ2aWNlLCBkdC5lbnRpdHkuY2xvdWRfYXBwbGljYXRpb25faW5zdGFuY2U8L3RleHQ+CgogIDwhLS0gQXJyb3dzIHNob3dpbmcgcmVsYXRpb25zaGlwIC0tPgogIDxwYXRoIGQ9Ik0xNTUsMjM1IFExNTUsMjcwIDI1MCwyNzUiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI0LDIiIG1hcmtlci1lbmQ9InVybCgjdG9wb0Fycm93KSIvPgogIDxwYXRoIGQ9Ik01MjIsMTc1IFE1MjIsMjUwIDQwMCwyNzUiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI0LDIiIG1hcmtlci1lbmQ9InVybCgjdG9wb0Fycm93KSIvPgogIDxwYXRoIGQ9Ik02NzcsMTc1IFE2NzcsMjUwIDU1MCwyNzUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI0LDIiIG1hcmtlci1lbmQ9InVybCgjdG9wb0Fycm93KSIvPgo8L3N2Zz4K" alt="Entity Topology" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+Entity Topology Model:
+
+Infrastructure Layer:
+- dt.entity.host → Host entity ID
+- dt.entity.kubernetes_cluster → K8s cluster ID
+
+Application Layer:
+- dt.entity.process_group → Process group ID
+- dt.entity.process_group_instance → PGI ID
+- dt.entity.service → Service entity ID
+
+Kubernetes Layer:
+- k8s.cluster.name → Cluster name
+- k8s.namespace.name → Namespace
+- k8s.workload.name → Workload (Deployment, StatefulSet)
+- k8s.pod.name → Pod name
+- k8s.container.name → Container name
+
+Relationships flow from infrastructure → application → kubernetes context.
+-->
+<table>
+<thead>
+<tr>
+<th>Entity Field</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.entity.host</code></td>
+<td>Host entity ID</td>
+<td><code>HOST-ABC123</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.process_group</code></td>
+<td>Process group ID</td>
+<td><code>PROCESS_GROUP-XYZ789</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.process_group_instance</code></td>
+<td>PGI ID</td>
+<td><code>PROCESS_GROUP_INSTANCE-DEF456</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.service</code></td>
+<td>Service entity ID</td>
+<td><code>SERVICE-QRS012</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.kubernetes_cluster</code></td>
+<td>K8s cluster ID</td>
+<td><code>KUBERNETES_CLUSTER-TUV345</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Classic entity fields are deprecated; Smartscape fields are the stable successors.</strong> In the semantic dictionary, <code>dt.entity.host</code>, <code>dt.entity.service</code>, <code>dt.entity.process_group</code>, <code>dt.entity.process_group_instance</code> and <code>dt.entity.kubernetes_cluster</code> are all marked <code>deprecated</code>. Their Smartscape counterparts — <code>dt.smartscape.host</code>, <code>dt.smartscape.service</code>, <code>dt.smartscape.process</code>, <code>dt.smartscape.k8s_cluster</code>, <code>dt.smartscape.k8s_pod</code> — are <code>stable</code> and already populated on logs. The queries below still use the classic fields because they keep working, but coverage of the two families is not identical (on the validation tenant over 15 minutes: 166k records with <code>dt.entity.host</code>, 156k with <code>dt.smartscape.host</code>). Run the coverage query below before you move a dashboard or alert to the Smartscape fields, and see FAQ-16 for the classic-to-Smartscape mapping.</p>
+<p><sub><strong>Dictionary:</strong> <code>dt.entity.host</code> / <code>dt.entity.service</code> / <code>dt.entity.process_group</code> / <code>dt.entity.process_group_instance</code> / <code>dt.entity.kubernetes_cluster</code> (<code>deprecated</code>); <code>dt.smartscape.host</code> / <code>dt.smartscape.service</code> / <code>dt.smartscape.process</code> / <code>dt.smartscape.k8s_cluster</code> / <code>dt.smartscape.k8s_pod</code> (<code>stable</code>), read 10/02/2026.</sub></p>
+</blockquote>
+<h3>Kubernetes Context Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>k8s.namespace.name</code></td>
+<td>Kubernetes namespace</td>
+</tr>
+<tr>
+<td><code>k8s.pod.name</code></td>
+<td>Pod name</td>
+</tr>
+<tr>
+<td><code>k8s.pod.uid</code></td>
+<td>Pod unique identifier</td>
+</tr>
+<tr>
+<td><code>k8s.container.name</code></td>
+<td>Container name</td>
+</tr>
+<tr>
+<td><code>k8s.cluster.name</code></td>
+<td>Cluster name</td>
+</tr>
+<tr>
+<td><code>k8s.deployment.name</code></td>
+<td>Deployment name (<code>experimental</code>; prefer <code>k8s.workload.name</code> + <code>k8s.workload.kind</code>)</td>
+</tr>
+<tr>
+<td><code>k8s.workload.name</code></td>
+<td>Workload name</td>
+</tr>
+<tr>
+<td><code>k8s.workload.kind</code></td>
+<td>Workload kind, lowercase (<code>deployment</code>, <code>statefulset</code>, <code>daemonset</code>, …)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Discover available entity fields in your logs — classic (deprecated) and Smartscape (stable)
+fetch logs, from: now() - 1h
+| summarize {
+    total_logs = count(),
+    with_host = countIf(isNotNull(dt.entity.host)),
+    with_smartscape_host = countIf(isNotNull(dt.smartscape.host)),
+    with_process_group = countIf(isNotNull(dt.entity.process_group)),
+    with_smartscape_process = countIf(isNotNull(dt.smartscape.process)),
+    with_service = countIf(isNotNull(dt.entity.service)),
+    with_smartscape_service = countIf(isNotNull(dt.smartscape.service)),
+    with_k8s_cluster = countIf(isNotNull(dt.entity.kubernetes_cluster)),
+    with_k8s_namespace = countIf(isNotNull(k8s.namespace.name))
+  }
+</code></pre>
+<p><a id="host-topology"></a></p>
+<h2>2. Host Topology</h2>
+<p>Analyze logs by host to understand infrastructure patterns.</p>
+<pre><code class="language-dql">// Log volume by host
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.entity.host)
+| summarize {log_count = count()}, by: {dt.entity.host}
+| sort log_count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Error distribution by host
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.entity.host)
+| summarize {
+    total = count(),
+    errors = countIf(status == &quot;ERROR&quot;)   // all error-class levels, incl. CRITICAL and FATAL
+  }, by: {dt.entity.host}
+| fieldsAdd error_rate = (errors * 100.0) / total
+| sort errors desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Host with log.source breakdown
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.entity.host)
+| summarize {count = count()}, by: {dt.entity.host, log.source}
+| sort count desc
+| limit 20
+</code></pre>
+<p><a id="process-group-topology"></a></p>
+<h2>3. Process Group Topology</h2>
+<p>Process groups represent logical application components across hosts.</p>
+<blockquote>
+<p><strong><code>dt.entity.process_group</code> is not always a single value.</strong> On the validation tenant (10/02/2026) some log records carried an <strong>array</strong> of process-group IDs, so <code>by: {dt.entity.process_group}</code> produces some groups keyed by a whole array, and <code>== &quot;PROCESS_GROUP-…&quot;</code> misses those records. Where that matters, <code>expand dt.entity.process_group</code> before grouping, or filter with <code>in(&quot;PROCESS_GROUP-…&quot;, dt.entity.process_group)</code>.</p>
+</blockquote>
+<pre><code class="language-dql">// Logs by process group
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.entity.process_group)
+| summarize {log_count = count()}, by: {dt.entity.process_group}
+| sort log_count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Process group error analysis
+// status == &quot;ERROR&quot; covers every error-class level (ERROR, SEVERE, CRITICAL, FATAL, …);
+// loglevel == &quot;ERROR&quot; alone misses SEVERE and the rest
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.entity.process_group)
+| filter status == &quot;ERROR&quot;
+// Group on a normalized signature (UUIDs, then digits collapsed) so one recurring error is one row, not one row per second
+| fieldsAdd error_sig = substring(replacePattern(replacePattern(content, &quot;[0-9a-fA-F]{8} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{12}&quot;, replacement: &quot;&lt;id&gt;&quot;), &quot;[0-9]+&quot;, replacement: &quot;#&quot;), from: 0, to: 80)
+| summarize {error_count = count(), sample = takeAny(substring(content, from: 0, to: 100))}, by: {dt.entity.process_group, error_sig}
+| sort error_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Process group to host mapping
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.entity.process_group) AND isNotNull(dt.entity.host)
+| summarize {count = count()}, by: {dt.entity.process_group, dt.entity.host}
+| sort count desc
+| limit 20
+</code></pre>
+<p><a id="kubernetes-topology"></a></p>
+<h2>4. Kubernetes Topology</h2>
+<p>OpenPipeline enriches container logs with rich Kubernetes context.</p>
+<pre><code class="language-dql">// Logs by Kubernetes namespace
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.namespace.name)
+| summarize {log_count = count()}, by: {k8s.namespace.name}
+| sort log_count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Kubernetes namespace with error breakdown
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.namespace.name)
+| summarize {
+    total = count(),
+    errors = countIf(status == &quot;ERROR&quot;),
+    warnings = countIf(status == &quot;WARN&quot;)
+  }, by: {k8s.namespace.name}
+| fieldsAdd error_percentage = round((errors * 100.0) / total, decimals: 2)
+| sort errors desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Pod-level analysis
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.pod.name)
+| summarize {
+    log_count = count(),
+    error_count = countIf(status == &quot;ERROR&quot;)
+  }, by: {k8s.namespace.name, k8s.pod.name}
+| sort error_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Workload analysis (Deployments, StatefulSets, etc.)
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.workload.name)
+| summarize {
+    log_count = count(),
+    unique_pods = countDistinct(k8s.pod.name)
+  }, by: {k8s.namespace.name, k8s.workload.kind, k8s.workload.name}
+| sort log_count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Container-level detail
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.container.name)
+| summarize {log_count = count()}, by: {k8s.namespace.name, k8s.pod.name, k8s.container.name}
+| sort log_count desc
+| limit 20
+</code></pre>
+<p><a id="service-mapping"></a></p>
+<h2>5. Service Mapping</h2>
+<p>Connect logs to Dynatrace-detected services for full observability.</p>
+<pre><code class="language-dql">// Logs by service entity
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.entity.service)
+| summarize {log_count = count()}, by: {dt.entity.service}
+| sort log_count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Service error rates from logs
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.entity.service)
+| summarize {
+    total = count(),
+    errors = countIf(status == &quot;ERROR&quot;)
+  }, by: {dt.entity.service}
+| fieldsAdd error_rate = round((errors * 100.0) / total, decimals: 2)
+| sort error_rate desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Service to process group relationship
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.entity.service) AND isNotNull(dt.entity.process_group)
+| summarize {count = count()}, by: {dt.entity.service, dt.entity.process_group}
+| sort count desc
+| limit 20
+</code></pre>
+<p><a id="cross-entity-correlation"></a></p>
+<h2>6. Cross-Entity Correlation</h2>
+<p>Use entity context to correlate logs across the topology.</p>
+<pre><code class="language-dql">// Full topology view: Cluster &gt; Namespace &gt; Pod &gt; Container
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.cluster.name)
+| summarize {log_count = count()}, by: {
+    k8s.cluster.name, 
+    k8s.namespace.name, 
+    k8s.workload.name,
+    k8s.pod.name
+  }
+| sort log_count desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Entity coverage report
+fetch logs, from: now() - 1h
+| summarize {
+    total_logs = count(),
+    host_coverage = round((countIf(isNotNull(dt.entity.host)) * 100.0) / count(), decimals: 1),
+    pg_coverage = round((countIf(isNotNull(dt.entity.process_group)) * 100.0) / count(), decimals: 1),
+    service_coverage = round((countIf(isNotNull(dt.entity.service)) * 100.0) / count(), decimals: 1),
+    k8s_coverage = round((countIf(isNotNull(k8s.namespace.name)) * 100.0) / count(), decimals: 1)
+  }
+</code></pre>
+<pre><code class="language-dql">// Logs without entity context (potential configuration issue)
+fetch logs, from: now() - 1h
+| filter isNull(dt.entity.host) AND isNull(dt.entity.process_group)
+| summarize {orphan_count = count()}, by: {dt.openpipeline.source}
+| sort orphan_count desc
+</code></pre>
+<pre><code class="language-dql">// Trace correlation: Logs with trace context
+fetch logs, from: now() - 1h
+| filter isNotNull(trace_id) OR isNotNull(span_id)
+| summarize {
+    logs_with_trace = count(),
+    unique_traces = countDistinct(trace_id)
+  }, by: {k8s.namespace.name}
+| sort logs_with_trace desc
+| limit 10
+</code></pre>
+<p><a id="using-entity-ids-for-lookups"></a></p>
+<h2>7. Using Entity IDs for Lookups</h2>
+<p>Entity IDs enable cross-data-type correlation.</p>
+<pre><code class="language-dql">// Get distinct entity IDs per namespace (pick the namespace you care about from the result)
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.namespace.name)
+| summarize {
+    unique_hosts = collectDistinct(dt.entity.host),
+    unique_pgs = collectDistinct(dt.entity.process_group),
+    unique_services = collectDistinct(dt.entity.service)
+  }, by: {k8s.namespace.name}
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Find logs for a specific entity (replace with actual entity ID)
+// fetch logs, from: now() - 1h
+// | filter dt.entity.host == &quot;HOST-XXXXXX&quot;
+// | summarize {count = count()}, by: {loglevel}
+
+// Discovery query to find entity IDs
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.entity.host)
+| summarize {sample = takeFirst(dt.entity.host)}, by: {k8s.namespace.name}
+| limit 10
+</code></pre>
+<p><a id="topology-based-alerting-patterns"></a></p>
+<h2>8. Topology-Based Alerting Patterns</h2>
+<p>Use entity context to create meaningful alert conditions.</p>
+<pre><code class="language-dql">// Alert pattern: Errors per namespace (for threshold alerting)
+fetch logs, from: now() - 15m
+| filter status == &quot;ERROR&quot;
+| summarize {error_count = count()}, by: {k8s.namespace.name}
+| filter error_count &gt; 10
+| sort error_count desc
+</code></pre>
+<pre><code class="language-dql">// Alert pattern: Hosts with high error rate
+fetch logs, from: now() - 15m
+| filter isNotNull(dt.entity.host)
+| summarize {
+    total = count(),
+    errors = countIf(status == &quot;ERROR&quot;)
+  }, by: {dt.entity.host}
+| filter total &gt; 100  // Minimum sample size
+| fieldsAdd error_rate = (errors * 100.0) / total
+| filter error_rate &gt; 5  // Alert if &gt;5% errors
+| sort error_rate desc
+</code></pre>
+<pre><code class="language-dql">// Alert pattern: pod restarts — read the restart metric, not log text
+// Counting &quot;started&quot; / &quot;initializing&quot; lines measures how chatty a pod's startup is, not
+// how often it restarted. dt.kubernetes.container.restarts is a delta count, so summing
+// it over the window gives restarts per pod.
+timeseries restarts = sum(dt.kubernetes.container.restarts, default: 0), from: now() - 1h,
+  by: {k8s.namespace.name, k8s.pod.name}
+| fieldsAdd restart_count = arraySum(restarts)
+| filter restart_count &gt; 3   // more than 3 restarts in 1h = potential crash loop
+| fields k8s.namespace.name, k8s.pod.name, restart_count
+| sort restart_count desc
+</code></pre>
+<hr />
+<p><a id="summary"></a></p>
+<h2>📝 Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>Entity types</strong> - HOST, PROCESS_GROUP, SERVICE, KUBERNETES_CLUSTER<br />
+✅ <strong>Host topology</strong> - Log volume and errors by host<br />
+✅ <strong>Process groups</strong> - Application component analysis<br />
+✅ <strong>Kubernetes context</strong> - Namespace, pod, workload, container<br />
+✅ <strong>Service mapping</strong> - Connecting logs to detected services<br />
+✅ <strong>Cross-entity correlation</strong> - Full topology views<br />
+✅ <strong>Alerting patterns</strong> - Threshold-based topology alerts</p>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>➡️ Next Steps</h2>
+<p>Continue to <strong>OPLOGS-07: Analytics &amp; Dashboards</strong> for aggregation and visualization patterns.</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>📚 References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/smartscape-on-grail">Smartscape on Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Set up Dynatrace on Kubernetes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-enrichment">Connect log data to traces (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

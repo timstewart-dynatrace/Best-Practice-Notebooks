@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foundation Module — ONBRD + ORGNZ + IAM</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../">Best Practice Notebooks</a><span class="sep">/</span><a href="./">Start here</a><span class="sep">/</span><span aria-current="page">Foundation Module — ONBRD + ORGNZ + IAM</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="foundation-module--onbrd--orgnz--iam">Foundation Module — ONBRD + ORGNZ + IAM</h1>
+<blockquote>
+<p><strong>Purpose:</strong> Reading order for the universal foundation every Dynatrace tenant needs, regardless of entry point. Mandatory, recommended, and optional flags help you trim the reading list when time is constrained.
+<strong>Last Updated:</strong> 07/15/2026</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5Gb3VuZGF0aW9uIE1vZHVsZSDigJQgUGFyYWxsZWwgUmVhZGluZzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5PTkJSRCArIE9SR05aICsgSUFNIHJlYWQgdG9nZXRoZXIgYmVjYXVzZSB0aGV5IHJlZmVyZW5jZSBlYWNoIG90aGVyPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPldlZWsgMTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5XZWVrIDI8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjM1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+V2VlayAzPC90ZXh0PgogIDx0ZXh0IHg9IjIyMCIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk9OQlJEPC90ZXh0PgogIDx0ZXh0IHg9IjIyMCIgeT0iMTEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5PbmJvYXJkaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk9SR05aPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Pcmdhbml6ZSBEYXRhPC90ZXh0PgogIDx0ZXh0IHg9IjcxMCIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPklBTTwvdGV4dD4KICA8dGV4dCB4PSI3MTAiIHk9IjExMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+SWRlbnRpdHkgJmFtcDsgQWNjZXNzPC90ZXh0PgogIDxyZWN0IHg9IjEyMCIgeT0iMTIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjIyMCIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Ob3RlYm9va3MgMDHigJMwNDwvdGV4dD4KICA8dGV4dCB4PSIyMjAiIHk9IjE2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+Rmlyc3Qgc3RlcHMsIElBTSBpbnRybyw8L3RleHQ+CiAgPHRleHQgeD0iMjIwIiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkFjdGl2ZUdhdGUsIGNsb3VkIFNhYVM8L3RleHQ+CiAgPHJlY3QgeD0iMzY1IiB5PSIxMjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iODAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vdGVib29rcyAwMeKAkzAyPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5JbnRyb2R1Y3Rpb24sPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj51bmRlcnN0YW5kaW5nIGJ1Y2tldHM8L3RleHQ+CiAgPHJlY3QgeD0iNjEwIiB5PSIxMjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iODAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzEwIiB5PSIxNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vdGVib29rcyAwMeKAkzAyPC90ZXh0PgogIDx0ZXh0IHg9IjcxMCIgeT0iMTY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5Hb3Zlcm5hbmNlLDwvdGV4dD4KICA8dGV4dCB4PSI3MTAiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U1NPIGF1dGhlbnRpY2F0aW9uPC90ZXh0PgogIDxyZWN0IHg9IjEyMCIgeT0iMjIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjIyMCIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Ob3RlYm9va3MgMDXigJMwNzwvdGV4dD4KICA8dGV4dCB4PSIyMjAiIHk9IjI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+T25lQWdlbnQsIG9yZ2FuaXppbmcsPC90ZXh0PgogIDx0ZXh0IHg9IjIyMCIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj51bmRlcnN0YW5kaW5nIGRhdGE8L3RleHQ+CiAgPHJlY3QgeD0iMzY1IiB5PSIyMjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iODAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIyNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vdGVib29rcyAwM+KAkzA2PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5CdWNrZXQgc3RyYXRlZ3ksIHBlcm1zLDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+c2VjdXJpdHlfY29udGV4dDwvdGV4dD4KICA8cmVjdCB4PSI2MTAiIHk9IjIyMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3MTAiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Tm90ZWJvb2tzIDAz4oCTMDU8L3RleHQ+CiAgPHRleHQgeD0iNzEwIiB5PSIyNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkdyb3VwcywgcG9saWNpZXMsPC90ZXh0PgogIDx0ZXh0IHg9IjcxMCIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5ib3VuZGFyaWVzPC90ZXh0PgogIDxyZWN0IHg9IjEyMCIgeT0iMzIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjIyMCIgeT0iMzQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Ob3RlYm9va3MgMDjigJMxMDwvdGV4dD4KICA8dGV4dCB4PSIyMjAiIHk9IjM2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UXVlcmllcywgYWxlcnRzIGludHJvLDwvdGV4dD4KICA8dGV4dCB4PSIyMjAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+ZGFzaGJvYXJkcyBpbnRybzwvdGV4dD4KICA8cmVjdCB4PSIzNjUiIHk9IjMyMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+Tm90ZWJvb2sgMDg8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkdyYWlsIHNlZ21lbnRzPC90ZXh0PgogIDxyZWN0IHg9IjYxMCIgeT0iMzIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjcxMCIgeT0iMzQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Ob3RlYm9va3MgMDYsIDA3LCAxMCwgMTE8L3RleHQ+CiAgPHRleHQgeD0iNzEwIiB5PSIzNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkxpZmVjeWNsZSwgYXVkaXQsPC90ZXh0PgogIDx0ZXh0IHg9IjcxMCIgeT0iMzgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5wYXJhbWV0ZXJpemVkIHBvbGljaWVzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SZWFkaW5nIE9SR05aLTA2IChzZWN1cml0eV9jb250ZXh0KSBiZWZvcmUgSUFNLTA1IChib3VuZGFyeSBkZXNpZ24pIGlzIHJlY29tbWVuZGVkIOKAlCBib3VuZGFyaWVzIGRlcGVuZCBvbiBpdDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+TW9zdCB0ZWFtcyB3b24ndCByZWFkIGV2ZXJ5IG5vdGVib29rIOKAlCBzZWUgRm91bmRhdGlvbiBNb2R1bGUgZm9yIG1hbmRhdG9yeS9yZWNvbW1lbmRlZC9vcHRpb25hbCBmbGFnczwvdGV4dD4KPC9zdmc+Cg==" alt="Foundation Parallel Reading" /></p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#why-this-module-exists">Why This Module Exists</a></li>
+<li><a href="#recommended-sequencing">Recommended Sequencing</a></li>
+<li><a href="#onbrd--onboarding-reading-order">ONBRD — Onboarding Reading Order</a></li>
+<li><a href="#orgnz--organize-data-reading-order">ORGNZ — Organize Data Reading Order</a></li>
+<li><a href="#iam--iam-administration-reading-order">IAM — IAM Administration Reading Order</a></li>
+<li><a href="#cross-references-between-foundation-series">Cross-References Between Foundation Series</a></li>
+<li><a href="#where-to-next">Where to Next</a></li>
+</ol>
+<hr />
+<h2 id="why-this-module-exists">Why This Module Exists</h2>
+<p>Three series cover the universal foundation: <a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a>, <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a>, and <a href="../IAM%20-%20IAM%20Administration/">IAM</a>. They overlap in places — ONBRD has its own basic IAM and basic data-org coverage; the dedicated IAM and ORGNZ series go deeper. This module provides a sequenced reading order so you don't read overlapping content twice and so you know which dedicated series to dive into when ONBRD's coverage isn't sufficient.</p>
+<p>Total time for the full Foundation reading: 2–3 weeks for a small to mid-sized team, often run in parallel with first-domain work.</p>
+<hr />
+<h2 id="recommended-sequencing">Recommended Sequencing</h2>
+<p>The three series can — and should — be read in parallel rather than strictly sequentially, because they reference each other.</p>
+<table>
+<thead>
+<tr>
+<th>Week</th>
+<th>Reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Week 1</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> notebooks 01–04 + <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> notebooks 01–02 + <a href="../IAM%20-%20IAM%20Administration/">IAM</a> notebooks 01–02</td>
+</tr>
+<tr>
+<td>Week 2</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> notebooks 05–07 + <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> notebooks 03–06 + <a href="../IAM%20-%20IAM%20Administration/">IAM</a> notebooks 03–05</td>
+</tr>
+<tr>
+<td>Week 3</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> notebooks 08–10 + <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> notebook 08 + <a href="../IAM%20-%20IAM%20Administration/">IAM</a> notebooks 06–07, 10–11</td>
+</tr>
+</tbody>
+</table>
+<p>Most teams won't read every notebook. The mandatory/recommended/optional flags below let you build a custom reading list.</p>
+<hr />
+<h2 id="onbrd--onboarding-reading-order">ONBRD — Onboarding Reading Order</h2>
+<p>11 notebooks in <a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a>. Coverage: tenant orientation, OneAgent and ActiveGate deployment, basic IAM, basic data org, intro DQL, intro alerts, intro dashboards.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>Priority</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>First Steps</td>
+<td>Mandatory</td>
+<td>Tenant orientation, navigation</td>
+</tr>
+<tr>
+<td>02</td>
+<td>IAM and Authentication</td>
+<td>Mandatory</td>
+<td>Initial users and basic policies; <a href="../IAM%20-%20IAM%20Administration/">IAM</a> goes deeper</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Deploying ActiveGate</td>
+<td>Mandatory</td>
+<td>If hybrid or cloud (most customers); skip if pure SaaS-only with no on-prem footprint</td>
+</tr>
+<tr>
+<td>04</td>
+<td>Cloud SaaS Integrations</td>
+<td>Recommended</td>
+<td>If using AWS, Azure, GCP, or other cloud SaaS sources</td>
+</tr>
+<tr>
+<td>05</td>
+<td>Deploying OneAgent</td>
+<td>Mandatory</td>
+<td>Core agent deployment</td>
+</tr>
+<tr>
+<td>06</td>
+<td>Organizing Your Environment</td>
+<td>Recommended</td>
+<td>Tags, host groups, naming; <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> and <a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> go deeper</td>
+</tr>
+<tr>
+<td>07</td>
+<td>Understanding Your Data</td>
+<td>Recommended</td>
+<td>Data model orientation: spans, logs, metrics, events</td>
+</tr>
+<tr>
+<td>08</td>
+<td>Your First Queries</td>
+<td>Recommended</td>
+<td>DQL primer; <a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a>, <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a>, and series-specific docs go deeper</td>
+</tr>
+<tr>
+<td>09</td>
+<td>Setting Up Alerts</td>
+<td>Optional</td>
+<td>Intro to alerting; <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> is the canonical series</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Building Dashboards</td>
+<td>Optional</td>
+<td>Intro to dashboards; <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> is the canonical series</td>
+</tr>
+<tr>
+<td>99</td>
+<td>Best Practice Summary</td>
+<td>Reference</td>
+<td>One-page synthesis</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Skip-if-already-have:</strong> ONBRD-09 and 10 if you plan to read <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> and <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> anyway — they cover the same ground in greater depth.</p>
+<hr />
+<h2 id="orgnz--organize-data-reading-order">ORGNZ — Organize Data Reading Order</h2>
+<p>11 notebooks in <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a>. Coverage: Grail buckets, security_context, permissions, segments, enterprise patterns.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>Priority</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>Introduction to Organizing Data</td>
+<td>Mandatory</td>
+<td>Concepts and terminology</td>
+</tr>
+<tr>
+<td>02</td>
+<td>Understanding Grail Buckets</td>
+<td>Mandatory</td>
+<td>The bucket data model — every customer needs to understand this</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Bucket Strategy and Design</td>
+<td>Mandatory</td>
+<td>Bucket choices have downstream effects on cost, retention, and access</td>
+</tr>
+<tr>
+<td>04</td>
+<td>Permissions in Grail</td>
+<td>Mandatory</td>
+<td>How Gen3 permissions work in Grail</td>
+</tr>
+<tr>
+<td>05</td>
+<td>Bucket-Level Access Control</td>
+<td>Optional</td>
+<td>Scenario-specific: compliance, retention, hard cost separation, hostile multi-tenancy. Default to security_context for general access.</td>
+</tr>
+<tr>
+<td>06</td>
+<td>security_context</td>
+<td>Mandatory</td>
+<td>Universal scope field for general data access. Underpins IAM boundary design.</td>
+</tr>
+<tr>
+<td>07</td>
+<td>Advanced Permission Patterns</td>
+<td>Optional</td>
+<td>Complex multi-environment scenarios</td>
+</tr>
+<tr>
+<td>08</td>
+<td>Grail Segments</td>
+<td>Recommended</td>
+<td>Logical data partitions; useful for dashboards and queries. Canonical for segment fundamentals and limits.</td>
+</tr>
+<tr>
+<td>09</td>
+<td>Enterprise Patterns</td>
+<td>Optional</td>
+<td>Large multi-business-unit organizations</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Advanced Segment Definitions</td>
+<td>Recommended if using segments</td>
+<td>Canonical for segment mechanics: filter syntax, variables, visibility, segments-as-code, Davis problem includes</td>
+</tr>
+<tr>
+<td>99</td>
+<td>Best Practice Summary</td>
+<td>Reference</td>
+<td>One-page synthesis</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Critical sidebar — buckets vs security_context:</strong> Use buckets for storage / retention / cost / compliance separation; use security_context (a universal field) for general access control. Reading 02–06 in order makes this distinction clear. Avoid the anti-pattern of using buckets as the primary access-control mechanism — they are immutable, capped at 80 per tenant, and not universal across all configuration types.</p>
+<hr />
+<h2 id="iam--iam-administration-reading-order">IAM — IAM Administration Reading Order</h2>
+<p>13 notebooks in <a href="../IAM%20-%20IAM%20Administration/">IAM</a>. Coverage: governance, SSO, groups, policies, boundaries, lifecycle, audit, multi-environment, parameterized assignments.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>Priority</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>Governance Foundations</td>
+<td>Mandatory</td>
+<td>Concepts, terminology, governance model</td>
+</tr>
+<tr>
+<td>02</td>
+<td>SSO Authentication</td>
+<td>Mandatory</td>
+<td>Decide SSO method before adding users</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Group Architecture</td>
+<td>Mandatory</td>
+<td>Group design patterns</td>
+</tr>
+<tr>
+<td>04</td>
+<td>Policy Authoring</td>
+<td>Mandatory</td>
+<td>Gen3 policy model</td>
+</tr>
+<tr>
+<td>05</td>
+<td>Boundary Design</td>
+<td>Mandatory</td>
+<td>Scope boundaries; depends on ORGNZ-06 (security_context)</td>
+</tr>
+<tr>
+<td>06</td>
+<td>User Lifecycle</td>
+<td>Recommended</td>
+<td>Provisioning, deprovisioning, role transitions</td>
+</tr>
+<tr>
+<td>07</td>
+<td>Audit and Compliance</td>
+<td>Recommended</td>
+<td>Audit log queries, compliance reporting</td>
+</tr>
+<tr>
+<td>08</td>
+<td>Multi-Environment</td>
+<td>Optional</td>
+<td>Only if multi-tenant</td>
+</tr>
+<tr>
+<td>09</td>
+<td>Troubleshooting</td>
+<td>Reference</td>
+<td>Lookup when something doesn't work</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Templated Policy Assignments</td>
+<td>Recommended</td>
+<td>Parameterized policies — one policy with binding parameters, not N copies. Strong best practice.</td>
+</tr>
+<tr>
+<td>11</td>
+<td>[WORKSHOP] Policy Persona</td>
+<td>Recommended</td>
+<td>Hands-on planning exercise</td>
+</tr>
+<tr>
+<td>12</td>
+<td>API Provisioning and Validation</td>
+<td>Optional</td>
+<td>For automation; tied to <a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a></td>
+</tr>
+<tr>
+<td>99</td>
+<td>Best Practice Summary</td>
+<td>Reference</td>
+<td>One-page synthesis</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Critical sidebar — parameterized policies:</strong> Notebook 10 introduces a strong best practice: prefer one parameterized policy with binding parameters over N copies of a similar policy with hardcoded scope. Most engagements should adopt this pattern from the start; retrofitting later is painful.</p>
+<hr />
+<h2 id="cross-references-between-foundation-series">Cross-References Between Foundation Series</h2>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Light coverage in…</th>
+<th>Canonical in…</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Initial users and authentication</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> notebook 02</td>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM</a> notebooks 02–03</td>
+</tr>
+<tr>
+<td>Tags and host groups</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> notebook 06; <a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> entry 01</td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> notebook 01; <a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> entry 02</td>
+</tr>
+<tr>
+<td>Bucket basics</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> notebook 06</td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> notebooks 02–03</td>
+</tr>
+<tr>
+<td>security_context</td>
+<td>(mentioned in IAM-04, 05)</td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> notebook 06</td>
+</tr>
+<tr>
+<td>Policy authoring</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> notebook 02</td>
+<td><a href="../IAM%20-%20IAM%20Administration/">IAM</a> notebooks 04–05</td>
+</tr>
+<tr>
+<td>Gen2 → Gen3 access control</td>
+<td>(overview in <a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a>)</td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> full series</td>
+</tr>
+<tr>
+<td>Segments</td>
+<td><a href="../ONBRD%20-%20Dynatrace%20Onboarding/">ONBRD</a> notebook 06</td>
+<td><a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> notebooks 08, 10</td>
+</tr>
+<tr>
+<td>Management Zones → Segments (filtering)</td>
+<td>—</td>
+<td><a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> notebook 05</td>
+</tr>
+</tbody>
+</table>
+<p>If a topic appears in ONBRD with light coverage and you need depth, dive into the canonical series.</p>
+<p><strong>Sidebar — Management Zones do two jobs.</strong> An MZ can be enforcing <em>who may read what</em> (access control) or scoping <em>what a user sees</em> (filtering). They migrate to different places: access control becomes IAM policies and boundaries (<a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> notebooks 02–04, 06–08), while filtering becomes segments (<a href="../MZ2POL%20-%20Management%20Zone%20to%20Policy%20Migration/">MZ2POL</a> notebook 05, built on <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> 08 and 10). Most estates contain more of the second kind than teams expect. If your MZs are only used for filtering, MZ2POL-05 reads on its own — you do not need the access-control notebooks.</p>
+<hr />
+<h2 id="where-to-next">Where to Next</h2>
+<p>Once Foundation reading is in progress (it doesn't have to be finished — Foundation can run in parallel with first-domain work):</p>
+<ul>
+<li><a href="06-domain-enablement.html">Domain Enablement Module</a> — pick your first observability domain</li>
+<li><a href="07-operationalize.html">Operationalize Module</a> — once a domain is producing data, layer dashboards, alerts, automation, and AI</li>
+<li><a href="08-maturity.html">Maturity Module</a> — for ongoing improvement framing</li>
+</ul>
+<p>Return here as needed: when you adopt a new permission pattern, when an audit raises questions about IAM hygiene, when a new bucket-routing decision arises.</p>
+<hr />
+<blockquote>
+<p><em>This playbook was AI-generated from community-submitted and publicly available sources. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SYNTH-02: Browser Monitors</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SYNTH — Synthetic Monitoring</a><span class="sep">/</span><span aria-current="page">SYNTH-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SYNTH-02: Browser Monitors</h1>
+<blockquote>
+<p><strong>Series:</strong> SYNTH — Synthetic Monitoring | <strong>Notebook:</strong> 2 of 6 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Creating and Optimizing Browser-Based Synthetic Tests</h2>
+<p>This notebook covers browser monitors in Dynatrace, including single-URL monitors, browser clickpaths, and performance analysis using the latest Dynatrace platform capabilities.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#browser-monitor-types">Browser Monitor Types</a></li>
+<li><a href="#single-url-monitors">Single-URL Monitors</a></li>
+<li><a href="#browser-clickpaths">Browser Clickpaths</a></li>
+<li><a href="#monitoring-a-login-flow">Monitoring a Login Flow</a></li>
+<li><a href="#performance-metrics">Performance Metrics</a></li>
+<li><a href="#validation-and-assertions">Validation and Assertions</a></li>
+<li><a href="#analyzing-browser-results">Analyzing Browser Results</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with Synthetic Monitoring</li>
+<li>✅ Completed SYNTH-01 Fundamentals</li>
+<li>✅ Web application URL to monitor</li>
+</ul>
+<blockquote>
+<p><strong>How browser data is queried:</strong> Browser monitors are analyzed primarily through the <strong><code>dt.synthetic.browser.*</code> metrics</strong> (<code>timeseries</code>) — availability, total duration, and per-step duration. Execution-level browser records appear as <code>browser_monitor_execution</code> / <code>browser_monitor_step_execution</code> events in <code>fetch dt.synthetic.events</code> under both experiences: with the <em>new browser monitor experience</em> activated, <em>&quot;metrics and events generated with both new and classic RUM JavaScript are ingested into Dynatrace&quot;</em> (<a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/new-browser-monitoring-experience">Activate new browser monitor experience (DT docs)</a>). <strong>Dynatrace environments created after January 26, 2026 do not have a classic/new toggle at all</strong> — they run the new experience by default. Confirm which event types your tenant populates with a discovery query (<code>fetch dt.synthetic.events, from:-24h | filter startsWith(event.type, &quot;browser&quot;) | limit 5</code>).</p>
+</blockquote>
+<p><a id="browser-monitor-types"></a></p>
+<h2>1. Browser Monitor Types</h2>
+<h3>Single-URL Browser Monitor</h3>
+<p>Loads a single page and captures performance metrics:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Execution</strong></td>
+<td>Full Chrome browser render</td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td>W3C Navigation Timing, resource timing</td>
+</tr>
+<tr>
+<td><strong>Device profile</strong></td>
+<td>Preset or custom device (orientation, screen size) and user agent</td>
+</tr>
+<tr>
+<td><strong>Validation</strong></td>
+<td>Content validation, element checks</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Best For:</strong></p>
+<ul>
+<li>Homepage availability</li>
+<li>Landing page performance</li>
+<li>Single page applications (SPA) initial load</li>
+</ul>
+<h3>Browser Clickpath Monitor</h3>
+<p>Multi-step user journey simulation:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Steps</strong></td>
+<td>Multiple pages/actions in sequence</td>
+</tr>
+<tr>
+<td><strong>Interactions</strong></td>
+<td>Click, type, select, wait</td>
+</tr>
+<tr>
+<td><strong>State</strong></td>
+<td>Cookies maintained within execution (session NOT maintained between executions)</td>
+</tr>
+<tr>
+<td><strong>Content Validation</strong></td>
+<td>Validate text/elements exist on page</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Unlike RUM session properties, browser clickpaths do not support extracting data into variables for use across executions. Content validation allows you to verify expected text/elements exist, but you cannot capture dynamic values for reuse.</p>
+</blockquote>
+<p><strong>Best For:</strong></p>
+<ul>
+<li>Login flows</li>
+<li>Checkout processes</li>
+<li>Form submissions</li>
+<li>Multi-page workflows</li>
+</ul>
+<h3>Configuration Path</h3>
+<p><strong>Synthetic → New monitor → Browser</strong></p>
+<p><a id="single-url-monitors"></a></p>
+<h2>2. Single-URL Monitors</h2>
+<h3>Creating a Single-URL Monitor</h3>
+<ol>
+<li>
+<p><strong>URL Configuration</strong></p>
+<ul>
+<li>Enter the full URL (https://...)</li>
+<li>Optional device profile — <em>&quot;Existing devices with preset characteristics&quot;</em> or a custom device with your own screen height and width</li>
+<li>Optional user agent (pre-populated when you pick an existing device)</li>
+</ul>
+</li>
+<li>
+<p><strong>Execution Settings</strong></p>
+<ul>
+<li>Frequency: every 5, 10, 15 or 30 minutes; every 1, 2 or 4 hours; or on demand only (SYNTH-01 § 3)</li>
+<li>Locations: Select public or private</li>
+<li>Timeout: Maximum execution time</li>
+</ul>
+</li>
+<li>
+<p><strong>Validation Rules</strong></p>
+<ul>
+<li>HTTP status code validation</li>
+<li>Content validation (text, regex)</li>
+<li>Element presence checks</li>
+</ul>
+</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-configure-browser-monitors">Create and configure a browser monitor (DT docs)</a> — <em>&quot;Existing devices with preset characteristics. You can modify only the orientation—make it either landscape or portrait.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// List browser/clickpath monitors
+// PREFERRED -- Smartscape. Classic dt.entity.synthetic_test maps to BROWSER_MONITOR.
+// entityName() is not needed: the node's `name` field IS the display name.
+smartscapeNodes &quot;BROWSER_MONITOR&quot;, from: now() - 7d
+| fields name, id, id_classic, url, enabled, frequency
+| sort name asc
+| limit 50
+
+// Clickpath STEPS are separate nodes (BROWSER_MONITOR_STEP), joined to the monitor by
+// an edge -- they are NOT fields of the monitor record. To count steps per monitor,
+// start from the steps and traverse belongs_to back to the monitor:
+//
+// smartscapeNodes &quot;BROWSER_MONITOR_STEP&quot;
+// | traverse edgeTypes: {&quot;belongs_to&quot;}, targetTypes: {&quot;BROWSER_MONITOR&quot;}, direction: forward
+// | summarize steps = count(), by:{monitor = name, url}
+// | sort steps desc
+
+// FALLBACK (classic surface -- deprecated in DQL, supported for as long as
+// Dynatrace Classic is supported):
+// fetch dt.entity.synthetic_test
+// | fields id, entity.name
+// | sort entity.name asc
+// | limit 50
+</code></pre>
+<pre><code class="language-dql">// Browser monitor availability (last 24h) — metrics path
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+// Query availability on its own: combined with duration in one timeseries, monitors that
+// failed every run (and so report no duration) dropped out of the result.
+timeseries availability = avg(dt.synthetic.browser.availability),
+  from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor}
+| fieldsAdd monitor = getNodeName(dt.smartscape.browser_monitor),
+            availability_pct = arrayAvg(availability)
+| sort availability_pct asc
+
+// Duration (milliseconds), run separately — only monitors with successful runs appear:
+// timeseries duration_ms = avg(dt.synthetic.browser.duration),
+//   from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor}
+// | fieldsAdd monitor = getNodeName(dt.smartscape.browser_monitor)
+
+</code></pre>
+<p><a id="browser-clickpaths"></a></p>
+<h2>3. Browser Clickpaths</h2>
+<h3>Creating Clickpath Monitors</h3>
+<h4>Option 1: Record with Browser Extension</h4>
+<ol>
+<li>Install Dynatrace Synthetic Recorder (Chrome extension)</li>
+<li>Start recording session</li>
+<li>Perform user journey in browser</li>
+<li>Stop recording and export to Dynatrace</li>
+</ol>
+<h4>Option 2: Manual Script Creation</h4>
+<p>Define steps programmatically using the script editor.</p>
+<h3>Step Types</h3>
+<p><em>&quot;For browser clickpaths, the following step types are available: Navigate Click Tap Keystroke Select option JavaScript Cookie&quot;</em>. Each step also has a wait strategy.</p>
+<table>
+<thead>
+<tr>
+<th>Step type</th>
+<th>Does</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Navigate</strong></td>
+<td>Load a URL</td>
+<td>Open the login page</td>
+</tr>
+<tr>
+<td><strong>Click</strong> / <strong>Tap</strong></td>
+<td>Click or tap an element</td>
+<td>Click the login button</td>
+</tr>
+<tr>
+<td><strong>Keystroke</strong></td>
+<td>Enter text</td>
+<td>Type the username</td>
+</tr>
+<tr>
+<td><strong>Select option</strong></td>
+<td>Choose from a dropdown</td>
+<td>Select a country</td>
+</tr>
+<tr>
+<td><strong>JavaScript</strong></td>
+<td>Run a script</td>
+<td>Custom validation</td>
+</tr>
+<tr>
+<td><strong>Cookie</strong></td>
+<td>Set cookies for the execution</td>
+<td>Pre-authenticate (§ 4.5)</td>
+</tr>
+</tbody>
+</table>
+<h3>Element Locators</h3>
+<p>Locators are <strong>CSS</strong> or <strong>DOM</strong>. The recorder may capture several per element, and <em>&quot;Locators are evaluated sequentially; if the first locator isn't found, the second is evaluated, and so on until there's a match.&quot;</em> Prefer stable attributes (<code>[data-testid='login']</code>, an <code>id</code>) over position in the page.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-configure-browser-monitors/browser-clickpath-steps">Types of clickpath steps (DT docs)</a> — <em>&quot;Locators are evaluated sequentially; if the first locator isn't found, the second is evaluated, and so on until there's a match.&quot;</em></sub></p>
+</blockquote>
+<h3>Pages with Cross-Origin Frames</h3>
+<p>Payment forms, identity-provider login widgets and third-party chat components usually load in a cross-origin iframe. Such a page can pass even when the embedded content fails or loads slowly.</p>
+<p>With <strong>SaaS 1.348</strong> (staged tenant rollout from 10/12/2026), browser monitors get a <code>monitorCrossOriginFrames</code> setting alongside the existing <code>monitorFrames</code> setting. It is on by default for every existing monitor that already monitors frames, and results then include timing and error data from the cross-origin frames. Verify the release has reached your tenant before relying on it. Until it has, a passing result does not prove the embedded frame loaded: add a clickpath step that interacts with the frame, such as the login in § 4.</p>
+<p>If frame monitoring gives unexpected results, or raises CPU on a private Synthetic location, set <code>monitorCrossOriginFrames</code> to <code>false</code> for that monitor only.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 release notes (DT docs)</a> — <em>&quot;For all existing monitors that have frames monitoring enabled, the new setting is enabled by default as well.&quot;</em>; <em>&quot;These pages can report a successful test result even when the iframe content fails to load or loads slowly.&quot;</em>; <em>&quot;set monitorCrossOriginFrames to false in the monitor configuration to disable it for that monitor.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Clickpath step performance — per-step duration (metrics path)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+timeseries step_duration_ms = avg(dt.synthetic.browser.step.duration),
+    from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor, step.name}
+| fieldsAdd monitor = getNodeName(dt.smartscape.browser_monitor)
+</code></pre>
+<p><a id="monitoring-a-login-flow"></a></p>
+<h2>4. Monitoring a Login Flow</h2>
+<p>Authenticated journeys are the most requested clickpath and the most failure-prone. Section 3 covered the generic mechanics; this section walks the specific case end to end, because a login introduces three problems a public-page clickpath never hits: a secret has to come from somewhere safe, &quot;the page loaded&quot; is not the same as &quot;the user got in&quot;, and the credential will eventually rotate out from under the monitor.</p>
+<h3>4.1 Before you build: the account</h3>
+<p>Use a <strong>dedicated synthetic test account</strong>, never a real user's. A monitor running every 5 minutes from 10 locations is roughly 86,400 logins a month against that identity — enough to trip lockout policies, distort audit trails, and skew any product analytics keyed on user activity.</p>
+<p>Dynatrace enumerates three authentication mechanisms for single-URL browser monitors and clickpaths:</p>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Where it is configured</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Form-based (HTML)</strong></td>
+<td>Keystroke steps against the page's own fields</td>
+<td>The common case — this section's walkthrough</td>
+</tr>
+<tr>
+<td><strong>HTTP (basic, digest, NTLM, Negotiate/Kerberos)</strong></td>
+<td><code>Enable HTTP authentication</code> on the <strong>Navigate</strong> step</td>
+<td>Browser-native dialog, not a page form. Usernames accept <code>&lt;username&gt;</code> or <code>&lt;domain&gt;\&lt;username&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Certificate</strong></td>
+<td>Monitor configuration</td>
+<td>Available from any public location and on <strong>Linux-based</strong> private locations</td>
+</tr>
+</tbody>
+</table>
+<p><strong>MFA, one-time passwords, and CAPTCHA are not among the enumerated mechanisms.</strong> That is a statement about what the supported-authentication page lists, not a tested claim that every variant fails — but plan on it: if the login you want to monitor demands a second factor, the clickpath has no documented way to satisfy it.</p>
+<p>In community practice the workaround is organizational rather than technical — the test account is exempted from the MFA policy, or the synthetic egress ranges are allowlisted past the bot/step-up challenge. Both need the application and security teams to agree in advance, so raise it before you start building, not after the monitor goes red. The same applies to bot detection: a headless browser hitting a login form on a fixed schedule is precisely the traffic those systems exist to block.</p>
+<h3>4.2 Store the credential first</h3>
+<p>Create the credential before building the clickpath — the Keystroke step selects from what already exists in the vault.</p>
+<p><strong>Credential Vault → Add new credential</strong> (upper-right) → choose the type → <strong>Save</strong></p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>What to choose for a login clickpath</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><em>Username and password pairs</em> (also available: <em>Token credentials</em>, <em>Certificate credentials</em>)</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td><em>Synthetic</em> (the other scopes are <em>Extension authentication</em>, <em>Extension validation</em> and <em>AppEngine</em>)</td>
+</tr>
+<tr>
+<td><strong>Owner access only</strong></td>
+<td>On by default. Turn it off for <em>All</em>, or supply a comma-separated username list to share with specific users</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Access-control caveat worth knowing before you rely on it:</strong> when a browser monitor is associated with a restricted credential, users who <em>cannot</em> see that credential can still edit certain fields on the monitor. Vault restriction protects the secret's value; it is not a lock on the monitor configuration. Treat monitor edit rights as a separate control.</p>
+</blockquote>
+<h3>4.3 Build the clickpath</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJzdGVwLWFycm93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IgogICAgICAgICAgICBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPkxvZ2luIENsaWNrcGF0aCDigJQgU3RlcCBTZXF1ZW5jZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5Vc2VybmFtZSBpcyBwbGFpbiB0ZXh0OyBvbmx5IHRoZSBwYXNzd29yZCBjb21lcyBmcm9tIHRoZSBjcmVkZW50aWFsIHZhdWx0PC90ZXh0PgoKICA8IS0tIFN0ZXAgMTogTmF2aWdhdGUgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjEwMCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxMzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTE1IiB5PSIxMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMxNDk2RkYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlNURVAgMTwvdGV4dD4KICA8dGV4dCB4PSIxMTUiIHk9IjE1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+TmF2aWdhdGU8L3RleHQ+CiAgPGxpbmUgeDE9IjYwIiB5MT0iMTYyIiB4Mj0iMTcwIiB5Mj0iMTYyIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjExNSIgeT0iMTgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Mb2FkIHRoZSBsb2dpbiBwYWdlPC90ZXh0PgogIDx0ZXh0IHg9IjExNSIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5IVFRQIGF1dGggKGJhc2ljIC88L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSIyMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk5UTE0pIGxpdmVzIGhlcmU8L3RleHQ+CgogIDxsaW5lIHgxPSIxOTAiIHkxPSIxNjYiIHgyPSIyMTIiIHkyPSIxNjYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjc3RlcC1hcnJvdykiLz4KCiAgPCEtLSBTdGVwIDI6IEtleXN0cm9rZSB1c2VybmFtZSAtLT4KICA8cmVjdCB4PSIyMTUiIHk9IjEwMCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxMzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjkwIiB5PSIxMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMxNDk2RkYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlNURVAgMjwvdGV4dD4KICA8dGV4dCB4PSIyOTAiIHk9IjE1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+S2V5c3Ryb2tlPC90ZXh0PgogIDxsaW5lIHgxPSIyMzUiIHkxPSIxNjIiIHgyPSIzNDUiIHkyPSIxNjIiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMjkwIiB5PSIxODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPlVzZXJuYW1lPC90ZXh0PgogIDx0ZXh0IHg9IjI5MCIgeT0iMjAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UZXh0IHZhbHVlIHR5cGU6PC90ZXh0PgogIDx0ZXh0IHg9IjI5MCIgeT0iMjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5QbGFpbiB0ZXh0PC90ZXh0PgoKICA8bGluZSB4MT0iMzY1IiB5MT0iMTY2IiB4Mj0iMzg3IiB5Mj0iMTY2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI3N0ZXAtYXJyb3cpIi8+CgogIDwhLS0gU3RlcCAzOiBLZXlzdHJva2UgcGFzc3dvcmQgKGhpZ2hsaWdodGVkKSAtLT4KICA8cmVjdCB4PSIzOTAiIHk9IjEwMCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxMzIiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHJ4PSI2Ii8+CiAgPHJlY3QgeD0iMzkwIiB5PSIxMDAiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTMyIiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzczQkUyOCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+U1RFUCAzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5LZXlzdHJva2U8L3RleHQ+CiAgPGxpbmUgeDE9IjQxMCIgeTE9IjE2MiIgeDI9IjUyMCIgeTI9IjE2MiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjE4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+UGFzc3dvcmQ8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlRleHQgdmFsdWUgdHlwZTo8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkNyZWRlbnRpYWxzPC90ZXh0PgoKICA8bGluZSB4MT0iNTQwIiB5MT0iMTY2IiB4Mj0iNTYyIiB5Mj0iMTY2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI3N0ZXAtYXJyb3cpIi8+CgogIDwhLS0gU3RlcCA0OiBTdWJtaXQgLS0+CiAgPHJlY3QgeD0iNTY1IiB5PSIxMDAiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjY0MCIgeT0iMTI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTc4QkZBIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5TVEVQIDQ8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIxNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlN1Ym1pdDwvdGV4dD4KICA8bGluZSB4MT0iNTg1IiB5MT0iMTYyIiB4Mj0iNjk1IiB5Mj0iMTYyIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjY0MCIgeT0iMTgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5DbGljayB0aGUgYnV0dG9uIOKAlDwvdGV4dD4KICA8dGV4dCB4PSI2NDAiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+b3Igc2tpcCBpdCB2aWE8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPlNpbXVsYXRlIFJldHVybiBrZXk8L3RleHQ+CgogIDxsaW5lIHgxPSI3MTUiIHkxPSIxNjYiIHgyPSI3MzciIHkyPSIxNjYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjc3RlcC1hcnJvdykiLz4KCiAgPCEtLSBTdGVwIDU6IFZhbGlkYXRlIC0tPgogIDxyZWN0IHg9Ijc0MCIgeT0iMTAwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEzMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI4MTUiIHk9IjEyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZGQjgwMCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+U1RFUCA1PC90ZXh0PgogIDx0ZXh0IHg9IjgxNSIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5WYWxpZGF0ZTwvdGV4dD4KICA8bGluZSB4MT0iNzYwIiB5MT0iMTYyIiB4Mj0iODcwIiB5Mj0iMTYyIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjgxNSIgeT0iMTgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Bc3NlcnQgYW4gZWxlbWVudDwvdGV4dD4KICA8dGV4dCB4PSI4MTUiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+b25seSBhIHNpZ25lZC1pbjwvdGV4dD4KICA8dGV4dCB4PSI4MTUiIHk9IjIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dXNlciBjYW4gc2VlPC90ZXh0PgoKICA8IS0tIFZhdWx0IGNhbGxvdXQgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjI2NiIgd2lkdGg9IjUzMCIgaGVpZ2h0PSIxMTgiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHJ4PSI4Ii8+CiAgPHJlY3QgeD0iNDAiIHk9IjI2NiIgd2lkdGg9IjUzMCIgaGVpZ2h0PSIxMTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjQiIHk9IjI5NCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+Q3JlZGVudGlhbCB2YXVsdCDigJQgdGhlIHBhc3N3b3JkIGhhbGYgb25seTwvdGV4dD4KICA8dGV4dCB4PSI2NCIgeT0iMzIwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5BIHVzZXItSUQvcGFzc3dvcmQgY3JlZGVudGlhbCByZWZlcmVuY2VkIGZyb20gYSBLZXlzdHJva2Ugc3RlcCBjb250cmlidXRlczwvdGV4dD4KICA8dGV4dCB4PSI2NCIgeT0iMzQwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5vbmx5IGl0cyBwYXNzd29yZC4gVGhlIHVzZXJuYW1lIGlzIG5vdCBwdWxsZWQgZnJvbSB0aGUgdmF1bHQg4oCUIGl0IGlzIHR5cGVkIGFzPC90ZXh0PgogIDx0ZXh0IHg9IjY0IiB5PSIzNjAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPmEgc2VwYXJhdGUgcGxhaW4tdGV4dCBLZXlzdHJva2UsIHdoaWNoIGlzIHdoeSB0aGUgZmxvdyBuZWVkcyB0d28gb2YgdGhlbS48L3RleHQ+CgogIDwhLS0gRXhlY3V0aW9uLW1vZGVsIGNhbGxvdXQgLS0+CiAgPHJlY3QgeD0iNTkyIiB5PSIyNjYiIHdpZHRoPSIyOTgiIGhlaWdodD0iMTE4IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiByeD0iOCIvPgogIDxyZWN0IHg9IjU5MiIgeT0iMjY2IiB3aWR0aD0iMjk4IiBoZWlnaHQ9IjExOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2MTYiIHk9IjI5NCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+RXZlcnkgcnVuIGxvZ3MgaW4gYWdhaW48L3RleHQ+CiAgPHRleHQgeD0iNjE2IiB5PSIzMjAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPkVhY2ggZXhlY3V0aW9uIHN0YXJ0cyB3aXRoIGEgY2xlYW48L3RleHQ+CiAgPHRleHQgeD0iNjE2IiB5PSIzNDAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPmNhY2hlIGFuZCBlbXB0eSBsb2NhbCBzdG9yYWdlLCBzbzwvdGV4dD4KICA8dGV4dCB4PSI2MTYiIHk9IjM2MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+bm8gc2Vzc2lvbiBjYXJyaWVzIG92ZXIgYmV0d2VlbiBydW5zLjwvdGV4dD4KCiAgPCEtLSBGb290ZXIgbm90ZSAtLT4KICA8bGluZSB4MT0iNDAiIHkxPSI0MTYiIHgyPSI4OTAiIHkyPSI0MTYiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDY1IiB5PSI0NDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPkNsaWNrcGF0aHMgdGltZSBvdXQgYXQgNSBtaW51dGVzIOKAlCBidWRnZXQgdGhlIHdob2xlIGpvdXJuZXksIG5vdCBqdXN0IHRoZSBsb2dpbi48L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIiPlJhbmRvbSBzZWN1cml0eSBxdWVzdGlvbnMgYW5kIG90aGVyIGNvbmRpdGlvbmFsIHByb21wdHMgYXJlIGhhbmRsZWQgYnkgYSBKYXZhU2NyaXB0IHN0ZXAuPC90ZXh0Pgo8L3N2Zz4K" alt="Login Clickpath Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Type | Configuration |
+|------|------|---------------|
+| 1 | Navigate | Load the login page. HTTP auth (basic/NTLM) is configured here, not on a Keystroke step. |
+| 2 | Keystroke | Username — Text value data type: Plain text |
+| 3 | Keystroke | Password — Text value data type: Credentials (from the vault) |
+| 4 | Click, or Simulate Return key on step 3 | Submit the form |
+| 5 | Validate content | Assert an element only a signed-in user can see |
+Each execution starts with a clean cache and empty local storage, so no session carries over between runs. Clickpaths time out at 5 minutes.
+-->
+<p>The five steps, in order:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step type</th>
+<th>Configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Navigate</strong></td>
+<td>The login page URL. At least one Navigate step is required per clickpath.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Keystroke</strong></td>
+<td>The username field. Leave the <code>Text value</code> data type as <strong>Plain text</strong>.</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Keystroke</strong></td>
+<td>The password field. Change the <code>Text value</code> data type to <strong>Credentials</strong>, then <strong>Select credentials</strong> from the vault.</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Click</strong></td>
+<td>The submit button — <em>or</em> skip this step entirely by enabling <strong>Simulate Return key</strong> on step 3.</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Validate content</strong></td>
+<td>Assert the post-login state (see § 4.4).</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>The thing that catches people out:</strong> a <em>user ID/password pair</em> credential referenced from a Keystroke step supplies <strong>only the password portion</strong>. The username does not come from the vault — it is typed as an ordinary plain-text Keystroke. That asymmetry is why the flow needs two Keystroke steps rather than one, and why a monitor built on the assumption that one credential fills both fields fails on the username field with no obvious explanation.</p>
+</blockquote>
+<p>Two Keystroke options are worth setting deliberately:</p>
+<ul>
+<li><strong>Simulate Return key</strong> — presses Enter after the keystrokes. On a login form this submits without a separate Click step, which removes a selector that would otherwise break every time the button markup changes.</li>
+<li><strong>Simulate blur event</strong> — on by default. Leave it on: forms that validate a field on focus-loss (or that only enable the submit button after blur) will not behave correctly without it.</li>
+</ul>
+<p>If you record the clickpath rather than building it by hand, the recorder notices captured credentials — when a recording captures a password you are notified and offered the option to save it to the credential vault. Take the offer. The reverse operation, <strong>Reset text value</strong>, converts a credential back to unencrypted plain text, which is almost never what you want on a password field.</p>
+<h3>4.4 Validate that the login actually worked</h3>
+<p>This is where login monitors most often give false confidence. <strong>A failed login usually returns HTTP 200.</strong> The server happily renders the login page again with an &quot;invalid credentials&quot; banner, so status-code checking alone passes and the monitor stays green while nobody can sign in.</p>
+<p>Content validation runs per step and supports four targets:</p>
+<table>
+<thead>
+<tr>
+<th>Target</th>
+<th>Use for a login</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Visible text</strong></td>
+<td>Text only an authenticated user sees — an account name, a greeting</td>
+</tr>
+<tr>
+<td><strong>Specific elements</strong></td>
+<td>A DOM element unique to the signed-in shell, e.g. a sign-out control</td>
+</tr>
+<tr>
+<td><strong>Text within elements</strong></td>
+<td>Scoped text assertion — safer than a bare page-wide text match</td>
+</tr>
+<tr>
+<td><strong>DOM / resource text</strong></td>
+<td>Markup or resource content not necessarily rendered</td>
+</tr>
+</tbody>
+</table>
+<p>Validations execute sequentially and the monitor fails if a pass criterion is unmet or a fail criterion is triggered. For a login, set <strong>both</strong> directions:</p>
+<ul>
+<li><strong>Pass criterion</strong> — an element that exists <em>only after</em> authentication. In community practice a sign-out link is the usual choice: its presence is a direct assertion of session state, and it tends to survive redesigns better than a greeting string.</li>
+<li><strong>Fail criterion</strong> — the error banner's text. This converts the silent-200 failure into an explicit, immediately readable failure reason.</li>
+</ul>
+<p>Do not validate on the <em>login page</em> loading, on the submit button existing, or on the URL changing. Each of these can be true while authentication has plainly failed.</p>
+<h3>4.5 When the simple path is not enough</h3>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Random security questions</strong>, A/B-tested login variants, conditional prompts</td>
+<td>A <strong>JavaScript</strong> step — explicitly documented for dynamic scenarios including login flows with random security questions</td>
+</tr>
+<tr>
+<td><strong>Session cookie injection</strong> to skip the UI login</td>
+<td>Cookies in <strong>Advanced setup</strong> (whole execution) or a <strong>Cookie</strong> step (part of the clickpath). The Cookie step requires <em>Name</em>, <em>Value</em>, and <em>Domain</em> (<em>Path</em> optional); <code>;</code>, <code>,</code>, <code>&quot;</code> and <code>\</code> are forbidden in values</td>
+</tr>
+<tr>
+<td><strong>Browser-native auth dialog</strong> rather than a page form</td>
+<td><code>Enable HTTP authentication</code> on the <strong>Navigate</strong> step</td>
+</tr>
+</tbody>
+</table>
+<p>JavaScript-step limits worth knowing before you architect around it: it cannot execute on PDF pages, variables are confined to a single execution, key names cap at 100 characters, and values cap at 5,000.</p>
+<p>Cookies have an important boundary. Cookies set in the monitor's <strong>Advanced setup</strong> are valid for <strong>the entire monitor execution</strong>; a <strong>Cookie</strong> step sets them only for a portion of the clickpath. Neither persists across executions — consistent with the section 1 note that clickpaths keep session state within a run and not between runs. It is a way to start each run pre-authenticated from a static value, not a way to log in once and stay logged in. If the session token is short-lived, this approach expires and the monitor fails; it suits long-lived API-style tokens far better than ordinary web session cookies.</p>
+<p>One recording constraint: <em>Enable global login authentication</em> is not supported while recording, so configure it after the recording is captured.</p>
+<h3>4.6 Operating it</h3>
+<p>Two execution-model facts drive most login-monitor surprises:</p>
+<ul>
+<li><strong>Every run logs in from scratch.</strong> Each execution starts with a clean cache and empty local storage. There is no &quot;already signed in&quot; fast path, and the full authentication cost is in every measurement.</li>
+<li><strong>Clickpaths time out at 5 minutes.</strong> That budget covers the whole journey. A slow identity provider consumes it before your actual business steps run.</li>
+</ul>
+<p>In community practice, the single most common cause of a healthy login monitor going red overnight is credential rotation — the vault entry still holds the previous password. It is worth putting the synthetic test account on the same rotation calendar as the credential vault entry, so the two move together rather than one discovering the other has changed. Verify against your own rotation policy.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/general-information/synthetic-authentication">Supported authentication methods in Synthetic Monitoring (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/credential-vault">Credential vault (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/browser-monitors/browser-clickpath-events">Browser clickpath events (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-configure-browser-monitors/browser-clickpath-steps">Types of clickpath steps (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/browser-monitors/record-a-browser-clickpath">Record a browser clickpath (DT docs)</a>. Credential-portion behavior, Keystroke data-type labels, step-type limits, and validation targets confirmed at source 08/03/2026; validation targets and pass/fail evaluation re-read 09/28/2026 — <em>&quot;If pass criteria are not met (or fail criteria are met), the monitor/event fails and the execution is aborted.&quot;</em> <strong>Derived:</strong> § 4.4 pass/fail criterion pairing combines the documented validation targets with that pass/fail evaluation.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Login clickpath — is every step running everywhere, and which step costs the most?
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+// Deliberately unfiltered: step names are whatever the author (or the recorder)
+// named them, so a hard-coded &quot;login&quot; filter silently returns nothing on most
+// tenants. Narrow it once you know your own naming, e.g.:
+//   | filter contains(step, &quot;login&quot;, caseSensitive: false)
+// Note the named parameter -- contains() rejects a positional third argument.
+// Executions are queried on their own: a step that never completes reports no
+// duration, and combined with duration in one timeseries it drops out of the result.
+timeseries runs = sum(dt.synthetic.browser.step.executions),
+    from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor, step.name}
+| fields monitor = getNodeName(dt.smartscape.browser_monitor), step = step.name,
+         executions = arraySum(runs)
+| sort executions desc
+| limit 25
+
+// Cost per step (only steps with completed runs appear):
+// timeseries step_ms = avg(dt.synthetic.browser.step.duration),
+//     from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor, step.name}
+// | fields monitor = getNodeName(dt.smartscape.browser_monitor), step = step.name,
+//          avg_step_ms = round(arrayAvg(step_ms), decimals: 0),
+//          max_step_ms = round(arrayMax(step_ms), decimals: 0)
+// | sort avg_step_ms desc
+// | limit 25
+</code></pre>
+<p><a id="performance-metrics"></a></p>
+<h2>5. Performance Metrics</h2>
+<h3>Browser timing in Synthetic on Grail</h3>
+<p>Browser monitors capture full-page render timing. In Grail this is exposed as <strong>synthetic browser metrics</strong>, split across two levels — the monitor as a whole, and each individual step.</p>
+<p><strong>Monitor-level</strong></p>
+<table>
+<thead>
+<tr>
+<th>Metric key</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.synthetic.browser.availability</code></td>
+<td>The availability rate of browser monitors</td>
+<td>%</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.executions</code></td>
+<td>The number of monitor executions</td>
+<td>count</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.duration</code></td>
+<td>Duration of the monitor, calculated as a sum of all step durations. The new-browser-experience docs list <em>Duration</em> as <em>&quot;recommended as the best representation of user experience&quot;</em>.</td>
+<td>ms</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.classic.total_duration</code></td>
+<td>Sum of the total durations of all steps. Source: <strong>classic</strong> RUM JavaScript</td>
+<td>ms</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.user_events.duration</code></td>
+<td>Sum of all step-level user <strong>event</strong> durations. Source: <strong>new</strong> RUM JavaScript</td>
+<td>ms</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.user_events.total_duration</code></td>
+<td>Sum of all step-level <code>user_events.total_duration</code> values. Source: <strong>new</strong> RUM JavaScript</td>
+<td>ms</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.user_actions.duration</code></td>
+<td>Sum of all step-level user <strong>action</strong> durations. Source: <strong>new</strong> RUM JavaScript</td>
+<td>ms</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.user_actions.total_duration</code></td>
+<td>Sum of all step-level <code>user_actions.total_duration</code> values. Source: <strong>new</strong> RUM JavaScript</td>
+<td>ms</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Step-level</strong></p>
+<table>
+<thead>
+<tr>
+<th>Metric key</th>
+<th>Description</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.synthetic.browser.step.executions</code></td>
+<td>The number of step executions</td>
+<td>count</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.step.duration</code></td>
+<td>Duration of the step, measured as a sum of the durations of user action events in the step</td>
+<td>ms</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.step.classic.total_duration</code></td>
+<td>Sum of all user actions in the step. Source: <strong>classic</strong> RUM JavaScript</td>
+<td>ms</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.step.user_events.duration</code></td>
+<td><strong>Span</strong> — from the start of the first user event of the step to the end of the last. Source: <strong>new</strong> RUM JavaScript</td>
+<td>ms</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.step.user_events.total_duration</code></td>
+<td><strong>Sum</strong> of the durations of all user events in the step. Source: <strong>new</strong> RUM JavaScript</td>
+<td>ms</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.step.user_actions.duration</code></td>
+<td><strong>Span</strong> — from the start of the first user action of the step to the end of the last. Source: <strong>new</strong> RUM JavaScript</td>
+<td>ms</td>
+</tr>
+<tr>
+<td><code>dt.synthetic.browser.step.user_actions.total_duration</code></td>
+<td><strong>Sum</strong> of the durations of all user actions in the step. Source: <strong>new</strong> RUM JavaScript</td>
+<td>ms</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong><code>.duration</code> and <code>.total_duration</code> do not mean the same thing at the two levels — and the difference only exists at step level.</strong> For a <em>step</em>, <code>.duration</code> is measured from the start of the first event/action to the end of the last (a <strong>span</strong>, which includes any idle time between them), while <code>.total_duration</code> is the <strong>sum</strong> of the individual durations (which excludes it). A step whose <code>.duration</code> markedly exceeds its <code>.total_duration</code> has time between its events/actions that no individual event/action accounts for — worth investigating as waiting rather than working. At <em>monitor</em> level both metrics are sums across steps — <code>.duration</code> sums the step <strong>spans</strong> and <code>.total_duration</code> sums the step <strong>sums</strong> — so the monitor-level gap is the sum of the per-step gaps.</p>
+</blockquote>
+<blockquote>
+<p><strong><code>user_actions.*</code> vs <code>user_events.*</code>:</strong> the documentation describes these two families in parallel wording, differing only in whether the unit being measured is a user <em>action</em> or a user <em>event</em> — it does not define how the two units differ. Do not assume they are interchangeable, and do not pick one on the strength of its name. Both families were confirmed populated side by side on a live tenant (08/03/2026), so query both over a representative window and compare before standardizing on either for alerting or SLOs.</p>
+</blockquote>
+<blockquote>
+<p><strong>New-experience metric family:</strong> the <code>user_events.*</code>, <code>user_actions.*</code>, and <code>classic.total_duration</code> metrics only appear once a monitor is executing under the <strong>new browser monitor experience</strong> (environment- or monitor-level setting, or by default on tenants created after January 26, 2026). Both classic and new-experience metrics are ingested simultaneously during the transition, at no additional cost — so it's safe to query the new-experience families speculatively and fall back to plain <code>duration</code> if they return nothing.</p>
+</blockquote>
+<blockquote>
+<p><strong>Which RUM JavaScript feeds <code>duration</code> — SaaS 1.349 (staged tenant rollout from 10/27/2026):</strong> for Group 3 (Enhanced) environments, <code>dt.synthetic.browser.duration</code> and <code>dt.synthetic.browser.step.duration</code> <em>&quot;metrics are now calculated using data from RUM JavaScript.&quot;</em> For Group 1 and Group 2 (Standard and New environment baseline) environments, they <em>&quot;continue to be calculated using data from RUM Classic JavaScript.&quot;</em> Verify the release has reached your tenant before relying on the new source.</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMjUwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZG5zR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJjb25uZWN0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjk3MzE2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYTU4MGM7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzc2xHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJlcXVlc3RHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4NGNjMTY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzY1YTMwZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJlc3BvbnNlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJkb21HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImxvYWRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJuYXZTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TmF2aWdhdGlvbiBUaW1pbmcgQnJlYWtkb3duPC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QnJvd3NlciBtb25pdG9yIHBlcmZvcm1hbmNlIHBoYXNlcyAoVzNDIE5hdmlnYXRpb24gVGltaW5nIEFQSSk8L3RleHQ+CgogIDwhLS0gVGltZWxpbmUgYmFzZSAtLT4KICA8bGluZSB4MT0iNTAiIHkxPSIxMzAiIHgyPSI3NTAiIHkyPSIxMzAiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CgogIDwhLS0gVGltZWxpbmUgc2VnbWVudHMgLSBwcm9wb3J0aW9uYWwgd2lkdGhzIC0tPgogIDwhLS0gRE5TOiA1MC0xMTAgKDYwcHgsIH4xNW1zKSAtLT4KICA8cmVjdCB4PSI1MCIgeT0iOTAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9InVybCgjZG5zR3JhZCkiIGZpbHRlcj0idXJsKCNuYXZTaGFkb3cpIi8+CiAgPHRleHQgeD0iODAiIHk9IjEwNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkROUzwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MTVtczwvdGV4dD4KCiAgPCEtLSBDb25uZWN0OiAxMTAtMTgwICg3MHB4LCB+MjVtcykgLS0+CiAgPHJlY3QgeD0iMTEyIiB5PSI5MCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0idXJsKCNjb25uZWN0R3JhZCkiIGZpbHRlcj0idXJsKCNuYXZTaGFkb3cpIi8+CiAgPHRleHQgeD0iMTQ3IiB5PSIxMDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db25uZWN0PC90ZXh0PgogIDx0ZXh0IHg9IjE0NyIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MjVtczwvdGV4dD4KCiAgPCEtLSBTU0w6IDE4MC0yNzAgKDkwcHgsIH40NW1zKSAtLT4KICA8cmVjdCB4PSIxODQiIHk9IjkwIiB3aWR0aD0iOTAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSJ1cmwoI3NzbEdyYWQpIiBmaWx0ZXI9InVybCgjbmF2U2hhZG93KSIvPgogIDx0ZXh0IHg9IjIyOSIgeT0iMTA1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U1NML1RMUzwvdGV4dD4KICA8dGV4dCB4PSIyMjkiIHk9IjEyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjQ1bXM8L3RleHQ+CgogIDwhLS0gUmVxdWVzdDogMjcwLTM0MCAoNzBweCwgfjMwbXMpIC0tPgogIDxyZWN0IHg9IjI3NiIgeT0iOTAiIHdpZHRoPSI3MCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9InVybCgjcmVxdWVzdEdyYWQpIiBmaWx0ZXI9InVybCgjbmF2U2hhZG93KSIvPgogIDx0ZXh0IHg9IjMxMSIgeT0iMTA1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmVxdWVzdDwvdGV4dD4KICA8dGV4dCB4PSIzMTEiIHk9IjEyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjMwbXM8L3RleHQ+CgogIDwhLS0gUmVzcG9uc2U6IDM0MC00NTAgKDExMHB4LCB+ODVtcykgLS0+CiAgPHJlY3QgeD0iMzQ4IiB5PSI5MCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9InVybCgjcmVzcG9uc2VHcmFkKSIgZmlsdGVyPSJ1cmwoI25hdlNoYWRvdykiLz4KICA8dGV4dCB4PSI0MDMiIHk9IjEwNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJlc3BvbnNlPC90ZXh0PgogIDx0ZXh0IHg9IjQwMyIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ODVtczwvdGV4dD4KCiAgPCEtLSBET006IDQ1MC02MDAgKDE1MHB4LCB+MTUwbXMpIC0tPgogIDxyZWN0IHg9IjQ2MCIgeT0iOTAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSJ1cmwoI2RvbUdyYWQpIiBmaWx0ZXI9InVybCgjbmF2U2hhZG93KSIvPgogIDx0ZXh0IHg9IjUzNSIgeT0iMTA1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RE9NIFByb2Nlc3Npbmc8L3RleHQ+CiAgPHRleHQgeD0iNTM1IiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xNTBtczwvdGV4dD4KCiAgPCEtLSBMb2FkOiA2MDAtNzQwICgxNDBweCwgfjEyMG1zKSAtLT4KICA8cmVjdCB4PSI2MTIiIHk9IjkwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0idXJsKCNsb2FkR3JhZCkiIGZpbHRlcj0idXJsKCNuYXZTaGFkb3cpIi8+CiAgPHRleHQgeD0iNjc3IiB5PSIxMDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Mb2FkIEV2ZW50PC90ZXh0PgogIDx0ZXh0IHg9IjY3NyIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MTIwbXM8L3RleHQ+CgogIDwhLS0gVGltZSBtYXJrZXJzIC0tPgogIDx0ZXh0IHg9IjUwIiB5PSIxNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+MG1zPC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iMTU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjI1MG1zPC90ZXh0PgogIDx0ZXh0IHg9Ijc0MiIgeT0iMTU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJlbmQiPjQ3MG1zPC90ZXh0PgoKICA8IS0tIExlZ2VuZCAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMTc1IiB3aWR0aD0iNzAwIiBoZWlnaHQ9IjYwIiByeD0iNiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjE5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3ludGhldGljIG1ldHJpY3MgaW4gR3JhaWwgZG8gbm90IGV4cG9zZSB0aGVzZSBwaGFzZXM8L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSIyMjAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnVzZSBkdC5zeW50aGV0aWMuYnJvd3Nlci5kdXJhdGlvbiBhbmQgZHQuc3ludGhldGljLmJyb3dzZXIuc3RlcC5kdXJhdGlvbiAoU1lOVEgtMDIgwqcgNSk8L3RleHQ+Cjwvc3ZnPgo=" alt="Navigation Timing" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Description |
+|-------|-------------|
+| DNS | DNS lookup time |
+| Connect | TCP connection time |
+| SSL | SSL/TLS handshake time |
+| Request | Time sending request |
+| Response | Time to first byte |
+| DOM | DOM processing time |
+| Load | Full page load complete |
+-->
+<h3>Core Web Vitals — a note on where they live</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+<th>Good</th>
+<th>Needs Work</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>First Contentful Paint</strong></td>
+<td>First content rendered</td>
+<td>&lt; 1.8s</td>
+<td>&gt; 3.0s</td>
+</tr>
+<tr>
+<td><strong>Largest Contentful Paint</strong></td>
+<td>Largest element rendered</td>
+<td>&lt; 2.5s</td>
+<td>&gt; 4.0s</td>
+</tr>
+<tr>
+<td><strong>Cumulative Layout Shift</strong></td>
+<td>Visual stability</td>
+<td>&lt; 0.1</td>
+<td>&gt; 0.25</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Core Web Vitals (LCP, FCP, CLS) are <strong>Real User Monitoring</strong> measurements, not synthetic browser metric keys. The Synthetic on Grail browser metrics expose <strong>availability</strong>, <strong>total duration</strong> (classic and new-experience variants), and <strong>per-step duration</strong> — not the individual W3C navigation-timing phases or Web Vitals. For Web Vitals analysis, see the WEBRUM series. Targets above are Google's thresholds; set your own baselines from observed data.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-metrics/browser-monitor-metrics">Browser monitor metrics in Synthetic on Grail (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/new-browser-monitoring-experience">Activate new browser monitor experience (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-349">SaaS 1.349 (DT docs)</a>. Metric table and dual-ingestion/no-extra-cost claim confirmed at source; table re-verified and split by level 08/03/2026, adding the <code>user_actions.*</code> family (monitor- and step-level) and correcting two <code>user_events.*</code> descriptions that read a step-level <strong>span</strong> as a sum. All 15 keys confirmed present on a live tenant the same day (<code>metrics | filter startsWith(metric.key, &quot;dt.synthetic.browser&quot;)</code>). Re-read 09/28/2026: step-level <code>user_events.duration</code> is <em>&quot;measured from the start of the first user event of the step to the end of the last user event of the step&quot;</em>, step-level <code>user_events.total_duration</code> is <em>&quot;measured as a sum of durations of all user events in the step&quot;</em>, and the new-experience page lists <em>&quot;Duration (recommended as the best representation of user experience)&quot;</em>. <strong>Derived:</strong> the § 5 span-vs-sum callout combines those step-level definitions with the monitor-level definitions (each a sum of the corresponding step-level values).</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Browser duration — average and worst-case per monitor (metrics path)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+timeseries {
+    avg_duration_ms = avg(dt.synthetic.browser.duration),
+    max_duration_ms = max(dt.synthetic.browser.duration)
+  }, from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor}
+| fieldsAdd monitor = getNodeName(dt.smartscape.browser_monitor)
+</code></pre>
+<pre><code class="language-dql">// Performance trend over time (last 7 days) — metrics path
+timeseries {
+    avg_duration_ms = avg(dt.synthetic.browser.duration),
+    max_duration_ms = max(dt.synthetic.browser.duration)
+  }, from: now() - 7d, interval: 1h
+</code></pre>
+<p><a id="validation-and-assertions"></a></p>
+<h2>6. Validation and Assertions</h2>
+<h3>Content Validation</h3>
+<table>
+<thead>
+<tr>
+<th>Validation Type</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Text Present</strong></td>
+<td>Page contains text</td>
+<td>&quot;Welcome&quot;</td>
+</tr>
+<tr>
+<td><strong>Text Absent</strong></td>
+<td>Page doesn't contain</td>
+<td>&quot;Error&quot;</td>
+</tr>
+<tr>
+<td><strong>Regex Match</strong></td>
+<td>Pattern matching</td>
+<td><code>Order #\d{6}</code></td>
+</tr>
+<tr>
+<td><strong>Element Exists</strong></td>
+<td>DOM element present</td>
+<td><code>#success-message</code></td>
+</tr>
+<tr>
+<td><strong>Element Content</strong></td>
+<td>Element has text</td>
+<td>Button says &quot;Submit&quot;</td>
+</tr>
+</tbody>
+</table>
+<h3>HTTP Validation</h3>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Default Behavior</th>
+<th>Customization</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Status Code</td>
+<td>Main-document HTTP errors 400–599 cause an availability outage</td>
+<td><em>Ignore specific status codes</em> excludes codes, ranges or masks such as <code>404, 405-410, 5xx</code></td>
+</tr>
+<tr>
+<td>Response Body</td>
+<td>Content validation</td>
+<td>Text/regex matching</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Response size validation and header validation are not available as built-in options. Use content validation or JavaScript steps for advanced checks.</p>
+</blockquote>
+<p>Pixel-diff or layout comparison is not a documented browser-monitor validation; validate content and elements instead.</p>
+<pre><code class="language-dql">// Failed browser executions with detail — events path
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+// Reads browser_monitor_execution events in dt.synthetic.events (written under both the classic
+// and the new browser experience).
+fetch dt.synthetic.events, from: now() - 24h
+| filter event.type == &quot;browser_monitor_execution&quot;
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;FAIL&quot;
+| fields timestamp,
+         monitor = monitor.name,
+         location = getNodeName(dt.smartscape.synthetic_location),
+         status = result.status.message,
+         detail = result.status.details
+| sort timestamp desc
+| limit 50
+</code></pre>
+<p><a id="analyzing-browser-results"></a></p>
+<h2>7. Analyzing Browser Results</h2>
+<pre><code class="language-dql">// Browser availability by location (metrics path)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+timeseries availability_pct = avg(dt.synthetic.browser.availability),
+    from: now() - 24h, interval: 1h, by: {dt.smartscape.browser_monitor, dt.smartscape.synthetic_location}
+| fieldsAdd monitor = getNodeName(dt.smartscape.browser_monitor), location = getNodeName(dt.smartscape.synthetic_location)
+</code></pre>
+<pre><code class="language-dql">// Browser duration distribution by location (metrics path)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+timeseries {
+    avg_ms = avg(dt.synthetic.browser.duration),
+    max_ms = max(dt.synthetic.browser.duration)
+  }, from: now() - 24h, interval: 1h, by: {dt.smartscape.synthetic_location}
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
+</code></pre>
+<pre><code class="language-dql">// Slowest browser executions (outliers) — events path
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+// browser_monitor_execution events (classic and new browser experience).
+fetch dt.synthetic.events, from: now() - 24h
+| filter event.type == &quot;browser_monitor_execution&quot;
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;SUCCESS&quot;
+| fieldsAdd duration_ms = result.statistics.duration / 1ms
+| filter duration_ms &gt; 5000  // &gt; 5 seconds
+| fields timestamp,
+         monitor = monitor.name,
+         location = getNodeName(dt.smartscape.synthetic_location),
+         duration_ms
+| sort duration_ms desc
+| limit 20
+</code></pre>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>Browser monitor types</strong> - Single-URL vs clickpath monitors<br />
+✅ <strong>Creating monitors</strong> - URL configuration, viewports, locations<br />
+✅ <strong>Clickpath automation</strong> - Recording, actions, selectors<br />
+✅ <strong>Login flows</strong> - Vault credentials, the password-only rule, post-login validation<br />
+✅ <strong>Performance metrics</strong> - <code>dt.synthetic.browser.*</code> metric keys (availability, duration, step duration)<br />
+✅ <strong>Where Web Vitals live</strong> - RUM, not synthetic browser metrics<br />
+✅ <strong>Analysis queries</strong> - Availability, duration trends, and failure diagnostics</p>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>SYNTH-03: HTTP Monitors</strong> to learn about lightweight API monitoring.</p>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/browser-monitors">Browser monitors (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/general-information/synthetic-authentication">Supported authentication methods in Synthetic Monitoring (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/credential-vault">Credential vault (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/browser-monitors/browser-clickpath-events">Browser clickpath events (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/create-configure-browser-monitors/browser-clickpath-steps">Types of clickpath steps (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/new-browser-monitoring-experience">Activate new browser monitor experience (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-metrics/browser-monitor-metrics">Browser monitor metrics in Synthetic on Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app">Synthetic app (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

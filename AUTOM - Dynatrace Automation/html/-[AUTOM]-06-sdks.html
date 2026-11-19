@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-06: Dynatrace SDKs</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-06: Dynatrace SDKs</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 6 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/02/2026</p>
+</blockquote>
+<p>Dynatrace publishes official TypeScript SDK clients (<code>@dynatrace-sdk/*</code>) for programmatic access to the platform, auto-generated from OpenAPI specifications. There is no official Python SDK package — Python automation calls the REST APIs directly.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#typescript-sdk">TypeScript SDK</a></li>
+<li><a href="#python-rest-api">Python: Calling the REST APIs</a></li>
+<li><a href="#common-patterns">Common Patterns</a></li>
+<li><a href="#mcp-server-integration">MCP Server Integration</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this notebook, ensure you have:</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node.js 18+</td>
+<td>For TypeScript SDK</td>
+</tr>
+<tr>
+<td>Python 3.9+ with <code>requests</code></td>
+<td>For the Python REST examples</td>
+</tr>
+<tr>
+<td>API Token</td>
+<td>Token with required scopes</td>
+</tr>
+<tr>
+<td>Development Environment</td>
+<td>VS Code or similar IDE</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Understand the Dynatrace SDK architecture</li>
+<li>Know how to use the TypeScript SDK clients and call the REST APIs from Python</li>
+<li>Be able to query data and manage configurations programmatically</li>
+<li>Build custom automation applications</li>
+</ul>
+<hr />
+<p><a id="introduction"></a></p>
+<h2>1. Introduction</h2>
+<h3>Available SDKs</h3>
+<table>
+<thead>
+<tr>
+<th>SDK</th>
+<th>Language</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>@dynatrace-sdk/</strong>*</td>
+<td>TypeScript/JavaScript</td>
+<td>Dynatrace apps, app functions, workflow JavaScript tasks</td>
+</tr>
+<tr>
+<td><em>(none)</em></td>
+<td>Python</td>
+<td>No official Python SDK is published (<code>dt-sdk</code> is not on PyPI). Call the REST APIs with <code>requests</code> or a clearly labelled community library</td>
+</tr>
+</tbody>
+</table>
+<h3>SDK vs Direct API</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>SDK</th>
+<th>Direct API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Type safety</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Auto-completion</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Authentication</td>
+<td>Built-in</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Pagination</td>
+<td>Cursor exposed (<code>nextPageKey</code>); you loop</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Error handling</td>
+<td>Structured</td>
+<td>Raw HTTP</td>
+</tr>
+</tbody>
+</table>
+<h3>Client Libraries</h3>
+<table>
+<thead>
+<tr>
+<th>Client (package)</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>queryExecutionClient</code></strong> (<code>client-query</code>)</td>
+<td>Execute DQL queries (<code>queryExecute</code>, then <code>queryPoll</code>)</td>
+</tr>
+<tr>
+<td><strong><code>settingsObjectsClient</code></strong> (<code>client-classic-environment-v2</code>)</td>
+<td>Manage Settings 2.0 objects</td>
+</tr>
+<tr>
+<td><strong><code>monitoredEntitiesClient</code></strong> (<code>client-classic-environment-v2</code>)</td>
+<td>Query entity topology</td>
+</tr>
+<tr>
+<td><strong><code>metricsClient</code></strong> (<code>client-classic-environment-v2</code>)</td>
+<td>Query and ingest metrics</td>
+</tr>
+<tr>
+<td><strong><code>eventsClient</code></strong> (<code>client-classic-environment-v2</code>)</td>
+<td>Query and create events</td>
+</tr>
+<tr>
+<td><strong><code>logsClient</code></strong> (<code>client-classic-environment-v2</code>)</td>
+<td>Query and store logs</td>
+</tr>
+</tbody>
+</table>
+<p>Names are the exports of <code>@dynatrace-sdk/client-query</code> 1.27.0 and <code>@dynatrace-sdk/client-classic-environment-v2</code> 9.1.0 (<a href="https://developer.dynatrace.com/develop/sdks/client-query/">client-query reference (Dynatrace Developer)</a>, <a href="https://developer.dynatrace.com/develop/sdks/client-classic-environment-v2/">client-classic-environment-v2 reference (Dynatrace Developer)</a>); a list call returns <code>nextPageKey</code> for the caller to follow.</p>
+<hr />
+<p><a id="typescript-sdk"></a></p>
+<h2>2. TypeScript SDK</h2>
+<h3>Installation</h3>
+<pre><code class="language-bash">npm install @dynatrace-sdk/client-query
+npm install @dynatrace-sdk/client-classic-environment-v2
+</code></pre>
+<p>(<code>@dynatrace-sdk/client-core</code> and <code>@dynatrace-sdk/client-settings-v2</code> are not published on npm; Settings 2.0 objects are reached through <code>client-classic-environment-v2</code>.)</p>
+<h3>Configuration</h3>
+<p>The <code>@dynatrace-sdk/*</code> clients are built for code that runs on the Dynatrace platform — apps, app functions and workflow JavaScript tasks — where the platform runtime supplies authentication. There is no <code>setEnvConfig</code> step to call. For scripts that run outside the platform (CI jobs, local tooling), call the REST APIs directly as in §3.</p>
+<h3>Query Example</h3>
+<p><code>queryExecute</code> starts the query and returns its result only if it finishes within <code>requestTimeoutMilliseconds</code>; otherwise it returns <code>state: 'RUNNING'</code> and a <code>requestToken</code> to poll with <code>queryPoll</code>. Put the timeframe in the DQL (<code>from:</code>) — <code>defaultTimeframeStart</code> / <code>defaultTimeframeEnd</code> take ISO-8601 timestamps (<em>&quot;The query timeframe 'start' timestamp in ISO-8601 or RFC3339 format&quot;</em>), not relative strings such as <code>now-24h</code>. (<a href="https://developer.dynatrace.com/develop/sdks/client-query/">client-query reference (Dynatrace Developer)</a>)</p>
+<pre><code class="language-typescript">import { queryExecutionClient } from '@dynatrace-sdk/client-query';
+
+// Start a DQL query, then poll until it finishes
+async function runQuery(query: string) {
+  const start = await queryExecutionClient.queryExecute({
+    body: { query, requestTimeoutMilliseconds: 30000 },
+  });
+
+  let { state, result } = start;
+  while (state === 'RUNNING' || state === 'NOT_STARTED') {
+    ({ state, result } = await queryExecutionClient.queryPoll({
+      requestToken: start.requestToken!,
+      requestTimeoutMilliseconds: 30000,
+    }));
+  }
+  if (state !== 'SUCCEEDED') {
+    throw new Error(`Query ended in state ${state}`);
+  }
+  return result?.records ?? [];
+}
+
+async function queryHosts() {
+  const records = await runQuery(`
+    fetch dt.entity.host
+    | fieldsAdd name = entity.name, osType
+    | sort name asc
+    | limit 10
+  `);
+
+  console.log('Hosts:', records);
+  return records;
+}
+</code></pre>
+<hr />
+<h3>Settings Management</h3>
+<p>Schema-agnostic helpers: list every object of a schema (following <code>nextPageKey</code>), and create an object after a <code>validateOnly</code> dry run. Pass a schema that exists in your environment — management zones (<code>builtin:management-zones</code>) are <strong>Blocked</strong> at upgrade and not available in Latest Dynatrace (AUTOM-02 § 2), so prefer a current schema such as <code>builtin:ownership.teams</code>. Fetch the schema first (<code>GET /api/v2/settings/schemas/&lt;schemaId&gt;</code>) to build a valid <code>value</code>.</p>
+<pre><code class="language-typescript">import { settingsObjectsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+// List all objects of one schema, following nextPageKey
+async function listSettings(schemaId: string) {
+  const items = [];
+  let nextPageKey: string | undefined;
+  do {
+    const page = nextPageKey
+      ? await settingsObjectsClient.getSettingsObjects({ nextPageKey })
+      : await settingsObjectsClient.getSettingsObjects({ schemaIds: schemaId, pageSize: 500 });
+    items.push(...(page.items ?? []));
+    nextPageKey = page.nextPageKey;
+  } while (nextPageKey);
+  return items;
+}
+
+// Create one object — validate first, then write
+async function createSetting(schemaId: string, scope: string, value: Record&lt;string, unknown&gt;) {
+  const body = [{ schemaId, scope, value }];
+  await settingsObjectsClient.postSettingsObjects({ body, validateOnly: true });
+  return settingsObjectsClient.postSettingsObjects({ body });
+}
+</code></pre>
+<h3>Entity Queries</h3>
+<pre><code class="language-typescript">import { monitoredEntitiesClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+async function getServices() {
+  const response = await monitoredEntitiesClient.getEntities({
+    entitySelector: 'type(SERVICE)',
+    fields: '+properties,+tags',
+    pageSize: 100
+  });
+  
+  return response.entities;
+}
+</code></pre>
+<hr />
+<p><a id="python-rest-api"></a></p>
+<h2>3. Python: Calling the REST APIs</h2>
+<p>Dynatrace does not publish a Python SDK: <code>pip install dt-sdk</code> fails because no such package exists on PyPI. Python automation calls the documented REST APIs directly. The examples below use the Settings 2.0 and Entities endpoints of the Environment API v2 with an access token (<code>Api-Token</code> header).</p>
+<h3>Setup</h3>
+<pre><code class="language-bash">pip install requests
+</code></pre>
+<pre><code class="language-python">import os
+import requests
+
+BASE = os.environ['DT_TENANT_URL'].rstrip('/')          # https://{tenant}.live.dynatrace.com
+session = requests.Session()
+session.headers['Authorization'] = f&quot;Api-Token {os.environ['DT_API_TOKEN']}&quot;
+</code></pre>
+<hr />
+<h3>Settings Management</h3>
+<pre><code class="language-python">def list_settings_objects(schema_id: str) -&gt; list[dict]:
+    &quot;&quot;&quot;All objects of one Settings 2.0 schema, following nextPageKey.&quot;&quot;&quot;
+    items: list[dict] = []
+    params = {'schemaIds': schema_id, 'pageSize': 100}
+    while True:
+        r = session.get(f'{BASE}/api/v2/settings/objects', params=params, timeout=30)
+        r.raise_for_status()
+        body = r.json()
+        items.extend(body.get('items', []))
+        if not body.get('nextPageKey'):
+            return items
+        # With nextPageKey set, the API requires all other query parameters to be omitted
+        params = {'nextPageKey': body['nextPageKey']}
+
+
+def create_settings_object(schema_id: str, value: dict, scope: str = 'environment') -&gt; list[dict]:
+    r = session.post(f'{BASE}/api/v2/settings/objects',
+                     json=[{'schemaId': schema_id, 'scope': scope, 'value': value}], timeout=30)
+    r.raise_for_status()
+    return r.json()
+</code></pre>
+<p>Pick a schema that survives the upgrade to Latest Dynatrace for new automation (e.g. <code>builtin:davis.anomaly-detectors</code>); management zones and alerting profiles are on Dynatrace's removed-schemas list (AUTOM-02).</p>
+<h3>Pagination Handling</h3>
+<pre><code class="language-python">def get_all_hosts() -&gt; list[dict]:
+    &quot;&quot;&quot;Iterate through all pages of hosts.&quot;&quot;&quot;
+    hosts: list[dict] = []
+    params = {'entitySelector': 'type(HOST)', 'pageSize': 500}
+    while True:
+        r = session.get(f'{BASE}/api/v2/entities', params=params, timeout=30)
+        r.raise_for_status()
+        body = r.json()
+        hosts.extend(body.get('entities', []))
+        if not body.get('nextPageKey'):
+            return hosts
+        params = {'nextPageKey': body['nextPageKey']}
+</code></pre>
+<hr />
+<p><a id="common-patterns"></a></p>
+<h2>4. Common Patterns</h2>
+<h3>Bulk Configuration Export</h3>
+<pre><code class="language-typescript">// TypeScript: collect all settings objects for backup (app function or workflow task)
+import { settingsObjectsClient, settingsSchemasClient } from '@dynatrace-sdk/client-classic-environment-v2';
+import type { SettingsObject } from '@dynatrace-sdk/client-classic-environment-v2';
+
+async function exportAllSettings() {
+  // Get all available schemas
+  const schemas = await settingsSchemasClient.getAvailableSchemaDefinitions();
+
+  const exportData: Record&lt;string, SettingsObject[]&gt; = {};
+
+  for (const { schemaId } of schemas.items) {
+    if (!schemaId) continue;
+    let page = await settingsObjectsClient.getSettingsObjects({ schemaIds: schemaId, pageSize: 500 });
+    const objects = [...page.items];
+    // Follow the cursor; with nextPageKey set, omit the other query parameters
+    while (page.nextPageKey) {
+      page = await settingsObjectsClient.getSettingsObjects({ nextPageKey: page.nextPageKey });
+      objects.push(...page.items);
+    }
+    if (objects.length &gt; 0) {
+      exportData[schemaId] = objects;
+    }
+  }
+
+  // The platform runtime has no usable file system: return the data
+  // (or store it in a document) instead of writing a file
+  return exportData;
+}
+</code></pre>
+<p>The SDK clients run on the Dynatrace platform, where <code>fs</code> is a stub: <em>&quot;You can import the following modules to ensure compatibility with specific third-party packages, but all exposed functions throw errors when called.&quot;</em> Return the export (or store it in a document) rather than writing a file. To write a backup file from a CI job, use the Python REST pattern in §3, which follows <code>nextPageKey</code> the same way. (<a href="https://developer.dynatrace.com/develop/reference/javascript-runtime/">JavaScript runtime (Dynatrace Developer)</a>)</p>
+<h3>Error Handling</h3>
+<pre><code class="language-typescript">async function safeQuery(query: string) {
+  try {
+    const records = await runQuery(query);   // runQuery from §2
+    return { success: true, data: records };
+  } catch (error) {
+    // Log and surface the failure; re-throw anything you cannot handle
+    console.error('Query failed:', error instanceof Error ? error.message : error);
+    return { success: false, error: String(error) };
+  }
+}
+</code></pre>
+<hr />
+<h3>Rate Limiting</h3>
+<pre><code class="language-python">import time
+from functools import wraps
+
+def rate_limited(max_per_second: float):
+    &quot;&quot;&quot;Decorator to rate limit API calls.&quot;&quot;&quot;
+    min_interval = 1.0 / max_per_second
+    last_called = [0.0]
+    
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            elapsed = time.time() - last_called[0]
+            if elapsed &lt; min_interval:
+                time.sleep(min_interval - elapsed)
+            result = func(*args, **kwargs)
+            last_called[0] = time.time()
+            return result
+        return wrapper
+    return decorator
+
+@rate_limited(10)  # Max 10 requests per second
+def api_call(entity_id: str) -&gt; dict:
+    r = session.get(f'{BASE}/api/v2/entities/{entity_id}', timeout=30)
+    r.raise_for_status()
+    return r.json()
+</code></pre>
+<h3>Async Operations</h3>
+<pre><code class="language-typescript">// TypeScript: concurrent queries with a concurrency cap
+import pLimit from 'p-limit';
+
+const limit = pLimit(5);  // Max 5 queries in flight
+
+async function queryMultipleHosts(hostIds: string[]) {
+  const queries = hostIds.map(hostId =&gt;
+    limit(() =&gt; runQuery(`
+      fetch dt.entity.host
+      | filter id == &quot;${hostId}&quot;
+    `))   // runQuery from §2
+  );
+
+  return Promise.all(queries);
+}
+</code></pre>
+<hr />
+<h3>Reporting Script</h3>
+<pre><code class="language-python">import pandas as pd
+
+
+def generate_host_report() -&gt; pd.DataFrame:
+    &quot;&quot;&quot;Generate a host inventory report from the Entities API (uses session/BASE from §3).&quot;&quot;&quot;
+    rows = []
+    params = {'entitySelector': 'type(HOST)', 'fields': '+properties', 'pageSize': 500}
+    while True:
+        r = session.get(f'{BASE}/api/v2/entities', params=params, timeout=30)
+        r.raise_for_status()
+        body = r.json()
+        for e in body.get('entities', []):
+            props = e.get('properties', {})
+            rows.append({
+                'name': e.get('displayName'),
+                'osType': props.get('osType'),
+                'cpuCores': props.get('cpuCores'),
+                'physicalMemory': props.get('physicalMemory'),
+            })
+        if not body.get('nextPageKey'):
+            break
+        params = {'nextPageKey': body['nextPageKey']}
+
+    df = pd.DataFrame(rows).sort_values('name')
+    df.to_csv('host_inventory.csv', index=False)
+    return df
+</code></pre>
+<hr />
+<h3>Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Environment variables</strong></td>
+<td>Never hardcode credentials</td>
+</tr>
+<tr>
+<td><strong>Type safety</strong></td>
+<td>Use the SDK's TypeScript types, or Python type hints on your REST wrappers</td>
+</tr>
+<tr>
+<td><strong>Error handling</strong></td>
+<td>Catch and handle API errors</td>
+</tr>
+<tr>
+<td><strong>Pagination</strong></td>
+<td>Always handle paginated responses</td>
+</tr>
+<tr>
+<td><strong>Rate limiting</strong></td>
+<td>Respect API limits</td>
+</tr>
+<tr>
+<td><strong>Logging</strong></td>
+<td>Add structured logging</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="mcp-server-integration"></a></p>
+<h2>5. MCP Server Integration</h2>
+<h3>Dynatrace MCP Server</h3>
+<p>The <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp">Dynatrace MCP server (DT docs)</a> is hosted in your Dynatrace environment and gives AI assistants (MCP clients) a set of Dynatrace tools through the Model Context Protocol. There is nothing to install or run locally.</p>
+<h3>Connection</h3>
+<p>Point the client at <code>https://{environment-name}.apps.dynatrace.com/platform-reserved/mcp-gateway/v0.1/servers/dynatrace-mcp/mcp</code>. <em>&quot;Every request to the MCP server needs a bearer token in the authorization header.&quot;</em> The docs recommend a platform token, <em>&quot;because a token generated from an OAuth client is short-lived.&quot;</em></p>
+<pre><code class="language-json">{
+  &quot;servers&quot;: {
+    &quot;dynatrace-mcp&quot;: {
+      &quot;url&quot;: &quot;https://{environment-name}.apps.dynatrace.com/platform-reserved/mcp-gateway/v0.1/servers/dynatrace-mcp/mcp&quot;,
+      &quot;headers&quot;: {
+        &quot;Authorization&quot;: &quot;Bearer &lt;platform-token&gt;&quot;
+      }
+    }
+  }
+}
+</code></pre>
+<p>This is the VS Code form shown on the docs page; other clients wrap the same <code>url</code> and <code>headers</code> in their own format (Claude Code, for example, uses an <code>mcpServers</code> entry with <code>&quot;type&quot;: &quot;http&quot;</code>). Both the user and the token need <code>mcp-gateway:servers:invoke</code> and <code>mcp-gateway:servers:read</code>, plus the permissions of the tools you call. Where the client supports it, read the token from a secret store rather than writing it into the file.</p>
+<blockquote>
+<p><strong>The local <code>@dynatrace-oss/dynatrace-mcp-server</code> npm package is deprecated.</strong> Its README states: <em>&quot;This repository is deprecated. Version 2.1.2 was the final release — no further updates will be made.&quot;</em> The GitHub repository is archived. Move <code>npx</code>-based configurations to the hosted server above. (<a href="https://github.com/dynatrace-oss/dynatrace-mcp">dynatrace-mcp README (Dynatrace GitHub)</a>)</p>
+</blockquote>
+<h3>MCP Server Capabilities</h3>
+<p>The use cases the docs page lists for the hosted server:</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DQL generation and explanation</strong></td>
+<td>Generate a DQL query, or explain one, with generative AI</td>
+</tr>
+<tr>
+<td><strong>DQL execution</strong></td>
+<td>Run a generated DQL query</td>
+</tr>
+<tr>
+<td><strong>Product questions</strong></td>
+<td>Answer product-related questions with generative AI</td>
+</tr>
+<tr>
+<td><strong>Problems and vulnerabilities</strong></td>
+<td>Investigate detected problems and vulnerabilities</td>
+</tr>
+<tr>
+<td><strong>Kubernetes events</strong></td>
+<td>Analyze Kubernetes events</td>
+</tr>
+<tr>
+<td><strong>Forecasting</strong></td>
+<td>Forecast and analyze timeseries data</td>
+</tr>
+<tr>
+<td><strong>Documents</strong></td>
+<td>Find documents and troubleshooting guides</td>
+</tr>
+<tr>
+<td><strong>Entities</strong></td>
+<td>Resolve entity names and IDs</td>
+</tr>
+</tbody>
+</table>
+<h3>When to Use MCP vs SDKs</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Tool Choice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI-assisted development</td>
+<td>MCP Server</td>
+</tr>
+<tr>
+<td>Custom application</td>
+<td>TypeScript SDK (platform apps) or REST API</td>
+</tr>
+<tr>
+<td>Automated pipeline</td>
+<td>REST API or Monaco/Terraform in CI/CD</td>
+</tr>
+<tr>
+<td>Interactive triage</td>
+<td>MCP Server with Claude or Copilot</td>
+</tr>
+<tr>
+<td>Batch processing</td>
+<td>SDK</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>6. Next Steps</h2>
+<h3>When to Use SDKs</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Tool Choice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Custom reporting tool</td>
+<td>SDK</td>
+</tr>
+<tr>
+<td>One-off query</td>
+<td>Direct API or Notebooks</td>
+</tr>
+<tr>
+<td>Config deployment</td>
+<td>Monaco or Terraform</td>
+</tr>
+<tr>
+<td>Integration app</td>
+<td>SDK</td>
+</tr>
+<tr>
+<td>Complex logic</td>
+<td>TypeScript SDK, or Python against the REST API</td>
+</tr>
+<tr>
+<td>AI-assisted access</td>
+<td>MCP Server</td>
+</tr>
+</tbody>
+</table>
+<h3>Continue the Series</h3>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AUTOM-07: CI/CD Integration</strong></td>
+<td>GitOps patterns and pipelines</td>
+</tr>
+</tbody>
+</table>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://developer.dynatrace.com/">Dynatrace Developer Portal</a></li>
+<li><a href="https://developer.dynatrace.com/develop/sdks/">TypeScript SDK Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings">Settings 2.0 API (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api">API Reference</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-mcp">MCP Server Documentation</a></li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>How to use the TypeScript SDK clients, and how to call the REST APIs from Python</li>
+<li>Common patterns for queries, settings, and entities</li>
+<li>Building custom CLI tools and reporting scripts</li>
+<li>Dynatrace MCP Server for AI-assisted programmatic access</li>
+<li>Best practices for SDK usage</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> SDKs provide the most flexibility for custom applications. Use them when you need programmatic access, complex logic, or integration with other systems. For AI-assisted workflows, consider the MCP Server. For simple config management, Monaco or Terraform are often simpler.</p>
+</blockquote>
+<hr />
+<p><em>Continue to <strong>AUTOM-07: CI/CD Integration</strong> to learn GitOps patterns.</em></p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

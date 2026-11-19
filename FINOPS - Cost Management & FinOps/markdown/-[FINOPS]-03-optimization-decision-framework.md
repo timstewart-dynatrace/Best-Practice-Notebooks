@@ -1,6 +1,6 @@
 # FINOPS-03: DPS Consumption Optimization — When to Cut, Tune, or Filter
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 11/11/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 03 — DPS Consumption Optimization — When to Cut, Tune, or Filter | **Created:** May 2026 | **Last Updated:** 11/19/2026
 
 ## Overview
 
@@ -284,7 +284,7 @@ Filters without owners become invisible cost optimization that no one can safely
 > - <sub>[Trace a cost spike to its root cause (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike) — typical ingest-spike causes include *"debug-level logging left on in production"*</sub>
 > - <sub>[Best practices for Log Management and Analytics (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-best-practices) — filter logs on ingest with OneAgent or OpenPipeline</sub>
 > - <sub>[Best practices for optimizing metrics cost (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/best-practices-metrics) — *"High-cardinality dimensions, such as user IDs or request IDs, significantly increase metric storage requirements. Removing a high-cardinality dimension reduces the number of stored timeseries and can lower cost."*</sub>
-> - <sub>[OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline), [OPLOGS topic series](../../oplogs/) — full filter-syntax depth</sub>
+> - <sub>[OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline), OPLOGS series (OpenPipeline Logs) — full filter-syntax depth</sub>
 > - <sub>[Log Management & Analytics - Ingest & Process (DT docs)](https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-ingest) — *"Ingested data is the amount of raw data in bytes sent to Dynatrace before enrichment and transformation."*</sub>
 > - <sub>[DPS Log Management (DT docs)](https://docs.dynatrace.com/docs/shortlink/dps-log-management) — *"filtering generates usage for Ingest & Process, but not for Retain"*</sub>
 > - <sub>[Dynatrace OTel Collector manifest (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-otel-collector/blob/main/manifest.yaml) — lists `filterprocessor` and `transformprocessor`, read 10/29/2026; [Dynatrace OTel Collector (DT docs)](https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector) — *"This support covers only the components and their versions that are included in the Dynatrace OTel Collector."*</sub>

@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPIPE-05: Business &amp; Security Event Pipelines</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPIPE — OpenPipeline Beyond Logs</a><span class="sep">/</span><span aria-current="page">OPIPE-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPIPE-05: Business &amp; Security Event Pipelines</h1>
+<blockquote>
+<p><strong>Series:</strong> OPIPE — OpenPipeline Beyond Logs | <strong>Notebook:</strong> 5 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Processing Business Transactions and Security Events at Ingestion</h2>
+<p>Business events and security events are two OpenPipeline scopes with distinct governance requirements. Business events drive revenue analytics, conversion tracking, and SLO calculations. Security events drive compliance reporting, threat detection, and audit trails. Both benefit from ingestion-time processing — enrichment, routing, and metric extraction — but the rules are different.</p>
+<p>This notebook covers the Business Events and Security Events scopes in OpenPipeline. For log processing, see <strong>OPLOGS-01: OpenPipeline Fundamentals</strong>. For compliance and masking patterns, see <strong>OPLOGS-08: Security &amp; Data Protection</strong> and <strong>OPMIG-08: Security, Masking &amp; Compliance</strong>.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#business-events-scope">Business Events Scope</a></li>
+<li><a href="#business-event-enrichment">Business Event Enrichment</a></li>
+<li><a href="#business-event-metric-extraction">Business Event Metric Extraction</a></li>
+<li><a href="#security-events-scope">Security Events Scope</a></li>
+<li><a href="#security-event-routing">Security Event Routing and Compliance</a></li>
+<li><a href="#event-to-metric">Event-to-Metric Extraction for KPIs</a></li>
+<li><a href="#summary">Summary</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail and business events enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:bizevents:read</code>, <code>storage:security.events:read</code>; <code>settings:objects:write</code> on the <code>builtin:openpipeline.bizevents.*</code> / <code>builtin:openpipeline.security.events.*</code> schemas to configure pipelines (OpenPipeline configuration is stored as Settings objects)</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Business events ingested via OneAgent capture rules, the RUM API, the business events API, or OpenPipeline extraction</td>
+</tr>
+<tr>
+<td><strong>Recommended</strong></td>
+<td><strong>OPIPE-01</strong> (multi-scope architecture), <strong>BIZEV</strong> series for business event analytics</td>
+</tr>
+</tbody>
+</table>
+<p><a id="business-events-scope"></a></p>
+<h2>1. Business Events Scope</h2>
+<p>Business events represent <strong>user transactions and business actions</strong> — purchases, sign-ups, page views, API calls, form submissions. They are ingested through:</p>
+<ul>
+<li><strong>OneAgent</strong> — capture rules on incoming requests to monitored services</li>
+<li><strong>RUM (web and mobile)</strong> — an explicit call to the RUM JavaScript API, OneAgent for Mobile, or OpenKit; user actions are not turned into business events automatically</li>
+<li><strong>Business events API</strong> — JSON events sent from external systems and backend services</li>
+<li><strong>OpenPipeline</strong> — business events extracted from logs and spans (Data extraction stage)</li>
+<li><strong>Workflows</strong> — the <em>Ingest business event</em> action</li>
+</ul>
+<h3>Key Business Event Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event.type</code></td>
+<td>The business event type</td>
+<td><code>com.myapp.purchase.completed</code></td>
+</tr>
+<tr>
+<td><code>event.provider</code></td>
+<td>The source system</td>
+<td><code>www.myshop.com</code></td>
+</tr>
+<tr>
+<td><code>event.category</code></td>
+<td>Event classification</td>
+<td><code>purchase</code>, <code>signup</code>, <code>pageview</code></td>
+</tr>
+<tr>
+<td><code>event.group</code></td>
+<td>Logical grouping</td>
+<td><code>checkout-flow</code>, <code>onboarding</code></td>
+</tr>
+<tr>
+<td>Custom attributes</td>
+<td>Business-specific data</td>
+<td><code>order.total</code>, <code>product.category</code>, <code>user.tier</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Discovering Your Business Event Landscape</h3>
+<pre><code class="language-dql">// Business event volume by type and provider
+fetch bizevents, from:-24h
+| summarize event_count = count(), by:{event.type, event.provider}
+| sort event_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Business event trend by type over 24h
+fetch bizevents, from:-24h
+| makeTimeseries event_count = count(), by:{event.type}, interval:1h
+</code></pre>
+<p><a id="business-event-enrichment"></a></p>
+<h2>2. Business Event Enrichment</h2>
+<p>Business events often arrive with technical identifiers that need business context. OpenPipeline enrichment adds meaningful fields at ingestion.</p>
+<h3>Common Enrichment Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Enrichment Field</th>
+<th>Value</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matchesValue(event.type, &quot;*purchase*&quot;)</code></td>
+<td><code>business.domain</code></td>
+<td><code>&quot;commerce&quot;</code></td>
+<td>Domain classification</td>
+</tr>
+<tr>
+<td><code>event.provider == &quot;mobile-app&quot;</code></td>
+<td><code>channel</code></td>
+<td><code>&quot;mobile&quot;</code></td>
+<td>Channel attribution</td>
+</tr>
+<tr>
+<td><code>event.provider == &quot;www.myshop.com&quot;</code></td>
+<td><code>channel</code></td>
+<td><code>&quot;web&quot;</code></td>
+<td>Channel attribution</td>
+</tr>
+<tr>
+<td>Custom: <code>order.total &gt; 1000</code></td>
+<td><code>order.tier</code></td>
+<td><code>&quot;high_value&quot;</code></td>
+<td>Revenue tier classification</td>
+</tr>
+<tr>
+<td>Custom: <code>user.country == &quot;US&quot; or user.country == &quot;CA&quot;</code></td>
+<td><code>region</code></td>
+<td><code>&quot;north_america&quot;</code></td>
+<td>Geographic grouping</td>
+</tr>
+</tbody>
+</table>
+<h3>Security Context for Business Events</h3>
+<p>Sensitive business data (revenue figures, user details) should be access-controlled:</p>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th><code>dt.security_context</code> Value</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matchesValue(event.type, &quot;*payment*&quot;)</code></td>
+<td><code>&quot;finance-team&quot;</code></td>
+<td>Payment data restricted to finance</td>
+</tr>
+<tr>
+<td><code>matchesValue(event.type, &quot;*signup*&quot;)</code></td>
+<td><code>&quot;marketing-team&quot;</code></td>
+<td>User acquisition data for marketing</td>
+</tr>
+<tr>
+<td><code>true</code> (last)</td>
+<td><code>&quot;product-team&quot;</code></td>
+<td>General product analytics</td>
+</tr>
+</tbody>
+</table>
+<p>The Permission stage runs <strong>first match only</strong>, so list the specific conditions first and the <code>true</code> catch-all last.</p>
+<p><a id="business-event-metric-extraction"></a></p>
+<h2>3. Business Event Metric Extraction</h2>
+<p>Extract metrics from business events for dashboards, SLOs, and alerting.</p>
+<h3>Example: E-Commerce Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric Key</th>
+<th>Processor</th>
+<th>Condition</th>
+<th>Dimensions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bizevent.purchase_count</code></td>
+<td>Counter metric</td>
+<td><code>event.type == &quot;purchase.completed&quot;</code></td>
+<td><code>event.provider</code>, <code>channel</code></td>
+</tr>
+<tr>
+<td><code>bizevent.purchase_revenue</code></td>
+<td>Value metric on <code>order.total</code></td>
+<td><code>event.type == &quot;purchase.completed&quot;</code></td>
+<td><code>event.provider</code>, <code>channel</code></td>
+</tr>
+<tr>
+<td><code>bizevent.cart_abandonment</code></td>
+<td>Counter metric</td>
+<td><code>event.type == &quot;cart.abandoned&quot;</code></td>
+<td><code>event.provider</code></td>
+</tr>
+<tr>
+<td><code>bizevent.signup_count</code></td>
+<td>Counter metric</td>
+<td><code>event.type == &quot;user.signup&quot;</code></td>
+<td><code>channel</code>, <code>region</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Conversion Funnel Metrics</h3>
+<p>Track progression through a multi-step funnel by extracting a count metric at each stage:</p>
+<table>
+<thead>
+<tr>
+<th>Funnel Stage</th>
+<th>Event Type</th>
+<th>Metric Key</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Product viewed</td>
+<td><code>product.viewed</code></td>
+<td><code>funnel.stage_1_views</code></td>
+</tr>
+<tr>
+<td>Added to cart</td>
+<td><code>cart.item_added</code></td>
+<td><code>funnel.stage_2_adds</code></td>
+</tr>
+<tr>
+<td>Checkout started</td>
+<td><code>checkout.started</code></td>
+<td><code>funnel.stage_3_checkout</code></td>
+</tr>
+<tr>
+<td>Purchase completed</td>
+<td><code>purchase.completed</code></td>
+<td><code>funnel.stage_4_purchase</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Conversion funnel from business events (last 24h)
+fetch bizevents, from:-24h
+| summarize views = countIf(event.type == &quot;product.viewed&quot;),
+    adds = countIf(event.type == &quot;cart.item_added&quot;),
+    checkouts = countIf(event.type == &quot;checkout.started&quot;),
+    purchases = countIf(event.type == &quot;purchase.completed&quot;)
+</code></pre>
+<p><a id="security-events-scope"></a></p>
+<h2>4. Security Events Scope</h2>
+<p>Security events include threat detections, vulnerability findings, compliance findings, and events from external security tools. They are stored in their own table, <strong><code>security.events</code></strong> — not in <code>events</code> — so query them with <code>fetch security.events</code>. They require special handling:</p>
+<ul>
+<li><strong>Never drop</strong> — Security events must be retained for compliance, even if volume is high</li>
+<li><strong>Never sample</strong> — Every security event is potentially significant</li>
+<li><strong>Long retention</strong> — compliance frameworks and internal policy commonly call for a year or more (see §5)</li>
+<li><strong>Strict access control</strong> — Only security teams should access security event data</li>
+</ul>
+<h3>Key Security Event Types</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th><code>event.type</code></th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vulnerabilities</td>
+<td><code>VULNERABILITY_FINDING</code>, <code>VULNERABILITY_SCAN</code>, <code>VULNERABILITY_STATE_REPORT_EVENT</code>, <code>VULNERABILITY_STATUS_CHANGE_EVENT</code>, …</td>
+<td>Vulnerability findings and state from Dynatrace and third-party tools. <code>VULNERABILITY_STATE_REPORT_EVENT</code> and <code>VULNERABILITY_STATUS_CHANGE_EVENT</code> are two of the four types that stay non-configurable in OpenPipeline from SaaS 1.353 (§5)</td>
+</tr>
+<tr>
+<td>Detections</td>
+<td><code>DETECTION_FINDING</code></td>
+<td>Alerts from security tools; Runtime Application Protection attacks carry <code>product.name == &quot;Runtime Application Protection&quot;</code></td>
+</tr>
+<tr>
+<td>Compliance</td>
+<td><code>COMPLIANCE_FINDING</code>, <code>COMPLIANCE_SCAN_COMPLETED</code></td>
+<td>Security Posture Management scan results</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/threat-observability/concepts">Threat Observability concepts (DT docs)</a> — event-type tables per category.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Platform audit events are not security events.</strong> Configuration changes and user actions are recorded as <code>AUDIT_EVENT</code> records in <code>dt.system.events</code>, outside the security-events scope.</p>
+</blockquote>
+<pre><code class="language-dql">// Security event overview (security events are stored in security.events, not events)
+fetch security.events, from:-24h
+| summarize event_count = count(), by:{event.type}
+| sort event_count desc
+</code></pre>
+<p><a id="security-event-routing"></a></p>
+<h2>5. Security Event Routing and Compliance</h2>
+<p>Security events should always be routed to <strong>dedicated buckets</strong> with extended retention and restricted access.</p>
+<h3>Routing Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Pipeline</th>
+<th>Routing Condition</th>
+<th>Target Bucket</th>
+<th>Retention</th>
+<th>Security Context</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>vulnerability-events</code></td>
+<td><code>matchesValue(event.type, &quot;VULNERABILITY_*&quot;)</code></td>
+<td><code>security_vulnerabilities</code></td>
+<td>365 days</td>
+<td><code>&quot;security-team&quot;</code></td>
+</tr>
+<tr>
+<td><code>detection-findings</code></td>
+<td><code>event.type == &quot;DETECTION_FINDING&quot;</code></td>
+<td><code>security_detections</code></td>
+<td>365 days</td>
+<td><code>&quot;security-team&quot;</code></td>
+</tr>
+<tr>
+<td><code>compliance-events</code></td>
+<td><code>matchesValue(event.type, &quot;COMPLIANCE_*&quot;)</code></td>
+<td><code>compliance_events</code></td>
+<td>2555 days (7 years)</td>
+<td><code>&quot;compliance-team&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<p>Platform audit events (<code>AUDIT_EVENT</code>) are not in this scope — they live in <code>dt.system.events</code> (§4). Which security event types pass through your pipelines depends on how they are ingested, so check the routing preview against real records before relying on a route.</p>
+<h3>Today vs from SaaS 1.353</h3>
+<p>Your pipelines can route only part of <code>security.events</code> today. The security-events migration guide stores events Dynatrace generates in <code>default_securityevents_builtin</code> (<em>&quot;Three years, fixed&quot;</em>) and events ingested from third-party tools in <code>default_securityevents</code> (<em>&quot;One year, configurable&quot;</em>). It lists routing to custom buckets among the changes that <em>&quot;come with the new bucket&quot;</em>. So until SaaS 1.353 reaches your tenant, the routes above shape third-party events only. Built-in events, such as the <code>COMPLIANCE_*</code> events from Security Posture Management, stay in their default bucket.</p>
+<table>
+<thead>
+<tr>
+<th>Security events</th>
+<th>Until SaaS 1.353 reaches your tenant</th>
+<th>From SaaS 1.353</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Generated by Dynatrace</td>
+<td><code>default_securityevents_builtin</code>, three years, fixed; not routed by your pipelines</td>
+<td><code>default_security</code>, 35 days, configurable; configurable and routable in OpenPipeline, except the four vulnerability types in the note below</td>
+</tr>
+<tr>
+<td>Ingested from third-party tools</td>
+<td><code>default_securityevents</code>, one year, configurable; the routes above apply</td>
+<td><code>default_security</code>, 35 days, configurable; the routes above apply</td>
+</tr>
+</tbody>
+</table>
+<p>Tell the two kinds apart by <code>dt.openpipeline.source</code>, not by bucket name: <em>&quot;Every event Dynatrace generates has the dt.openpipeline.source field set to built-in-security-events, which separates the two kinds of security event wherever each one is stored.&quot;</em> To route only third-party events, the guide's routing condition is <code>dt.openpipeline.source != &quot;built-in-security-events&quot;</code>; for built-in events, use <code>==</code>. Add it to the conditions in the table above, and <em>&quot;Place your route before the built-in security.events pipelines so that it runs first.&quot;</em> The field is already set, so queries can switch from bucket filters to it now. The query after this section shows which kind you hold and where it is stored.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/threat-observability/migrate-security-events-storage">Migrate to the new security.events bucket setup (DT docs)</a> — <em>&quot;Filter on dt.openpipeline.source instead.&quot;</em> <strong>Derived:</strong> that built-in events cannot be routed before 1.353 follows from the guide listing routing to custom buckets among the changes that come with the new bucket.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Forthcoming — SaaS 1.353 (planned December 2026), announced in the SaaS 1.350 release notes:</strong> <em>&quot;With Dynatrace SaaS version 1.353, planned for December 2026, security events become fully configurable in OpenPipeline, and security event storage consolidates into a single Grail bucket with a new default retention period.&quot;</em> <em>&quot;All events will flow into the new default_security bucket automatically.&quot;</em> Four vulnerability types are excepted: <em>&quot;VULNERABILITY_STATE_REPORT_EVENT, VULNERABILITY_ASSESSMENT_CHANGE_EVENT, VULNERABILITY_TRACKING_LINK_CHANGE_EVENT, and VULNERABILITY_STATUS_CHANGE_EVENT remain non-configurable, because a future release will deprecate them in favor of native concepts.&quot;</em> A <code>VULNERABILITY_*</code> route such as <code>vulnerability-events</code> above therefore does not cover those four once 1.353 lands; their retention is set on <code>default_security</code>. Act before it reaches your tenant if you query security events by bucket name — <em>&quot;Notebooks, dashboards, and workflows filtering on default_securityevents or default_securityevents_builtin need updating.&quot;</em> — or if <em>&quot;You rely on retention beyond 35 days.&quot;</em> — <em>&quot;Either extend the retention of default_security, or add an OpenPipeline routing rule sending the data you need to keep to a longer-retention bucket.&quot;</em> Until SaaS 1.353 reaches your tenant, the routing above remains the working path.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-350">What's new in Dynatrace SaaS 1.350 (DT docs)</a> — <em>&quot;Rollout start on Nov 4, 2026&quot;</em>. <strong>Derived:</strong> the four excepted types cannot be routed to a custom bucket, so <code>default_security</code> retention is the only lever the note leaves for them.</sub></p>
+</blockquote>
+<h3>Compliance Framework Requirements</h3>
+<p>The periods below are the ones commonly cited for each framework, not legal advice — confirm the period that applies to you with your compliance team and auditor before you size a bucket:</p>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>Commonly cited retention</th>
+<th>Key Event Types</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SOC 2</strong></td>
+<td>No fixed period in the framework — set by your policy and auditor; one year is common</td>
+<td>Access logs, configuration changes, incident records</td>
+</tr>
+<tr>
+<td><strong>HIPAA</strong></td>
+<td>Six years for required documentation; log retention follows your policy</td>
+<td>Access to PHI, authentication events, audit trails</td>
+</tr>
+<tr>
+<td><strong>PCI-DSS</strong></td>
+<td>One year of audit log history, with the most recent three months immediately available</td>
+<td>Cardholder data access, authentication, network events</td>
+</tr>
+<tr>
+<td><strong>GDPR</strong></td>
+<td>No longer than necessary for the purpose</td>
+<td>Data access, consent, deletion requests</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Which kind of security event you hold, and which bucket stores it
+fetch security.events, from:-7d
+| summarize {events = count()}, by:{dt.openpipeline.source, dt.system.bucket}
+| sort events desc
+</code></pre>
+<p><a id="event-to-metric"></a></p>
+<h2>6. Event-to-Metric Extraction for KPIs</h2>
+<p>Extract operational KPIs from both business and security events for dashboards and alerting.</p>
+<h3>Business KPIs</h3>
+<table>
+<thead>
+<tr>
+<th>KPI</th>
+<th>Metric Source</th>
+<th>Extraction Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Conversion rate</td>
+<td><code>purchase.completed</code> / <code>product.viewed</code></td>
+<td>Extract count for each, compute ratio in dashboard</td>
+</tr>
+<tr>
+<td>Average order value</td>
+<td><code>order.total</code> from <code>purchase.completed</code></td>
+<td>Value metric; average at query time</td>
+</tr>
+<tr>
+<td>Revenue per hour</td>
+<td><code>order.total</code> from <code>purchase.completed</code></td>
+<td>Value metric; sum it per hour at query time</td>
+</tr>
+</tbody>
+</table>
+<h3>Security KPIs</h3>
+<table>
+<thead>
+<tr>
+<th>KPI</th>
+<th>Metric Source</th>
+<th>Extraction Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Attack attempts per hour</td>
+<td><code>DETECTION_FINDING</code> events</td>
+<td>Counter metric; sum per hour at query time</td>
+</tr>
+<tr>
+<td>Open vulnerabilities</td>
+<td>Vulnerability events</td>
+<td>Not a metric-extraction job — metric processors count, sum and histogram; they do not count distinct values. Query <code>security.events</code> directly</td>
+</tr>
+<tr>
+<td>Failed auth attempts</td>
+<td>Authentication events</td>
+<td>Extract count where <code>status == &quot;FAILED&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Security event trend over 7 days
+fetch security.events, from:-7d
+| makeTimeseries event_count = count(), by:{event.type}, interval:24h
+</code></pre>
+<hr />
+<p><a id="summary"></a></p>
+<h2>Summary</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li><strong>Business events scope</strong> — Sources, key fields, and discovery queries for transaction data</li>
+<li><strong>Business event enrichment</strong> — Adding business context, channel attribution, and security context at ingestion</li>
+<li><strong>Metric extraction from business events</strong> — Conversion funnels, revenue metrics, and operational KPIs</li>
+<li><strong>Security events scope</strong> — Never drop, never sample, always retain with extended retention</li>
+<li><strong>Compliance-driven routing</strong> — Dedicated buckets with retention aligned to SOC 2, HIPAA, PCI-DSS requirements</li>
+<li><strong>Event-to-metric extraction</strong> — KPI dashboards for both business and security monitoring</li>
+</ul>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>Next Steps</h2>
+<p>Continue to <strong>OPIPE-06: Cross-Scope Design Patterns</strong> to learn how to correlate data across scopes, cascade processing from spans to events to metrics, and design a production-ready OpenPipeline architecture.</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing">Business event capture (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-logs-and-spans">Get business events from logs and spans (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-bucket-assignment-openpipeline">Business event bucket assignment via OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/secure/threat-observability/concepts">Threat Observability concepts (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a> — lists <code>storage:security.events:read</code></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

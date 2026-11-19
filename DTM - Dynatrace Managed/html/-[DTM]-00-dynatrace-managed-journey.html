@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-00: The Dynatrace Managed Journey</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-00</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-00: The Dynatrace Managed Journey</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 00 — The Dynatrace Managed Journey | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 10/29/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This series covers what is specific to running <strong>Dynatrace Managed</strong>, the self-hosted deployment, as opposed to Dynatrace SaaS. This notebook is its map: what the series covers, which notebook to open for a given question, how the notebooks are numbered, and where to go when the question is about leaving Managed for SaaS.</p>
+<p><strong>What you'll find here:</strong></p>
+<ul>
+<li>What this series does and does not apply to</li>
+<li>A reading order by situation</li>
+<li>The numbering bands and what each holds</li>
+<li>Where the notebooks of the former MCH series went</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#scope">Scope</a></li>
+<li><a href="#where-to-start">Where to Start</a></li>
+<li><a href="#numbering">How the Series Is Numbered</a></li>
+<li><a href="#formerly-mch">Formerly the MCH Series</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A self-hosted <strong>Dynatrace Managed</strong> cluster, or one being planned. Nothing in this series applies to Dynatrace SaaS.</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="scope"></a></p>
+<h2>1. Scope</h2>
+<p>Every notebook in this series applies to <strong>Dynatrace Managed only</strong>. Managed has no Grail: Dynatrace describes Grail as <em>&quot;available only in Dynatrace deployed as SaaS.&quot;</em> So the series contains no DQL and no importable notebook JSON. Every check is a Cluster Management Console (CMC) view, a cluster event, or a Cluster API call, and the series is published as markdown and PDF.</p>
+<p>Advice written for SaaS elsewhere in this collection (Grail buckets, OpenPipeline, Workflows, segments) does not carry over to a Managed cluster.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/upgrade/unavailable-in-managed">Unavailable in Dynatrace Managed (DT docs)</a> — <em>&quot;Some innovations leverage the power of Grail, which is available only in Dynatrace deployed as SaaS.&quot;</em></sub></p>
+</blockquote>
+<p><a id="where-to-start"></a></p>
+<h2>2. Where to Start</h2>
+<table>
+<thead>
+<tr>
+<th>Your situation</th>
+<th>Start with</th>
+<th>Then</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>You run a Managed cluster and want to know what to check, and how often</td>
+<td>DTM-99: Best Practice Summary and Health-Check Checklist</td>
+<td>The notebook for whichever layer a check fails</td>
+</tr>
+<tr>
+<td>You are designing a new cluster, or reviewing an existing one's layout</td>
+<td>DTM-01: Cluster Design Best Practices</td>
+<td>DTM-15 for sizing</td>
+</tr>
+<tr>
+<td>You want to check the cluster's settings against best practice</td>
+<td>DTM-02: Cluster Configuration Best Practices</td>
+<td>DTM-10 §7 for notifications</td>
+</tr>
+<tr>
+<td>You are deciding how to split the cluster into environments, or who can sign in</td>
+<td>DTM-03: Environment Best Practices</td>
+<td>DTM-15 §6 for quotas</td>
+</tr>
+<tr>
+<td>You are placing or updating ActiveGates</td>
+<td>DTM-04: ActiveGate Deployment on Managed</td>
+<td>DTM-14 for the traffic path and certificates</td>
+</tr>
+<tr>
+<td>You are rolling out OneAgents or setting their update policy</td>
+<td>DTM-05: OneAgent Deployment on Managed</td>
+<td>DTM-04 first</td>
+</tr>
+<tr>
+<td>You are reviewing a cluster once — before a purchase, a renewal, a migration or after a run of incidents — and need a rated result</td>
+<td>DTM-17: Running a Cluster Health Assessment</td>
+<td>The notebook each failing check points to</td>
+</tr>
+<tr>
+<td>You are new to how a Managed cluster works</td>
+<td>DTM-10: Managed Cluster Architecture and Health Model</td>
+<td>DTM-11 to DTM-16, one per health layer</td>
+</tr>
+<tr>
+<td>A node, service or restart question</td>
+<td>DTM-11: Server Nodes and Processes</td>
+<td>—</td>
+</tr>
+<tr>
+<td>A data store question (metrics, user sessions, logs)</td>
+<td>DTM-12: Cassandra Metrics Store Health, DTM-13: Elasticsearch Store Health</td>
+<td>DTM-15 for sizing</td>
+</tr>
+<tr>
+<td>Agents or Mission Control cannot reach the cluster</td>
+<td>DTM-14: Cluster ActiveGates and Mission Control Connectivity</td>
+<td>—</td>
+</tr>
+<tr>
+<td>The cluster is running out of headroom</td>
+<td>DTM-15: Capacity and Scaling</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Backups, upgrades, version support or disaster recovery</td>
+<td>DTM-16: Backup, Upgrade, and Disaster Recovery</td>
+<td>—</td>
+</tr>
+<tr>
+<td>You need business analytics on Managed, which has no business events</td>
+<td>BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move (Path B, the classic toolchain)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>You are planning to move from Managed to SaaS</td>
+<td>DTM-99's checklist, to confirm the source cluster is healthy</td>
+<td>The M2S series (Managed to SaaS Migration)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="numbering"></a></p>
+<h2>3. How the Series Is Numbered</h2>
+<table>
+<thead>
+<tr>
+<th>Numbers</th>
+<th>Band</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>00</strong></td>
+<td>Map</td>
+<td>This notebook</td>
+</tr>
+<tr>
+<td><strong>01–09</strong></td>
+<td>Design and configure</td>
+<td>Best practices for designing and configuring a cluster, its environments, ActiveGates and OneAgents (DTM-01 to DTM-05)</td>
+</tr>
+<tr>
+<td><strong>10–19</strong></td>
+<td>Operate</td>
+<td>Keeping a running cluster healthy: the health model, one notebook per layer (DTM-10 to DTM-16), and a one-off assessment method (DTM-17)</td>
+</tr>
+<tr>
+<td><strong>99</strong></td>
+<td>Summary</td>
+<td>The health checklist, the design and configuration review, and the review cadence for the whole series</td>
+</tr>
+</tbody>
+</table>
+<p>Each band has room for more notebooks, so a new topic goes into its band instead of shifting the numbers after it.</p>
+<p><a id="formerly-mch"></a></p>
+<h2>4. Formerly the MCH Series</h2>
+<p>The operate band was published as its own series, <strong>MCH — Managed Cluster Health</strong>, until October 2026. Its notebooks moved here with new numbers and image names. If you followed an old link or citation:</p>
+<table>
+<thead>
+<tr>
+<th>Was</th>
+<th>Now</th>
+<th>Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MCH-01</td>
+<td>DTM-10</td>
+<td>Managed Cluster Architecture and Health Model</td>
+</tr>
+<tr>
+<td>MCH-02</td>
+<td>DTM-11</td>
+<td>Server Nodes and Processes</td>
+</tr>
+<tr>
+<td>MCH-03</td>
+<td>DTM-12</td>
+<td>Cassandra Metrics Store Health</td>
+</tr>
+<tr>
+<td>MCH-04</td>
+<td>DTM-13</td>
+<td>Elasticsearch Store Health</td>
+</tr>
+<tr>
+<td>MCH-05</td>
+<td>DTM-14</td>
+<td>Cluster ActiveGates and Mission Control Connectivity</td>
+</tr>
+<tr>
+<td>MCH-06</td>
+<td>DTM-15</td>
+<td>Capacity and Scaling</td>
+</tr>
+<tr>
+<td>MCH-07</td>
+<td>DTM-16</td>
+<td>Backup, Upgrade, and Disaster Recovery</td>
+</tr>
+<tr>
+<td>MCH-99</td>
+<td>DTM-99</td>
+<td>Best Practice Summary and Health-Check Checklist</td>
+</tr>
+</tbody>
+</table>
+<p><a id="summary"></a></p>
+<h2>5. Summary and Next Steps</h2>
+<p>This series is the home for what is specific to Dynatrace Managed. For a running cluster, start with the DTM-99 checklist and follow its pointers into DTM-10 to DTM-16. For a move to SaaS, check the source cluster with DTM-99 first, then follow the M2S series.</p>
+<p><strong>Related series:</strong> M2S (Managed to SaaS Migration) covers moving a Managed cluster to SaaS.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

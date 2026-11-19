@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-01: Cluster Design Best Practices</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-01: Cluster Design Best Practices</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 01 — Cluster Design Best Practices | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>The design choices that are hardest to change later are made before the first node is installed: how many nodes, where they run, how the cluster survives a lost node or a lost site, and how storage is laid out. This notebook collects the documented constraints behind each choice and the best practice that follows from them. It does not repeat installation steps; the official procedures are linked.</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>Why to size for growth rather than for today, and the node limits</li>
+<li>The rules every node in a multi-node cluster must follow</li>
+<li>How to choose between single-cluster high availability, rack awareness and Premium High Availability</li>
+<li>How to lay out storage so it can grow without a rebuild</li>
+<li>Which host, operating system and cloud choices to avoid for new nodes</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#size-for-growth">Size for Growth, Not for Today</a></li>
+<li><a href="#node-placement">Node Count and Placement</a></li>
+<li><a href="#availability-model">Choosing an Availability Model</a></li>
+<li><a href="#storage-layout">Storage Layout</a></li>
+<li><a href="#hosts-os-cloud">Hosts, Operating Systems and Cloud</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A Dynatrace Managed cluster being designed, or an existing one being reviewed</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong></td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 10/21/2026</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p>Build at least <strong>three identical nodes</strong>, each on its <strong>own host</strong>, on a private network with <strong>10 ms or less</strong> between them, and size them <strong>one-third above</strong> expected load. Pick the availability model by what you must survive: a lost node (single cluster), a lost rack or room (rack awareness, three fault domains), or a lost data center (Premium High Availability, six nodes or more). Put Dynatrace data on <strong>separate, resizable volumes</strong>, never on the root volume or a network file system. Plan to grow by adding nodes.</p>
+<p><a id="size-for-growth"></a></p>
+<h2>2. Size for Growth, Not for Today</h2>
+<p>The docs are blunt about up-front sizing: <em>&quot;Exact sizing of a Managed Cluster isn't always possible, especially in environments with growing traffic. While upfront analysis is useful, it's more important to be able to add capacity as your monitoring needs increase.&quot;</em> Three ways to grow are documented:</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>What it means</th>
+<th>Limit or condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Horizontal</strong></td>
+<td>Add nodes</td>
+<td><em>&quot;Dynatrace Managed supports up to 42 Cluster nodes.&quot;</em> — from <strong>Managed 1.348</strong>; a cluster on an earlier version is limited to 30</td>
+</tr>
+<tr>
+<td><strong>Vertical</strong></td>
+<td>More RAM or CPU per node</td>
+<td><em>&quot;When adding CPUs or RAM, keep all nodes equally sized.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Storage</strong></td>
+<td>Larger disks</td>
+<td><em>&quot;Use resizable disk volumes.&quot;</em> (§5)</td>
+</tr>
+</tbody>
+</table>
+<p>Two design consequences:</p>
+<ul>
+<li><strong>Growth has a cost in maintenance time.</strong> <em>&quot;Plan for somewhat longer maintenance windows as your Managed Cluster grows, and scale out to gain monitoring capacity rather than to speed up existing operations.&quot;</em></li>
+<li><strong>Check both per-node limits.</strong> Each node size has a host-unit limit and a Full-Stack OneAgent limit, and <em>&quot;Both columns are limits, so check which one your environment reaches first.&quot;</em> Many small hosts reach the OneAgent limit first. The sizing table and worked examples are in DTM-15 §2.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a> — <em>&quot;Plan to scale along these dimensions&quot;</em>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-348">Managed 1.348 (DT docs)</a> — <em>&quot;Previously, a Managed Cluster was limited to 30 nodes (15 nodes per data center with Premium High Availability). Existing Managed Clusters receive the higher limits automatically after you upgrade.&quot;</em></sub></p>
+</blockquote>
+<p><a id="node-placement"></a></p>
+<h2>3. Node Count and Placement</h2>
+<p><strong>Three nodes is the floor for production.</strong> <em>&quot;Production environments require a minimum three-node Managed Cluster for reliability and data redundancy.&quot;</em> With three nodes, configuration, events, user sessions and metrics are held three times, so <em>&quot;Dynatrace Managed continues to operate after the loss of one node.&quot;</em> What a lost node does cost (transaction storage is not replicated) is in DTM-10 §4.</p>
+<p><strong>The rules every node follows.</strong> The docs list them for multi-node clusters. All nodes must:</p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Why it matters to the design</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;Have the same hardware configuration&quot;</em></td>
+<td>A cluster runs at the speed of its smallest node when another fails</td>
+</tr>
+<tr>
+<td><em>&quot;Synchronize with NTP&quot;</em> and <em>&quot;Be in the same time zone&quot;</em></td>
+<td>Plan time sources for every host before installation</td>
+</tr>
+<tr>
+<td><em>&quot;Communicate over a private network on the required ports&quot;</em></td>
+<td>Node-to-node traffic stays off public networks</td>
+</tr>
+<tr>
+<td><em>&quot;Have a network latency between nodes of 10 ms or less&quot;</em></td>
+<td>Rules out stretching one cluster across distant sites (use Premium HA, §4)</td>
+</tr>
+<tr>
+<td><em>&quot;Have matching Dynatrace Managed system user and group identifiers on all nodes&quot;</em></td>
+<td>Create the service user with the same UID and GID everywhere, including future nodes and restore targets</td>
+</tr>
+</tbody>
+</table>
+<p><strong>One node per host.</strong> <em>&quot;To prevent loss of configuration, metrics, and log data, deploy each node on a separate host.&quot;</em> On virtualization platforms this also means keeping nodes off the same physical host. In community practice, that is enforced with anti-affinity rules — confirm what your platform offers.</p>
+<p><strong>Dedicated hosts.</strong> <em>&quot;Dynatrace Managed requires a dedicated host.&quot;</em> The host <em>&quot;must not run other services that consume significant central processing unit or memory resources, or that use ports required by Dynatrace Managed.&quot;</em> The resources are reserved too: <em>&quot;CPU and RAM must be exclusively available for Dynatrace.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a> — <em>&quot;Turn off CPU power-saving mode.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability">Single-cluster high availability (DT docs)</a> — <em>&quot;Deploy a minimum of three Cluster nodes.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/installation/operating-system-requirements">Operating system requirements (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="availability-model"></a></p>
+<h2>4. Choosing an Availability Model</h2>
+<p>Choose by <strong>what you must survive</strong>. A single cluster <em>&quot;tolerates the loss of individual nodes, but not the loss of an entire location.&quot;</em> Everything beyond that is a deliberate design decision made up front:</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Survives</th>
+<th>Minimum</th>
+<th>Latency</th>
+<th>Key conditions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single cluster</strong></td>
+<td>One node</td>
+<td>3 nodes</td>
+<td><em>&quot;Keep the latency between nodes at 10 ms or less.&quot;</em></td>
+<td>Identical hardware, separate hosts (§3)</td>
+</tr>
+<tr>
+<td><strong>Rack awareness</strong></td>
+<td>All nodes in one rack</td>
+<td>3 racks, 3+ nodes each</td>
+<td>Same low-latency network; <em>&quot;network latency between sites needs to stay below 10 ms&quot;</em></td>
+<td><em>&quot;The final number of racks is three&quot;</em>; racks must <em>&quot;reflect the underlying physical deployment location of nodes&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Premium High Availability (PHA)</strong></td>
+<td>A whole data center</td>
+<td>6 nodes, 3 per data center</td>
+<td><em>&quot;Keep round-trip network latency at 100 ms or less.&quot;</em></td>
+<td>Online cluster only, 2 data centers, symmetric sizing, encrypted links between data centers; at most 42 nodes, 21 per data center, from Managed 1.348 (30 and 15 before)</td>
+</tr>
+<tr>
+<td><strong>PHA + rack awareness</strong></td>
+<td>A data center <strong>and</strong> a rack in the surviving one</td>
+<td>9+ nodes per data center to gain from racks</td>
+<td>As above</td>
+<td><em>&quot;For the highest resilience, make every data center in a PHA deployment rack-aware.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Decide before you install.</strong> Rack membership can be set at installation (<code>--rack-dc</code>, <code>--rack-name</code>) or added later by a conversion. Moving to PHA is one-way: <em>&quot;You cannot reverse a migration to PHA.&quot;</em> And PHA has conditions a design can't work around: <em>&quot;PHA is available only for online Managed Clusters.&quot;</em> Offline clusters are covered in DTM-14 §7.</p>
+<p><strong>Don't count the second data center as capacity.</strong> <em>&quot;For capacity planning in a PHA deployment, treat the nodes in the additional DC as redundant rather than as expanded capacity.&quot;</em> The per-node sizing figures for PHA are lower than for a single data center (DTM-15 §2).</p>
+<p><strong>Plan headroom for a lost node, whatever the model.</strong> <em>&quot;Plan for a processing capacity one-third higher than typical utilization.&quot;</em> A cluster at full capacity <em>&quot;can drop data during a node failure.&quot;</em></p>
+<p><strong>Rack awareness needs nodes, not just labels.</strong> A six-node PHA cluster gains nothing from racks: <em>&quot;In a rack-aware PHA deployment, six nodes leave one node per rack, where rack awareness gains no failover tolerance.&quot;</em> For each rack, <em>&quot;Dynatrace doesn't enforce this, but fewer nodes per rack reduce the protection rack awareness provides.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability">Single-cluster high availability (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/rack-awareness">Rack awareness (DT docs)</a> — <em>&quot;Each rack holds at least three nodes.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers">Multi-data center high availability (DT docs)</a> — <em>&quot;Deploy at least six nodes, with three nodes per DC.&quot;</em>, <em>&quot;Deploy no more than 42 nodes, with no more than 21 nodes per DC.&quot;</em>, <em>&quot;Encrypt the connections between nodes in different DCs. Dynatrace Managed doesn't create or install the required certificates.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-348">Managed 1.348 (DT docs)</a> — <em>&quot;You can now scale out your Managed Cluster to 42 nodes (21 nodes per data center with Premium High Availability)&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> the &quot;9+ nodes per data center&quot; figure combines rack awareness's three racks with its three-nodes-per-rack recommendation.</sub></li>
+</ul>
+</blockquote>
+<p><a id="storage-layout"></a></p>
+<h2>5. Storage Layout</h2>
+<p>Storage is the part of the design that is hardest to fix after data arrives. The documented recommendations, in the order to apply them:</p>
+<ol>
+<li><strong>Separate binaries from data.</strong> <em>&quot;Store Dynatrace binaries and the data store on separate mount points so you can resize the data store independently.&quot;</em></li>
+<li><strong>Keep data off the root volume.</strong> <em>&quot;Don't store Dynatrace data on the root volume to avoid complexity when resizing later.&quot;</em></li>
+<li><strong>One volume per data type.</strong> <em>&quot;Mount different types of data storage on separate disk volumes for maximum flexibility and performance.&quot;</em> (The stores are described in DTM-12 and DTM-13.)</li>
+<li><strong>Make volumes resizable.</strong> <em>&quot;Use resizable disk partitions, for example with Logical Volume Manager (LVM).&quot;</em></li>
+<li><strong>Keep partitions identical.</strong> <em>&quot;Use the same partition size on all Cluster nodes.&quot;</em> A node whose partition is smaller than the others' is stopped (DTM-10 §5).</li>
+<li><strong>Exclude data paths from antivirus.</strong> <em>&quot;Exclude data storage paths from antivirus scanning to prevent data consistency issues.&quot;</em></li>
+</ol>
+<p><strong>What kind of storage.</strong> <em>&quot;Use fast local storage suitable for database workloads.&quot;</em> Encryption is fine when it is transparent: <em>&quot;Dynatrace Managed also supports encrypted file systems when disk IOPS meet the requirements and encryption is transparent at the operating system level.&quot;</em> Network file systems are not: <em>&quot;High-latency remote volumes such as NFS or CIFS are not supported for primary storage; NFS is sufficient for backups only.&quot;</em> And on AWS: <em>&quot;Amazon Elastic File System (EFS) is not supported as primary storage for Elasticsearch, because it might lead to index corruption.&quot;</em></p>
+<p><strong>Grow with nodes, not ever-larger disks.</strong> <em>&quot;Keep the Long-term Metrics Store data below 2 TB per node.&quot;</em> When more storage is needed, <em>&quot;add another node to reduce the per-node requirement.&quot;</em> The 2 TB and 4 TB events are covered in DTM-12 §3.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a> — <em>&quot;Persistent storage growth degrades Managed Cluster performance, resilience, and availability, and causes issues when adding nodes.&quot;</em></sub></p>
+</blockquote>
+<p><a id="hosts-os-cloud"></a></p>
+<h2>6. Hosts, Operating Systems and Cloud</h2>
+<p><strong>Host basics that rule out designs.</strong> Managed <em>&quot;supports installation on physical and virtualized hosts but not in containers.&quot;</em> It <em>&quot;requires a fixed IPv4 address. It supports only IPv4 address spaces.&quot;</em> Set an English locale: <em>&quot;Set the system locale to an English option, for example LANG=en_US.UTF-8&quot;</em>.</p>
+<p><strong>Don't build new nodes on an operating system that is about to leave support, or already has.</strong> The operating system requirements page lists the supported distributions and announces these removals; the first two have already taken effect:</p>
+<table>
+<thead>
+<tr>
+<th>Operating system</th>
+<th>Managed support ends</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Red Hat Enterprise Linux 9.4, 9.7</td>
+<td>11/01/2026 (ended)</td>
+</tr>
+<tr>
+<td>Ubuntu 16.04</td>
+<td>11/01/2026 (ended)</td>
+</tr>
+<tr>
+<td>Amazon Linux 2</td>
+<td>01/01/2027</td>
+</tr>
+<tr>
+<td>SUSE Enterprise Linux 15.4</td>
+<td>07/01/2027</td>
+</tr>
+</tbody>
+</table>
+<p>The list moves with every release, so read the page when you provision, not this table. A cluster of identical nodes (§3) also means <strong>one operating system version across all nodes</strong>; in community practice, mixing versions makes later upgrades harder to plan.</p>
+<p><strong>In the cloud,</strong> use the memory-optimized families the docs list (AWS <code>r6i</code>, Azure <code>E…as v6</code>, Google Cloud <code>n4-highmem</code>) and keep the documented ratio: <em>&quot;Maintain a vCPU to random access memory ratio of 1:8 to optimize performance.&quot;</em> The node minimum still applies: <em>&quot;Hosts must have at least 32 GB RAM.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/operating-system-requirements">Operating system requirements (DT docs)</a> — <em>&quot;The following operating systems are no longer supported since 01 November 2026&quot;</em>, <em>&quot;The following operating systems will no longer be supported starting 01 January 2027&quot;</em>, <em>&quot;will no longer be supported starting 01 July 2027&quot;</em>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-cloud-requirements">Hardware requirements for cloud deployments (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="doc-gaps"></a></p>
+<h2>7. What the Documentation Does Not Say</h2>
+<p><strong>Not found</strong>, in the Managed documentation read 10/21/2026:</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Working assumption in this notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>How to keep nodes on separate physical hosts in a virtualized estate</td>
+<td>Use the platform's anti-affinity rules (community practice, §3)</td>
+</tr>
+<tr>
+<td>A recommended starting node count above the minimum of three</td>
+<td>Start at three and grow by adding nodes (§2)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Conflicts on one page.</strong> The multi-data-center page says, for a cluster spanning data centers, <em>&quot;The Managed Cluster maintains two copies of this data&quot;</em>, and later <em>&quot;PHA stores three copies of all configuration data, metrics, and user sessions in each DC.&quot;</em> This notebook follows the second, more specific statement and the single-cluster page's three copies.</p>
+<p><strong>An example that isn't on the supported list.</strong> The same page's PHA requirements give <em>&quot;for example Red Hat Enterprise Linux 7 or CentOS 7&quot;</em> as operating systems that meet the cgroups and systemd condition. Neither appears on the current operating system requirements page. Choose from the supported list (§6).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/multi-data-centers">Multi-data center high availability (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/operating-system-requirements">Operating system requirements (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>8. Recommended Approach</h2>
+<ol>
+<li><strong>Decide what you must survive first</strong>, then pick the model: single cluster, rack awareness, or Premium HA (§4). Moving to PHA can't be undone.</li>
+<li><strong>Start at three identical nodes</strong>, each on its own dedicated host, with matching UID and GID, NTP and one time zone (§3).</li>
+<li><strong>Size one-third above expected load</strong>, checking both the host-unit and the OneAgent limit per node (§2, DTM-15).</li>
+<li><strong>Lay out storage before installing</strong>: binaries and data on separate mount points, one volume per data type, LVM, the same sizes on every node, data paths excluded from antivirus, nothing on NFS, CIFS or EFS (§5).</li>
+<li><strong>Pick a supported operating system with time left on it</strong>, and use one version on every node (§6).</li>
+<li><strong>Write the design down</strong>: node count, racks or data centers, volumes and sizes. Every later change (adding a node, restoring a backup) has to match it.</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>9. Summary and Next Steps</h2>
+<p>A Managed cluster's design comes down to four decisions: how many identical nodes, where they run, what failure they must survive, and how storage grows. Get those right and the cluster grows by adding nodes. Get them wrong and fixing them means rebuilding or migrating the cluster.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-02: Cluster Configuration Best Practices</td>
+<td>The settings to get right once the cluster is running</td>
+</tr>
+<tr>
+<td>DTM-15: Capacity and Scaling</td>
+<td>Node sizes, scaling and capacity signals</td>
+</tr>
+<tr>
+<td>DTM-16: Backup, Upgrade, and Disaster Recovery</td>
+<td>Premium HA failover and recovery paths</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Series map:</strong> DTM-00: The Dynatrace Managed Journey routes every notebook in this series.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

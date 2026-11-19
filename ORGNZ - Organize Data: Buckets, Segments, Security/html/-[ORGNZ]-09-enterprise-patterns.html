@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORGNZ-09: Enterprise Data Organization Patterns</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ORGNZ — Organize Data: Buckets, Segments, Security</a><span class="sep">/</span><span aria-current="page">ORGNZ-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ORGNZ-09: Enterprise Data Organization Patterns</h1>
+<blockquote>
+<p><strong>Series:</strong> ORGNZ — Organize Data: Buckets, Segments, Security | <strong>Notebook:</strong> 9 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/07/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook brings together buckets, segments, and security context into comprehensive enterprise patterns. Learn how to combine these mechanisms for effective data governance at scale.</p>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS environment with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:bucket-definitions:read</code>, <code>storage:logs:read</code>, <code>storage:filter-segments:read</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completed ORGNZ-08 (Grail Segments)</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 1 hour of log and entity data</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#combining-all-three-mechanisms">Combining All Three Mechanisms</a></li>
+<li><a href="#enterprise-pattern-1-line-of-business-isolation">Enterprise Pattern 1: Line of Business Isolation</a></li>
+<li><a href="#enterprise-pattern-2-environment-based-tiering">Enterprise Pattern 2: Environment-Based Tiering</a></li>
+<li><a href="#enterprise-pattern-3-multi-cloud-organization">Enterprise Pattern 3: Multi-Cloud Organization</a></li>
+<li><a href="#enterprise-pattern-4-kubernetes-native-organization">Enterprise Pattern 4: Kubernetes-Native Organization</a></li>
+<li><a href="#decision-framework">Decision Framework</a></li>
+<li><a href="#implementation-checklist">Implementation Checklist</a></li>
+<li><a href="#auditing-your-organization">Auditing Your Organization</a></li>
+<li><a href="#best-practices-summary">Best Practices Summary</a></li>
+<li><a href="#series-summary">Series Summary</a></li>
+</ol>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Combine buckets, segments, and security context effectively</li>
+<li>Design enterprise-scale data organization architectures</li>
+<li>Implement common organizational patterns</li>
+<li>Plan data governance strategies</li>
+</ul>
+<p><a id="combining-all-three-mechanisms"></a></p>
+<h2>Combining All Three Mechanisms</h2>
+<p>For comprehensive data governance, use all three mechanisms:</p>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Purpose</th>
+<th>When to Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Buckets</strong></td>
+<td>Physical storage, retention</td>
+<td>Different retention or access needs (cost attribution uses <code>dt.cost.*</code> fields)</td>
+</tr>
+<tr>
+<td><strong>Segments</strong></td>
+<td>Logical filtering, views</td>
+<td>Team-focused data views, cross-signal filtering</td>
+</tr>
+<tr>
+<td><strong>Security Context</strong></td>
+<td>Access enforcement</td>
+<td>Fine-grained security requirements</td>
+</tr>
+</tbody>
+</table>
+<h3>Complete Architecture Example</h3>
+<pre><code>Finance Team Requirements:
+
+Bucket: finance_logs_365d
+  - 1 year retention for compliance
+  - Cost attributed with dt.cost.costcenter set at the source (not by the bucket)
+
+Segment: finance-team-view
+  - Filtered view of finance data
+  - Includes related services and hosts
+
+Security Context: lob:finance
+  - IAM policy: ALLOW WHERE security_context MATCH ('lob:finance')
+  - Only finance team members can access
+</code></pre>
+<p><a id="enterprise-pattern-1-line-of-business-isolation"></a></p>
+<h2>Enterprise Pattern 1: Line of Business Isolation</h2>
+<p>Complete isolation by business unit:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmdHcmFkOCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJmaW5hbmNlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzA1OTY2OSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icmV0YWlsR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYnVja2V0R3JhZDgiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNlZ21lbnRHcmFkOCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWM0ODk5Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2RiMjc3NyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icG9saWN5R3JhZDgiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3c4IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4zIi8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnR3JhZDgpIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9IjYwMCI+TGluZSBvZiBCdXNpbmVzcyBJc29sYXRpb24gUGF0dGVybjwvdGV4dD4KCiAgPCEtLSBGaW5hbmNlIExPQiAtLT4KICA8cmVjdCB4PSIzMCIgeT0iNDUiIHdpZHRoPSIzMTAiIGhlaWdodD0iMzQwIiByeD0iMTAiIGZpbGw9IiMwNjRlM2IiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMTg1IiB5PSI3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzM0ZDM5OSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPkxPQjogRmluYW5jZTwvdGV4dD4KCiAgPCEtLSBGaW5hbmNlIEJ1Y2tldHMgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjkwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjU1IiByeD0iNiIgZmlsbD0idXJsKCNidWNrZXRHcmFkOCkiIGZpbHRlcj0idXJsKCNzaGFkb3c4KSIvPgogIDx0ZXh0IHg9IjExNSIgeT0iMTEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+ZmluYW5jZV9sb2dzXzM2NWQ8L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZWYzYzciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOCI+KGNvbXBsaWFuY2UpPC90ZXh0PgoKICA8cmVjdCB4PSIxOTUiIHk9IjkwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjU1IiByeD0iNiIgZmlsbD0idXJsKCNidWNrZXRHcmFkOCkiIGZpbHRlcj0idXJsKCNzaGFkb3c4KSIvPgogIDx0ZXh0IHg9IjI2MCIgeT0iMTEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+ZmluYW5jZV9ldmVudHNfOTBkPC90ZXh0PgogIDx0ZXh0IHg9IjI2MCIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmVmM2M3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgiPih0cmVuZHMpPC90ZXh0PgoKICA8IS0tIEZpbmFuY2UgU2VnbWVudCAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMTYwIiB3aWR0aD0iMjc1IiBoZWlnaHQ9IjQ1IiByeD0iNiIgZmlsbD0idXJsKCNzZWdtZW50R3JhZDgpIiBmaWx0ZXI9InVybCgjc2hhZG93OCkiLz4KICA8dGV4dCB4PSIxODciIHk9IjE4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPlNlZ21lbnQ6IGZpbmFuY2UtYWxsLWRhdGE8L3RleHQ+CgogIDwhLS0gRmluYW5jZSBTZWN1cml0eSBDb250ZXh0IC0tPgogIDxyZWN0IHg9IjUwIiB5PSIyMjAiIHdpZHRoPSIyNzUiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSIjMDY1ZjQ2Ii8+CiAgPHRleHQgeD0iMTg3IiB5PSIyNDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2ZWU3YjciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTEiPmR0LnNlY3VyaXR5X2NvbnRleHQ6IGxvYjpmaW5hbmNlPC90ZXh0PgoKICA8IS0tIEZpbmFuY2UgUG9saWN5IC0tPgogIDxyZWN0IHg9IjUwIiB5PSIyNzAiIHdpZHRoPSIyNzUiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSJ1cmwoI3BvbGljeUdyYWQ4KSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzgpIi8+CiAgPHRleHQgeD0iMTg3IiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5JQU0gUG9saWN5PC90ZXh0PgogIDx0ZXh0IHg9IjE4NyIgeT0iMzA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYmZkYmZlIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjgiPkFMTE9XIFdIRVJFIGNvbnRleHQgTUFUQ0ggKCdsb2I6ZmluYW5jZScpPC90ZXh0PgoKICA8IS0tIEZpbmFuY2UgQWNjZXNzIC0tPgogIDxyZWN0IHg9IjUwIiB5PSIzMzUiIHdpZHRoPSIyNzUiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSIjMDY0ZTNiIiBzdHJva2U9IiMzNGQzOTkiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjE4NyIgeT0iMzU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTdmM2QwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj7inJMgRmluYW5jZSB0ZWFtIG1lbWJlcnMgb25seTwvdGV4dD4KCiAgPCEtLSBSZXRhaWwgTE9CIC0tPgogIDxyZWN0IHg9IjM2MCIgeT0iNDUiIHdpZHRoPSIzMTAiIGhlaWdodD0iMzQwIiByeD0iMTAiIGZpbGw9IiM0YzFkOTUiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNTE1IiB5PSI3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E3OGJmYSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPkxPQjogUmV0YWlsPC90ZXh0PgoKICA8IS0tIFJldGFpbCBCdWNrZXRzIC0tPgogIDxyZWN0IHg9IjM4MCIgeT0iOTAiIHdpZHRoPSIxMzAiIGhlaWdodD0iNTUiIHJ4PSI2IiBmaWxsPSJ1cmwoI2J1Y2tldEdyYWQ4KSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzgpIi8+CiAgPHRleHQgeD0iNDQ1IiB5PSIxMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5yZXRhaWxfbG9nc185MGQ8L3RleHQ+CiAgPHRleHQgeD0iNDQ1IiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZWYzYzciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOCI+KG9wZXJhdGlvbnMpPC90ZXh0PgoKICA8cmVjdCB4PSI1MjUiIHk9IjkwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjU1IiByeD0iNiIgZmlsbD0idXJsKCNidWNrZXRHcmFkOCkiIGZpbHRlcj0idXJsKCNzaGFkb3c4KSIvPgogIDx0ZXh0IHg9IjU5MCIgeT0iMTEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+cmV0YWlsX2V2ZW50c18zNWQ8L3RleHQ+CiAgPHRleHQgeD0iNTkwIiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZWYzYzciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOCI+KHN0YW5kYXJkKTwvdGV4dD4KCiAgPCEtLSBSZXRhaWwgU2VnbWVudCAtLT4KICA8cmVjdCB4PSIzODAiIHk9IjE2MCIgd2lkdGg9IjI3NSIgaGVpZ2h0PSI0NSIgcng9IjYiIGZpbGw9InVybCgjc2VnbWVudEdyYWQ4KSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzgpIi8+CiAgPHRleHQgeD0iNTE3IiB5PSIxODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5TZWdtZW50OiByZXRhaWwtYWxsLWRhdGE8L3RleHQ+CgogIDwhLS0gUmV0YWlsIFNlY3VyaXR5IENvbnRleHQgLS0+CiAgPHJlY3QgeD0iMzgwIiB5PSIyMjAiIHdpZHRoPSIyNzUiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSIjNWIyMWI2Ii8+CiAgPHRleHQgeD0iNTE3IiB5PSIyNDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjNGI1ZmQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTEiPmR0LnNlY3VyaXR5X2NvbnRleHQ6IGxvYjpyZXRhaWw8L3RleHQ+CgogIDwhLS0gUmV0YWlsIFBvbGljeSAtLT4KICA8cmVjdCB4PSIzODAiIHk9IjI3MCIgd2lkdGg9IjI3NSIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9InVybCgjcG9saWN5R3JhZDgpIiBmaWx0ZXI9InVybCgjc2hhZG93OCkiLz4KICA8dGV4dCB4PSI1MTciIHk9IjI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPklBTSBQb2xpY3k8L3RleHQ+CiAgPHRleHQgeD0iNTE3IiB5PSIzMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNiZmRiZmUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCI+QUxMT1cgV0hFUkUgY29udGV4dCBNQVRDSCAoJ2xvYjpyZXRhaWwnKTwvdGV4dD4KCiAgPCEtLSBSZXRhaWwgQWNjZXNzIC0tPgogIDxyZWN0IHg9IjM4MCIgeT0iMzM1IiB3aWR0aD0iMjc1IiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0iIzRjMWQ5NSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1MTciIHk9IjM1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2RkZDZmZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+4pyTIFJldGFpbCB0ZWFtIG1lbWJlcnMgb25seTwvdGV4dD4KPC9zdmc+Cg==" alt="LOB Isolation Pattern" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| LOB | Buckets | Segment | Security Context | Policy |
+|-----|---------|---------|------------------|--------|
+| Finance | finance_logs_365d, finance_events_90d | finance-all-data | lob:finance | ALLOW WHERE context MATCH ('lob:finance') |
+| Retail | retail_logs_90d, retail_events_35d | retail-all-data | lob:retail | ALLOW WHERE context MATCH ('lob:retail') |
+For environments where SVG doesn't render
+-->
+<h3>Implementation</h3>
+<p><strong>Step 1: Create buckets</strong></p>
+<pre><code>finance_logs_365d (logs, 365 days)
+finance_events_90d (events, 90 days)
+retail_logs_90d (logs, 90 days)
+</code></pre>
+<p><strong>Step 2: Assign buckets in OpenPipeline</strong></p>
+<p>In the log pipeline's <strong>Storage</strong> stage, add one <strong>Bucket assignment</strong> processor per LOB; the first matching processor wins (see <strong>ORGNZ-03 § Routing Data to Buckets</strong>):</p>
+<table>
+<thead>
+<tr>
+<th>Matching condition (DQL)</th>
+<th>Bucket</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matchesValue(dt.host_group.id, &quot;finance-*&quot;)</code></td>
+<td><code>finance_logs_365d</code></td>
+</tr>
+<tr>
+<td><code>matchesValue(dt.host_group.id, &quot;retail-*&quot;)</code></td>
+<td><code>retail_logs_90d</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Step 3: Set security context</strong></p>
+<p>Set <code>lob:finance</code> / <code>lob:retail</code> at the source first — a <code>dt.security_context=lob:finance</code> host tag on the finance hosts, or a fixed value per host group in the central primary Grail tag configuration (see <strong>ORGNZ-06 §3</strong>). Where the value has to be computed in the pipeline, use <strong>Set security context</strong> processors in the pipeline's Permission stage, which <em>&quot;Sets the proper record-level access via dt.security_context by either copying it from a field, setting it as a static string, or a static array that allows multiple values.&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th>Matching condition (DQL)</th>
+<th>Security context (static string)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matchesValue(dt.host_group.id, &quot;finance-*&quot;)</code></td>
+<td><code>lob:finance</code></td>
+</tr>
+<tr>
+<td><code>matchesValue(dt.host_group.id, &quot;retail-*&quot;)</code></td>
+<td><code>lob:retail</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Corrected 09/24/2026.</strong> Earlier versions of this notebook showed <code>type: route</code> and <code>type: security-context</code> YAML processors keyed on <code>host.group</code>. Neither processor type exists in that form, and <code>host.group</code> is not a Grail field — use <code>dt.host_group.id</code>.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline">DQL matcher in OpenPipeline (DT docs)</a>.</sub></p>
+</blockquote>
+<p><strong>Step 4: Create IAM policies</strong></p>
+<pre><code>// Finance policy
+ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH &quot;finance_&quot;;
+ALLOW storage:logs:read, storage:events:read WHERE storage:dt.security_context MATCH (&quot;lob:finance&quot;);
+</code></pre>
+<blockquote>
+<p><strong>Use <code>MATCH</code>, not <code>=</code>, for events.</strong> <code>dt.security_context</code> on events is an array — on the validation tenant every event carrying a security context held an array (522,703 events over 7 days, checked 11/07/2026) — and <em>&quot;Using <code>=</code>, <code>STARTSWITH</code> or <code>IN</code> when the field holds an array will always return <code>false</code>.&quot;</em> With <code>=</code>, the events half of this statement grants nothing and nothing errors. <code>MATCH</code> matches a single string or any element of an array, so one statement covers logs and events.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — <em>&quot;If you expect your record filters might contain an array, use the MATCH operator in your IAM statements.&quot;</em></sub></p>
+</blockquote>
+<p><a id="enterprise-pattern-2-environment-based-tiering"></a></p>
+<h2>Enterprise Pattern 2: Environment-Based Tiering</h2>
+<p>Different access levels for production vs non-production:</p>
+<pre><code>Production:
+├── Buckets: prod_logs, prod_events, prod_spans
+├── Security Context: env:production
+├── Policy: ALLOW WHERE storage:dt.security_context = 'env:production'
+├── Access: Restricted to production support team
+└── Audit: Full audit logging enabled
+
+Non-Production:
+├── Buckets: default_logs, default_metrics, default_spans
+├── Security Context: env:dev, env:staging, env:qa
+├── Policy: ALLOW WHERE storage:dt.security_context MATCH ('env:dev*', 'env:staging*')
+├── Access: Broader developer access
+└── Audit: Reduced audit requirements
+</code></pre>
+<h3>Tiered Access Groups</h3>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Production Access</th>
+<th>Non-Prod Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SRE Team</td>
+<td>Full</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>Production Support</td>
+<td>Read-only</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Developers</td>
+<td>None</td>
+<td>Full</td>
+</tr>
+<tr>
+<td>QA</td>
+<td>None</td>
+<td>Read-only</td>
+</tr>
+</tbody>
+</table>
+<p><a id="enterprise-pattern-3-multi-cloud-organization"></a></p>
+<h2>Enterprise Pattern 3: Multi-Cloud Organization</h2>
+<p>Organize by cloud provider and account:</p>
+<pre><code>AWS:
+├── Bucket: aws_logs_35d
+├── Security Context: cloud:aws/&lt;account-id&gt;
+└── Policy: ALLOW WHERE storage:aws.account.id = '123456789012'
+
+Azure:
+├── Bucket: azure_logs_35d
+├── Security Context: cloud:azure/&lt;subscription&gt;
+└── Policy: ALLOW WHERE storage:azure.subscription = 'sub-id'
+
+GCP:
+├── Bucket: gcp_logs_35d
+├── Security Context: cloud:gcp/&lt;project&gt;
+└── Policy: ALLOW WHERE storage:gcp.project.id = 'my-project'
+</code></pre>
+<p><a id="enterprise-pattern-4-kubernetes-native-organization"></a></p>
+<h2>Enterprise Pattern 4: Kubernetes-Native Organization</h2>
+<p>Leverage Kubernetes constructs for organization:</p>
+<pre><code>Cluster: main-cluster
+├── Namespace: production
+|   ├── Security Context: k8s:main-cluster/production
+|   └── Policy: ALLOW WHERE storage:k8s.namespace.name = 'production'
+|
+├── Namespace: staging
+|   ├── Security Context: k8s:main-cluster/staging
+|   └── Policy: ALLOW WHERE storage:k8s.namespace.name = 'staging'
+|
+└── Namespace: development
+    ├── Security Context: k8s:main-cluster/development
+    └── Policy: ALLOW WHERE storage:k8s.namespace.name = 'development'
+</code></pre>
+<h3>Cross-Namespace Segment</h3>
+<p>One application deployed to several namespaces, as one segment. Build it in the Segments app with a single include:</p>
+<table>
+<thead>
+<tr>
+<th>Include (data object)</th>
+<th>Filter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data (all types)</td>
+<td><code>k8s.workload.name = &quot;checkout&quot;</code></td>
+</tr>
+</tbody>
+</table>
+<p>Segment conditions take only <code>=</code> and <code>in()</code> — <em>&quot;Only operators <code>=</code>, and <code>in()</code> are supported.&quot;</em> — with <code>*</code> wildcards inside the value, so write <code>=</code> and double quotes, not DQL's <code>==</code>. One <code>Data (all types)</code> include replaces separate <code>logs</code> and <code>spans</code> includes. Check coverage first: <code>k8s.workload.name</code> is a <code>stable</code> semantic-dictionary field, but on the validation tenant on 10/14/2026 it was on 41% of logs in an hour, and records without it fall outside the segment (adapt the coverage audit in ORGNZ-10 §9).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits">Segment limits (DT docs)</a> — as quoted, <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-data-types">Supported data types in segments (DT docs)</a> — <em>&quot;We recommend constructing segments with a single Data (all types) include block when possible.&quot;</em> <strong>Dictionary:</strong> <code>k8s.workload.name</code> (<code>stable</code>), read 10/14/2026.</sub></p>
+</blockquote>
+<p><a id="decision-framework"></a></p>
+<h2>Decision Framework</h2>
+<p>Use this framework to choose your organization strategy:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3NTAgNTIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmdHcmFkMiIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJxdWVzdGlvbkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzYzNjZmMSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM0ZjQ2ZTUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJ1Y2tldFNvbEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNlZ21lbnRTb2xHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYzQ4OTkiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZGIyNzc3Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzZWN1cml0eVNvbEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2NjkiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3cyIiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2Qtb3BhY2l0eT0iMC4zIi8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnR3JhZDIpIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzc1IiB5PSIzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjYwMCI+T3JnYW5pemF0aW9uIERlY2lzaW9uIEZyYW1ld29yazwvdGV4dD4KCiAgPCEtLSBTdGFydCAtLT4KICA8cmVjdCB4PSIyODAiIHk9IjU1IiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjQwIiByeD0iMjAiIGZpbGw9InVybCgjcXVlc3Rpb25HcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzIpIi8+CiAgPHRleHQgeD0iMzc1IiB5PSI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPldoYXQgcHJvYmxlbSBhcmUgeW91IHNvbHZpbmc/PC90ZXh0PgoKICA8IS0tIFZlcnRpY2FsIGNvbm5lY3RvciAtLT4KICA8bGluZSB4MT0iMzc1IiB5MT0iOTUiIHgyPSIzNzUiIHkyPSIxMTUiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIyIi8+CgogIDwhLS0gUXVlc3Rpb24gMSAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMTE1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0iIzMxMmU4MSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzIpIi8+CiAgPHRleHQgeD0iMTUwIiB5PSIxMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjN2QyZmUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPk5lZWQgZGlmZmVyZW50IHJldGVudGlvbj88L3RleHQ+CiAgPHRleHQgeD0iMTUwIiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4MThjZjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPllFUyDihpI8L3RleHQ+CgogIDxsaW5lIHgxPSIyNTAiIHkxPSIxNDAiIHgyPSIyODAiIHkyPSIxNDAiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93T3JhbmdlKSIvPgogIDxyZWN0IHg9IjI4MCIgeT0iMTIwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0idXJsKCNidWNrZXRTb2xHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzIpIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIxNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5DcmVhdGUgQlVDS0VUPC90ZXh0PgoKICA8IS0tIFF1ZXN0aW9uIDIgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjE4MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9IiMzMTJlODEiIGZpbHRlcj0idXJsKCNzaGFkb3cyKSIvPgogIDx0ZXh0IHg9IjE1MCIgeT0iMjAzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYzdkMmZlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj5OZWVkIGNvc3QgYXR0cmlidXRpb24/PC90ZXh0PgogIDx0ZXh0IHg9IjE1MCIgeT0iMjIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODE4Y2Y4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5ZRVMg4oaSPC90ZXh0PgoKICA8bGluZSB4MT0iMjUwIiB5MT0iMjA1IiB4Mj0iMjgwIiB5Mj0iMjA1IiBzdHJva2U9IiMwNmI2ZDQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjI4MCIgeT0iMTg1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iIzBlNzQ5MCIgZmlsdGVyPSJ1cmwoI3NoYWRvdzIpIi8+CiAgPHRleHQgeD0iMzcwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5TZXQgZHQuY29zdC4qIGZpZWxkczwvdGV4dD4KCiAgPCEtLSBRdWVzdGlvbiAzIC0tPgogIDxyZWN0IHg9IjUwIiB5PSIyNDUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSIjMzEyZTgxIiBmaWx0ZXI9InVybCgjc2hhZG93MikiLz4KICA8dGV4dCB4PSIxNTAiIHk9IjI2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2M3ZDJmZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+TmVlZCB0ZWFtIGlzb2xhdGlvbiAoc2ltcGxlKT88L3RleHQ+CiAgPHRleHQgeD0iMTUwIiB5PSIyODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4MThjZjgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPllFUyDihpI8L3RleHQ+CgogIDxsaW5lIHgxPSIyNTAiIHkxPSIyNzAiIHgyPSIyODAiIHkyPSIyNzAiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iMjgwIiB5PSIyNTAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSJ1cmwoI2J1Y2tldFNvbEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93MikiLz4KICA8dGV4dCB4PSIzNzAiIHk9IjI3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkJVQ0tFVC1sZXZlbCBJQU08L3RleHQ+CgogIDwhLS0gUXVlc3Rpb24gNCAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMzEwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0iIzMxMmU4MSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzIpIi8+CiAgPHRleHQgeD0iMTUwIiB5PSIzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjN2QyZmUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPk5lZWQgZHluYW1pYyBkYXRhIHZpZXdzPzwvdGV4dD4KICA8dGV4dCB4PSIxNTAiIHk9IjM1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzgxOGNmOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+WUVTIOKGkjwvdGV4dD4KCiAgPGxpbmUgeDE9IjI1MCIgeTE9IjMzNSIgeDI9IjI4MCIgeTI9IjMzNSIgc3Ryb2tlPSIjZWM0ODk5IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cmVjdCB4PSIyODAiIHk9IjMxNSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9InVybCgjc2VnbWVudFNvbEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93MikiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjM0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkNyZWF0ZSBTRUdNRU5UPC90ZXh0PgoKICA8IS0tIFF1ZXN0aW9uIDUgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjM3NSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9IiMzMTJlODEiIGZpbHRlcj0idXJsKCNzaGFkb3cyKSIvPgogIDx0ZXh0IHg9IjE1MCIgeT0iMzk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYzdkMmZlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj5OZWVkIGZpbmUtZ3JhaW5lZCBhY2Nlc3M/PC90ZXh0PgogIDx0ZXh0IHg9IjE1MCIgeT0iNDE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODE4Y2Y4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5ZRVMg4oaSPC90ZXh0PgoKICA8bGluZSB4MT0iMjUwIiB5MT0iNDAwIiB4Mj0iMjgwIiB5Mj0iNDAwIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjI4MCIgeT0iMzgwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0idXJsKCNzZWN1cml0eVNvbEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93MikiLz4KICA8dGV4dCB4PSIzNzAiIHk9IjQwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPlNFQ1VSSVRZIENPTlRFWFQ8L3RleHQ+CgogIDwhLS0gUXVlc3Rpb24gNiAtLT4KICA8cmVjdCB4PSI1MCIgeT0iNDQwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0iIzMxMmU4MSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzIpIi8+CiAgPHRleHQgeD0iMTUwIiB5PSI0NjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjN2QyZmUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPk5lZWQgY29tYmluZWQgYXBwcm9hY2g/PC90ZXh0PgogIDx0ZXh0IHg9IjE1MCIgeT0iNDgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODE4Y2Y4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5ZRVMg4oaSPC90ZXh0PgoKICA8bGluZSB4MT0iMjUwIiB5MT0iNDY1IiB4Mj0iMjgwIiB5Mj0iNDY1IiBzdHJva2U9IiM4YjVjZjYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjI4MCIgeT0iNDQ1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iIzdjM2FlZCIgZmlsdGVyPSJ1cmwoI3NoYWRvdzIpIi8+CiAgPHRleHQgeD0iMzgwIiB5PSI0NzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5Vc2UgTVVMVElQTEUgbWVjaGFuaXNtczwvdGV4dD4KCiAgPCEtLSBMZWdlbmQgLS0+CiAgPHJlY3QgeD0iNTAwIiB5PSIxMTUiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTc1IiByeD0iOCIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1MjAiIHk9IjE0MCIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+U09MVVRJT05TOjwvdGV4dD4KCiAgPHJlY3QgeD0iNTIwIiB5PSIxNTUiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgcng9IjIiIGZpbGw9IiNmNTllMGIiLz4KICA8dGV4dCB4PSI1NDAiIHk9IjE2NSIgZmlsbD0iI2NiZDVlMSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+QnVja2V0cyAocGh5c2ljYWwpPC90ZXh0PgoKICA8cmVjdCB4PSI1MjAiIHk9IjE4MCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjEyIiByeD0iMiIgZmlsbD0iI2VjNDg5OSIvPgogIDx0ZXh0IHg9IjU0MCIgeT0iMTkwIiBmaWxsPSIjY2JkNWUxIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj5TZWdtZW50cyAobG9naWNhbCk8L3RleHQ+CgogIDxyZWN0IHg9IjUyMCIgeT0iMjA1IiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHJ4PSIyIiBmaWxsPSIjMTBiOTgxIi8+CiAgPHRleHQgeD0iNTQwIiB5PSIyMTUiIGZpbGw9IiNjYmQ1ZTEiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPlNlY3VyaXR5IENvbnRleHQgKGFjY2Vzcyk8L3RleHQ+CgogIDxyZWN0IHg9IjUyMCIgeT0iMjMwIiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHJ4PSIyIiBmaWxsPSIjN2MzYWVkIi8+CiAgPHRleHQgeD0iNTQwIiB5PSIyNDAiIGZpbGw9IiNjYmQ1ZTEiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPkNvbWJpbmVkIChlbnRlcnByaXNlKTwvdGV4dD4KCiAgPHJlY3QgeD0iNTIwIiB5PSIyNTUiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgcng9IjIiIGZpbGw9IiMwZTc0OTAiLz4KICA8dGV4dCB4PSI1NDAiIHk9IjI2NSIgZmlsbD0iI2NiZDVlMSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSI+Q29zdCBhbGxvY2F0aW9uIChmaWVsZHMpPC90ZXh0Pgo8L3N2Zz4K" alt="Organization Decision Framework" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Question | YES → Solution |
+|----------|----------------|
+| Need different retention? | Create custom BUCKETS |
+| Need cost attribution? | Set dt.cost.* fields (cost allocation) |
+| Need team isolation (simple)? | BUCKET-level IAM policies |
+| Need team isolation (complex)? | SECURITY CONTEXT + record-level policies |
+| Need dynamic data views? | Create SEGMENTS |
+| Need fine-grained access control? | Configure SECURITY CONTEXT |
+For environments where SVG doesn't render
+-->
+<p><a id="implementation-checklist"></a></p>
+<h2>Implementation Checklist</h2>
+<h3>Phase 1: Planning</h3>
+<ul>
+<li>[ ] Identified retention requirements</li>
+<li>[ ] Mapped organizational structure (teams, LOBs, cost centers)</li>
+<li>[ ] Defined access control requirements</li>
+<li>[ ] Planned bucket naming convention</li>
+<li>[ ] Designed security context schema</li>
+</ul>
+<h3>Phase 2: Infrastructure</h3>
+<ul>
+<li>[ ] Created custom buckets</li>
+<li>[ ] Configured OpenPipeline bucket assignment (Storage stage)</li>
+<li>[ ] Configured OpenPipeline security context processors</li>
+<li>[ ] Verified data flow to correct buckets</li>
+</ul>
+<h3>Phase 3: Access Control</h3>
+<ul>
+<li>[ ] Created IAM policies</li>
+<li>[ ] Assigned policies to groups</li>
+<li>[ ] Tested access with sample users</li>
+<li>[ ] Documented all policies</li>
+</ul>
+<h3>Phase 4: Views</h3>
+<ul>
+<li>[ ] Created segments for team views</li>
+<li>[ ] Tested segment filters</li>
+<li>[ ] Documented segment purposes</li>
+</ul>
+<h3>Phase 5: Governance</h3>
+<ul>
+<li>[ ] Planned access review process</li>
+<li>[ ] Configured audit logging</li>
+<li>[ ] Created runbook for access management</li>
+</ul>
+<p><a id="auditing-your-organization"></a></p>
+<h2>Auditing Your Organization</h2>
+<h3>DQL: Environment Audit</h3>
+<p>Measure security context adoption across all ingested logs:</p>
+<pre><code class="language-dql">// Audit security context coverage — percentage of logs with dt.security_context assigned
+fetch logs, from:-1h
+| summarize
+    total = count(),
+    withContext = countIf(isNotNull(dt.security_context)),
+    withoutContext = countIf(isNull(dt.security_context))
+| fieldsAdd coverage = round(toDouble(withContext) / toDouble(total) * 100, decimals: 2)
+</code></pre>
+<p><a id="best-practices-summary"></a></p>
+<h2>Best Practices Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Best Practice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Buckets</strong></td>
+<td>Target 1–3 TB/day per log bucket, a dedicated bucket per application above 250 GB/day (ORGNZ-02); use consistent naming</td>
+</tr>
+<tr>
+<td><strong>Segments</strong></td>
+<td>Test rules with DQL before deploying</td>
+</tr>
+<tr>
+<td><strong>Security Context</strong></td>
+<td>Use hierarchical encoding for flexibility</td>
+</tr>
+<tr>
+<td><strong>IAM Policies</strong></td>
+<td>Assign to groups, not individuals</td>
+</tr>
+<tr>
+<td><strong>Documentation</strong></td>
+<td>Document all policies and contexts</td>
+</tr>
+<tr>
+<td><strong>Reviews</strong></td>
+<td>Schedule regular access reviews</td>
+</tr>
+</tbody>
+</table>
+<p><a id="series-summary"></a></p>
+<h2>Series Summary</h2>
+<p>The ORGNZ series covered:</p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Topic</th>
+<th>Key Takeaway</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ORGNZ-01</td>
+<td>Introduction</td>
+<td>Why organize data; three pillars</td>
+</tr>
+<tr>
+<td>ORGNZ-02</td>
+<td>Grail Buckets</td>
+<td>Bucket fundamentals and limits</td>
+</tr>
+<tr>
+<td>ORGNZ-03</td>
+<td>Bucket Strategy</td>
+<td>Naming, retention, design patterns</td>
+</tr>
+<tr>
+<td>ORGNZ-04</td>
+<td>Permissions Overview</td>
+<td>Permission levels and policy structure</td>
+</tr>
+<tr>
+<td>ORGNZ-05</td>
+<td>Bucket-Level Access</td>
+<td>IAM policies for bucket isolation</td>
+</tr>
+<tr>
+<td>ORGNZ-06</td>
+<td>Security Context</td>
+<td>Fine-grained access with dt.security_context</td>
+</tr>
+<tr>
+<td>ORGNZ-07</td>
+<td>Advanced Permissions</td>
+<td>Record and field-level patterns</td>
+</tr>
+<tr>
+<td>ORGNZ-08</td>
+<td>Grail Segments</td>
+<td>Dynamic data organization</td>
+</tr>
+<tr>
+<td>ORGNZ-09</td>
+<td>Enterprise Patterns</td>
+<td>Combined approaches at scale</td>
+</tr>
+<tr>
+<td>ORGNZ-10</td>
+<td>Advanced Segment Definitions</td>
+<td>Filter syntax, enrichment, variables, troubleshooting</td>
+</tr>
+</tbody>
+</table>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">Organize data</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/advanced-permission-setup">Advanced permission setup</a></li>
+<li><a href="https://www.dynatrace.com/news/blog/enhance-data-management-with-grail-ultimate-guide-to-custom-buckets-and-security-policies/">Enhance data management with Grail</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage-your-costs/allocate/plan-and-set-up">Set up Cost Allocation (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2S-07: Step 7 — Expand: OpenPipeline, SLOs, and Alerting</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2S — SaaS to SaaS Migration</a><span class="sep">/</span><span aria-current="page">S2S-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2S-07: Step 7 — Expand: OpenPipeline, SLOs, and Alerting</h1>
+<blockquote>
+<p><strong>Series:</strong> S2S — SaaS to SaaS Migration | <strong>Notebook:</strong> 7 of 9 | <strong>Phase:</strong> Run | <strong>Step:</strong> Expand | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>With agents reporting to the target tenant (Step 5) and cloud integrations reconnected (Step 6), this step expands monitoring coverage to include data processing pipelines, service-level objectives, and alerting. OpenPipeline rules control how data is enriched, routed, and masked. SLOs define reliability targets. Alerting ensures the right people are notified when those targets are at risk. All three must be migrated in a coordinated sequence — buckets first, then pipelines, then SLOs and alerts that consume the processed data.</p>
+<blockquote>
+<p><strong>S2S Migration Journey — 3 Phases / 9 Steps</strong></p>
+<p><strong>Plan:</strong> 1. Discover | 2. Strategize | 3. Design</p>
+<p><strong>Upgrade:</strong> 4. Prepare | 5. Execute | 6. Integrate</p>
+<p><strong>Run:</strong> <strong>7. Expand</strong> | 8. Enable | 9. Optimize</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#openpipeline-rule-migration">OpenPipeline Rule Migration</a></li>
+<li><a href="#grail-bucket-configuration">Grail Bucket Configuration</a></li>
+<li><a href="#slo-migration">SLO Migration</a></li>
+<li><a href="#alerting-and-notification-migration">Alerting and Notification Migration</a></li>
+<li><a href="#data-retention-optimization">Data Retention Optimization</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Step 5 Complete</strong></td>
+<td>OneAgents and DynaKube operators redirected to target tenant and reporting data</td>
+</tr>
+<tr>
+<td><strong>Step 6 Complete</strong></td>
+<td>Cloud integrations (AWS, Azure, GCP) reconnected in target tenant</td>
+</tr>
+<tr>
+<td><strong>Source Tenant Access</strong></td>
+<td><code>settings.read</code> (API token) or <code>settings:objects:read</code> (platform token, OAuth) — OpenPipeline pipelines, ingest sources and routing are Settings 2.0 objects. To export pipelines and ingest sources owned by other users, <code>settings:objects:admin</code> (see §1)</td>
+</tr>
+<tr>
+<td><strong>Target Tenant Access</strong></td>
+<td><code>settings.write</code> (API token) or <code>settings:objects:write</code> (platform token, OAuth); routing writes need <code>settings:objects:write</code> on <code>builtin:openpipeline.&lt;scope&gt;.routing</code>, which covers every route in the scope (routing has no owner-based sharing); for SLOs, an OAuth client with <code>slo:slos:read</code> / <code>slo:slos:write</code> (modern SLO app) — classic <code>slo.write</code> only if the target still runs classic SLOs</td>
+</tr>
+<tr>
+<td><strong>Monaco CLI</strong></td>
+<td>v2.x installed for bulk export/import of OpenPipeline and SLO configuration</td>
+</tr>
+<tr>
+<td><strong>Terraform</strong></td>
+<td>v1.5+ with Dynatrace provider (for IAM-gated SLO policies only)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Older guides list <code>openpipeline.read</code> / <code>openpipeline.write</code> or <code>openpipeline:configurations:read</code> / <code>:write</code>. The first pair does not exist. The second belonged to the OpenPipeline Configurations API, which reached end of life on June 29, 2026; the Settings permissions above replace it.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control">Owner-based access control in OpenPipeline (DT docs)</a> — <em>&quot;Owner-based control is available for pipelines and ingest sources, and not routing.&quot;</em>, <em>&quot;This policy gives users write permissions to all routes for a configuration scope and should therefore be used with caution.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-342">SaaS 1.342 release notes (DT docs)</a> — <em>&quot;On June 29, 2026, we will deactivate the legacy Configurations API and migrate all environments to the new configuration based on the Settings API.&quot;</em></sub></p>
+</blockquote>
+<p><a id="openpipeline-rule-migration"></a></p>
+<h2>1. OpenPipeline Rule Migration</h2>
+<p>OpenPipeline processing rules define how ingested data is enriched, extracted, routed, and masked before it lands in Grail. These rules must be migrated <strong>after</strong> Grail buckets exist in the target tenant (because routing rules reference bucket names) and <strong>before</strong> SLOs and alerts (because they consume processed data).</p>
+<h3>Processing Rule Types</h3>
+<table>
+<thead>
+<tr>
+<th>Rule Type</th>
+<th>What It Does</th>
+<th>Migration Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Enrichment</strong></td>
+<td>Add fields from lookup tables or entity properties</td>
+<td>Port as-is if field names match</td>
+</tr>
+<tr>
+<td><strong>Extraction</strong></td>
+<td>Parse structured data from unstructured content (DPL patterns)</td>
+<td>Port as-is</td>
+</tr>
+<tr>
+<td><strong>Routing</strong></td>
+<td>Direct data to specific Grail buckets based on conditions</td>
+<td><strong>Update bucket references</strong> to match target bucket names</td>
+</tr>
+<tr>
+<td><strong>Masking</strong></td>
+<td>Redact sensitive data (PII, credentials, tokens)</td>
+<td>Port as-is — verify compliance requirements match</td>
+</tr>
+</tbody>
+</table>
+<h3>Enrichment Propagation Delay</h3>
+<blockquote>
+<p><strong>Warning:</strong> On Kubernetes clusters (especially EKS), enrichment rules typically take ~45 minutes to propagate cluster-wide after deployment (observed; actual time varies by cluster size and ActiveGate configuration). Routing rules that depend on enriched attributes (e.g., a <code>primary_tags.*</code> field or a Kubernetes label you route on) will not match incoming data until propagation completes — data lands in <code>default_logs</code> during the gap.</p>
+<p><strong>Mitigation:</strong> If deploying via Terraform or CI/CD, add a validation gate between enrichment deployment and routing deployment. Either use a fixed wait (45-60 min on EKS) or query for enriched fields before proceeding:</p>
+<pre><code class="language-dql">fetch logs, from:-5m | filter isNotNull(k8s.namespace.name) | summarize count()
+</code></pre>
+<p>Replace <code>k8s.namespace.name</code> (the built-in Kubernetes enrichment) with the enriched field your routing rules actually match on. If count &gt; 0, enrichment is propagated and routing rules can be deployed safely.</p>
+</blockquote>
+<h3>Deployment Order (Critical)</h3>
+<p>OpenPipeline and related resources must be deployed in strict dependency order:</p>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Resource</th>
+<th>Why This Order</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Grail buckets</td>
+<td>Routing rules reference buckets — they must exist first</td>
+</tr>
+<tr>
+<td>2</td>
+<td>K8s enrichment rules</td>
+<td>Tags feed OpenPipeline conditions and downstream queries</td>
+</tr>
+<tr>
+<td>—</td>
+<td><em>Wait for enrichment propagation (~45 min on K8s)</em></td>
+<td><em>Routing rules fail silently if enriched fields are not yet available</em></td>
+</tr>
+<tr>
+<td>3</td>
+<td>OpenPipeline processing rules</td>
+<td>Now routing targets and enrichment sources exist</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Segments</td>
+<td>Segment definitions may reference buckets and tags</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Monaco note:</strong> <code>monaco deploy</code> resolves these dependencies automatically within a single run. However, it does <strong>not</strong> wait for enrichment propagation — if you deploy buckets, enrichment, and routing in one <code>monaco deploy</code>, routing rules may not match incoming data for ~45 minutes. For production migrations, consider splitting the deploy into two runs with a validation gate between them.</p>
+</blockquote>
+<h3>Coordinated Deployment Strategy</h3>
+<p>For consolidation scenarios where multiple source tenants have different OpenPipeline rules:</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>When to Use</th>
+<th>Risk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Merge</strong></td>
+<td>Rules from both tenants are complementary (different data sources)</td>
+<td>Low — rules do not conflict</td>
+</tr>
+<tr>
+<td><strong>Prioritize</strong></td>
+<td>Rules overlap — choose the more mature or comprehensive set</td>
+<td>Medium — requires rule-by-rule comparison</td>
+</tr>
+<tr>
+<td><strong>Redesign</strong></td>
+<td>Rules from both tenants are outdated or inefficient</td>
+<td>High effort, best long-term result</td>
+</tr>
+</tbody>
+</table>
+<h3>Export and Import with Monaco</h3>
+<p>OpenPipeline configuration is Settings 2.0 objects, so export it by schema with <code>--settings-schema</code>. Monaco 2.31.0 (10/23/2026) removed the deprecated <code>openpipeline</code> type — the release notes: <em>&quot;Removed support for deprecated OpenPipeline configurations (type <code>openpipeline</code>)&quot;</em> — and its download command no longer has <code>--only-openpipeline</code>.</p>
+<pre><code class="language-bash"># Export OpenPipeline configuration from the source tenant (logs shown).
+# Add every builtin:openpipeline.* schema the tenant uses (for example .pipeline-groups,
+# or the spans / bizevents equivalents). The audit query below lists those changed in the last 30 days.
+# --admin-access includes pipelines and ingest sources owned by other users.
+monaco download --manifest manifest.yaml --environment source-tenant \
+  --settings-schema builtin:openpipeline.logs.pipelines,builtin:openpipeline.logs.ingest-sources,builtin:openpipeline.logs.routing \
+  --admin-access
+
+# Review and update bucket references in the exported YAML
+# Then deploy to target tenant
+monaco deploy manifest.yaml --environment target-tenant --dry-run
+monaco deploy manifest.yaml --environment target-tenant
+</code></pre>
+<blockquote>
+<p><strong>Ownership matters on export.</strong> Pipelines and ingest sources have owners. <code>--admin-access</code> downloads <em>&quot;openpipeline configurations of all owners, not just those owned by the current user&quot;</em>, so an export without it can miss pipelines other users own. It <em>&quot;Requires the settings:objects:admin permission&quot;</em>. Routing is a single object per configuration scope, and deploying it overwrites the target's routing for that scope. In a consolidation, merge the source tenants' routes into one routing table and deploy it once.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco commands (DT docs)</a>, <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.31.0">Monaco v2.31.0 release notes (Dynatrace GitHub)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/openpipeline_v2_logs_routing.md"><code>openpipeline_v2_logs_routing</code> (Dynatrace GitHub)</a> — <em>&quot;Deploying an OpenPipeline routing configuration will overwrite the existing one of the same kind&quot;</em>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Warning:</strong> If routing rules reference buckets that do not exist in the target tenant, the deploy will succeed but data will be routed to the <code>default_logs</code> bucket instead. Always verify bucket existence first.</p>
+</blockquote>
+<h3>Audit Source OpenPipeline Configuration</h3>
+<p>Query the source tenant to understand which OpenPipeline configurations are actively managed:</p>
+<pre><code class="language-dql">// Audit log: OpenPipeline configuration changes (last 30 days)
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == &quot;AUDIT_EVENT&quot;.
+// OpenPipeline configuration is stored as builtin:openpipeline.* settings schemas.
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.provider == &quot;SETTINGS&quot;
+| filter startsWith(details.dt.settings.schema_id, &quot;builtin:openpipeline.&quot;)
+| filter in(event.type, {&quot;CREATE&quot;, &quot;UPDATE&quot;, &quot;DELETE&quot;})
+| summarize changes = count(), by:{details.dt.settings.schema_id, user.id}
+| sort changes desc
+| limit 10
+</code></pre>
+<h3>Verify OpenPipeline Rules in Target Tenant</h3>
+<p>After deploying OpenPipeline rules, verify that data is being processed correctly by checking for enrichment fields on recent log records:</p>
+<pre><code class="language-dql">// Verify OpenPipeline enrichment is active in target tenant
+// Check for enriched fields on recent logs
+fetch logs, from:-1h
+| filter isNotNull(dt.security_context)
+| summarize enriched_records = count()
+| fieldsAdd status = if(enriched_records &gt; 0, then: &quot;Enrichment rules active&quot;, else: &quot;No enriched records — check OpenPipeline config&quot;)
+</code></pre>
+<p><a id="grail-bucket-configuration"></a></p>
+<h2>2. Grail Bucket Configuration</h2>
+<p>Grail buckets control data storage, retention, and access. For consolidation scenarios, bucket naming is critical — multiple source tenants may have identically named custom buckets.</p>
+<h3>Bucket Naming Strategy for Consolidation</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Pattern</th>
+<th>Example</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Prefix by source</strong></td>
+<td><code>&lt;source&gt;_&lt;original&gt;</code></td>
+<td><code>us-east_app_logs</code></td>
+<td>Initial migration — avoids all collisions</td>
+</tr>
+<tr>
+<td><strong>Prefix by business unit</strong></td>
+<td><code>&lt;bu&gt;_&lt;original&gt;</code></td>
+<td><code>retail_app_logs</code></td>
+<td>Post-merger with clear org boundaries</td>
+</tr>
+<tr>
+<td><strong>Unified</strong></td>
+<td><code>&lt;original&gt;</code> with enrichment tags</td>
+<td><code>app_logs</code> + <code>source_tenant</code> tag</td>
+<td>Long-term target after validation</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Recommendation:</strong> Start with prefixed buckets. You can consolidate into unified buckets later once data flows are validated. Starting with separate buckets preserves the ability to roll back.</p>
+</blockquote>
+<h3>Retention Alignment</h3>
+<p>When consolidating tenants, retention policies may differ. Align on the <strong>longer</strong> retention period to avoid compliance violations:</p>
+<table>
+<thead>
+<tr>
+<th>Source Tenant</th>
+<th>Source Retention</th>
+<th>Target Retention</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>US-East</td>
+<td>90 days</td>
+<td>360 days</td>
+<td>EU-West has PCI requirement — use longer</td>
+</tr>
+<tr>
+<td>EU-West</td>
+<td>360 days</td>
+<td>360 days</td>
+<td>Compliance driver</td>
+</tr>
+<tr>
+<td>Security logs</td>
+<td>365 days</td>
+<td>365 days</td>
+<td>Regulatory minimum</td>
+</tr>
+<tr>
+<td>Dev/staging</td>
+<td>7 days</td>
+<td>14 days</td>
+<td>Increase slightly for migration debugging</td>
+</tr>
+</tbody>
+</table>
+<h3>Inventory Target Tenant Buckets</h3>
+<p>After bucket deployment, verify all expected buckets exist with correct retention:</p>
+<pre><code class="language-dql">// List all Grail buckets with retention and estimated size
+fetch dt.system.buckets
+| fields display_name, dt.system.table, retention_days, estimated_uncompressed_bytes
+| fieldsAdd size_gb = round(estimated_uncompressed_bytes / 1073741824.0, decimals: 2)
+| sort size_gb desc
+</code></pre>
+<h3>Verify Data Is Landing in Correct Buckets</h3>
+<p>After OpenPipeline routing rules are deployed, confirm that data is being routed to the intended buckets:</p>
+<pre><code class="language-dql">// Verify log routing: count records per bucket (last 1 hour)
+fetch logs, from:-1h
+| summarize record_count = count(), by:{dt.system.bucket}
+| sort record_count desc
+</code></pre>
+<p><a id="slo-migration"></a></p>
+<h2>3. SLO Migration</h2>
+<p>SLOs exist in two generations, and a SaaS-to-SaaS move is the natural point to land them on the right one:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Modern SLO app (target default)</th>
+<th>SLO Classic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SLI</td>
+<td>DQL query producing an <code>sli</code> field</td>
+<td>Metric-selector expression + entity selector</td>
+</tr>
+<tr>
+<td>Monaco</td>
+<td><code>type: slo-v2</code> (Monaco v2.22+)</td>
+<td>classic SLO API / <code>builtin:monitoring.slo</code></td>
+</tr>
+<tr>
+<td>Terraform</td>
+<td><code>dynatrace_platform_slo</code> (OAuth client)</td>
+<td><code>dynatrace_slo_v2</code> (classic API token)</td>
+</tr>
+</tbody>
+</table>
+<p>The two names that look alike are not the same thing: Monaco's <code>slo-v2</code> type is the <strong>modern</strong> Grail-based SLO, while the Terraform resource <code>dynatrace_slo_v2</code> is <strong>classic</strong>. Earlier versions of this step paired them as if they were one path. Classic SLOs in the source tenant should be <strong>rewritten</strong> onto the modern app in the target rather than copied — the readiness scan flags the classic surfaces as blocked at upgrade, and Dynatrace's own upgrade guidance expects a manual review of each SLO (SLO-05 §2). Whichever generation you are moving, hard-coded entity IDs inside the SLI are <strong>not portable</strong> and must be audited before migration.</p>
+<h3>SLO Migration Workflow</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Tool</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Export SLO definitions from source tenant</td>
+<td>Modern: <code>monaco download --only-slo-v2</code> · Classic: <code>terraform-provider-dynatrace -export dynatrace_slo_v2</code> (inventory for the rewrite)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Audit SLIs for entity IDs</td>
+<td>Manual review or script</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Replace entity IDs with tags or segments; rewrite classic metric expressions as DQL SLIs</td>
+<td>Manual edit</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Deploy SLOs to target tenant</td>
+<td><code>monaco deploy</code> or <code>terraform apply</code> (<code>dynatrace_platform_slo</code>)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Verify SLO evaluation after data accumulates</td>
+<td>DQL query (below)</td>
+</tr>
+</tbody>
+</table>
+<h3>Entity ID to Tag Conversion</h3>
+<p>On the modern app, scope the SLI with a <strong>segment</strong> rather than an entity ID. The segment is itself migrated configuration (<code>dynatrace_segment</code>, or <code>type: segment</code> in Monaco), so the reference resolves in the target tenant where a <code>SERVICE-…</code> ID would not.</p>
+<pre><code class="language-text"># BEFORE — DQL SLI pinned to a source-tenant entity ID (breaks on migration)
+| filter dt.entity.service == &quot;SERVICE-5E6F7A8B&quot;
+
+# AFTER — no ID in the query; scope comes from custom_sli.filter_segments,
+# pointing at a segment that is deployed to the target tenant first
+</code></pre>
+<p><strong>Classic — only while a classic SLO is still being inventoried in the source:</strong></p>
+<pre><code class="language-text"># BEFORE (hardcoded entity ID — breaks on migration)
+metric_expression = &quot;(100)*(builtin:service.errors.server.successCount:splitBy()):merge(0):default(0):sort(value(auto,descending)):limit(20):names:fold(auto)/((builtin:service.requestCount.server:splitBy()):merge(0):default(0):sort(value(auto,descending)):limit(20):names:fold(auto))&quot;
+entity_filter = &quot;type(SERVICE),entityId(SERVICE-5E6F7A8B)&quot;
+
+# AFTER (tag-based — survives migration)
+entity_filter = &quot;type(SERVICE),tag(app:checkout),tag(env:production)&quot;
+</code></pre>
+<h3>Evaluation Window Considerations</h3>
+<p>SLOs with rolling evaluation windows (e.g., 30-day) will show incomplete data in the target tenant until sufficient history accumulates:</p>
+<table>
+<thead>
+<tr>
+<th>Evaluation Window</th>
+<th>Time to Full Data</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7-day rolling</td>
+<td>7 days</td>
+<td>Accept partial data during parallel period</td>
+</tr>
+<tr>
+<td>30-day rolling</td>
+<td>30 days</td>
+<td>Consider shortening to 7-day temporarily</td>
+</tr>
+<tr>
+<td>Calendar month</td>
+<td>End of month</td>
+<td>Start SLOs at beginning of calendar month</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> SLOs that report 0% or 100% during the transition are expected. Communicate this to stakeholders before enabling SLOs in the target tenant.</p>
+</blockquote>
+<h3>Terraform SLO Resource Pattern</h3>
+<pre><code class="language-hcl"># Modern SLO app — OAuth client (DT_CLIENT_ID / DT_CLIENT_SECRET / DT_ACCOUNT_ID, slo:slos:*)
+resource &quot;dynatrace_platform_slo&quot; &quot;checkout_availability&quot; {
+  name        = &quot;Checkout Service Availability&quot;
+  description = &quot;Migrated from the source tenant's classic SLO; SLI rewritten as DQL&quot;
+  tags        = [&quot;app:checkout&quot;, &quot;env:production&quot;]
+
+  criteria {
+    criteria_detail {
+      target         = 99.9
+      warning        = 99.95
+      timeframe_from = &quot;now-7d&quot; # shortened during the fill period — see the table above
+      timeframe_to   = &quot;now&quot;
+    }
+  }
+
+  custom_sli {
+    indicator = &lt;&lt;-EOT
+      timeseries {
+        total    = sum(dt.service.request.count),
+        failures = sum(dt.service.request.failure_count)
+      }
+      | fieldsAdd sli = ((total[] - failures[]) / total[]) * 100
+      | fieldsRemove total, failures
+    EOT
+
+    # Scope comes from a segment deployed to the target tenant, not an entity ID
+    filter_segments {
+      filter_segment {
+        id = dynatrace_segment.checkout_production.id
+      }
+    }
+  }
+}
+</code></pre>
+<p>The SLI is SLO-02's availability query; resource shape and scoping options are in SLO-05 and AUTOM-04 §4. <code>dynatrace_platform_slo</code> is <strong>excluded from a default Terraform export</strong> — name it explicitly (<code>-export dynatrace_platform_slo</code>) when you inventory the target afterwards.</p>
+<p><strong>Classic — <code>dynatrace_slo_v2</code>, only if the target tenant is still on the classic SLO surface:</strong></p>
+<pre><code class="language-hcl">resource &quot;dynatrace_slo_v2&quot; &quot;checkout_availability&quot; {
+  name               = &quot;Checkout Service Availability&quot;
+  enabled            = true
+  evaluation_type    = &quot;AGGREGATE&quot;
+  evaluation_window  = &quot;-1w&quot;
+  target_success     = 99.9
+  target_warning     = 99.95
+  metric_expression  = &quot;(100)*(builtin:service.errors.server.successCount:splitBy()):merge(0):default(0)/((builtin:service.requestCount.server:splitBy()):merge(0):default(0))&quot;
+  filter             = &quot;type(SERVICE),tag(app:checkout),tag(env:production)&quot;
+
+  # required block — omitting it fails terraform apply schema validation
+  error_budget_burn_rate {
+    burn_rate_visualization_enabled = true
+  }
+}
+</code></pre>
+<h3>Verify SLO Evaluation in Target Tenant</h3>
+<p>After SLOs are deployed and data has accumulated, verify that they are evaluating correctly:</p>
+<pre><code class="language-dql">// Audit log: SLO configuration changes (last 7 days)
+// Use this to verify SLOs were successfully deployed to target tenant
+// Data object corrected 09/24/2026. The Dynatrace audit trail is NOT in `logs`: the former
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)` matched nothing, or matched an
+// unrelated file-based audit log (a database .aud file on the validation tenant). Environment
+// audit records are structured events in `dt.system.events` with event.kind == &quot;AUDIT_EVENT&quot;.
+// SLO service writes are provider &quot;SLO&quot; (evaluation calls excluded); classic SLOs are the
+// builtin:monitoring.slo settings schema.
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter (event.provider == &quot;SLO&quot; and in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;DELETE&quot;}) and not endsWith(resource, &quot;evaluation:start&quot;))
+    or (event.provider == &quot;SETTINGS&quot; and details.dt.settings.schema_id == &quot;builtin:monitoring.slo&quot;)
+| summarize changes = count(), by:{event.provider, event.type, user.id}
+| sort changes desc
+| limit 10
+</code></pre>
+<p><a id="alerting-and-notification-migration"></a></p>
+<h2>4. Alerting and Notification Migration</h2>
+<p>Alerting configuration includes three components that must be migrated together: alerting profiles (which problems trigger alerts), notification rules (where alerts are sent), and maintenance windows (when alerts are suppressed).</p>
+<h3>Alerting Migration Sequence</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Component</th>
+<th>Dependencies</th>
+<th>Monaco Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Alerting profiles</td>
+<td>None</td>
+<td><code>settings</code> (builtin:alerting.profile)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Notification integrations</td>
+<td>Webhook URLs, credential vault entries</td>
+<td><code>settings</code> (builtin:problem.notifications)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Notification rules</td>
+<td>Alerting profiles must exist</td>
+<td><code>settings</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Maintenance windows</td>
+<td>Management zones (for scope)</td>
+<td><code>settings</code> (builtin:alerting.maintenance-window)</td>
+</tr>
+</tbody>
+</table>
+<h3>Webhook URL Updates</h3>
+<p>Notification rules that send alerts to external systems (PagerDuty, Slack, ServiceNow, email) typically use tenant-specific webhook URLs or API keys:</p>
+<table>
+<thead>
+<tr>
+<th>Integration</th>
+<th>What Changes</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PagerDuty</strong></td>
+<td>Integration key (routing key)</td>
+<td>May keep same key if routing to same PD service</td>
+</tr>
+<tr>
+<td><strong>Slack</strong></td>
+<td>Webhook URL</td>
+<td>Update if using per-tenant Slack app</td>
+</tr>
+<tr>
+<td><strong>ServiceNow</strong></td>
+<td>Instance URL, credentials</td>
+<td>Update credential vault entry in target</td>
+</tr>
+<tr>
+<td><strong>Email</strong></td>
+<td>Recipient list</td>
+<td>Review and update distribution lists</td>
+</tr>
+<tr>
+<td><strong>Custom webhook</strong></td>
+<td>Endpoint URL, authentication</td>
+<td>Update URL and credentials</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important during parallel operation:</strong> agent data does not produce duplicates — each host reports to one tenant. Duplicates come from what you deliberately run in <strong>both</strong> tenants: synthetic monitors, cloud connections, and dual-fed log or metric ingest. Disable each of those in the source as its target counterpart is validated. Do not disable alerting in the target; route alerts for recently migrated hosts to a staging channel while their baselines relearn (<strong>FAQ-25</strong> § 5).</p>
+</blockquote>
+<h3>Maintenance Window Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>When to Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Staging channel</strong> (recommended)</td>
+<td>Route alerts for recently migrated hosts to a staging channel; keep detection running so you can measure the noise</td>
+</tr>
+<tr>
+<td><strong>Wave-scoped maintenance window</strong></td>
+<td>Cover only the hosts in a wave, only for its cutover window</td>
+</tr>
+<tr>
+<td><strong>Tenant-wide maintenance window</strong></td>
+<td>Avoid — it suppresses real problems on every migrated host for the whole overlap</td>
+</tr>
+</tbody>
+</table>
+<p><a id="data-retention-optimization"></a></p>
+<h2>5. Data Retention Optimization</h2>
+<p>The migration is an opportunity to rationalize data retention across data types. In the source tenant, retention policies may have accumulated organically. The target tenant starts clean.</p>
+<h3>Recommended Retention by Data Type</h3>
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Production</th>
+<th>Staging</th>
+<th>Security/Compliance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Logs</strong></td>
+<td>35–90 days</td>
+<td>7–14 days</td>
+<td>365 days</td>
+</tr>
+<tr>
+<td><strong>Spans</strong></td>
+<td>35 days</td>
+<td>7 days</td>
+<td>90 days</td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td>15 months included (extend up to 10 years)</td>
+<td>15 months</td>
+<td>As compliance requires, up to 10 years</td>
+</tr>
+<tr>
+<td><strong>Events</strong></td>
+<td>35 days</td>
+<td>14 days</td>
+<td>90 days</td>
+</tr>
+<tr>
+<td><strong>Business events</strong></td>
+<td>90–365 days</td>
+<td>35 days</td>
+<td>365 days</td>
+</tr>
+</tbody>
+</table>
+<h3>Cost Optimization Strategies</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Impact</th>
+<th>Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reduce verbose log retention</td>
+<td>High</td>
+<td>Route debug/info logs to short-retention bucket</td>
+</tr>
+<tr>
+<td>Drop noisy spans</td>
+<td>Medium</td>
+<td>OpenPipeline filter for health-check spans</td>
+</tr>
+<tr>
+<td>Aggregate before store</td>
+<td>Medium</td>
+<td>Use OpenPipeline extraction to create metrics from logs</td>
+</tr>
+<tr>
+<td>Separate compliance data</td>
+<td>Low effort, high governance value</td>
+<td>Dedicated bucket with extended retention</td>
+</tr>
+</tbody>
+</table>
+<h3>Compare Source vs Target Bucket Sizes</h3>
+<p>Run this query in both tenants to compare data volumes and confirm parity:</p>
+<pre><code class="language-dql">// Bucket size comparison — run in both source and target tenants
+fetch dt.system.buckets
+| fields display_name, dt.system.table, retention_days, estimated_uncompressed_bytes
+| fieldsAdd size_gb = round(estimated_uncompressed_bytes / 1073741824.0, decimals: 2)
+| fieldsAdd cost_tier = if(retention_days &gt; 365, then: &quot;Extended&quot;,
+    else: if(retention_days &gt; 90, then: &quot;Standard&quot;, else: &quot;Short&quot;))
+| sort size_gb desc
+</code></pre>
+<p><a id="step-completion-checklist"></a></p>
+<h2>6. Step Completion Checklist</h2>
+<p>Before proceeding to <strong>Step 8 — Enable</strong>, confirm that you have completed each item:</p>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grail buckets created in target tenant with correct retention</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>OpenPipeline rules deployed (enrichment, extraction, routing, masking)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Data is landing in correct buckets (verified via DQL)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Enrichment fields are present on new records</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>SLO definitions exported, entity IDs replaced with tags or segments, classic SLIs rewritten as DQL</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>SLOs deployed to target tenant</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Alerting profiles migrated</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Notification rules migrated with updated webhook URLs</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Alert routing for the parallel period decided (staging channel or wave-scoped maintenance windows)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Data retention policies aligned and documented</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Stakeholders informed of SLO evaluation timeline (rolling window fill period)</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Next Step</h2>
+<blockquote>
+<p><strong>S2S-08: Step 8 — Enable</strong> — Manage parallel operation, communicate to stakeholders, establish Dynatrace Intelligence baselines, and prepare for cutover.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Completed</th>
+<th>Next</th>
+<th>Remaining</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><s>1. Discover</s> → <s>2. Strategize</s> → <s>3. Design</s> → <s>4. Prepare</s> → <s>5. Execute</s> → <s>6. Integrate</s> → <s>7. Expand</s></td>
+<td><strong>8. Enable</strong></td>
+<td>9. Optimize</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In Step 7, you:</p>
+<ul>
+<li>Migrated OpenPipeline processing rules (enrichment, extraction, routing, masking) following the dependency order: buckets → enrichment → pipelines → segments</li>
+<li>Configured Grail buckets in the target tenant with a prefix strategy for consolidation and aligned retention policies</li>
+<li>Migrated SLO definitions onto the modern SLO app after replacing hardcoded entity IDs with tags or segments</li>
+<li>Migrated alerting profiles, notification rules, and maintenance windows with updated webhook URLs</li>
+<li>Optimized data retention across data types for cost and compliance</li>
+</ul>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">Organize your data stored in Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-level objectives (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic">Alerting and Notifications</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco">Monaco Configuration as Code</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

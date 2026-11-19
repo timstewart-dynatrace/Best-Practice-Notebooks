@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NR2DT-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NR2DT — New Relic to Dynatrace Migration Steps</a><span class="sep">/</span><span aria-current="page">NR2DT-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NR2DT-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> NR2DT — New Relic to Dynatrace Migration Steps | <strong>Notebook:</strong> 10 of 10 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/05/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Reference card for everything the NR2DT series prescribes.</strong> Use this as the post-mortem checklist and as the ongoing reference for similar migrations.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#framework">The 9-Step Framework</a></li>
+<li><a href="#practices">Best Practices by Step</a></li>
+<li><a href="#pitfalls">Common Pitfalls</a></li>
+<li><a href="#nrlc-map">Where the Deep Dives Live</a></li>
+<li><a href="#reuse">When to Reuse This Series</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead writing the post-mortem; future teams reusing the framework</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Reference summary — best-practice card, no procedural commands</td>
+</tr>
+</tbody>
+</table>
+<p><a id="framework"></a></p>
+<h2>1. The 9-Step Framework</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Notebook</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>NR2DT-01 Discover</td>
+<td>Inventory + translation report + effort estimate</td>
+</tr>
+<tr>
+<td>2</td>
+<td>NR2DT-02 Strategize</td>
+<td>Wave plan + scope decisions + gate definitions</td>
+</tr>
+<tr>
+<td>3</td>
+<td>NR2DT-03 Design</td>
+<td>Bucket + host group + IAM + OpenPipeline design</td>
+</tr>
+<tr>
+<td>4</td>
+<td>NR2DT-04 Translate</td>
+<td>All NRQL converted to DQL; LOW triaged</td>
+</tr>
+<tr>
+<td>5</td>
+<td>NR2DT-05 Migrate Dashboards &amp; Alerts</td>
+<td>Wave 0/1/3 imported; dual-alert window completed</td>
+</tr>
+<tr>
+<td>6</td>
+<td>NR2DT-06 Migrate Synthetics, SLOs &amp; Workloads</td>
+<td>Wave 2/4 imported; SLO 7-day delta validated</td>
+</tr>
+<tr>
+<td>7</td>
+<td>NR2DT-07 Migrate Logs, Tags &amp; Drops</td>
+<td>Wave 5 imported; log forwarders reconfigured</td>
+</tr>
+<tr>
+<td>8</td>
+<td>NR2DT-08 Validate</td>
+<td>Three-tier validation passed</td>
+</tr>
+<tr>
+<td>9</td>
+<td>NR2DT-09 Cutover, Rollback &amp; Decommission</td>
+<td>Cutover complete; NR archived</td>
+</tr>
+<tr>
+<td>99</td>
+<td>NR2DT-99 Summary</td>
+<td>This reference card</td>
+</tr>
+</tbody>
+</table>
+<p><a id="practices"></a></p>
+<h2>2. Best Practices by Step</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Practice</th>
+<th>Why It Matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Treat discovery as a deliverable, not a task</td>
+<td>Skipping it makes every later step a guess</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Run the translator early to size the LOW pile</td>
+<td>LOW is the dominant cost driver</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Get stakeholder sign-off on the <em>plan</em>, not just delivery</td>
+<td>Surfaces scope disputes early</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Define gate criteria before each wave starts</td>
+<td>Prevents &quot;are we done?&quot; debates</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Lock in bucket strategy + IAM model before any artifact migrates</td>
+<td>Both are foundational; retrofit is painful</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Triage every LOW; do not let auto-translation hide them</td>
+<td>Wrong DQL silently produces wrong data</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Dashboards first (low risk) builds trust in the translation pipeline</td>
+<td>Catches systemic issues before alerts</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Dual-alert for 1–2 weeks before silencing NR</td>
+<td>Catches volume / detection delta</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Promote alerts policy-by-policy, not in batch</td>
+<td>Reversible per-policy</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Measure the 7-day NR-vs-DT SLI delta (by hand) and run <code>audit-slos</code> before declaring SLO migration done</td>
+<td>The delta catches math drift; <code>audit-slos</code> catches invalid SLO metrics</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Dual-ship logs during cutover; volume parity validates the switch</td>
+<td>Ensures no log gap</td>
+</tr>
+<tr>
+<td>8</td>
+<td>All three validation tiers must pass; skipping Tier 3 is the most common error</td>
+<td>Syntactically valid ≠ semantically correct</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Retain rollback manifests ≥ 30 days post-cutover</td>
+<td>Late-discovered regressions still recoverable</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Halt NR ingest after dashboards archived, not before</td>
+<td>Preserves dual-source comparison capability</td>
+</tr>
+</tbody>
+</table>
+<p><a id="pitfalls"></a></p>
+<h2>3. Common Pitfalls</h2>
+<table>
+<thead>
+<tr>
+<th>Pitfall</th>
+<th>Symptom</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Skipping discovery</td>
+<td>&quot;How many dashboards do we have?&quot; mid-migration</td>
+<td>Make Step 1 a hard gate</td>
+</tr>
+<tr>
+<td>Auto-translating LOW silently</td>
+<td>DT alert fires/doesn't fire when NR's equivalent did the opposite</td>
+<td>Set translator threshold; require manual triage</td>
+</tr>
+<tr>
+<td>Cutting over alerts without dual-alert window</td>
+<td>On-call surprises in week 2</td>
+<td>Make 1–2 week dual-alert non-negotiable</td>
+</tr>
+<tr>
+<td>Migrating notification channels but not rotating secrets</td>
+<td>Migrated webhooks fail silently</td>
+<td>Document secret rotation as part of Wave 3</td>
+</tr>
+<tr>
+<td>Trying to make DT behave like NR</td>
+<td>Endless customization debt</td>
+<td>Adopt DT patterns (Workflows, OpenPipeline, Dynatrace Intelligence)</td>
+</tr>
+<tr>
+<td>Single host group everywhere</td>
+<td>Can't set per-environment thresholds</td>
+<td>See FAQ-01 — plan host grouping in Step 3</td>
+</tr>
+<tr>
+<td>Default bucket as permanent destination</td>
+<td>Compliance + cost + IAM all suffer</td>
+<td>See ORGNZ-02 / ORGNZ-99 — plan buckets in Step 3</td>
+</tr>
+<tr>
+<td>Skipping SLO 7-day delta check</td>
+<td>Compliance reporting drifts post-cutover</td>
+<td>Compute the 7-day NR-vs-DT SLI delta by hand before declaring Wave 4 done; <code>audit-slos</code> checks metric validity only</td>
+</tr>
+<tr>
+<td>Treating <code>migrate --diff</code> as a preview</td>
+<td>Artifacts imported during what was meant to be a dry look</td>
+<td>Preview with <code>migrate --dry-run --diff</code>; <code>--diff</code> alone imports first</td>
+</tr>
+<tr>
+<td>Partial rollback with <code>--rollback … --components</code></td>
+<td>Every entity in the manifest deleted</td>
+<td><code>--components</code> is ignored by rollback; roll back from a filtered copy of the manifest, <code>--dry-run</code> first</td>
+</tr>
+</tbody>
+</table>
+<p><a id="nrlc-map"></a></p>
+<h2>4. Where the Deep Dives Live</h2>
+<p>NR2DT is the procedural runbook. NRLC is the deep-dive reference. Each NRLC notebook is standalone — you can read just the one you need.</p>
+<table>
+<thead>
+<tr>
+<th>When you want depth on...</th>
+<th>Read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Why DT is structurally different from NR</td>
+<td>NRLC-01 Platform Comparison</td>
+</tr>
+<tr>
+<td>The NRQL→DQL compiler internals</td>
+<td>NRLC-02 NRQL→DQL Translation</td>
+</tr>
+<tr>
+<td>Dashboard widget translation, multi-page, variables</td>
+<td>NRLC-03 Dashboard Migration</td>
+</tr>
+<tr>
+<td>Workflows event routing (replaces Alerting Profiles)</td>
+<td>NRLC-04 Alert &amp; Workflow Migration</td>
+</tr>
+<tr>
+<td>Synthetic type mapping; scripted browser caveat</td>
+<td>NRLC-05 Synthetic Migration</td>
+</tr>
+<tr>
+<td>SLO math equivalence; OpenPipeline workload enrichment</td>
+<td>NRLC-06 SLO &amp; Workload Migration</td>
+</tr>
+<tr>
+<td>OpenPipeline filter / parsing / tagging</td>
+<td>NRLC-07 Logs, Tags &amp; Drops</td>
+</tr>
+<tr>
+<td>Three-tier validation; rollback manifest mechanics</td>
+<td>NRLC-08 Validation, Diff &amp; Rollback</td>
+</tr>
+<tr>
+<td>migrate.py CLI and toolchain reference</td>
+<td>NRLC-09 Toolchain Reference</td>
+</tr>
+</tbody>
+</table>
+<p><a id="reuse"></a></p>
+<h2>5. When to Reuse This Series</h2>
+<p>This 9-step framework applies whenever you're migrating to Dynatrace from another observability platform with similar entity classes:</p>
+<ul>
+<li>New Relic → Dynatrace (this series)</li>
+<li>Datadog → Dynatrace (substitute Datadog query language and entity model)</li>
+<li>Splunk → Dynatrace (overlap with the <strong>S2D</strong> series)</li>
+<li>AppDynamics → Dynatrace (similar APM → OneAgent translation)</li>
+</ul>
+<p>The procedural shape (discover → strategize → design → translate → wave migrate → validate → cutover) is platform-agnostic. The deep-dive content lives in the platform-specific deep-dive series (NRLC for New Relic, S2D for Splunk, etc.).</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a>, and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPANS-03: Trace Analysis &amp; Troubleshooting</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SPANS — Distributed Tracing and Spans</a><span class="sep">/</span><span aria-current="page">SPANS-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SPANS-03: Trace Analysis &amp; Troubleshooting</h1>
+<blockquote>
+<p><strong>Series:</strong> SPANS — Distributed Tracing and Spans | <strong>Notebook:</strong> 3 of 8 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/28/2026</p>
+</blockquote>
+<h2>Root Cause Analysis with Distributed Traces</h2>
+<p>This notebook teaches systematic approaches to troubleshoot issues using span data. You'll learn to identify error patterns, analyze latency, and trace problems to their root cause.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#finding-error-spans">Finding Error Spans</a></li>
+<li><a href="#error-pattern-analysis">Error Pattern Analysis</a></li>
+<li><a href="#latency-analysis">Latency Analysis</a></li>
+<li><a href="#finding-slow-requests">Finding Slow Requests</a></li>
+<li><a href="#reconstructing-complete-traces">Reconstructing Complete Traces</a></li>
+<li><a href="#identifying-root-cause">Identifying Root Cause</a></li>
+<li><a href="#downstream-dependency-analysis">Downstream Dependency Analysis</a></li>
+<li><a href="#database-query-troubleshooting">Database Query Troubleshooting</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this notebook, ensure you have:</p>
+<ul>
+<li>✅ Completed <strong>SPANS-01</strong> and <strong>SPANS-02</strong></li>
+<li>✅ Access to a Dynatrace environment with span data</li>
+<li>✅ Understanding of DQL filtering and aggregation</li>
+</ul>
+<h2>1. RCA Workflow Overview <a id="rca-workflow"></a></h2>
+<p>Follow this systematic approach for root cause analysis:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzUwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDFHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VmNDQ0NDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZGMyNjI2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y5NzMxNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWE1ODBjO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDNHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VhYjMwODtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojY2E4YTA0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGE2NGJjO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RlcDVHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyYzU1ZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InJjYVNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0icmNhQXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzY0NzQ4YiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIzNTAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJvb3QgQ2F1c2UgQW5hbHlzaXMgV29ya2Zsb3c8L3RleHQ+CgogIDwhLS0gU3RlcCAxOiBEZXRlY3QgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjU1IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjEwMCIgcng9IjgiIGZpbGw9InVybCgjc3RlcDFHcmFkKSIgZmlsdGVyPSJ1cmwoI3JjYVNoYWRvdykiLz4KICA8dGV4dCB4PSIxMDUiIHk9Ijg1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xPC90ZXh0PgogIDx0ZXh0IHg9IjEwNSIgeT0iMTEwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+REVURUNUPC90ZXh0PgogIDx0ZXh0IHg9IjEwNSIgeT0iMTI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RmluZCBlcnJvciBzcGFuczwvdGV4dD4KICA8dGV4dCB4PSIxMDUiIHk9IjE0MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnN0YXR1c19jb2RlPWVycm9yPC90ZXh0PgoKICA8IS0tIEFycm93IC0tPgogIDxsaW5lIHgxPSIxNzAiIHkxPSIxMDUiIHgyPSIxOTUiIHkyPSIxMDUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI3JjYUFycm93KSIvPgoKICA8IS0tIFN0ZXAgMjogUXVhbnRpZnkgLS0+CiAgPHJlY3QgeD0iMjAwIiB5PSI1NSIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIxMDAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3N0ZXAyR3JhZCkiIGZpbHRlcj0idXJsKCNyY2FTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjY1IiB5PSI4NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MjwvdGV4dD4KICA8dGV4dCB4PSIyNjUiIHk9IjExMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlFVQU5USUZZPC90ZXh0PgogIDx0ZXh0IHg9IjI2NSIgeT0iMTI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RXJyb3IgcmF0ZSAmYW1wOzwvdGV4dD4KICA8dGV4dCB4PSIyNjUiIHk9IjE0MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmltcGFjdCBhbmFseXNpczwvdGV4dD4KCiAgPCEtLSBBcnJvdyAtLT4KICA8bGluZSB4MT0iMzMwIiB5MT0iMTA1IiB4Mj0iMzU1IiB5Mj0iMTA1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNyY2FBcnJvdykiLz4KCiAgPCEtLSBTdGVwIDM6IExvY2F0ZSAtLT4KICA8cmVjdCB4PSIzNjAiIHk9IjU1IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjEwMCIgcng9IjgiIGZpbGw9InVybCgjc3RlcDNHcmFkKSIgZmlsdGVyPSJ1cmwoI3JjYVNoYWRvdykiLz4KICA8dGV4dCB4PSI0MjUiIHk9Ijg1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4zPC90ZXh0PgogIDx0ZXh0IHg9IjQyNSIgeT0iMTEwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TE9DQVRFPC90ZXh0PgogIDx0ZXh0IHg9IjQyNSIgeT0iMTI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+V2hpY2ggc2VydmljZT88L3RleHQ+CiAgPHRleHQgeD0iNDI1IiB5PSIxNDMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XaGljaCBlbmRwb2ludD88L3RleHQ+CgogIDwhLS0gQXJyb3cgLS0+CiAgPGxpbmUgeDE9IjQ5MCIgeTE9IjEwNSIgeDI9IjUxNSIgeTI9IjEwNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjcmNhQXJyb3cpIi8+CgogIDwhLS0gU3RlcCA0OiBUcmFjZSAtLT4KICA8cmVjdCB4PSI1MjAiIHk9IjU1IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjEwMCIgcng9IjgiIGZpbGw9InVybCgjc3RlcDRHcmFkKSIgZmlsdGVyPSJ1cmwoI3JjYVNoYWRvdykiLz4KICA8dGV4dCB4PSI1ODUiIHk9Ijg1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj40PC90ZXh0PgogIDx0ZXh0IHg9IjU4NSIgeT0iMTEwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VFJBQ0U8L3RleHQ+CiAgPHRleHQgeD0iNTg1IiB5PSIxMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5GdWxsIHRyYWNlIGJ5IElEPC90ZXh0PgogIDx0ZXh0IHg9IjU4NSIgeT0iMTQzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGFyZW50LWNoaWxkIHBhdGg8L3RleHQ+CgogIDwhLS0gQXJyb3cgLS0+CiAgPGxpbmUgeDE9IjY1MCIgeTE9IjEwNSIgeDI9IjY3NSIgeTI9IjEwNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjcmNhQXJyb3cpIi8+CgogIDwhLS0gU3RlcCA1OiBSb290IENhdXNlIC0tPgogIDxyZWN0IHg9IjY4MCIgeT0iNTUiIHdpZHRoPSI4MCIgaGVpZ2h0PSIxMDAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3N0ZXA1R3JhZCkiIGZpbHRlcj0idXJsKCNyY2FTaGFkb3cpIi8+CiAgPHRleHQgeD0iNzIwIiB5PSI4NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NTwvdGV4dD4KICA8dGV4dCB4PSI3MjAiIHk9IjExMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJPT1Q8L3RleHQ+CiAgPHRleHQgeD0iNzIwIiB5PSIxMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DQVVTRTwvdGV4dD4KCiAgPCEtLSBEZXRhaWxzIGJveGVzIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIxNzUiIHdpZHRoPSIyMjAiIGhlaWdodD0iODAiIHJ4PSI2IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNmY2E1YTUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjE1MCIgeT0iMTk3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZWY0NDQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5RdWVyeTogRmluZCBFcnJvcnM8L3RleHQ+CiAgPHRleHQgeD0iNTUiIHk9IjIxOCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+ZmlsdGVyIHNwYW4uc3RhdHVzX2NvZGUgPT0gImVycm9yIjwvdGV4dD4KICA8dGV4dCB4PSI1NSIgeT0iMjM1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj58IHN1bW1hcml6ZSBuID0gY291bnQoKSwgYnk6e2R0LnNlcnZpY2UubmFtZX08L3RleHQ+CgogIDxyZWN0IHg9IjI4MCIgeT0iMTc1IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjgwIiByeD0iNiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZmRiYTc0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIzOTAiIHk9IjE5NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2Y5NzMxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UXVlcnk6IExhdGVuY3kgQW5hbHlzaXM8L3RleHQ+CiAgPHRleHQgeD0iMjk1IiB5PSIyMTgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPmZpbHRlciBkdXJhdGlvbiA+IDEwMDBtczwvdGV4dD4KICA8dGV4dCB4PSIyOTUiIHk9IjIzNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+fCBzdW1tYXJpemUgcGVyY2VudGlsZShkdXJhdGlvbiwgOTkpPC90ZXh0PgoKICA8cmVjdCB4PSI1MjAiIHk9IjE3NSIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI4MCIgcng9IjYiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzkzYzVmZCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjQwIiB5PSIxOTciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxNDk2ZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlF1ZXJ5OiBHZXQgRnVsbCBUcmFjZTwvdGV4dD4KICA8dGV4dCB4PSI1MzUiIHk9IjIxOCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+ZmlsdGVyIHRyYWNlLmlkID09IHRvVWlkKCJhYmMxMjMiKTwvdGV4dD4KICA8dGV4dCB4PSI1MzUiIHk9IjIzNSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+fCBzb3J0IHN0YXJ0X3RpbWUgYXNjPC90ZXh0PgoKICA8IS0tIEJvdHRvbSB0aXBzIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIyNzUiIHdpZHRoPSI3MjAiIGhlaWdodD0iNTUiIHJ4PSI2IiBmaWxsPSIjZjBmZGY0IiBzdHJva2U9IiM4NmVmYWMiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjYwIiB5PSIyOTciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxNjY1MzQiPktleSBJbnNpZ2h0OjwvdGV4dD4KICA8dGV4dCB4PSIxNDUiIHk9IjI5NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjMTY2NTM0Ij5UaGUgZXJyb3Igc3BhbiB0aGF0IEVORFMgZmlyc3QgaXMgdGhlIGxpa2VseSBvcmlnaW47IGVhcmxpZXItc3RhcnRpbmcgZXJyb3JzIGFyZSBpdHMgY2FsbGVycy48L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjMxNyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjMTY2NTM0Ij5Db25maXJtIGl0IGhhcyBubyBmYWlsaW5nIGNoaWxkIHZpYSBzcGFuLnBhcmVudF9pZCwgdGhlbiBmb2xsb3cgdGhlIHBhdGggdXAgdG8gdGhlIHJvb3QuPC90ZXh0Pgo8L3N2Zz4K" alt="RCA Workflow" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action | Purpose |
+|------|--------|---------|
+| 1. DETECT | Find error or slow traces | Identify symptoms |
+| 2. QUANTIFY | Count affected traces/users | Understand impact |
+| 3. LOCATE | Get full trace by trace.id | Isolate the problem |
+| 4. TRACE | Find first error/slowest span | Follow the flow |
+| 5. ROOT CAUSE | Identify originating service | Find the source |
+-->
+<h3>Key Questions to Answer</h3>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Query Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What's failing?</td>
+<td>Filter <code>span.status_code == &quot;error&quot;</code></td>
+</tr>
+<tr>
+<td>Where did it start?</td>
+<td>Find the <strong>deepest</strong> error span — the one that ends first (§7)</td>
+</tr>
+<tr>
+<td>What's slow?</td>
+<td>Filter <code>duration &gt; threshold</code></td>
+</tr>
+<tr>
+<td>Is it widespread?</td>
+<td>Aggregate by service/operation</td>
+</tr>
+<tr>
+<td>What changed?</td>
+<td>Compare time windows</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="finding-error-spans"></a></p>
+<h2>2. Finding Error Spans</h2>
+<p>Start by identifying error spans in your system:</p>
+<blockquote>
+<p>⚠️ Remember: <code>span.status_code</code> values are lowercase (<code>&quot;error&quot;</code>, not <code>&quot;ERROR&quot;</code>), and the field is absent on most spans. A server span can also fail without it: on the validation tenant 43 of 558 HTTP 5xx server spans in an hour carried no status, so the error-rate cells below count <code>span.status_code == &quot;error&quot; or http.response.status_code &gt;= 500</code>.</p>
+</blockquote>
+<pre><code class="language-dql">// Find recent error spans
+fetch spans, from:-1h
+| filter span.status_code == &quot;error&quot;
+| fields start_time,
+         dt.service.name,
+         span.name,
+         span.status_message,
+         trace.id,
+         duration
+| sort start_time desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Count errors by service to see which services are most affected
+fetch spans, from:-1h
+| filter span.status_code == &quot;error&quot;
+| summarize {
+    error_count = count(),
+    affected_traces = countDistinctExact(trace.id)
+  }, by: {dt.service.name}
+| sort error_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Error rate per service (server spans only)
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    total_requests = count(),
+    error_count = countIf(span.status_code == &quot;error&quot; or http.response.status_code &gt;= 500)
+  }, by: {dt.service.name}
+| fieldsAdd error_rate_pct = (error_count * 100.0) / total_requests
+| sort error_rate_pct desc
+| limit 20
+</code></pre>
+<hr />
+<p><a id="error-pattern-analysis"></a></p>
+<h2>3. Error Pattern Analysis</h2>
+<p>Group errors to identify common patterns:</p>
+<pre><code class="language-dql">// Group errors by type and service using collectDistinct
+fetch spans, from:-1h
+| filter span.status_code == &quot;error&quot;
+| summarize {
+    occurrence = count(),
+    affected_traces = countDistinctExact(trace.id),
+    services_affected = collectDistinct(dt.service.name)
+  }, by: {span.name, span.status_message}
+| sort occurrence desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Find traces with multiple errors (cascading failures)
+// origin_* is the error span that ENDED first — the deepest failing call (see §7).
+fetch spans, from:-1h
+| filter span.status_code == &quot;error&quot;
+| summarize {
+    error_count = count(),
+    services_affected = collectDistinct(dt.service.name),
+    origin = takeMin(record(end_time = end_time, span = span.name))
+  }, by: {trace.id}
+| filter error_count &gt; 1
+| fieldsAdd origin_span = origin[span]
+| fieldsRemove origin
+| sort error_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Error timeline - visualize errors over time
+fetch spans, from:-24h
+| filter span.kind == &quot;server&quot;
+| makeTimeseries {
+    errors = countIf(span.status_code == &quot;error&quot;),
+    total = count()
+  }, interval: 5m, by: {dt.service.name}
+</code></pre>
+<hr />
+<p><a id="latency-analysis"></a></p>
+<h2>4. Latency Analysis</h2>
+<p>Analyze latency patterns to find performance issues:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NTAgMjgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibGF0SGVhZGVyR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZDRlZDg7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJsYXQ1MEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJsYXQ5NUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjU5ZTBiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJsYXQ5OUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJsYXRNYXhHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzYzNjZmMTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNGY0NmU1O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9ImxhdFNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI2NTAiIGhlaWdodD0iMjgwIiBmaWxsPSIjMGYxNzJhIiByeD0iMTAiLz4KCiAgPCEtLSBIZWFkZXIgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjIwIiB3aWR0aD0iNTkwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0idXJsKCNsYXRIZWFkZXJHcmFkKSIgZmlsdGVyPSJ1cmwoI2xhdFNoYWRvdykiLz4KICA8dGV4dCB4PSIzMjUiIHk9IjQ3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TGF0ZW5jeSBQZXJjZW50aWxlIEd1aWRlPC90ZXh0PgoKICA8IS0tIEZvdXIgbWV0cmljIGJveGVzIC0tPgogIDwhLS0gcDUwIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI4MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI5MCIgcng9IjgiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjbGF0U2hhZG93KSIvPgogIDxyZWN0IHg9IjMwIiB5PSI4MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIzMCIgcng9IjgiIGZpbGw9InVybCgjbGF0NTBHcmFkKSIvPgogIDxyZWN0IHg9IjMwIiB5PSIxMDAiIHdpZHRoPSIxNDAiIGhlaWdodD0iMTAiIGZpbGw9InVybCgjbGF0NTBHcmFkKSIvPgogIDx0ZXh0IHg9IjEwMCIgeT0iMTAwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cDUwPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNkMWQ1ZGIiPk1lZGlhbjwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMTUwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOWNhM2FmIj5UeXBpY2FsPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIxNjIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5Y2EzYWYiPnJlcXVlc3Q8L3RleHQ+CgogIDwhLS0gcDk1IC0tPgogIDxyZWN0IHg9IjE4NSIgeT0iODAiIHdpZHRoPSIxNDAiIGhlaWdodD0iOTAiIHJ4PSI4IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2xhdFNoYWRvdykiLz4KICA8cmVjdCB4PSIxODUiIHk9IjgwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbD0idXJsKCNsYXQ5NUdyYWQpIi8+CiAgPHJlY3QgeD0iMTg1IiB5PSIxMDAiIHdpZHRoPSIxNDAiIGhlaWdodD0iMTAiIGZpbGw9InVybCgjbGF0OTVHcmFkKSIvPgogIDx0ZXh0IHg9IjI1NSIgeT0iMTAwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cDk1PC90ZXh0PgogIDx0ZXh0IHg9IjIwNSIgeT0iMTMwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjZDFkNWRiIj4xIGluIDIwPC90ZXh0PgogIDx0ZXh0IHg9IjIwNSIgeT0iMTUwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOWNhM2FmIj41JSBvZiByZXF1ZXN0cyBhcmU8L3RleHQ+CiAgPHRleHQgeD0iMjA1IiB5PSIxNjIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5Y2EzYWYiPnRoaXMgc2xvdyBvciBzbG93ZXI8L3RleHQ+CgogIDwhLS0gcDk5IC0tPgogIDxyZWN0IHg9IjM0MCIgeT0iODAiIHdpZHRoPSIxNDAiIGhlaWdodD0iOTAiIHJ4PSI4IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiNlZjQ0NDQiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2xhdFNoYWRvdykiLz4KICA8cmVjdCB4PSIzNDAiIHk9IjgwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbD0idXJsKCNsYXQ5OUdyYWQpIi8+CiAgPHJlY3QgeD0iMzQwIiB5PSIxMDAiIHdpZHRoPSIxNDAiIGhlaWdodD0iMTAiIGZpbGw9InVybCgjbGF0OTlHcmFkKSIvPgogIDx0ZXh0IHg9IjQxMCIgeT0iMTAwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cDk5PC90ZXh0PgogIDx0ZXh0IHg9IjM2MCIgeT0iMTMwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjZDFkNWRiIj4xIGluIDEwMDwvdGV4dD4KICA8dGV4dCB4PSIzNjAiIHk9IjE1MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzljYTNhZiI+MSUgb2YgcmVxdWVzdHMgYXJlPC90ZXh0PgogIDx0ZXh0IHg9IjM2MCIgeT0iMTYyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOWNhM2FmIj50aGlzIHNsb3cgb3Igc2xvd2VyPC90ZXh0PgoKICA8IS0tIG1heCAtLT4KICA8cmVjdCB4PSI0OTUiIHk9IjgwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjkwIiByeD0iOCIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjNjM2NmYxIiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNsYXRTaGFkb3cpIi8+CiAgPHJlY3QgeD0iNDk1IiB5PSI4MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIzMCIgcng9IjgiIGZpbGw9InVybCgjbGF0TWF4R3JhZCkiLz4KICA8cmVjdCB4PSI0OTUiIHk9IjEwMCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxMCIgZmlsbD0idXJsKCNsYXRNYXhHcmFkKSIvPgogIDx0ZXh0IHg9IjU2NSIgeT0iMTAwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bWF4PC90ZXh0PgogIDx0ZXh0IHg9IjUxNSIgeT0iMTMwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjZDFkNWRiIj5Xb3JzdCBjYXNlPC90ZXh0PgogIDx0ZXh0IHg9IjUxNSIgeT0iMTUwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOWNhM2FmIj5NYXkgaW5jbHVkZTwvdGV4dD4KICA8dGV4dCB4PSI1MTUiIHk9IjE2MiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzljYTNhZiI+b3V0bGllcnM8L3RleHQ+CgogIDwhLS0gVXNhZ2UgdGlwIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIxOTAiIHdpZHRoPSI1OTAiIGhlaWdodD0iNzUiIHJ4PSI4IiBmaWxsPSIjMWUyOTNiIi8+CiAgPHRleHQgeD0iNTAiIHk9IjIxNSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmMWY1ZjkiPkRRTCBFeGFtcGxlOjwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMjQwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjExIiBmaWxsPSIjYTViNGZjIj5mZXRjaCBzcGFucyB8IGZpbHRlciBzcGFuLmtpbmQgPT0gInNlcnZlciI8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjI1NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMSIgZmlsbD0iI2E1YjRmYyI+fCBzdW1tYXJpemUge3A5OSA9IHBlcmNlbnRpbGUoZHVyYXRpb24sIDk5KX0sIGJ5OntkdC5zZXJ2aWNlLm5hbWV9PC90ZXh0Pgo8L3N2Zz4K" alt="Latency Percentile Guide" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Percentile | Description | Impact |
+|------------|-------------|--------|
+| p50 (median) | Typical request | Half of requests are this fast or faster |
+| p95 | 1 in 20 requests is this slow or slower | Common SLO target |
+| p99 | 1 in 100 requests is this slow or slower | Tail latency indicator |
+| max | Worst case (may be outliers) | May not reflect real user impact |
+-->
+<pre><code class="language-dql">// Latency percentiles by service
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    requests = count(),
+    p50_ms = percentile(duration, 50) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    p99_ms = percentile(duration, 99) / 1ms,
+    max_ms = max(duration) / 1ms
+  }, by: {dt.service.name}
+| sort p99_ms desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Latency percentiles by operation
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    requests = count(),
+    p50_ms = percentile(duration, 50) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    p99_ms = percentile(duration, 99) / 1ms
+  }, by: {dt.service.name, span.name}
+| filter requests &gt; 10
+| sort p95_ms desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Latency trend over time with bin() + summarize. (makeTimeseries also accepts percentile — put the unit conversion inside it: percentile(duration / 1ms, 95); see SPANS-05 §1.)
+fetch spans, from:-24h
+| filter span.kind == &quot;server&quot;
+| fieldsAdd time_bucket = bin(start_time, 10m)
+| summarize {
+    p95_ms = percentile(duration, 95) / 1ms,
+    request_count = count()
+  }, by: {time_bucket, dt.service.name}
+| sort time_bucket desc, dt.service.name
+| limit 100
+</code></pre>
+<hr />
+<p><a id="finding-slow-requests"></a></p>
+<h2>5. Finding Slow Requests</h2>
+<p>Identify and analyze slow requests:</p>
+<pre><code class="language-dql">// Find slow server spans (&gt; 1 second)
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| filter duration &gt; 1s
+| fieldsAdd duration_ms = duration / 1ms
+| fields start_time,
+         dt.service.name,
+         span.name,
+         duration_ms,
+         trace.id
+| sort duration_ms desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Find slow traces by their root span (the entry point)
+// A root span has no parent; its duration covers the trace's entry request.
+fetch spans, from:-1h
+| filter isNull(span.parent_id)
+| filter duration &gt; 1s
+| fieldsAdd duration_ms = duration / 1ms
+| fields trace.id, entry_point = span.name, dt.service.name, duration_ms
+| sort duration_ms desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Identify slow operations (candidates for optimization)
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| filter duration &gt; 500ms
+| summarize {
+    slow_count = count(),
+    avg_duration_ms = avg(duration) / 1ms,
+    max_duration_ms = max(duration) / 1ms
+  }, by: {dt.service.name, span.name}
+| sort slow_count desc
+| limit 20
+</code></pre>
+<hr />
+<p><a id="reconstructing-complete-traces"></a></p>
+<h2>6. Reconstructing Complete Traces</h2>
+<p>Once you've identified a problematic trace, reconstruct the full picture:</p>
+<pre><code class="language-dql">// Get a sample trace ID from error spans
+fetch spans, from:-1h
+| filter span.status_code == &quot;error&quot;
+| fields trace.id, dt.service.name, span.name
+| limit 5
+</code></pre>
+<pre><code class="language-dql">// Reconstruct full trace (replace YOUR_TRACE_ID with actual trace.id)
+fetch spans, from:-1h
+// trace.id is a uid: keep the toUid() wrapper — a plain string never matches.
+// | filter trace.id == toUid(&quot;YOUR_TRACE_ID&quot;)
+| fieldsAdd duration_ms = duration / 1ms
+| fields start_time,
+         dt.service.name,
+         span.name,
+         span.kind,
+         duration_ms,
+         span.status_code,
+         span.parent_id,
+         span.id
+| sort start_time asc
+| limit 100
+</code></pre>
+<pre><code class="language-dql">// Analyze trace complexity
+// trace_duration_ms is wall-clock (last end minus first start); summing span
+// durations would double-count nested and parallel work.
+fetch spans, from:-1h
+| summarize {
+    span_count = count(),
+    services_involved = countDistinct(dt.service.name),
+    has_errors = countIf(span.status_code == &quot;error&quot;) &gt; 0,
+    first_start = min(start_time),
+    last_end = max(end_time)
+  }, by: {trace.id}
+| fieldsAdd trace_duration_ms = (last_end - first_start) / 1ms
+| fields trace.id, span_count, services_involved, has_errors, trace_duration_ms
+| sort span_count desc
+| limit 20
+</code></pre>
+<hr />
+<p><a id="identifying-root-cause"></a></p>
+<h2>7. Identifying Root Cause</h2>
+<p>Use these patterns to find the origin of problems:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NTAgMzIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icmNhSGVhZGVyR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJyY2FJdGVtR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTI5M2I7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBmMTcyYTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJyY2FTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iNTUwIiBoZWlnaHQ9IjMyMCIgZmlsbD0iIzBmMTcyYSIgcng9IjEwIi8+CgogIDwhLS0gSGVhZGVyIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIyMCIgd2lkdGg9IjQ5MCIgaGVpZ2h0PSI0NSIgcng9IjgiIGZpbGw9InVybCgjcmNhSGVhZGVyR3JhZCkiIGZpbHRlcj0idXJsKCNyY2FTaGFkb3cpIi8+CiAgPHRleHQgeD0iNTAiIHk9IjQ4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiI+Um9vdCBDYXVzZSBJZGVudGlmaWNhdGlvbiBDaGVja2xpc3Q8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSI0OCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0iZW5kIj5SQ0E8L3RleHQ+CgogIDwhLS0gQ2hlY2tsaXN0IGl0ZW1zIC0tPgogIDwhLS0gSXRlbSAxIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI4MCIgd2lkdGg9IjQ5MCIgaGVpZ2h0PSIzOCIgcng9IjYiIGZpbGw9IiMxZTI5M2IiLz4KICA8cmVjdCB4PSI0NSIgeT0iOTAiIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgcng9IjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNzUiIHk9IjEwNCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2YxZjVmOSI+RmluZCB0aGUgREVFUEVTVCBlcnJvciDigJQgdGhlIG9uZSB0aGF0IGVuZHMgZmlyc3Q8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIxMDQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2ZWU3YjciIHRleHQtYW5jaG9yPSJlbmQiPnRha2VNaW4oZW5kX3RpbWUpPC90ZXh0PgoKICA8IS0tIEl0ZW0gMiAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMTI1IiB3aWR0aD0iNDkwIiBoZWlnaHQ9IjM4IiByeD0iNiIgZmlsbD0iIzFlMjkzYiIvPgogIDxyZWN0IHg9IjQ1IiB5PSIxMzUiIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgcng9IjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNzUiIHk9IjE0OSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2YxZjVmOSI+Q2hlY2sgaWYgZXJyb3IgcHJvcGFnYXRlZCBmcm9tIGEgZG93bnN0cmVhbSBzZXJ2aWNlPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMTQ5IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNmVlN2I3IiB0ZXh0LWFuY2hvcj0iZW5kIj5zcGFuLmtpbmQ9PSJjbGllbnQiPC90ZXh0PgoKICA8IS0tIEl0ZW0gMyAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMTcwIiB3aWR0aD0iNDkwIiBoZWlnaHQ9IjM4IiByeD0iNiIgZmlsbD0iIzFlMjkzYiIvPgogIDxyZWN0IHg9IjQ1IiB5PSIxODAiIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgcng9IjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNzUiIHk9IjE5NCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2YxZjVmOSI+SWRlbnRpZnkgdGhlIFNMT1dFU1Qgc3BhbiBjb250cmlidXRpbmcgdG8gbGF0ZW5jeTwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjE5NCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzZlZTdiNyIgdGV4dC1hbmNob3I9ImVuZCI+bWF4KGR1cmF0aW9uKTwvdGV4dD4KCiAgPCEtLSBJdGVtIDQgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjIxNSIgd2lkdGg9IjQ5MCIgaGVpZ2h0PSIzOCIgcng9IjYiIGZpbGw9IiMxZTI5M2IiLz4KICA8cmVjdCB4PSI0NSIgeT0iMjI1IiB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHJ4PSI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9Ijc1IiB5PSIyMzkiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiNmMWY1ZjkiPkxvb2sgZm9yIGRhdGFiYXNlIHF1ZXJpZXMgb3IgZXh0ZXJuYWwgY2FsbHM8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIyMzkiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2ZWU3YjciIHRleHQtYW5jaG9yPSJlbmQiPmlzTm90TnVsbChkYi5zeXN0ZW0pPC90ZXh0PgoKICA8IS0tIEl0ZW0gNSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMjYwIiB3aWR0aD0iNDkwIiBoZWlnaHQ9IjM4IiByeD0iNiIgZmlsbD0iIzFlMjkzYiIvPgogIDxyZWN0IHg9IjQ1IiB5PSIyNzAiIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgcng9IjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNzUiIHk9IjI4NCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iI2YxZjVmOSI+Q2hlY2sgZm9yIHJldHJ5IHBhdHRlcm5zIChyZXBlYXRlZCBzaW1pbGFyIHNwYW5zKTwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjI4NCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzZlZTdiNyIgdGV4dC1hbmNob3I9ImVuZCI+Y291bnQoKSBieTogc3Bhbi5uYW1lPC90ZXh0Pgo8L3N2Zz4K" alt="Root Cause Identification Checklist" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Check | What to Look For | DQL Pattern |
+|-------|------------------|-------------|
+| Deepest error | The error span that ENDS first — callers that inherited the error end later | `takeMin(record(end_time = end_time, …))` |
+| Downstream propagation | Error from downstream service | `span.kind == "client"` |
+| Slowest span | SLOWEST span contributing to latency | `max(duration)` |
+| External calls | Database queries or external calls | `isNotNull(db.system)` |
+| Retry patterns | Repeated similar spans | `count() by: span.name` |
+-->
+<blockquote>
+<p><strong>Look for the deepest error, not the earliest one.</strong> When a call fails, every caller above it usually fails too, and those callers <strong>started earlier</strong>. Picking the error span with the smallest <code>start_time</code> therefore lands on the outermost symptom. On the validation tenant, in 231 of 247 traces with more than one error span, the earliest-starting error span was the parent of another error span; the earliest-<em>ending</em> error span was a parent of another error span in 0 of 247. Use the error span that ended first as the likely origin, then confirm it has no failing child.</p>
+</blockquote>
+<pre><code class="language-dql">// Find the likely ORIGIN error in each failing trace: the error span that ended first.
+// takeMin over a record compares its first field (end_time) and returns the whole record.
+fetch spans, from:-1h
+| filter span.status_code == &quot;error&quot;
+| summarize {
+    error_spans = count(),
+    origin = takeMin(record(end_time = end_time, service = dt.service.name, span = span.name, message = span.status_message))
+  }, by: {trace.id}
+| fieldsAdd origin_end = origin[end_time],
+    origin_service = origin[service],
+    origin_span = origin[span],
+    origin_message = origin[message]
+| fieldsRemove origin
+| sort origin_end desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Find the bottleneck span in each trace
+fetch spans, from:-1h
+| summarize {
+    max_duration_ms = max(duration) / 1ms,
+    total_spans = count(),
+    services = collectDistinct(dt.service.name)
+  }, by: {trace.id}
+| filter max_duration_ms &gt; 500
+| sort max_duration_ms desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Time spent per span kind (where is time going?)
+fetch spans, from:-1h
+| summarize {
+    total_time_ms = sum(duration) / 1ms,
+    span_count = count(),
+    avg_time_ms = avg(duration) / 1ms
+  }, by: {span.kind}
+| sort total_time_ms desc
+</code></pre>
+<hr />
+<p><a id="downstream-dependency-analysis"></a></p>
+<h2>8. Downstream Dependency Analysis</h2>
+<p>Analyze failures in downstream services (CLIENT spans):</p>
+<pre><code class="language-dql">// Find which downstream services are causing errors
+fetch spans, from:-1h
+| filter span.kind == &quot;client&quot; and span.status_code == &quot;error&quot;
+| summarize {
+    failure_count = count(),
+    sample_error = takeFirst(span.status_message),
+    affected_traces = countDistinctExact(trace.id)
+  }, by: {dt.service.name, span.name}
+| sort failure_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Dependency health - error rates for outbound calls
+fetch spans, from:-1h
+| filter span.kind == &quot;client&quot;
+| summarize {
+    calls = count(),
+    errors = countIf(span.status_code == &quot;error&quot;),
+    p95_latency_ms = percentile(duration, 95) / 1ms
+  }, by: {dt.service.name, span.name}
+| fieldsAdd error_rate_pct = (errors * 100.0) / calls
+| filter error_rate_pct &gt; 5 or p95_latency_ms &gt; 500
+| sort error_rate_pct desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Map service-to-service dependencies
+fetch spans, from:-1h
+| filter span.kind == &quot;client&quot;
+| filter isNotNull(server.address)
+| summarize {
+    call_count = count(),
+    error_count = countIf(span.status_code == &quot;error&quot;),
+    avg_latency_ms = avg(duration) / 1ms
+  }, by: {dt.service.name, server.address}
+| fieldsAdd error_rate_pct = (error_count * 100.0) / call_count
+| sort call_count desc
+| limit 30
+</code></pre>
+<hr />
+<p><a id="database-query-troubleshooting"></a></p>
+<h2>9. Database Query Troubleshooting</h2>
+<p>Analyze database operations for performance issues:</p>
+<pre><code class="language-dql">// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and every one of them is null on Grail spans. They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -&gt; db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -&gt; db.query.text        (stable; 33,463)
+//   db.mongodb.collection-&gt; db.collection.name   (stable; 6,912)
+//   db.name              -&gt; db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, &quot;db.&quot;) | fields name, stability
+// Find slow database queries
+fetch spans, from:-1h
+| filter isNotNull(db.system)
+| filter not(in(coalesce(db.operation.name, &quot;&quot;), {&quot;CONNECT&quot;, &quot;COMMIT&quot;, &quot;PREPARE&quot;, &quot;RESULTSET&quot;}))  // statements only, not connection/driver phases
+| filter duration &gt; 100ms
+| summarize {
+    query_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    max_ms = max(duration) / 1ms
+  }, by: {db.system, db.namespace, span.name}
+| sort p95_ms desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Find failing database operations
+fetch spans, from:-1h
+| filter isNotNull(db.system) and span.status_code == &quot;error&quot;
+| summarize {
+    error_count = count(),
+    sample_error = takeFirst(span.status_message)
+  }, by: {db.system, db.namespace, span.name}
+| sort error_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Quick service health check (use for dashboards)
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    requests = count(),
+    errors = countIf(span.status_code == &quot;error&quot; or http.response.status_code &gt;= 500),
+    p50_ms = percentile(duration, 50) / 1ms,
+    p99_ms = percentile(duration, 99) / 1ms
+  }, by: {dt.service.name}
+| fieldsAdd error_rate_pct = (errors * 100.0) / requests
+| sort error_rate_pct desc
+| limit 20
+</code></pre>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>RCA Workflow</strong> - Systematic approach: Detect → Quantify → Locate → Trace → Root cause<br />
+✅ <strong>Find errors</strong> using <code>span.status_code == &quot;error&quot;</code> (plus HTTP 5xx for server error rates) and count affected traces<br />
+✅ <strong>Error patterns</strong> with <code>collectDistinct()</code> to see affected services<br />
+✅ <strong>Latency analysis</strong> using percentiles (p50, p95, p99) and <code>bin()</code> for trends<br />
+✅ <strong>Slow request analysis</strong> to identify optimization candidates<br />
+✅ <strong>Trace reconstruction</strong> to see the full picture<br />
+✅ <strong>Root cause identification</strong> - the deepest error (ends first), slowest span, bottlenecks<br />
+✅ <strong>Dependency analysis</strong> - CLIENT spans show downstream failures<br />
+✅ <strong>Database troubleshooting</strong> for slow or failing queries</p>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>SPANS-04: Service Dependencies &amp; Flow Analysis</strong> to learn:</p>
+<ul>
+<li>Mapping service-to-service relationships</li>
+<li>Analyzing async messaging patterns</li>
+<li>Visualizing request flows</li>
+<li>Critical path analysis</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/trace">Trace semantic conventions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/functions/aggregation-functions">Aggregation functions (DT docs)</a> — <code>takeMin</code>, <code>percentile</code>, <code>collectDistinct</code></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing">Distributed Tracing (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

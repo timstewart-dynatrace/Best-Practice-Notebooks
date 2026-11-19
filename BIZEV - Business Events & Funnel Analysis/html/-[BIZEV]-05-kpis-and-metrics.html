@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIZEV-05: KPIs and Metrics</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">BIZEV — Business Events &amp; Funnel Analysis</a><span class="sep">/</span><span aria-current="page">BIZEV-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>BIZEV-05: KPIs and Metrics</h1>
+<blockquote>
+<p><strong>Series:</strong> BIZEV — Business Events &amp; Funnel Analysis | <strong>Notebook:</strong> 5 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/25/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Business events contain the raw signals needed to compute meaningful Key Performance Indicators (KPIs) — transaction volume, average order value, error rates by business process, and more. This notebook shows how to define and compute business KPIs from event data using DQL, extract metrics from business events via OpenPipeline for long-term retention, build composite business health scores, and perform trend analysis to detect shifts in business performance.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#defining-business-kpis">Defining Business KPIs</a></li>
+<li><a href="#transaction-volume-kpis">Transaction Volume KPIs</a></li>
+<li><a href="#revenue-kpis">Revenue KPIs</a></li>
+<li><a href="#error-rate-kpis">Error Rate KPIs</a></li>
+<li><a href="#metric-extraction-via-openpipeline">Metric Extraction via OpenPipeline</a></li>
+<li><a href="#business-health-score">Business Health Score</a></li>
+<li><a href="#trend-analysis">Trend Analysis</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:bizevents:read</code>, <code>storage:metrics:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Business events with transaction types and value fields</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>BIZEV-01 through BIZEV-03, DQL <code>summarize</code> and <code>makeTimeseries</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="defining-business-kpis"></a></p>
+<h2>1. Defining Business KPIs</h2>
+<p>A KPI is a quantifiable measure of business performance. The best KPIs are:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Specific</strong></td>
+<td>Tied to a concrete business outcome</td>
+</tr>
+<tr>
+<td><strong>Measurable</strong></td>
+<td>Calculable from available data</td>
+</tr>
+<tr>
+<td><strong>Actionable</strong></td>
+<td>Teams can influence the metric</td>
+</tr>
+<tr>
+<td><strong>Time-bound</strong></td>
+<td>Measured over a defined period</td>
+</tr>
+</tbody>
+</table>
+<h3>Common Business Event KPIs</h3>
+<table>
+<thead>
+<tr>
+<th>KPI</th>
+<th>Formula</th>
+<th>Business Question</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Transaction Volume</strong></td>
+<td><code>count()</code> of order events</td>
+<td>How many orders per hour/day?</td>
+</tr>
+<tr>
+<td><strong>Average Order Value (AOV)</strong></td>
+<td><code>avg(amount)</code> of order events</td>
+<td>How much per order on average?</td>
+</tr>
+<tr>
+<td><strong>Conversion Rate</strong></td>
+<td>Orders / Views * 100</td>
+<td>What % of visitors buy?</td>
+</tr>
+<tr>
+<td><strong>Error Rate</strong></td>
+<td>Failed / Total * 100</td>
+<td>What % of transactions fail?</td>
+</tr>
+<tr>
+<td><strong>Revenue per Hour</strong></td>
+<td><code>sum(amount)</code> per hour</td>
+<td>What is the hourly revenue run rate?</td>
+</tr>
+<tr>
+<td><strong>Time to Complete</strong></td>
+<td>Avg time from start to end event</td>
+<td>How long does a transaction take?</td>
+</tr>
+</tbody>
+</table>
+<p><a id="transaction-volume-kpis"></a></p>
+<h2>2. Transaction Volume KPIs</h2>
+<p>Transaction volume is the most fundamental business KPI — it tells you how active your business is.</p>
+<pre><code class="language-dql">// Transaction volume by event type over the last 24 hours
+fetch bizevents, from:-24h
+| summarize volume = count(), by:{event.type}
+| sort volume desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Hourly transaction volume trend — spot peak and off-peak hours
+fetch bizevents, from:-24h
+| makeTimeseries tx_volume = count(), interval:1h
+</code></pre>
+<pre><code class="language-dql">// Daily transaction volume for the past 7 days by event type
+fetch bizevents, from:-7d
+| fieldsAdd day = bin(timestamp, 24h)
+| summarize daily_volume = count(), by:{day, event.type}
+| sort day asc, daily_volume desc
+</code></pre>
+<p><a id="revenue-kpis"></a></p>
+<h2>3. Revenue KPIs</h2>
+<p>Revenue KPIs require an <code>amount</code> or <code>total</code> field in your business events. These are the metrics executives care about most.</p>
+<blockquote>
+<p><strong>Note:</strong> Replace <code>amount</code> with the actual field name in your business events that carries the monetary value.</p>
+</blockquote>
+<pre><code class="language-dql">// Revenue KPI summary for the last 24 hours
+fetch bizevents, from:-24h
+| filter event.type == &quot;com.myapp.order.completed&quot;
+| filter isNotNull(amount)
+| summarize {total_revenue = sum(toDouble(amount)),
+           avg_order_value = avg(toDouble(amount)),
+           median_order_value = median(toDouble(amount)),
+           max_order_value = max(toDouble(amount)),
+           order_count = count()}
+</code></pre>
+<pre><code class="language-dql">// Revenue timeseries — hourly revenue over the last 24 hours
+fetch bizevents, from:-24h
+| filter event.type == &quot;com.myapp.order.completed&quot;
+| filter isNotNull(amount)
+| makeTimeseries hourly_revenue = sum(toDouble(amount)), interval:1h
+</code></pre>
+<pre><code class="language-dql">// Average order value trend — daily for the past week
+fetch bizevents, from:-7d
+| filter event.type == &quot;com.myapp.order.completed&quot;
+| filter isNotNull(amount)
+| fieldsAdd day = bin(timestamp, 24h)
+| summarize {aov = avg(toDouble(amount)),
+           daily_revenue = sum(toDouble(amount)),
+           orders = count()}, by:{day}
+| sort day asc
+</code></pre>
+<p><a id="error-rate-kpis"></a></p>
+<h2>4. Error Rate KPIs</h2>
+<p>Business process error rates measure the percentage of transactions that fail. This differs from HTTP error rates — a payment can fail (business error) even when the HTTP call succeeds (200 OK).</p>
+<pre><code class="language-dql">// Business error rate by event type
+// Assumes failures are their own event type (com.myapp.payment.failed)
+fetch bizevents, from:-24h
+| filter in(event.type, {&quot;com.myapp.payment.processed&quot;, &quot;com.myapp.payment.failed&quot;})
+| summarize {total = count(),
+           failures = countIf(event.type == &quot;com.myapp.payment.failed&quot;)}
+| fieldsAdd error_rate_pct = round(toDouble(failures) / toDouble(total) * 100, decimals: 2)
+</code></pre>
+<pre><code class="language-dql">// Error rate trend over time — detect spikes
+fetch bizevents, from:-24h
+| filter in(event.type, {&quot;com.myapp.payment.processed&quot;, &quot;com.myapp.payment.failed&quot;})
+| makeTimeseries {total = count(),
+                 failures = countIf(event.type == &quot;com.myapp.payment.failed&quot;)},
+                interval:1h
+</code></pre>
+<pre><code class="language-dql">// Error rate by provider — which channels have the most failures?
+fetch bizevents, from:-24h
+| filter in(event.type, {&quot;com.myapp.payment.processed&quot;, &quot;com.myapp.payment.failed&quot;})
+| summarize {total = count(),
+           failures = countIf(event.type == &quot;com.myapp.payment.failed&quot;)}, by:{event.provider}
+| filter total &gt; 10
+| fieldsAdd error_rate_pct = round(toDouble(failures) / toDouble(total) * 100, decimals: 1)
+| sort error_rate_pct desc
+</code></pre>
+<p><a id="metric-extraction-via-openpipeline"></a></p>
+<h2>5. Metric Extraction via OpenPipeline</h2>
+<p>While DQL queries compute KPIs on demand, <strong>OpenPipeline metric extraction</strong> creates persistent Dynatrace metrics from business events. This enables:</p>
+<ul>
+<li>Long-term retention (metrics have longer default retention than events)</li>
+<li>Alerting via Dynatrace Intelligence or custom metric events</li>
+<li>Dashboard widgets with instant load times</li>
+<li>SLO definitions based on business metrics</li>
+</ul>
+<h3>OpenPipeline Configuration</h3>
+<p>In <strong>Settings &gt; Process and contextualize &gt; OpenPipeline &gt; Business events</strong>, open the pipeline that processes your business events, go to the <strong>Metric extraction</strong> stage, and add two processors:</p>
+<table>
+<thead>
+<tr>
+<th>Processor</th>
+<th>Matching condition</th>
+<th>Metric key</th>
+<th>Value field</th>
+<th>Dimensions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Counter metric</strong></td>
+<td><code>event.type == &quot;com.myapp.order.completed&quot;</code></td>
+<td><code>bizevents.orders.count</code></td>
+<td>— (increments by 1 per matching record)</td>
+<td><code>event.provider</code>, <code>product_category</code></td>
+</tr>
+<tr>
+<td><strong>Value metric</strong></td>
+<td><code>event.type == &quot;com.myapp.order.completed&quot;</code></td>
+<td><code>bizevents.orders.revenue</code></td>
+<td><code>amount</code></td>
+<td><code>event.provider</code>, <code>product_category</code></td>
+</tr>
+</tbody>
+</table>
+<p>OpenPipeline matchers accept <strong>double-quoted</strong> strings only — <code>event.type == 'com.myapp.order.completed'</code> is rejected.</p>
+<blockquote>
+<p><strong>Metric key prefix.</strong> The classic-pipeline extraction page requires keys <em>&quot;starting with the bizevents. prefix&quot;</em>; no OpenPipeline page states a prefix rule for business-event metrics. Using <code>bizevents.</code> here is the safe choice — it satisfies the classic rule and keeps business metrics easy to find with <code>metrics | filter startsWith(metric.key, &quot;bizevents.&quot;)</code>.</p>
+</blockquote>
+<h3>Benefits of Metric Extraction</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Latency</th>
+<th>Retention</th>
+<th>Alerting</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DQL on bizevents</td>
+<td>Seconds</td>
+<td>Event retention (default 35 days)</td>
+<td>Manual threshold</td>
+<td>Scans event data</td>
+</tr>
+<tr>
+<td>Extracted metrics</td>
+<td>Sub-second</td>
+<td>Metric retention (15 months included, extendable to 10 years)</td>
+<td>Native Dynatrace Intelligence/SLO</td>
+<td>Pre-aggregated</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Classic-pipeline variant — the bridge to classic dashboards.</strong> Alongside the OpenPipeline path shown here, Dynatrace documents business-event metric extraction via the classic pipeline (Settings &gt; Business Observability &gt; Metric extraction). Rules there emit metrics keyed with the <code>bizevents.</code> prefix (up to 50 dimensions) that are readable in Data Explorer, classic dashboards, and classic metric-event alerting — useful when report consumers still live in the classic (Gen2) experience. It is closing, though — per <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-metric-extraction">Business event metric extraction via classic pipeline (DT docs)</a>: <em>&quot;For new accounts created from September 2026, classic pipeline is not available. Use OpenPipeline to process your data.&quot;</em> and <em>&quot;Processing with the classic pipeline will be deactivated in a future release.&quot;</em> Existing classic rules stop producing metrics once that deactivation reaches your environment, so build new extraction on the OpenPipeline path; either way the output is an ordinary metric. See <strong>BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move</strong> for the full hybrid-adoption pattern.</p>
+</blockquote>
+<pre><code class="language-dql">// If you have extracted business metrics, query them with timeseries
+// Replace with your actual metric key. On a counter metric use sum(): count() returns the
+// number of reported data points, not the number of orders.
+timeseries order_volume = sum(bizevents.orders.count, default: 0), from:-24h
+</code></pre>
+<p><a id="business-health-score"></a></p>
+<h2>6. Business Health Score</h2>
+<p>A composite health score combines multiple KPIs into a single indicator. This simplifies executive reporting and enables at-a-glance health checks.</p>
+<h3>Example Scoring Model</h3>
+<table>
+<thead>
+<tr>
+<th>KPI</th>
+<th>Weight</th>
+<th>Green</th>
+<th>Yellow</th>
+<th>Red</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Transaction volume (vs baseline)</td>
+<td>30%</td>
+<td>&gt; 90% of baseline</td>
+<td>70-90%</td>
+<td>&lt; 70%</td>
+</tr>
+<tr>
+<td>Error rate</td>
+<td>30%</td>
+<td>&lt; 1%</td>
+<td>1-5%</td>
+<td>&gt; 5%</td>
+</tr>
+<tr>
+<td>Average order value (vs baseline)</td>
+<td>20%</td>
+<td>&gt; 95% of baseline</td>
+<td>80-95%</td>
+<td>&lt; 80%</td>
+</tr>
+<tr>
+<td>Conversion rate (vs baseline)</td>
+<td>20%</td>
+<td>&gt; 90% of baseline</td>
+<td>70-90%</td>
+<td>&lt; 70%</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Compute a simple business health dashboard — key metrics at a glance
+fetch bizevents, from:-1h
+| summarize {total_events = count(),
+           distinct_types = countDistinct(event.type),
+           distinct_providers = countDistinct(event.provider)}
+| fieldsAdd time_window = &quot;Last 1 hour&quot;,
+           status = if(total_events &gt; 0, then: &quot;ACTIVE&quot;, else: &quot;NO DATA&quot;)
+</code></pre>
+<pre><code class="language-dql">// Multi-KPI summary — compute all key metrics in one query
+fetch bizevents, from:-24h
+| summarize {total_transactions = count(),
+           order_count = countIf(event.type == &quot;com.myapp.order.completed&quot;),
+           payment_failures = countIf(event.type == &quot;com.myapp.payment.failed&quot;),
+           total_payments = countIf(in(event.type, {&quot;com.myapp.payment.processed&quot;, &quot;com.myapp.payment.failed&quot;}))}
+| fieldsAdd error_rate = if(total_payments &gt; 0,
+               then: round(toDouble(payment_failures) / toDouble(total_payments) * 100, decimals: 2),
+               else: 0.0)
+| fieldsAdd health = if(error_rate &lt; 1.0, then: &quot;HEALTHY&quot;,
+                     else: if(error_rate &lt; 5.0, then: &quot;DEGRADED&quot;, else: &quot;CRITICAL&quot;))
+</code></pre>
+<p><a id="trend-analysis"></a></p>
+<h2>7. Trend Analysis</h2>
+<p>Trends reveal whether KPIs are improving or degrading over time. Use <code>makeTimeseries</code> for visual trends and <code>summarize</code> with <code>bin()</code> for tabular comparisons.</p>
+<pre><code class="language-dql">// Weekly trend — transaction volume per day for the past 4 weeks
+fetch bizevents, from:-28d
+| fieldsAdd day = bin(timestamp, 24h)
+| summarize daily_volume = count(), by:{day}
+| sort day asc
+</code></pre>
+<pre><code class="language-dql">// Week-over-week comparison using day-of-week grouping
+fetch bizevents, from:-14d
+| fieldsAdd week = getWeekOfYear(timestamp, timezone: &quot;America/New_York&quot;),
+           dow = getDayOfWeek(timestamp, timezone: &quot;America/New_York&quot;)
+| summarize volume = count(), by:{week, dow}
+| sort week asc, dow asc
+</code></pre>
+<pre><code class="language-dql">// Timeseries trend of business events by type — 7 days, 6h intervals
+fetch bizevents, from:-7d
+| makeTimeseries event_count = count(), by:{event.type}, interval:6h
+</code></pre>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li><strong>Defining business KPIs</strong> from event data — volume, revenue, error rates, conversion</li>
+<li><strong>Transaction volume analysis</strong> — Counting, trending, and comparing event volumes</li>
+<li><strong>Revenue metrics</strong> — AOV, hourly revenue, daily revenue trends</li>
+<li><strong>Error rate calculation</strong> — Business-level failure rates distinct from HTTP errors</li>
+<li><strong>Metric extraction</strong> — Using OpenPipeline to create persistent metrics from events</li>
+<li><strong>Health scoring</strong> — Combining multiple KPIs into composite health indicators</li>
+<li><strong>Trend analysis</strong> — Week-over-week and day-over-day comparisons</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>BIZEV-06: Executive Reporting</strong> — Package these KPIs into executive-ready reports</li>
+<li>Consider setting up OpenPipeline metric extraction for your most important KPIs</li>
+</ul>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/business-observability">Dynatrace Business Analytics</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/extraction/metric-extraction">Metric extraction stage in OpenPipeline (DT docs)</a> — <em>&quot;The Counter metric processor increments a counter by 1 for each matching record.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline">DQL matcher in OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq">Metrics FAQ (DT docs)</a> — <em>&quot;Grail metrics come with 15 months of included retention at 1-minute granularity by default. This retention can be increased to up to 10 years.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/structuring-commands">DQL structuring commands (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

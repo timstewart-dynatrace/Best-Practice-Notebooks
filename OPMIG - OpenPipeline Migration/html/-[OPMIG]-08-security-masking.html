@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPMIG-08: Security, Masking &amp; Compliance</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPMIG — OpenPipeline Migration</a><span class="sep">/</span><span aria-current="page">OPMIG-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPMIG-08: Security, Masking &amp; Compliance</h1>
+<blockquote>
+<p><strong>Series:</strong> OPMIG — OpenPipeline Migration | <strong>Notebook:</strong> 8 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/30/2026</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#understanding-masking">Understanding Masking</a></li>
+<li><a href="#built-in-masking-patterns">Built-in Masking Patterns</a></li>
+<li><a href="#custom-masking-with-replacepattern">Custom Masking with replacePattern</a></li>
+<li><a href="#compliance-patterns">Compliance Patterns</a></li>
+<li><a href="#field-removal-for-security">Field Removal for Security</a></li>
+<li><a href="#validating-masking">Validating Masking</a></li>
+<li><a href="#testing-masking-in-dpl-architect">Testing Masking in DPL Architect</a></li>
+<li><a href="#best-practices">Best Practices</a></li>
+<li><a href="#complete-security-pipeline-example">Complete Security Pipeline Example</a></li>
+</ol>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By completing this notebook, you will:</p>
+<ol>
+<li>Configure masking processors for PII protection</li>
+<li>Use built-in and custom masking patterns</li>
+<li>⭐ <strong>NEW:</strong> Implement GDPR compliance checklist</li>
+<li>⭐ <strong>NEW:</strong> Implement HIPAA compliance checklist</li>
+<li>⭐ <strong>NEW:</strong> Implement PCI-DSS compliance checklist</li>
+<li>⭐ <strong>NEW:</strong> Implement SOC 2 compliance checklist</li>
+<li>Validate masking effectiveness</li>
+<li>Design complete security pipelines</li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail and OpenPipeline access — Managed is not covered by this series</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>settings:read</code> and <code>settings:write</code> (OpenPipeline configuration)</td>
+</tr>
+<tr>
+<td><strong>API Access</strong></td>
+<td><code>logs.read</code> token scope</td>
+</tr>
+<tr>
+<td><strong>DPL Architect</strong></td>
+<td>Access to <code>https://{env}.apps.dynatrace.com/ui/apps/dynatrace.dpl.architect</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OPMIG-01 through OPMIG-07; understanding of compliance requirements (PCI, HIPAA, GDPR)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Security Stage Overview</h2>
+<p>Place masking processors <strong>first within the Processing stage</strong>, before any processor that copies or parses the sensitive field. Masking is not automatic: a processor listed ahead of the masking processor sees the raw value.</p>
+<p><strong>Routing runs before any pipeline processor</strong>, so routing matchers always see the raw value — keep PII out of routing conditions, or mask at capture (OneAgent-side masking) when the value must never reach Dynatrace.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idW5zYWZlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzYWZlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjJjNTVlO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNmEzNGE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJtYXNraW5nR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJtb1NoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0ibW9BcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjMyMCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGxhY2UgbWFza2luZyBmaXJzdCBpbiB0aGUgUHJvY2Vzc2luZyBzdGFnZTwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlByb2Nlc3NvcnMgcnVuIGluIHRoZSBvcmRlciB5b3UgbGlzdCB0aGVtOyBlYWNoIG91dHB1dCBiZWNvbWVzIHRoZSBuZXh0IGlucHV0PC90ZXh0PgoKICA8IS0tIElucHV0IC0tPgogIDxyZWN0IHg9IjMwIiB5PSI3NSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxMDAiIHJ4PSI4IiBmaWxsPSIjZmVjYWNhIiBzdHJva2U9IiNlZjQ0NDQiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI21vU2hhZG93KSIvPgogIDx0ZXh0IHg9IjExMCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZGMyNjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JbmNvbWluZyBMb2c8L3RleHQ+CiAgPHRleHQgeD0iMTEwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ZjFkMWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmNhcmQ6IDQxMTEtMTExMS0xMTExLTExMTE8L3RleHQ+CiAgPHRleHQgeD0iMTEwIiB5PSIxMzUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ZjFkMWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmVtYWlsOiB1c2VyQGV4YW1wbGUuY29tPC90ZXh0PgogIDx0ZXh0IHg9IjExMCIgeT0iMTUwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjN2YxZDFkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zc246IDEyMy00NS02Nzg5PC90ZXh0PgogIDx0ZXh0IHg9IjExMCIgeT0iMTY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNkYzI2MjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKaoO+4jyBDb250YWlucyBQSUk8L3RleHQ+CgogIDxwYXRoIGQ9Ik0xOTAsMTI1IEwyMzAsMTI1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNtb0Fycm93KSIvPgoKICA8IS0tIFN0ZXAgMTogTWFza2luZyAtLT4KICA8cmVjdCB4PSIyNDAiIHk9IjcwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjExMCIgcng9IjgiIGZpbGw9InVybCgjbWFza2luZ0dyYWQpIiBmaWx0ZXI9InVybCgjbW9TaGFkb3cpIi8+CiAgPHRleHQgeD0iMzE1IiB5PSI5NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjEuIE1BU0tJTkc8L3RleHQ+CiAgPHRleHQgeD0iMzE1IiB5PSIxMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DcmVkaXQgQ2FyZHM8L3RleHQ+CiAgPHRleHQgeD0iMzE1IiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FbWFpbHM8L3RleHQ+CiAgPHRleHQgeD0iMzE1IiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TU048L3RleHQ+CiAgPHRleHQgeD0iMzE1IiB5PSIxNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjgpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Zb3UgbXVzdCBvcmRlciBpdCBmaXJzdDwvdGV4dD4KCiAgPHBhdGggZD0iTTM5MCwxMjUgTDQyMCwxMjUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI21vQXJyb3cpIi8+CgogIDwhLS0gTWFza2VkIExvZyAtLT4KICA8cmVjdCB4PSI0MzAiIHk9Ijc1IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjEwMCIgcng9IjgiIGZpbGw9IiNkMWZhZTUiIHN0cm9rZT0iIzIyYzU1ZSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjbW9TaGFkb3cpIi8+CiAgPHRleHQgeD0iNTEwIiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1hc2tlZCBMb2c8L3RleHQ+CiAgPHRleHQgeD0iNTEwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPmNhcmQ6IFtDQ19SRURBQ1RFRF08L3RleHQ+CiAgPHRleHQgeD0iNTEwIiB5PSIxMzUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPmVtYWlsOiBbRU1BSUxfUkVEQUNURURdPC90ZXh0PgogIDx0ZXh0IHg9IjUxMCIgeT0iMTUwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zc246IFtTU05fUkVEQUNURURdPC90ZXh0PgogIDx0ZXh0IHg9IjUxMCIgeT0iMTY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKchSBQSUkgUHJvdGVjdGVkPC90ZXh0PgoKICA8cGF0aCBkPSJNNTkwLDEyNSBMNjIwLDEyNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjbW9BcnJvdykiLz4KCiAgPCEtLSBSZW1haW5pbmcgU3RhZ2VzIC0tPgogIDxyZWN0IHg9IjYzMCIgeT0iNzAiIHdpZHRoPSIxNDAiIGhlaWdodD0iMTEwIiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI3MDAiIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4yLTYuIFJlbWFpbmluZzwvdGV4dD4KICA8dGV4dCB4PSI3MDAiIHk9IjExNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ecm9wIChzYWZlKTwvdGV4dD4KICA8dGV4dCB4PSI3MDAiIHk9IjEzMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm9jZXNzIChzYWZlKTwvdGV4dD4KICA8dGV4dCB4PSI3MDAiIHk9IjE0NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FeHRyYWN0IChzYWZlKTwvdGV4dD4KICA8dGV4dCB4PSI3MDAiIHk9IjE2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TdG9yZSAoc2FmZSk8L3RleHQ+CgogIDwhLS0gQ29tcGxpYW5jZSBTZWN0aW9uIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIyMDAiIHdpZHRoPSI3NDAiIGhlaWdodD0iMTA1IiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjIyNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q29tcGxpYW5jZSBCZW5lZml0czwvdGV4dD4KCiAgPHJlY3QgeD0iNTAiIHk9IjI0MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9IiNmZWNhY2EiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2RjMjYyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UENJLURTUzwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjI3OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjN2YxZDFkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DYXJkIG51bWJlcnMgbmV2ZXIgc3RvcmVkPC90ZXh0PgoKICA8cmVjdCB4PSIyMzAiIHk9IjI0MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9IiNmZWYzYzciLz4KICA8dGV4dCB4PSIzMTAiIHk9IjI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R0RQUjwvdGV4dD4KICA8dGV4dCB4PSIzMTAiIHk9IjI3OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNzgzNTBmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FbWFpbC9JUCBhZGRyZXNzZXMgbWFza2VkPC90ZXh0PgoKICA8cmVjdCB4PSI0MTAiIHk9IjI0MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9IiNkYmVhZmUiLz4KICA8dGV4dCB4PSI0OTAiIHk9IjI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlNDBhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SElQQUE8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIyNzgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzFlM2E1ZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UEhJIG5ldmVyIGV4cG9zZWQ8L3RleHQ+CgogIDxyZWN0IHg9IjU5MCIgeT0iMjQwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0iI2QxZmFlNSIvPgogIDx0ZXh0IHg9IjY3MCIgeT0iMjYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TT0MgMjwvdGV4dD4KICA8dGV4dCB4PSI2NzAiIHk9IjI3OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDY0ZTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TZWNyZXRzIHByb3RlY3RlZDwvdGV4dD4KPC9zdmc+Cg==" alt="Place masking first in the Processing stage" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Contents | PII Status |
+|-------|----------|------------|
+| Incoming | card: 4111-..., email: user@... | ⚠️ Contains PII |
+| After Masking | card: [CC_REDACTED], email: [EMAIL_REDACTED] | ✅ PII Protected |
+| Remaining Stages | Drop, Process, Extract, Store | ✅ Safe (no PII) |
+-->
+<h3>Why Masking First?</h3>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Before parsing</strong></td>
+<td>Sensitive data never extracted to fields</td>
+</tr>
+<tr>
+<td><strong>Not before routing</strong></td>
+<td>Routing precedes every pipeline processor — keep PII out of routing conditions</td>
+</tr>
+<tr>
+<td><strong>Before storage</strong></td>
+<td>Compliance-safe from the start</td>
+</tr>
+<tr>
+<td><strong>Before extraction</strong></td>
+<td>Metrics/events don't contain PII</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/data-flow">Data flow (DT docs)</a> — <em>&quot;After data is ingested (and optionally pre-processed), it's routed to pipelines.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — <em>&quot;The processor order in the stage; each processor output becomes the input for the next one.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="understanding-masking"></a></p>
+<h2>Understanding Masking</h2>
+<h3>What Masking Does</h3>
+<p>Masking replaces sensitive patterns with redacted values:</p>
+<p><strong>Before:</strong></p>
+<pre><code>User email: john.doe@example.com, card: 4111-1111-1111-1111
+</code></pre>
+<p><strong>After:</strong></p>
+<pre><code>User email: [EMAIL_REDACTED], card: [CC_REDACTED]
+</code></pre>
+<h3>Masking with a DQL processor</h3>
+<p>Masking is done with a <strong>DQL</strong> processor (<code>replacePattern</code>, or <code>fieldsRemove</code> for whole fields); there is no dedicated masking processor type. A masking processor is configured as:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Processor type</strong></td>
+<td>DQL</td>
+</tr>
+<tr>
+<td><strong>Name</strong></td>
+<td>Descriptive name for the mask</td>
+</tr>
+<tr>
+<td><strong>Matching condition</strong></td>
+<td>When to apply masking (<code>true</code> for all records)</td>
+</tr>
+<tr>
+<td><strong>Definition</strong></td>
+<td>One <code>fieldsAdd &lt;field&gt; = replacePattern(&lt;field&gt;, &quot;&lt;DPL pattern&gt;&quot;, replacement: &quot;&lt;text&gt;&quot;)</code> per field to mask, joined with <code>|</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — <em>&quot;The following table lists alphabetically all available processors in a pipeline.&quot;</em> <strong>Derived:</strong> none of the processors in that table is a masking type; DQL is the one that runs <code>replacePattern</code>.</sub></p>
+</blockquote>
+<h3>Masking vs. Dropping</h3>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Use When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mask</strong></td>
+<td>Need the record, just hide sensitive parts</td>
+</tr>
+<tr>
+<td><strong>Drop</strong></td>
+<td>Entire record is not needed</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="built-in-masking-patterns"></a></p>
+<h2>Built-in Masking Patterns</h2>
+<p>OpenPipeline includes pre-built matchers for common sensitive data.</p>
+<h3>Credit Card Numbers</h3>
+<p><strong>DPL Pattern:</strong></p>
+<pre><code>!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]
+</code></pre>
+<p><strong>Matches:</strong></p>
+<ul>
+<li><code>4111111111111111</code></li>
+<li><code>4111-1111-1111-1111</code></li>
+<li><code>4111 1111 1111 1111</code></li>
+</ul>
+<p><strong>Masking Processor (DQL):</strong></p>
+<pre><code class="language-dql">// Name: Mask Credit Cards · Matching condition: true
+fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;[CC_REDACTED]&quot;)
+| fieldsAdd message = replacePattern(message, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;[CC_REDACTED]&quot;)
+</code></pre>
+<blockquote>
+<p><strong>Bound <code>CREDITCARD</code>.</strong> On its own, the matcher finds a Luhn-valid digit run wherever it sits, including inside a UUID: <code>req 9cbcb510-8833-4981-87ab-1234567890ab ok</code> becomes <code>req 9cbcb[CC_REDACTED]ab-1234567890ab ok</code>. On a validation tenant, 1,366 of the 1,541 log records a bare <code>CREDITCARD</code> changed in 15 minutes were IDs, not card numbers (10/12/2026), and an ingest processor would have corrupted every one of them, forward-only. The negative lookbehind <code>!&lt;&lt;</code> and lookahead <code>!&gt;&gt;</code> reject a match that touches a letter, digit or hyphen. The UUID is then left intact, and the three formats above, plus <code>x=4111111111111111,y</code>, are still masked (verified 10/12/2026).</p>
+</blockquote>
+<h3>Email Addresses</h3>
+<blockquote>
+<p><strong>There is no built-in <code>EMAIL</code> matcher in DPL.</strong> A pattern of <code>EMAIL</code> is rejected with
+<code>Named pattern element 'EMAIL' is not valid</code>, so a masking processor built on it never
+redacts anything. Use the hand-rolled character-class pattern below.</p>
+</blockquote>
+<p><strong>DPL Pattern:</strong></p>
+<pre><code>[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+
+</code></pre>
+<p><strong>Matches:</strong></p>
+<ul>
+<li><code>user@example.com</code></li>
+<li><code>first.last@company.org</code></li>
+<li><code>a-b_c%d+e@sub.domain.co.uk</code></li>
+</ul>
+<p><strong>Masking Processor (DQL):</strong></p>
+<pre><code class="language-dql">// Name: Mask Emails · Matching condition: true
+fieldsAdd content = replacePattern(content, &quot;[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+&quot;, replacement: &quot;[EMAIL_REDACTED]&quot;)
+| fieldsAdd message = replacePattern(message, &quot;[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+&quot;, replacement: &quot;[EMAIL_REDACTED]&quot;)
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> the domain class includes <code>.</code>, so a sentence-final period is absorbed into the
+match (<code>mail x@y.io.</code> → <code>mail [EMAIL_REDACTED]</code>). That over-masks by one character rather
+than under-masking — the safe direction for PII.</p>
+</blockquote>
+<h3>IP Addresses</h3>
+<p><strong>DPL Pattern:</strong></p>
+<pre><code>IPADDR
+IPV4ADDR
+IPV6ADDR
+</code></pre>
+<p><strong>Masking Processor (DQL):</strong></p>
+<pre><code class="language-dql">// Name: Mask IP Addresses · Matching condition: true
+fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z:.-] IPADDR !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;[IP_REDACTED]&quot;)
+| fieldsAdd client_ip = replacePattern(client_ip, &quot;IPADDR&quot;, replacement: &quot;[IP_REDACTED]&quot;)
+| fieldsAdd remote_addr = replacePattern(remote_addr, &quot;IPADDR&quot;, replacement: &quot;[IP_REDACTED]&quot;)
+</code></pre>
+<h3>Phone Numbers (Custom Pattern)</h3>
+<p><strong>DPL Pattern:</strong></p>
+<pre><code>'(' [0-9]{3} ')' SPACE? [0-9]{3} '-' [0-9]{4}
+</code></pre>
+<blockquote>
+<p><strong><code>INT</code> does not accept a <code>{n}</code> quantifier</strong> — it supports only <code>*</code> and <code>+</code>, and
+<code>INT{3}</code> fails with <code>INT only supports '*' (nullable) and '+' (not nullable) quantifiers</code>.
+Use a <code>[0-9]{n}</code> character class for fixed-width digit runs.</p>
+</blockquote>
+<p><strong>Matches:</strong></p>
+<ul>
+<li><code>(555) 123-4567</code></li>
+<li><code>(555)123-4567</code></li>
+</ul>
+<hr />
+<p><a id="custom-masking-with-replacepattern"></a></p>
+<h2>Custom Masking with replacePattern</h2>
+<p>The <code>replacePattern</code> function enables custom masking using DPL patterns.</p>
+<h3>Syntax</h3>
+<pre><code class="language-dql">fieldsAdd content = replacePattern(content, &quot;PATTERN&quot;, replacement: &quot;REPLACEMENT&quot;)
+</code></pre>
+<h3>Example: Mask SSN</h3>
+<p><strong>Pattern:</strong> SSN format <code>123-45-6789</code></p>
+<pre><code class="language-dql">fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' [0-9]{4} !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;[SSN_REDACTED]&quot;)
+</code></pre>
+<h3>Example: Mask API Keys</h3>
+<p><strong>Pattern:</strong> Keys starting with <code>key_</code>, masked through to the next whitespace</p>
+<pre><code class="language-dql">fieldsAdd content = replacePattern(content, &quot;'key_' NSPACE&quot;, replacement: &quot;[API_KEY_REDACTED]&quot;)
+</code></pre>
+<blockquote>
+<p><strong>Why not <code>'key_' WORD</code>?</strong> <code>WORD</code> matches a greedy run of alphanumerics and underscores,
+but stops at <code>-</code>. Against <code>key_XY-99</code> it yields <code>[API_KEY_REDACTED]-99</code>, leaving part of
+the secret in the log. <code>NSPACE</code> consumes to the next whitespace and masks the whole token.</p>
+</blockquote>
+<h3>Example: Mask Bearer Tokens</h3>
+<p><strong>Pattern:</strong> Bearer tokens in Authorization headers</p>
+<pre><code class="language-dql">fieldsAdd content = replacePattern(content, &quot;'Bearer ' NSPACE&quot;, replacement: &quot;Bearer [TOKEN_REDACTED]&quot;)
+</code></pre>
+<h3>Example: Mask Passwords in URLs</h3>
+<p><strong>Pattern:</strong> Password parameter in query strings</p>
+<pre><code class="language-dql">fieldsAdd content = replacePattern(content, &quot;'password=' [^&amp;\\s]+&quot;, replacement: &quot;password=[REDACTED]&quot;)
+</code></pre>
+<blockquote>
+<p><strong>Why not <code>'password=' LD:pwd ('&amp;'|EOL)</code>?</strong> It only masks when another parameter follows. On <code>…?user=bob&amp;password=hunter2</code>, with the password last, it matched nothing and the password was <strong>stored in clear</strong> (verified 10/02/2026). The DPL character class <code>[^&amp;\s]+</code> (written <code>\\s</code> inside the DQL string) stops at the next <code>&amp;</code> or whitespace and masks both cases.</p>
+</blockquote>
+<h3>Chaining Multiple Masks</h3>
+<pre><code class="language-dql">// Apply multiple masks in sequence
+fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;[CC_REDACTED]&quot;)
+| fieldsAdd content = replacePattern(content, &quot;[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+&quot;, replacement: &quot;[EMAIL_REDACTED]&quot;)
+| fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z:.-] IPADDR !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;[IP_REDACTED]&quot;)
+</code></pre>
+<hr />
+<p><a id="compliance-patterns"></a></p>
+<h2>Compliance Patterns</h2>
+<blockquote>
+<p><strong>End a key=value mask with <code>NSPACE</code>, not <code>LD</code>.</strong> A trailing <code>LD</code> runs to the end of the line, so <code>'userId=' LD:uid</code> turns <code>userId=u-77 action=view status=OK</code> into <code>userId=[USER_REDACTED]</code> — everything after the key is destroyed, including fields you parse later. <code>NSPACE</code> stops at the next space (verified 10/02/2026). If a value can contain spaces, close the pattern with its delimiter instead.</p>
+</blockquote>
+<h3>PCI-DSS Compliance</h3>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>Mask all Primary Account Numbers (PANs)</li>
+<li>Mask CVV/CVC codes</li>
+<li>Mask cardholder names when combined with PANs</li>
+</ul>
+<p><strong>Pipeline Configuration:</strong></p>
+<pre><code class="language-dql">// Mask credit card numbers
+fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;[PAN_REDACTED]&quot;)
+// Mask CVV (3-4 digits after 'cvv=' or 'cvc=')
+| fieldsAdd content = replacePattern(content, &quot;('cvv='|'cvc='|'CVV='|'CVC=') [0-9]{3,4}&quot;, replacement: &quot;cvv=[REDACTED]&quot;)
+</code></pre>
+<h3>GDPR Compliance</h3>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>Mask personal identifiers (emails, phone numbers)</li>
+<li>Mask IP addresses (considered PII in EU)</li>
+<li>Mask names when identifiable</li>
+</ul>
+<p><strong>Pipeline Configuration:</strong></p>
+<pre><code class="language-dql">// Mask emails
+fieldsAdd content = replacePattern(content, &quot;[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+&quot;, replacement: &quot;[PII_REDACTED]&quot;)
+// Mask IP addresses
+| fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z:.-] IPADDR !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;[IP_REDACTED]&quot;)
+// Mask user IDs
+| fieldsAdd content = replacePattern(content, &quot;'userId=' NSPACE&quot;, replacement: &quot;userId=[USER_REDACTED]&quot;)
+</code></pre>
+<h3>HIPAA Compliance</h3>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>Mask Protected Health Information (PHI)</li>
+<li>Mask patient identifiers</li>
+<li>Mask medical record numbers</li>
+</ul>
+<p><strong>Pipeline Configuration:</strong></p>
+<pre><code class="language-dql">// Mask patient IDs
+fieldsAdd content = replacePattern(content, &quot;'patientId=' NSPACE&quot;, replacement: &quot;patientId=[PHI_REDACTED]&quot;)
+// Mask MRNs
+| fieldsAdd content = replacePattern(content, &quot;'mrn=' NSPACE&quot;, replacement: &quot;mrn=[PHI_REDACTED]&quot;)
+// Mask SSNs
+| fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' [0-9]{4} !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;[SSN_REDACTED]&quot;)
+</code></pre>
+<h3>SOC 2 Compliance</h3>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>Mask credentials and secrets</li>
+<li>Mask authentication tokens</li>
+<li>Audit access to sensitive data</li>
+</ul>
+<p><strong>Pipeline Configuration:</strong></p>
+<pre><code class="language-dql">// Mask passwords. DPL literals are case-sensitive, so list each casing; &lt;&lt;(…) keeps the key name
+fieldsAdd content = replacePattern(content, &quot;&lt;&lt;(('password' | 'PASSWORD' | 'Password' | 'passwd' | 'pwd') '=') NSPACE&quot;, replacement: &quot;[REDACTED]&quot;)
+// Mask API keys and tokens (token= also covers access_token=)
+| fieldsAdd content = replacePattern(content, &quot;&lt;&lt;(('api_key' | 'API_KEY' | 'apiKey' | 'apikey' | 'APIKEY' | 'token' | 'TOKEN') '=') NSPACE&quot;, replacement: &quot;[REDACTED]&quot;)
+// Mask JSON-quoted secrets: &quot;password&quot;:&quot;…&quot;, &quot;api_key&quot;: &quot;…&quot;
+| fieldsAdd content = replacePattern(content, &quot;&lt;&lt;('\&quot;' ('password' | 'passwd' | 'api_key' | 'apiKey' | 'apikey' | 'token' | 'secret') '\&quot;' ' '* ':' ' '* '\&quot;') [^\&quot;]+&quot;, replacement: &quot;[REDACTED]&quot;)
+// Mask tokens
+| fieldsAdd content = replacePattern(content, &quot;'Bearer ' NSPACE&quot;, replacement: &quot;Bearer [REDACTED]&quot;)
+</code></pre>
+<blockquote>
+<p><strong>There is no case-insensitive literal in DPL.</strong> The SOC 2 key list used to cover <code>api_key=</code>, <code>apiKey=</code> and <code>API_KEY=</code> only, so <code>apikey=</code>, <code>token=</code>, <code>PASSWORD=</code> and JSON-quoted keys such as <code>{&quot;password&quot;:&quot;hunter2&quot;}</code> were stored in clear. The statements above mask all of them and keep each key name; <code>monkey=banana</code> is left alone (verified 10/12/2026 with <code>data record(...)</code>). List every casing your applications emit, and keep a separate statement for JSON-quoted keys. A sequence inside an alternation needs its own parentheses: <code>&lt;&lt;(('token' | 'TOKEN') '=')</code>, not <code>&lt;&lt;('token' '=' | …)</code>.</p>
+</blockquote>
+<hr />
+<p><a id="field-removal-for-security"></a></p>
+<h2>Field Removal for Security</h2>
+<p>Sometimes it's better to remove entire fields rather than mask values.</p>
+<h3>Using fieldsRemove</h3>
+<pre><code class="language-dql">// Remove sensitive fields entirely
+fieldsRemove password, secret, api_key, token, authorization
+</code></pre>
+<h3>When to Remove vs. Mask</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Field always contains sensitive data</td>
+<td>Remove</td>
+</tr>
+<tr>
+<td>Only some values are sensitive</td>
+<td>Mask</td>
+</tr>
+<tr>
+<td>Need to know field existed</td>
+<td>Mask with placeholder</td>
+</tr>
+<tr>
+<td>Compliance requires no trace</td>
+<td>Remove</td>
+</tr>
+</tbody>
+</table>
+<h3>Conditional Field Removal</h3>
+<p>Apply removal only when field contains sensitive patterns:</p>
+<pre><code class="language-dql">// Remove field only if it contains a pattern
+fieldsAdd authorization = if(contains(authorization, &quot;Bearer&quot;), null, else: authorization)
+</code></pre>
+<hr />
+<p><a id="validating-masking"></a></p>
+<h2>Validating Masking</h2>
+<p>After configuring masking, verify it's working correctly.</p>
+<blockquote>
+<p>⚠️ <strong>Important:</strong> Test with sample data before deploying to production.</p>
+</blockquote>
+<pre><code class="language-dql">// Check for any remaining card numbers in stored logs — if masking works, this returns 0 rows.
+// replacePattern() finds a CREDITCARD match anywhere; matchesPhrase(content, &quot;4111&quot;) would not,
+// because an unbroken 16-digit number is a single token that &quot;4111&quot; never equals.
+// The !&lt;&lt; / !&gt;&gt; bounds keep digit runs inside UUIDs from counting as cards.
+fetch logs, from: now() - 24h
+| filter replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;&quot;) != content
+| fields timestamp, log.source, dt.openpipeline.pipelines
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Check for any remaining email addresses — if masking works, this returns 0 rows.
+// Uses the same DPL pattern as the masking processor, so it finds any address, not a fixed domain list.
+fetch logs, from: now() - 24h
+| filter replacePattern(content, &quot;[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+&quot;, replacement: &quot;&quot;) != content
+| fields timestamp, log.source, dt.openpipeline.pipelines
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Verify redaction placeholders are present
+// This confirms masking is actively working
+fetch logs, from: now() - 24h
+| filter contains(content, &quot;[REDACTED]&quot;)
+   OR contains(content, &quot;[CC_REDACTED]&quot;)
+   OR contains(content, &quot;[EMAIL_REDACTED]&quot;)
+   OR contains(content, &quot;[PII_REDACTED]&quot;)
+| summarize {masked_count = count()}, by: {dt.openpipeline.pipelines}
+| sort masked_count desc
+</code></pre>
+<pre><code class="language-dql">// Sample masked logs to verify format
+fetch logs, from: now() - 24h
+| filter contains(content, &quot;REDACTED&quot;)
+| fields timestamp, content
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Audit: Count masked records by pipeline and type
+fetch logs, from: now() - 24h
+| fieldsAdd has_cc_mask = contains(content, &quot;[CC_REDACTED]&quot;),
+           has_email_mask = contains(content, &quot;[EMAIL_REDACTED]&quot;),
+           has_ip_mask = contains(content, &quot;[IP_REDACTED]&quot;),
+           has_pii_mask = contains(content, &quot;[PII_REDACTED]&quot;)
+| summarize {
+    total = count(),
+    cc_masked = countIf(has_cc_mask),
+    email_masked = countIf(has_email_mask),
+    ip_masked = countIf(has_ip_mask),
+    pii_masked = countIf(has_pii_mask)
+  }, by: {dt.openpipeline.pipelines}
+</code></pre>
+<pre><code class="language-dql">// Check for SSN-shaped values (###-##-####) that masking missed — should return 0 rows
+fetch logs, from: now() - 24h
+| filter replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' [0-9]{4} !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;&quot;) != content
+| fields timestamp, log.source, dt.openpipeline.pipelines
+| limit 50
+</code></pre>
+<hr />
+<p><a id="testing-masking-in-dpl-architect"></a></p>
+<h2>Testing Masking in DPL Architect</h2>
+<p>Before deploying masking rules, test them:</p>
+<ol>
+<li>Open <strong>DPL Architect</strong> in Dynatrace</li>
+<li>Paste sample log with sensitive data</li>
+<li>Test your DPL pattern matches correctly</li>
+<li>Verify replacement produces expected output</li>
+</ol>
+<h3>Test Cases to Include</h3>
+<table>
+<thead>
+<tr>
+<th>Test Case</th>
+<th>Input</th>
+<th>Expected Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Credit card</td>
+<td><code>4111-1111-1111-1111</code></td>
+<td><code>[CC_REDACTED]</code></td>
+</tr>
+<tr>
+<td>Credit card no dashes</td>
+<td><code>4111111111111111</code></td>
+<td><code>[CC_REDACTED]</code></td>
+</tr>
+<tr>
+<td>Email</td>
+<td><code>user@example.com</code></td>
+<td><code>[EMAIL_REDACTED]</code></td>
+</tr>
+<tr>
+<td>IPv4</td>
+<td><code>192.168.1.1</code></td>
+<td><code>[IP_REDACTED]</code></td>
+</tr>
+<tr>
+<td>IPv6</td>
+<td><code>2001:db8::1</code></td>
+<td><code>[IP_REDACTED]</code></td>
+</tr>
+<tr>
+<td>Mixed content</td>
+<td>Multiple patterns</td>
+<td>All redacted</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="best-practices"></a></p>
+<h2>Best Practices</h2>
+<h3>Masking Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Keep PII out of routing conditions</td>
+<td>Routing runs before any pipeline processor, so routing matchers see the raw value</td>
+</tr>
+<tr>
+<td>Use descriptive placeholders</td>
+<td>Aids troubleshooting</td>
+</tr>
+<tr>
+<td>Test patterns thoroughly</td>
+<td>Avoid over/under masking</td>
+</tr>
+<tr>
+<td>Document masking rules</td>
+<td>Compliance audits</td>
+</tr>
+</tbody>
+</table>
+<h3>Pattern Design</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Be specific</td>
+<td>Avoid false positives</td>
+</tr>
+<tr>
+<td>Handle variations</td>
+<td>Same data, different formats</td>
+</tr>
+<tr>
+<td>Use built-in matchers</td>
+<td>Pre-tested, reliable</td>
+</tr>
+<tr>
+<td>Chain patterns</td>
+<td>Cover all sensitive data</td>
+</tr>
+</tbody>
+</table>
+<h3>Compliance</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Document all masking</td>
+<td>Audit trail</td>
+</tr>
+<tr>
+<td>Regular pattern review</td>
+<td>New data sources</td>
+</tr>
+<tr>
+<td>Test with real samples</td>
+<td>Ensure effectiveness</td>
+</tr>
+<tr>
+<td>Monitor for leaks</td>
+<td>Continuous validation</td>
+</tr>
+</tbody>
+</table>
+<h3>Performance</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Apply to specific fields</td>
+<td>Faster than all fields</td>
+</tr>
+<tr>
+<td>Use matching conditions</td>
+<td>Skip unneeded records</td>
+</tr>
+<tr>
+<td>Order patterns by frequency</td>
+<td>Most common first</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="complete-security-pipeline-example"></a></p>
+<h2>Complete Security Pipeline Example</h2>
+<h3>Pipeline: <code>payment-logs-secure</code></h3>
+<p><strong>Masking Processor 1: Credit Cards</strong> (DQL processor, matching condition <code>true</code>)</p>
+<pre><code class="language-dql">fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;[CC_REDACTED]&quot;)
+| fieldsAdd card_number = replacePattern(card_number, &quot;CREDITCARD&quot;, replacement: &quot;[CC_REDACTED]&quot;)
+</code></pre>
+<p><strong>Masking Processor 2: CVV Codes</strong></p>
+<pre><code class="language-dql">fieldsAdd content = replacePattern(content, &quot;('cvv='|'cvc='|'CVV='|'CVC=') [0-9]{3,4}&quot;, replacement: &quot;cvv=[REDACTED]&quot;)
+</code></pre>
+<p><strong>Masking Processor 3: Emails</strong> (DQL processor, matching condition <code>true</code>)</p>
+<pre><code class="language-dql">fieldsAdd content = replacePattern(content, &quot;[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+&quot;, replacement: &quot;[EMAIL_REDACTED]&quot;)
+| fieldsAdd customer_email = replacePattern(customer_email, &quot;[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+&quot;, replacement: &quot;[EMAIL_REDACTED]&quot;)
+</code></pre>
+<p><strong>Masking Processor 4: IP Addresses</strong> (DQL processor, matching condition <code>true</code>)</p>
+<pre><code class="language-dql">fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z:.-] IPADDR !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;[IP_REDACTED]&quot;)
+| fieldsAdd client_ip = replacePattern(client_ip, &quot;IPADDR&quot;, replacement: &quot;[IP_REDACTED]&quot;)
+| fieldsAdd remote_addr = replacePattern(remote_addr, &quot;IPADDR&quot;, replacement: &quot;[IP_REDACTED]&quot;)
+</code></pre>
+<p><strong>Masking Processor 5: Auth Tokens</strong></p>
+<pre><code class="language-dql">fieldsAdd content = replacePattern(content, &quot;'Bearer ' NSPACE&quot;, replacement: &quot;Bearer [TOKEN_REDACTED]&quot;)
+| fieldsRemove authorization, auth_token
+</code></pre>
+<h3>Pipeline Verification Query</h3>
+<pre><code class="language-dql">// Verify complete masking for payment-logs pipeline
+fetch logs, from: now() - 1h
+// dt.openpipeline.pipelines is an array of &quot;&lt;scope&gt;:&lt;pipeline id&gt;&quot; strings, so == never matches
+| filter matchesValue(dt.openpipeline.pipelines, &quot;*payment-logs-secure*&quot;)
+| summarize {
+    total = count(),
+    with_cc = countIf(contains(content, &quot;[CC_REDACTED]&quot;)),
+    with_email = countIf(contains(content, &quot;[EMAIL_REDACTED]&quot;)),
+    with_ip = countIf(contains(content, &quot;[IP_REDACTED]&quot;)),
+    with_token = countIf(contains(content, &quot;[TOKEN_REDACTED]&quot;))
+  }
+</code></pre>
+<hr />
+<h2>Next Steps</h2>
+<p>Now that security is configured, complete your migration:</p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Focus Area</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OPMIG-09</strong></td>
+<td>Troubleshooting &amp; Validation</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases">OpenPipeline Masking</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-pattern-language">DPL replacePattern</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security">Data Privacy in Dynatrace</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy">Compliance Best Practices</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

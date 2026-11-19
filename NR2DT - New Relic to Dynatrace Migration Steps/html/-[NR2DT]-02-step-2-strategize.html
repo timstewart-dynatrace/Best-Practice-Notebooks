@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NR2DT-02: Step 2 — Strategize</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NR2DT — New Relic to Dynatrace Migration Steps</a><span class="sep">/</span><span aria-current="page">NR2DT-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NR2DT-02: Step 2 — Strategize</h1>
+<blockquote>
+<p><strong>Series:</strong> NR2DT — New Relic to Dynatrace Migration Steps | <strong>Notebook:</strong> 2 of 10 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/05/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> turn the discovery output into a wave plan, scope decisions, and gate definitions for the rest of the migration. Stakeholders sign off here.</p>
+<p>Procedural — if you want the <em>why</em> behind wave ordering or trade-offs, the relevant NRLC component notebooks have it.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#outputs">What You'll Produce</a></li>
+<li><a href="#waves">The Standard Wave Plan</a></li>
+<li><a href="#scope">Scope Decisions</a></li>
+<li><a href="#gates">Define the Validation Gates</a></li>
+<li><a href="#signoff">Stakeholder Sign-off</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead + assigned engineer for this step</td>
+</tr>
+<tr>
+<td><strong>Completed</strong></td>
+<td>NR2DT-01 — Discover</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Procedural step — use as a runbook; defer to NRLC for depth</td>
+</tr>
+<tr>
+<td><strong>NRLC deep dives</strong></td>
+<td>Each component NRLC notebook for trade-off depth</td>
+</tr>
+</tbody>
+</table>
+<p><a id="outputs"></a></p>
+<h2>1. What You'll Produce</h2>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Format</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>wave-plan.md</code></td>
+<td>Markdown</td>
+<td>Sequenced delivery plan with owners and timing</td>
+</tr>
+<tr>
+<td><code>scope-decisions.md</code></td>
+<td>Markdown</td>
+<td>What's in / out / deferred / dropped</td>
+</tr>
+<tr>
+<td><code>gate-definitions.md</code></td>
+<td>Markdown</td>
+<td>Pass criteria for each wave's exit</td>
+</tr>
+<tr>
+<td><code>stakeholder-signoff.md</code></td>
+<td>Markdown</td>
+<td>Who approved what, when</td>
+</tr>
+</tbody>
+</table>
+<p><a id="waves"></a></p>
+<h2>2. The Standard Wave Plan</h2>
+<p>Use this as a starting template; adjust for your inventory.</p>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Components</th>
+<th>Risk</th>
+<th>Typical Duration</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0 — Foundations</strong></td>
+<td>Bucket strategy, host groups, IAM groups, OpenPipeline enrichments</td>
+<td>Low</td>
+<td>1–2 weeks</td>
+<td>Platform team</td>
+</tr>
+<tr>
+<td><strong>1 — Dashboards (read-only)</strong></td>
+<td>All migrated dashboards</td>
+<td>Low</td>
+<td>1 week + dual-run</td>
+<td>Each team owns its dashboards</td>
+</tr>
+<tr>
+<td><strong>2 — Synthetics</strong></td>
+<td>HTTP first, then Browser, then API</td>
+<td>Medium</td>
+<td>1–2 weeks</td>
+<td>SRE</td>
+</tr>
+<tr>
+<td><strong>3 — Alerts (HIGH RISK)</strong></td>
+<td>Custom alerts (Davis anomaly detectors, managed in <strong>Settings</strong> from SaaS 1.344) + Workflows; dual-alert window</td>
+<td><strong>High</strong></td>
+<td>2–3 weeks (with dual-alert)</td>
+<td>On-call leads</td>
+</tr>
+<tr>
+<td><strong>4 — SLOs</strong></td>
+<td>All SLOs after the underlying metrics are stable</td>
+<td>Medium</td>
+<td>1 week + 7-day delta</td>
+<td>SRE + service owners</td>
+</tr>
+<tr>
+<td><strong>5 — Logs / Drops / Tags</strong></td>
+<td>OpenPipeline filter and enrichment rules</td>
+<td>Low</td>
+<td>1–2 weeks</td>
+<td>Platform + FinOps</td>
+</tr>
+<tr>
+<td><strong>6 — Decommission NR</strong></td>
+<td>Disable routes, archive dashboards, halt ingest</td>
+<td>Low (after sign-off)</td>
+<td>1 week</td>
+<td>Platform + leadership</td>
+</tr>
+</tbody>
+</table>
+<p>Each wave has an exit gate (W0–W7, defined in §4). Don't run waves in parallel until you have explicit approval — the gates are sequenced for a reason.</p>
+<p>Wave 3 targets custom alerts, not classic metric events: <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em> On a tenant that has not yet reached 1.344, the Anomaly Detection app remains the place to manage them.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection app (DT docs)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5XYXZlIFBsYW4gVGltZWxpbmUgKGlsbHVzdHJhdGl2ZSk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+V2F2ZSAzIChBbGVydHMpIHJlcXVpcmVzIHRoZSBkdWFsLWFsZXJ0IHdpbmRvdyDigJQgdGhlIGxvbmdlc3Qgc2luZ2xlIHBoYXNlPC90ZXh0PgoKICA8IS0tIFRpbWVsaW5lIGF4aXMgLS0+CiAgPGxpbmUgeDE9IjgwIiB5MT0iNDMwIiB4Mj0iODcwIiB5Mj0iNDMwIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxnIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPgogICAgPHRleHQgeD0iODAiIHk9IjQ1NSI+V2sgMDwvdGV4dD4KICAgIDx0ZXh0IHg9IjE4MCIgeT0iNDU1Ij5XayAyPC90ZXh0PgogICAgPHRleHQgeD0iMjgwIiB5PSI0NTUiPldrIDQ8L3RleHQ+CiAgICA8dGV4dCB4PSIzODAiIHk9IjQ1NSI+V2sgNjwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ4MCIgeT0iNDU1Ij5XayA4PC90ZXh0PgogICAgPHRleHQgeD0iNTgwIiB5PSI0NTUiPldrIDEwPC90ZXh0PgogICAgPHRleHQgeD0iNjgwIiB5PSI0NTUiPldrIDEyPC90ZXh0PgogICAgPHRleHQgeD0iNzgwIiB5PSI0NTUiPldrIDE0PC90ZXh0PgogICAgPHRleHQgeD0iODcwIiB5PSI0NTUiPldrIDE2PC90ZXh0PgogIDwvZz4KICA8ZyBzdHJva2U9IiMxRTI5M0IiIHN0cm9rZS1kYXNoYXJyYXk9IjIsMyI+CiAgICA8bGluZSB4MT0iMTgwIiB5MT0iMTAwIiB4Mj0iMTgwIiB5Mj0iNDMwIi8+CiAgICA8bGluZSB4MT0iMjgwIiB5MT0iMTAwIiB4Mj0iMjgwIiB5Mj0iNDMwIi8+CiAgICA8bGluZSB4MT0iMzgwIiB5MT0iMTAwIiB4Mj0iMzgwIiB5Mj0iNDMwIi8+CiAgICA8bGluZSB4MT0iNDgwIiB5MT0iMTAwIiB4Mj0iNDgwIiB5Mj0iNDMwIi8+CiAgICA8bGluZSB4MT0iNTgwIiB5MT0iMTAwIiB4Mj0iNTgwIiB5Mj0iNDMwIi8+CiAgICA8bGluZSB4MT0iNjgwIiB5MT0iMTAwIiB4Mj0iNjgwIiB5Mj0iNDMwIi8+CiAgICA8bGluZSB4MT0iNzgwIiB5MT0iMTAwIiB4Mj0iNzgwIiB5Mj0iNDMwIi8+CiAgPC9nPgoKICA8IS0tIFdhdmUgYmFycyAtLT4KICA8ZyBmb250LXNpemU9IjExIj4KICAgIDwhLS0gV2F2ZSAwIOKAlCBGb3VuZGF0aW9uczogMS0yIHdlZWtzIC0tPgogICAgPHJlY3QgeD0iODAiIHk9IjEwMCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIyOCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC44NSIgcng9IjMiLz4KICAgIDx0ZXh0IHg9IjE5NSIgeT0iMTE5IiBmaWxsPSIjRDlGOTlEIj5XYXZlIDAg4oCUIEZvdW5kYXRpb25zPC90ZXh0PgoKICAgIDwhLS0gV2F2ZSAxIOKAlCBEYXNoYm9hcmRzOiAxIHdlZWsgKyBicmllZiBkdWFsLXJ1biAtLT4KICAgIDxyZWN0IHg9IjE4MCIgeT0iMTM1IiB3aWR0aD0iODAiIGhlaWdodD0iMjgiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuODUiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSIyNzUiIHk9IjE1NCIgZmlsbD0iI0JGREJGRSI+V2F2ZSAxIOKAlCBEYXNoYm9hcmRzPC90ZXh0PgoKICAgIDwhLS0gV2F2ZSAyIOKAlCBTeW50aGV0aWNzOiAyIHdlZWtzIC0tPgogICAgPHJlY3QgeD0iMjgwIiB5PSIxNzAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMjgiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuODUiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSIzOTUiIHk9IjE4OSIgZmlsbD0iI0E1RjNGQyI+V2F2ZSAyIOKAlCBTeW50aGV0aWNzPC90ZXh0PgoKICAgIDwhLS0gV2F2ZSAzIOKAlCBBbGVydHMgKGR1YWwtYWxlcnQ6IDEtMiB3a3MpIOKAlCB0aGUgbG9uZyBiYXIgLS0+CiAgICA8cmVjdCB4PSIzODAiIHk9IjIwNSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIzMiIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC44NSIgcng9IjMiLz4KICAgIDx0ZXh0IHg9IjU5NSIgeT0iMjI2IiBmaWxsPSIjRkVDQUNBIj5XYXZlIDMg4oCUIEFsZXJ0cyAoaW5jbC4gZHVhbC1hbGVydCk8L3RleHQ+CgogICAgPCEtLSBXYXZlIDQg4oCUIFNMT3MgKDctZGF5IGRlbHRhKSAtLT4KICAgIDxyZWN0IHg9IjUwMCIgeT0iMjQ1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjg1IiByeD0iMyIvPgogICAgPHRleHQgeD0iNjM1IiB5PSIyNjQiIGZpbGw9IiNEREQ2RkUiPldhdmUgNCDigJQgU0xPcyAoNy1kYXkgZGVsdGEpPC90ZXh0PgoKICAgIDwhLS0gV2F2ZSA1IOKAlCBMb2dzIC8gRHJvcHMgLyBUYWdzIC0tPgogICAgPHJlY3QgeD0iNjAwIiB5PSIyODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMjgiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuODUiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSI3MTUiIHk9IjI5OSIgZmlsbD0iI0ZFRjNDNyI+V2F2ZSA1IOKAlCBMb2dzIC8gRHJvcHMgLyBUYWdzPC90ZXh0PgoKICAgIDwhLS0gVmFsaWRhdGUgLS0+CiAgICA8cmVjdCB4PSI2ODAiIHk9IjMxNSIgd2lkdGg9IjgwIiBoZWlnaHQ9IjI4IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjg1IiByeD0iMyIvPgogICAgPHRleHQgeD0iNzc1IiB5PSIzMzQiIGZpbGw9IiNEOUY5OUQiPlN0ZXAgOCDigJQgVmFsaWRhdGU8L3RleHQ+CgogICAgPCEtLSBDdXRvdmVyIC0tPgogICAgPHJlY3QgeD0iNzYwIiB5PSIzNTAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMjgiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuODUiIHJ4PSIzIi8+CiAgICA8dGV4dCB4PSI4NzAiIHk9IjM2OSIgZmlsbD0iI0Q5Rjk5RCIgdGV4dC1hbmNob3I9ImVuZCI+U3RlcCA5IOKAlCBDdXRvdmVyICZhbXA7IERlY29tbWlzc2lvbjwvdGV4dD4KICA8L2c+CgogIDwhLS0gRHVhbC1hbGVydCBjYWxsb3V0IC0tPgogIDxyZWN0IHg9IjM4NSIgeT0iMzg1IiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjM1IiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMiIgcng9IjQiLz4KICA8dGV4dCB4PSI0ODAiIHk9IjQwNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZFQ0FDQSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+RHVhbC1hbGVydCB3aW5kb3cgKG5vbi1uZWdvdGlhYmxlKTwvdGV4dD4KCiAgPHRleHQgeD0iNDY1IiB5PSI0NzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlRvdGFsIHR5cGljYWwgd2luZG93OiAxNOKAkzE2IHdlZWtzIGZvciBhIG1vZGVyYXRlLXNpemVkIGFjY291bnQuIFdhdmUgMyBkb21pbmF0ZXMgdGhlIHRpbWVsaW5lLjwvdGV4dD4KPC9zdmc+Cg==" alt="Wave Plan Timeline (illustrative)" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Wave | Duration | Risk |
+|------|----------|------|
+| 0 Foundations | 1–2 weeks | Low |
+| 1 Dashboards | 1 week + dual-run | Low |
+| 2 Synthetics | 1–2 weeks | Medium |
+| 3 Alerts (incl. dual-alert) | 2–3 weeks | **High** |
+| 4 SLOs (7-day delta) | 1 week + 7d | Medium |
+| 5 Logs / Drops / Tags | 1–2 weeks | Low |
+| 6/7 Cutover & Decommission | 1 week | Low |
+
+Total typical window: 14–16 weeks for a moderate-sized account.
+For environments where SVG doesn't render
+-->
+<p><a id="scope"></a></p>
+<h2>3. Scope Decisions</h2>
+<p>Discovery surfaces things that don't fit the standard pattern. Decide explicitly for each:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Decision Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LOW-confidence NRQL queries</td>
+<td>Translate manually, reformulate, or drop the artifact</td>
+</tr>
+<tr>
+<td>APM conditions</td>
+<td>Replace with Dynatrace Intelligence adaptive baselines (recommended) or hand-port</td>
+</tr>
+<tr>
+<td>Scripted browser monitors</td>
+<td>Rebuild as DT clickpaths or drop</td>
+</tr>
+<tr>
+<td>Custom NR Nerdpacks</td>
+<td>Out of scope (no DT equivalent)</td>
+</tr>
+<tr>
+<td>Historical NRDB data</td>
+<td>Not migrated (configuration only)</td>
+</tr>
+<tr>
+<td>Multi-account NR setup</td>
+<td>Becomes single tenant + buckets + OpenPipeline enrichment + IAM scoping</td>
+</tr>
+</tbody>
+</table>
+<p>Document each decision in <code>scope-decisions.md</code> with the rationale and the impacted artifacts.</p>
+<p><a id="gates"></a></p>
+<h2>4. Define the Validation Gates</h2>
+<p>Each wave has a go/no-go gate, named <strong>W0–W7</strong>. Each <em>step</em> notebook (NR2DT-01 to NR2DT-09) ends with its own exit gate, named <strong>S1–S9</strong>. The two schemes are kept apart so that &quot;has W3 passed?&quot; (dual-alert volume) and &quot;has S3 passed?&quot; (architecture locked) can never be confused. Document the pass criteria up front.</p>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Question</th>
+<th>Pass Criteria</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>W0 — Foundations</strong></td>
+<td>Can DT receive and route data per the bucket strategy?</td>
+<td>Test ingestion lands in the correct bucket; IAM scopes work</td>
+</tr>
+<tr>
+<td><strong>W1 — Dashboards</strong></td>
+<td>Migrated dashboards display the same data shape?</td>
+<td>Visual diff sample (10–20%) acceptable</td>
+</tr>
+<tr>
+<td><strong>W2 — Synthetics</strong></td>
+<td>Migrated synthetics meet SLA continuity?</td>
+<td>Availability ±0.5% during dual-run</td>
+</tr>
+<tr>
+<td><strong>W3 — Alerts</strong></td>
+<td>Dual-alert volume aligned?</td>
+<td>DT vs NR alert count within ±10% over 1–2 weeks</td>
+</tr>
+<tr>
+<td><strong>W4 — SLOs</strong></td>
+<td>SLI math equivalent?</td>
+<td>7-day SLI delta ≤ 0.5% (NR vs DT, computed by hand — see NR2DT-06)</td>
+</tr>
+<tr>
+<td><strong>W5 — Logs</strong></td>
+<td>Log volumes, parsing, drops in line?</td>
+<td>Volume ±5%; parsed fields present; drops working</td>
+</tr>
+<tr>
+<td><strong>W6 — Cutover Ready</strong></td>
+<td>Parallel-run period long enough?</td>
+<td>≥ 2 weeks of clean dual operation</td>
+</tr>
+<tr>
+<td><strong>W7 — Decommission</strong></td>
+<td>All stakeholders confirm?</td>
+<td>Sign-offs documented; rollback plan still valid</td>
+</tr>
+</tbody>
+</table>
+<p><a id="signoff"></a></p>
+<h2>5. Stakeholder Sign-off</h2>
+<p>Sign-off is per-wave, not at the start. But the <strong>plan</strong> must be approved before Step 3.</p>
+<table>
+<thead>
+<tr>
+<th>Stakeholder</th>
+<th>What They Approve</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Migration lead</td>
+<td>Wave sequence, owners, timeline</td>
+</tr>
+<tr>
+<td>On-call leads</td>
+<td>Wave 3 (alerts) plan + dual-alert window</td>
+</tr>
+<tr>
+<td>Service owners</td>
+<td>Their dashboards / alerts / SLOs are in scope</td>
+</tr>
+<tr>
+<td>Compliance / Security</td>
+<td>IAM model, log retention, audit-trail bucket</td>
+</tr>
+<tr>
+<td>FinOps</td>
+<td>DPS budget; bucket pricing model</td>
+</tr>
+<tr>
+<td>Leadership</td>
+<td>Decommission target date</td>
+</tr>
+</tbody>
+</table>
+<p><a id="gate"></a></p>
+<h2>6. Step Exit Criteria</h2>
+<p><strong>S2 — Strategy Approved</strong></p>
+<ul>
+<li>[ ] <code>wave-plan.md</code> complete with owners and timing</li>
+<li>[ ] <code>scope-decisions.md</code> covers every gap from Step 1</li>
+<li>[ ] <code>gate-definitions.md</code> documents pass criteria for each wave</li>
+<li>[ ] All required stakeholders have signed off on the plan</li>
+</ul>
+<p><strong>Next step:</strong> <strong>NR2DT-03 — Design</strong> (target Dynatrace architecture: buckets, host groups, IAM, OpenPipeline).</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a>, and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

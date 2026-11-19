@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIOPS-03: Davis AI — Problems and Root Cause Analysis</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AIOPS — Dynatrace Intelligence</a><span class="sep">/</span><span aria-current="page">AIOPS-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AIOPS-03: Davis AI — Problems and Root Cause Analysis</h1>
+<blockquote>
+<p><strong>Series:</strong> AIOPS — Dynatrace Intelligence | <strong>Notebook:</strong> 3 of 8 | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Davis is the Causal AI engine. It watches the constant stream of anomaly signals (the raw <code>dt.davis.events</code>), groups related signals using Smartscape topology, and produces <strong>problems</strong> with a ranked root cause.</p>
+<p>This notebook covers the Causal AI mechanism, the Problems app surface, the canonical DQL for querying problems, and the patterns for measuring detection quality.</p>
+<p><strong>Audience:</strong> SRE responding to incidents; platform admin tuning detection; observability lead reporting on MTTR.</p>
+<p><strong>Outcome:</strong> Working DQL for problem investigation, MTTR reporting, and root-cause analytics on your own data.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q2F1c2FsIEFJOiBTaWduYWwgdG8gUHJvYmxlbSB0byBSb290IENhdXNlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkRhdmlzIGdyb3VwcyBkZXBlbmRlbnQgc2lnbmFscyB2aWEgU21hcnRzY2FwZSB0b3BvbG9neSwgYXR0cmlidXRlcyB0aGUgcm9vdCBjYXVzZTwvdGV4dD4KCiAgPCEtLSBTdGFnZSAxOiBTaWduYWxzIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIxMDAiIHdpZHRoPSIxNzAiIGhlaWdodD0iMjQwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjEyNSIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4xLiBTaWduYWxzPC90ZXh0PgogIDx0ZXh0IHg9IjEyNSIgeT0iMTQzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5kdC5kYXZpcy5ldmVudHM8L3RleHQ+CgogIDxyZWN0IHg9IjU1IiB5PSIxNjAiIHdpZHRoPSIxNDAiIGhlaWdodD0iMzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjQiLz4KICA8dGV4dCB4PSIxMjUiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+Q1BVIHNwaWtlIOKAlCBob3N0IEE8L3RleHQ+CgogIDxyZWN0IHg9IjU1IiB5PSIyMDAiIHdpZHRoPSIxNDAiIGhlaWdodD0iMzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjQiLz4KICA8dGV4dCB4PSIxMjUiIHk9IjIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+U2xvdyBSVCDigJQgc2VydmljZSBYPC90ZXh0PgoKICA8cmVjdCB4PSI1NSIgeT0iMjQwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMTI1IiB5PSIyNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkVycm9ycyDigJQgc2VydmljZSBZPC90ZXh0PgoKICA8cmVjdCB4PSI1NSIgeT0iMjgwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMTI1IiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkNQVSBzcGlrZSDigJQgaG9zdCBCPC90ZXh0PgoKICA8bGluZSB4MT0iMjEwIiB5MT0iMjIwIiB4Mj0iMjQ1IiB5Mj0iMjIwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8IS0tIFN0YWdlIDI6IFNtYXJ0c2NhcGUgY29ycmVsYXRpb24gLS0+CiAgPHJlY3QgeD0iMjUwIiB5PSIxMDAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMjQwIiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjM2MCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj4yLiBTbWFydHNjYXBlPC90ZXh0PgogIDx0ZXh0IHg9IjM2MCIgeT0iMTQzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Ub3BvbG9neS1hd2FyZSBncm91cGluZzwvdGV4dD4KCiAgPCEtLSBNaW5pIHRvcG9sb2d5IGdyYXBoIC0tPgogIDxjaXJjbGUgY3g9IjMyMCIgY3k9IjE5NSIgcj0iMTgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIzMjAiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+c3ZjIFg8L3RleHQ+CgogIDxjaXJjbGUgY3g9IjQwMCIgY3k9IjE5NSIgcj0iMTgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+c3ZjIFk8L3RleHQ+CgogIDxsaW5lIHgxPSIzMjAiIHkxPSIyMTMiIHgyPSIzNjAiIHkyPSIyNDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iNDAwIiB5MT0iMjEzIiB4Mj0iMzYwIiB5Mj0iMjQ4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41Ii8+CgogIDxjaXJjbGUgY3g9IjM2MCIgY3k9IjI2NSIgcj0iMTgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMzYwIiB5PSIyNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPmhvc3QgQTwvdGV4dD4KCiAgPHRleHQgeD0iMzYwIiB5PSIzMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPnJvb3QgY2F1c2U8L3RleHQ+CiAgPHRleHQgeD0iMzYwIiB5PSIzMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPihob3N0IEIgdW5yZWxhdGVkIOKGkiBzZXBhcmF0ZSk8L3RleHQ+CgogIDxsaW5lIHgxPSI0NzAiIHkxPSIyMjAiIHgyPSI1MDUiIHkyPSIyMjAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDwhLS0gU3RhZ2UgMzogUHJvYmxlbSAtLT4KICA8cmVjdCB4PSI1MTAiIHk9IjEwMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyNDAiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjAwIiB5PSIxMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjMuIFByb2JsZW08L3RleHQ+CiAgPHRleHQgeD0iNjAwIiB5PSIxNDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmR0LmRhdmlzLnByb2JsZW1zPC90ZXh0PgoKICA8cmVjdCB4PSI1MjUiIHk9IjE2MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxNjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgcng9IjYiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjE4MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+UC0yNjA1ODU2NzwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UkVTT1VSQ0VfQ09OVEVOVElPTjwvdGV4dD4KICA8bGluZSB4MT0iNTM1IiB5MT0iMjEwIiB4Mj0iNjY1IiB5Mj0iMjEwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjU0MCIgeT0iMjI4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5TdGF0dXM6IEFDVElWRTwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9IjI0NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+Um9vdCBjYXVzZTo8L3RleHQ+CiAgPHRleHQgeD0iNTQwIiB5PSIyNjEiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPmhvc3QgQTwvdGV4dD4KICA8dGV4dCB4PSI1NDAiIHk9IjI4MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QWZmZWN0ZWQ6PC90ZXh0PgogIDx0ZXh0IHg9IjU0MCIgeT0iMjk3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5zdmMgWCwgc3ZjIFk8L3RleHQ+CiAgPHRleHQgeD0iNTQwIiB5PSIzMTIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPigzIHNpZ25hbHMpPC90ZXh0PgoKICA8bGluZSB4MT0iNjkwIiB5MT0iMjIwIiB4Mj0iNzI1IiB5Mj0iMjIwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8IS0tIFN0YWdlIDQ6IEFjdGlvbiAtLT4KICA8cmVjdCB4PSI3MzAiIHk9IjEwMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIyNDAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iODEwIiB5PSIxMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjQuIEFjdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNzQ1IiB5PSIxNjAiIHdpZHRoPSIxMzAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjQiLz4KICA8dGV4dCB4PSI4MTAiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+V29ya2Zsb3c8L3RleHQ+CiAgPHRleHQgeD0iODEwIiB5PSIxOTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPm5vdGlmaWNhdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNzQ1IiB5PSIyMTAiIHdpZHRoPSIxMzAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjQiLz4KICA8dGV4dCB4PSI4MTAiIHk9IjIyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+QXNzaXN0IHN1bW1hcnk8L3RleHQ+CiAgPHRleHQgeD0iODEwIiB5PSIyNDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPm5hcnJhdGl2ZSArIFJDQTwvdGV4dD4KCiAgPHJlY3QgeD0iNzQ1IiB5PSIyNjAiIHdpZHRoPSIxMzAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjQiLz4KICA8dGV4dCB4PSI4MTAiIHk9IjI3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+UmVtZWRpYXRpb248L3RleHQ+CiAgPHRleHQgeD0iODEwIiB5PSIyOTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPm1hbnVhbCAvIGFnZW50aWM8L3RleHQ+CgogIDwhLS0gRm9vdGVyIG5vdGUgLS0+CiAgPGxpbmUgeDE9IjQwIiB5MT0iMzc1IiB4Mj0iODkwIiB5Mj0iMzc1IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TbWFydHNjYXBlIGNvdmVyYWdlIGdhdGVzIENhdXNhbCBBSSBxdWFsaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5VbnRyYWNlZCBzZXJ2aWNlcywgdW5kZWNsYXJlZCBkZXBlbmRlbmNpZXMsIGFuZCBtaXNzaW5nIHRhZ3MgcmVkdWNlIGdyb3VwaW5nIGFjY3VyYWN5LjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+VG9wb2xvZ3kgaW52ZXN0bWVudCBwYXlzIGJhY2sgYXMgUkNBIHF1YWxpdHkuPC90ZXh0Pgo8L3N2Zz4K" alt="Causal AI Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | What happens |
+|-------|--------------|
+| 1. Signal | Detector fires; raw event lands in dt.davis.events |
+| 2. Group | Davis correlates dependent signals via Smartscape |
+| 3. Problem | Grouped signals become a problem in dt.davis.problems |
+| 4. Root cause | Davis ranks contributors; top contributor is the root |
+| 5. Notify | Workflow or notification fires |
+For environments where SVG doesn't render
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#grouping">How Causal AI Groups Signals into Problems</a></li>
+<li><a href="#lifecycle">Problem Lifecycle and Fields</a></li>
+<li><a href="#data-objects">The Two Data Objects: <code>dt.davis.problems</code> vs. <code>dt.davis.events</code></a></li>
+<li><a href="#active-feed">Active Problem Feed</a></li>
+<li><a href="#rollups">Problem Severity and Category Rollups</a></li>
+<li><a href="#mttr">MTTR by Category and Service</a></li>
+<li><a href="#root-cause">Root Cause Entity Distribution</a></li>
+<li><a href="#no-root-cause-expected">When No Root Cause Is Expected</a></li>
+<li><a href="#cross">Cross-Series Pointers</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3 with Grail</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:events:read</code></td>
+</tr>
+<tr>
+<td><strong>Apps</strong></td>
+<td>Problems app</td>
+</tr>
+<tr>
+<td><strong>Topology</strong></td>
+<td>Smartscape entities for the systems you care about (Causal AI's accuracy correlates with topology completeness)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="grouping"></a></p>
+<h2>1. How Causal AI Groups Signals into Problems</h2>
+<p>Detectors fire constantly. Without grouping, every CPU spike, every slow request, every log error would page someone. The point of Causal AI is to ask: <em>which of these are the same incident?</em></p>
+<p>Davis answers using Smartscape — the dependency graph. Three signals on three different services that all depend on the same backing database go into one problem with the database as root cause. Same three signals on unrelated services stay separate.</p>
+<p><strong>This is why Smartscape coverage matters.</strong> Causal AI's accuracy is bounded by topology completeness. Untraced services, undeclared dependencies, missing tags — all reduce the graph quality and produce worse grouping.</p>
+<p><strong>Causal AI is deterministic, not statistical.</strong> It walks the topology graph; it does not run an LLM or a black-box correlation. Two operators looking at the same data get the same root cause attribution.</p>
+<h3>The correlation keys</h3>
+<p>Grouping is not a black box you have to take on faith — it runs on fields you can query.</p>
+<p><strong>The universal rule is <code>dt.smartscape_source.id</code>.</strong> Most Davis events carry this field — <strong>84.9% on a validation tenant over 7 days, 08/11/2026</strong> (186,914 of 220,206) — holding the Smartscape entity ID of whatever the signal is <em>about</em>. It is the rule that is universal, not the field's presence: the remaining share is exactly the population this section is about. Events naming the same entity within the correlation timeframe collapse into a single problem. The semantic dictionary types it <code>smartscapeId</code> at stability <code>stable</code> — it holds an entity ID, not a display name.</p>
+<p>This is the field a custom alert most often gets wrong. The documentation asks for it to be set &quot;to an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string&quot;, the entity the same-entity rule above groups on. It does not say what happens to an event without one. The one documented fallback is narrower: an event posted through the Events API v2 without an <code>entitySelector</code> &quot;is associated with the environment (<code>dt.entity.environment</code>) entity.&quot;</p>
+<p>What the data shows is where to look: an event attached to the environment entity alone has nothing but the environment to be grouped on, and those events collect in large problems. On a validation tenant over 7 days to 10/12/2026, problems attached only to the environment averaged 14.7 events each, against 1.1 for every other problem. That is not the same thing as a missing source. Of the problem-eligible events with no <code>dt.smartscape_source.id</code>, 91% were still attached to a real entity, and 1,775 events from a cloud integration (all <code>Amazon EC2 CPU Utilization High</code>) carried a source yet were attached to the environment alone.</p>
+<p>Treat environment-only attachment as the symptom to hunt — a problem with an implausibly broad, unrelated blast radius and no usable root cause — and a missing source in your own event templates as one cause of it. The remedy for your own detectors is unchanged: set the event template's entity to a real host, service, or workload ID (AIOPS-02 §4); AIOPS-02 §8 has a query that finds these detectors.</p>
+<p><strong>Topology rules merge across entity types.</strong> Beyond exact-entity matching, Davis merges signals from entities in a known structural relationship — a process and the host it runs on are not two separate incidents:</p>
+<table>
+<thead>
+<tr>
+<th>Grouping field</th>
+<th>Entity types merged into one problem</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.smartscape.host</code></td>
+<td><code>HOST</code>, <code>PROCESS</code>, <code>CONTAINER</code>, <code>DISK</code>, <code>NETWORK_INTERFACE</code></td>
+</tr>
+<tr>
+<td><code>dt.smartscape.container</code></td>
+<td><code>CONTAINER</code>, <code>PROCESS</code></td>
+</tr>
+<tr>
+<td><code>dt.smartscape.process</code></td>
+<td><code>SERVICE</code>, <code>PROCESS</code></td>
+</tr>
+<tr>
+<td><code>dt.smartscape.k8s_pod</code></td>
+<td><code>K8S_POD</code>, <code>CONTAINER</code></td>
+</tr>
+<tr>
+<td><code>dt.smartscape.k8s_node</code></td>
+<td><code>K8S_NODE</code>, <code>K8S_POD</code>, <code>CONTAINER</code></td>
+</tr>
+<tr>
+<td><code>dt.smartscape.k8s_deployment</code></td>
+<td><code>K8S_DEPLOYMENT</code>, <code>SERVICE</code></td>
+</tr>
+<tr>
+<td><code>dt.smartscape.k8s_replicaset</code></td>
+<td><code>K8S_REPLICASET</code>, <code>SERVICE</code></td>
+</tr>
+<tr>
+<td><code>dt.smartscape.k8s_statefulset</code></td>
+<td><code>K8S_STATEFULSET</code>, <code>SERVICE</code></td>
+</tr>
+<tr>
+<td><code>dt.smartscape.k8s_daemonset</code></td>
+<td><code>K8S_DAEMONSET</code>, <code>SERVICE</code></td>
+</tr>
+<tr>
+<td><code>dt.smartscape.k8s_job</code></td>
+<td><code>K8S_JOB</code>, <code>SERVICE</code></td>
+</tr>
+</tbody>
+</table>
+<p>The table names the <strong>grouping field</strong>, not just a label, because that is what you filter on when you are working out why two alerts merged. Note the documentation introduces these as <em>&quot;some examples of the grouping fields and potential entity types that can be merged&quot;</em> — it is not an exhaustive list, so treat an unlisted merge as plausible rather than as a bug.</p>
+<p><strong>Three further deduplication layers run on top:</strong> time-based deduplication, so the same signal recurring inside the correlation window does not re-open a problem; causal merging across the dependency graph described above; and <strong>frequent issue detection</strong>, where Davis recognises a chronically recurring condition and stops raising it as a new problem on the reasoning that a permanent known issue is not news.</p>
+<p>That last one is worth knowing before you conclude a detector has broken. A detector that &quot;stopped alerting&quot; may simply have had its condition classified as a frequent issue — check the event stream (<code>dt.davis.events</code>) rather than the problem feed to tell the two apart. Frequent issue detection <em>&quot;is being phased out on the latest Dynatrace platform&quot;</em>; Dynatrace is instead improving the individual alert sources so frequent false positives are not generated. Use it to explain a quiet detector, not as a control to design around.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting">Avoid overalerting (DT docs)</a> — all ten grouping fields, introduced as examples rather than an exhaustive list; <em>&quot;make sure to set the dt.smartscape_source.id field to an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence">Dynatrace Intelligence (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event">Ingest an event — POST /api/v2/events/ingest (DT docs)</a> — <em>&quot;If not set, the event is associated with the environment&quot;</em> (scoped to events posted through this API)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/frequent-issue-detection">Transition from frequent issue detection (DT docs)</a> — <em>&quot;Frequent issue detection is being phased out on the latest Dynatrace platform.&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> the &quot;check <code>dt.davis.events</code> rather than the problem feed&quot; diagnostic follows from frequent-issue suppression acting at the event-to-problem step, combined with the two-data-object split in §3.</sub></li>
+</ul>
+</blockquote>
+<p><a id="lifecycle"></a></p>
+<h2>2. Problem Lifecycle and Fields</h2>
+<p><strong>Status values:</strong> <code>ACTIVE</code> and <code>CLOSED</code>. (Not <code>OPEN</code> / <code>RESOLVED</code> — common mistake.)</p>
+<p><strong>Categories:</strong> <code>ERROR</code>, <code>RESOURCE_CONTENTION</code>, <code>AVAILABILITY</code>, <code>SLOWDOWN</code>, <code>CUSTOM_ALERT</code>. Categories are stable; counts vary widely by environment.</p>
+<p><strong>Severity</strong> is a separate axis from category. The unified <code>event.severity</code> field is an integer 1–5 (ITIL-aligned) that propagates from the constituent alerts up to the parent problem — see the field table below. <strong>It is typed <code>experimental</code> in the semantic dictionary</strong> (verified 08/27/2026), while <code>event.category</code> and <code>event.kind</code> are <code>stable</code>: fine for triage and reporting, but do not hard-code an integration or an SLA contract against it without a fallback. Semantic Dictionary 1.348 (published 08/25/2026) promotes it to <code>stable</code> for Davis events and problems; a tenant checked 09/24/2026 still reported <code>experimental</code> — confirm on yours, and treat this caution as lifted once it reads <code>stable</code>.</p>
+<p><strong>Key fields on a problem record:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event.id</code></td>
+<td>Internal problem ID</td>
+</tr>
+<tr>
+<td><code>display_id</code></td>
+<td>Human-readable ID like <code>P-26058567</code></td>
+</tr>
+<tr>
+<td><code>event.name</code></td>
+<td>Short problem title</td>
+</tr>
+<tr>
+<td><code>event.description</code></td>
+<td>Longer narrative</td>
+</tr>
+<tr>
+<td><code>event.category</code></td>
+<td>One of the categories above</td>
+</tr>
+<tr>
+<td><code>event.severity</code></td>
+<td>Unified severity as an integer 1–5 (1 = Critical, 2 = Major, 3 = Minor, 4 = Warning, 5 = Informational), aligned to the ITIL severity model. If an event source does not set it, the field is empty. Propagates from the constituent alerts up to the parent problem. Coexists with <code>event.category</code> — severity answers <em>how bad</em>, category answers <em>what kind</em>.</td>
+</tr>
+<tr>
+<td><code>event.status</code></td>
+<td><code>ACTIVE</code> or <code>CLOSED</code></td>
+</tr>
+<tr>
+<td><code>event.start</code> / <code>event.end</code></td>
+<td>Timestamps; <code>event.end</code> is null on active problems</td>
+</tr>
+<tr>
+<td><code>root_cause.smartscape_entity</code></td>
+<td>Davis-attributed root cause: a record with the Smartscape node's <code>id</code>, <code>type</code> and <code>name</code></td>
+</tr>
+<tr>
+<td><code>smartscape.affected_entities</code></td>
+<td>Array of records (<code>id</code>, <code>type</code>, <code>name</code>), one per directly affected Smartscape node</td>
+</tr>
+<tr>
+<td><code>dt.davis.event_ids</code></td>
+<td>Array of constituent signal IDs from <code>dt.davis.events</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Deprecated root-cause and affected-entity fields.</strong> The alert-notification upgrade guide: <em>&quot;root_cause_entity_id and root_cause_entity_name are deprecated in favor of root_cause.smartscape_entity, and affected_entity_ids in favor of smartscape.affected_entities. Build new payloads against the Smartscape fields.&quot;</em> The classic fields still exist and still work, but the two families do not cover the same problems. On the validation tenant over 7 days (11/11/2026), <code>smartscape.affected_entities</code> was set on 2,657 of 4,671 problems; the other 2,014 were environment-level alerts whose classic entity is <code>ENVIRONMENT-0000000000000001</code> (1,953) and process group instances (61). In the other direction, the classic field named only <code>ENVIRONMENT-0000000000000001</code> on 1,479 problems whose Smartscape field named the AWS EC2 instance. The root-cause fields were close over those 7 days (485 classic, 483 Smartscape), but over 30 days the classic field named a root cause on 163 non-duplicate problems where the Smartscape field was empty. The queries below therefore read the Smartscape field first and fall back to the classic one with <code>coalesce(...)</code>. Do not match one against the other: the ID spaces differ (one Kubernetes root cause read <code>CLOUD_APPLICATION-…</code> in the classic field and <code>K8S_DEPLOYMENT-…</code> in the Smartscape field).</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a>. <strong>Dictionary:</strong> <code>root_cause.smartscape_entity</code> (<code>stable</code>), <code>smartscape.affected_entities</code> (<code>stable</code>), <code>root_cause_entity_id</code> (<code>deprecated</code>), <code>root_cause_entity_name</code> (<code>deprecated</code>), <code>affected_entity_ids</code> (<code>deprecated</code>), read 11/11/2026.</sub></p>
+</blockquote>
+<p>Custom string-typed fields can be propagated onto problems via Settings — useful for team / alerting-profile / service-tier attribution. Numeric custom fields are not supported.</p>
+<blockquote>
+<p><strong>Changed (SaaS 1.346 — staged rollout from 08/25/2026): propagated problem fields keep only the latest value.</strong> Verbatim: <em>&quot;Propagated problem fields now store only the most recent event field value—they don't accumulate all historical values of an event field (for example, <code>trace_id</code>), rather they save only the latest value.&quot;</em></p>
+<p>This changes what a propagated field <em>means</em>, which matters more than it first appears. A field like <code>trace_id</code> on a long-running problem previously accumulated every value the underlying events carried; now it holds one — the most recent. Two consequences for anything you have built on those fields:</p>
+<ul>
+<li><strong>Do not treat a propagated field as a complete history.</strong> A query that pulled <code>trace_id</code> off a problem to enumerate every affected trace will, after this change, return the last one only. Where you need the full set, go to the <strong>events</strong> (§3) rather than the problem record — the events are where the history actually lives, and that distinction is now load-bearing rather than stylistic.</li>
+<li><strong>Comparisons across the rollout window are not like-for-like.</strong> A problem that opened before the change and persisted through it may show accumulated values; one opened after will not.</li>
+</ul>
+<p>The upside is that a propagated field is now unambiguous — one value, the newest — rather than a list whose length depended on how long the problem stayed open.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a> — the propagated-problem-field change quoted above. <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity">Standardized event severity (DT docs)</a> — <em>&quot;If an event source doesn't set severity, the field is empty.&quot;</em></sub></p>
+</blockquote>
+<p><a id="data-objects"></a></p>
+<h2>3. The Two Data Objects: <code>dt.davis.problems</code> vs. <code>dt.davis.events</code></h2>
+<p>Sibling streams in Grail. <strong>Use the right one.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Data object</th>
+<th>Contains</th>
+<th>event.kind</th>
+<th>Use when you want</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.davis.problems</code></td>
+<td>Causal-AI-grouped problems</td>
+<td><code>DAVIS_PROBLEM</code></td>
+<td>The problem feed, MTTR, severity rollups</td>
+</tr>
+<tr>
+<td><code>dt.davis.events</code></td>
+<td>Raw, ungrouped signals</td>
+<td><code>DAVIS_EVENT</code></td>
+<td>Signal-level investigation, custom alert volume</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ Some docs and tutorials show <code>fetch dt.davis.events | filter event.kind == &quot;DAVIS_PROBLEM&quot;</code>. It returns zero rows — and the reason matters: this is a <strong>filter on the wrong table, not a deprecated form</strong>. <code>dt.davis.events</code> has only ever carried <code>DAVIS_EVENT</code>, so there is no older behavior to migrate from and nothing in your tenant to fix. Use <code>fetch dt.davis.problems</code> for problems. Verified 08/27/2026 (7 days): 206,023 rows in <code>dt.davis.events</code>, all <code>DAVIS_EVENT</code>; 0 when filtered to <code>DAVIS_PROBLEM</code>; control <code>dt.davis.problems</code> → 2,774.</p>
+</blockquote>
+<p><a id="active-feed"></a></p>
+<h2>4. Active Problem Feed</h2>
+<p>The most-used query in the series — what's broken right now, ranked by start time.</p>
+<pre><code class="language-dql">// Active problems right now — investigation feed
+fetch dt.davis.problems, from:-2h
+| filter event.status == &quot;ACTIVE&quot;
+// Smartscape fields first; the deprecated root_cause_entity_name / affected_entity_ids fill the gaps
+| fieldsAdd root_cause = coalesce(root_cause.smartscape_entity[name], root_cause_entity_name),
+            affected = coalesce(smartscape.affected_entities, affected_entity_ids)
+| sort event.start desc
+| fields display_id, event.name, event.category, event.start, root_cause, affected
+| limit 50
+</code></pre>
+<p>Filter by entity context to scope to a team or environment. Two common variants:</p>
+<pre><code class="language-dql">// Active problems in a specific Kubernetes namespace
+fetch dt.davis.problems, from:-2h
+| filter event.status == &quot;ACTIVE&quot;
+| filter matchesValue(k8s.namespace.name, &quot;production&quot;)
+| fieldsAdd root_cause = coalesce(root_cause.smartscape_entity[name], root_cause_entity_name)
+| sort event.start desc
+| fields display_id, event.name, event.category, root_cause
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// Active problems for a specific host group
+// dt.host_group.id is NOT carried on problem records - resolve the group through the affected hosts.
+// Host groups are identified by NAME, not by a HOST_GROUP- entity ID.
+fetch dt.davis.problems, from:-2h
+| filter event.status == &quot;ACTIVE&quot;
+| expand host_id = dt.entity.host
+| lookup [smartscapeNodes &quot;HOST&quot; | fields host_id = id_classic, host_group = dt.host_group.id],
+    sourceField:host_id, lookupField:host_id, fields:{host_group}
+| filter host_group == &quot;my-host-group&quot;
+| dedup event.id
+| fieldsAdd root_cause = coalesce(root_cause.smartscape_entity[name], root_cause_entity_name)
+| sort event.start desc
+| fields display_id, event.name, event.category, root_cause, host_group
+| limit 50
+</code></pre>
+<p><a id="rollups"></a></p>
+<h2>5. Problem Severity and Category Rollups</h2>
+<p>Two different axes, both useful in weekly operational reviews and for trending detection volume month over month:</p>
+<ul>
+<li><strong>Severity</strong> (<code>event.severity</code>, integer 1–5) — <em>how bad</em> — for prioritization, SLA reporting, and routing. 1 = Critical, 2 = Major, 3 = Minor, 4 = Warning, 5 = Informational (ITIL-aligned). <strong><code>experimental</code> stability</strong> (until SD 1.348 reaches your tenant) — usable, but pin a fallback before routing on it. Expect a narrow spread unless your event sources set severity: on the validation tenant most days were 100% severity 3, and a 7-day window to 10/12/2026 held 3,557 severity-3 problems alongside 747 severity-1 and 788 severity-5 problems from a few sources that set their own. A one- or two-row rollup is a normal result, not a broken query.</li>
+<li><strong>Category</strong> (<code>event.category</code>) — <em>what kind</em> — for spotting which failure modes dominate.</li>
+</ul>
+<p>Start with the severity rollup, then break down by category.</p>
+<blockquote>
+<p><strong>Breaking change — SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout):</strong> <em>&quot;Davis events and problems no longer default event.severity to 3.&quot;</em> Once it reaches your tenant, a problem with no severity set carries a null rather than 3 — the rollup below labels those <em>Not set</em> instead of letting them fall through to <em>Informational</em>, and a workflow filtering on <code>event.severity == 3</code> stops matching them. Until then, every unset severity still defaults to 3.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-348">Semantic Dictionary changelog 1.348 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications/standardized-event-severity">Standardized event severity (DT docs)</a> — <em>&quot;Dynatrace aligns with the ITIL framework standard for IT management systems when classifying event and alert severity.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Last 7 days — problem count by severity (1=Critical … 5=Informational)
+// Null is tested first: from SaaS 1.348 an unset severity is no longer defaulted to 3.
+fetch dt.davis.problems, from:-7d
+| fieldsAdd severity_label = if(isNull(event.severity), &quot;Not set&quot;,
+    else: if(event.severity == 1, &quot;Critical&quot;,
+    else: if(event.severity == 2, &quot;Major&quot;,
+    else: if(event.severity == 3, &quot;Minor&quot;,
+    else: if(event.severity == 4, &quot;Warning&quot;,
+    else: &quot;Informational&quot;)))))
+| summarize problem_count = count(), by:{event.severity, severity_label}
+| sort event.severity asc
+</code></pre>
+<pre><code class="language-dql">// Last 7 days — problem count by category
+fetch dt.davis.problems, from:-7d
+| summarize problem_count = count(), by:{event.category}
+| sort problem_count desc
+</code></pre>
+<pre><code class="language-dql">// Last 30 days — daily problem volume
+fetch dt.davis.problems, from:-30d
+| makeTimeseries problems_per_day = count(), interval:24h, by:{event.category}
+</code></pre>
+<p><a id="mttr"></a></p>
+<h2>6. MTTR by Category and Service</h2>
+<p>Mean Time To Resolution — how long does Davis say a problem stayed <code>ACTIVE</code> before it transitioned to <code>CLOSED</code>. Compute it as <code>event.end - event.start</code> over closed problems.</p>
+<p>Reporting principle: prefer <strong>median</strong> and <strong>p95</strong> over arithmetic mean. A single long-running availability problem (a host that was forgotten on the network) skews the average wildly.</p>
+<pre><code class="language-dql">// MTTR by category over last 30 days
+fetch dt.davis.problems, from:-30d
+| filter event.status == &quot;CLOSED&quot;
+| fieldsAdd duration_hours = (event.end - event.start) / 1h
+| summarize {
+    median_mttr_hours = percentile(duration_hours, 50),
+    p95_mttr_hours    = percentile(duration_hours, 95),
+    problem_count = count()
+  },
+  by:{event.category}
+| sort problem_count desc
+</code></pre>
+<p><a id="root-cause"></a></p>
+<h2>7. Root Cause Entity Distribution</h2>
+<p>Which entities are most often attributed as root cause? A heavy concentration on a small set of services usually means either (a) you have real recurring instability there, or (b) topology is incomplete and Davis keeps falling back to the same nodes.</p>
+<pre><code class="language-dql">// Top 20 root cause entities — last 7 days
+// Smartscape field first; the deprecated root_cause_entity_* fields fill problems it does not cover
+fetch dt.davis.problems, from:-7d
+| fieldsAdd root_cause = coalesce(root_cause.smartscape_entity[name], root_cause_entity_name),
+            root_cause_type = coalesce(root_cause.smartscape_entity[type], &quot;classic only&quot;)
+| filter isNotNull(root_cause)
+| summarize problem_count = count(), by:{root_cause, root_cause_type}
+| sort problem_count desc
+| limit 20
+</code></pre>
+<p><a id="no-root-cause-expected"></a></p>
+<h2>8. When No Root Cause Is Expected</h2>
+<p>An empty root cause on a problem (<code>root_cause.smartscape_entity</code>, or the deprecated <code>root_cause_entity_name</code>) is not automatically a detection gap. §1 already establishes the mechanism: Causal AI is a deterministic graph walk over Smartscape topology — it explains one signal by finding another signal, on a <em>connected</em> entity, that a dependency edge plausibly links to it. When there's no second signal to reach, or no edge connecting the signals that did fire, the walk has nothing to traverse. An empty root cause is that walk terminating correctly, not failing.</p>
+<p>In community troubleshooting experience, three conditions account for most &quot;expected empty&quot; cases:</p>
+<ul>
+<li><strong>Single-event problems.</strong> The constituent-event count is one. With nothing else in the window to correlate against, there's no second point for a chain to reach — Davis still names the affected entity, but there is nothing to name as its cause.</li>
+<li><strong>No topology edge between co-occurring failures.</strong> Multiple signals fired in the same window, but Smartscape has no dependency relationship between the entities they're on — common with custom entities, unmodeled network paths, or topology that hasn't finished discovering a newer service. Multiple events without a connecting edge still produce no chain, because the walk needs both a second event <em>and</em> a path to it.</li>
+<li><strong>Infrastructure-level, single-entity impact.</strong> The failing entity and the affected entity are the same node — a workload stuck in a bad state with nothing upstream feeding it. The fault is the entity itself, not something that happened to it, so there's nothing else in the graph to name.</li>
+</ul>
+<p>None of these three call for action. They're worth distinguishing from a fourth case that does:</p>
+<ul>
+<li><strong>A real topology gap.</strong> Multiple related entities were affected and a dependency chain plausibly exists between them, but Smartscape's model doesn't capture the edge — an undeclared dependency, a missing trace-context propagation hop, an entity type Smartscape doesn't yet model relationships for. This is the case where the topology-completeness work §1 already calls out genuinely improves the next problem's RCA.</li>
+</ul>
+<p><strong>A practical way to tell them apart in your own data:</strong> a null-root-cause problem with a single affected entity sits in the &quot;expected empty&quot; population; a null-root-cause problem with <em>multiple</em> affected entities is the one worth auditing for a topology gap.</p>
+<p>Setting this expectation with stakeholders matters as much as the mechanism itself — a target of 100% RCA coverage treats every empty field as a miss, when a meaningful share of them are Causal AI doing exactly what it's designed to do.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting">Avoid overalerting (DT docs)</a> — <em>&quot;alerts from different entities are merged when the entities are causally connected in the Smartscape topology&quot;</em>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence">Dynatrace Intelligence (DT docs)</a> — <em>&quot;deterministic, causation-based analysis&quot;</em>. <strong>Derived:</strong> an empty root cause is expected when no second signal sits on a causally connected entity.</sub></p>
+</blockquote>
+<p><strong>Track this as a trend, not a snapshot.</strong> The bucketing query below characterizes a point in time; the same root-cause fields trended daily show whether the expected-empty population is holding steady or whether something upstream — topology, tagging, correlation — is regressing.</p>
+<pre><code class="language-dql">// Characterize your own null-root-cause problems: single-entity (expected) vs multi-entity (audit for topology gap)
+fetch dt.davis.problems, from:-30d
+| filter isNull(root_cause.smartscape_entity) and isNull(root_cause_entity_name)
+| fieldsAdd affected_count = arraySize(coalesce(smartscape.affected_entities, affected_entity_ids))
+| fieldsAdd bucket = if(affected_count &lt;= 1, &quot;single-entity (expected)&quot;, else: &quot;multi-entity (audit for topology gap)&quot;)
+| summarize problem_count = count(), by:{bucket}
+| sort problem_count desc
+</code></pre>
+<pre><code class="language-dql">// RCA attachment rate — % of non-duplicate problems with a populated root cause, trended daily
+fetch dt.davis.problems, from:-30d
+| filter not(dt.davis.is_duplicate)
+// A root cause counts if the Smartscape field or the deprecated classic field carries one
+| fieldsAdd rca_flag = if(isNotNull(root_cause.smartscape_entity) or isNotNull(root_cause_entity_id), 100.0, else: 0.0)
+| makeTimeseries rca_attachment_pct = avg(rca_flag), interval:24h
+</code></pre>
+<p><a id="cross"></a></p>
+<h2>9. Cross-Series Pointers</h2>
+<ul>
+<li><strong>WFLOW-04</strong> — wire active problems into notification workflows</li>
+<li><strong>DASH-03</strong> — executive dashboards; <strong>DASH-05</strong> — engineering dashboards</li>
+<li><strong>AIOPS-04</strong> — Dynatrace Assist generates problem-summary narratives via Generative AI</li>
+<li><strong>AIOPS-06</strong> — Workflow tutorial: Summarize open problems with AI</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

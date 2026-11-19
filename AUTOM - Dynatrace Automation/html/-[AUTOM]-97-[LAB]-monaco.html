@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-97 LAB: Monaco Configuration as Code</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-97 LAB</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-97 LAB: Monaco Configuration as Code</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Reference:</strong> 97 — Monaco Hands-On LAB | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/24/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Hands-on lab for installing Monaco CLI, downloading existing Dynatrace configuration, modifying it, validating, and deploying to a target environment. Includes CI/CD pipeline integration with GitHub Actions. Complete the lecture notebook <strong>AUTOM-03: Monaco Configuration-as-Code</strong> first, then work through these exercises step by step.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#install-monaco-cli">Install Monaco CLI</a></li>
+<li><a href="#create-access-token">Create Access Token</a></li>
+<li><a href="#create-manifest-file">Create Manifest File</a></li>
+<li><a href="#download-existing-configuration">Download Existing Configuration</a></li>
+<li><a href="#explore-downloaded-configuration">Explore Downloaded Configuration</a></li>
+<li><a href="#create-a-new-configuration">Create a New Configuration</a></li>
+<li><a href="#validate-configuration">Validate Configuration</a></li>
+<li><a href="#deploy-configuration">Deploy Configuration</a></li>
+<li><a href="#delete-configuration">Delete Configuration</a></li>
+<li><a href="#multi-environment-promotion">Multi-Environment Promotion</a></li>
+<li><a href="#github-actions-cicd-pipeline">GitHub Actions CI/CD Pipeline</a></li>
+<li><a href="#summary-checklist">Summary &amp; Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Completed</strong></td>
+<td>AUTOM-03: Monaco Configuration-as-Code (lecture notebook)</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS tenant (Grail enabled)</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Ability to create an access token in the environment and a platform token in your account</td>
+</tr>
+<tr>
+<td><strong>Local Tools</strong></td>
+<td>Terminal with <code>curl</code> and <code>chmod</code> (Monaco has no Homebrew formula)</td>
+</tr>
+<tr>
+<td><strong>Git</strong></td>
+<td>Git CLI installed (for CI/CD section)</td>
+</tr>
+<tr>
+<td><strong>GitHub Account</strong></td>
+<td>Required for Section 11 (CI/CD pipeline)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="install-monaco-cli"></a></p>
+<h2>1. Install Monaco CLI</h2>
+<p>Monaco is a standalone binary with no runtime dependencies. Choose the release asset for your platform — Monaco is distributed only as GitHub release binaries (there is no Homebrew formula).</p>
+<h3>macOS (Apple silicon)</h3>
+<pre><code class="language-shellscript"># Download the latest Monaco binary for macOS (Apple silicon)
+curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-darwin-arm64 -o monaco
+chmod +x monaco
+sudo mv monaco /usr/local/bin/
+# Intel Macs: use monaco-darwin-amd64
+</code></pre>
+<h3>Linux (x86-64)</h3>
+<pre><code class="language-shellscript"># Download the latest Monaco binary for Linux (amd64)
+curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
+
+# Make it executable and move to PATH
+chmod +x monaco
+sudo mv monaco /usr/local/bin/
+# Other Linux architectures: monaco-linux-arm64, monaco-linux-386
+</code></pre>
+<h3>Windows (PowerShell)</h3>
+<pre><code class="language-powershell"># Download Monaco for Windows
+Invoke-WebRequest -Uri &quot;https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-windows-amd64.exe&quot; -OutFile &quot;monaco.exe&quot;
+
+# Move to a directory in your PATH
+Move-Item monaco.exe C:\Tools\monaco.exe
+</code></pre>
+<h3>Verify Installation</h3>
+<pre><code class="language-shellscript"># Verify Monaco is installed and check version
+monaco version
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Monaco releases are available at <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/releases">github.com/Dynatrace/dynatrace-configuration-as-code/releases</a>. Check for the latest version before installing.</p>
+</blockquote>
+<hr />
+<p><a id="create-access-token"></a></p>
+<h2>2. Create Access Token</h2>
+<p>This LAB works on a <strong>service-level objective</strong> (<code>type: slo-v2</code>), a platform configuration type, so it needs a <strong>platform token</strong> as well as a classic access token. Once the manifest has a platform token, Monaco sends Settings 2.0 through it too — the access token is then used for the classic Configuration APIs.</p>
+<h3>Platform Token Scopes (required for this LAB)</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>app-engine:apps:run</code></td>
+<td>Platform metadata lookup Monaco runs before any download or deploy</td>
+</tr>
+<tr>
+<td><code>settings:objects:read</code></td>
+<td>Download Settings 2.0 objects</td>
+</tr>
+<tr>
+<td><code>settings:objects:write</code></td>
+<td>Deploy Settings 2.0 objects</td>
+</tr>
+<tr>
+<td><code>settings:schemas:read</code></td>
+<td>Read Settings 2.0 schemas</td>
+</tr>
+<tr>
+<td><code>slo:slos:read</code></td>
+<td>Download SLOs (<code>--only-slo-v2</code>)</td>
+</tr>
+<tr>
+<td><code>slo:slos:write</code></td>
+<td>Deploy and delete SLOs</td>
+</tr>
+<tr>
+<td><code>slo:objective-templates:read</code></td>
+<td>Listed for <code>slo-v2</code> on the Monaco access-handling page</td>
+</tr>
+</tbody>
+</table>
+<p>Add the scopes for the other platform types only if the project will manage them — workflows, documents, segments and buckets each need their own scopes (read/write, plus delete for buckets, documents and segments); the Monaco access-handling page lists them per type. Create the token under <strong>My platform tokens</strong> (<code>https://myaccount.dynatrace.com/platformTokens</code>), ideally on a service user (AUTOM-04 §3).</p>
+<p>Checking the deployed SLO's evaluation in the app is done as <em>you</em>, so your own user needs read access to the data its SLI queries.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources">Monaco manifest and resources (DT docs)</a> — <code>app-engine:apps:run</code>: <em>&quot;This permission is required to access Dynatrace Platform metadata endpoints.&quot;</em>; <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/monaco-api-support-and-access-handling">Monaco API support and access handling (DT docs)</a> — <code>slo-v2</code> row: <code>slo:slos:read</code>, <code>slo:slos:write</code>, <code>slo:objective-templates:read</code>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a> — <em>&quot;This opens https://myaccount.dynatrace.com/platformTokens&quot;</em>; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/client/clientset.go">client set (Dynatrace GitHub)</a>. <strong>Derived:</strong> Settings 2.0 through the platform token is read from that file at v2.30.0, which builds the classic settings client only when no platform credential is configured.</sub></p>
+</blockquote>
+<h3>Access Token Scopes (classic Configuration APIs; Settings 2.0 only when no platform credential is configured)</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Access problem and event feed, metrics, and topology</code> (<code>DataExport</code>)</td>
+<td>Always required by Monaco</td>
+</tr>
+<tr>
+<td><code>Read configuration</code> (<code>ReadConfig</code>)</td>
+<td>Download classic API configs</td>
+</tr>
+<tr>
+<td><code>Write configuration</code> (<code>WriteConfig</code>)</td>
+<td>Deploy classic API configs</td>
+</tr>
+<tr>
+<td><code>Read settings</code> (<code>settings.read</code>)</td>
+<td>Settings 2.0 downloads in a manifest <strong>without</strong> a platform token</td>
+</tr>
+<tr>
+<td><code>Write settings</code> (<code>settings.write</code>)</td>
+<td>Settings 2.0 deploys in a manifest <strong>without</strong> a platform token</td>
+</tr>
+<tr>
+<td><code>Read SLO</code> (<code>slo.read</code>)</td>
+<td><em>Classic</em> SLOs only — not needed for <code>slo-v2</code></td>
+</tr>
+<tr>
+<td><code>Write SLO</code> (<code>slo.write</code>)</td>
+<td><em>Classic</em> SLOs only — not needed for <code>slo-v2</code></td>
+</tr>
+<tr>
+<td><code>Read entities</code> (<code>entities.read</code>)</td>
+<td>Entity queries during download</td>
+</tr>
+<tr>
+<td><code>Create and read synthetic monitors, locations, and nodes</code> (<code>ExternalSyntheticIntegration</code>)</td>
+<td>Synthetic config management</td>
+</tr>
+</tbody>
+</table>
+<p>Create the token in the environment under <strong>Access Tokens</strong> with the scopes above.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources">Monaco manifest and resources (DT docs)</a> — <em>&quot;Access tokens for the Dynatrace Monaco CLI always require at least the Access problem and event feed, metrics, and topology&quot;</em></sub></p>
+</blockquote>
+<h3>Set Environment Variables</h3>
+<pre><code class="language-shellscript"># Set your Dynatrace environment URL and tokens
+# Replace with your actual values. Use the PLATFORM URL (.apps.), not the classic .live. URL:
+# with a platform token in the manifest, Monaco looks up the classic URL from it.
+export DT_ENV_URL=&quot;https://&lt;your-environment-id&gt;.apps.dynatrace.com&quot;
+export DT_API_TOKEN=&quot;dt0c01.XXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY&quot;
+# Platform token for SLOs, workflows, documents, buckets and segments (manifest auth.platformToken)
+# Required for this LAB — the exercises use type: slo-v2
+export DT_PLATFORM_TOKEN=&quot;&lt;your-platform-token&gt;&quot;
+
+# Verify the variables are set
+echo &quot;Environment: $DT_ENV_URL&quot;
+echo &quot;Token set: $([ -n &quot;$DT_API_TOKEN&quot; ] &amp;&amp; echo yes || echo no)&quot;
+echo &quot;Platform token set: $([ -n &quot;$DT_PLATFORM_TOKEN&quot; ] &amp;&amp; echo yes || echo no)&quot;
+</code></pre>
+<blockquote>
+<p><strong>Warning:</strong> Never commit API tokens to version control. Use environment variables or a secrets manager.</p>
+</blockquote>
+<blockquote>
+<p><strong>If the URL is wrong:</strong> a <code>.live.</code> URL with a platform token fails on the first command with <em>&quot;make sure you are using a Dynatrace Platform URL and not a Dynatrace Classic URL when authenticating with an OAuth client or platform token&quot;</em>; a missing <code>app-engine:apps:run</code> scope fails with <em>&quot;oAuth client or platform token may be missing required scope 'app-engine:apps:run'&quot;</em>.</p>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/client/metadata/metadata.go">metadata client (Dynatrace GitHub)</a> — both error messages, v2.30.0.</sub></p>
+</blockquote>
+<hr />
+<p><a id="create-manifest-file"></a></p>
+<h2>3. Create Manifest File</h2>
+<p>The <code>manifest.yaml</code> is the entry point for every Monaco project. It defines which projects to manage and which environments to target.</p>
+<h3>Project Directory Setup</h3>
+<p>The cell below creates <code>dynatrace-config/</code> and changes into it. <strong>Run every later command from inside <code>dynatrace-config/</code></strong> — the paths in the rest of this LAB are relative to it.</p>
+<pre><code class="language-shellscript"># Create the project directory structure
+mkdir -p dynatrace-config/my-project
+cd dynatrace-config
+</code></pre>
+<h3>Manifest Format</h3>
+<p>Create <code>dynatrace-config/manifest.yaml</code> with this content:</p>
+<pre><code class="language-yaml">manifestVersion: &quot;1.0&quot;
+
+projects:
+  - name: my-project
+    path: my-project
+
+environmentGroups:
+  - name: default
+    environments:
+      - name: dev
+        url:
+          type: environment
+          value: DT_ENV_URL
+        auth:
+          token:
+            name: DT_API_TOKEN
+          platformToken:
+            name: DT_PLATFORM_TOKEN
+</code></pre>
+<h3>Field Reference</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>manifestVersion</code></td>
+<td>Always <code>&quot;1.0&quot;</code> for current Monaco</td>
+</tr>
+<tr>
+<td><code>projects[].name</code></td>
+<td>Logical name for the project</td>
+</tr>
+<tr>
+<td><code>projects[].path</code></td>
+<td>Relative path to the project directory</td>
+</tr>
+<tr>
+<td><code>environmentGroups[].name</code></td>
+<td>Group name (used for overrides)</td>
+</tr>
+<tr>
+<td><code>environments[].name</code></td>
+<td>Environment identifier (used with <code>--environment</code> flag)</td>
+</tr>
+<tr>
+<td><code>environments[].url.value</code></td>
+<td>Environment variable name containing the tenant URL — the platform (<code>.apps.</code>) URL when <code>platformToken</code> or <code>oAuth</code> is set</td>
+</tr>
+<tr>
+<td><code>environments[].auth.token.name</code></td>
+<td>Environment variable name containing the API (access) token — settings and classic configuration APIs</td>
+</tr>
+<tr>
+<td><code>environments[].auth.platformToken.name</code></td>
+<td>Environment variable name containing a platform token (Monaco 2.24.0+) — needed for workflows, documents, Grail buckets and segments. An <code>oAuth</code> client (<code>clientId.name</code> / <code>clientSecret.name</code>) is the alternative; you cannot define both</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> The <code>url.value</code> and <code>auth.token.name</code> fields reference <strong>environment variable names</strong>, not the actual URL or token values. Monaco reads the values from your shell environment at runtime. Access tokens and platform tokens are not interchangeable — with only <code>token</code> defined, <code>monaco download</code> returns Settings 2.0 and classic configurations but none of the platform types listed in §4 — including the SLOs this LAB works on.</p>
+</blockquote>
+<hr />
+<p><a id="download-existing-configuration"></a></p>
+<h2>4. Download Existing Configuration</h2>
+<p>Downloading is the fastest way to get started. Monaco exports your current tenant configuration into versioned YAML and JSON files.</p>
+<h3>Download All Configuration</h3>
+<pre><code class="language-shellscript"># Download all configuration from the dev environment
+monaco download --manifest manifest.yaml --environment dev --output-folder downloaded
+</code></pre>
+<h3>Download Specific Configuration Types</h3>
+<pre><code class="language-shellscript"># Download only SLOs and segments (platform types — needs auth.platformToken)
+monaco download --manifest manifest.yaml --environment dev --output-folder downloaded \
+  --only-slo-v2 --only-segments
+
+# Classic inventory, while the tenant still has them: specific Settings 2.0 schemas
+# monaco download --manifest manifest.yaml --environment dev --output-folder downloaded \
+#   --settings-schema builtin:alerting.profile,builtin:management-zones
+</code></pre>
+<h3>What Gets Downloaded</h3>
+<p>Monaco organizes downloaded configuration by type:</p>
+<table>
+<thead>
+<tr>
+<th>Config type</th>
+<th>Description</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>slo-v2</code></td>
+<td>SLOs on the modern SLO app</td>
+<td>SLO Service API objects</td>
+</tr>
+<tr>
+<td><code>segment</code></td>
+<td>Filter segments</td>
+<td>Segment definitions</td>
+</tr>
+<tr>
+<td><code>automation</code></td>
+<td>Workflows, business calendars, scheduling rules</td>
+<td>Automation API objects</td>
+</tr>
+<tr>
+<td><code>document</code></td>
+<td>Dashboards, notebooks, launchpads</td>
+<td>Document API objects</td>
+</tr>
+<tr>
+<td><code>bucket</code></td>
+<td>Grail buckets</td>
+<td>Bucket definitions</td>
+</tr>
+<tr>
+<td><code>settings</code></td>
+<td>Settings 2.0 objects</td>
+<td><code>builtin:davis.anomaly-detectors</code>, <code>builtin:ownership.teams</code>; classic estates also <code>builtin:alerting.profile</code>, <code>builtin:management-zones</code></td>
+</tr>
+<tr>
+<td><code>api</code> (internally <code>classic</code>)</td>
+<td>Classic Configuration APIs</td>
+<td><code>type: {api: request-attributes}</code> — request attributes, classic dashboards</td>
+</tr>
+</tbody>
+</table>
+<p>The type names are the <code>type:</code> fields from the <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields">Monaco type-fields reference (DT docs)</a>; a classic config is written <code>type: {api: &lt;name&gt;}</code>, not <code>type: classic</code>. The matching <code>--only-*</code> download flags are <code>--only-slo-v2</code>, <code>--only-segments</code>, <code>--only-automation</code>, <code>--only-documents</code>, <code>--only-buckets</code>, <code>--only-settings</code>, <code>--only-apis</code> (and, up to v2.30.x, <code>--only-openpipeline</code>), and can be combined. Monaco 2.31.0 (10/23/2026) removed the deprecated <code>openpipeline</code> type — the <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.31.0">release notes (Dynatrace GitHub)</a>: <em>&quot;Removed support for deprecated OpenPipeline configurations (type <code>openpipeline</code>)&quot;</em> — and its download command no longer has <code>--only-openpipeline</code>. OpenPipeline configuration is Settings 2.0 objects, so download it with <code>--only-settings</code> or <code>--settings-schema</code> with each <code>builtin:openpipeline.*</code> schema in use, plus <code>--admin-access</code> for pipelines other users own.</p>
+<blockquote>
+<p><strong>Platform types need platform auth.</strong> <code>slo-v2</code>, <code>document</code>, <code>automation</code>, <code>bucket</code> and <code>segment</code> configs come through the Platform APIs, so they appear only when the manifest environment has <code>auth.platformToken</code> or <code>auth.oAuth</code> (see §3).</p>
+</blockquote>
+<blockquote>
+<p><strong>Note:</strong> Some classic API types (<code>aws-credentials</code>, <code>azure-credentials</code>, <code>kubernetes-credentials</code>, <code>credential-vault</code>, <code>extension</code>) support deploy but <strong>not</strong> download — the <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/monaco-api-support-and-access-handling">Monaco API support and access handling (DT docs)</a> page marks each <em>&quot;It can't be downloaded.&quot;</em></p>
+</blockquote>
+<hr />
+<p><a id="explore-downloaded-configuration"></a></p>
+<h2>5. Explore Downloaded Configuration</h2>
+<p>After downloading, examine the directory structure and understand the file format.</p>
+<h3>Directory Structure</h3>
+<pre><code class="language-shellscript"># View the downloaded directory structure
+find downloaded -type f | head -30
+</code></pre>
+<p>Expected output looks like:</p>
+<pre><code>downloaded/
+  manifest.yaml
+  project_dev/
+    slo-v2/
+      config.yaml
+      &lt;template&gt;.json
+    segment/
+      config.yaml
+      &lt;template&gt;.json
+    ...
+</code></pre>
+<p>A manifest download writes a project named <code>project</code> with the environment appended — <code>project_dev</code> here — unless you pass <code>--project &lt;name&gt;</code> (and <code>--force</code> to stop the environment suffix). Folder names follow the config type, stripped of characters other than letters, digits, <code>-</code>, <code>_</code> and <code>.</code>; a Settings 2.0 download produces one folder per schema, so <code>builtin:management-zones</code> lands in <code>builtinmanagement-zones/</code>. Check your own download rather than relying on the exact names here.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco commands reference (DT docs)</a> — <em>&quot;By default, the project name is project .&quot;</em>; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/download/download_command.go">download command (Dynatrace GitHub)</a> — <code>--force</code>: <em>&quot;Manifest download: Never append the source environment name to the project folder name.&quot;</em>; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/internal/strings/sanitize.go">name sanitizer (Dynatrace GitHub)</a>.</sub></p>
+</blockquote>
+<h3>Example config.yaml</h3>
+<p>Each config type directory contains a <code>config.yaml</code> that references JSON template files:</p>
+<pre><code class="language-yaml">configs:
+  - id: checkout-availability
+    config:
+      name: &quot;Checkout availability&quot;
+      template: checkout-availability.json
+    type: slo-v2
+</code></pre>
+<h3>Key Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>Unique identifier for this config within the project</td>
+</tr>
+<tr>
+<td><code>config.name</code></td>
+<td>Display name in the Dynatrace UI</td>
+</tr>
+<tr>
+<td><code>config.template</code></td>
+<td>Path to the JSON payload file</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>The config type — <code>slo-v2</code>, <code>segment</code>, <code>{automation: {resource: workflow}}</code>, <code>{document: {kind: dashboard}}</code>, …</td>
+</tr>
+<tr>
+<td><code>type.settings.schema</code> / <code>type.settings.scope</code></td>
+<td>For Settings 2.0 configs only: the schema ID and the deployment scope (<code>environment</code>, <code>host</code>, <code>service</code>, …)</td>
+</tr>
+</tbody>
+</table>
+<h3>Examine a JSON Template</h3>
+<pre><code class="language-shellscript"># View the first downloaded SLO template
+f=$(find downloaded/project_dev/slo-v2 -name '*.json' | head -1)
+python3 -m json.tool &quot;$f&quot; | head -30
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> The JSON templates contain the exact payload that Monaco sends to the Dynatrace API. You can modify these files to change configuration values.</p>
+</blockquote>
+<hr />
+<p><a id="create-a-new-configuration"></a></p>
+<h2>6. Create a New Configuration</h2>
+<p>Create a new <strong>SLO</strong> from scratch to understand how Monaco configurations are authored. An SLO is a good first target: it is a single self-contained payload, it changes nothing about how your tenant alerts, and you can see it evaluate in the SLO app minutes after deploying.</p>
+<blockquote>
+<p><strong>Classic equivalent — earlier versions of this LAB</strong> created an alerting profile here. That still works on a tenant that has not been upgraded, but <code>builtin:alerting.profile</code> is on Dynatrace's list of <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a>; its successor is a problem-triggered workflow (<code>type: {automation: {resource: workflow}}</code>). The classic walkthrough is kept as a labelled block at the end of this section.</p>
+</blockquote>
+<h3>Step 1: Create the Directory</h3>
+<pre><code class="language-shellscript"># Create directory for SLO configs
+mkdir -p my-project/slo-v2   # run inside dynatrace-config/
+</code></pre>
+<h3>Step 2: Create config.yaml</h3>
+<p>Create <code>dynatrace-config/my-project/slo-v2/config.yaml</code>:</p>
+<pre><code class="language-yaml">configs:
+  - id: checkout-availability
+    config:
+      name: &quot;Checkout availability&quot;
+      template: checkout-availability.json
+      parameters:
+        slo_target: 99.0
+    type: slo-v2
+</code></pre>
+<h3>Step 3: Create the JSON Template</h3>
+<p>Create <code>dynatrace-config/my-project/slo-v2/checkout-availability.json</code>:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;{{ .name }}&quot;,
+  &quot;description&quot;: &quot;Request success ratio, rolling 7 days — Monaco LAB&quot;,
+  &quot;tags&quot;: [&quot;lab:monaco&quot;],
+  &quot;criteria&quot;: [
+    {
+      &quot;target&quot;: {{ .slo_target }},
+      &quot;warning&quot;: 99.5,
+      &quot;timeframeFrom&quot;: &quot;now-7d&quot;,
+      &quot;timeframeTo&quot;: &quot;now&quot;
+    }
+  ],
+  &quot;customSli&quot;: {
+    &quot;indicator&quot;: &quot;timeseries { total = sum(dt.service.request.count), failures = sum(dt.service.request.failure_count) }\n| fieldsAdd sli = ((total[] - failures[]) / total[]) * 100\n| fieldsRemove total, failures&quot;
+  }
+}
+</code></pre>
+<p>Three things to notice: <code>criteria</code> is a <strong>list</strong> (an SLO can carry more than one window); the SLI is a <strong>DQL query</strong> that must produce a timeseries field named <code>sli</code> — this one is SLO-02's availability query without <code>from:</code> / <code>interval:</code>, which the criteria supply; and <code>{{ .slo_target }}</code> is left <strong>unquoted</strong> so the rendered JSON carries a number. The shape matches Monaco's own <code>slo-v2</code> integration-test template.</p>
+<blockquote>
+<p><strong><code>--dry-run</code> will not catch a bad SLI.</strong> The template is valid JSON either way; a DQL error only surfaces when the SLO evaluates. Run the <code>indicator</code> query in a notebook first (add <code>, from:-7d</code> to the <code>timeseries</code> line there).</p>
+</blockquote>
+<h3>How References Work</h3>
+<p>Configurations reference each other with a <strong>reference parameter</strong> — <code>[project, configType, configId, property]</code>, or the long form below. For platform types <code>configType</code> is the type (<code>segment</code>, <code>slo-v2</code>, …); for Settings 2.0 it is the schema ID. To scope the SLO to a segment deployed from the same project:</p>
+<pre><code class="language-yaml">configs:
+  - id: checkout-availability
+    config:
+      name: &quot;Checkout availability&quot;
+      template: checkout-availability.json
+      parameters:
+        slo_target: 99.0
+        checkout_segment_id:
+          type: reference
+          configType: segment
+          configId: checkout-production
+          property: id
+    type: slo-v2
+</code></pre>
+<p>…and add <code>&quot;filterSegments&quot;: [{&quot;id&quot;: &quot;{{ .checkout_segment_id }}&quot;}]</code> inside <code>customSli</code>. Monaco resolves the reference per environment at deploy time and deploys the segment first. (The <code>{{ .&lt;type&gt;.&lt;id&gt;.id }}</code> form is Monaco v1 syntax and does not load in v2.)</p>
+<h3>Classic — the alerting-profile version of this exercise</h3>
+<blockquote>
+<p><strong>Dynatrace Classic — unupgraded tenants only.</strong> Kept for estates that still maintain alerting profiles. <em>&quot;Alerting profiles and problem notifications are Dynatrace Classic.&quot;</em> Delay (<code>delayInMinutes</code>) has no field on the successor object; it becomes the workflow trigger's <strong>Minimum duration</strong> option.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;The delay, update, and severity capabilities described in this guide exist only on the workflow trigger.&quot;</em>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Problem and event triggers (DT docs)</a> — <em>&quot;The Minimum duration option postpones the trigger until the problem has been open for at least the configured duration.&quot;</em></sub></p>
+</blockquote>
+<p><code>dynatrace-config/my-project/alerting-profiles/config.yaml</code>:</p>
+<pre><code class="language-yaml">configs:
+  - id: production-critical-alerts
+    config:
+      name: &quot;Production Critical Alerts&quot;
+      template: production-critical-alerts.json
+    type:
+      settings:
+        schema: builtin:alerting.profile
+        scope: environment
+</code></pre>
+<h4>Classic JSON template</h4>
+<p>Create <code>dynatrace-config/my-project/alerting-profiles/production-critical-alerts.json</code>:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;{{ .name }}&quot;,
+  &quot;severityRules&quot;: [
+    {
+      &quot;severityLevel&quot;: &quot;AVAILABILITY&quot;,
+      &quot;delayInMinutes&quot;: 0,
+      &quot;tagFilterIncludeMode&quot;: &quot;INCLUDE_ANY&quot;
+    },
+    {
+      &quot;severityLevel&quot;: &quot;ERRORS&quot;,
+      &quot;delayInMinutes&quot;: 5,
+      &quot;tagFilterIncludeMode&quot;: &quot;INCLUDE_ANY&quot;
+    },
+    {
+      &quot;severityLevel&quot;: &quot;PERFORMANCE&quot;,
+      &quot;delayInMinutes&quot;: 15,
+      &quot;tagFilterIncludeMode&quot;: &quot;INCLUDE_ANY&quot;
+    },
+    {
+      &quot;severityLevel&quot;: &quot;RESOURCE_CONTENTION&quot;,
+      &quot;delayInMinutes&quot;: 30,
+      &quot;tagFilterIncludeMode&quot;: &quot;INCLUDE_ANY&quot;
+    }
+  ]
+}
+</code></pre>
+<h4>Classic reference example</h4>
+<p>Configurations reference each other with a <strong>reference parameter</strong> — a list of <code>[project, configType, configId, property]</code>. For Settings 2.0 configs, <code>configType</code> is the schema ID:</p>
+<pre><code class="language-yaml">configs:
+  - id: notification-with-profile
+    config:
+      name: &quot;Slack Notification&quot;
+      template: slack-notification.json
+      parameters:
+        alerting_profile_id: [&quot;my-project&quot;, &quot;builtin:alerting.profile&quot;, &quot;production-critical-alerts&quot;, &quot;id&quot;]
+    type:
+      settings:
+        schema: builtin:problem.notifications
+        scope: environment
+</code></pre>
+<p>Monaco resolves these references during deployment, ensuring the correct runtime IDs are used; the template reads the value as <code>{{ .alerting_profile_id }}</code>. (The <code>{{ .&lt;type&gt;.&lt;id&gt;.id }}</code> form is Monaco v1 syntax and does not load in v2.)</p>
+<hr />
+<p><a id="validate-configuration"></a></p>
+<h2>7. Validate Configuration</h2>
+<p>Always dry-run before deploying. <code>--dry-run</code> parses the manifest and every config, checks that templates are valid JSON, and resolves references — <strong>without contacting the tenant</strong>, so it cannot catch payload, schema or permission errors.</p>
+<h3>Run Dry-Run Validation</h3>
+<pre><code class="language-shellscript"># Check file structure and references without deploying (no API calls)
+monaco deploy --dry-run manifest.yaml
+</code></pre>
+<h3>What Dry-Run Checks</h3>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>YAML syntax</strong></td>
+<td>Valid YAML in <code>manifest.yaml</code> and <code>config.yaml</code> files</td>
+</tr>
+<tr>
+<td><strong>JSON syntax</strong></td>
+<td>Valid JSON in template files</td>
+</tr>
+<tr>
+<td><strong>Reference resolution</strong></td>
+<td>Reference parameters (<code>[project, configType, configId, property]</code>) point at configs that exist</td>
+</tr>
+</tbody>
+</table>
+<p>What it does <strong>not</strong> check: the template against the Settings 2.0 schema, connectivity, or token scopes. The Monaco commands reference is explicit — <em>&quot;A dry-run doesn't connect to Dynatrace and can't validate the content of the JSON sent to Dynatrace.&quot;</em> A deploy can still fail with HTTP 400 after a clean dry-run.</p>
+<h3>Common Errors</h3>
+<table>
+<thead>
+<tr>
+<th>Error</th>
+<th>Surfaces at</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>template not found</code></td>
+<td>dry-run</td>
+<td>Wrong path in <code>config.template</code></td>
+<td>Use path relative to <code>config.yaml</code></td>
+</tr>
+<tr>
+<td><code>unresolved reference</code></td>
+<td>dry-run</td>
+<td>Referenced config ID does not exist</td>
+<td>Check spelling and project path</td>
+</tr>
+<tr>
+<td><code>invalid JSON</code></td>
+<td>dry-run</td>
+<td>Syntax error in template</td>
+<td>Run <code>python3 -m json.tool &lt;file&gt;</code> to find the error</td>
+</tr>
+<tr>
+<td><code>unknown schema</code></td>
+<td>deploy</td>
+<td>Typo in schema ID, or a schema removed in Latest Dynatrace</td>
+<td>Verify schema at Settings &gt; Schema in Dynatrace</td>
+</tr>
+<tr>
+<td><code>insufficient permissions</code></td>
+<td>deploy</td>
+<td>Token missing scopes</td>
+<td>Add the missing scope to the platform token (platform types and Settings 2.0) or the access token (classic APIs)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="deploy-configuration"></a></p>
+<h2>8. Deploy Configuration</h2>
+<p>After validation passes, deploy to your target environment.</p>
+<h3>Deploy to All Environments</h3>
+<pre><code class="language-shellscript"># Deploy to all environments defined in manifest.yaml
+monaco deploy manifest.yaml
+</code></pre>
+<h3>Deploy to a Specific Environment</h3>
+<pre><code class="language-shellscript"># Deploy only to the dev environment
+monaco deploy manifest.yaml --environment dev
+</code></pre>
+<h3>Expected Output</h3>
+<p>Illustrative — exact log lines vary by Monaco version:</p>
+<pre><code>2026-04-04T10:00:00Z  INFO  Loading manifest &quot;manifest.yaml&quot;
+2026-04-04T10:00:00Z  INFO  Projects to deploy: my-project
+2026-04-04T10:00:01Z  INFO  Deploying config checkout-availability (slo-v2) to dev...
+2026-04-04T10:00:02Z  INFO  Deployed 1/1 configs successfully
+</code></pre>
+<h3>Verify in Dynatrace</h3>
+<p>After deployment:</p>
+<ol>
+<li>Open the <strong>Service-Level Objectives</strong> app</li>
+<li>Confirm &quot;Checkout availability&quot; appears with the <code>lab:monaco</code> tag</li>
+<li>Check that it evaluates — a status and error budget, not an error — and that the target reads 99 (the <code>slo_target</code> parameter)</li>
+</ol>
+<h3>Deploy a Specific Project</h3>
+<pre><code class="language-shellscript"># Deploy only a specific project (useful when manifest has multiple projects)
+monaco deploy manifest.yaml --project my-project
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> Monaco uses the config <code>id</code> as an idempotency key. Re-deploying the same config updates it in place rather than creating duplicates.</p>
+</blockquote>
+<hr />
+<p><a id="delete-configuration"></a></p>
+<h2>9. Delete Configuration</h2>
+<p>Monaco can remove configurations that are no longer needed.</p>
+<h3>Create a delete.yaml File</h3>
+<p>Create <code>dynatrace-config/delete.yaml</code>:</p>
+<pre><code class="language-yaml">delete:
+  - project: my-project
+    type: slo-v2
+    id: checkout-availability
+</code></pre>
+<h3>Execute Delete</h3>
+<p>The <code>type</code> is Monaco's config type (<code>slo-v2</code>) — or, for a Settings 2.0 object such as the classic alerting profile, the schema ID (<code>builtin:alerting.profile</code>). Non-classic entries need <code>project</code> and <code>id</code> together.</p>
+<pre><code class="language-shellscript"># Delete configurations listed in delete.yaml
+# Note: the manifest is passed via --manifest, not as a positional argument
+monaco delete --manifest manifest.yaml --file delete.yaml --environment dev
+</code></pre>
+<h3>Delete Behavior</h3>
+<table>
+<thead>
+<tr>
+<th>Behavior</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Scope</strong></td>
+<td>A <code>project</code> + <code>id</code> entry matches only an object Monaco created or onboarded. An <code>objectId</code> entry names one object directly, and a classic-API <code>name</code> entry matches whichever object has that name — including objects created in the UI</td>
+</tr>
+<tr>
+<td><strong>Not reversible</strong></td>
+<td>Re-deploying the config recreates it; it does not bring back the deleted object, so check anything that referenced the deleted object's ID</td>
+</tr>
+<tr>
+<td><strong>Environment-specific</strong></td>
+<td>Use <code>--environment</code> to target a single environment</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Warning:</strong> The <code>delete</code> command is irreversible for the target environment, and it has <strong>no <code>--dry-run</code></strong>. Review <code>delete.yaml</code> in a pull request and run it against a non-production environment first (<code>--environment dev</code>).</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources">Monaco manifest and resources (DT docs)</a> — <em>&quot;Monaco can delete objects that are created by, and/or onboarded to, Monaco.&quot;</em>; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/delete/command.go">delete command (Dynatrace GitHub)</a> — flags <code>--manifest</code>, <code>--file</code>, <code>--group</code>, <code>--environment</code> only; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/resource/classic/delete.go">classic deleter (Dynatrace GitHub)</a> — resolves a <code>name</code> entry against every object the API returns.</sub></p>
+</blockquote>
+<hr />
+<p><a id="multi-environment-promotion"></a></p>
+<h2>10. Multi-Environment Promotion</h2>
+<p>A core Monaco strength is deploying the same configuration across dev, staging, and production with environment-specific overrides.</p>
+<h3>Multi-Environment Manifest</h3>
+<p>This manifest <strong>replaces</strong> the single-environment one from §3. It needs nine variables — <code>DT_&lt;ENV&gt;_URL</code> (the <code>.apps.</code> platform URL), <code>DT_&lt;ENV&gt;_TOKEN</code> and <code>DT_&lt;ENV&gt;_PLATFORM_TOKEN</code> for each of <code>DEV</code>, <code>STAGING</code> and <code>PROD</code> — and every command that touches an environment fails if one of that environment's variables is unset.</p>
+<pre><code class="language-yaml">manifestVersion: &quot;1.0&quot;
+
+projects:
+  - name: my-project
+    path: my-project
+
+environmentGroups:
+  - name: default
+    environments:
+      - name: dev
+        url:
+          type: environment
+          value: DT_DEV_URL
+        auth:
+          token:
+            name: DT_DEV_TOKEN
+          platformToken:
+            name: DT_DEV_PLATFORM_TOKEN
+      - name: staging
+        url:
+          type: environment
+          value: DT_STAGING_URL
+        auth:
+          token:
+            name: DT_STAGING_TOKEN
+          platformToken:
+            name: DT_STAGING_PLATFORM_TOKEN
+      - name: prod
+        url:
+          type: environment
+          value: DT_PROD_URL
+        auth:
+          token:
+            name: DT_PROD_TOKEN
+          platformToken:
+            name: DT_PROD_PLATFORM_TOKEN
+</code></pre>
+<h3>Environment-Specific Overrides</h3>
+<p>Use <code>environmentOverrides</code> (per environment) or <code>groupOverrides</code> (per environment group) in <code>config.yaml</code> to customize values. Both sit at the config level, as siblings of <code>config:</code>:</p>
+<pre><code class="language-yaml">configs:
+  - id: checkout-availability
+    config:
+      name: &quot;Checkout availability&quot;
+      template: checkout-availability.json
+      parameters:
+        slo_target: 99.0
+    type: slo-v2
+    environmentOverrides:
+      - environment: staging
+        override:
+          parameters:
+            slo_target: 99.5
+      - environment: prod
+        override:
+          parameters:
+            slo_target: 99.9
+</code></pre>
+<h3>Promotion Workflow</h3>
+<pre><code class="language-shellscript"># Step 1: Deploy to dev and validate
+monaco deploy manifest.yaml --environment dev
+
+# Step 2: Deploy to staging after dev validation
+monaco deploy manifest.yaml --environment staging
+
+# Step 3: Deploy to production after staging validation
+monaco deploy manifest.yaml --environment prod
+</code></pre>
+<h3>Skip Configs in Certain Environments</h3>
+<p><code>skip</code> is a boolean on <code>config:</code>. Default it to <code>false</code> and override it to <code>true</code> for the environments to exclude:</p>
+<pre><code class="language-yaml">configs:
+  - id: debug-dashboard
+    config:
+      name: &quot;Debug Dashboard&quot;
+      template: debug-dashboard.json
+      skip: false
+    type:
+      document:
+        kind: dashboard
+    environmentOverrides:
+      - environment: prod
+        override:
+          skip: true
+</code></pre>
+<p>This deploys the debug dashboard to dev and staging but skips production entirely.</p>
+<h3>Validate Dashboard Configs Before Deploying Them</h3>
+<p><code>monaco deploy --dry-run</code> is the pre-deploy gate. Run it before every real deploy; it resolves the manifest and references and checks template JSON without contacting the tenant, so a broken reference or an unresolved <code>type: environment</code> parameter with no <code>default</code> surfaces before it reaches a tenant.</p>
+<p>For dashboard configs specifically, <code>--dry-run</code> is necessary but not sufficient: it validates the Monaco configuration around the template, not the dashboard document inside <code>template: &lt;file&gt;.json</code>. To Monaco that file is an opaque payload.</p>
+<blockquote>
+<p><strong>Forthcoming/rolling out (SaaS 1.344): a dashboard that fails validation will no longer load.</strong> Published 07/27/2026, staged tenant rollout from 07/29/2026 — verify whether it has reached your tenant. Before 1.344 a failing dashboard still loaded and surfaced validation warnings; after, it does not load at all, and Dynatrace names <strong>API- and AI-authored</strong> dashboards as the most affected population — which is what a Monaco-templated dashboard is. So after a dry-run passes, deploy to a non-production environment and <strong>open the dashboard in the Dashboards app to confirm zero validation warnings</strong> before promoting to prod. Prefer exporting a working UI-authored dashboard as your template over hand-writing the tile map. Full gate: <strong>DASH-07 §5</strong>.</p>
+</blockquote>
+<hr />
+<p><a id="github-actions-cicd-pipeline"></a></p>
+<h2>11. GitHub Actions CI/CD Pipeline</h2>
+<p>Automate Monaco deployments with a GitHub Actions workflow that validates on pull requests and deploys on merge to main.</p>
+<h3>Workflow File</h3>
+<p>Create <code>.github/workflows/monaco-deploy.yml</code>:</p>
+<pre><code class="language-yaml">name: Deploy Dynatrace Config
+
+on:
+  push:
+    branches: [main]
+    paths: ['dynatrace-config/**']
+  pull_request:
+    branches: [main]
+    paths: ['dynatrace-config/**']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Monaco
+        run: |
+          curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
+          chmod +x monaco
+          sudo mv monaco /usr/local/bin/
+
+      - name: Validate (dry-run)
+        run: monaco deploy --dry-run dynatrace-config/manifest.yaml --environment dev
+        env:
+          DT_ENV_URL: ${{ secrets.DT_ENV_URL }}
+          DT_API_TOKEN: ${{ secrets.DT_API_TOKEN }}
+          DT_PLATFORM_TOKEN: ${{ secrets.DT_PLATFORM_TOKEN }}
+
+  deploy:
+    needs: validate
+    if: github.ref == 'refs/heads/main' &amp;&amp; github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Monaco
+        run: |
+          curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
+          chmod +x monaco
+          sudo mv monaco /usr/local/bin/
+
+      - name: Deploy to Dynatrace
+        run: monaco deploy dynatrace-config/manifest.yaml --environment dev
+        env:
+          DT_ENV_URL: ${{ secrets.DT_ENV_URL }}
+          DT_API_TOKEN: ${{ secrets.DT_API_TOKEN }}
+          DT_PLATFORM_TOKEN: ${{ secrets.DT_PLATFORM_TOKEN }}
+</code></pre>
+<h3>Workflow Explanation</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Trigger</th>
+<th>What Happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>validate</strong></td>
+<td>Every PR and push to <code>main</code></td>
+<td>Installs Monaco, runs <code>--dry-run</code> to catch errors</td>
+</tr>
+<tr>
+<td><strong>deploy</strong></td>
+<td>Only on push to <code>main</code></td>
+<td>Installs Monaco, deploys all configurations to <code>dev</code></td>
+</tr>
+</tbody>
+</table>
+<p>The dry-run still needs the variables: Monaco resolves the manifest's environment variables when it loads the manifest, dry-run included, so a job without them fails with <em>environment-variable &quot;…&quot; was not found</em>.</p>
+<h3>Configure GitHub Secrets</h3>
+<p>Add these secrets to your GitHub repository (<strong>Settings &gt; Secrets and variables &gt; Actions</strong>):</p>
+<table>
+<thead>
+<tr>
+<th>Secret Name</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DT_ENV_URL</code></td>
+<td>Your Dynatrace platform URL (e.g., <code>https://abc12345.apps.dynatrace.com</code>)</td>
+</tr>
+<tr>
+<td><code>DT_API_TOKEN</code></td>
+<td>Access token with the §2 access-token scopes</td>
+</tr>
+<tr>
+<td><code>DT_PLATFORM_TOKEN</code></td>
+<td>Platform token referenced by <code>auth.platformToken</code> in the manifest</td>
+</tr>
+</tbody>
+</table>
+<h3>Multi-Environment CI/CD</h3>
+<p>For promotion across environments, use the multi-environment manifest from §10 and replace the <code>jobs:</code> block above. Every job names its environment with <code>--environment</code> — without it Monaco deploys to <strong>all</strong> environments in the manifest, so a single <code>deploy</code> job would reach prod before staging — and every job sets that environment's three variables:</p>
+<pre><code class="language-yaml">jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Monaco
+        run: |
+          curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
+          chmod +x monaco
+          sudo mv monaco /usr/local/bin/
+      - name: Validate all environments (dry-run)
+        run: monaco deploy --dry-run dynatrace-config/manifest.yaml --environment dev,staging,prod
+        env:
+          DT_DEV_URL: ${{ secrets.DT_DEV_URL }}
+          DT_DEV_TOKEN: ${{ secrets.DT_DEV_TOKEN }}
+          DT_DEV_PLATFORM_TOKEN: ${{ secrets.DT_DEV_PLATFORM_TOKEN }}
+          DT_STAGING_URL: ${{ secrets.DT_STAGING_URL }}
+          DT_STAGING_TOKEN: ${{ secrets.DT_STAGING_TOKEN }}
+          DT_STAGING_PLATFORM_TOKEN: ${{ secrets.DT_STAGING_PLATFORM_TOKEN }}
+          DT_PROD_URL: ${{ secrets.DT_PROD_URL }}
+          DT_PROD_TOKEN: ${{ secrets.DT_PROD_TOKEN }}
+          DT_PROD_PLATFORM_TOKEN: ${{ secrets.DT_PROD_PLATFORM_TOKEN }}
+
+  deploy-dev:
+    needs: validate
+    if: github.ref == 'refs/heads/main' &amp;&amp; github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Monaco
+        run: |
+          curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
+          chmod +x monaco
+          sudo mv monaco /usr/local/bin/
+      - name: Deploy to dev
+        run: monaco deploy dynatrace-config/manifest.yaml --environment dev
+        env:
+          DT_DEV_URL: ${{ secrets.DT_DEV_URL }}
+          DT_DEV_TOKEN: ${{ secrets.DT_DEV_TOKEN }}
+          DT_DEV_PLATFORM_TOKEN: ${{ secrets.DT_DEV_PLATFORM_TOKEN }}
+
+  deploy-staging:
+    needs: deploy-dev
+    if: github.ref == 'refs/heads/main' &amp;&amp; github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Monaco
+        run: |
+          curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
+          chmod +x monaco
+          sudo mv monaco /usr/local/bin/
+      - name: Deploy to staging
+        run: monaco deploy dynatrace-config/manifest.yaml --environment staging
+        env:
+          DT_STAGING_URL: ${{ secrets.DT_STAGING_URL }}
+          DT_STAGING_TOKEN: ${{ secrets.DT_STAGING_TOKEN }}
+          DT_STAGING_PLATFORM_TOKEN: ${{ secrets.DT_STAGING_PLATFORM_TOKEN }}
+
+  deploy-prod:
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main' &amp;&amp; github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Monaco
+        run: |
+          curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
+          chmod +x monaco
+          sudo mv monaco /usr/local/bin/
+      - name: Deploy to prod
+        run: monaco deploy dynatrace-config/manifest.yaml --environment prod
+        env:
+          DT_PROD_URL: ${{ secrets.DT_PROD_URL }}
+          DT_PROD_TOKEN: ${{ secrets.DT_PROD_TOKEN }}
+          DT_PROD_PLATFORM_TOKEN: ${{ secrets.DT_PROD_PLATFORM_TOKEN }}
+</code></pre>
+<p>Add the nine <code>DT_&lt;ENV&gt;_URL</code> / <code>DT_&lt;ENV&gt;_TOKEN</code> / <code>DT_&lt;ENV&gt;_PLATFORM_TOKEN</code> secrets. Each deploy job waits for the previous one, so prod only runs after staging succeeds.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco commands reference (DT docs)</a> — <em>&quot;If neither --group nor --environment is present, all environments are used.&quot;</em>; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/manifest/loader/manifest_loader.go">manifest loader (Dynatrace GitHub)</a> — <code>environment-variable %q was not found</code>, <code>requested environment %q not found</code>.</sub></p>
+</blockquote>
+<p>Use GitHub <a href="https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments">Environments</a> with required reviewers to gate production deployments.</p>
+<hr />
+<p><a id="summary-checklist"></a></p>
+<h2>12. Summary &amp; Checklist</h2>
+<h3>Deployment Checklist</h3>
+<ul>
+<li>[ ] Monaco CLI installed and <code>monaco version</code> returns output</li>
+<li>[ ] Platform token created with the §2 scopes (<code>app-engine:apps:run</code>, the three <code>settings:</code> scopes and the three <code>slo:</code> scopes), plus an access token with <code>DataExport</code></li>
+<li>[ ] <code>DT_ENV_URL</code> set to the platform (<code>.apps.</code>) URL</li>
+<li>[ ] <code>manifest.yaml</code> created with correct environment variable references</li>
+<li>[ ] Downloaded existing configuration with <code>monaco download</code></li>
+<li>[ ] Explored directory structure and understood <code>config.yaml</code> format</li>
+<li>[ ] Created a new configuration (an <code>slo-v2</code> SLO with a DQL SLI) from scratch</li>
+<li>[ ] Validated with <code>monaco deploy --dry-run</code> (no errors)</li>
+<li>[ ] Deployed to target environment with <code>monaco deploy</code></li>
+<li>[ ] Verified deployed config in Dynatrace UI</li>
+<li>[ ] Tested delete workflow with <code>delete.yaml</code></li>
+<li>[ ] Configured multi-environment promotion with overrides</li>
+<li>[ ] Created GitHub Actions workflow for CI/CD</li>
+</ul>
+<h3>Key Takeaways</h3>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Manifest</strong></td>
+<td>Entry point defining projects and environments</td>
+</tr>
+<tr>
+<td><strong>Config Types</strong></td>
+<td><code>slo-v2</code>, <code>segment</code>, <code>automation</code>, <code>document</code>, <code>bucket</code>, <code>settings</code>, <code>api</code> (classic) — platform types need <code>auth.platformToken</code> or <code>auth.oAuth</code></td>
+</tr>
+<tr>
+<td><strong>Download</strong></td>
+<td>Export existing tenant config to versioned files</td>
+</tr>
+<tr>
+<td><strong>Dry-Run</strong></td>
+<td>Always dry-run before deploying — structure and references only, no API calls</td>
+</tr>
+<tr>
+<td><strong>Deploy</strong></td>
+<td>Idempotent -- re-running updates in place</td>
+</tr>
+<tr>
+<td><strong>Delete</strong></td>
+<td>Removes exactly the entries in <code>delete.yaml</code> — no dry-run, not reversible</td>
+</tr>
+<tr>
+<td><strong>Overrides</strong></td>
+<td><code>environmentOverrides</code> / <code>groupOverrides</code> for per-environment values and <code>skip</code></td>
+</tr>
+<tr>
+<td><strong>CI/CD</strong></td>
+<td>Validate on PR, deploy on merge to main</td>
+</tr>
+</tbody>
+</table>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco">Monaco Documentation</a></li>
+<li><a href="https://github.com/Dynatrace/dynatrace-configuration-as-code">Monaco GitHub Repository</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/monaco-api-support-and-access-handling">Monaco API support and access handling (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas">Settings Schema Reference</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco commands reference (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas">Monaco configuration YAML reference (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a></li>
+</ul>
+<hr />
+<p><em>Return to <strong>AUTOM-03: Monaco Configuration-as-Code</strong> for the lecture content, or continue to <strong>AUTOM-04: Terraform Provider</strong>.</em></p>
+<h3>Community Resources</h3>
+<table>
+<thead>
+<tr>
+<th>Repository</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/Dynatrace/dynatrace-configuration-as-code">dynatrace-configuration-as-code</a></td>
+<td>Official Monaco CLI (v2.30.0 at time of writing, released 09/23/2026)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code">community-examples / configuration-as-code</a></td>
+<td>9 starter templates in <code>basic-templates-monaco</code>, plus pipeline observability samples (moved here from the archived <code>dynatrace-configuration-as-code-samples</code> repo)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/easytrade">easytrade</a></td>
+<td>Real-world Monaco project structure with manifest.yaml</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/Dynatrace-Config-Manager">Dynatrace-Config-Manager</a></td>
+<td><strong>Archived</strong> — historical reference only</td>
+</tr>
+<tr>
+<td><a href="https://github.com/dynatrace-ace/monaco-self-paced-exercises">monaco-self-paced-exercises</a></td>
+<td>6 structured exercises (install, auto-tag, download, variables, delete/restore, linking)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/dt-demos/monaco-demo">monaco-demo</a></td>
+<td>Working GitHub Actions workflow for Monaco deploy</td>
+</tr>
+</tbody>
+</table>
+<p><a id="community-resources"></a></p>
+<h2>Community Resources &amp; Examples</h2>
+<p>After completing the hands-on steps above, these repositories provide deeper examples and exercises to reinforce what you've practiced:</p>
+<h3>Official Repositories</h3>
+<table>
+<thead>
+<tr>
+<th>Repository</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/Dynatrace/dynatrace-configuration-as-code">dynatrace-configuration-as-code</a></td>
+<td>Official Monaco CLI (v2.30.0 at time of writing, released 09/23/2026) — Go binary, Apache-2.0</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code">community-examples / configuration-as-code</a></td>
+<td>Current home of the Monaco samples, including 9 starter templates in <code>basic-templates-monaco</code> (mostly schemas removed in Latest Dynatrace — syntax examples, not templates for a new tenant). The old <code>dynatrace-configuration-as-code-samples</code> repo is archived: <em>&quot;The Dynatrace Configuration as Code samples are no longer maintained here.&quot;</em></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/easytrade">easytrade</a></td>
+<td>Demo microservices app with a working <code>monaco/</code> directory (manifest.yaml, detection rules, workflows)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/Dynatrace-Config-Manager">Dynatrace-Config-Manager</a></td>
+<td><strong>Archived</strong> — <em>&quot;This repository has been archived and is no longer maintained.&quot;</em> Historical reference only</td>
+</tr>
+</tbody>
+</table>
+<h3>Training &amp; Exercises (recommended next)</h3>
+<table>
+<thead>
+<tr>
+<th>Repository</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/dynatrace-ace/monaco-self-paced-exercises">monaco-self-paced-exercises</a></td>
+<td>6 structured exercises: install, auto-tag, download, variables, delete/restore, linking configs</td>
+</tr>
+<tr>
+<td><a href="https://github.com/dt-demos/monaco-demo">monaco-demo</a></td>
+<td>Working GitHub Actions workflow for Monaco deploy with &quot;crawl-walk-run&quot; adoption methodology</td>
+</tr>
+</tbody>
+</table>
+<h3>Pipeline Observability Samples</h3>
+<p>Monaco configurations for ingesting CI/CD pipeline events via OpenPipeline, under <code>community-examples/configuration-as-code/</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Directory</th>
+<th>CI/CD Platform</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>github_pipeline_observability</code></td>
+<td>GitHub Actions</td>
+</tr>
+<tr>
+<td><code>gitlab_pipeline_observability</code></td>
+<td>GitLab CI</td>
+</tr>
+<tr>
+<td><code>azure_devops_observability</code></td>
+<td>Azure DevOps</td>
+</tr>
+<tr>
+<td><code>argocd_observability</code></td>
+<td>ArgoCD</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Monaco v1 (<code>dynatrace-oss/dynatrace-monitoring-as-code</code>) is no longer supported. Current Monaco releases have no conversion command: <em>&quot;The last Monaco version to support the convert command is Monaco version 2.19.0.&quot;</em> Either run Monaco 2.19.0's <code>convert</code> per the <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/guides/migrating-to-v2">migrating to v2 guide (DT docs)</a>, or re-run <code>monaco download</code> against the source tenant.</p>
+</blockquote>
+<hr />
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

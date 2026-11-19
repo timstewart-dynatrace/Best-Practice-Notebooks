@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WEBRUM-02: SPA Instrumentation</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WEBRUM — Web Real User Monitoring</a><span class="sep">/</span><span aria-current="page">WEBRUM-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WEBRUM-02: SPA Instrumentation</h1>
+<blockquote>
+<p><strong>Series:</strong> WEBRUM — Web Real User Monitoring | <strong>Notebook:</strong> 2 of 10 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Single-Page Applications (SPAs) present unique challenges for Real User Monitoring. Unlike traditional multi-page apps where each navigation triggers a full page load, SPAs dynamically update content via JavaScript — meaning route changes, data fetches, and user interactions happen without the browser firing standard navigation events. Dynatrace addresses this with automatic SPA detection, XHR/fetch monitoring, route change tracking, and custom action naming.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#spa-monitoring-challenges">SPA Monitoring Challenges</a></li>
+<li><a href="#rum-injection-methods">RUM Injection Methods</a></li>
+<li><a href="#route-change-detection">Route Change Detection</a></li>
+<li><a href="#framework-specific">Framework-Specific Instrumentation</a></li>
+<li><a href="#custom-action-naming">Custom Action Naming</a></li>
+<li><a href="#xhr-fetch-monitoring">XHR and Fetch Monitoring</a></li>
+<li><a href="#validating-instrumentation">Validating SPA Instrumentation</a></li>
+<li><a href="#hybrid-apps">Hybrid Apps: Mobile WebView + Desktop</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>RUM Enabled</strong></td>
+<td>At least one SPA with RUM injection active</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:user.sessions:read</code>, <code>storage:entities:read</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Familiarity with SPA frameworks (Angular, React, or Vue.js)</td>
+</tr>
+<tr>
+<td><strong>Previous Notebook</strong></td>
+<td>WEBRUM-01: RUM Fundamentals</td>
+</tr>
+</tbody>
+</table>
+<p><a id="spa-monitoring-challenges"></a></p>
+<h2>1. SPA Monitoring Challenges</h2>
+<p>Traditional RUM relies on browser navigation events (<code>load</code>, <code>DOMContentLoaded</code>) to detect page loads. SPAs break this model:</p>
+<table>
+<thead>
+<tr>
+<th>Challenge</th>
+<th>Traditional App</th>
+<th>SPA</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Page load detection</strong></td>
+<td>Browser <code>load</code> event fires on every page</td>
+<td>Only fires once on initial load</td>
+</tr>
+<tr>
+<td><strong>Route changes</strong></td>
+<td>Full HTTP request per page</td>
+<td>JavaScript updates the URL and DOM</td>
+</tr>
+<tr>
+<td><strong>Data fetching</strong></td>
+<td>Server renders HTML with data</td>
+<td>Client fetches data via XHR/fetch after load</td>
+</tr>
+<tr>
+<td><strong>User interactions</strong></td>
+<td>Links trigger navigation</td>
+<td>Clicks trigger state changes without navigation</td>
+</tr>
+<tr>
+<td><strong>Timing measurement</strong></td>
+<td>Navigation Timing API covers full load</td>
+<td>Custom timing needed for virtual route changes</td>
+</tr>
+</tbody>
+</table>
+<p>Dynatrace handles these by:</p>
+<ul>
+<li><strong>Monitoring <code>history.pushState</code> and <code>hashchange</code></strong> events for route detection</li>
+<li><strong>Tracking XHR/fetch calls</strong> triggered by user interactions</li>
+<li><strong>Grouping related XHR calls</strong> into a single user action</li>
+<li><strong>Detecting framework-specific lifecycle events</strong> for Angular, React, and Vue.js</li>
+</ul>
+<blockquote>
+<p><strong>Important:</strong> SPA monitoring requires the <strong>Async Web Requests</strong> and <strong>SPA route changes</strong> capture settings to be enabled in your web application configuration.</p>
+</blockquote>
+<p><a id="rum-injection-methods"></a></p>
+<h2>2. RUM Injection Methods</h2>
+<p>For SPAs, choose the injection method that matches your deployment architecture:</p>
+<h3>Automatic Injection (the default where OneAgent runs)</h3>
+<p>If your SPA is served by a web server with OneAgent installed in full-stack mode, injection happens automatically. OneAgent modifies the HTML response to include the RUM JavaScript snippet in the <code>&lt;head&gt;</code> section.</p>
+<pre><code class="language-html">&lt;!-- Automatically injected by OneAgent --&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;/ruxitagentjs_...&quot; data-dtconfig=&quot;...&quot;&gt;&lt;/script&gt;
+</code></pre>
+<h3>Manual Injection</h3>
+<p>For SPAs served from CDNs or static hosting (S3, Netlify, Vercel) where no server-side OneAgent exists:</p>
+<pre><code class="language-html">&lt;!-- Add to &lt;head&gt; before other scripts --&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;https://your-activegate/jstag/managed/.../ruxitagentjs_...&quot; 
+        data-dtconfig=&quot;...&quot;&gt;&lt;/script&gt;
+</code></pre>
+<h3>Agentless RUM (JavaScript Tag)</h3>
+<p>For environments where you cannot install OneAgent at all:</p>
+<ol>
+<li>Navigate to <strong>Digital Experience &gt; Web Applications &gt; Your App &gt; Setup</strong></li>
+<li>Select <strong>Agentless monitoring</strong></li>
+<li>Copy the generated <code>&lt;script&gt;</code> tag</li>
+<li>Paste into your application's <code>index.html</code></li>
+</ol>
+<blockquote>
+<p><strong>Tip:</strong> For SPAs built with modern bundlers (Webpack, Vite), you can inject the RUM tag via an HTML plugin to keep it out of source code.</p>
+</blockquote>
+<blockquote>
+<p><strong>New RUM cookies (SaaS 1.348, rollout from 10/12/2026, staged).</strong> Once your tenant has been upgraded, RUM sets additional cookies. Check anything that filters or allowlists cookies by name before the upgrade reaches you: CDN and WAF rules, consent managers, and cookie-size limits. Dynatrace provides a setting that upgrades only the RUM cookies first, so you can test this on its own. The current cookie list, all first-party, is on the RUM cookies and web storage page.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in SaaS 1.348 (DT docs)</a> — <em>&quot;To help you identify and resolve any compatibility issues with your infrastructure before upgrading the tenant, a setting is provided to upgrade only the RUM cookies.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/rum-cookies-and-web-storage">Cookies and client-side storage for RUM and Session Replay (DT docs)</a> — <em>&quot;These are all first-party cookies.&quot;</em>; re-read 11/11/2026. <strong>Derived:</strong> the list of infrastructure to check follows from cookies being added, not from either page.</sub></p>
+</blockquote>
+<p><a id="route-change-detection"></a></p>
+<h2>3. Route Change Detection</h2>
+<p>Dynatrace detects SPA route changes by monitoring:</p>
+<ul>
+<li><strong><code>history.pushState()</code> / <code>history.replaceState()</code></strong> — Used by most modern SPAs</li>
+<li><strong><code>hashchange</code> events</strong> — Used by hash-based routing (e.g., <code>/#/page</code>)</li>
+<li><strong>Framework-specific routing</strong> — Angular Router, React Router, Vue Router</li>
+</ul>
+<p>In New RUM, each detected route change is a soft navigation: a navigation event, and a user action with <code>user_action.type == &quot;soft_navigation&quot;</code>. The fields to query:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user_action.type</code></td>
+<td><code>soft_navigation</code> — <em>&quot;triggered by a soft navigation that led to a view change&quot;</em> (Classic: <code>RouteChange</code>)</td>
+</tr>
+<tr>
+<td><code>page.detected_name</code></td>
+<td>The page the route change happened on</td>
+</tr>
+<tr>
+<td><code>characteristics.has_navigation</code></td>
+<td><code>true</code> on the navigation event the route change emits</td>
+</tr>
+<tr>
+<td><code>duration</code></td>
+<td>Duration of the user action</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/user-actions">User actions — semantic dictionary (DT docs)</a> — <em>&quot;The user action was triggered by a soft navigation that led to a view change.&quot;</em></sub></p>
+</blockquote>
+<p>Let's query route change actions to validate detection:</p>
+<pre><code class="language-dql">// Error / navigation vocabulary corrected 08/12/2026 (New RUM):
+//   filter type == &quot;Error&quot;  -&gt; filter characteristics.has_error == true  (11,909 events; identical
+//                              population to isNotNull(error.type), whose values are request/csp/exception)
+//   error.message           -&gt; error.reason
+//   user_action.type: &quot;Load&quot; -&gt; &quot;hard_navigation&quot;, &quot;RouteChange&quot; -&gt; &quot;soft_navigation&quot;,
+//                     &quot;Xhr&quot; -&gt; &quot;same_view&quot;, &quot;Custom&quot; -&gt; &quot;api&quot; (documented values, corrected 10/05/2026)
+//   connection.type         -&gt; no web RUM equivalent (network.connection.type is OneAgent for Mobile
+//                              only; network.protocol.name is the OSI protocol, e.g. &quot;http&quot;)
+// THE EVENT CHARACTERISTIC MATTERS AS MUCH AS THE FIELD: navigation-timing fields
+// (performance.dom_interactive, performance.load_event_end) live on navigation events
+// (characteristics.has_navigation) and are unpopulated on page summaries
+// (characteristics.has_page_summary), so a page-summary filter silently empties them.
+// ttfb.* is the opposite — it lives on page summaries. Select with the stable has_* flags, not
+// characteristics.classifier (corrected 09/28/2026): the docs call classifier &quot;not intended for
+// query usage&quot; and Semantic Dictionary 1.349 removes it from the user-event models (re-listed in SD 1.350, still not for query use).
+// Field vocabulary corrected 08/12/2026 — this series targets **New RUM**, but was written
+// against names that are null on New RUM data, so these cells returned nothing while erroring
+// nowhere. Verified against 5,556,127 user.events records (schema 0.24.0, javascript agent):
+//   action.type == &quot;Load&quot;              -&gt; characteristics.has_page_summary == true
+//                                        (was characteristics.classifier — &quot;not intended for query usage&quot;, SD 1.349)
+//   action.type                        -&gt; user_action.type      (hard_navigation | soft_navigation | same_view | api)
+//   action.name                        -&gt; page.detected_name
+//   LCP / CLS                          -&gt; web_vitals.largest_contentful_paint / web_vitals.cumulative_layout_shift
+//                                        (stable — the fields Dynatrace's own DQL examples use), falling back to
+//                                        the experimental lcp.start_time / cls.value (corrected 10/14/2026)
+//   app.name                           -&gt; frontend.name (stable; an array on user.sessions)
+// UNITS DIFFER BETWEEN THE TWO FAMILIES. web_vitals.largest_contentful_paint is a DURATION, so
+// `/ 1ms` turns it into milliseconds; lcp.start_time is a PLAIN NUMBER already in milliseconds,
+// and dividing it by 1ms yields null. The CWV cells therefore read
+// coalesce(web_vitals.largest_contentful_paint / 1ms, lcp.start_time) and
+// coalesce(web_vitals.cumulative_layout_shift, cls.value), against the 2500/4000 ms and 0.1/0.25 thresholds.
+// Why both: on the validation tenant every user event comes from the synthetic engine, which fills
+// lcp.* / cls.* but not web_vitals.* (0 of 243,494 page summaries in 30 days, 10/14/2026). That
+// is a property of synthetic-monitor data, not a sign that web_vitals.* is rarely populated.
+// Route change actions in the last hour — verify SPA detection is working.
+// Route changes are &quot;soft_navigation&quot; (corrected 10/05/2026); &quot;same_view&quot; is an interaction
+// followed by an XHR or fetch request, the New RUM form of a classic Xhr action.
+fetch user.events, from:-1h
+| filter characteristics.has_user_action == true
+| filter user_action.type == &quot;soft_navigation&quot;
+| summarize {route_count = count(), avg_duration = avg(duration)}, by:{page.detected_name, frontend.name}
+| sort route_count desc
+| limit 20
+</code></pre>
+<p><a id="framework-specific"></a></p>
+<h2>4. Framework-Specific Instrumentation</h2>
+<h3>Angular</h3>
+<p>Angular applications use the Angular Router with <code>history.pushState</code>. Dynatrace automatically detects:</p>
+<ul>
+<li>Route changes via <code>NavigationEnd</code> events</li>
+<li>Zone.js async tracking for XHR/fetch calls</li>
+<li>Component lifecycle events</li>
+</ul>
+<p><strong>Configuration tips:</strong></p>
+<ul>
+<li>Enable <strong>Async Web Requests</strong> capture for Zone.js tracked calls</li>
+<li>Set <strong>User action naming rules</strong> to map Angular routes to meaningful names</li>
+<li>For lazy-loaded modules, ensure the RUM agent loads before the router initializes</li>
+</ul>
+<h3>React</h3>
+<p>React applications typically use React Router or Next.js routing:</p>
+<ul>
+<li>Route changes detected via <code>history.pushState</code> (React Router v5+) or <code>startTransition</code> (React 18+)</li>
+<li>Component renders tracked through XHR/fetch activity</li>
+<li>No Zone.js — relies on standard browser API monitoring</li>
+</ul>
+<p><strong>Configuration tips:</strong></p>
+<ul>
+<li>For Next.js SSR/SSG, use automatic injection on the Node.js server</li>
+<li>For client-only React apps, use manual or agentless injection</li>
+<li>Set <strong>User action naming</strong> to use URL path segments for clearer action names</li>
+</ul>
+<h3>Vue.js</h3>
+<p>Vue applications use Vue Router with <code>history.pushState</code> or hash mode:</p>
+<ul>
+<li>Route changes detected via <code>router.afterEach</code> hook monitoring</li>
+<li>Vuex/Pinia store actions tracked through associated XHR calls</li>
+</ul>
+<p><strong>Configuration tips:</strong></p>
+<ul>
+<li>For Nuxt.js, inject the RUM tag in <code>nuxt.config.js</code> head configuration</li>
+<li>Turn on <strong>Capture fetch() requests</strong> under <strong>Capturing &gt; Async web requests and SPAs &gt; Generic support</strong> — check it rather than assume it is on (see section 6)</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> Regardless of framework, the key setting is enabling <strong>SPA route changes</strong> in your web application configuration. Without it, Dynatrace only captures the initial page load.</p>
+</blockquote>
+<pre><code class="language-dql">// Compare action types across applications — identify SPA vs traditional apps
+fetch user.events, from:-24h
+| filter characteristics.has_user_action == true
+| summarize action_count = count(), by:{frontend.name, user_action.type}
+| sort frontend.name asc, action_count desc
+</code></pre>
+<p>If an SPA shows only <code>hard_navigation</code> actions and no <code>soft_navigation</code> or <code>same_view</code> actions, SPA instrumentation may not be configured correctly. A traditional multi-page application legitimately shows mostly <code>hard_navigation</code>. The classic values <code>Load</code>, <code>RouteChange</code> and <code>Xhr</code> never appear on New RUM data, so a check that looks for them reports a working setup as broken.</p>
+<p><a id="custom-action-naming"></a></p>
+<h2>5. Custom Action Naming</h2>
+<p>Default action names like &quot;loading of page /app/dashboard&quot; or &quot;route change to /app/users/12345&quot; can be noisy — especially with dynamic URL segments (IDs, tokens). Custom action naming rules let you normalize names:</p>
+<h3>Naming Rule Configuration</h3>
+<p>Configure via <strong>Settings &gt; Web and mobile monitoring &gt; User action naming</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Rule Type</th>
+<th>Example Pattern</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>URL cleanup</strong></td>
+<td><code>/users/{id}</code> → <code>/users/{*}</code></td>
+<td>Groups all user detail pages</td>
+</tr>
+<tr>
+<td><strong>CSS selector</strong></td>
+<td>Use <code>data-dtname</code> attribute</td>
+<td><code>&lt;button data-dtname=&quot;Checkout&quot;&gt;</code></td>
+</tr>
+<tr>
+<td><strong>JavaScript variable</strong></td>
+<td>Read from SPA router state</td>
+<td>Dynamic names from app context</td>
+</tr>
+<tr>
+<td><strong>Regex replacement</strong></td>
+<td><code>/api/v[0-9]+/</code> → <code>/api/</code></td>
+<td>Normalize API versions</td>
+</tr>
+</tbody>
+</table>
+<h3>RUM API for Custom Actions</h3>
+<p>For fine-grained control, use the Dynatrace JavaScript RUM API:</p>
+<pre><code class="language-javascript">// Start a custom action
+const actionId = dtrum.enterAction('Checkout - Payment Step');
+
+// ... perform user interaction ...
+
+// End the action
+dtrum.leaveAction(actionId);
+</code></pre>
+<p>The <code>dtrum</code> calls above are the RUM Classic JavaScript API. In the New RUM model, a user action reported through the Dynatrace API carries <code>user_action.type == &quot;api&quot;</code> — <em>&quot;The user action was reported via the Dynatrace API&quot;</em> — and <code>characteristics.is_api_reported == true</code>. Filter on those rather than on the classic <code>Custom</code> action type, which never matches New RUM data.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events/user-actions">User actions — semantic dictionary (DT docs)</a> — <em>&quot;The user action was reported via the Dynatrace API.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Naming on New RUM (SaaS 1.348, rollout from 10/12/2026, staged).</strong> On the latest Dynatrace you can name and group RUM user actions, errors, pages and views with OpenPipeline rules, or report the names from your frontend. Events are grouped by name, so a naming rule decides which events are analysed and alerted on together. The naming rules above are the RUM Classic settings, and they remain the working path for RUM Classic applications.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in SaaS 1.348 (DT docs)</a> — <em>&quot;You can now customize how Dynatrace names RUM user actions, errors, pages, and views with OpenPipeline rules or by reporting names from your frontend.&quot;</em>, <em>&quot;Because events are grouped by name, you can combine them into a single group or split them into finer ones&quot;</em>; re-read 11/11/2026.</sub></p>
+</blockquote>
+<p><a id="xhr-fetch-monitoring"></a></p>
+<h2>6. XHR and Fetch Monitoring</h2>
+<p>SPAs rely heavily on asynchronous API calls. Dynatrace monitors both <code>XMLHttpRequest</code> and the Fetch API to:</p>
+<ul>
+<li><strong>Correlate API calls with user actions</strong> — Which button click triggered which API call?</li>
+<li><strong>Measure API response times</strong> — How long did the backend take?</li>
+<li><strong>Detect failed requests</strong> — HTTP 4xx/5xx responses and network errors (<code>characteristics.has_failed_request</code>)</li>
+<li><strong>Track third-party calls</strong> — Calls to external APIs, CDNs, analytics services</li>
+</ul>
+<h3>Enabling Fetch API Monitoring</h3>
+<p>Out of the box, RUM Classic captures page loads; XHR actions are something you activate. Under <strong>Generic support</strong>, <code>fetch()</code> and <code>XmlHttpRequest</code> are <strong>separate toggles</strong>, so a SPA whose calls go through <code>fetch()</code> needs its own switch turned on:</p>
+<p>Application settings → <strong>Capturing &gt; Async web requests and SPAs</strong> → <strong>Generic support</strong> → <strong>Capture fetch() requests</strong> (and <strong>Capture XmlHttpRequest (XHR)</strong> for XHR-based calls)</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/configure-dynatrace-real-user-monitoring-to-capture-xhr-actions">Configure Real User Monitoring Classic to capture XHR actions (DT docs)</a> — <em>&quot;When you activate XHR-action support, you add visibility into each kind of user interaction, not just the regular page loads that are captured by default.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Unit trap (08/12/2026): New RUM timing fields such as lcp.start_time and ttfb.value
+// are PLAIN NUMBERS already in milliseconds, not durations. `field / 1ms` yields null on them —
+// silently, so a chart of nulls looks like &quot;no data&quot;. Compare and aggregate them directly.
+// XHR action performance — identify slow API calls impacting user experience.
+// has_request also matches the document request of every page navigation and every
+// failed-request error event; excluding navigations leaves the XHR/fetch calls.
+fetch user.events, from:-1h
+| filter characteristics.has_request == true
+| filter not(coalesce(characteristics.has_navigation, false))   // null, not false, on non-navigations
+| summarize {xhr_count = count(),
+    avg_duration = avg(duration),
+    p95_duration = percentile(duration, 95)},
+    by:{page.detected_name}
+| sort p95_duration desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// XHR error rate by action — find failing API calls. error.count is a SESSION field and is
+// null on every user event, so it cannot count failed requests (corrected 10/05/2026).
+fetch user.events, from:-24h
+| filter characteristics.has_request == true
+| summarize {total = count(),
+    errors = countIf(characteristics.has_failed_request == true)},
+    by:{page.detected_name}
+| fieldsAdd error_rate_pct = round(toDouble(errors) / toDouble(total) * 100.0, decimals: 2)
+| filter total &gt; 10
+| sort error_rate_pct desc
+| limit 10
+</code></pre>
+<p><a id="validating-instrumentation"></a></p>
+<h2>7. Validating SPA Instrumentation</h2>
+<p>After configuring SPA monitoring, validate that instrumentation is working correctly with this checklist:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>DQL Validation</th>
+<th>Expected Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Route changes detected</td>
+<td>Query for <code>user_action.type == &quot;soft_navigation&quot;</code></td>
+<td>Actions appear for each route</td>
+</tr>
+<tr>
+<td>XHR/fetch captured</td>
+<td>Query for <code>user_action.type == &quot;same_view&quot;</code> and <code>characteristics.has_request</code> events</td>
+<td>API calls visible per action</td>
+</tr>
+<tr>
+<td>Action names meaningful</td>
+<td>Review the <code>page.detected_name</code> distribution</td>
+<td>No generic/unclear names</td>
+</tr>
+<tr>
+<td>No duplicate actions</td>
+<td>Check for overlapping actions</td>
+<td>One action per interaction</td>
+</tr>
+<tr>
+<td>API-reported actions working</td>
+<td>Query for <code>user_action.type == &quot;api&quot;</code></td>
+<td>Developer-reported actions appear</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Instrumentation health check — action type distribution per app
+fetch user.events, from:-24h
+| filter characteristics.has_user_action == true
+| summarize total_actions = count(), by:{frontend.name, user_action.type}
+| sort frontend.name asc, total_actions desc
+</code></pre>
+<p><a id="hybrid-apps"></a></p>
+<h2>8. Hybrid Apps: Mobile WebView + Desktop</h2>
+<p>A common pattern is a web application served to both desktop browsers and mobile app WebViews — the same <code>app.example.com</code> pages, but consumed in two very different contexts. Dynatrace can monitor both as separate RUM applications with full session correlation.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibW9iaWxlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2ZjE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzRmNDZlNTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImRlc2t0b3BHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0id2ViR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmOTczMTY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VhNTgwYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImR0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNDk2ZmY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBhNjRiYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWlsR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmM1NWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE2YTM0YTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjEyIi8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iNzAwIiBoZWlnaHQ9IjQ4MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SHlicmlkIEFwcCBNb25pdG9yaW5nIEFyY2hpdGVjdHVyZTwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjQ2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1vYmlsZSBXZWJWaWV3ICsgRGVza3RvcCBCcm93c2VyIHNoYXJpbmcgdGhlIHNhbWUgd2ViIGFwcDwvdGV4dD4KCiAgPCEtLSBMZWZ0IENvbHVtbjogQ2xpZW50cyAtLT4KICA8IS0tIE1vYmlsZSBBcHAgWm9uZSAtLT4KICA8cmVjdCB4PSIyMCIgeT0iNjUiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTkwIiByeD0iOCIgZmlsbD0iI2Y1ZjNmZiIgc3Ryb2tlPSIjNjM2NmYxIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNiwzIi8+CiAgPHRleHQgeD0iMTIwIiB5PSI4NCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzYzNjZmMSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TW9iaWxlIEFwcCAoaU9TIC8gQW5kcm9pZCk8L3RleHQ+CgogIDwhLS0gTmF0aXZlIFNoZWxsIC0tPgogIDxyZWN0IHg9IjM1IiB5PSI5NSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIzOCIgcng9IjYiIGZpbGw9InVybCgjbW9iaWxlR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMTIwIiB5PSIxMTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5hdGl2ZSBTaGVsbDwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjEyNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiNlMGU3ZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1vYmlsZSBPbmVBZ2VudCBTREs8L3RleHQ+CgogIDwhLS0gV2ViVmlldyAtLT4KICA8cmVjdCB4PSIzNSIgeT0iMTQ1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjM4IiByeD0iNiIgZmlsbD0idXJsKCN3ZWJHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjE2MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+V2ViVmlldzwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjE3NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiNmZmYzZTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJVTSBKUyAoaHlicmlkIG1vZGUpPC90ZXh0PgoKICA8IS0tIFNlc3Npb24gY29ycmVsYXRpb24gYXJyb3cgLS0+CiAgPGxpbmUgeDE9IjEyMCIgeTE9IjEzMyIgeDI9IjEyMCIgeTI9IjE0NSIgc3Ryb2tlPSIjNjM2NmYxIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTE1LDE0MyAxMjUsMTQzIDEyMCwxNDgiIGZpbGw9IiM2MzY2ZjEiLz4KICA8dGV4dCB4PSIxOTAiIHk9IjE0MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgiIGZpbGw9IiM2MzY2ZjEiIGZvbnQtd2VpZ2h0PSJib2xkIj5kdEFkayBjb29raWU8L3RleHQ+CgogIDwhLS0gTW9iaWxlIEFwcCBsYWJlbCAtLT4KICA8cmVjdCB4PSIzNSIgeT0iMTk4IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0iI2VkZTlmZSIvPgogIDx0ZXh0IHg9IjEyMCIgeT0iMjEyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzYzNjZmMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9ImJvbGQiPkFwcDogIk15QXBwIE1vYmlsZSI8L3RleHQ+CgogIDwhLS0gRGVza3RvcCBCcm93c2VyIFpvbmUgLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjI3NSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMzAiIHJ4PSI4IiBmaWxsPSIjZWZmNmZmIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI2LDMiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjI5NCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzNiODJmNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGVza3RvcCBCcm93c2VyPC90ZXh0PgoKICA8IS0tIEJyb3dzZXIgd2l0aCBSVU0gSlMgLS0+CiAgPHJlY3QgeD0iMzUiIHk9IjMwNSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIzOCIgcng9IjYiIGZpbGw9InVybCgjZGVza3RvcEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjEyMCIgeT0iMzIyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TYW1lIFdlYiBBcHA8L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIzMzYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjZGJlYWZlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SVU0gSlMgKHN0YW5kYXJkIG1vZGUpPC90ZXh0PgoKICA8IS0tIERlc2t0b3AgQXBwIGxhYmVsIC0tPgogIDxyZWN0IHg9IjM1IiB5PSIzNTgiIHdpZHRoPSIxNzAiIGhlaWdodD0iMjAiIHJ4PSI0IiBmaWxsPSIjZGJlYWZlIi8+CiAgPHRleHQgeD0iMTIwIiB5PSIzNzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjM2I4MmY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iYm9sZCI+QXBwOiAiTXlBcHAgRGVza3RvcCI8L3RleHQ+CgogIDwhLS0gQ2VudGVyIENvbHVtbjogU2hhcmVkIFdlYiBTZXJ2ZXIgLS0+CiAgPHJlY3QgeD0iMjYwIiB5PSIxNDUiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTgwIiByeD0iOCIgZmlsbD0iI2ZmZjdlZCIgc3Ryb2tlPSIjZjk3MzE2IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNiwzIi8+CiAgPHRleHQgeD0iMzQ1IiB5PSIxNjciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmOTczMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPldlYiBTZXJ2ZXI8L3RleHQ+CgogIDxyZWN0IHg9IjI3NSIgeT0iMTgwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjMwIiByeD0iNSIgZmlsbD0idXJsKCN3ZWJHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIzNDUiIHk9IjIwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+YXBwLmV4YW1wbGUuY29tPC90ZXh0PgoKICA8cmVjdCB4PSIyNzUiIHk9IjIyMiIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIyNSIgcng9IjUiIGZpbGw9IiNmZWYzYzciIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzQ1IiB5PSIyMzkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PbmVBZ2VudCAoYXV0by1pbmplY3QpPC90ZXh0PgoKICA8cmVjdCB4PSIyNzUiIHk9IjI1OCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIyNSIgcng9IjUiIGZpbGw9IiNmZWYzYzciIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzQ1IiB5PSIyNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5vciBNYW51YWwgSlMgVGFnPC90ZXh0PgoKICA8IS0tIERldGVjdGlvbiBSdWxlcyBib3ggLS0+CiAgPHJlY3QgeD0iMjc1IiB5PSIyOTUiIHdpZHRoPSIxNDAiIGhlaWdodD0iMjIiIHJ4PSI0IiBmaWxsPSIjZmRlNjhhIi8+CiAgPHRleHQgeD0iMzQ1IiB5PSIzMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4IiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iYm9sZCI+RGV0ZWN0aW9uIFJ1bGVzIHNwbGl0IHRyYWZmaWM8L3RleHQ+CgogIDwhLS0gUmlnaHQgQ29sdW1uOiBEeW5hdHJhY2UgLS0+CiAgPHJlY3QgeD0iNDcwIiB5PSI2NSIgd2lkdGg9IjIxMCIgaGVpZ2h0PSIzODAiIHJ4PSI4IiBmaWxsPSIjZWZmNmZmIiBzdHJva2U9IiMxNDk2ZmYiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI2LDMiLz4KICA8dGV4dCB4PSI1NzUiIHk9Ijg0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMTQ5NmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2U8L3RleHQ+CgogIDwhLS0gTW9iaWxlIFJVTSBBcHAgLS0+CiAgPHJlY3QgeD0iNDkwIiB5PSIxMDAiIHdpZHRoPSIxNzAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSJ1cmwoI21vYmlsZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjU3NSIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Nb2JpbGUgUlVNIEFwcDwvdGV4dD4KICA8dGV4dCB4PSI1NzUiIHk9IjEzOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiNlMGU3ZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5hdGl2ZSArIFdlYlZpZXcgc2Vzc2lvbnM8L3RleHQ+CgogIDwhLS0gRGVza3RvcCBSVU0gQXBwIC0tPgogIDxyZWN0IHg9IjQ5MCIgeT0iMTcwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0idXJsKCNkZXNrdG9wR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNTc1IiB5PSIxOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRlc2t0b3AgUlVNIEFwcDwvdGV4dD4KICA8dGV4dCB4PSI1NzUiIHk9IjIwOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiNkYmVhZmUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJyb3dzZXItb25seSBzZXNzaW9uczwvdGV4dD4KCiAgPCEtLSBTZXJ2ZXItc2lkZSBTZXJ2aWNlIC0tPgogIDxyZWN0IHg9IjQ5MCIgeT0iMjQwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0idXJsKCNkdEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjU3NSIgeT0iMjY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TZXJ2ZXItU2lkZSBTZXJ2aWNlczwvdGV4dD4KCiAgPCEtLSBHcmFpbCAtLT4KICA8cmVjdCB4PSI0OTAiIHk9IjMwNSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI0NSIgcng9IjYiIGZpbGw9InVybCgjZ3JhaWxHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1NzUiIHk9IjMyMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R3JhaWw8L3RleHQ+CiAgPHRleHQgeD0iNTc1IiB5PSIzNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjZGNmY2U3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5VbmlmaWVkIHNlc3Npb24gKyBhY3Rpb24gZGF0YTwvdGV4dD4KCiAgPCEtLSBEUUwgcXVlcnkgYm94IC0tPgogIDxyZWN0IHg9IjQ5MCIgeT0iMzY1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjMwIiByeD0iNSIgZmlsbD0iI2YwZmRmNCIgc3Ryb2tlPSIjMjJjNTVlIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1NzUiIHk9IjM4NCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiMxNmEzNGEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSJib2xkIj5EUUw6IGNvbXBhcmUgbW9iaWxlIHZzIGRlc2t0b3A8L3RleHQ+CgogIDwhLS0gQXJyb3dzOiBNb2JpbGUg4oaSIFdlYiBTZXJ2ZXIgLS0+CiAgPGxpbmUgeDE9IjIyMCIgeTE9IjE2MCIgeDI9IjI1OCIgeTI9IjIwMCIgc3Ryb2tlPSIjNjM2NmYxIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cG9seWdvbiBwb2ludHM9IjI1NCwxOTYgMjYwLDIwMiAyNTIsMjAyIiBmaWxsPSIjNjM2NmYxIi8+CgogIDwhLS0gRGVza3RvcCDihpIgV2ViIFNlcnZlciAtLT4KICA8bGluZSB4MT0iMjIwIiB5MT0iMzI1IiB4Mj0iMjU4IiB5Mj0iMjcwIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwb2x5Z29uIHBvaW50cz0iMjU0LDI3NCAyNjAsMjY4IDI1MiwyNjgiIGZpbGw9IiMzYjgyZjYiLz4KCiAgPCEtLSBXZWIgU2VydmVyIOKGkiBNb2JpbGUgUlVNIChkZXRlY3Rpb24gcnVsZSkgLS0+CiAgPGxpbmUgeDE9IjQzMCIgeTE9IjE5NSIgeDI9IjQ4OCIgeTI9IjEzMCIgc3Ryb2tlPSIjNjM2NmYxIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cG9seWdvbiBwb2ludHM9IjQ4NCwxMzQgNDkwLDEyOCA0ODYsMTM4IiBmaWxsPSIjNjM2NmYxIi8+CgogIDwhLS0gV2ViIFNlcnZlciDihpIgRGVza3RvcCBSVU0gKGRldGVjdGlvbiBydWxlKSAtLT4KICA8bGluZSB4MT0iNDMwIiB5MT0iMjUwIiB4Mj0iNDg4IiB5Mj0iMTk1IiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwb2x5Z29uIHBvaW50cz0iNDg0LDE5OSA0OTAsMTkzIDQ4NiwyMDMiIGZpbGw9IiMzYjgyZjYiLz4KCiAgPCEtLSBTZXJ2aWNlcyDihpIgR3JhaWwgLS0+CiAgPGxpbmUgeDE9IjU3NSIgeTE9IjI4MCIgeDI9IjU3NSIgeTI9IjMwMyIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxwb2x5Z29uIHBvaW50cz0iNTcwLDMwMCA1ODAsMzAwIDU3NSwzMDgiIGZpbGw9IiM5NGEzYjgiLz4KCiAgPCEtLSBMZWdlbmQgLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjQyNSIgd2lkdGg9IjY2MCIgaGVpZ2h0PSI0MiIgcng9IjYiIGZpbGw9IiNmMWY1ZjkiLz4KICA8cmVjdCB4PSIzNSIgeT0iNDM2IiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHJ4PSIyIiBmaWxsPSIjNjM2NmYxIi8+CiAgPHRleHQgeD0iNTIiIHk9IjQ0NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiPk1vYmlsZSAoV2ViVmlldyk8L3RleHQ+CiAgPHJlY3QgeD0iMTU1IiB5PSI0MzYiIHdpZHRoPSIxMiIgaGVpZ2h0PSIxMiIgcng9IjIiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSIxNzIiIHk9IjQ0NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiPkRlc2t0b3AgKEJyb3dzZXIpPC90ZXh0PgogIDxyZWN0IHg9IjI3NSIgeT0iNDM2IiB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHJ4PSIyIiBmaWxsPSIjZjk3MzE2Ii8+CiAgPHRleHQgeD0iMjkyIiB5PSI0NDciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNDc1NTY5Ij5TaGFyZWQgV2ViIEFwcDwvdGV4dD4KICA8dGV4dCB4PSI0MTAiIHk9IjQ0NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM0NzU1NjkiIGZvbnQtd2VpZ2h0PSJib2xkIj5LZXk6IERldGVjdGlvbiBydWxlcyByb3V0ZSBzYW1lLWRvbWFpbiB0cmFmZmljIHRvIHNlcGFyYXRlIFJVTSBhcHBzPC90ZXh0Pgo8L3N2Zz4K" alt="Hybrid App Monitoring Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Component | Description |
+|-----------|-------------|
+| Mobile App (Native Shell) | iOS/Android app instrumented with Mobile OneAgent SDK |
+| Mobile App (WebView) | Embedded browser loading app.example.com, instrumented in hybrid mode |
+| Desktop Browser | Standard browser loading app.example.com, standard RUM JS |
+| Web Server | Shared origin serving the same web app to both clients |
+| Detection Rules | Route same-domain traffic to separate Dynatrace RUM applications |
+| Dynatrace | Separate Mobile RUM App and Desktop RUM App with unified Grail storage |
+For environments where SVG doesn't render
+-->
+<h3>Architecture Overview</h3>
+<table>
+<thead>
+<tr>
+<th>Client</th>
+<th>Instrumentation</th>
+<th>Dynatrace Application</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>iOS / Android app</strong></td>
+<td>Mobile OneAgent SDK + <code>hybridWebView</code> enabled</td>
+<td>Mobile RUM App (&quot;MyApp Mobile&quot;)</td>
+</tr>
+<tr>
+<td><strong>Desktop browser</strong></td>
+<td>RUM JavaScript (auto-inject or manual tag)</td>
+<td>Web RUM App (&quot;MyApp Desktop&quot;)</td>
+</tr>
+</tbody>
+</table>
+<p>Both clients load the <strong>same web pages</strong> from the same origin, but Dynatrace routes them to <strong>separate applications</strong> using application detection rules.</p>
+<h3>Step 1: Create Two RUM Applications</h3>
+<p>In Dynatrace, create two separate applications:</p>
+<table>
+<thead>
+<tr>
+<th>Application</th>
+<th>Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MyApp Desktop</strong></td>
+<td>Web Application</td>
+<td>Desktop/laptop browser traffic</td>
+</tr>
+<tr>
+<td><strong>MyApp Mobile</strong></td>
+<td>Mobile Application</td>
+<td>iOS/Android native + WebView traffic</td>
+</tr>
+</tbody>
+</table>
+<h3>Step 2: Configure Application Detection Rules</h3>
+<p>Detection rules route traffic from the same domain to different applications based on request characteristics.</p>
+<p>Navigate to <strong>Settings &gt; Web and mobile monitoring &gt; Application detection</strong> and create rules in this order (higher priority first):</p>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Rule</th>
+<th>Condition</th>
+<th>Target Application</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Mobile WebView</td>
+<td>User-Agent header <strong>contains</strong> <code>MyAppName</code> (your app's custom UA string)</td>
+<td>MyApp Mobile</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Desktop fallback</td>
+<td>Domain <strong>equals</strong> <code>app.example.com</code></td>
+<td>MyApp Desktop</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Most mobile apps append a custom identifier to the WebView User-Agent string (e.g., <code>MyAppName/3.2.1</code>). Use this as the primary differentiator. If your app doesn't, add one via WebView settings:</p>
+</blockquote>
+<pre><code class="language-java">// Android: Add custom User-Agent suffix
+webView.getSettings().setUserAgentString(
+    webView.getSettings().getUserAgentString() + &quot; MyAppName/3.2.1&quot;
+);
+</code></pre>
+<pre><code class="language-swift">// iOS: Add custom User-Agent suffix
+let config = WKWebViewConfiguration()
+config.applicationNameForUserAgent = &quot;MyAppName/3.2.1&quot;
+let webView = WKWebView(frame: .zero, configuration: config)
+</code></pre>
+<h3>Step 3: Enable Hybrid Monitoring in the Mobile SDK</h3>
+<h4>Android (Gradle Plugin)</h4>
+<pre><code class="language-groovy">// build.gradle (app module)
+dynatrace {
+    configurations {
+        defaultConfig {
+            autoStart {
+                applicationId &quot;your-application-id&quot;
+                beaconUrl &quot;https://your-env.bf.dynatrace.com/mbeacon&quot;
+            }
+            hybridWebView {
+                enabled true
+                domains &quot;app.example.com&quot;   // Only instrument your own domain
+            }
+        }
+    }
+}
+</code></pre>
+<p>Then instrument the WebView instance:</p>
+<pre><code class="language-kotlin">// In your Activity or Fragment
+import com.dynatrace.android.agent.Dynatrace
+
+val webView = findViewById&lt;WebView&gt;(R.id.webView)
+Dynatrace.instrumentWebView(webView)
+webView.loadUrl(&quot;https://app.example.com&quot;)
+</code></pre>
+<h4>iOS (plist or manual config)</h4>
+<p>Add to your <code>Info.plist</code>:</p>
+<pre><code class="language-xml">&lt;key&gt;DTXHybridApplication&lt;/key&gt;
+&lt;true/&gt;
+&lt;key&gt;DTXSetCookiesForDomain&lt;/key&gt;
+&lt;array&gt;
+    &lt;string&gt;.example.com&lt;/string&gt;
+&lt;/array&gt;
+&lt;key&gt;DTXSetSecureCookiesForDomain&lt;/key&gt;
+&lt;array&gt;
+    &lt;string&gt;.example.com&lt;/string&gt;
+&lt;/array&gt;
+</code></pre>
+<p>Or configure programmatically:</p>
+<pre><code class="language-swift">import Dynatrace
+
+// In AppDelegate or SceneDelegate
+Dynatrace.startupWithInfoPlistSettings()
+
+// When creating a WKWebView
+let webView = WKWebView(frame: view.bounds)
+// The SDK automatically instruments WKWebView when DTXHybridApplication is true
+</code></pre>
+<h3>Step 4: Session Correlation (dtAdk Cookie)</h3>
+<p>When hybrid monitoring is enabled, the Mobile OneAgent SDK sets a <strong><code>dtAdk</code> cookie</strong> on the WebView domain. This cookie links the WebView's web session to the native mobile session, creating a <strong>unified session</strong> that includes both native actions (taps, gestures) and web actions (page loads, XHR calls).</p>
+<table>
+<thead>
+<tr>
+<th>Correlation Mechanism</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dtAdk</code> cookie</td>
+<td>Set by Mobile SDK on the WebView; links web beacon to mobile session</td>
+</tr>
+<tr>
+<td><code>x-dtc</code> header</td>
+<td>Optional, explicitly enabled — links <strong>cross-origin</strong> XHR actions to distributed traces where RUM cookies cannot reach; same-origin requests correlate via the RUM cookies</td>
+</tr>
+<tr>
+<td><code>applicationId</code></td>
+<td>Routes beacons to the correct Dynatrace application</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Only add your own domains to <code>domains</code> / <code>DTXSetCookiesForDomain</code>. Never instrument third-party WebViews (e.g., OAuth login pages, payment providers) — this can break functionality and violate privacy policies.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-hybrid-app">Instrument hybrid apps (DT docs)</a> — <em>&quot;configuration keys to allow OneAgent to pass cookies to WKWebView and domains specified in your app's Info.plist file&quot;</em>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>RUM JavaScript joins mobile-controlled sessions (OneAgent 1.349, published 11/05/2026, staged rollout from 11/09/2026).</strong> RUM JavaScript can now take part in a session that the mobile agent controls, so a WebView's web events and the app's native events can be correlated into one session on the latest Dynatrace. Check that 1.349 has reached both your tenant and the RUM JavaScript your WebView pages load. Until it has, the <code>dtAdk</code> correlation described above is the working path.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349">What's new in OneAgent 1.349 (DT docs)</a> — <em>&quot;The RUM JavaScript now supports sessions controlled by the mobile agent, allowing you to correlate user sessions between your mobile and web app.&quot;</em>; re-read 11/11/2026.</sub></p>
+</blockquote>
+<h3>Step 5: Validate the Setup</h3>
+<p>After deploying both applications, verify that:</p>
+<ol>
+<li><strong>Desktop sessions</strong> appear under &quot;MyApp Desktop&quot; with standard browser User-Agents</li>
+<li><strong>Mobile WebView sessions</strong> appear under &quot;MyApp Mobile&quot; with your custom UA string</li>
+<li><strong>Mobile sessions show both native and web actions</strong> in a single session timeline</li>
+<li><strong>Distributed traces</strong> connect WebView XHR calls to server-side services</li>
+</ol>
+<pre><code class="language-dql">// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -&gt; dt.rum.user_type      userActionCount -&gt; user_action_count
+//   totalErrorCount -&gt; error.count    sessionId -&gt; dt.rum.session.id
+//   hasSessionReplay -&gt; characteristics.has_replay
+//   browserFamily -&gt; browser.name     osFamily -&gt; os.name
+//   application -&gt; frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
+//   country/city/continent -&gt; geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -&gt; browser.window.width|height
+//   dom.interactive.time -&gt; performance.dom_interactive
+//   load.event.time -&gt; performance.load_event_end
+//   server.time -&gt; ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == &quot;synthetic&quot;, so a real-user filter matches nothing —
+//     the documented values are &quot;real_user&quot; / &quot;robot&quot; / &quot;synthetic&quot; (lowercase);
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
+// Compare user action metrics between mobile WebView and desktop browser apps
+fetch user.events, from:-24h
+// Replace the placeholders with your two frontend names (corrected 10/14/2026: dt.rum.application.id
+// is an ID — &quot;an 8-byte HEX string&quot; for web apps — so comparing it with a display name never matched)
+| filter in(frontend.name, {&quot;&lt;your-desktop-frontend&gt;&quot;, &quot;&lt;your-mobile-webview-frontend&gt;&quot;})
+| summarize
+    {actions = count(),
+    avg_duration = avg(duration),
+    error_rate = toDouble(countIf(characteristics.has_error == true)) / toDouble(count()) * 100},
+    by:{frontend.name, user_action.type}
+| sort frontend.name asc, actions desc
+</code></pre>
+<h3>WebView Session Analysis</h3>
+<p>Identify sessions in the mobile app that include WebView activity — these are your hybrid users.</p>
+<pre><code class="language-dql">// Identify WebView sessions in the mobile app — sessions with both native and web events.
+// Classified by dt.rum.agent.type (&quot;android&quot; / &quot;ios&quot; = OneAgent for Mobile, &quot;javascript&quot; = RUM
+// JavaScript) — the classic &quot;UserAction&quot; / &quot;Load&quot; / &quot;RouteChange&quot; / &quot;Xhr&quot; values never appear on
+// New RUM data. Not execution-verified: the validation tenant has no hybrid app.
+fetch user.events, from:-24h
+// Replace the placeholders with the frontend names of the app's native and WebView parts
+// (corrected 10/14/2026: dt.rum.application.id is an ID and never equals a display name)
+| filter in(frontend.name, {&quot;&lt;your-mobile-frontend&gt;&quot;, &quot;&lt;your-mobile-webview-frontend&gt;&quot;})
+| summarize
+    {native_events = countIf(in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;})),
+    web_events = countIf(dt.rum.agent.type == &quot;javascript&quot;)},
+    by:{dt.rum.session.id}
+| filter web_events &gt; 0
+| sort web_events desc
+| limit 20
+</code></pre>
+<h3>Performance Comparison: Mobile WebView vs Desktop</h3>
+<p>WebView performance typically differs from desktop browsers due to device constraints, network conditions, and rendering engine differences.</p>
+<pre><code class="language-dql">// Compare page load performance: mobile WebView vs desktop browser
+fetch user.events, from:-24h
+| filter characteristics.has_navigation == true
+// Replace the placeholders with your two frontend names (corrected 10/14/2026: dt.rum.application.id
+// is an ID and never equals a display name)
+| filter in(frontend.name, {&quot;&lt;your-desktop-frontend&gt;&quot;, &quot;&lt;your-mobile-webview-frontend&gt;&quot;})
+| summarize
+    {p50_duration = percentile(duration, 50),
+    p95_duration = percentile(duration, 95),
+    avg_dom_interactive = avg(performance.dom_interactive),
+    actions = count()},
+    by:{frontend.name}
+</code></pre>
+<p><a id="summary"></a></p>
+<h2>9. Summary and Next Steps</h2>
+<p>In this notebook, we covered:</p>
+<ul>
+<li><strong>SPA monitoring challenges</strong> — Why traditional page-load tracking fails for SPAs</li>
+<li><strong>Injection methods</strong> — Automatic, manual, and agentless approaches</li>
+<li><strong>Route change detection</strong> — How Dynatrace captures SPA navigation</li>
+<li><strong>Framework-specific tips</strong> — Angular, React, and Vue.js considerations</li>
+<li><strong>Custom action naming</strong> — Normalizing action names for cleaner analytics</li>
+<li><strong>XHR/fetch monitoring</strong> — Tracking API call performance and errors</li>
+<li><strong>Hybrid app setup</strong> — Monitoring mobile WebView and desktop browser as separate RUM applications</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>WEBRUM-03: Core Web Vitals</strong> — Measure LCP, INP, and CLS with DQL</li>
+<li><strong>WEBRUM-05: Error Analysis</strong> — Deep dive into JavaScript error tracking in SPAs</li>
+</ul>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/rum-concepts/user-actions">User actions in RUM Classic (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android">Android mobile frontends (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications">Web applications in RUM Classic (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/initial-setup/link-cross-origin-xhrs">Link cross-origin XHR user actions and their distributed traces (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/additional-configuration/customize-rum">Customize RUM with the JavaScript API (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/additional-configuration/customize-rum">Customize RUM with the JavaScript API (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events — semantic dictionary (DT docs)</a> — <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349">Semantic Dictionary changelog 1.349 (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

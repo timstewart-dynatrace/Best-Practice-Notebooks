@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONBRD-09: Setting Up Alerts</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ONBRD — Dynatrace Onboarding</a><span class="sep">/</span><span aria-current="page">ONBRD-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ONBRD-09: Setting Up Alerts</h1>
+<blockquote>
+<p><strong>Series:</strong> ONBRD — Dynatrace Onboarding | <strong>Notebook:</strong> 9 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/26/2026</p>
+</blockquote>
+<h2>Getting Notified When Things Go Wrong</h2>
+<p>Dynatrace's DAVIS AI automatically detects problems, but you need to configure where those alerts go. This notebook covers the Workflows app for modern alerting and notification routing.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#how-davis-problem-detection-works">How DAVIS Problem Detection Works</a></li>
+<li><a href="#modern-alerting-with-workflows">Modern Alerting with Workflows</a></li>
+<li><a href="#creating-your-first-workflow">Creating Your First Workflow</a></li>
+<li><a href="#notification-actions">Notification Actions</a></li>
+<li><a href="#routing-alerts-to-teams">Routing Alerts to Teams</a></li>
+<li><a href="#custom-metric-alerts">Custom Metric Alerts: Detect, Then Route</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>IAM permissions for Workflows: <code>automation:workflows:read</code>, <code>automation:workflows:write</code> and <code>automation:workflows:run</code> (write can be limited to simple workflows with <code>automation:workflow-type = &quot;SIMPLE&quot;</code>), plus <code>storage:events:read</code> for the Problem trigger and the queries below</li>
+<li>Permission to create connections under <strong>Settings → Connections</strong> (each connector setup page lists its settings schema)</li>
+<li>DQL fundamentals (ONBRD-08)</li>
+<li>Access to notification target (email, Slack, PagerDuty, etc.)</li>
+</ul>
+<p><a id="how-davis-problem-detection-works"></a></p>
+<h2>1. How DAVIS Problem Detection Works</h2>
+<p>DAVIS AI continuously monitors your environment and creates <strong>problems</strong> when anomalies are detected:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3NTAgMjIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZGF0YUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJkYXZpc0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwcm9ibGVtR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlZjQ0NDQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2RjMjYyNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im5vdGlmeUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJyY2FHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9ImRhdmlzU2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJkYXZpc0Fycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI3NTAiIGhlaWdodD0iMjIwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzNzUiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EQVZJUyBQcm9ibGVtIERldGVjdGlvbiBGbG93PC90ZXh0PgoKICA8IS0tIERhdGEgU291cmNlcyBCb3ggLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjYwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjkwIiByeD0iMTAiIGZpbGw9InVybCgjZGF0YUdyYWQpIiBmaWx0ZXI9InVybCgjZGF2aXNTaGFkb3cpIi8+CiAgPHRleHQgeD0iOTUiIHk9IjkwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGF0YSBTb3VyY2VzPC90ZXh0PgogIDx0ZXh0IHg9Ijk1IiB5PSIxMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NZXRyaWNzPC90ZXh0PgogIDx0ZXh0IHg9Ijk1IiB5PSIxMjQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FdmVudHM8L3RleHQ+CiAgPHRleHQgeD0iOTUiIHk9IjEzOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkxvZ3M8L3RleHQ+CgogIDwhLS0gQXJyb3cgMSAtLT4KICA8cGF0aCBkPSJNMTY1LDEwNSBMMjAwLDEwNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjZGF2aXNBcnJvdykiLz4KCiAgPCEtLSBEQVZJUyBBSSBCb3ggLS0+CiAgPHJlY3QgeD0iMjA1IiB5PSI2MCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI5MCIgcng9IjEwIiBmaWxsPSJ1cmwoI2RhdmlzR3JhZCkiIGZpbHRlcj0idXJsKCNkYXZpc1NoYWRvdykiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjkwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+REFWSVMgQUk8L3RleHQ+CiAgPHRleHQgeD0iMjcwIiB5PSIxMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BbmFseXNpczwvdGV4dD4KCiAgPCEtLSBBcnJvdyAyIC0tPgogIDxwYXRoIGQ9Ik0zNDAsMTA1IEwzNzUsMTA1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNkYXZpc0Fycm93KSIvPgoKICA8IS0tIFByb2JsZW0gQ3JlYXRlZCBCb3ggLS0+CiAgPHJlY3QgeD0iMzgwIiB5PSI2MCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI5MCIgcng9IjEwIiBmaWxsPSJ1cmwoI3Byb2JsZW1HcmFkKSIgZmlsdGVyPSJ1cmwoI2RhdmlzU2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ0NSIgeT0iOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm9ibGVtPC90ZXh0PgogIDx0ZXh0IHg9IjQ0NSIgeT0iMTEwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q3JlYXRlZDwvdGV4dD4KCiAgPCEtLSBBcnJvdyAzIC0tPgogIDxwYXRoIGQ9Ik01MTUsMTA1IEw1NTAsMTA1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNkYXZpc0Fycm93KSIvPgoKICA8IS0tIE5vdGlmaWNhdGlvbiBCb3ggLS0+CiAgPHJlY3QgeD0iNTU1IiB5PSI2MCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI5MCIgcng9IjEwIiBmaWxsPSJ1cmwoI25vdGlmeUdyYWQpIiBmaWx0ZXI9InVybCgjZGF2aXNTaGFkb3cpIi8+CiAgPHRleHQgeD0iNjIwIiB5PSI5MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vdGlmaWNhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2MjAiIHk9IjExMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnZpYSB3b3JrZmxvdzwvdGV4dD4KCiAgPCEtLSBBcnJvdyBkb3duIGZyb20gREFWSVMgLS0+CiAgPHBhdGggZD0iTTI3MCwxNTUgTDI3MCwxNzUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2RhdmlzQXJyb3cpIi8+CgogIDwhLS0gUm9vdCBDYXVzZSBCb3ggLS0+CiAgPHJlY3QgeD0iMjA1IiB5PSIxODAiIHdpZHRoPSIxMzAiIGhlaWdodD0iMzUiIHJ4PSI4IiBmaWxsPSJ1cmwoI3JjYUdyYWQpIiBmaWx0ZXI9InVybCgjZGF2aXNTaGFkb3cpIi8+CiAgPHRleHQgeD0iMjcwIiB5PSIyMDMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Sb290IENhdXNlIEFuYWx5c2lzPC90ZXh0PgoKICA8IS0tIFByb2JsZW0gdHlwZXMgbGVnZW5kIC0tPgogIDxyZWN0IHg9IjQwMCIgeT0iMTY4IiB3aWR0aD0iMjg1IiBoZWlnaHQ9IjQ1IiByeD0iNiIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0MTAiIHk9IjE4NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyI+UHJvYmxlbSBUeXBlczo8L3RleHQ+CiAgPHRleHQgeD0iNDEwIiB5PSIyMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+QXZhaWxhYmlsaXR5IHwgRXJyb3IgUmF0ZSB8IFNsb3dkb3duIHwgUmVzb3VyY2UgfCBDdXN0b208L3RleHQ+Cjwvc3ZnPgo=" alt="DAVIS Problem Detection Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Description |
+|-------|-------------|
+| Data Sources | Metrics, Events, Logs |
+| DAVIS AI | Analysis, anomaly detection and root cause analysis |
+| Problem Created | Issue identified and correlated |
+| Notification | Sent by a workflow, ideally after root cause analysis completes |
+-->
+<h3>Problem Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Trigger</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Availability</strong></td>
+<td>Service/process unavailable</td>
+<td>Database crashed</td>
+</tr>
+<tr>
+<td><strong>Error rate</strong></td>
+<td>Error rate increases</td>
+<td>500 errors spike</td>
+</tr>
+<tr>
+<td><strong>Slowdown</strong></td>
+<td>Response time degradation</td>
+<td>Latency increase</td>
+</tr>
+<tr>
+<td><strong>Resource</strong></td>
+<td>CPU, memory, disk issues</td>
+<td>Disk full</td>
+</tr>
+<tr>
+<td><strong>Custom</strong></td>
+<td>Metric thresholds breached</td>
+<td>Custom alert</td>
+</tr>
+</tbody>
+</table>
+<p><a id="modern-alerting-with-workflows"></a></p>
+<h2>2. Modern Alerting with Workflows</h2>
+<p>The Workflows app is the modern platform's approach to alerting and automation.</p>
+<p><strong>Location:</strong> the <strong>Workflows</strong> app</p>
+<h3>What are Workflows?</h3>
+<p>Workflows are event-driven automations that can:</p>
+<ul>
+<li>React to DAVIS problems</li>
+<li>Send notifications to various channels</li>
+<li>Execute remediation actions</li>
+<li>Run on schedules</li>
+</ul>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMjgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idHJpZ2dlckdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJjb25kR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImFjdGlvbkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0id29ya2Zsb3dTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9IndvcmtmbG93QXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzY0NzQ4YiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIyODAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPldvcmtmbG93IEFyY2hpdGVjdHVyZTwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkV2ZW50LWRyaXZlbiBhdXRvbWF0aW9uIGZvciBhbGVydGluZyBhbmQgcmVtZWRpYXRpb248L3RleHQ+CgogIDwhLS0gTWFpbiBGbG93IC0tPgogIDwhLS0gVHJpZ2dlciAtLT4KICA8cmVjdCB4PSI2MCIgeT0iODAiIHdpZHRoPSIxODAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0idXJsKCN0cmlnZ2VyR3JhZCkiIGZpbHRlcj0idXJsKCN3b3JrZmxvd1NoYWRvdykiLz4KICA8dGV4dCB4PSIxNTAiIHk9IjExMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRyaWdnZXI8L3RleHQ+CiAgPHRleHQgeD0iMTUwIiB5PSIxMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oUHJvYmxlbSB0cmlnZ2VyKTwvdGV4dD4KCiAgPCEtLSBBcnJvdyAtLT4KICA8cGF0aCBkPSJNMjQ1LDEyMCBMMjkwLDEyMCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjd29ya2Zsb3dBcnJvdykiLz4KCiAgPCEtLSBDb25kaXRpb25zIC0tPgogIDxyZWN0IHg9IjI5NSIgeT0iODAiIHdpZHRoPSIxODAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0idXJsKCNjb25kR3JhZCkiIGZpbHRlcj0idXJsKCN3b3JrZmxvd1NoYWRvdykiLz4KICA8dGV4dCB4PSIzODUiIHk9IjExMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNvbmRpdGlvbnM8L3RleHQ+CiAgPHRleHQgeD0iMzg1IiB5PSIxMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oRmlsdGVyaW5nKTwvdGV4dD4KCiAgPCEtLSBBcnJvdyAtLT4KICA8cGF0aCBkPSJNNDgwLDEyMCBMNTI1LDEyMCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjd29ya2Zsb3dBcnJvdykiLz4KCiAgPCEtLSBBY3Rpb25zIC0tPgogIDxyZWN0IHg9IjUzMCIgeT0iODAiIHdpZHRoPSIxODAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0idXJsKCNhY3Rpb25HcmFkKSIgZmlsdGVyPSJ1cmwoI3dvcmtmbG93U2hhZG93KSIvPgogIDx0ZXh0IHg9IjYyMCIgeT0iMTEyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWN0aW9uczwvdGV4dD4KICA8dGV4dCB4PSI2MjAiIHk9IjEzNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihOb3RpZnkvUnVuKTwvdGV4dD4KCiAgPCEtLSBUcmlnZ2VyIEV2ZW50cyAtLT4KICA8dGV4dCB4PSIxNTAiIHk9IjE4NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZGMyNjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TdGF0ZTogYWN0aXZlPC90ZXh0PgogIDx0ZXh0IHg9IjE1MCIgeT0iMjAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNkYzI2MjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihvcjogYWN0aXZlIG9yIGNsb3NlZCk8L3RleHQ+CiAgPHRleHQgeD0iMTUwIiB5PSIyMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjMjYyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VXBkYXRlcyAob3B0aW9uYWwpPC90ZXh0PgoKICA8IS0tIEFjdGlvbiBUeXBlcyBCb3ggLS0+CiAgPHJlY3QgeD0iNTMwIiB5PSIxNzUiIHdpZHRoPSIxODAiIGhlaWdodD0iODUiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMSIvPgoKICA8Y2lyY2xlIGN4PSI1NTAiIGN5PSIxOTUiIHI9IjUiIGZpbGw9IiMzYjgyZjYiLz4KICA8dGV4dCB4PSI1NjIiIHk9IjE5OSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5TbGFjazwvdGV4dD4KCiAgPGNpcmNsZSBjeD0iNTUwIiBjeT0iMjE1IiByPSI1IiBmaWxsPSIjZWY0NDQ0Ii8+CiAgPHRleHQgeD0iNTYyIiB5PSIyMTkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+RW1haWw8L3RleHQ+CgogIDxjaXJjbGUgY3g9IjU1MCIgY3k9IjIzNSIgcj0iNSIgZmlsbD0iIzEwYjk4MSIvPgogIDx0ZXh0IHg9IjU2MiIgeT0iMjM5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPlBhZ2VyRHV0eTwvdGV4dD4KCiAgPGNpcmNsZSBjeD0iNjQwIiBjeT0iMTk1IiByPSI1IiBmaWxsPSIjOGI1Y2Y2Ii8+CiAgPHRleHQgeD0iNjUyIiB5PSIxOTkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+SmlyYTwvdGV4dD4KCiAgPGNpcmNsZSBjeD0iNjQwIiBjeT0iMjE1IiByPSI1IiBmaWxsPSIjZjU5ZTBiIi8+CiAgPHRleHQgeD0iNjUyIiB5PSIyMTkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+SFRUUCBSZXEuPC90ZXh0PgoKICA8Y2lyY2xlIGN4PSI2NDAiIGN5PSIyMzUiIHI9IjUiIGZpbGw9IiM2NDc0OGIiLz4KICA8dGV4dCB4PSI2NTIiIHk9IjIzOSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj4rIE1vcmU8L3RleHQ+Cjwvc3ZnPgo=" alt="Workflow Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Description |
+|-------|-------------|
+| Trigger | Problem trigger (problem state: active / active or closed / closed; optional Updates) |
+| Conditions | Filtering logic |
+| Actions | Slack, Email, PagerDuty, Jira, HTTP Request, etc. |
+-->
+<h3>Workflow vs Legacy Alerting Profiles</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Workflows</th>
+<th>Alerting Profiles (Legacy)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Trigger types</strong></td>
+<td>Events, schedules, manual</td>
+<td>detected problems only</td>
+</tr>
+<tr>
+<td><strong>Filtering</strong></td>
+<td>DQL matchers on the problem</td>
+<td>Rule-based</td>
+</tr>
+<tr>
+<td><strong>Actions</strong></td>
+<td>20+ built-in actions</td>
+<td>Fixed notifications</td>
+</tr>
+<tr>
+<td><strong>Automation</strong></td>
+<td>Full automation capability</td>
+<td>Notification only</td>
+</tr>
+<tr>
+<td><strong>Modern platform</strong></td>
+<td>Recommended</td>
+<td>Dynatrace Classic — supported, not deprecated</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>On the status of alerting profiles.</strong> The upgrade guide answers this directly: <em>&quot;They continue to work and are not being removed on a published schedule, but they'll not receive new capabilities.&quot;</em> The alerting-profiles page states <em>&quot;Problem notification is a Dynatrace Classic concept.&quot;</em> and steers new work elsewhere: <em>&quot;Use simple workflows to send notifications about problems.&quot;</em> Treat that as <em>build new alerting on workflows</em>, not as <em>your existing profiles are about to stop working</em>.</p>
+<p>One caveat does bite: an alerting profile scoped by a <strong>Management Zone</strong> is only as durable as that zone. The MZ filter has no successor in the alerting model, so teams retiring Management Zones must rebuild those profiles as problem-triggered workflows first. See MZ2POL-01 §5.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/alerting-profiles">Problem alerting profiles (DT docs)</a> — the two quotes above, <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide: alert notifications (DT docs)</a> — <em>&quot;A workflow's Problem trigger filters problems directly with DQL matchers on the problem.&quot;</em> and <em>&quot;They continue to work and are not being removed on a published schedule, but they'll not receive new capabilities.&quot;</em></sub></p>
+</blockquote>
+<p><a id="creating-your-first-workflow"></a></p>
+<h2>3. Creating Your First Workflow</h2>
+<h3>Step 1: Choose a Simple or a Standard Workflow</h3>
+<p>Open the <strong>Workflows</strong> app and create a workflow. For notifications, the upgrade guide points to a <strong>simple workflow</strong>: <em>&quot;Use a simple workflow whenever the destination accepts the problem record as-is.&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Simple workflow</th>
+<th>Standard workflow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Structure</strong></td>
+<td>One trigger, one task</td>
+<td>Multiple tasks, branching, loops</td>
+</tr>
+<tr>
+<td><strong>Workflow-hour consumption</strong></td>
+<td>None</td>
+<td>Billed as Automation Workflow</td>
+</tr>
+<tr>
+<td><strong>Fits</strong></td>
+<td>Send problem data as-is to one channel</td>
+<td>Enrich, transform, branch, orchestrate</td>
+</tr>
+</tbody>
+</table>
+<p>Simple is not free: <em>&quot;each task execution counts as one AppEngine function invocation, and is billed as Automation Workflow.&quot;</em> Choose a standard workflow when the message needs conditional logic or enrichment, or when one filter must fan out to several destinations.</p>
+<h3>Step 2: Configure the Problem Trigger</h3>
+<ol>
+<li>Select the <strong>Problem trigger</strong>. It <em>&quot;starts a workflow when a problem opens, changes, or resolves.&quot;</em></li>
+<li>Set <strong>Problem state</strong>:
+<ul>
+<li><strong>active</strong> (the default) starts when the problem opens</li>
+<li><strong>active or closed</strong> starts when it opens and again when it closes, so responders also hear about the resolution</li>
+<li><strong>closed</strong> starts only when it closes</li>
+</ul>
+</li>
+<li>Under <strong>Advanced options</strong>:
+<ul>
+<li><strong>Wait for root cause analysis</strong>: <em>&quot;Recommended: Enable this to avoid triggering on incomplete problem data.&quot;</em></li>
+<li><strong>Minimum duration</strong>: <em>&quot;Postpones the trigger until the problem has been open for at least the configured duration.&quot;</em> Values run from 5 minutes to one week, and <em>&quot;A problem that is closed before ever reaching the configured threshold doesn't produce a trigger&quot;</em>, which makes this the main control for short-lived noise.</li>
+<li><strong>Updates</strong>: re-triggers when selected problem fields, such as severity, change. <em>&quot;Without Updates enabled, the trigger starts once per state transition and does not start again as the problem evolves.&quot;</em></li>
+</ul>
+</li>
+</ol>
+<h3>Step 3: Filter Which Problems Start It</h3>
+<p>Use the trigger's own fields first: <strong>Event category</strong>, <strong>Severity</strong>, and the <strong>Affected entities</strong> tag filter. Anything more goes in <strong>Additional custom filter query</strong>, which takes a <em>&quot;DQL matcher expression to further refine which problems start the trigger&quot;</em>: DQL matcher syntax on the problem record, not JavaScript.</p>
+<pre><code class="language-text">// Example: skip problems that fall inside a maintenance window
+maintenance.is_under_maintenance == false
+</code></pre>
+<blockquote>
+<p><strong>Select categories in Event category, not in the custom filter.</strong> The two are combined: <em>&quot;These are AND conditions, not alternatives.&quot;</em> A custom filter that names a category the Event category selection excludes produces <em>&quot;zero executions, no error, a workflow that looks correctly configured, and never runs.&quot;</em> Keep the custom filter category-agnostic. Then select <strong>Query past events</strong> in the trigger: zero matches in every window in a busy environment almost always means the two contradict each other.</p>
+</blockquote>
+<p>To limit it to production, use the trigger's <strong>Affected entities</strong> tag filter (for example an <code>environment:production</code> tag). Do not match on entity IDs: an ID such as <code>CLOUD_APPLICATION-EADC52AF343668DE</code> carries no environment or application name — none of 3,210 problems on a validation tenant had <code>prod</code> in an affected-entity ID (09/24/2026).</p>
+<h3>Step 4: Add the Action</h3>
+<ol>
+<li>Add a task to the trigger</li>
+<li>Pick the action: Slack <strong>Send message</strong>, <strong>Send email</strong>, PagerDuty <strong>Send event</strong>, <strong>HTTP Request</strong>, and so on (see §4)</li>
+<li>Configure the action parameters, then <em>&quot;Run the workflow manually against a real problem record before activating it.&quot;</em></li>
+</ol>
+<h3>Basic Workflow Example</h3>
+<pre><code class="language-text">Workflow type: simple
+Trigger:       Problem trigger, problem state = active or closed
+               Event category = Error
+               Wait for root cause analysis = on, Minimum duration = 5 min
+Action:        Slack Connector, Send message to #alerts
+</code></pre>
+<h3>Workflow Settings</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Name</strong></td>
+<td>Descriptive workflow name</td>
+</tr>
+<tr>
+<td><strong>Description</strong></td>
+<td>What this workflow does</td>
+</tr>
+<tr>
+<td><strong>Owner</strong></td>
+<td>The user (or group) that owns the workflow; a new workflow is private to its creator</td>
+</tr>
+<tr>
+<td><strong>Actor</strong></td>
+<td>The user whose permissions the tasks run with. <em>&quot;We highly recommend using service users as actors for all workflows that are worked on collaboratively and serve a production grade use case.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>State</strong></td>
+<td>Enabled/Disabled</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a> — the Problem trigger options and quotes in Steps 2–3; <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide: alert notifications (DT docs)</a> — simple vs standard workflows, the AND rule, the maintenance-window filter and the manual test run; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Manage workflow permissions (DT docs)</a> — Owner and Actor.</sub></p>
+</blockquote>
+<p><a id="notification-actions"></a></p>
+<h2>4. Notification Actions</h2>
+<p>Notifications go through <strong>Workflows Connectors</strong>. The third-party connectors install from Dynatrace Hub; Email and HTTP Request are built in.</p>
+<h3>Common Notification Connectors</h3>
+<table>
+<thead>
+<tr>
+<th>Connector → action</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Email</strong> → <em>Send email</em></td>
+<td>Basic notifications</td>
+</tr>
+<tr>
+<td><strong>Slack Connector</strong> → <em>Send message</em></td>
+<td>Team channels</td>
+</tr>
+<tr>
+<td><strong>Microsoft Teams Connector</strong></td>
+<td>Team channels</td>
+</tr>
+<tr>
+<td><strong>PagerDuty Connector</strong> → <em>Send event</em> or <em>Create an incident</em></td>
+<td>On-call paging</td>
+</tr>
+<tr>
+<td><strong>ServiceNow Connector</strong></td>
+<td>Incident tickets</td>
+</tr>
+<tr>
+<td><strong>Jira Connector</strong></td>
+<td>Issue tracking</td>
+</tr>
+<tr>
+<td><strong>HTTP Request</strong></td>
+<td>Generic webhooks and tools without a connector (Trello, VictorOps, xMatters)</td>
+</tr>
+<tr>
+<td><strong>Jira Service Management Connector</strong> or <strong>HTTP Request</strong></td>
+<td>Opsgenie replacement: <em>&quot;Opsgenie is being retired by Atlassian and replaced by Jira Service Management (JSM).&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<h3>Setting Up Slack Notifications</h3>
+<p>There is no in-product OAuth flow. You create a Slack app and hand its bot token to a Dynatrace connection:</p>
+<ol>
+<li>Install <strong>Slack Connector</strong> from Dynatrace Hub.</li>
+<li>Allow the outbound call: <strong>Settings → General → External requests</strong> → <em>New host pattern</em> for Slack's API domain.</li>
+<li>In the Workflows app, <strong>Settings → Authorization settings</strong>, grant the permissions the setup guide lists.</li>
+<li>In Slack, create an app <strong>From an app manifest</strong> (the setup guide provides the manifest JSON, including a minimal one for plain notifications), install it to the workspace, and copy its OAuth token from <strong>Features → OAuth &amp; Permissions</strong>.</li>
+<li>In Dynatrace, go to <strong>Settings → Connections → Slack</strong> → <em>Connection</em>, and paste the token in <strong>Bot token</strong>.</li>
+<li>In the workflow, add the Slack <strong>Send message</strong> action, pick the connection and channel, and write the message.</li>
+</ol>
+<h3>Message Templates</h3>
+<p>Use Jinja2 templates for dynamic messages:</p>
+<pre><code>🚨 *Problem Detected*
+*Title:* {{ event()[&quot;event.name&quot;] }}
+*Category:* {{ event()[&quot;event.category&quot;] }}
+*Status:* {{ event()[&quot;event.status&quot;] }}
+*Link:* {{ problem_link() }}
+</code></pre>
+<blockquote>
+<p><strong>Template fields come from the problem record.</strong> The Problem trigger's <code>event()</code> is the <code>dt.davis.problems</code> record — run <code>fetch dt.davis.problems, from:-24h | limit 1</code> to see every field a template can read. It has no <code>title</code> or <code>problem_url</code> field (0 of 3,209 problem records on a validation tenant, 09/24/2026): the title is <code>event.name</code>, the kind of problem is <code>event.category</code>, and the link is <code>{{ problem_link() }}</code>, which <em>&quot;evaluates correctly in workflows with Davis problem event triggers only.&quot;</em> (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Jinja expressions for Workflows (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a>)</p>
+</blockquote>
+<h3>Setting Up Email Notifications</h3>
+<ol>
+<li>In the Workflows app, <strong>Settings → Authorization settings</strong>, grant <code>email:emails:send</code></li>
+<li>Add the <strong>Send email</strong> action to the workflow</li>
+<li>Configure:
+<ul>
+<li>Recipients in To, Cc and Bcc: <em>&quot;the number of email addresses is restricted to 10 per field&quot;</em></li>
+<li>Subject (can use templates)</li>
+<li>Message: Markdown-style formatting (bold, lists, links) only. <em>&quot;It doesn't offer support for HTML.&quot;</em></li>
+</ul>
+</li>
+</ol>
+<p>Mail is sent from <code>no-reply@apps.dynatrace.com</code>, and <em>&quot;Trial environments are prohibited to send emails with Email.&quot;</em></p>
+<h3>Setting Up PagerDuty</h3>
+<ol>
+<li>Install <strong>PagerDuty Connector</strong> from Dynatrace Hub.</li>
+<li>For the <strong>Send event</strong> action (Events API v2, which triggers, acknowledges and resolves incidents), create an Events connection: <strong>Settings → Connections → PagerDuty</strong> → <em>Events API</em> tab, with the PagerDuty service's <strong>routing key</strong>. <em>&quot;The Send event action uses the PagerDuty Events API v2 and requires a separate Events connection configured with a routing key.&quot;</em></li>
+<li>For <strong>Create an incident</strong> and the other actions, create a connection under <strong>Settings → Connections → PagerDuty</strong> with a PagerDuty <strong>API key</strong>.</li>
+<li>Add the action to the workflow and map Dynatrace severity to PagerDuty severity.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide: alert notifications (DT docs)</a> — the connector mapping, including <em>&quot;Custom integration (generic webhook) HTTP Request&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions">Connectors and actions (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup">Set up Slack Connector (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email">Email (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup">Set up PagerDuty Connector (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="routing-alerts-to-teams"></a></p>
+<h2>5. Routing Alerts to Teams</h2>
+<p>Use workflow conditions to route alerts to the right teams.</p>
+<h3>Strategy: Condition-Based Routing</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MDAgMjgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWxsUHJvYkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJjaGVja291dEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJwYXltZW50R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxMGI5ODE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzA1OTY2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNsYWNrR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJyb3V0ZVNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0icm91dGVBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iNTAwIiBoZWlnaHQ9IjI4MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMjUwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWxlcnQgUm91dGluZyBFeGFtcGxlPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iNDYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q29uZGl0aW9uLUJhc2VkIFJvdXRpbmcgdG8gVGVhbXM8L3RleHQ+CgogIDwhLS0gQWxsIFByb2JsZW1zIEJveCAtLT4KICA8cmVjdCB4PSIxNzUiIHk9IjYwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjQ1IiByeD0iOCIgZmlsbD0idXJsKCNhbGxQcm9iR3JhZCkiIGZpbHRlcj0idXJsKCNyb3V0ZVNoYWRvdykiLz4KICA8dGV4dCB4PSIyNTAiIHk9Ijg4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWxsIFByb2JsZW1zPC90ZXh0PgoKICA8IS0tIFZlcnRpY2FsIGxpbmUgZG93biAtLT4KICA8cGF0aCBkPSJNMjUwLDEwNSBMMjUwLDEyNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz4KCiAgPCEtLSBTcGxpdCBwb2ludCAtLT4KICA8Y2lyY2xlIGN4PSIyNTAiIGN5PSIxMzAiIHI9IjUiIGZpbGw9IiM2NDc0OGIiLz4KCiAgPCEtLSBMZWZ0IGJyYW5jaCAtLT4KICA8cGF0aCBkPSJNMjUwLDEzMCBMMTMwLDEzMCBMMTMwLDE1NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjcm91dGVBcnJvdykiLz4KCiAgPCEtLSBSaWdodCBicmFuY2ggLS0+CiAgPHBhdGggZD0iTTI1MCwxMzAgTDM3MCwxMzAgTDM3MCwxNTUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI3JvdXRlQXJyb3cpIi8+CgogIDwhLS0gQ29udGFpbnMgImNoZWNrb3V0IiBmaWx0ZXIgLS0+CiAgPHJlY3QgeD0iNTUiIHk9IjE2MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9InVybCgjY2hlY2tvdXRHcmFkKSIgZmlsdGVyPSJ1cmwoI3JvdXRlU2hhZG93KSIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMTc4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db250YWluczwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjE5MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPiJjaGVja291dCI8L3RleHQ+CgogIDwhLS0gQ29udGFpbnMgInBheW1lbnQiIGZpbHRlciAtLT4KICA8cmVjdCB4PSIyOTUiIHk9IjE2MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9InVybCgjcGF5bWVudEdyYWQpIiBmaWx0ZXI9InVybCgjcm91dGVTaGFkb3cpIi8+CiAgPHRleHQgeD0iMzcwIiB5PSIxNzgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNvbnRhaW5zPC90ZXh0PgogIDx0ZXh0IHg9IjM3MCIgeT0iMTkyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+InBheW1lbnQiPC90ZXh0PgoKICA8IS0tIEFycm93IGRvd24gZnJvbSBjaGVja291dCBmaWx0ZXIgLS0+CiAgPHBhdGggZD0iTTEzMCwyMDAgTDEzMCwyMjAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI3JvdXRlQXJyb3cpIi8+CgogIDwhLS0gQXJyb3cgZG93biBmcm9tIHBheW1lbnQgZmlsdGVyIC0tPgogIDxwYXRoIGQ9Ik0zNzAsMjAwIEwzNzAsMjIwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNyb3V0ZUFycm93KSIvPgoKICA8IS0tIFNsYWNrIGNoYW5uZWxzIC0tPgogIDxyZWN0IHg9IjU1IiB5PSIyMjUiIHdpZHRoPSIxNTAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSJ1cmwoI3NsYWNrR3JhZCkiIGZpbHRlcj0idXJsKCNyb3V0ZVNoYWRvdykiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjI0MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2xhY2s8L3RleHQ+CiAgPHRleHQgeD0iMTMwIiB5PSIyNTciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4jYWxlcnRzLWNoZWNrb3V0PC90ZXh0PgoKICA8cmVjdCB4PSIyOTUiIHk9IjIyNSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9InVybCgjc2xhY2tHcmFkKSIgZmlsdGVyPSJ1cmwoI3JvdXRlU2hhZG93KSIvPgogIDx0ZXh0IHg9IjM3MCIgeT0iMjQzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TbGFjazwvdGV4dD4KICA8dGV4dCB4PSIzNzAiIHk9IjI1NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPiNhbGVydHMtcGF5bWVudHM8L3RleHQ+Cjwvc3ZnPgo=" alt="Alert Routing Example" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Filter | Destination |
+|--------|-------------|
+| Contains "checkout" | #alerts-checkout |
+| Contains "payment" | #alerts-payments |
+-->
+<h3>Routing by Entity Name</h3>
+<p>Entity IDs never contain names, so match on <code>affected_entity_names</code>. In a DQL matcher, <code>matchesValue</code> <em>&quot;works with multi-value attributes (matching any value), and supports wildcards&quot;</em> (<a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/dql/dql-matcher-in-openpipeline">DQL matcher in OpenPipeline (DT docs)</a>). On a validation tenant (09/24/2026) <code>matchesValue(affected_entity_names, &quot;*payment*&quot;)</code> matched 268 problems; searching the entity IDs for <code>payment</code> matched none.</p>
+<pre><code class="language-text">// Additional custom filter query — route checkout team alerts
+matchesValue(affected_entity_names, &quot;*checkout*&quot;)
+</code></pre>
+<h3>Routing by Problem Category</h3>
+<p>Select the category in the trigger's <strong>Event category</strong> field, not in the custom filter (see §3): one workflow with the availability category selected routes to SRE, another with the slowdown category routes to the app team. In the problem record these are <code>event.category == &quot;AVAILABILITY&quot;</code> and <code>&quot;SLOWDOWN&quot;</code>, which is what to use when you query problems in a notebook.</p>
+<h3>Example Multi-Team Setup</h3>
+<table>
+<thead>
+<tr>
+<th>Team</th>
+<th>Workflow</th>
+<th>Condition</th>
+<th>Channel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Checkout</td>
+<td><code>checkout-alerts</code></td>
+<td>Entity contains &quot;checkout&quot;</td>
+<td>Slack #alerts-checkout</td>
+</tr>
+<tr>
+<td>Payments</td>
+<td><code>payments-alerts</code></td>
+<td>Entity contains &quot;payment&quot;</td>
+<td>PagerDuty Payments</td>
+</tr>
+<tr>
+<td>Platform</td>
+<td><code>critical-alerts</code></td>
+<td>Event category: availability</td>
+<td>PagerDuty Platform</td>
+</tr>
+</tbody>
+</table>
+<h3>Creating Team-Specific Workflows</h3>
+<ol>
+<li>Create one workflow per routing need. The upgrade guide's rule is <em>&quot;Consolidate by destination, not by filter&quot;</em>, but <em>&quot;Split workflows when teams need isolation, even if the destination is identical.&quot;</em></li>
+<li>Use trigger fields and the custom filter to select problems</li>
+<li>Send to appropriate channel</li>
+<li>Include relevant context in message</li>
+</ol>
+<p><a id="custom-metric-alerts"></a></p>
+<h2>6. Custom Metric Alerts: Detect, Then Route</h2>
+<p>A workflow routes problems; it does not create them. An alert on a metric threshold needs two pieces: a <strong>custom alert</strong> (anomaly detector) that evaluates the metric and raises a problem, and a workflow that routes that problem.</p>
+<h3>When to Use Custom Metric Alerts</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Disk &gt; 90%</strong></td>
+<td>Static threshold</td>
+</tr>
+<tr>
+<td><strong>Queue depth spike</strong></td>
+<td>Deviation from baseline</td>
+</tr>
+<tr>
+<td><strong>Business metric</strong></td>
+<td>Custom metric threshold</td>
+</tr>
+<tr>
+<td><strong>SLO breach</strong></td>
+<td>SLO burn rate (SLO-04)</td>
+</tr>
+</tbody>
+</table>
+<h3>Step A: Create the Custom Alert</h3>
+<p>Create a custom alert on the metric and pick its analyzer:</p>
+<ul>
+<li><strong>Static threshold</strong>: alert when the value exceeds X</li>
+<li><strong>Auto-adaptive baseline</strong>: alert on deviations from normal</li>
+<li><strong>Seasonal baseline</strong>: account for time-based variations</li>
+</ul>
+<blockquote>
+<p><strong>Where a custom alert is created (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages, so check your tenant's version first. On earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created. AIOPS-02 and ALERT-02 cover choosing and building detectors.</p>
+</blockquote>
+<h3>Step B: Route the Problems It Raises</h3>
+<p>Create a workflow with the <strong>Problem trigger</strong> and select the custom-alert category in <strong>Event category</strong> (problems from custom alerts carry <code>event.category == &quot;CUSTOM_ALERT&quot;</code>). Narrow it further with the custom filter, for example on <code>event.name</code>.</p>
+<h3>Example: High CPU Alert</h3>
+<p>Built-in resource detection already raises CPU problems, so routing them needs only Step B:</p>
+<ol>
+<li>Create a workflow with the Problem trigger</li>
+<li>Select the resource-contention category in <strong>Event category</strong>, and put only the non-category part in <strong>Additional custom filter query</strong>:<pre><code class="language-text">matchesPhrase(event.name, &quot;CPU&quot;)
+</code></pre>
+In the problem record the category is <code>RESOURCE_CONTENTION</code> (there is no <code>RESOURCE</code> category) and the problem title is <code>event.name</code>. On a validation tenant (7 days to 09/24/2026), <code>event.category == &quot;RESOURCE_CONTENTION&quot; and matchesPhrase(event.name, &quot;CPU&quot;)</code> matched 1,385 of 1,464 resource-contention problems; <code>event.category == &quot;RESOURCE&quot;</code> matched none.</li>
+<li>Add the Slack notification action</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — the SaaS 1.344 quote; <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide: alert notifications (DT docs)</a> — selecting categories in Event category.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Recent problems
+fetch dt.davis.problems, from: now() - 24h
+| fields timestamp, display_id, event.name, event.status, affected_entity_types
+| sort timestamp desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Problem count by status
+fetch dt.davis.problems, from: now() - 7d
+| summarize count = count(), by: {event.status}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// Problems opened per day
+// timestamp is the record's last update; bucket on event.start to count by opening day
+fetch dt.davis.problems, from: now() - 7d
+| filter event.start &gt;= now() - 7d
+| fieldsAdd day = bin(event.start, 24h)
+| summarize problem_count = count(), by: {day}
+| sort day desc
+</code></pre>
+<pre><code class="language-dql">// Active problems right now
+fetch dt.davis.problems, from: now() - 30d
+| filter event.status == &quot;ACTIVE&quot;
+| fields timestamp, display_id, event.name, affected_entity_types
+| sort timestamp desc
+</code></pre>
+<pre><code class="language-dql">// Problem duration analysis
+fetch dt.davis.problems, from: now() - 7d
+| filter event.status == &quot;CLOSED&quot;
+| filter isNotNull(event.start) and isNotNull(event.end)
+| fieldsAdd duration_minutes = (event.end - event.start) / 1m
+| summarize {
+    avg_duration = avg(duration_minutes),
+    max_duration = max(duration_minutes),
+    problem_count = count()
+  }
+</code></pre>
+<h3>Alert Testing Checklist</h3>
+<p>After configuring workflows:</p>
+<ol>
+<li><strong>Test notification delivery</strong> - Run the workflow manually against a real problem record before activating it</li>
+<li><strong>Verify routing</strong> - Confirm correct channels receive alerts</li>
+<li><strong>Check formatting</strong> - Review message content</li>
+<li><strong>Validate conditions</strong> - Ensure filters work as expected</li>
+<li><strong>Test resolution</strong> - Confirm close notifications work</li>
+</ol>
+<h3>Workflow Execution History</h3>
+<p>For a standard workflow, open it in the Workflows app and select <strong>Executions</strong> to see each run's status, error details and action outputs.</p>
+<p>For a simple workflow that page is not available: <em>&quot;Execution logs for simple workflows are visible only for a limited time, and the Executions page does not display their history.&quot;</em> Every execution is also recorded in Grail, which works for both types. The query below counts runs by final state; each execution also writes a <code>RUNNING</code> record when it starts, so leaving the state filter out counts every run twice. It needs <code>storage:system:read</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide: alert notifications (DT docs)</a> — the simple-workflow caveat and the execution-event query this is based on.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Workflow runs by final state (last 7 days)
+fetch dt.system.events, from: now() - 7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot; and event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter in(dt.automation_engine.state, {&quot;SUCCESS&quot;, &quot;ERROR&quot;})
+| summarize runs = count(), by: {dt.automation_engine.workflow.title, dt.automation_engine.state}
+| sort runs desc
+</code></pre>
+<p><a id="next-steps"></a></p>
+<h2>7. Next Steps</h2>
+<p>With alerting configured:</p>
+<ol>
+<li><strong>ONBRD-10: Building Dashboards</strong> — Visualize your data</li>
+<li>Fine-tune workflow conditions based on alert volume</li>
+<li>Set up escalation paths with multiple workflows</li>
+<li>Document on-call procedures</li>
+</ol>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>AIOPS series</strong> (8 notebooks) — Davis AI in depth: Causal/Predictive/Generative, anomaly detection mechanisms (static / auto-adaptive / seasonal / multi-dimensional baseline / novelty/forecast), Davis problems &amp; RCA, Davis CoPilot / Dynatrace Assist, AI models, integrations &amp; agentic workflows</li>
+<li><strong>WFLOW series</strong> (12 notebooks) — Workflows depth: triggers, actions, AI tasks, scheduled workflows, MCP server integration</li>
+<li><strong>ALERT series</strong> (5 notebooks) — Alerting strategy and design: end-to-end architecture, choosing detection, routing and cost, ServiceNow integration</li>
+<li><strong>SLO series</strong> (6 notebooks) — Service level objectives and burn-rate alerting</li>
+</ul>
+<h3>Alerting Checklist</h3>
+<ul>
+<li>[ ] Slack/Email connection configured</li>
+<li>[ ] First workflow created and tested</li>
+<li>[ ] Team-specific workflows configured</li>
+<li>[ ] Test notifications sent successfully</li>
+<li>[ ] Critical path to on-call established</li>
+<li>[ ] Escalation procedures documented</li>
+<li>[ ] Davis sensitivity defaults reviewed</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>How DAVIS problem detection works</li>
+<li>How to create workflows for alerting</li>
+<li>How to configure notification actions</li>
+<li>How to route alerts to teams using conditions</li>
+<li>How a custom alert raises the problem a workflow routes</li>
+<li>How to monitor workflow effectiveness</li>
+<li>That <code>dt.davis.problems</code> uses <code>event.status</code> / <code>event.end</code> fields, and durations should use <code>/ 1m</code> (duration arithmetic), not <code>/ 60000000000</code> (nanosecond constants)</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/root-cause-analysis">Root cause analysis (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide: alert notifications (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions">Connectors and actions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack">Slack Connector (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup">Set up Slack Connector (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty">PagerDuty Connector (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup">Set up PagerDuty Connector (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/email">Email (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Manage workflow permissions (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

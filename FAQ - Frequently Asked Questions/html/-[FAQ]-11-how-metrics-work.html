@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ-11: How Do Metrics Work in Dynatrace?</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FAQ — Frequently Asked Questions</a><span class="sep">/</span><span aria-current="page">FAQ-11</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FAQ-11: How Do Metrics Work in Dynatrace?</h1>
+<blockquote>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 11 — How Metrics Work in Dynatrace | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Every observability conversation eventually lands on a metric — a CPU line on a dashboard, an error-rate alert, an SLO burn rate. But <em>what a metric actually is</em> in Dynatrace, and what happens to it between the moment a measurement is taken and the moment a chart renders, is rarely spelled out in one place. The answer determines things teams usually discover the hard way: why a query over a year of data comes back in seconds, why a <code>builtin:</code> metric key returns nothing in a Notebook, why an OpenTelemetry counter silently never arrives, why one careless dimension can consume a cardinality budget, and why metric queries do not show up on the DPS bill.</p>
+<p>This FAQ is decision support for the question: <strong>what happens to a metric in Dynatrace end to end — how a data point is produced, the shape it is normalized into, where it is stored (and for how long, at what resolution), how it is queried, and what it costs — and where that model constrains your design choices?</strong></p>
+<p>It goes deep on the mechanics: the data-point model (gauge summaries and count deltas), the two coexisting metric backends (Metrics Classic and Metrics powered by Grail) and the dual-write bridge between them, every documented ingest path (OneAgent, the ingest APIs, OTLP, Extensions 2.0, and metric extraction from records), the storage and rollup model, dimension-cardinality enforcement, the DQL <code>timeseries</code> query path, and the DPS billing rules. It complements <strong>FAQ-09</strong> (<em>When Should I Query a Metric Instead of Raw Logs?</em>), which covers <em>when</em> to reach for a metric; this entry covers <em>how metrics themselves work</em>.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5UaGUgRHluYXRyYWNlIE1ldHJpYyBMaWZlY3ljbGU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+UHJvZHVjZSAmIzg1OTQ7IG5vcm1hbGl6ZSBpbnRvIGRhdGEgcG9pbnRzICYjODU5NDsgZHVhbC13cml0ZSB0byB0d28gc3RvcmVzICYjODU5NDsgcXVlcnk8L3RleHQ+CgogIDwhLS0gQ29sdW1uIDE6IFBST0RVQ0UgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjgwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMzMCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjEwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+MS4gUFJPRFVDRTwvdGV4dD4KCiAgPHJlY3QgeD0iNDUiIHk9IjExNSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI0OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5PbmVBZ2VudCBidWlsdC1pbnM8L3RleHQ+CiAgPHRleHQgeD0iMTMwIiB5PSIxNTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPjEwIHMgc2FtcGxlcywgYXV0byB0b3BvbG9neTwvdGV4dD4KCiAgPHJlY3QgeD0iNDUiIHk9IjE3MSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI0OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMTg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5PVExQIGV4cG9ydGVyczwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjIwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+ZGVsdGEgY291bnRlcnMvaGlzdG9ncmFtczwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+aHR0cC9wcm90b2J1ZiBvbmx5PC90ZXh0PgoKICA8cmVjdCB4PSI0NSIgeT0iMjI3IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTMwIiB5PSIyNDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkluZ2VzdCBBUElzPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMjYzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5BUEkgdjIgJiMxODM7IDoxNDQ5OSAmIzE4MzsgU3RhdHNEICYjMTgzOyBUZWxlZ3JhZjwvdGV4dD4KCiAgPHJlY3QgeD0iNDUiIHk9IjI4MyIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI0OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMzAzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5FeHRlbnNpb25zIDIuMDwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjMxOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U05NUCAmIzE4MzsgV01JICYjMTgzOyBKTVggJiMxODM7IFByb20gJiMxODM7IFNRTDwvdGV4dD4KCiAgPHJlY3QgeD0iNDUiIHk9IjMzOSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI0OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiByeD0iNiIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMzU5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5PcGVuUGlwZWxpbmUgZXh0cmFjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIxMzAiIHk9IjM3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+ZnJvbSBsb2dzIC8gc3BhbnMgLyBldmVudHM8L3RleHQ+CgogIDwhLS0gQXJyb3cgMSAtLT4KICA8bGluZSB4MT0iMjMwIiB5MT0iMjQ1IiB4Mj0iMjYyIiB5Mj0iMjQ1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8IS0tIENvbHVtbiAyOiBOT1JNQUxJWkUgLS0+CiAgPHJlY3QgeD0iMjYyIiB5PSI4MCIgd2lkdGg9IjE4NiIgaGVpZ2h0PSIzMzAiIGZpbGw9IiMyMkQzRUUiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMzU1IiB5PSIxMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPjIuIE5PUk1BTElaRTwvdGV4dD4KCiAgPHJlY3QgeD0iMjc2IiB5PSIxMjAiIHdpZHRoPSIxNTgiIGhlaWdodD0iMTIwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzU1IiB5PSIxNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkRhdGEgcG9pbnQ8L3RleHQ+CiAgPHRleHQgeD0iMzU1IiB5PSIxNjEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPm1ldHJpYyBrZXkgKDMmIzgyMTE7MjU1IGNoYXJzKTwvdGV4dD4KICA8dGV4dCB4PSIzNTUiIHk9IjE3NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+KyB1cCB0byA1MCBkaW1lbnNpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjM1NSIgeT0iMTk2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5nYXVnZTogbWluIC8gbWF4IC8gc3VtIC8gY291bnQ8L3RleHQ+CiAgPHRleHQgeD0iMzU1IiB5PSIyMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPmNvdW50OiBkZWx0YSBvbmx5PC90ZXh0PgogIDx0ZXh0IHg9IjM1NSIgeT0iMjI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj50aW1lc3RhbXA6ICYjODcyMjsxIGggJiM4MjMwOyArMTAgbWluPC90ZXh0PgoKICA8cmVjdCB4PSIyNzYiIHk9IjI1MiIgd2lkdGg9IjE1OCIgaGVpZ2h0PSI3MiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiByeD0iNiIvPgogIDx0ZXh0IHg9IjM1NSIgeT0iMjc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4xLW1pbnV0ZSB0aW1lIHNsb3Q8L3RleHQ+CiAgPHRleHQgeD0iMzU1IiB5PSIyOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmZpbmVzdCBzdG9yZWQgZ3JhbnVsYXJpdHk7PC90ZXh0PgogIDx0ZXh0IHg9IjM1NSIgeT0iMzA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5wcmUtYWdncmVnYXRlcyBmZWVkIHJvbGx1cDo8L3RleHQ+CgogIDxyZWN0IHg9IjI3NiIgeT0iMzM2IiB3aWR0aD0iMTU4IiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzU1IiB5PSIzNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlcmllczwvdGV4dD4KICA8dGV4dCB4PSIzNTUiIHk9IjM3NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+a2V5ICYjMjE1OyBkaW1lbnNpb24gdHVwbGU8L3RleHQ+CgogIDwhLS0gQXJyb3cgMiAtLT4KICA8bGluZSB4MT0iNDQ4IiB5MT0iMjQ1IiB4Mj0iNDgwIiB5Mj0iMjQ1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8IS0tIENvbHVtbiAzOiBTVE9SRSAtLT4KICA8cmVjdCB4PSI0ODAiIHk9IjgwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMzMCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI1ODAiIHk9IjEwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+My4gU1RPUkUgKGR1YWwtd3JpdGUpPC90ZXh0PgoKICA8cmVjdCB4PSI0OTQiIHk9IjEyMCIgd2lkdGg9IjE3MiIgaGVpZ2h0PSIxMjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI1ODAiIHk9IjE0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+TWV0cmljcyBDbGFzc2ljPC90ZXh0PgogIDx0ZXh0IHg9IjU4MCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5idWlsdGluOioga2V5czwvdGV4dD4KICA8dGV4dCB4PSI1ODAiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+MSBtaW4gJiM4NTk0OyAxNCBkICYjMTgzOyA1IG1pbiAmIzg1OTQ7IDI4IGQ8L3RleHQ+CiAgPHRleHQgeD0iNTgwIiB5PSIxOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPjEgaCAmIzg1OTQ7IDQwMCBkICYjMTgzOyAxIGQgJiM4NTk0OyA1IHk8L3RleHQ+CiAgPHRleHQgeD0iNTgwIiB5PSIyMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPmdyYW51bGFyaXR5IGRlY2F5cyB3aXRoIGFnZTwvdGV4dD4KICA8dGV4dCB4PSI1ODAiIHk9IjIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+cmV0ZW50aW9uIDUgeSwgZml4ZWQ8L3RleHQ+CgogIDxyZWN0IHg9IjQ5NCIgeT0iMjYyIiB3aWR0aD0iMTcyIiBoZWlnaHQ9IjEzNCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9IjU4MCIgeT0iMjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5NZXRyaWNzIHBvd2VyZWQgYnkgR3JhaWw8L3RleHQ+CiAgPHRleHQgeD0iNTgwIiB5PSIzMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmR0Lioga2V5czwvdGV4dD4KICA8dGV4dCB4PSI1ODAiIHk9IjMyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjYwMCI+MS1taW4gb3ZlciBlbnRpcmUgaGlzdG9yeTwvdGV4dD4KICA8dGV4dCB4PSI1ODAiIHk9IjM0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+MTUgbW9udGhzIGluY2x1ZGVkPC90ZXh0PgogIDx0ZXh0IHg9IjU4MCIgeT0iMzU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5leHRlbnNpYmxlIHRvIDEwIHllYXJzPC90ZXh0PgogIDx0ZXh0IHg9IjU4MCIgeT0iMzc2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5saW1pdGxlc3MgZGltZW5zaW9ucyo8L3RleHQ+CgogIDwhLS0gQXJyb3cgMyAtLT4KICA8bGluZSB4MT0iNjgwIiB5MT0iMjQ1IiB4Mj0iNzEyIiB5Mj0iMjQ1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8IS0tIENvbHVtbiA0OiBRVUVSWSAtLT4KICA8cmVjdCB4PSI3MTIiIHk9IjgwIiB3aWR0aD0iMTg4IiBoZWlnaHQ9IjMzMCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI4MDYiIHk9IjEwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+NC4gUVVFUlk8L3RleHQ+CgogIDxyZWN0IHg9IjcyNiIgeT0iMTIwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwNiIgeT0iMTQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5EUUwgdGltZXNlcmllczwvdGV4dD4KICA8dGV4dCB4PSI4MDYiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+Tm90ZWJvb2tzICYjMTgzOyBEYXNoYm9hcmRzPC90ZXh0PgogIDx0ZXh0IHg9IjgwNiIgeT0iMTc2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5yZWFkcyBHcmFpbCAoZHQuKik8L3RleHQ+CiAgPHRleHQgeD0iODA2IiB5PSIxOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI2MDAiPnF1ZXJ5IGFsd2F5cyBpbmNsdWRlZDwvdGV4dD4KICA8dGV4dCB4PSI4MDYiIHk9IjIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+YXV0by1iaW5uaW5nLCByb2xsdXA6LDwvdGV4dD4KICA8dGV4dCB4PSI4MDYiIHk9IjIyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+bWF4IDEsNTAwIGVsZW1lbnRzL3NlcmllczwvdGV4dD4KCiAgPHJlY3QgeD0iNzI2IiB5PSIyNTIiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI4MDYiIHk9IjI3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+TWV0cmljIHNlbGVjdG9yczwvdGV4dD4KICA8dGV4dCB4PSI4MDYiIHk9IjI5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RGF0YSBFeHBsb3JlciAmIzE4MzsgQVBJIHYyPC90ZXh0PgogIDx0ZXh0IHg9IjgwNiIgeT0iMzA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5yZWFkcyBDbGFzc2ljIChidWlsdGluOiopPC90ZXh0PgogIDx0ZXh0IHg9IjgwNiIgeT0iMzI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj46c3BsaXRCeSA6Zm9sZCA6YXZnPC90ZXh0PgoKICA8cmVjdCB4PSI3MjYiIHk9IjM2MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIzNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwNiIgeT0iMzgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNjAwIj5tYWtlVGltZXNlcmllcyA9IHJlY29yZHM8L3RleHQ+CgogIDwhLS0gQm90dG9tIGJpbGxpbmcgc3RyaXAgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjQyNiIgd2lkdGg9Ijg3MCIgaGVpZ2h0PSI1MiIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RFBTOiBJbmdlc3QgJmFtcDsgUHJvY2VzcyBiaWxsZWQgcGVyIGRhdGEgcG9pbnQgKGR0Liogbm9uLWJpbGxhYmxlLCB3aXRoIGJyb2FkIGV4Y2VwdGlvbnMgJiM4MjEyOyAmIzE2NzsgOS4yKSAmIzE4MzsgUmV0YWluIGluIEdpQi1kYXlzIGFib3ZlIGluY2x1ZGVkIDQ2MiBkYXlzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5RdWVyeWluZyBtZXRyaWNzIHdpdGggdGltZXNlcmllcyBpcyBhbHdheXMgaW5jbHVkZWQgJiM4MjEyOyByZWFkaW5nIGEgbWV0cmljIGNvc3RzIG5vdGhpbmcsIGhvd2V2ZXIgb2Z0ZW4gaXQgcnVuczwvdGV4dD4KPC9zdmc+Cg==" alt="Dynatrace metric lifecycle — produce, normalize, store, query" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | What happens |
+|-------|--------------|
+| 1. Produce | OneAgent built-ins (10-second samples), OTLP exporters/Collector (delta counters and histograms, http/protobuf only), Metrics API v2 + local host ingest (StatsD, Telegraf, scripts), Extensions 2.0, OpenPipeline extraction from logs/spans/events |
+| 2. Normalize | Every measurement becomes a data point: gauge (min/max/sum/count summary) or count (delta), attached to a metric key (3–255 characters) + up to 50 dimensions, with a timestamp from 1 hour in the past to 10 minutes in the future; stored in 1-minute time slots; a series is one key × dimension tuple |
+| 3. Store (dual-write) | Metrics Classic: 1-min granularity decaying with age, 5-year fixed retention. Metrics powered by Grail: 1-min granularity over entire history, 15 months included, extensible to 10 years |
+| 4. Query | DQL `timeseries` in Notebooks/Dashboards (always included — no Query billing; at most 1,500 elements per series); metric selectors in Data Explorer / Metrics API v2 (Classic) |
+| Billing (DPS) | Ingest & Process billed per data point; `dt.*` keys are non-billable, with broad exceptions (§ 9.2); Retain billed in GiB-days above the included 462 days |
+For environments where SVG doesn't render
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#data-model">The Metric Data Model</a></li>
+<li><a href="#two-backends">Two Backends: Metrics Classic vs Metrics Powered by Grail</a></li>
+<li><a href="#ingest-paths">How a Data Point Is Born: The Ingest Paths</a></li>
+<li><a href="#record-extraction">Deriving Metrics from Records: OpenPipeline and Classic Extraction</a></li>
+<li><a href="#storage">Storage: Resolution, Rollups, and Retention</a></li>
+<li><a href="#cardinality">Dimensions and Cardinality</a></li>
+<li><a href="#querying">Querying Metrics</a></li>
+<li><a href="#cost">What Metrics Cost Under DPS</a></li>
+<li><a href="#recommended-approach">Recommended Approach</a></li>
+<li><a href="#gotchas">Common Gotchas</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform engineers, SREs, observability architects, and anyone designing custom metrics, OTLP pipelines, or dashboards — and FinOps owners who want to understand what drives metric cost</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Decision-support deep dive — explains the metric model end to end; not a hands-on lab</td>
+</tr>
+<tr>
+<td><strong>Deployment</strong></td>
+<td>Dynatrace SaaS. The Grail-specific sections assume Grail/DPS; the Metrics Classic sections apply to classic-surface assets (Data Explorer, Dashboards Classic, Metrics API v2)</td>
+</tr>
+<tr>
+<td><strong>Related topic series</strong></td>
+<td>OTEL (OpenTelemetry ingest), OPIPE-03/04 (metric extraction from spans, cardinality management), OPLOGS-03 (metric extraction from logs), FINOPS-01/02/03 (DPS consumption querying, forecasting, optimization), DASH (dashboarding), SLO (metrics behind SLOs)</td>
+</tr>
+<tr>
+<td><strong>Related FAQs</strong></td>
+<td>FAQ-09 (when to query a metric instead of raw logs — the economics companion to this entry)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p>A Dynatrace metric is a <strong>pre-aggregated numeric time series</strong>: a metric key, a set of dimensions (up to 50), and a stream of timestamped data points that Dynatrace aggregates into <strong>one-minute time slots</strong> at ingest. A gauge data point is not a single number — it carries a <code>min</code>/<code>max</code>/<code>sum</code>/<code>count</code> summary of everything measured in its slot, which is why a query can later ask for the average, the peak, or the total of the <em>same</em> stored point without re-reading raw data. Counters are stored as <strong>deltas</strong>, never as cumulative totals.</p>
+<p>That one design decision — <em>aggregate once at write time, read the aggregate forever</em> — explains most metric behavior you will encounter:</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>What happens</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Produce</strong></td>
+<td>OneAgent samples infrastructure every 10 seconds; apps push via OTLP or the ingest APIs; extensions poll SNMP/JMX/Prometheus/SQL/WMI; OpenPipeline extracts metrics from logs, spans, and events</td>
+<td>Many producers, one model — everything converges on the same line-protocol data-point shape</td>
+</tr>
+<tr>
+<td><strong>Normalize</strong></td>
+<td>Every measurement becomes a gauge summary (<code>min</code>,<code>max</code>,<code>sum</code>,<code>count</code>) or a count delta on a metric key + dimensions</td>
+<td>The stored pre-aggregates are what DQL's <code>rollup:</code> parameter later selects among</td>
+</tr>
+<tr>
+<td><strong>Store</strong></td>
+<td>Dual-write into two separate databases: Metrics Classic (granularity decays with age) and Metrics powered by Grail (1-minute granularity over the entire retention window)</td>
+<td>Which backend a tool reads determines what resolution and history it sees</td>
+</tr>
+<tr>
+<td><strong>Query</strong></td>
+<td>DQL <code>timeseries</code> (Notebooks, Dashboards) reads Grail; metric selectors (Data Explorer, Metrics API v2) read Classic</td>
+<td>Classic <code>builtin:</code> keys are invisible to DQL — you query the Grail-native <code>dt.*</code> twin instead</td>
+</tr>
+<tr>
+<td><strong>Bill</strong></td>
+<td>DPS bills metric <strong>Ingest &amp; Process</strong> per data point and <strong>Retain</strong> (in GiB-days) only above the included 15 months; querying metrics with <code>timeseries</code> is <em>always included</em></td>
+<td>Reading a metric ten thousand times costs the same as reading it once: nothing</td>
+</tr>
+</tbody>
+</table>
+<p>If you remember one thing: <strong>metrics are shaped at ingest, not at query time.</strong> Dimensions, units, temporality, and cardinality are all decisions the <em>producer</em> makes; the query side can only slice what was stored. The rest of this FAQ walks each layer in depth.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol">Metric ingestion protocol (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/metric-faq">Metric API FAQ (DT docs)</a> — &quot;The finest granularity of a time slot is one minute.&quot;</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq">Metrics FAQ (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics">Metrics consumption (DPS) (DT docs)</a> — <em>&quot;Querying metrics with the DQL timeseries command is included with Metrics - Ingest &amp; Process, regardless of where the query originates&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> the five-layer framing is an authoring synthesis of the cited pages; the docs describe each layer separately</sub></li>
+</ul>
+</blockquote>
+<p><a id="data-model"></a></p>
+<h2>2. The Metric Data Model</h2>
+<h3>2.1 The metric key</h3>
+<p>A metric key is a dot-separated path (<code>myapp.orders.processed</code>). The ingestion protocol defines the rules verbatim: allowed characters are <em>&quot;lowercase and uppercase letters, numbers, hyphens (<code>-</code>), and underscores (<code>_</code>)&quot;</em>; <em>&quot;metric keys cannot start with a number or a hyphen&quot;</em>; sections cannot start with a hyphen; non-Latin letters are not allowed; and <em>&quot;the length of the key must be in range from 3 to 255 characters.&quot;</em></p>
+<p>The <strong>prefix carries meaning</strong> — it tells you who produced the metric and which backend generation it belongs to:</p>
+<table>
+<thead>
+<tr>
+<th>Prefix</th>
+<th>Who writes it</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.*</code></td>
+<td>Dynatrace (Grail-native built-ins)</td>
+<td><strong>Reserved</strong> — custom keys starting with <code>dt.</code> are rejected at ingest</td>
+</tr>
+<tr>
+<td><code>builtin:*</code></td>
+<td>Dynatrace (Classic built-ins)</td>
+<td>The Classic twin of <code>dt.*</code> keys; queryable via metric selectors, not DQL</td>
+</tr>
+<tr>
+<td><code>ext:*</code></td>
+<td>Extensions (Classic naming)</td>
+<td>Extension-framework metrics</td>
+</tr>
+<tr>
+<td><code>calc:*</code></td>
+<td>Calculated metrics (Classic)</td>
+<td>e.g., calculated service metrics; <code>calc:apps.*</code> RUM metrics are not supported on Grail</td>
+</tr>
+<tr>
+<td><code>log.*</code></td>
+<td>Log metric extraction</td>
+<td>Metrics based on a log monitoring query carry the <code>log.</code> prefix</td>
+</tr>
+<tr>
+<td><em>(your namespace)</em></td>
+<td>You</td>
+<td>Free-form — in community practice, prefix with an org or app namespace so ownership stays obvious</td>
+</tr>
+</tbody>
+</table>
+<p>For Grail-native keys, Dynatrace's own naming convention is instructive: the docs describe <em>&quot;replacing the <code>builtin:</code> prefix with <code>dt.</code> to clearly denote Dynatrace-provided metrics&quot;</em> and <em>&quot;preferring snake case (<code>capacity_units</code>) to camel case (<code>capacityUnits</code>)&quot;</em>.</p>
+<h3>2.2 Dimensions</h3>
+<p>Dimensions are key-value pairs attached to a data point — <em>&quot;you can specify up to 50 dimensions&quot;</em> per metric line. Dimension keys allow lowercase letters, numbers, hyphens, periods, colons, and underscores; values are quoted strings (quotes and backslashes escaped). If the same dimension key appears twice on one line, only one value is accepted.</p>
+<p>The critical concept dimensions create is the <strong>series</strong>: one metric key × one unique dimension-value tuple = one series, and each series produces its own stream of data points. Cardinality (§7) and billing (§9) are both counted in series, not in keys.</p>
+<p>You can see the series structure of your own tenant with the DQL <code>metrics</code> discovery command — this query (validated live) counts series per host-metric key; the per-disk metrics unsurprisingly carry the most:</p>
+<pre><code class="language-dql">metrics from: now()-24h
+| filter startsWith(metric.key, &quot;dt.host.&quot;)
+| summarize series = count(), by: {metric.key}
+| sort series desc
+| limit 10
+</code></pre>
+<h3>2.3 Data points: gauges and counts</h3>
+<p>Every data point is one of two payload types:</p>
+<ul>
+<li><strong>Gauge</strong> — a sampled state (&quot;CPU is at 80.6%&quot;). A single value <code>gauge,80.6</code> is expanded at ingest to the summary <code>min=80.6, max=80.6, sum=80.6, count=1</code>; producers that pre-aggregate can send the summary form directly (<code>gauge,min=17.1,max=17.3,sum=34.4,count=2</code>). Those four stored statistics are exactly what DQL's <code>rollup:</code> parameter selects among at query time (§8).</li>
+<li><strong>Count</strong> — an occurrence tally (&quot;500 requests since the last report&quot;). The protocol is explicit: <em>&quot;data points of the <code>count</code> type are deltas between the previous and current data points&quot;</em> — you send <code>count,delta=500</code>, never a cumulative running total. On <strong>Metrics Classic</strong>, a count key is automatically suffixed with <code>.count</code> (and a gauge key that already ends in <code>.count</code> gets <code>.gauge</code>); <strong>Grail does not do this</strong> — <em>&quot;Grail metrics do not apply the .count and .gauge suffixes.&quot;</em> In DQL, query the key exactly as sent.</li>
+</ul>
+<p>Timestamps are UTC milliseconds, and the acceptance window is tight: <em>&quot;between 1 hour into the past and 10 minutes into the future from now&quot;</em> — anything outside is rejected. Omit the timestamp and the server clock is used.</p>
+<h3>2.4 Metadata: units, display names, descriptions</h3>
+<p>Metadata makes a metric render meaningfully (a chart labeled &quot;MilliSecond&quot; instead of a bare number). Two mechanisms:</p>
+<ol>
+<li><strong>At ingest</strong>, the line protocol supports a metadata line: <code>#my.metric gauge dt.meta.displayName=&quot;...&quot;, dt.meta.description=&quot;...&quot;, dt.meta.unit=&quot;...&quot;</code>.</li>
+<li><strong>After ingest</strong>, the Settings schema <code>builtin:metric.metadata</code> (scope <code>metric-{your-metric-key}</code>) manages display name, description, unit, tags, dimension display names, and Davis-relevant properties (<code>rootCauseRelevant</code>, <code>impactRelevant</code>, <code>minValue</code>/<code>maxValue</code>).</li>
+</ol>
+<p>One documented limitation to plan around: <em>&quot;You cannot provide metadata for built-in or calculated metrics; metadata is supported only for custom ingested metrics&quot;</em> — built-in metadata is registered by Dynatrace itself.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol">Metric ingestion protocol (DT docs)</a> — key/dimension rules, gauge summary expansion, count deltas, timestamp window, and the Classic-only <code>.count</code> / <code>.gauge</code> suffixing (<em>&quot;Grail metrics do not apply the .count and .gauge suffixes.&quot;</em>)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits">Metric limits (DT docs)</a> — <code>dt.</code> prefix reserved for Dynatrace</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail">Built-in metrics on Grail (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics-classic/built-in-metrics">Built-in classic metrics (DT docs)</a> — <code>builtin:</code> / <code>ext:</code> / <code>calc:</code> prefix semantics</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/custom-metric-metadata">Custom metric metadata (DT docs)</a> — metadata mechanisms and the built-in/calculated limitation</sub></li>
+</ul>
+</blockquote>
+<p><a id="two-backends"></a></p>
+<h2>3. Two Backends: Metrics Classic vs Metrics Powered by Grail</h2>
+<p>Dynatrace currently operates <strong>two metric databases side by side</strong>, and understanding the split resolves most &quot;why can't I see my metric here?&quot; confusion. The docs are unambiguous: <em>&quot;Classic metrics and Grail are separate databases with separate storage.&quot;</em> Nothing is migrated between them — instead, <em>&quot;supported metrics are already being written to both Metrics Classic and Grail&quot;</em> (dual-write), so each backend accumulates its own history from the point support began.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdzIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+VHdvIE1ldHJpYyBCYWNrZW5kcywgT25lIE1lYXN1cmVtZW50PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlNlcGFyYXRlIGRhdGFiYXNlcyAmIzgyMTI7IHN1cHBvcnRlZCBtZXRyaWNzIGFyZSBkdWFsLXdyaXR0ZW47IGhpc3RvcnkgaXMgbmV2ZXIgbWlncmF0ZWQ8L3RleHQ+CgogIDwhLS0gQ2VudGVyIHNvdXJjZSBib3ggLS0+CiAgPHJlY3QgeD0iMzU1IiB5PSI3NiIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI1NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9Ijk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5PbmUgbWVhc3VyZW1lbnQ8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmUuZy4gaG9zdCBDUFUgc2FtcGxlZCBieSBPbmVBZ2VudDwvdGV4dD4KCiAgPCEtLSBEdWFsLXdyaXRlIGFycm93cyAtLT4KICA8bGluZSB4MT0iNDAwIiB5MT0iMTMyIiB4Mj0iMjU1IiB5Mj0iMTY4IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93MikiLz4KICA8bGluZSB4MT0iNTMwIiB5MT0iMTMyIiB4Mj0iNjc1IiB5Mj0iMTY4IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93MikiLz4KICA8dGV4dCB4PSIyOTAiIHk9IjE0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+d3JpdGU8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPndyaXRlPC90ZXh0PgoKICA8IS0tIExlZnQ6IENsYXNzaWMgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjE3MCIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIyNTIiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMjUwIiB5PSIxOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPk1ldHJpY3MgQ2xhc3NpYzwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjIyNCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+S2V5IGZvcm08L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSIyMjQiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPmJ1aWx0aW46aG9zdC5jcHUudXNhZ2U8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjI0OCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+UXVlcnkgbGFuZ3VhZ2U8L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSIyNDgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPm1ldHJpYyBzZWxlY3RvcnMgKDpzcGxpdEJ5LCA6Zm9sZCk8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjI3MiIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+U3VyZmFjZXM8L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSIyNzIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkRhdGEgRXhwbG9yZXIsIERhc2hib2FyZHMgQ2xhc3NpYywgQVBJIHYyPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIyOTYiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkdyYW51bGFyaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjIwMCIgeT0iMjk2IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj4xIG1pbiBmb3IgMTQgZCwgdGhlbiA1IG1pbiAvIDEgaCAvIDEgZDwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMzIwIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5SZXRlbnRpb248L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSIzMjAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjUgeWVhcnMsIG5vdCBjb25maWd1cmFibGU8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjM0NCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+Q2FyZGluYWxpdHk8L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSIzNDQiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjFNIHR1cGxlcyBwZXIgbWV0cmljICsgdGVuYW50IHBvb2xzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIzNjgiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPlF1ZXJ5IGNlaWxpbmc8L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSIzNjgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjIwIG1pbGxpb24gZGF0YSBwb2ludHM8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjM5OCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+UGVha3Mgb2xkZXIgdGhhbiAxNCBkYXlzIGFyZSBzbW9vdGhlZCBhd2F5PC90ZXh0PgoKICA8IS0tIFJpZ2h0OiBHcmFpbCAtLT4KICA8cmVjdCB4PSI0NzAiIHk9IjE3MCIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIyNTIiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjgwIiB5PSIxOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPk1ldHJpY3MgcG93ZXJlZCBieSBHcmFpbDwvdGV4dD4KCiAgPHRleHQgeD0iNDkwIiB5PSIyMjQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPktleSBmb3JtPC90ZXh0PgogIDx0ZXh0IHg9IjYyMCIgeT0iMjI0IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5kdC5ob3N0LmNwdS51c2FnZTwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjI0OCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+UXVlcnkgbGFuZ3VhZ2U8L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSIyNDgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkRRTCB0aW1lc2VyaWVzPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMjcyIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5TdXJmYWNlczwvdGV4dD4KICA8dGV4dCB4PSI2MjAiIHk9IjI3MiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+Tm90ZWJvb2tzLCBEYXNoYm9hcmRzLCBHcmFpbCBRdWVyeSBBUEk8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIyOTYiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkdyYW51bGFyaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjYyMCIgeT0iMjk2IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj4xIG1pbnV0ZSBvdmVyIGVudGlyZSBoaXN0b3J5PC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMzIwIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5SZXRlbnRpb248L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSIzMjAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjE1IG1vbnRocyBpbmNsdWRlZCAmIzg1OTQ7IHVwIHRvIDEwIHllYXJzPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMzQ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5DYXJkaW5hbGl0eTwvdGV4dD4KICA8dGV4dCB4PSI2MjAiIHk9IjM0NCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+bGltaXRsZXNzIGRpbXMgKGV4Y2wuIGhpZ2hseSB2b2xhdGlsZSk8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIzNjgiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPlF1ZXJ5IGNlaWxpbmc8L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSIzNjgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPjUwMCBtaWxsaW9uIGRhdGEgcG9pbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMzk4IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj50aW1lc2VyaWVzIHF1ZXJpZXMgYWx3YXlzIGluY2x1ZGVkIChubyBRdWVyeSBiaWxsaW5nKTwvdGV4dD4KCiAgPCEtLSBCb3R0b20gZ3VpZGFuY2Ugc3RyaXAgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjQzOCIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSI0MiIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RFFMIGNhbm5vdCByZWFkIGJ1aWx0aW46KiBrZXlzIGFuZCBzZWxlY3RvcnMgY2Fubm90IHJlYWQgZHQuKiBrZXlzICYjODIxMjsgZWFjaCBzdG9yZSBhbnN3ZXJzIG9ubHkgZm9yIGl0cyBvd24ga2V5IGZvcm08L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkF1dGhvciBuZXcgY2hhcnRzLCBhbGVydHMsIGFuZCBhdXRvbWF0aW9uIGluIERRTCBhZ2FpbnN0IGR0Lioga2V5czsgbWlncmF0ZSBDbGFzc2ljIGFzc2V0cyB3aXRoIHRoZSBidWlsdC1pbiBzZWxlY3Rvci10by1EUUwgY29udmVydGVyPC90ZXh0Pgo8L3N2Zz4K" alt="Metrics Classic vs Metrics powered by Grail — dual-write and the tool split" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| | Metrics Classic | Metrics powered by Grail |
+|---|---|---|
+| Built-in key form | `builtin:host.cpu.usage` | `dt.host.cpu.usage` |
+| Query language | Metric selectors (`:splitBy`, `:fold`, `:avg`) | DQL `timeseries` |
+| Query surfaces | Data Explorer, Dashboards Classic, Metrics API v2 | Notebooks, Dashboards, Grail Query API |
+| Granularity | 1 minute for first 14 days, then coarser | 1 minute over entire history |
+| Retention | 5 years, not configurable | 15 months included, extensible to 10 years |
+| Cardinality | 1 million dimension tuples per metric | Limitless dimensions (excluding highly volatile) |
+| Max data points per query | 20 million | 500 million |
+| Note | Peaks older than 14 days are smoothed away | `timeseries` queries always included (no Query billing) |
+Center: the same measurement is dual-written to both stores; history is not migrated.
+DQL cannot read `builtin:*` keys and selectors cannot read `dt.*` keys — each store answers only for its own key form. Author new charts, alerts, and automation in DQL against `dt.*` keys; migrate Classic assets with the built-in selector-to-DQL converter.
+For environments where SVG doesn't render
+-->
+<h3>3.1 The key mapping</h3>
+<p>Built-in metrics exist under <strong>two names</strong>: the Classic key (<code>builtin:host.cpu.usage</code>) and the Grail-native key (<code>dt.host.cpu.usage</code>). These are the same measurement dual-written to two stores — but each store only answers for its own key form. This is the single most common trip-wire when teams move to Notebooks:</p>
+<ul>
+<li><strong>DQL cannot query <code>builtin:</code> keys.</strong> A <code>timeseries</code> on a <code>builtin:</code> key either fails to parse (the colon reads as parameter syntax) or, backtick-quoted, returns nothing — the Grail store has no such key. Query the <code>dt.*</code> twin instead. We confirmed this live: on a current tenant, the DQL <code>metrics</code> command lists hundreds of <code>dt.*</code> keys and zero <code>builtin:</code> keys.</li>
+<li><strong>Metric selectors cannot query <code>dt.*</code> keys</strong> — they read Classic.</li>
+</ul>
+<p>The Grail catalog is also consolidated, not 1:1. The built-in-metrics page states that Dynatrace <em>&quot;modified the availability of service metrics in Grail, which might affect the direct relation between Metrics Classic and Grail metric keys&quot;</em>, and frames the change as dimensional rather than additive — endpoint request metrics are <em>&quot;produced automatically for every detected endpoint&quot;</em>, with out-of-the-box dimensions replacing calculated metrics for common splits. In practice that is the <code>dt.service.*</code> family split by dimensions instead of key proliferation; the upgrade guide puts it as <em>&quot;Over 100 Classic service metrics are consolidated into a handful of Grail-based metrics, accessed through dimensions and filters.&quot;</em> Some Classic families have no Grail twin — <em>&quot;calculated RUM metrics (metrics with the prefix <code>calc:apps</code>) are not supported on Grail&quot;</em> and security metrics were replaced by security events.</p>
+<h3>3.2 Which tool reads which backend</h3>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Backend</th>
+<th>Query language</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Notebooks, Dashboards (Latest Dynatrace)</td>
+<td>Grail</td>
+<td>DQL <code>timeseries</code></td>
+</tr>
+<tr>
+<td>Grail Query API (<code>/platform/storage/query/...</code>)</td>
+<td>Grail</td>
+<td>DQL</td>
+</tr>
+<tr>
+<td>Data Explorer, Dashboards Classic</td>
+<td>Classic</td>
+<td>Metric selector</td>
+</tr>
+<tr>
+<td>Metrics API v2 (<code>/api/v2/metrics/query</code>)</td>
+<td>Classic</td>
+<td>Metric selector</td>
+</tr>
+</tbody>
+</table>
+<p>The migration state, per the docs: <em>&quot;most but not all metrics are already supported on Grail&quot;</em> — service, infrastructure, cloud, container/Kubernetes, and runtime families are available, with others not yet supported — the metrics FAQ marks the remaining gaps, such as custom buckets for Grail metrics and deletion of Grail metric data, as <em>&quot;planned for a future release.&quot;</em> SaaS 1.349 (staged tenant rollout from 10/27/2026) announces the first of them: <em>&quot;Metrics now supports custom buckets.&quot;</em> Verify it has reached your tenant; until then the current guidance remains the working path. Data Explorer and Dashboards Classic ship a built-in <strong>metric-selector-to-DQL converter</strong> to help move assets. It does not cover everything: for what it cannot handle, the upgrade guide says to <em>&quot;manually convert them by mapping Classic aggregations, transformations, and filters to their DQL equivalents.&quot;</em> Classic's &quot;Auto&quot; pseudo-aggregation is the common snag — <em>&quot;As DQL doesn't have an equivalent pseudo-aggregation, you need to specify the aggregation explicitly.&quot;</em></p>
+<p><strong>Practical rule:</strong> author every <em>new</em> chart, alert, and automation in DQL against <code>dt.*</code> keys; treat metric selectors as the maintenance language for existing Classic assets until you migrate them (§8.4).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq">Metrics FAQ (DT docs)</a> — separate databases, dual-write, tool-to-backend mapping</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics">Metrics on Grail upgrade guide (DT docs)</a> — migration state, service-metric consolidation</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail">Built-in metrics on Grail (DT docs)</a> — <code>builtin:</code> ↔ <code>dt.</code> key mapping tables</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits">Metric limits (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/metric-selector-conversion">Metric selector conversion (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/explorer-classic">Data Explorer (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-349">What's new in Dynatrace SaaS 1.349 (DT docs)</a> — <em>&quot;Metrics now supports custom buckets.&quot;</em> (rollout from 10/27/2026, read 10/27/2026)</sub></li>
+</ul>
+</blockquote>
+<p><a id="ingest-paths"></a></p>
+<h2>4. How a Data Point Is Born: The Ingest Paths</h2>
+<p>Every path below converges on the same data-point model from §2 — the differences are <em>where</em> the measurement is taken, <em>who</em> authenticates, and <em>what</em> gets added automatically.</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Runs where</th>
+<th>Auth</th>
+<th>Distinctive behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OneAgent built-ins</td>
+<td>On the host</td>
+<td>none (agent)</td>
+<td>10-second sampling → 1-minute aggregates; automatic topology dimensions</td>
+</tr>
+<tr>
+<td>Metrics API v2 ingest</td>
+<td>Anywhere → cluster/ActiveGate</td>
+<td>platform token / OAuth (<code>openpipeline:metrics:ingest</code>) or classic token (<code>metrics.ingest</code>)</td>
+<td>Line protocol, 1 MB payload</td>
+</tr>
+<tr>
+<td>OneAgent local API / <code>dynatrace_ingest</code> / Telegraf / StatsD</td>
+<td>On the host, <code>localhost</code> only</td>
+<td>none (local trust) — the local API must be enabled first</td>
+<td>Automatic host dimensions; 1,000-line payload</td>
+</tr>
+<tr>
+<td>OTLP (<code>/api/v2/otlp/v1/metrics</code>)</td>
+<td>Anywhere → cluster/ActiveGate</td>
+<td>platform token (<code>openpipeline:metrics:ingest</code>) or classic token (<code>metrics.ingest</code>)</td>
+<td><strong>Delta temporality required for counters and histograms</strong>; HTTP + binary protobuf only</td>
+</tr>
+<tr>
+<td>Extensions 2.0</td>
+<td>OneAgent or ActiveGate (EEC)</td>
+<td>framework</td>
+<td>Declarative YAML; polls SNMP/WMI/JMX/Prometheus/SQL/Python</td>
+</tr>
+<tr>
+<td>OpenPipeline extraction</td>
+<td>At record ingest</td>
+<td>pipeline config</td>
+<td>Metrics derived from logs/spans/events — §5</td>
+</tr>
+</tbody>
+</table>
+<h3>4.1 OneAgent built-in metrics</h3>
+<p>The workhorse. Per the docs: <em>&quot;infrastructure metrics and other periodic metrics are captured every 10 seconds and stored as 1-minute aggregates&quot;</em> — the aggregate typically carrying min/max/count/sum/average. Service and web-request metrics are different in kind: <em>&quot;service and web request metrics do not have a frequency&quot;</em> — they are derived from the observed transactions themselves (medians and 90th percentiles). Not everything is 10-second: some built-ins report at 1-minute intervals, and a few trail by up to 15 minutes. OneAgent also attaches the topology context (host, process group, entity IDs) as dimensions automatically — which is what makes <code>by:{dt.smartscape.host}</code> splits work with zero configuration.</p>
+<h3>4.2 Metrics API v2 ingest — the line protocol</h3>
+<p><code>POST /api/v2/metrics/ingest</code> accepts a plain-text body of protocol lines, one data point each. Authenticate with a platform token or OAuth client (<code>Authorization: Bearer …</code>, scope <code>openpipeline:metrics:ingest</code>) or, where classic access tokens are still available, an <code>Api-Token</code> with the <code>metrics.ingest</code> scope. <em>&quot;The payload is limited to 1 MB&quot;</em> and <em>&quot;there's no limit on the number of metrics&quot;</em> within it. A <code>202</code> means accepted for background processing; a <code>400</code> can be a <em>partial</em> failure — valid lines are still ingested.</p>
+<pre><code class="language-text"># metadata line (optional, once per key)
+#myapp.orders.processed count dt.meta.displayName=&quot;Orders processed&quot;, dt.meta.unit=&quot;Count&quot;
+
+myapp.orders.processed,region=&quot;us-east-1&quot;,tier=&quot;checkout&quot; count,delta=42
+myapp.queue.depth,region=&quot;us-east-1&quot; gauge,17
+myapp.request.duration,region=&quot;us-east-1&quot; gauge,min=12.1,max=340.7,sum=1893.4,count=25 1751896800000
+</code></pre>
+<h3>4.3 The local-host ingest family</h3>
+<p>When code already runs on a OneAgent-monitored host, you can skip tokens entirely — once the local API is switched on. It ships with OneAgent but is enabled per environment or host: <strong>Settings → Preferences → Extension Execution Controller</strong>, turn on <em>Enable Extension Execution Controller</em> and <em>Enable local HTTP Metric, Log and Event Ingest API</em> (a host-level setting overrides the environment one). Until then, requests to port 14499 fail. The <strong>local metric API</strong> — <code>http://localhost:14499/metrics/ingest</code> (served by OneAgent's Extensions Execution Controller) — <em>&quot;is available only to local clients and cannot be reached from remote hosts.&quot;</em> Payload cap: 1,000 lines. Its convenience feature is enrichment: <em>&quot;the host ID and host name context are automatically added to each metric as dimensions.&quot;</em> The same channel backs three integrations:</p>
+<ul>
+<li><strong><code>dynatrace_ingest</code></strong> — a CLI shipped in <code>&lt;install&gt;/agent/tools</code>; pipe protocol lines via stdin or pass one per invocation. Ideal for cron jobs and shell scripts.</li>
+<li><strong>Telegraf</strong> — the upstream Telegraf distribution includes a Dynatrace output plugin; point it at the local endpoint (or a cluster URL + token for remote).</li>
+<li><strong>StatsD</strong> — OneAgent ships a StatsD daemon listening on UDP <code>18125</code>; an ActiveGate can act as a remote listener on <code>18126</code> (disabled by default there). The OneAgent daemon is not available when OneAgent is deployed on Kubernetes (for example with Dynatrace Operator) — there, the docs recommend remote StatsD through an environment ActiveGate.</li>
+</ul>
+<h3>4.4 OTLP — OpenTelemetry metrics</h3>
+<p><code>POST /api/v2/otlp/v1/metrics</code> (or via ActiveGate) with <code>Authorization: Bearer &lt;platform token&gt;</code> (scope <code>openpipeline:metrics:ingest</code>) or, where classic access tokens are still available, <code>Authorization: Api-Token …</code> with <code>metrics.ingest</code>. Three protocol constraints surprise OTel veterans:</p>
+<ol>
+<li><strong>HTTP only</strong> — <em>&quot;gRPC is not supported&quot;</em> — and <strong>binary protobuf only</strong> (<em>&quot;JSON is not supported&quot;</em>): set <code>OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</code>.</li>
+<li><strong>Counters and histograms must be delta</strong>: <em>&quot;the Dynatrace backend exclusively works with delta values and requires the respective aggregation temporality.&quot;</em> Cumulative counters and cumulative histograms are not ingested — <em>&quot;Cumulative histograms aren't ingested (similarly to cumulative counters).&quot;</em> A cumulative UpDownCounter (a non-monotonic sum) is accepted and stored as a gauge, per the page's instrument mapping table. Fix it at the SDK (<code>OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=DELTA</code>) or in a Collector with the <code>cumulativetodelta</code> processor (set <code>max_staleness</code> above the receive interval so counter state is not evicted between reports).</li>
+<li><strong>Histogram support is partial</strong>: explicit-bucket histograms (Dynatrace 1.300+) are stored as histograms <strong>only when Advanced OTLP metric dimensions is enabled</strong> — otherwise they are ingested as counters, with no buckets to take percentiles from; for exponential histograms <em>&quot;Dynatrace ingests the histogram's min/max/sum/count but doesn't ingest the buckets&quot;</em>; histogram points without a sum (negative recordings) are dropped; OTLP <em>summary</em> metrics are not supported at all.</li>
+</ol>
+<p><strong>A Collector processor can create the temporality problem too.</strong> Two processors that ship only in the full Dynatrace Bindplane OTel Collector build emit sums of their own: <code>metricstats</code> marks its sums cumulative, and <code>metricextract</code>'s <code>counter_*</code> types create sums without setting a temporality. By the mapping table, a monotonic cumulative sum is not ingested and a non-monotonic one is stored as a gauge; the page does not say what happens to a sum with no temporality set. After <code>metricstats</code>, add <code>cumulativetodelta</code> (included in the Dynatrace OTel Collector). With <code>metricextract</code>, use a gauge type, or confirm what your tenant stores before relying on a counter.</p>
+<p>Attribute mapping: data-point attributes become dimensions by default; resource and scope attributes pass through an allow-list — unless the tenant enables <strong>Advanced OTLP metric dimensions</strong>, in which case <em>all</em> resource/scope/data-point attributes become dimensions except a deny list, and <code>otel.scope.name</code>/<code>otel.scope.version</code> are always added. On conflicts, data-point attributes win over scope, which wins over resource. Limits shift with that mode too: 50 → 100 dimensions, 100 → 350-character dimension keys, 255 → 2,048-character values; requests cap at 4 MB uncompressed and 15,000 data points; instrument units longer than 63 characters are silently dropped.</p>
+<h3>4.5 Extensions 2.0</h3>
+<p>For technology you cannot instrument directly, an extension is a <strong>declarative YAML</strong> (<code>extension.yaml</code> in a signed ZIP) that tells the Extensions Execution Controller what to poll: SNMP, WMI, JMX, Prometheus endpoints, SQL queries, or custom Python. It runs <em>&quot;either your local data sources when run on OneAgent, or remote data sources when run from an ActiveGate&quot;</em> and emits through the same ingestion protocol as everything else. See the ONBRD and K8S series for deployment patterns.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics-classic">Metrics Classic (DT docs)</a> — 10-second capture, 1-minute aggregates, service-metric derivation</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/post-ingest-metrics">POST ingest data points (DT docs)</a> — endpoint, 1 MB payload, partial-failure semantics; auth: <em>&quot;Platform Token / OAuth: One of the following scopes is required: openpipeline:metrics:ingest&quot;</em>, or an <code>Api-Token</code> with <code>metrics.ingest</code></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol">Metric ingestion protocol (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/oneagent-metric-api">OneAgent metric API (DT docs)</a> — port 14499, local-only, 1,000 lines, host enrichment; <em>&quot;You only need to enable the OneAgent metric API at the environment or host level.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/oneagent-pipe">Scripting integration <code>dynatrace_ingest</code> (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/telegraf">Telegraf (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/ingestion-methods/statsd">StatsD (DT docs)</a> — ports 18125/18126; <em>&quot;OneAgent deployed on Kubernetes, for example using Dynatrace Operator, isn't supported.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api">OTLP API (DT docs)</a> — endpoints, HTTP/protobuf-only; <em>&quot;To authenticate, use a platform token with Bearer in the Authorization HTTP header.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest">OTLP metrics ingest concepts (DT docs)</a> — delta temporality, histogram type mapping (explicit-bucket histogram → Histogram with Advanced OTLP metric dimensions, Counter without; read 10/02/2026); instrument mapping table rows Counter Cumulative → N/A and UpDownCounter Cumulative → Gauge, and <em>&quot;Cumulative histograms aren't ingested (similarly to cumulative counters).&quot;</em> (re-read 10/15/2026)</sub></li>
+<li><sub><strong>Code read (10/29/2026):</strong> at tag <code>v1.2.0</code> of <code>dynatrace-bindplane-otel-contrib</code>, <a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/metricstatsprocessor/processor.go"><code>metricstatsprocessor/processor.go</code></a> sets <code>AggregationTemporalityCumulative</code> on its sums (line 283); <a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/processor/metricextractprocessor/processor_ottl.go"><code>metricextractprocessor/processor_ottl.go</code></a> creates <code>counter_*</code> sums with <code>SetEmptySum()</code> and sets no temporality (line 111). Both are in the <a href="https://github.com/Dynatrace/dynatrace-bindplane-otel-collector/blob/v1.2.0/manifests/dynatrace-bindplane-otel-collector/manifest.yaml">full Dynatrace Bindplane OTel Collector manifest</a>; <code>cumulativetodeltaprocessor</code> is in the <a href="https://github.com/Dynatrace/dynatrace-otel-collector/blob/v0.59.0/manifest.yaml">Dynatrace OTel Collector manifest</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/configure-otlp-metrics">OTLP metrics configuration (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/about-metrics-ingest">OTLP metrics limitations (DT docs)</a> — size/length limits, 63-character unit cap</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/collector/configuration">Collector configuration (DT docs)</a> — <code>cumulativetodelta</code> + <code>max_staleness</code> guidance</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extensions/concepts">Extensions 2.0 concepts (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extensions/supported-extensions/data-sources">Extension data sources (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="record-extraction"></a></p>
+<h2>5. Deriving Metrics from Records: OpenPipeline and Classic Extraction</h2>
+<p>Not every metric starts life as a measurement — many of the most valuable ones are <em>derived</em> from records (logs, spans, events) at ingest. This is the &quot;compute once&quot; move from FAQ-09 applied at the pipeline: instead of re-scanning records on every dashboard render, an extraction rule turns matching records into data points as they arrive.</p>
+<h3>5.1 OpenPipeline metric extraction (current mechanism)</h3>
+<p>OpenPipeline's processing stage offers three extraction processors — a <strong>counter metric</strong> (<em>&quot;Returns the number of occurrences of a metric, from the records that match the query.&quot;</em>), a <strong>value metric</strong> (<em>&quot;Returns the aggregated values of a metric from the records that match the query.&quot;</em>, reading a numeric field), and a <strong>histogram metric</strong> (SaaS 1.343). Extraction is configurable on logs, generic events, SDLC events, security events (new), business events, system events, user events, and user sessions — and <em>&quot;extracted metrics are sent to Grail only&quot;</em> (with narrow exceptions for the security-event and span scopes).</p>
+<p><strong>Spans get special treatment.</strong> Because spans can be sampled, the span scope offers <em>sampling-aware</em> counter, value, and histogram metric processors that extrapolate through the sampling ratio — leave the sampling options enabled so a 1-in-100 sampled trace stream still yields approximately correct request counts. Log- and event-derived metrics have no such caveat: those records are not sampled, so extracted metrics are exact. OPIPE-03 covers the span case in depth; OPLOGS-03 covers logs.</p>
+<p>Two design rules carry over from FAQ-09 verbatim: <strong>bound your dimensions</strong> (each unique tuple becomes a stored, billed series — §7) and remember that <strong>extraction is forward-only</strong> — a rule created today produces data points from today onward; it does not backfill history from stored records.</p>
+<h3>5.2 Log metrics (<code>log.*</code> keys)</h3>
+<p>Log metrics are now the OpenPipeline extraction above, applied to logs: they are created in the Logs pipeline's <strong>Metric extraction</strong> tab (Settings → Process and contextualize → OpenPipeline → Logs), and <em>&quot;Log metrics are stored in Grail and can be accessed and queried with Dynatrace Query Language.&quot;</em> Each is a <strong>counter</strong> (a count of matching records), a <strong>value</strong> metric (a numeric attribute recorded as a gauge — average, count, maximum, minimum, sum), or a <strong>histogram</strong> metric (a numeric attribute recorded as a histogram — median and the 10th/75th/90th percentiles). The key prefix is fixed: <em>&quot;All metrics based on a log monitoring query have a metric key with the log. prefix.&quot;</em></p>
+<h3>5.3 Calculated service metrics (Classic) — direction of travel</h3>
+<p>Calculated service metrics are the classic way to derive request-scoped metrics (by URL pattern, request attribute, etc.). Their status: <em>&quot;OpenPipeline metric extraction now replaces calculated service metrics as the method to create additional service business or technical metrics&quot;</em>, and <em>&quot;If you're an existing customer, you can still use them until we deprecate them. If you're a new customer, you won't be able to create calculated service metrics anymore.&quot;</em> No deprecation date is published (checked 09/18/2026).</p>
+<p><strong>Existing calculated service metrics reach Grail by cardinality</strong> (upgrade guide, rewritten 09/15/2026). One converts automatically when, among other criteria, <em>&quot;The metric cardinality is less than 500 within any 5-minute window in the past two weeks&quot;</em>; above that it must be switched on manually; and <em>&quot;Classic calculated metrics with a cardinality exceeding 2,000 can't be converted to Grail calculated metrics&quot;</em> — recreate those with OpenPipeline or DQL. Conversion does not double-bill — <em>&quot;Calculated service metrics continue to consume your license like custom metrics. There are no changes to billing.&quot;</em> — but it can cost more: classic keeps <em>&quot;at most 100 dimension values&quot;</em>, while Grail keeps the full cardinality, so <em>&quot;converting such a metric may increase the number of stored metric data points&quot;</em>.</p>
+<blockquote>
+<p><strong>Histogram extraction (SaaS 1.343, rollout from 07/14/2026):</strong> <em>&quot;You can now extract histogram metrics from logs or spans using OpenPipeline.&quot;</em> That gives percentile-capable series from record data without shipping raw histograms through OTLP. A tenant still on an earlier version has the counter and value processors only.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">OpenPipeline processing (DT docs)</a> — counter/value/histogram processors, supported scopes, Grail-only routing</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/tutorial-extract-metrics-from-spans">Extract metrics from spans (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-processing/lma-log-metrics">Log metrics (DT docs)</a> — counter/value/histogram log metrics, the <code>log.</code> prefix, and Grail storage (page updated 08/20/2026, read 10/02/2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">SaaS 1.343 release notes (DT docs)</a> — histogram metric extraction; <em>&quot;Rollout start on Jul 14, 2026&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/application-observability/services/calculated-service-metric">Calculated metrics for services (DT docs)</a> — replacement by OpenPipeline, existing vs new customers</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/calculated-service-metrics-upgrade">Upgrade from calculated service metrics to Grail (DT docs)</a> — cardinality-based conversion, billing, top-100 vs full cardinality</sub></li>
+</ul>
+</blockquote>
+<p><a id="storage"></a></p>
+<h2>6. Storage: Resolution, Rollups, and Retention</h2>
+<h3>6.1 What is physically stored</h3>
+<p>The finest stored granularity is the <strong>one-minute time slot</strong> (<em>&quot;the finest granularity of a time slot is one minute&quot;</em>). For gauges, each slot holds the pre-aggregated summary — min, max, sum, count — not the raw 10-second samples. This is the load-bearing fact behind DQL's <code>rollup:</code> parameter: when you write <code>avg(dt.host.cpu.usage, rollup: max)</code>, you are choosing <em>which stored statistic</em> per slot feeds the aggregation. Nothing is recomputed from raw samples, because raw samples were never stored.</p>
+<h3>6.2 Metrics Classic: granularity decays with age</h3>
+<p>Classic storage downsamples as data ages, on a fixed schedule:</p>
+<table>
+<thead>
+<tr>
+<th>Data age</th>
+<th>Stored resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0–14 days</td>
+<td>1 minute</td>
+</tr>
+<tr>
+<td>14–28 days</td>
+<td>5 minutes</td>
+</tr>
+<tr>
+<td>28–400 days</td>
+<td>1 hour</td>
+</tr>
+<tr>
+<td>400 days–5 years</td>
+<td>1 day</td>
+</tr>
+</tbody>
+</table>
+<p>Retention is <em>&quot;5 years, not configurable.&quot;</em> The practical consequence: a Classic query comparing this month against thirteen months ago is comparing 1-minute data against 1-hour data — fine for trends, misleading for peaks (a 2-minute CPU spike simply no longer exists at 1-hour resolution).</p>
+<h3>6.3 Metrics powered by Grail: full resolution, configurable retention</h3>
+<p>Grail metrics keep <strong>&quot;1 minute over entire history.&quot;</strong> Included retention is <em>&quot;15 months (462 days) of one-minute-granularity retention&quot;</em>, and <em>&quot;This retention can be increased to up to 10 years.&quot;</em> Retention beyond the included 15 months bills the Retain capability (§9). Retained data stays queryable until the end of the retention period. Note the scoping: retention is set on the <strong>default metrics bucket</strong>. SaaS 1.349 (staged tenant rollout from 10/27/2026) adds custom metric buckets — <em>&quot;You can optionally route subsets of metrics into custom buckets using configuration rules&quot;</em> and <em>&quot;Configure custom retention per bucket&quot;</em> — so verify it has reached your tenant; until it does, the metrics FAQ still lists custom buckets as <em>&quot;planned for a future release&quot;</em> and retention is set on the default bucket only.</p>
+<p>The Grail design also removed a classic artifact: Classic kept separate pre-aggregated and full-cardinality &quot;detail&quot; variants of some built-ins for performance; Grail <em>&quot;is already optimized for such high cardinality queries&quot;</em>, so only the detailed form exists.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/metric-faq">Metric API FAQ (DT docs)</a> — one-minute finest slot</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data retention periods (DT docs)</a> — classic downsampling tiers, Grail 15-month default</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits">Metric limits (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics#retain">Metrics consumption (DPS) (DT docs)</a> — 462 days included</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq">Metrics FAQ (DT docs)</a> — 10-year ceiling, custom metric buckets planned</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail">Built-in metrics on Grail (DT docs)</a> — <em>&quot;Since the pre-aggregated metric builtin:host.net.bytesRx is no longer necessary, only builtin:host.net.nic.bytesRx is supported by metrics on Grail&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="cardinality"></a></p>
+<h2>7. Dimensions and Cardinality</h2>
+<p>Cardinality is the count of <strong>unique dimension-value tuples</strong> per metric key — and it is the one resource a metric design can exhaust silently. The math is multiplicative: <code>endpoint (50) × status (10) × region (6)</code> is 3,000 potential series; add <code>customer_id (100,000)</code> and you have 300 million.</p>
+<h3>7.1 Enforcement on Metrics Classic</h3>
+<p>Classic enforces hard limits, measured over <em>&quot;the dimension tuples of the last 30 days (a 30-day sliding window)&quot;</em>:</p>
+<ul>
+<li><strong>Per metric:</strong> 1 million dimension tuples.</li>
+<li><strong>Per tenant:</strong> pool limits across all custom metrics (50 million tuples) and across all built-in metrics — check the <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits">metric limits page</a> for the current pool values on your tenant generation.</li>
+</ul>
+<p>Exceeding a limit does not stop the metric — it stops <em>growth</em>: <em>&quot;data points having new and as yet unseen dimension tuples are rejected&quot;</em> while existing series keep flowing. This makes the failure mode subtle: dashboards keep rendering, but new hosts/pods/endpoints never appear.</p>
+<p>The docs call out the classic trap directly — <strong>volatile dimensions</strong>: <em>&quot;short-lived IDs and timestamps are volatile dimensions&quot;</em>, and a dimension that changes per data point <em>&quot;will reach the cardinality limits after 1 million seconds online — just 11 days.&quot;</em> Never use request IDs, session IDs, trace IDs, timestamps, or unbounded user IDs as metric dimensions; that detail belongs in logs and spans, which are built for it.</p>
+<p><strong>Watch it before it bites:</strong> Dynatrace ships self-monitoring metrics for dimension-tuple usage, charted on the <strong>&quot;Metric dimension usage and rejection self-monitoring&quot;</strong> preset dashboard (dimensions below 10% of a limit are omitted from the detail view).</p>
+<blockquote>
+<p><strong>Breaking (SaaS 1.349 — staged tenant rollout from 10/27/2026): the built-in alerts on these limits are off.</strong> Verbatim: <em>&quot;The four built-in metric limits alert rules under builtin:internal.metric.limits-alerts have been deactivated for all SaaS environments.&quot;</em> They watched <code>dsfm:server.metrics.builtin_dimensions_usage</code>, <code>dsfm:server.metrics.custom_dimensions_usage</code>, <code>dsfm:server.metrics.custom_metrics_usage</code> and <code>dsfm:server.metrics.metric_dimensions_usage</code>. The release note's action plan, for tenants still on Dynatrace Classic: use standard Metric events (<code>builtin:anomaly-detection.metric-events</code>) <em>&quot;to create equivalent rules&quot;</em>; or <em>&quot;upgrade to Latest Dynatrace and take advantage of Metrics on Grail, which is not subject to fixed platform limits.&quot;</em> Until 1.349 reaches your tenant, the built-in rules behave as before.</p>
+</blockquote>
+<h3>7.2 Grail posture</h3>
+<p>Metrics powered by Grail advertises <em>&quot;limitless dimensions (excluding highly volatile dimensions)&quot;</em> — the storage engine no longer needs a per-metric tuple cap, but the exclusion in parentheses is doing real work: highly volatile dimensions remain outside the design intent, and <em>&quot;Dynatrace therefore may restrict or reject metric configurations that don't follow best practices.&quot;</em> The custom-metric-key ceiling (100,000 distinct keys) applies to both backends.</p>
+<h3>7.3 The cardinality–cost interplay</h3>
+<p>Dimensions do not bill directly — per the DPS docs, <em>&quot;Adding additional metric dimensions does not inherently generate consumption. Consumption is generated only when additional metric data points are stored in Dynatrace.&quot;</em> The catch is the second sentence: every new tuple is a new series, and every series emits data points per interval. Splitting one metric into 1,000 series multiplies ingested data points by up to 1,000. Cardinality discipline is therefore simultaneously a reliability practice (Classic limits) and a cost practice (DPS ingest) — OPIPE-04 and FINOPS-03 §9 cover remediation patterns.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/best-practices">Metrics API best practices (DT docs)</a> — limits, sliding window, rejection behavior, volatile-dimension math, self-monitoring dashboard, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits">Metric limits (DT docs)</a> — Grail limitless-dimensions posture, 100,000 custom keys, <a href="https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics#dimensions-consumption">Metrics consumption (DPS) (DT docs)</a> — dimensions-vs-data-points billing rule, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-349">What's new in Dynatrace SaaS 1.349 (DT docs)</a> — <em>&quot;Rollout start on Oct 27, 2026&quot;</em>; the <code>builtin:internal.metric.limits-alerts</code> deactivation and action plan quoted above.</sub></p>
+</blockquote>
+<p><a id="querying"></a></p>
+<h2>8. Querying Metrics</h2>
+<h3>8.1 DQL <code>timeseries</code> — the Grail query path</h3>
+<p><code>timeseries</code> is a <em>starting</em> command: it loads, filters, and aggregates metric storage into series in one step. The essentials (all validated live on a tenant):</p>
+<pre><code class="language-dql">timeseries avg(dt.host.cpu.usage), from:-2h, by:{dt.smartscape.host}
+| limit 3
+</code></pre>
+<p>Mechanics worth internalizing:</p>
+<ul>
+<li><strong>Auto-binning.</strong> <em>&quot;The timeseries command automatically calculates an appropriate time interval derived from the query timeframe&quot;</em> — snapped to well-known slots (1, 2, 3, 5, 10, 15, 30 minutes; 1–24 hours; multiples of 24 hours up to 30 days), overridable with <code>interval:</code> or <code>bins:</code>. A series never exceeds the hard cap of <strong>1,500 elements</strong>, but the default lands well below it: on 10/02/2026 a 2-hour query returned 1-minute slots and a 365-day query returned <strong>3-day</strong> slots, 122 elements each. Use <code>interval:</code> or <code>bins:</code> when you need finer resolution.</li>
+<li><strong><code>rollup:</code> selects the stored statistic</strong> (§6.1) — <code>avg</code>, <code>min</code>, <code>max</code>, <code>sum</code>, <code>total</code> — independently of the across-series aggregation. It is <strong>required</strong> for <code>percentile</code>/<code>median</code>/<code>percentRank</code> on gauge and count metrics; omit it and the query returns no rows plus a WARNING notification (<code>SX_WARNING_TIMESERIES_MISSING_ROLL_UP_TYPE</code>) — easy to miss if you read only the records. The documented exceptions are <code>dt.service.request.response_time</code> and <code>dt.service.request.service_mesh.response_time</code>.</li>
+<li><strong><code>scalar: true</code></strong> collapses a series to one number over the whole timeframe — cheaper than materializing an array and post-processing it.</li>
+</ul>
+<pre><code class="language-dql">// p90 is the percentile across all hosts' series in each time slot
+timeseries {
+    p90 = percentile(dt.host.cpu.usage, 90, rollup: avg),
+    avg_cpu = avg(dt.host.cpu.usage, scalar: true)
+  }, from:-2h
+</code></pre>
+<p>Also available: <code>filter:</code> (pre-aggregation dimension filtering), <code>shift:</code> (timeframe comparison — day-over-day in one query), <code>default:</code> (fill empty slots), and <code>union:</code>. Output is normalized: <em>&quot;all series have identical start and end timestamps, time interval and number of elements.&quot;</em></p>
+<h3>8.2 <code>metrics</code> — discovery, not charting</h3>
+<p>The <code>metrics</code> command lists <strong>series</strong> (keys + dimension tuples), returning no values or timestamps. Its documented constraints: the timeframe <em>&quot;is limited to the last ten days&quot;</em>, at most 100,000 series per query, and it needs <code>storage:metrics:read</code> + <code>storage:buckets:read</code>. Use it to answer &quot;what exists, with which dimensions?&quot; — as in the §2.2 discovery query.</p>
+<h3>8.3 <code>makeTimeseries</code> — the record-side contrast</h3>
+<p><code>makeTimeseries</code> builds series <strong>from records at query time</strong> (<code>fetch logs/events/spans | makeTimeseries …</code>). Functionally similar output; economically opposite input. In our live validation, metric <code>timeseries</code> queries scanned <strong>0 billable bytes</strong>, while this equivalent-shaped event aggregation scanned 110,350 records (0.23 GB) — the record scan bills the Query capability of its data type; the metric read bills nothing:</p>
+<pre><code class="language-dql">fetch events, from:-2h
+| makeTimeseries events = count(), interval: 15m
+</code></pre>
+<p>That asymmetry is the entire argument of FAQ-09: recurring aggregations belong in metrics; <code>makeTimeseries</code> is for ad-hoc analysis of records you are already scanning.</p>
+<h3>8.4 Metric selectors — the Classic query path</h3>
+<p>The Metrics API v2 (<code>/api/v2/metrics/query</code>) and Data Explorer consume <strong>metric selectors</strong> — a transformation-chain syntax (<code>builtin:host.cpu.usage:splitBy(&quot;dt.entity.host&quot;):avg:fold(avg)</code>) with up to 10 metrics per query. It remains a current, non-deprecated API surface, but it reads Metrics Classic only. When migrating assets, the built-in converter maps the common shapes (<code>:splitBy(...)</code> → <code>by:{...}</code>, <code>:fold(avg)</code> → array/scalar aggregation, <code>median</code> → <code>percentile(...,50)</code>, count-metric <code>value</code> → <code>sum</code>); Classic's &quot;Auto&quot; aggregation has no DQL equivalent and needs a human decision.</p>
+<p>Query-size ceilings differ by an order of magnitude and change what is <em>feasible</em>: Classic caps a query at 20 million data points; Grail at <strong>500 million</strong> — high-cardinality, long-window analyses that Classic rejects are routine in Notebooks.</p>
+<blockquote>
+<p><strong>Metric metadata via DQL (SaaS 1.343, staged rollout from 07/14/2026).</strong> <code>load &quot;/dt/platform/metrics.metadata&quot;</code> returns one row per metric available in the environment — <code>metric.key</code>, <code>name</code>, <code>description</code>, <code>kind</code>, <code>unit</code>, <code>dimensions</code> — as a <strong>separate surface</strong> from the <code>metrics</code> command, not an extension of it. Useful for building self-documenting dashboards and for auditing which dimensions a metric actually carries before writing <code>by:{...}</code> clauses. On a tenant that has not yet taken 1.343, the <code>metrics</code> discovery command above remains the working surface.</p>
+<pre><code class="language-dql">load &quot;/dt/platform/metrics.metadata&quot;
+| filter startsWith(metric.key, &quot;dt.host.cpu&quot;)
+| limit 2
+</code></pre>
+<p><em>(Executed 09/28/2026: returned rows with <code>metric.key</code>, <code>name</code>, <code>description</code>, <code>kind</code>, <code>unit</code> and <code>dimensions</code>.)</em></p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/metric-commands">Metric commands — timeseries, metrics (DT docs)</a> — <em>&quot;The resulting number of time slots does not exceed the maximum number of elements per series (1,500).&quot;</em>; <em>&quot;Two metrics support timeseries percentile without a rollup parameter&quot;</em>. The binning, <code>rollup:</code> warning and percentile examples executed 10/02/2026</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/aggregation-commands">Aggregation commands — makeTimeseries (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/metric-selector">Metric selector (DT docs)</a> — transformations, 10-metric cap</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2">Metrics API v2 (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/metric-selector-conversion">Metric selector conversion (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/limits">Metric limits (DT docs)</a> — 20M vs 500M query ceilings</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">SaaS 1.343 release notes (DT docs)</a> — <em>&quot;You can now query metric metadata via DQL with load&quot;</em> (rollout from Jul 14, 2026)</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics">Metrics consumption (DPS) (DT docs)</a> — timeseries queries always included</sub></li>
+</ul>
+</blockquote>
+<blockquote>
+<p><strong>New in the classic Metrics API (Dynatrace API 1.346, released 08/25/2026): <code>asHistogram</code> in the metric descriptor.</strong> The API changelog adds an <code>asHistogram</code> enum value to the <code>transformations</code> property of the metric descriptor returned by <code>GET /metrics</code> and <code>GET /metrics/{metricKey}</code> (Environment API v2), and to <code>metricsMetadata</code> on the Early-Access <code>POST /ua/entity</code> and <code>POST /ua/list</code> — so a descriptor can now list <code>asHistogram</code> among the transformations a metric supports.</p>
+<p>Two things to keep straight. The metric-selector reference does not document an <code>asHistogram</code> selector syntax (it documents <code>:histogram</code>, which <em>&quot;Exposes the buckets of a histogram metric as dimensions.&quot;</em>), so verify the syntax before building selector automation on it. And it is a classic-surface change — nothing in the <code>timeseries</code> syntax above changes, and DQL still reads Grail only (§3).</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-346">Dynatrace API changelog version 1.346 (DT docs)</a> — the <code>asHistogram</code> transformations enum addition, re-read 10/02/2026; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/metric-v2/metric-selector">Metric selector (DT docs)</a> — documents <code>:histogram</code>, no <code>asHistogram</code>.</sub></p>
+</blockquote>
+<p><a id="cost"></a></p>
+<h2>9. What Metrics Cost Under DPS</h2>
+<p>The Metrics powered by Grail capability has three dimensions — <strong>Ingest &amp; Process</strong>, <strong>Retain</strong>, and <strong>Query</strong> — but the third is a formality: <em>&quot;Querying metrics with the DQL timeseries command is included with Metrics - Ingest &amp; Process, regardless of where the query originates&quot;</em>. Metric reads never appear on the bill. (FAQ-09 reaches the same conclusion from the cost-decision angle: the Query dimension exists but is always included, so metric reads never bill.)</p>
+<h3>9.1 Ingest &amp; Process — billed per data point</h3>
+<p><em>&quot;Total Ingest &amp; Process consumption is based on the number of data points that are stored in Grail.&quot;</em> — counted after processing — where a metric data point is <em>&quot;A recorded measurement for a metric at a specific point in time, saved as a numeric value.&quot;</em> The counting rules:</p>
+<table>
+<thead>
+<tr>
+<th>Measurement</th>
+<th>Billed data points</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gauge or counter measurement</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Histogram measurement</td>
+<td>10 — <em>&quot;except <code>dt.service.*</code> metric keys which are counted as one data point&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>Scale intuition from the docs' own example: <em>&quot;a gauge or counter timeseries that reports every minute generates 60 data points per hour, while a histogram timeseries that reports every minute generates 600.&quot;</em> Multiply by your series count (§7.3) — that, not dimension width, is the bill driver.</p>
+<h3>9.2 What's included / non-billable</h3>
+<ul>
+<li><em>&quot;The following metric keys are non-billable: <code>dt.*</code>&quot;</em> — but the exceptions are broad, and they run the other way. <strong>All</strong> <code>dt.cloud.aws.*</code>, <code>dt.cloud.azure.*</code> and <code>dt.osservice.*</code> metrics are billable apart from a short named list (for example <code>dt.cloud.aws.az.running</code> and the Azure <code>vms.*</code> counts); the NAM <code>dt.synthetic.multi_protocol.*</code> metrics are billable; and <code>dt.service.*</code> consume the included Full-Stack volume when the spans come from Full-Stack OneAgents and are charged as Metrics powered by Grail otherwise. In short: the host-monitoring catalog is generally free, cloud-integration and OS-service metrics are not; <em>&quot;Built-in metrics are included for both Full-Stack and Infrastructure Monitoring.&quot;</em></li>
+<li>Three <code>legacy.*</code> families — <code>legacy.containers.*</code>, <code>legacy.dotnet.perform.*</code> and <code>legacy.tomcat.*</code> — and everything in the <code>dt_system_metrics</code> bucket are non-billable.</li>
+<li>Custom metrics draw first on an included allotment that depends on the OneAgent mode: in Full-Stack, <em>&quot;Dynatrace offers 900 included custom metric data points for each GiB of host memory, calculated at 15-minute intervals.&quot;</em> (<a href="https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/full-stack-monitoring">Full-Stack Monitoring (DT docs)</a>); in Infrastructure Monitoring, <em>&quot;Data points beyond the 1,500 per host per 15-minute interval are billed as Metrics powered by Grail&quot;</em> (<a href="https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/infrastructure-monitoring">Infrastructure Monitoring (DT docs)</a>).</li>
+<li>During a licensing transition there is no double-billing: <em>&quot;Only the consumption related to your active license applies, whether it's DDUs, DPS Custom Metrics Classic, or DPS Metrics powered by Grail.&quot;</em> (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq">Metrics FAQ (DT docs)</a>)</li>
+</ul>
+<h3>9.3 Retain — billed in GiB-days above the included window</h3>
+<p>Retain's unit is the GiB-day — <em>&quot;One GiB-day is equal to one GiB of metrics retained for one day (24 hours).&quot;</em> — storage volume, not data points — and it only accrues <strong>beyond the included 462 days</strong>. The docs' worked example: at about 30.73 GiB/day of metric data retained for 5 years (1,832 days), there are 1,832 − 462 = 1,370 billable retention days, so 30.73 GiB × 1,370 = 42,100.1 GiB is retained at full retention. Extending metric retention is cheap relative to record retention, but it is not free — decide it deliberately (§10).</p>
+<p>For querying your <em>own</em> tenant's metric consumption, FINOPS-01 documents the <code>dt.system.events</code> billing-event schema; FINOPS-02/03 cover forecasting and optimization levers.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics">Metrics consumption (DPS) (DT docs)</a> — data-point definition, counting rules, non-billable keys and the billable exceptions (<em>&quot;The following metric keys are billable unless they are explicitly included by another rule&quot;</em>, read 11/09/2026; the page lists <code>legacy.containers.*</code>, <code>legacy.dotnet.perform.*</code> and <code>legacy.tomcat.*</code>, and states <em>&quot;Metrics stored in the dt_system_metrics bucket are also non-billable.&quot;</em>), GiB-day unit, worked Retain example, query always included, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/faq">Metrics FAQ (DT docs)</a> — no double-billing during a licensing transition, <a href="https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/full-stack-monitoring">Full-Stack Monitoring (DT docs)</a> and <a href="https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/infrastructure-monitoring">Infrastructure Monitoring (DT docs)</a> — included custom metric allotments.</sub></p>
+</blockquote>
+<p><a id="recommended-approach"></a></p>
+<h2>10. Recommended Approach</h2>
+<ol>
+<li><strong>Inventory before you invent.</strong> Run the <code>metrics</code> discovery command (§2.2) and check the <code>dt.*</code> catalog before creating any custom metric — host, process, service, container, and consumption metrics almost certainly already exist for your question.</li>
+<li><strong>Author everything new in DQL against <code>dt.*</code> keys.</strong> Keep metric selectors only as the maintenance language for existing Data Explorer / Dashboards Classic assets, and migrate those with the built-in converter when you touch them.</li>
+<li><strong>Design dimensions before first ingest.</strong> Bounded values only — never request/user/session/trace IDs or timestamps. Do the tuple cross-product math (§7) while it is still a design review, not an incident. Put per-request detail in logs and spans, where it belongs.</li>
+<li><strong>Namespace custom keys</strong> with an org or app prefix (<code>acme.payments.*</code>). <code>dt.</code> is reserved and rejected. On Metrics Classic, count keys gain a <code>.count</code> suffix — expect it in metric selectors; Grail does not add it, so DQL queries use the key as sent.</li>
+<li><strong>For OTLP, settle temporality at the source</strong>: <code>OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=DELTA</code> in SDKs, or <code>cumulativetodelta</code> (with <code>max_staleness</code>) in the Collector — and confirm your histogram shape survives the type mapping (§4.4) before promising percentiles — explicit-bucket histograms stay histograms only with <strong>Advanced OTLP metric dimensions</strong> enabled.</li>
+<li><strong>Attach metadata at ingest</strong> (unit, display name, description — §2.4) so every downstream chart and Davis analysis renders meaningfully without tribal knowledge.</li>
+<li><strong>Derive recurring aggregates from records early</strong> via OpenPipeline extraction (§5) — it is forward-only, so every week of delay is a week of history the metric will never have. Keep the raw records for forensics per the FAQ-09 rule.</li>
+<li><strong>Decide retention deliberately.</strong> The included 15 months at full 1-minute resolution covers most operational analysis; extend retention (up to 10 years) only for genuine long-horizon needs — on the default metrics bucket or, once SaaS 1.349 reaches your tenant, on a custom bucket that holds only the metrics that need it — and remember Classic comparisons older than 14 days are already downsampled.</li>
+<li><strong>Put the &quot;Metric dimension usage and rejection self-monitoring&quot; dashboard on your platform team's rotation</strong> — cardinality rejections are silent by design, so make them visible by habit.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> the individual practices are grounded in the sections cited above (§2, §4, §5, §7, §8, §9). <strong>Derived:</strong> the ordering and emphasis are an authoring synthesis — the docs do not publish a consolidated metrics-design checklist.</sub></p>
+</blockquote>
+<p><a id="gotchas"></a></p>
+<h2>11. Common Gotchas</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>timeseries avg(builtin:…)</code> fails to parse or returns nothing</td>
+<td>Classic <code>builtin:</code> keys are not in Grail; the colon also reads as DQL parameter syntax</td>
+<td>Query the Grail twin (<code>dt.host.cpu.usage</code>); backtick-quote any key containing special characters</td>
+</tr>
+<tr>
+<td><code>percentile</code> / <code>median</code> in <code>timeseries</code> returns no rows (with a WARNING notification)</td>
+<td>Missing <code>rollup:</code> — required for these functions on gauge/count metrics, except <code>dt.service.request.response_time</code> and <code>…service_mesh.response_time</code></td>
+<td>Add <code>rollup: avg</code> (or <code>min</code>/<code>max</code>/<code>sum</code>)</td>
+</tr>
+<tr>
+<td>OTel counter never arrives</td>
+<td>Cumulative temporality — Dynatrace ingests delta counters only</td>
+<td>Set <code>…TEMPORALITY_PREFERENCE=DELTA</code> or add the Collector's <code>cumulativetodelta</code> processor</td>
+</tr>
+<tr>
+<td>OTLP export fails outright</td>
+<td>gRPC endpoint or JSON encoding — neither is supported</td>
+<td>HTTP + binary protobuf (<code>http/protobuf</code>)</td>
+</tr>
+<tr>
+<td>Histogram percentiles poorer than expected</td>
+<td>Exponential OTLP histograms store only min/max/sum/count — buckets are dropped; OTLP summaries are unsupported</td>
+<td>Use explicit-bucket histograms (Dynatrace 1.300+) <strong>and</strong> enable Advanced OTLP metric dimensions — without it, explicit-bucket histograms are ingested as counters</td>
+</tr>
+<tr>
+<td><code>metrics</code> command shows nothing older than ~10 days</td>
+<td>Discovery command timeframe is limited to the last ten days</td>
+<td>Use <code>timeseries</code> for historical values; <code>metrics</code> is for discovery only</td>
+</tr>
+<tr>
+<td>Ingested data points vanish without error</td>
+<td>Timestamp outside the acceptance window (−1 h to +10 min), or a new dimension tuple rejected after a cardinality limit</td>
+<td>Fix producer clocks/batching; check the &quot;Metric dimension usage and rejection self-monitoring&quot; dashboard</td>
+</tr>
+<tr>
+<td>Custom count metric key &quot;changed&quot; in metric selectors</td>
+<td>Metrics Classic suffixes count keys with <code>.count</code>; Grail does not</td>
+<td>In metric selectors, query the suffixed key; in DQL, the key as sent</td>
+</tr>
+<tr>
+<td>New hosts/pods missing from an old custom metric, existing ones fine</td>
+<td>Cardinality limit reached — new tuples rejected, existing series continue</td>
+<td>Reduce dimensions; the limit evaluates a 30-day sliding window, so trimmed cardinality recovers on its own</td>
+</tr>
+<tr>
+<td>OTLP metric arrives without a unit</td>
+<td>Instrument unit exceeded 63 characters and was dropped</td>
+<td>Shorten the unit string</td>
+</tr>
+<tr>
+<td>Year-over-year Classic comparison looks &quot;smoothed&quot;</td>
+<td>Classic downsampling: data older than 28 days is stored at 1-hour resolution (1-day beyond 400 days)</td>
+<td>Use Grail (<code>dt.*</code> via DQL) — 1-minute granularity over the entire retention window</td>
+</tr>
+<tr>
+<td>Extracted metric has no history before its creation date</td>
+<td>Metric extraction is forward-only; records are not backfilled</td>
+<td>Create extraction rules early; scan records for the historical portion</td>
+</tr>
+<tr>
+<td>Duplicate dimension key on one ingest line</td>
+<td>Protocol accepts only one value per key</td>
+<td>Deduplicate keys in the producer</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> each row is grounded in the sections above (§3, §4, §5, §6, §7, §8) and their cited pages; rows marked from live validation were confirmed on a tenant on 07/07/2026; the <code>rollup:</code> warning row was re-confirmed 10/02/2026.</sub></p>
+</blockquote>
+<hr />
+<blockquote>
+<p><sub><strong>⚠️ Disclaimer:</strong> This content is AI-generated, community-driven, and <strong>not supported by Dynatrace</strong>. Metric backends, OTLP ingest behavior, limits, and DPS billing rules evolve across releases — always verify current mechanics against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and your own tenant before relying on a specific limit or cost claim.</sub></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

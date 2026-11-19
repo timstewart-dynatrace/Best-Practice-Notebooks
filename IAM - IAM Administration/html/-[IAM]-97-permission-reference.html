@@ -1,0 +1,4127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IAM-97: IAM Permission Reference — What Each Permission Actually Does</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">IAM — IAM Administration</a><span class="sep">/</span><span aria-current="page">IAM-97</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>IAM-97: IAM Permission Reference — What Each Permission Actually Does</h1>
+<blockquote>
+<p><strong>Series:</strong> IAM — IAM Administration | <strong>Reference:</strong> 97 — IAM Permission Reference | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>The IAM policy reference lists every permission with a one-line description, and most of those lines restate the permission's name. This appendix adds what the reference leaves out: what each permission really grants, its scope, when to grant it and when not to, its risk, and which built-in apps ask for it.</p>
+<p>It covers every permission in Dynatrace's <em>Standard User</em> default policy, plus the permissions a reader persona and its neighbours usually need — Grail data, synthetic, credentials, settings writes and the admin variants.</p>
+<p>Two rules shape every row:</p>
+<ul>
+<li><strong>The fact columns are generated</strong> from the docs and a tenant, not typed, so they can be regenerated when Dynatrace changes a permission (see <em>Regenerating the Fact Columns</em>).</li>
+<li><strong>Every judgement shows its Basis</strong> — Docs, Tested, Inference or Unknown. An inference is never presented as fact.</li>
+</ul>
+<blockquote>
+<p><strong>docs.dynatrace.com is authoritative.</strong> Where this appendix and the docs disagree, the docs win.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#how-to-read">How to Read This Reference</a></li>
+<li><a href="#method">Finding Out What a Permission Does</a></li>
+<li><a href="#app-state">App state</a></li>
+<li><a href="#documents">Documents</a></li>
+<li><a href="#apps-and-ui">Apps, functions and the UI shell</a></li>
+<li><a href="#grail-definitions">Grail definitions and segments</a></li>
+<li><a href="#grail-data">Grail data (record tables)</a></li>
+<li><a href="#settings">Settings and app settings</a></li>
+<li><a href="#notifications">Email and notifications</a></li>
+<li><a href="#workflows">Workflows (AutomationEngine)</a></li>
+<li><a href="#davis">Davis analyzers and Copilot</a></li>
+<li><a href="#openpipeline">OpenPipeline</a></li>
+<li><a href="#synthetic">Synthetic monitoring</a></li>
+<li><a href="#credential-vault">Credential vault</a></li>
+<li><a href="#security">Security</a></li>
+<li><a href="#live-debugger">Live Debugger</a></li>
+<li><a href="#classic-roles">Classic roles</a></li>
+<li><a href="#other-services">Other services</a></li>
+<li><a href="#persona-matrix">Persona Matrix</a></li>
+<li><a href="#open-questions">Open Questions</a></li>
+<li><a href="#regenerating">Regenerating the Fact Columns</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS on the latest Dynatrace platform with IAM policies</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td><strong>IAM-04</strong> (policy syntax) and <strong>IAM-05</strong> (boundaries)</td>
+</tr>
+<tr>
+<td><strong>For the method section</strong></td>
+<td><code>app-engine:apps:run</code> and <code>app-engine:functions:run</code>; optionally <code>dtctl</code></td>
+</tr>
+<tr>
+<td><strong>For the effective-permissions API</strong></td>
+<td>An OAuth client with <code>iam:effective-permissions:read</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="how-to-read"></a></p>
+<h2>1. How to Read This Reference</h2>
+<p>Each service group has two tables. The first says what a permission is; the second says when to grant it.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Source</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Std User</strong></td>
+<td>Generated</td>
+<td>✅ in the docs <em>Standard User</em> default policy; ➕ added here for a persona</td>
+</tr>
+<tr>
+<td><strong>Reference says</strong></td>
+<td>Generated</td>
+<td>The policy reference's own description, verbatim</td>
+</tr>
+<tr>
+<td><strong>Conditions</strong></td>
+<td>Generated</td>
+<td>Condition keys and the operators each accepts. <code>none</code> means it cannot be scoped in a policy or boundary</td>
+</tr>
+<tr>
+<td><strong>What it really grants / Scope / Risk</strong></td>
+<td>Judgement</td>
+<td>Scope is per user, per app, owner-based, per security context, or environment-wide</td>
+</tr>
+<tr>
+<td><strong>Basis</strong></td>
+<td>Judgement</td>
+<td>Why we believe the judgement — see below</td>
+</tr>
+<tr>
+<td><strong>Allow when / Avoid when</strong></td>
+<td>Judgement</td>
+<td>Grant guidance</td>
+</tr>
+<tr>
+<td><strong>Built-in apps that request it</strong></td>
+<td>Generated</td>
+<td>Built-in apps whose manifest declares the permission, from the validation tenant</td>
+</tr>
+<tr>
+<td><strong>API operations that declare it</strong></td>
+<td>Generated</td>
+<td>Platform API operations whose spec names the permission as the required scope</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Basis</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Docs</strong></td>
+<td>A Dynatrace page says it. The row quotes the page (under 15 words) and links it</td>
+</tr>
+<tr>
+<td><strong>Tested</strong></td>
+<td>Observed on the validation tenant: an app manifest, a platform API spec, or behaviour. Dated</td>
+</tr>
+<tr>
+<td><strong>Inference</strong></td>
+<td>Our reasoning from documented facts. Not stated anywhere — treat as unconfirmed</td>
+</tr>
+<tr>
+<td><strong>Unknown</strong></td>
+<td>Neither the docs nor the tenant answer it. Test before you rely on it</td>
+</tr>
+</tbody>
+</table>
+<p>A manifest entry shows that an app <strong>may</strong> call an API, not that every screen does: <em>&quot;doesn't necessarily mean that the app uses it&quot;</em>.</p>
+<p><a id="generated-stamp-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Generated from</th>
+<th>Retrieved</th>
+<th>Page last modified</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a></td>
+<td>11/11/2026</td>
+<td>10/08/2026</td>
+<td>43 services, 228 permissions</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies#DynatraceAccessStandardUser">Default policies — Standard User (DT docs)</a></td>
+<td>11/11/2026</td>
+<td>10/08/2026</td>
+<td>65 permissions</td>
+</tr>
+<tr>
+<td>Built-in app manifests + platform API specs (validation tenant, via <code>dtctl</code>)</td>
+<td>10/19/2026</td>
+<td>—</td>
+<td>118 built-in apps, 34 of 37 published APIs</td>
+</tr>
+</tbody>
+</table>
+<p><strong>This reference:</strong> 104 permissions — 65 from the docs <em>Standard User</em> policy (✅) and 39 reader-persona or companion permissions that are not in it (➕). <strong>Basis:</strong> 72 Docs, 24 Tested, 5 Inference, 3 Unknown.
+<a id="generated-stamp-end"></a></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.dynatrace.com/develop/guides/security/add-permission-scopes-to-use-dynatrace-apis/">Add permission scopes (Dynatrace Developer)</a>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Default policies (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="method"></a></p>
+<h2>2. Finding Out What a Permission Does</h2>
+<p>When the reference doesn't explain a permission, five checks will. Use them in this order: the first two are read-only and fast; the last three confirm behaviour.</p>
+<h3>2.1 App manifest scopes</h3>
+<p>Every app declares the permissions it uses in its manifest, each with a short reason. At run time <em>&quot;app permissions are intersected with user permissions&quot;</em>, so a user gets an app's feature only when both hold the permission. Reading the manifests of the apps you allow is the most direct way to build a policy app by app.</p>
+<p>Run this in a notebook <strong>Code</strong> section (or with <code>dtctl exec function -f</code>). It lists every permission each allowed app requests, with the app's own reason:</p>
+<pre><code class="language-javascript">import { appEngineRegistryAppsClient } from &quot;@dynatrace-sdk/client-app-engine-registry&quot;;
+
+// Apps you allow (the shared:app-id values in your policy). Empty = every installed app.
+const ALLOWED = [&quot;dynatrace.dashboards&quot;, &quot;dynatrace.notebooks&quot;, &quot;dynatrace.davis.problems&quot;];
+
+export default async function () {
+  const { apps } = await appEngineRegistryAppsClient.getApps({ addFields: &quot;manifest.scopes&quot; });
+  const rows = [];
+  for (const app of apps) {
+    if (ALLOWED.length &amp;&amp; !ALLOWED.includes(app.id)) continue;
+    for (const scope of app.manifest?.scopes ?? []) {
+      rows.push({ app: app.id, permission: scope.name, reason: scope.comment ?? &quot;&quot; });
+    }
+  }
+  return rows.sort((a, b) =&gt; a.permission.localeCompare(b.permission) || a.app.localeCompare(b.app));
+}
+</code></pre>
+<p>Tested on the validation tenant (10/19/2026): it returns one row per app and permission. That is how this appendix found that the Problems app declares <code>openpipeline:events.davis:ingest</code> <em>&quot;Write problem comments and close problems&quot;</em>. From a shell, <code>dtctl get apps -o json --limit 0</code> returns the same manifests.</p>
+<h3>2.2 Platform API specs</h3>
+<p>Each platform API publishes an OpenAPI spec that names the required permission per operation. <code>dtctl describe api &lt;name&gt;</code> prints that index, for example:</p>
+<pre><code class="language-bash">dtctl describe api /platform/state-management/v1
+</code></pre>
+<p>This settles <em>what a permission unlocks</em> at endpoint level — <code>state-management:user-app-states:delete-all</code> is <code>DELETE /{appId}/user-app-states</code>, while the current-user variant is <code>DELETE /{appId}/user-app-states/self</code>. A blank scope means the spec declares none, not that none is needed: the email API's <code>POST /emails</code> declares nothing, yet <code>email:emails:send</code> exists for it.</p>
+<h3>2.3 The denied request in browser developer tools</h3>
+<p>Open the browser's developer tools, select <strong>Network</strong>, reproduce the failure, and filter for status <code>403</code>. The request path names the platform service and resource, and the spec from § 2.2 maps it to a permission. In community practice the response body often names the missing permission as well — check, as it varies by service.</p>
+<h3>2.4 A test user holding only the policy</h3>
+<p>Create a test group bound to only the draft policy and boundary, add one test user, then open every allowed app and use its main screens. Each failure is a 403 you can trace with § 2.3. Add only what is missing, and record the result as <strong>Tested</strong> evidence.</p>
+<h3>2.5 Effective policies and the effective-permissions API</h3>
+<p>Account Management → Identity &amp; access management → <strong>Effective policies</strong> shows a user's combined result, to <em>&quot;learn which permissions are assigned to users through policies and groups&quot;</em>. The same check is an API:</p>
+<pre><code class="language-text">GET https://api.dynatrace.com/iam/v1/resolution/account/{accountId}/effectivepermissions?entityType=user&amp;entityId={userId}
+</code></pre>
+<p>Two permissions are easy to confuse here:</p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Who it answers for</th>
+<th>Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>iam:effective-permissions:read</code></td>
+<td><strong>Any</strong> user or group in the account (<code>iam-param:entity-type</code>, <code>iam-param:entity-id</code>)</td>
+<td>An OAuth client calling the account API above</td>
+</tr>
+<tr>
+<td><code>platform-management:effective-permissions:resolve</code></td>
+<td><strong>The calling user only</strong></td>
+<td>Apps checking what the current user may do, to show or hide actions</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://developer.dynatrace.com/develop/guides/security/add-permission-scopes-to-use-dynatrace-apis/">Add permission scopes (Dynatrace Developer)</a></sub></li>
+<li><sub><a href="https://developer.dynatrace.com/develop/sdks/client-app-engine-registry/">App Engine registry SDK (Dynatrace Developer)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/account-management/identity-access-management">Manage users, groups, and permissions (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles">Upgrade role-based permissions to IAM (DT docs)</a> — effective-permissions API path</sub></li>
+<li><sub><a href="https://developer.dynatrace.com/develop/sdks/client-platform-management-service/">Platform management SDK (Dynatrace Developer)</a> — <em>&quot;Get the effective permissions of the calling user&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> § 2.3 and § 2.4 combine the spec mapping in § 2.2 with standard browser and test-account practice</sub></li>
+</ul>
+</blockquote>
+<p><a id="app-state"></a></p>
+<h2>3. App state</h2>
+<p>Apps keep two kinds of state. <strong>App state</strong> is one key-value store per app, shared by every user of that app. <strong>User app state</strong> belongs to one user. The <code>state</code> service reads and writes them; the separate <code>state-management</code> service resets them in bulk — the Hub's reset action.</p>
+<p>The trap in the docs <em>Standard User</em> policy is <code>state-management:user-app-states:delete-all</code>, which resets every user's state for an app. It, and <code>state:app-states:write</code> / <code>delete</code>, change the app for everyone.</p>
+<p><a id="generated-group-states-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>state:app-states:read</code></td>
+<td>✅</td>
+<td>Grants permission to read app-states</td>
+<td><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)</td>
+<td>Read the key-value state an app keeps for all of its users (caches, shared flags).</td>
+<td>Per app, shared by every user</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;internal global states or user-specific states&quot;</em> (<a href="https://developer.dynatrace.com/develop/data/state/">Store app and user states</a>)</td>
+</tr>
+<tr>
+<td><code>state:app-states:write</code></td>
+<td>✅</td>
+<td>Grants permission to write app-states</td>
+<td><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)</td>
+<td>Change an app's shared state; the change is seen by every user of that app.</td>
+<td>Per app, shared by every user</td>
+<td>Medium</td>
+<td><strong>Inference</strong> — Follows from app states being shared (state service page); 18 built-in apps declare it, e.g. <code>dynatrace.discovery.coverage</code> <em>&quot;write mute state&quot;</em>.</td>
+</tr>
+<tr>
+<td><code>state:app-states:delete</code></td>
+<td>✅</td>
+<td>Grants permission to delete app-states</td>
+<td><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)</td>
+<td>Delete an app's shared state for every user of the app.</td>
+<td>Per app, shared by every user</td>
+<td>Medium</td>
+<td><strong>Inference</strong> — Same reasoning as write; the state service page shows a delete that <em>&quot;completely reset[s] the app's states&quot;</em>.</td>
+</tr>
+<tr>
+<td><code>state:user-app-states:read</code></td>
+<td>✅</td>
+<td>Grants permission to read user-app-states</td>
+<td><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)</td>
+<td>Read the caller's own per-app state (saved views, timeframes, dock favorites).</td>
+<td>Per user, per app</td>
+<td>Low</td>
+<td><strong>Tested</strong> — <code>dynatrace.dashboards</code> manifest: <em>&quot;read view settings like the selected timeframe or variable values&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>state:user-app-states:write</code></td>
+<td>✅</td>
+<td>Grants permission to write user-app-states</td>
+<td><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)</td>
+<td>Save the caller's own per-app state.</td>
+<td>Per user, per app</td>
+<td>Low</td>
+<td><strong>Tested</strong> — Declared by 35 built-in apps; <code>dynatrace.appshell</code>: <em>&quot;persist UI state … across devices&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>state:user-app-states:delete</code></td>
+<td>✅</td>
+<td>Grants permission to delete user-app-states</td>
+<td><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)</td>
+<td>Delete the caller's own per-app state.</td>
+<td>Per user, per app</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to delete user-app-states&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>state-management:user-app-states:delete</code></td>
+<td>✅</td>
+<td>Grants permission to delete user-app-states of the current user</td>
+<td><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)</td>
+<td>Reset <em>my</em> state for an app (the Hub reset action).</td>
+<td>Per user, per app</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to delete user-app-states of the current user&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>state-management:user-app-states:delete-all</code></td>
+<td>✅</td>
+<td>Grants permission to delete user-app-states of all users</td>
+<td><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)</td>
+<td>Reset every user's state for an app.</td>
+<td>Environment-wide, per app</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to delete user-app-states of all users&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>state-management:app-states:delete</code></td>
+<td>➕</td>
+<td>Grants permission to delete all app-states</td>
+<td><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)</td>
+<td>Reset an app's shared state (Admin User default, not Standard User).</td>
+<td>Environment-wide, per app</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to delete all app-states&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>state:app-states:read</code></td>
+<td>Always, when the app is allowed; scope with <code>shared:app-id</code>.</td>
+<td>Never needed outside an allowed app.</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.azure.connector</code>, <code>dynatrace.biz.explore</code>, <code>dynatrace.discovery.coverage</code>, <code>dynatrace.experience.vitals</code>, <code>dynatrace.gitlab.connector</code>, +12 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>state:app-states:write</code></td>
+<td>Admins, or users of an app whose manifest needs it for normal use.</td>
+<td>Readers: a write changes the app for everyone.</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.azure.connector</code>, <code>dynatrace.biz.explore</code>, <code>dynatrace.discovery.coverage</code>, <code>dynatrace.experience.vitals</code>, <code>dynatrace.gitlab.connector</code>, +12 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>state:app-states:delete</code></td>
+<td>Admins.</td>
+<td>Readers and team leads.</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.azure.connector</code>, <code>dynatrace.biz.explore</code>, <code>dynatrace.microsoft.azure.connector</code>, <code>dynatrace.openpipeline</code>, <code>dynatrace.site.reliability.guardian</code>, +1 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>state:user-app-states:read</code></td>
+<td>Always — most apps persist UI state here.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.davis.anomalydetection</code>, +28 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>state:user-app-states:write</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.davis.anomalydetection</code>, +29 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>state:user-app-states:delete</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.distributedtracing</code>, <code>dynatrace.experience.vitals</code>, <code>dynatrace.kubernetes</code>, +8 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>state-management:user-app-states:delete</code></td>
+<td>Optional for everyone.</td>
+<td>—</td>
+<td><code>dynatrace.hub</code></td>
+<td><code>DELETE /{appId}/user-app-states/self (/platform/state-management/v1)</code></td>
+</tr>
+<tr>
+<td><code>state-management:user-app-states:delete-all</code></td>
+<td>Admins only.</td>
+<td>Everyone else — it is in the docs Standard User policy, so remove it from copies of that policy.</td>
+<td><code>dynatrace.hub</code></td>
+<td><code>DELETE /{appId}/user-app-states (/platform/state-management/v1)</code></td>
+</tr>
+<tr>
+<td><code>state-management:app-states:delete</code></td>
+<td>Admins.</td>
+<td>Everyone else.</td>
+<td><code>dynatrace.hub</code></td>
+<td><code>DELETE /{appId}/app-states (/platform/state-management/v1)</code></td>
+</tr>
+<tr>
+<td><a id="generated-group-states-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.dynatrace.com/develop/data/state/">Store app and user states (Dynatrace Developer)</a> — <em>&quot;internal global states or user-specific states&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="documents"></a></p>
+<h2>4. Documents</h2>
+<p>Dashboards, notebooks and launchpads are documents. Access follows ownership and shares, and no document permission takes an IAM condition. Two pairs matter for readers:</p>
+<ul>
+<li><code>environment-shares:claim</code> without <code>environment-shares:write</code> lets a user <strong>open</strong> share links others create, but not create links that reach the whole environment.</li>
+<li><code>trash.documents:restore</code> without <code>trash.documents:delete</code> keeps deletions recoverable.</li>
+</ul>
+<p><a id="generated-group-documents-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>document:documents:read</code></td>
+<td>✅</td>
+<td>Grants permission to read documents of the document service</td>
+<td>none</td>
+<td>Open dashboards, notebooks, launchpads and other documents the caller owns or that are shared with them.</td>
+<td>Owner-based plus shares</td>
+<td>Low</td>
+<td><strong>Tested</strong> — Document API: <code>GET /documents</code>, <code>GET /documents/{id}/content</code>; 19 built-in apps declare it — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>document:documents:write</code></td>
+<td>✅</td>
+<td>Grants permission to create and update documents of the document service</td>
+<td>none</td>
+<td>Create documents and edit ones the caller owns or has write shares on.</td>
+<td>Owner-based plus shares</td>
+<td>Low</td>
+<td><strong>Inference</strong> — Ownership limits it in practice; no IAM condition exists, so scope comes from document ownership and shares.</td>
+</tr>
+<tr>
+<td><code>document:documents:delete</code></td>
+<td>✅</td>
+<td>Grants permission to delete documents of the document service</td>
+<td>none</td>
+<td>Move the caller's own documents to the trash.</td>
+<td>Owner-based</td>
+<td>Low</td>
+<td><strong>Tested</strong> — <code>dynatrace.appshell</code> manifest: <em>&quot;move documents to the trash&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>document:documents:admin</code></td>
+<td>➕</td>
+<td>Grants admin permissions for documents of the document service</td>
+<td>none</td>
+<td>Act on documents regardless of owner (Admin User default).</td>
+<td>Environment-wide</td>
+<td>High</td>
+<td><strong>Docs</strong> — <em>&quot;Grants admin permissions for documents of the document service&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>document:environment-shares:read</code></td>
+<td>✅</td>
+<td>Grants permission to read environment shares of the document service</td>
+<td>none</td>
+<td>See the environment-wide share links that exist on a document.</td>
+<td>Per document</td>
+<td>Low</td>
+<td><strong>Tested</strong> — <code>dynatrace.appshell</code> manifest: <em>&quot;show existing environment shares when managing document access&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>document:environment-shares:write</code></td>
+<td>✅</td>
+<td>Grants permission to create and update environment shares of the document service</td>
+<td>none</td>
+<td>Create a link that shares a document with every user in the environment.</td>
+<td>Environment-wide reach</td>
+<td>Medium</td>
+<td><strong>Tested</strong> — <code>dynatrace.appshell</code> manifest: <em>&quot;share a document with all users in the environment&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>document:environment-shares:claim</code></td>
+<td>✅</td>
+<td>Grants permission to claim environment shares of the document service</td>
+<td>none</td>
+<td>Accept an environment share link so the document opens for the caller.</td>
+<td>Per user</td>
+<td>Low</td>
+<td><strong>Tested</strong> — <code>dynatrace.appshell</code> manifest: <em>&quot;open a document accessed via an environment share link&quot;</em>; API <code>PUT /environment-shares/{id}/claim</code> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>document:environment-shares:delete</code></td>
+<td>✅</td>
+<td>Grants permission to delete environment shares of the document service</td>
+<td>none</td>
+<td>Remove an environment share link.</td>
+<td>Per document</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to delete environment shares of the document service&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>document:direct-shares:read</code></td>
+<td>✅</td>
+<td>Grants permission to read direct shares of the document service</td>
+<td>none</td>
+<td>See which users or groups a document is shared with.</td>
+<td>Per document</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read direct shares of the document service&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>document:direct-shares:write</code></td>
+<td>✅</td>
+<td>Grants permission to create and update direct shares of the document service</td>
+<td>none</td>
+<td>Share a document with named users or groups.</td>
+<td>Per document</td>
+<td>Low</td>
+<td><strong>Tested</strong> — <code>dynatrace.appshell</code> manifest: <em>&quot;share a document with specific users or groups&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>document:direct-shares:delete</code></td>
+<td>✅</td>
+<td>Grants permission to delete direct shares of the document service</td>
+<td>none</td>
+<td>Remove a direct share.</td>
+<td>Per document</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to delete direct shares of the document service&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>document:trash.documents:read</code></td>
+<td>✅</td>
+<td>Grants permission to read deleted documents of the document service</td>
+<td>none</td>
+<td>See the caller's deleted documents.</td>
+<td>Owner-based</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read deleted documents of the document service&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>document:trash.documents:restore</code></td>
+<td>✅</td>
+<td>Grants permission to restore deleted documents from the trash of the document service</td>
+<td>none</td>
+<td>Restore a deleted document.</td>
+<td>Owner-based</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to restore deleted documents from the trash of the document service&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>document:trash.documents:delete</code></td>
+<td>✅</td>
+<td>Grants permission to remove deleted documents from the trash of the document service</td>
+<td>none</td>
+<td>Permanently delete a trashed document before it expires.</td>
+<td>Owner-based</td>
+<td>Low</td>
+<td><strong>Tested</strong> — <code>dynatrace.notebooks</code> manifest: <em>&quot;permanently delete notebooks&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>document:documents:read</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.davis.anomalydetection</code>, +13 more</td>
+<td><code>GET /documents (/platform/document/v1)</code><br><code>GET /documents/{id} (/platform/document/v1)</code><br><code>GET /documents/{id}/content (/platform/document/v1)</code><br>+7 more</td>
+</tr>
+<tr>
+<td><code>document:documents:write</code></td>
+<td>Anyone who should build dashboards or notebooks.</td>
+<td>Strict read-only personas.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.copilot</code>, <code>dynatrace.davis.problems</code>, <code>dynatrace.davis.workflow.actions</code>, +6 more</td>
+<td><code>DELETE /documents/{id}/snapshots/{snapshot-version} (/platform/document/v1)</code><br><code>PATCH /documents/{id} (/platform/document/v1)</code><br><code>PATCH /documents/{id}/metadata (/platform/document/v1)</code><br>+8 more</td>
+</tr>
+<tr>
+<td><code>document:documents:delete</code></td>
+<td>With write.</td>
+<td>Read-only personas.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.copilot</code>, <code>dynatrace.davis.problems</code>, <code>dynatrace.davis.workflow.actions</code>, +6 more</td>
+<td><code>DELETE /documents/{id} (/platform/document/v1)</code><br><code>POST /documents:delete (/platform/document/v1)</code></td>
+</tr>
+<tr>
+<td><code>document:documents:admin</code></td>
+<td>Admins.</td>
+<td>Everyone else.</td>
+<td><code>dynatrace.documents</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>document:environment-shares:read</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.documents</code>, <code>dynatrace.launcher</code>, <code>dynatrace.notebooks</code></td>
+<td><code>GET /environment-shares (/platform/document/v1)</code><br><code>GET /environment-shares/{id} (/platform/document/v1)</code><br><code>GET /environment-shares/{id}/claimers (/platform/document/v1)</code></td>
+</tr>
+<tr>
+<td><code>document:environment-shares:write</code></td>
+<td>Team leads and authors who publish content.</td>
+<td>Readers — keeps them from publishing to everyone.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.documents</code>, <code>dynatrace.extensions.manager</code></td>
+<td><code>POST /environment-shares (/platform/document/v1)</code></td>
+</tr>
+<tr>
+<td><code>document:environment-shares:claim</code></td>
+<td>Always — without it, share links fail to open.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.extensions.manager</code></td>
+<td><code>PUT /environment-shares/{id}/claim (/platform/document/v1)</code></td>
+</tr>
+<tr>
+<td><code>document:environment-shares:delete</code></td>
+<td>With environment-shares:write.</td>
+<td>Readers.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.documents</code></td>
+<td><code>DELETE /environment-shares/{id} (/platform/document/v1)</code></td>
+</tr>
+<tr>
+<td><code>document:direct-shares:read</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.documents</code>, <code>dynatrace.launcher</code>, <code>dynatrace.notebooks</code></td>
+<td><code>GET /direct-shares (/platform/document/v1)</code><br><code>GET /direct-shares/{id} (/platform/document/v1)</code><br><code>GET /direct-shares/{id}/recipients (/platform/document/v1)</code></td>
+</tr>
+<tr>
+<td><code>document:direct-shares:write</code></td>
+<td>Anyone who owns documents.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.documents</code></td>
+<td><code>POST /direct-shares (/platform/document/v1)</code><br><code>POST /direct-shares/{id}/recipients/add (/platform/document/v1)</code><br><code>POST /direct-shares/{id}/recipients/remove (/platform/document/v1)</code></td>
+</tr>
+<tr>
+<td><code>document:direct-shares:delete</code></td>
+<td>With direct-shares:write.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.documents</code></td>
+<td><code>DELETE /direct-shares/{id} (/platform/document/v1)</code></td>
+</tr>
+<tr>
+<td><code>document:trash.documents:read</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.dashboards</code>, <code>dynatrace.documents</code>, <code>dynatrace.launcher</code>, <code>dynatrace.notebooks</code></td>
+<td><code>GET /trash/documents (/platform/document/v1)</code><br><code>GET /trash/documents/{id} (/platform/document/v1)</code></td>
+</tr>
+<tr>
+<td><code>document:trash.documents:restore</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.dashboards</code>, <code>dynatrace.documents</code>, <code>dynatrace.launcher</code>, <code>dynatrace.notebooks</code></td>
+<td><code>POST /trash/documents/{id}/restore (/platform/document/v1)</code></td>
+</tr>
+<tr>
+<td><code>document:trash.documents:delete</code></td>
+<td>Authors.</td>
+<td>Readers — keeps deletions recoverable.</td>
+<td><code>dynatrace.dashboards</code>, <code>dynatrace.documents</code>, <code>dynatrace.launcher</code>, <code>dynatrace.notebooks</code></td>
+<td><code>DELETE /trash/documents/{id} (/platform/document/v1)</code></td>
+</tr>
+<tr>
+<td><a id="generated-group-documents-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="apps-and-ui"></a></p>
+<h2>5. Apps, functions and the UI shell</h2>
+<p><code>app-engine:apps:run</code> is the gate for every app — scope it to an allow-list with <code>shared:app-id</code>. Most other rows here are platform calls the UI makes on the user's behalf, so removing them breaks screens rather than closing a data path.</p>
+<p><a id="generated-group-appengine-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>app-engine:apps:run</code></td>
+<td>✅</td>
+<td>Grants permission to list and run apps and gives basic access to the Launcher</td>
+<td><code>shared:app-id</code> (IN, =, !=, startsWith, NOT IN, NOT startsWith)<br><code>app-engine:app-installer</code> (IN, =, !=, startsWith, NOT IN, NOT startsWith)</td>
+<td>List and launch apps; the Launcher needs it. Also gates app functions.</td>
+<td>Per app (<code>shared:app-id</code>)</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to list and run apps and gives basic access to the Launcher&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>app-engine:functions:run</code></td>
+<td>✅</td>
+<td>Grants permission to use the function-executor</td>
+<td>none</td>
+<td>Run code through the function executor (ad-hoc functions in notebooks, dashboards and workflows).</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to use the function-executor&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>app-engine:edge-connects:read</code></td>
+<td>✅</td>
+<td>Grants permission to read EdgeConnects</td>
+<td>none</td>
+<td>List EdgeConnect definitions (host patterns and routing).</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Unknown</strong> — Whether apps or workflows that send traffic through an EdgeConnect fail without it is not documented; <code>dynatrace.dashboards</code> and <code>dynatrace.notebooks</code> declare it <em>&quot;via functions&quot;</em>.</td>
+</tr>
+<tr>
+<td><code>unified-analysis:screen-definition:read</code></td>
+<td>✅</td>
+<td>Grants permission to read the screen definition of a unified analysis screen</td>
+<td>none</td>
+<td>Read the screen definitions behind entity details panels (incl. extension screens).</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Tested</strong> — 10 built-in apps declare it, e.g. <code>dynatrace.clouds</code>: <em>&quot;Necessary for displaying details panel&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>hub:catalog:read</code></td>
+<td>✅</td>
+<td>Grants permission to read the hub catalog content.</td>
+<td>none</td>
+<td>Browse the Hub catalog and app release notes. Installing needs separate permissions.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read the hub catalog content.&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>platform-management:effective-permissions:resolve</code></td>
+<td>✅</td>
+<td>Grants permission to read operations of the public effective-permissions PMS API endpoint</td>
+<td>none</td>
+<td>Let the calling user ask <em>&quot;which of these permissions do I have?&quot;</em> — for their own identity only.</td>
+<td>Per user (self)</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Get the effective permissions of the calling user&quot;</em> (<a href="https://developer.dynatrace.com/develop/sdks/client-platform-management-service/">Platform management SDK</a>)</td>
+</tr>
+<tr>
+<td><code>platform-management:environments:read</code></td>
+<td>✅</td>
+<td>Grants permission to read operations of the environment data of the public environment PMS API</td>
+<td>none</td>
+<td>Read environment metadata and license information.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Tested</strong> — Management API: <code>GET /environment</code>, <code>GET /environment/license</code> — validation tenant, 10/19/2026</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>app-engine:apps:run</code></td>
+<td>Always — scope to an allow-list of app IDs.</td>
+<td>Unscoped grants: every installed app becomes usable.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.experience.vitals</code>, <code>dynatrace.fleet.management</code>, <code>dynatrace.hub</code>, +6 more</td>
+<td><code>GET /apps/{appId}/api/{functionName} (/platform/app-engine/app-functions/v1)</code><br><code>POST /apps/{appId}/api/{functionName} (/platform/app-engine/app-functions/v1)</code><br><code>GET /apps (/platform/app-engine/registry/v1)</code><br>+7 more</td>
+</tr>
+<tr>
+<td><code>app-engine:functions:run</code></td>
+<td>Almost always — 22 built-in apps request it.</td>
+<td>Locked-down kiosk users.</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.aws.connector</code>, <code>dynatrace.azure.connector</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.workflow.actions</code>, <code>dynatrace.gitlab.connector</code>, +16 more</td>
+<td><code>GET /sdk-versions (/platform/app-engine/function-executor/v1)</code><br><code>POST /executions (/platform/app-engine/function-executor/v1)</code><br><code>GET /environment (/platform/management/v1)</code><br>+4 more</td>
+</tr>
+<tr>
+<td><code>app-engine:edge-connects:read</code></td>
+<td>Admins and authors who route requests through an EdgeConnect.</td>
+<td>Readers — nothing in a reader's normal path declares a need.</td>
+<td><code>dynatrace.dashboards</code>, <code>dynatrace.notebooks</code>, <code>dynatrace.outbound.connections</code></td>
+<td><code>GET /edge-connects (/platform/app-engine/edge-connect/v1)</code><br><code>GET /edge-connects/{edgeConnectId} (/platform/app-engine/edge-connect/v1)</code><br><code>GET /edge-connects:match (/platform/app-engine/edge-connect/v1)</code></td>
+</tr>
+<tr>
+<td><code>unified-analysis:screen-definition:read</code></td>
+<td>Readers of infrastructure, cloud, database and Kubernetes apps.</td>
+<td>—</td>
+<td><code>dynatrace.clouds</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.error.inspector</code>, <code>dynatrace.fleet.management</code>, <code>dynatrace.infraops</code>, <code>dynatrace.kubernetes</code>, +4 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>hub:catalog:read</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.copilot</code>, <code>dynatrace.discovery.coverage</code>, +13 more</td>
+<td><code>GET /catalog/apps (/platform/hub/v1)</code><br><code>GET /catalog/apps/{id} (/platform/hub/v1)</code><br><code>GET /catalog/apps/{id}/releases (/platform/hub/v1)</code><br>+6 more</td>
+</tr>
+<tr>
+<td><code>platform-management:effective-permissions:resolve</code></td>
+<td>Always — apps use it to show or hide actions.</td>
+<td>—</td>
+<td>none declare it</td>
+<td><code>POST /effective-permissions:resolve (/platform/management/v1)</code></td>
+</tr>
+<tr>
+<td><code>platform-management:environments:read</code></td>
+<td>Always.</td>
+<td>—</td>
+<td>none declare it</td>
+<td><code>GET /environment (/platform/management/v1)</code><br><code>GET /environment/license (/platform/management/v1)</code><br><code>GET /environment/license/settings (/platform/management/v1)</code><br>+1 more</td>
+</tr>
+<tr>
+<td><a id="generated-group-appengine-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>; <a href="https://developer.dynatrace.com/develop/sdks/client-platform-management-service/">Platform management SDK (Dynatrace Developer)</a>.</sub></p>
+</blockquote>
+<p><a id="grail-definitions"></a></p>
+<h2>6. Grail definitions and segments</h2>
+<p>Definitions describe <em>where</em> data lives and how it is filtered; they return no records. Segments are filters, not access control — a segment never widens or narrows what a user can read.</p>
+<p><a id="generated-group-grail-config-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:bucket-definitions:read</code></td>
+<td>✅</td>
+<td>Grants permission to read bucket definitions from Grail</td>
+<td>none</td>
+<td>List bucket names and settings — not their records.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read bucket definitions from Grail&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:fieldset-definitions:read</code></td>
+<td>✅</td>
+<td>Read fieldset definitions from grail</td>
+<td>none</td>
+<td>Read fieldset definitions — which fields are protected.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Tested</strong> — <code>dynatrace.davis.copilot</code> manifest: <em>&quot;query masked/sensitive fields&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:read</code></td>
+<td>✅</td>
+<td>Read filter-segments from grail</td>
+<td>none</td>
+<td>Use segments in segment pickers.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Read filter-segments from grail&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:write</code></td>
+<td>✅</td>
+<td>Write filter-segments in grail</td>
+<td>none</td>
+<td>Create and edit segments.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Write filter-segments in grail&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:delete</code></td>
+<td>✅</td>
+<td>Delete own filter-segments in grail</td>
+<td>none</td>
+<td>Delete the caller's own segments.</td>
+<td>Owner-based</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Delete own filter-segments in grail&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:share</code></td>
+<td>➕</td>
+<td>Share filter-segments in grail</td>
+<td>none</td>
+<td>Share a segment with others.</td>
+<td>Owner-based</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Share filter-segments in grail&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:admin</code></td>
+<td>➕</td>
+<td>Write and delete all filter-segments in grail</td>
+<td>none</td>
+<td>Edit and delete any user's segments.</td>
+<td>Environment-wide</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Write and delete all filter-segments in grail&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:bucket-definitions:read</code></td>
+<td>Always; bucket pickers use it.</td>
+<td>—</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.copilot</code>, <code>dynatrace.davis.workflow.actions</code>, <code>dynatrace.dpl.architect</code>, <code>dynatrace.experience.vitals</code>, +4 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:fieldset-definitions:read</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.davis.copilot</code>, <code>dynatrace.davis.workflow.actions</code>, <code>dynatrace.experience.vitals</code>, <code>dynatrace.openpipeline</code></td>
+<td><code>GET /fieldsets (/platform/storage/fieldsets/v1)</code><br><code>GET /fieldsets/{fieldsetUid} (/platform/storage/fieldsets/v1)</code></td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:read</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.biz.explore</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, +25 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:write</code></td>
+<td>Team leads who curate segments.</td>
+<td>Readers, if segments are centrally managed.</td>
+<td><code>dynatrace.segments.management</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:delete</code></td>
+<td>With write.</td>
+<td>Readers.</td>
+<td><code>dynatrace.segments.management</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:share</code></td>
+<td>Team leads.</td>
+<td>Readers.</td>
+<td><code>dynatrace.segments.management</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:admin</code></td>
+<td>Admins.</td>
+<td>Everyone else.</td>
+<td><code>dynatrace.segments.management</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><a id="generated-group-grail-config-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="grail-data"></a></p>
+<h2>7. Grail data (record tables)</h2>
+<p>These are <strong>not</strong> in the docs <em>Standard User</em> policy; a reader persona needs some of them to see any data. Each table permission also needs <code>storage:buckets:read</code>. Scope them in the <strong>boundary</strong>, and use <code>MATCH</code> for security context on tables where it can be an array — <code>=</code>, <code>IN</code> and <code>startsWith</code> return false on arrays. <code>storage:entities:read</code> is the exception: it accepts no <code>MATCH</code>, so pair a <code>startsWith</code> line with the <code>MATCH</code> line.</p>
+<p><a id="generated-group-grail-data-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:buckets:read</code></td>
+<td>➕</td>
+<td>Grants permission to read records from Grail buckets. Required additionally to a table permission.</td>
+<td><code>storage:table-name</code> (=, !=, IN, NOT IN, startsWith, NOT startsWith, MATCH)<br><code>storage:bucket-name</code> (=, !=, IN, NOT IN, startsWith, NOT startsWith, MATCH)<br><code>storage:query-consumption</code> (=)</td>
+<td>Read records from buckets; needed in addition to every table permission.</td>
+<td>Per bucket (<code>storage:bucket-name</code>)</td>
+<td>Depends on the buckets</td>
+<td><strong>Docs</strong> — <em>&quot;Required additionally to a table permission.&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:logs:read</code></td>
+<td>➕</td>
+<td>Grants permission to read records from the logs-table</td>
+<td><code>storage:bucket-name</code> (=, !=, IN, NOT IN, startsWith, NOT startsWith, MATCH)<br><code>storage:k8s.namespace.name</code> (=, IN, startsWith, MATCH)<br><code>storage:k8s.cluster.name</code> (=, IN, startsWith, MATCH)<br><code>storage:host.name</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.host_group.id</code> (=, IN, startsWith, MATCH)<br><code>storage:log.source</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.security_context</code> (=, IN, startsWith, MATCH)<br><code>storage:gcp.project.id</code> (=, IN, startsWith, MATCH)<br><code>storage:aws.account.id</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.subscription</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.resource.group</code> (=, IN, startsWith, MATCH)</td>
+<td>Query log records.</td>
+<td>Records filtered by conditions</td>
+<td>Medium — logs can carry PII</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read records from the logs-table&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:spans:read</code></td>
+<td>➕</td>
+<td>Grants permission to read records from the spans-table</td>
+<td><code>storage:bucket-name</code> (=, !=, IN, NOT IN, startsWith, NOT startsWith, MATCH)<br><code>storage:k8s.namespace.name</code> (=, IN, startsWith, MATCH)<br><code>storage:k8s.cluster.name</code> (=, IN, startsWith, MATCH)<br><code>storage:host.name</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.host_group.id</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.security_context</code> (=, IN, startsWith, MATCH)<br><code>storage:gcp.project.id</code> (=, IN, startsWith, MATCH)<br><code>storage:aws.account.id</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.subscription</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.resource.group</code> (=, IN, startsWith, MATCH)</td>
+<td>Query spans (distributed traces).</td>
+<td>Records filtered by conditions</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read records from the spans-table&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:metrics:read</code></td>
+<td>➕</td>
+<td>Grants permission to read timeseries from the metrics-table</td>
+<td><code>storage:bucket-name</code> (=, !=, IN, NOT IN, startsWith, NOT startsWith, MATCH)<br><code>storage:k8s.namespace.name</code> (=, IN, startsWith, MATCH)<br><code>storage:k8s.cluster.name</code> (=, IN, startsWith, MATCH)<br><code>storage:host.name</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.host_group.id</code> (=, IN, startsWith, MATCH)<br><code>storage:metric.key</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.security_context</code> (=, IN, startsWith, MATCH)<br><code>storage:gcp.project.id</code> (=, IN, startsWith, MATCH)<br><code>storage:aws.account.id</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.subscription</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.resource.group</code> (=, IN, startsWith, MATCH)<br><code>storage:frontend.name</code> (=, IN, startsWith, MATCH)</td>
+<td>Query metric timeseries.</td>
+<td>Records filtered by conditions</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read timeseries from the metrics-table&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:events:read</code></td>
+<td>➕</td>
+<td>Grants permission to read records from the events table.</td>
+<td><code>storage:bucket-name</code> (=, !=, IN, NOT IN, startsWith, NOT startsWith, MATCH)<br><code>storage:event.kind</code> (=, IN, startsWith, MATCH)<br><code>storage:event.type</code> (=, IN, startsWith, MATCH)<br><code>storage:event.provider</code> (=, IN, startsWith, MATCH)<br><code>storage:k8s.namespace.name</code> (=, IN, startsWith, MATCH)<br><code>storage:k8s.cluster.name</code> (=, IN, startsWith, MATCH)<br><code>storage:host.name</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.host_group.id</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.security_context</code> (=, IN, startsWith, MATCH)<br><code>storage:gcp.project.id</code> (=, IN, startsWith, MATCH)<br><code>storage:aws.account.id</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.subscription</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.resource.group</code> (=, IN, startsWith, MATCH)<br><code>storage:frontend.name</code> (=, IN, startsWith, MATCH)</td>
+<td>Query events, including Davis problems and events.</td>
+<td>Records filtered by conditions</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;always return false&quot;</em> (<a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail</a>)</td>
+</tr>
+<tr>
+<td><code>storage:bizevents:read</code></td>
+<td>➕</td>
+<td>Grants permission to read records from the bizevents-table</td>
+<td><code>storage:bucket-name</code> (=, !=, IN, NOT IN, startsWith, NOT startsWith, MATCH)<br><code>storage:event.kind</code> (=, IN, startsWith, MATCH)<br><code>storage:event.type</code> (=, IN, startsWith, MATCH)<br><code>storage:event.provider</code> (=, IN, startsWith, MATCH)<br><code>storage:k8s.namespace.name</code> (=, IN, startsWith, MATCH)<br><code>storage:k8s.cluster.name</code> (=, IN, startsWith, MATCH)<br><code>storage:host.name</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.host_group.id</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.security_context</code> (=, IN, startsWith, MATCH)<br><code>storage:gcp.project.id</code> (=, IN, startsWith, MATCH)<br><code>storage:aws.account.id</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.subscription</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.resource.group</code> (=, IN, startsWith, MATCH)<br><code>storage:frontend.name</code> (=, IN, startsWith, MATCH)</td>
+<td>Query business events.</td>
+<td>Records filtered by conditions</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read records from the bizevents-table&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:entities:read</code></td>
+<td>➕</td>
+<td>Grants permission to read records from entities</td>
+<td><code>storage:entity.type</code> (=, IN, startsWith)<br><code>storage:dt.security_context</code> (=, IN, startsWith)</td>
+<td>Query classic entities (<code>fetch dt.entity.*</code>).</td>
+<td>Records filtered by conditions</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read records from entities&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:smartscape:read</code></td>
+<td>➕</td>
+<td>Grants permission to read smartscape nodes and edges from Grail</td>
+<td><code>storage:dt.security_context</code> (=, IN, startsWith, MATCH)<br><code>storage:k8s.namespace.name</code> (=, IN, startsWith, MATCH)<br><code>storage:k8s.cluster.name</code> (=, IN, startsWith, MATCH)<br><code>storage:host.name</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.host_group.id</code> (=, IN, startsWith, MATCH)<br><code>storage:gcp.project.id</code> (=, IN, startsWith, MATCH)<br><code>storage:aws.account.id</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.subscription</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.resource.group</code> (=, IN, startsWith, MATCH)<br><code>storage:frontend.name</code> (=, IN, startsWith, MATCH)</td>
+<td>Query Smartscape nodes and edges (<code>smartscapeNodes</code>).</td>
+<td>Records filtered by conditions</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read smartscape nodes and edges from Grail&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:system:read</code></td>
+<td>➕</td>
+<td>Grants permission to read records from all system tables (for example, <code>dt.system.events</code>).</td>
+<td><code>storage:bucket-name</code> (=, !=, IN, NOT IN, startsWith, NOT startsWith, MATCH)<br><code>storage:event.kind</code> (=, IN, startsWith, MATCH)<br><code>storage:event.type</code> (=, IN, startsWith, MATCH)<br><code>storage:event.provider</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.security_context</code> (=, IN, startsWith, MATCH)</td>
+<td>Query every system table, e.g. <code>dt.system.events</code> (audit and billing).</td>
+<td>Environment-wide tables</td>
+<td>High</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read records from all system tables&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:files:read</code></td>
+<td>➕</td>
+<td>Read data from files.</td>
+<td><code>storage:file-path</code> (=, startsWith, IN)</td>
+<td>Read files such as lookup tables.</td>
+<td>Per path (<code>storage:file-path</code>)</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;storage:files:read WHERE storage:file-path startsWith &quot;/dt/&quot;&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Default policies</a>)</td>
+</tr>
+<tr>
+<td><code>storage:user.events:read</code></td>
+<td>➕</td>
+<td>Read user.events from grail</td>
+<td><code>storage:bucket-name</code> (=, !=, IN, NOT IN, startsWith, NOT startsWith, MATCH)<br><code>storage:dt.security_context</code> (=, IN, startsWith, MATCH)<br><code>storage:frontend.name</code> (=, IN, startsWith, MATCH)</td>
+<td>Query RUM user events (needed by Experience Vitals).</td>
+<td>Records filtered by conditions</td>
+<td>Medium</td>
+<td><strong>Tested</strong> — <code>dynatrace.experience.vitals</code> and 25 other built-in apps declare it — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>storage:user.sessions:read</code></td>
+<td>➕</td>
+<td>Read user.sessions from grail</td>
+<td><code>storage:bucket-name</code> (=, !=, IN, NOT IN, startsWith, NOT startsWith, MATCH)<br><code>storage:dt.security_context</code> (=, IN, startsWith, MATCH)<br><code>storage:frontend.name</code> (=, IN, startsWith, MATCH)</td>
+<td>Query RUM user sessions.</td>
+<td>Records filtered by conditions</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Read user.sessions from grail&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:security.events:read</code></td>
+<td>➕</td>
+<td>Read security.events from grail</td>
+<td><code>storage:bucket-name</code> (=, !=, IN, NOT IN, startsWith, NOT startsWith, MATCH)<br><code>storage:event.kind</code> (=, IN, startsWith, MATCH)<br><code>storage:event.type</code> (=, IN, startsWith, MATCH)<br><code>storage:event.provider</code> (=, IN, startsWith, MATCH)<br><code>storage:k8s.namespace.name</code> (=, IN, startsWith, MATCH)<br><code>storage:k8s.cluster.name</code> (=, IN, startsWith, MATCH)<br><code>storage:host.name</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.host_group.id</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.security_context</code> (=, IN, startsWith, MATCH)<br><code>storage:gcp.project.id</code> (=, IN, startsWith, MATCH)<br><code>storage:aws.account.id</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.subscription</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.resource.group</code> (=, IN, startsWith, MATCH)</td>
+<td>Query security events (vulnerability, detection and compliance findings).</td>
+<td>Records filtered by conditions</td>
+<td>High</td>
+<td><strong>Docs</strong> — <em>&quot;Read security.events from grail&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>storage:application.snapshots:read</code></td>
+<td>➕</td>
+<td>Read application.snapshots from grail</td>
+<td><code>storage:bucket-name</code> (=, !=, IN, NOT IN, startsWith, NOT startsWith, MATCH)<br><code>storage:k8s.namespace.name</code> (=, IN, startsWith, MATCH)<br><code>storage:k8s.cluster.name</code> (=, IN, startsWith, MATCH)<br><code>storage:host.name</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.host_group.id</code> (=, IN, startsWith, MATCH)<br><code>storage:dt.security_context</code> (=, IN, startsWith, MATCH)<br><code>storage:gcp.project.id</code> (=, IN, startsWith, MATCH)<br><code>storage:aws.account.id</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.subscription</code> (=, IN, startsWith, MATCH)<br><code>storage:azure.resource.group</code> (=, IN, startsWith, MATCH)</td>
+<td>Read Live Debugger snapshots, which hold variable values from running code.</td>
+<td>Records filtered by conditions</td>
+<td>High — runtime data may include secrets or PII</td>
+<td><strong>Docs</strong> — <em>&quot;stack trace, variable values, and more&quot;</em> (<a href="https://docs.dynatrace.com/docs/observe/application-observability/live-debugger">Live Debugger</a>)</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:buckets:read</code></td>
+<td>Always, with a table permission.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.biz.explore</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, +35 more</td>
+<td><code>GET /stacktraces/{eventId} (/platform/rum/deobfuscation/v1)</code></td>
+</tr>
+<tr>
+<td><code>storage:logs:read</code></td>
+<td>Readers of this signal; scope with the boundary (<code>storage:dt.security_context</code> with <code>MATCH</code>).</td>
+<td>Unscoped grants for team users.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.davis.anomalydetection</code>, +30 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:spans:read</code></td>
+<td>Readers of this signal; scope with the boundary (<code>storage:dt.security_context</code> with <code>MATCH</code>).</td>
+<td>Unscoped grants for team users.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.davis.anomalydetection</code>, +23 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:metrics:read</code></td>
+<td>Readers of this signal; scope with the boundary (<code>storage:dt.security_context</code> with <code>MATCH</code>).</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.davis.anomalydetection</code>, +31 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:events:read</code></td>
+<td>Readers of this signal; scope with the boundary (<code>storage:dt.security_context</code> with <code>MATCH</code>). Events often store the security context as an array.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.biz.explore</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, +26 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:bizevents:read</code></td>
+<td>Teams that use business events.</td>
+<td>Users without a need — payloads can hold business data.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.biz.explore</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.anomalydetection</code>, +21 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:entities:read</code></td>
+<td>Readers; the security-context condition takes <code>=</code>, <code>IN</code>, <code>startsWith</code> only — not <code>MATCH</code>.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.davis.anomalydetection</code>, +28 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:smartscape:read</code></td>
+<td>Readers of this signal; scope with the boundary (<code>storage:dt.security_context</code> with <code>MATCH</code>). From SaaS 1.350 (rollout start 11/04/2026 — verify it has reached your tenant) <code>storage:type</code> can also scope it by node type, e.g. <code>storage:type = &quot;SYNTHETIC_LOCATION&quot;</code>; the policy reference does not list that condition yet, so the generated Conditions column does not show it.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.biz.explore</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, +31 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:system:read</code></td>
+<td>Admins and cost owners.</td>
+<td>Readers — audit and consumption records are not team data.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.davis.anomalydetection</code>, +17 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:files:read</code></td>
+<td>Scope to your lookup folders plus <code>/dt/</code>, as Dynatrace's <em>All Grail data read access</em> policy does.</td>
+<td>Unscoped grants.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.anomalydetection</code>, <code>dynatrace.davis.copilot</code>, +19 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:user.events:read</code></td>
+<td>Frontend teams; scope by <code>frontend.name</code> or security context.</td>
+<td>Teams without RUM.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.anomalydetection</code>, <code>dynatrace.davis.copilot</code>, +20 more</td>
+<td><code>GET /stacktraces/{eventId} (/platform/rum/deobfuscation/v1)</code></td>
+</tr>
+<tr>
+<td><code>storage:user.sessions:read</code></td>
+<td>With user.events.</td>
+<td>Teams without RUM.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.anomalydetection</code>, <code>dynatrace.davis.copilot</code>, +21 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:security.events:read</code></td>
+<td>Security teams.</td>
+<td>General readers.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.anomalydetection</code>, <code>dynatrace.davis.copilot</code>, +21 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>storage:application.snapshots:read</code></td>
+<td>Only with Live Debugger, via the <em>Read Application Snapshots</em> default policy.</td>
+<td>General Grail read policies.</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.anomalydetection</code>, <code>dynatrace.davis.copilot</code>, <code>dynatrace.davis.workflow.actions</code>, <code>dynatrace.dpl.architect</code>, +2 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><a id="generated-group-grail-data-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — <em>&quot;Using =, STARTSWITH or IN when the field holds an array will always return false.&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Default policies (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="settings"></a></p>
+<h2>8. Settings and app settings</h2>
+<p>Three stores are easy to confuse:</p>
+<table>
+<thead>
+<tr>
+<th>Store</th>
+<th>Permissions</th>
+<th>Holds</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settings 2.0</td>
+<td><code>settings:objects:*</code></td>
+<td>Monitoring configuration and user preferences</td>
+<td>Environment, host, entity or <code>user-</code> scope</td>
+</tr>
+<tr>
+<td>App settings</td>
+<td><code>app-settings:objects:*</code></td>
+<td>Objects of schemas an app defines (e.g. connector connections)</td>
+<td>Per app schema; some schemas are owner-based</td>
+</tr>
+<tr>
+<td>App state</td>
+<td><code>state:*</code></td>
+<td>An app's internal key-value data</td>
+<td>Per app, or per user</td>
+</tr>
+</tbody>
+</table>
+<p>Owner-based schemas give each object to the user who first stores it; <code>*:objects:admin</code> bypasses that check. For settings scoping, use <code>settings:dt.security_context</code> rather than <code>environment:management-zone</code>, which stops matching after the scoped-settings change.</p>
+<p><a id="generated-group-settings-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>settings:objects:read</code></td>
+<td>✅</td>
+<td>Enables reading of settings objects belonging to the schema</td>
+<td><code>settings:schemaId</code> (IN, =, !=, startsWith, NOT startsWith)<br><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)<br><code>settings:schemaGroup</code> (IN, =)<br><code>settings:entity.hostGroup</code> (IN, =, !=)<br><code>settings:scope</code> (IN, =, !=, startsWith, NOT startsWith)<br><code>environment:management-zone</code> (IN, =, startsWith, MATCH)<br><code>settings:dt.security_context</code> (IN, =, startsWith)</td>
+<td>Read Settings 2.0 objects (environment, host, entity and user scopes).</td>
+<td>Per schema / scope / security context</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Enables reading of settings objects belonging to the schema&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>settings:schemas:read</code></td>
+<td>✅</td>
+<td>Enables reading settings schemas</td>
+<td><code>settings:schemaId</code> (IN, =, !=, startsWith, NOT startsWith)<br><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)<br><code>settings:schemaGroup</code> (IN, =)</td>
+<td>Read settings schema definitions — not values.</td>
+<td>Per schema</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Enables reading settings schemas&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>settings:objects:write</code></td>
+<td>➕</td>
+<td>Enables writing of settings objects belonging to the schema</td>
+<td><code>settings:schemaId</code> (IN, =, !=, startsWith, NOT startsWith)<br><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)<br><code>settings:schemaGroup</code> (IN, =)<br><code>settings:entity.hostGroup</code> (IN, =, !=)<br><code>settings:scope</code> (IN, =, !=, startsWith, NOT startsWith)<br><code>environment:management-zone</code> (IN, =, startsWith, MATCH)<br><code>settings:dt.security_context</code> (IN, =, startsWith)</td>
+<td>Change settings objects. With <code>settings:scope startsWith 'user-'</code> it covers only the user's own preferences.</td>
+<td>Per schema / scope</td>
+<td>High when unscoped</td>
+<td><strong>Docs</strong> — <em>&quot;Enables writing of settings objects belonging to the schema&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>settings:objects:admin</code></td>
+<td>➕</td>
+<td>Enables using admin-mode to access, change ownership and share permissions of any object. Admin-mode only bypasses the ownership check - so to do anything useful, settings:objects:read and/or settings:objects:write are needed as well.</td>
+<td><code>settings:schemaId</code> (IN, =, !=, startsWith, NOT startsWith)<br><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)<br><code>settings:schemaGroup</code> (IN, =)</td>
+<td>Bypass the ownership check on owner-based settings objects.</td>
+<td>Environment-wide</td>
+<td>High</td>
+<td><strong>Docs</strong> — <em>&quot;Admin-mode only bypasses the ownership check&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>app-settings:objects:read</code></td>
+<td>✅</td>
+<td>Grants permission to read app settings objects belonging to the schema</td>
+<td><code>settings:schemaId</code> (IN, =, !=, startsWith, NOT startsWith)<br><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)</td>
+<td>Read objects of app-defined schemas, such as workflow connector connections.</td>
+<td>Per app schema; some schemas are owner-based</td>
+<td>Low to medium</td>
+<td><strong>Docs</strong> — <em>&quot;All authenticated users of the app can read app settings.&quot;</em> (<a href="https://developer.dynatrace.com/develop/data/app-settings/">Store app settings</a>)</td>
+</tr>
+<tr>
+<td><code>app-settings:objects:write</code></td>
+<td>➕</td>
+<td>Grants permission to write settings objects belonging to the schema</td>
+<td><code>settings:schemaId</code> (IN, =, !=, startsWith, NOT startsWith)<br><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)</td>
+<td>Create or change app-schema objects. For most schemas, the change affects every user; owner-based schemas limit it to the owner.</td>
+<td>Per app schema</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;the user that first stores a settings object is the owner&quot;</em> (<a href="https://developer.dynatrace.com/develop/data/app-settings/">Store app settings</a>)</td>
+</tr>
+<tr>
+<td><code>app-settings:objects:admin</code></td>
+<td>➕</td>
+<td>Enables using admin-mode to access, change ownership and share permissions of any object. Admin-mode only bypasses the ownership check - so to do anything useful, app-settings:objects:read and/or app-settings:objects:write are needed as well.</td>
+<td><code>settings:schemaId</code> (IN, =, !=, startsWith, NOT startsWith)<br><code>shared:app-id</code> (IN, NOT IN, startsWith, NOT startsWith, =, !=)</td>
+<td>Bypass the ownership check on owner-based app-schema objects (e.g. read others' connector credentials).</td>
+<td>Environment-wide</td>
+<td>High</td>
+<td><strong>Tested</strong> — <code>dynatrace.jenkins.connector</code> manifest: <em>&quot;Reading and editing Connection credentials … as an admin&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>settings:objects:read</code></td>
+<td>Scope by <code>settings:schemaId</code>; add a <code>settings:dt.security_context</code> line to the boundary.</td>
+<td>Unscoped grants plus a boundary with no settings line.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.aws.connector</code>, <code>dynatrace.biz.explore</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, +40 more</td>
+<td><code>GET /classic-pipelines/translate (/platform/openpipeline/v1)</code> <em>(early adopter)</em><br><code>GET /effective-values (/platform/settings/v1)</code><br><code>GET /history (/platform/settings/v1)</code><br>+5 more</td>
+</tr>
+<tr>
+<td><code>settings:schemas:read</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.biz.explore</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.anomalydetection</code>, +25 more</td>
+<td><code>GET /schemas (/platform/settings/v1)</code><br><code>GET /schemas/{schema-id} (/platform/settings/v1)</code><br><code>GET /values/{schema-id}/default (/platform/settings/v1)</code><br>+4 more</td>
+</tr>
+<tr>
+<td><code>settings:objects:write</code></td>
+<td>Everyone, limited to user-scope preference schemas; team leads, limited to their schemas.</td>
+<td>Unscoped grants.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.aws.connector</code>, <code>dynatrace.biz.explore</code>, <code>dynatrace.clouds</code>, <code>dynatrace.clouds</code>, +29 more</td>
+<td><code>DELETE /objects/{object-id} (/platform/settings/v1)</code><br><code>DELETE /objects/{object-id}/permissions/all-users (/platform/settings/v1)</code><br><code>DELETE /objects/{object-id}/permissions/{accessor-type}/{accessor-id} (/platform/settings/v1)</code><br>+7 more</td>
+</tr>
+<tr>
+<td><code>settings:objects:admin</code></td>
+<td>Admins.</td>
+<td>Everyone else.</td>
+<td><code>dynatrace.aws.connector</code>, <code>dynatrace.fleet.management</code>, <code>dynatrace.gcp.connector</code>, <code>dynatrace.microsoft.azure.connector</code>, <code>dynatrace.openpipeline</code>, <code>dynatrace.security.enrichment</code>, +2 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>app-settings:objects:read</code></td>
+<td>When an allowed app needs it; scope by <code>shared:app-id</code> or <code>settings:schemaId</code>.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.azure.connector</code>, <code>dynatrace.biz.explore</code>, <code>dynatrace.clouds</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.devobs.debugger</code>, +22 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>app-settings:objects:write</code></td>
+<td>Workflow authors (connections) and app owners.</td>
+<td>Readers.</td>
+<td><code>dynatrace.azure.connector</code>, <code>dynatrace.clouds</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.discovery.coverage</code>, <code>dynatrace.github.connector</code>, <code>dynatrace.gitlab.connector</code>, +16 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>app-settings:objects:admin</code></td>
+<td>Admins.</td>
+<td>Everyone else.</td>
+<td><code>dynatrace.azure.connector</code>, <code>dynatrace.github.connector</code>, <code>dynatrace.gitlab.connector</code>, <code>dynatrace.jenkins.connector</code>, <code>dynatrace.jira</code>, <code>dynatrace.jsm.connector</code>, +8 more</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><a id="generated-group-settings-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.dynatrace.com/develop/data/app-settings/">Store app settings (Dynatrace Developer)</a> — <em>&quot;By default, only the owner can access these objects&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-scoped-settings-objects">Upgrade security policies for scoped settings (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="notifications"></a></p>
+<h2>9. Email and notifications</h2>
+<p><code>email:emails:send</code> takes no conditions, so it can mail any address.</p>
+<p><strong>Notification API v1 is being retired.</strong> The self-notification permissions call it, and Dynatrace states it was <em>&quot;deprecated on 9 Jul 2025 and will be sunset on 31 Dec 2026&quot;</em>, pointing to the v2 event notifications that <code>notification:notifications:*</code> govern. Both rows stay in the <em>Standard User</em> policy for now; plan new work on v2.</p>
+<p>The generated <em>API operations</em> column flags any API whose own spec on the tenant states a deprecation (⚠️), and any operation the spec marks pre-GA, such as <em>(early adopter)</em>. Workflows send as their <strong>actor</strong>, so the actor needs it — not every author.</p>
+<p><a id="generated-group-notifications-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>email:emails:send</code></td>
+<td>✅</td>
+<td>Grants permission to send emails from @apps.dynatrace.com with send email API</td>
+<td>none</td>
+<td>Send email from <code>@apps.dynatrace.com</code> through the email API; no IAM condition limits the recipients.</td>
+<td>Environment-wide, no conditions</td>
+<td>Medium — can mail anyone</td>
+<td><strong>Docs</strong> — <em>&quot;send emails from @apps.dynatrace.com with send email API&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>notification:self-notifications:read</code></td>
+<td>✅</td>
+<td>Grants permission to read self notifications.</td>
+<td>none</td>
+<td>Read the caller's own notification subscriptions through Notification API v1 — deprecated, and sunset on 31 Dec 2026.</td>
+<td>Per user</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;deprecated on 9 Jul 2025 and will be sunset on 31 Dec 2026&quot;</em> (<a href="https://developer.dynatrace.com/develop/reference/apis/latest-apis/">APIs for latest Dynatrace</a>)</td>
+</tr>
+<tr>
+<td><code>notification:self-notifications:write</code></td>
+<td>✅</td>
+<td>Grants permission to write self notifications.</td>
+<td>none</td>
+<td>Create and change the caller's own subscriptions (Notification API v1, sunset 31 Dec 2026).</td>
+<td>Per user</td>
+<td>Low</td>
+<td><strong>Tested</strong> — Notification API v1: <code>POST /self-notifications</code>; whether the permission keeps a use after the v1 sunset is not documented — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>notification:notifications:read</code></td>
+<td>✅</td>
+<td>Grants permission to read notification configurations.</td>
+<td>none</td>
+<td>Read event- and resource-notification configurations, e.g. alerting on saved Problems filters.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Tested</strong> — <code>dynatrace.davis.problems</code> manifest: <em>&quot;Read notifications for alerting on saved filters&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>notification:notifications:write</code></td>
+<td>✅</td>
+<td>Grants permission to write notification configurations.</td>
+<td>none</td>
+<td>Create and change those configurations.</td>
+<td>Environment-wide</td>
+<td>Medium</td>
+<td><strong>Unknown</strong> — Whether a user can change notifications created by others is not documented; the API has no owner filter in its declared scopes.</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>email:emails:send</code></td>
+<td>Workflow actors (ideally service users).</td>
+<td>Readers — the docs Standard User policy includes it.</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.email</code>, <code>dynatrace.hub</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>notification:self-notifications:read</code></td>
+<td>When users subscribe to alerts for themselves.</td>
+<td>Building anything new on it: Dynatrace points to the v2 event notifications, which <code>notification:notifications:*</code> govern.</td>
+<td>none declare it</td>
+<td><code>GET /self-notifications (/platform/notification/v1)</code><br><code>GET /self-notifications/{id} (/platform/notification/v1)</code><br>⚠️ <code>/platform/notification/v1</code> deprecated 9 Jul 2025, sunset 31 Dec 2026</td>
+</tr>
+<tr>
+<td><code>notification:self-notifications:write</code></td>
+<td>With read.</td>
+<td>New automation — use v2 event notifications instead.</td>
+<td>none declare it</td>
+<td><code>DELETE /self-notifications/{id} (/platform/notification/v1)</code><br><code>PATCH /self-notifications/{id} (/platform/notification/v1)</code><br><code>POST /self-notifications (/platform/notification/v1)</code><br>+1 more<br>⚠️ <code>/platform/notification/v1</code> deprecated 9 Jul 2025, sunset 31 Dec 2026</td>
+</tr>
+<tr>
+<td><code>notification:notifications:read</code></td>
+<td>Users who set up alerts.</td>
+<td>—</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.davis.problems</code>, <code>dynatrace.hub</code></td>
+<td><code>GET /event-notifications (/platform/notification/v2)</code><br><code>GET /event-notifications/{id} (/platform/notification/v2)</code><br><code>GET /resource-notifications (/platform/notification/v2)</code><br>+1 more</td>
+</tr>
+<tr>
+<td><code>notification:notifications:write</code></td>
+<td>Team leads and alert owners.</td>
+<td>Readers.</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.davis.problems</code>, <code>dynatrace.hub</code></td>
+<td><code>DELETE /event-notifications/{id} (/platform/notification/v2)</code><br><code>DELETE /resource-notifications/{id} (/platform/notification/v2)</code><br><code>DELETE /resource-notifications/{notificationType}/{resourceId} (/platform/notification/v2)</code><br>+4 more</td>
+</tr>
+<tr>
+<td><a id="generated-group-notifications-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.dynatrace.com/develop/reference/apis/latest-apis/">APIs for latest Dynatrace (Dynatrace Developer)</a> — Notification: <em>&quot;This API was deprecated on 9 Jul 2025&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="workflows"></a></p>
+<h2>10. Workflows (AutomationEngine)</h2>
+<p>IAM has no condition on a workflow's owner. Who sees and edits which workflow comes from ownership and visibility: a new workflow is private; the owner can make it public or transfer it to a group; admin mode reaches all of them.</p>
+<p><a id="generated-group-automation-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>automation:workflows:read</code></td>
+<td>✅</td>
+<td>Grants permission to read workflows</td>
+<td>none</td>
+<td>View workflows the caller can access (own, public, or group-owned).</td>
+<td>Owner and visibility</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;A public workflow is visible to every user with automation:workflows:</em> permissions.&quot;* (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Workflow security</a>)</td>
+</tr>
+<tr>
+<td><code>automation:workflows:write</code></td>
+<td>✅</td>
+<td>Grants permission to write workflows</td>
+<td><code>automation:workflow-type</code> (IN, =)</td>
+<td>Create and edit workflows; the docs Standard User policy limits it to <code>SIMPLE</code> (one task).</td>
+<td>Owner and visibility; <code>automation:workflow-type</code></td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;A simple workflow is limited to only one task&quot;</em> (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow">Simple workflows</a>)</td>
+</tr>
+<tr>
+<td><code>automation:workflows:run</code></td>
+<td>✅</td>
+<td>Grants permission to execute workflows</td>
+<td>none</td>
+<td>Run workflows the caller can access.</td>
+<td>Owner and visibility</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to execute workflows&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>automation:workflows:admin</code></td>
+<td>➕</td>
+<td>Grant admin permissions for workflows.</td>
+<td>none</td>
+<td>Workflow admin mode — reach every workflow regardless of owner.</td>
+<td>Environment-wide</td>
+<td>High</td>
+<td><strong>Docs</strong> — <em>&quot;Grant admin permissions for workflows.&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>automation:calendars:read</code></td>
+<td>✅</td>
+<td>Grants permission to read business calendars</td>
+<td>none</td>
+<td>Read business calendars used by workflow schedules.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read business calendars&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>automation:rules:read</code></td>
+<td>✅</td>
+<td>Grants permission to read scheduling rules</td>
+<td>none</td>
+<td>Read scheduling rules (also used for maintenance-window recurrence).</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Tested</strong> — <code>dynatrace.maintenancewindows</code> manifest: <em>&quot;Read scheduling rules for maintenance window recurrence&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>automation:workflows:read</code></td>
+<td>Users who need to see workflows.</td>
+<td>—</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.davis.workflow.actions</code>, +6 more</td>
+<td><code>GET /action-executions/{id} (/platform/automation/v1)</code><br><code>GET /action-executions/{id}/log (/platform/automation/v1)</code><br><code>GET /actions-sample-result/{actionIdentifier} (/platform/automation/v1)</code><br>+35 more</td>
+</tr>
+<tr>
+<td><code>automation:workflows:write</code></td>
+<td>Workflow authors; readers only with <code>workflow-type = &quot;SIMPLE&quot;</code>.</td>
+<td>Unconditioned grants for readers.</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.clouds</code>, <code>dynatrace.security.threats.exploits</code></td>
+<td><code>DELETE /trash/workflows/{id} (/platform/automation/v1)</code><br><code>DELETE /workflows/{id} (/platform/automation/v1)</code><br><code>PATCH /workflows/{id} (/platform/automation/v1)</code><br>+6 more</td>
+</tr>
+<tr>
+<td><code>automation:workflows:run</code></td>
+<td>Authors and operators.</td>
+<td>—</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.security.investigator</code></td>
+<td><code>POST /executions/{executionId}/tasks/{id}/cancel (/platform/automation/v1)</code><br><code>POST /executions/{id}/cancel (/platform/automation/v1)</code><br><code>POST /executions/{id}/pause (/platform/automation/v1)</code><br>+2 more</td>
+</tr>
+<tr>
+<td><code>automation:workflows:admin</code></td>
+<td>Admins.</td>
+<td>Everyone else.</td>
+<td><code>dynatrace.automations</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>automation:calendars:read</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.notebooks</code></td>
+<td><code>GET /business-calendars (/platform/automation/v1)</code><br><code>GET /business-calendars/{id} (/platform/automation/v1)</code><br><code>GET /business-calendars/{id}/history (/platform/automation/v1)</code><br>+1 more</td>
+</tr>
+<tr>
+<td><code>automation:rules:read</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.maintenancewindows</code>, <code>dynatrace.notebooks</code></td>
+<td><code>GET /scheduling-rules (/platform/automation/v1)</code><br><code>GET /scheduling-rules/{id} (/platform/automation/v1)</code><br><code>GET /scheduling-rules/{id}/history (/platform/automation/v1)</code><br>+1 more</td>
+</tr>
+<tr>
+<td><a id="generated-group-automation-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Workflow security (DT docs)</a> — <em>&quot;Transfer ownership to a group&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow">Simple workflows (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="davis"></a></p>
+<h2>11. Davis analyzers and Copilot</h2>
+<p><a id="generated-group-davis-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>davis:analyzers:read</code></td>
+<td>✅</td>
+<td>Grants permission to view Davis analyzers</td>
+<td>none</td>
+<td>List analyzers and their documentation.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to view Davis analyzers&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>davis:analyzers:execute</code></td>
+<td>✅</td>
+<td>Grants permission to execute Davis analyzers</td>
+<td>none</td>
+<td>Run forecasting, anomaly and correlation analyzers on query results.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Inference</strong> — The analyzers take query results as input, so they reach only data the user can already read; not stated in the docs.</td>
+</tr>
+<tr>
+<td><code>davis-copilot:conversations:execute</code></td>
+<td>✅</td>
+<td>Grants permission to interact with the Davis CoPilot conversational interface</td>
+<td>none</td>
+<td>Chat with Dynatrace Assist / Davis CoPilot.</td>
+<td>Per user</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to interact with the Davis CoPilot conversational interface&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>davis-copilot:nl2dql:execute</code></td>
+<td>✅</td>
+<td>Grants permission to execute the Natural Language to DQL generative AI capability</td>
+<td>none</td>
+<td>Turn natural language into DQL.</td>
+<td>Per user</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to execute the Natural Language to DQL generative AI capability&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>davis-copilot:dql2nl:execute</code></td>
+<td>✅</td>
+<td>Grants permission to execute the CoPilot skill 'Summarize DQL'</td>
+<td>none</td>
+<td>Explain a DQL query in plain language.</td>
+<td>Per user</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to execute the CoPilot skill 'Summarize DQL'&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>davis-copilot:document-search:execute</code></td>
+<td>✅</td>
+<td>Grants permission to execute the CoPilot skill 'Document Search'</td>
+<td>none</td>
+<td>Search documents with Copilot.</td>
+<td>Per user</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to execute the CoPilot skill 'Document Search'&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>ai:operator:execute</code></td>
+<td>➕</td>
+<td>Grants permission to interact with the AI conversational interface</td>
+<td>none</td>
+<td>Interact with the AI conversational interface as an operator — the Dynatrace Assist operator and the Dynatrace Intelligence agentic AI workflow action.</td>
+<td>Per user; for the workflow action, the workflow's actor</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;To use the Dynatrace Intelligence agentic AI workflow action&quot;</em> (<a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/dynatrace-intelligence-integrations/dynatrace-intelligence-run-agent-workflows">Run agents in Workflows</a>)</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>davis:analyzers:read</code></td>
+<td>Always.</td>
+<td>—</td>
+<td><code>dynatrace.dashboards</code>, <code>dynatrace.davis.anomalydetection</code>, <code>dynatrace.davis.copilot</code>, <code>dynatrace.davis.workflow.actions</code>, <code>dynatrace.experience.vitals</code>, <code>dynatrace.notebooks</code>, +1 more</td>
+<td><code>GET /analyzers (/platform/davis/analyzers/v1)</code><br><code>GET /analyzers/{analyzer-name} (/platform/davis/analyzers/v1)</code><br><code>GET /analyzers/{analyzer-name}/documentation (/platform/davis/analyzers/v1)</code><br>+2 more</td>
+</tr>
+<tr>
+<td><code>davis:analyzers:execute</code></td>
+<td>Users of Davis features in dashboards, notebooks and entity panels.</td>
+<td>—</td>
+<td><code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.davis.anomalydetection</code>, <code>dynatrace.davis.copilot</code>, <code>dynatrace.davis.problems</code>, +8 more</td>
+<td><code>GET /analyzers/{analyzer-name}:poll (/platform/davis/analyzers/v1)</code><br><code>POST /analyzers/{analyzer-name}:cancel (/platform/davis/analyzers/v1)</code><br><code>POST /analyzers/{analyzer-name}:execute (/platform/davis/analyzers/v1)</code><br>+1 more</td>
+</tr>
+<tr>
+<td><code>davis-copilot:conversations:execute</code></td>
+<td>When Copilot is enabled.</td>
+<td>Where generative AI is not approved.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.davis.copilot</code>, <code>dynatrace.davis.problems</code>, +15 more</td>
+<td><code>POST /skills/conversations:feedback (/platform/davis/copilot/v1)</code><br><code>POST /skills/conversations:message (/platform/davis/copilot/v1)</code></td>
+</tr>
+<tr>
+<td><code>davis-copilot:nl2dql:execute</code></td>
+<td>When Copilot is enabled.</td>
+<td>Where generative AI is not approved.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.copilot</code>, <code>dynatrace.davis.workflow.actions</code>, <code>dynatrace.notebooks</code></td>
+<td><code>POST /skills/nl2dql:feedback (/platform/davis/copilot/v1)</code><br><code>POST /skills/nl2dql:generate (/platform/davis/copilot/v1)</code></td>
+</tr>
+<tr>
+<td><code>davis-copilot:dql2nl:execute</code></td>
+<td>When Copilot is enabled.</td>
+<td>Where generative AI is not approved.</td>
+<td><code>dynatrace.appshell</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.copilot</code>, <code>dynatrace.davis.workflow.actions</code>, <code>dynatrace.notebooks</code></td>
+<td><code>POST /skills/dql2nl:explain (/platform/davis/copilot/v1)</code><br><code>POST /skills/dql2nl:feedback (/platform/davis/copilot/v1)</code></td>
+</tr>
+<tr>
+<td><code>davis-copilot:document-search:execute</code></td>
+<td>When Copilot is enabled.</td>
+<td>Where generative AI is not approved.</td>
+<td><code>dynatrace.davis.copilot</code>, <code>dynatrace.davis.problems</code>, <code>dynatrace.davis.workflow.actions</code></td>
+<td><code>POST /skills/document-search:execute (/platform/davis/copilot/v1)</code></td>
+</tr>
+<tr>
+<td><code>ai:operator:execute</code></td>
+<td>Users and workflow actors that run Assist agents; the workflow action also needs <code>mcp-gateway:servers:invoke</code>, <code>mcp-gateway:servers:read</code> and <code>document:documents:read</code>.</td>
+<td>Where generative or agentic AI is not approved; the DPS license must include AI Units.</td>
+<td><code>dynatrace.davis.copilot</code>, <code>dynatrace.davis.problems</code>, <code>dynatrace.davis.workflow.actions</code>, <code>dynatrace.kubernetes</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><a id="generated-group-davis-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="openpipeline"></a></p>
+<h2>12. OpenPipeline</h2>
+<p>The two rows share a prefix and nothing else: one reads pipeline configuration, the other writes Davis events.</p>
+<p><a id="generated-group-openpipeline-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>openpipeline:configurations:read</code></td>
+<td>✅</td>
+<td>Grants permission to read the OpenPipeline configuration</td>
+<td>none</td>
+<td>Read pipeline configuration (processing, masking, routing, security-context rules); also drives DQL-matcher autocomplete.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Tested</strong> — <code>dynatrace.observability.settings</code> manifest: <em>&quot;required for DQL matcher autocomplete&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>openpipeline:events.davis:ingest</code></td>
+<td>➕</td>
+<td>Grants permission to ingest davis events into OpenPipeline</td>
+<td><code>openpipeline:event-type</code> (=, IN, startsWith, MATCH)<br><code>openpipeline:event-provider</code> (=, IN, startsWith, MATCH)</td>
+<td>Write Davis events. With provider <code>PROBLEM_APP</code> and type <code>CUSTOM_ANNOTATION</code>, the Problems app uses it for comments and closing problems.</td>
+<td>Environment-wide; conditioned by provider and type</td>
+<td>Low to medium</td>
+<td><strong>Tested</strong> — <code>dynatrace.davis.problems</code> manifest: <em>&quot;Write problem comments and close problems&quot;</em> (not in the docs Standard User policy) — validation tenant, 10/19/2026</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>openpipeline:configurations:read</code></td>
+<td>Pipeline owners; optional for others.</td>
+<td>Readers, as a least-privilege choice — it reveals how data separation is built.</td>
+<td><code>dynatrace.automations</code>, <code>dynatrace.observability.settings</code>, <code>dynatrace.openpipeline</code></td>
+<td><code>GET /configurations (/platform/openpipeline/v1)</code><br><code>GET /technologies (/platform/openpipeline/v1)</code> <em>(early adopter)</em><br><code>GET /technologies/{id}/processors (/platform/openpipeline/v1)</code> <em>(early adopter)</em><br>+6 more</td>
+</tr>
+<tr>
+<td><code>openpipeline:events.davis:ingest</code></td>
+<td>Users who may comment on or close problems.</td>
+<td>Readers, if commenting is a write you don't allow. Not needed to view problems.</td>
+<td><code>dynatrace.davis.problems</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><a id="generated-group-openpipeline-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="synthetic"></a></p>
+<h2>13. Synthetic monitoring</h2>
+<p>Monitors take <code>synthetic:dt.security_context</code>; locations take no condition at all. To keep users off public locations you don't use, change those locations' status for the environment: <code>DISABLED</code> stops new assignments and leaves assigned monitors running; <code>HIDDEN</code> removes the location from the UI and is allowed only when no monitor uses it. Holding <code>synthetic:locations:write</code> decides who can do that.</p>
+<p>Dynatrace <em>&quot;recommends migrating to the Synthetic platform permissions and the Synthetic Platform API&quot;</em> (<code>/platform/synthetic/v1</code>, platform or OAuth token). Two things to know before you do:</p>
+<ul>
+<li><strong>The platform API is Early Adopter.</strong> <em>&quot;All Synthetic Platform API endpoints are currently in Early Adopter maturity&quot;</em> — they <em>&quot;can change in non-compatible ways&quot;</em>. The validation tenant's own spec marks all 20 operations the same way (10/19/2026). The classic Synthetic API v2 keeps working.</li>
+<li><strong>Security-context scoping needs the platform permissions.</strong> Users who hold only classic permissions see every monitor; boundaries don't restrict them.</li>
+</ul>
+<p>Two facts from the same page that the tables can't show:</p>
+<ul>
+<li><strong>The Private locations tab needs unscoped data reads.</strong> It requires <code>storage:smartscape:read</code> and <code>storage:metrics:read</code> with no security-context condition, plus <code>synthetic:locations:read</code> (or <code>:write</code> to manage) — <em>&quot;These permissions must be applied tenant-wide for the tab to be accessible.&quot;</em></li>
+<li><strong>The two docs pages disagree on <em>Standard User</em>.</strong> The Synthetic access-control page (updated 10/13/2026) lists <code>synthetic:monitors:read</code> and <code>synthetic:locations:read</code> in <em>Standard User</em>; the default-policies page this appendix generates from (modified 10/08/2026) does not, so both rows show ➕. Check the policy in your account — the newer page is likely current.</li>
+</ul>
+<p><a id="generated-group-synthetic-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>synthetic:monitors:read</code></td>
+<td>➕</td>
+<td>Grants permission to read definitions of synthetic monitors</td>
+<td><code>synthetic:dt.security_context</code> (IN, =, startsWith, MATCH)</td>
+<td>View synthetic monitor definitions.</td>
+<td>Per security context</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read definitions of synthetic monitors&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>synthetic:monitors:write</code></td>
+<td>➕</td>
+<td>Grants permission to create synthetic monitors</td>
+<td><code>synthetic:dt.security_context</code> (IN, =, startsWith, MATCH)</td>
+<td>Create, change and delete monitors.</td>
+<td>Per security context</td>
+<td>Medium</td>
+<td><strong>Tested</strong> — Synthetic API: <code>POST</code>, <code>PUT</code> and <code>DELETE /monitors</code> all declare it — the reference mentions only create — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>synthetic:monitors:execute</code></td>
+<td>➕</td>
+<td>Grants permission to schedule on-demand executions</td>
+<td><code>synthetic:dt.security_context</code> (IN, =, startsWith, MATCH)</td>
+<td>Trigger on-demand monitor executions.</td>
+<td>Per security context</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to schedule on-demand executions&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>synthetic:locations:read</code></td>
+<td>➕</td>
+<td>Grants permission to read definitions of locations</td>
+<td>none</td>
+<td>List public and private synthetic locations and nodes, and download private-location deployment YAML. Has no conditions; to keep users off public locations, change those locations' status (needs <code>synthetic:locations:write</code>).</td>
+<td>Environment-wide, no conditions</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;The response includes all matching public and private locations available for your environment.&quot;</em> (<a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-get">GET locations (platform API)</a>)</td>
+</tr>
+<tr>
+<td><code>synthetic:locations:write</code></td>
+<td>➕</td>
+<td>Grants permission to create locations</td>
+<td>none</td>
+<td>Create, update and delete private locations; set a public location to <code>ENABLED</code>, <code>DISABLED</code> (can't be assigned; assigned monitors keep running) or <code>HIDDEN</code> (only when no monitor uses it); switch all public locations off at once.</td>
+<td>Environment-wide, no conditions</td>
+<td>High</td>
+<td><strong>Docs</strong> — <em>&quot;for public locations you can only change the location status&quot;</em> (<a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-location-id-put">PUT synthetic location (platform API)</a>)</td>
+</tr>
+<tr>
+<td><code>synthetic:environment-configuration:read</code></td>
+<td>➕</td>
+<td>Grants permission to read environment configuration</td>
+<td>none</td>
+<td>Read the environment-wide Synthetic settings, such as browser-monitor and step timeouts.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;the synthetic-related parameters defined for the whole tenant&quot;</em> (<a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/configuration-get">GET configuration (platform API)</a>)</td>
+</tr>
+<tr>
+<td><code>synthetic:environment-configuration:write</code></td>
+<td>➕</td>
+<td>Grants permission to edit environment configuration</td>
+<td>none</td>
+<td>Change those settings for every monitor in the environment (<code>bmMonitorTimeout</code>, <code>bmStepTimeout</code>).</td>
+<td>Environment-wide</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;change the synthetic-related parameters defined for the whole tenant&quot;</em> (<a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/configuration-put">PUT configuration (platform API)</a>)</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>synthetic:monitors:read</code></td>
+<td>Readers — and add a <code>synthetic:dt.security_context</code> line to the boundary.</td>
+<td>A boundary with no <code>synthetic:</code> line, which leaves every monitor visible.</td>
+<td><code>dynatrace.dashboards</code>, <code>dynatrace.experience.vitals</code>, <code>dynatrace.notebooks</code>, <code>dynatrace.synthetic</code></td>
+<td><code>GET /monitors (/platform/synthetic/v1)</code> <em>(early adopter)</em><br><code>GET /monitors/{monitor-id} (/platform/synthetic/v1)</code> <em>(early adopter)</em></td>
+</tr>
+<tr>
+<td><code>synthetic:monitors:write</code></td>
+<td>Team leads, scoped.</td>
+<td>Readers.</td>
+<td><code>dynatrace.experience.vitals</code>, <code>dynatrace.synthetic</code></td>
+<td><code>DELETE /monitors/{monitor-id} (/platform/synthetic/v1)</code> <em>(early adopter)</em><br><code>POST /monitors (/platform/synthetic/v1)</code> <em>(early adopter)</em><br><code>PUT /monitors/{monitor-id} (/platform/synthetic/v1)</code> <em>(early adopter)</em></td>
+</tr>
+<tr>
+<td><code>synthetic:monitors:execute</code></td>
+<td>Team leads, scoped.</td>
+<td>Readers.</td>
+<td><code>dynatrace.synthetic</code></td>
+<td><code>POST /executions/batch (/platform/synthetic/v1)</code> <em>(early adopter)</em><br><code>POST /executions/{execution-id} (/platform/synthetic/v1)</code> <em>(early adopter)</em></td>
+</tr>
+<tr>
+<td><code>synthetic:locations:read</code></td>
+<td>Anyone who views or creates monitors.</td>
+<td>—</td>
+<td><code>dynatrace.dashboards</code>, <code>dynatrace.notebooks</code>, <code>dynatrace.synthetic</code></td>
+<td><code>GET /locations (/platform/synthetic/v1)</code> <em>(early adopter)</em><br><code>GET /locations/metric-adapter/yaml (/platform/synthetic/v1)</code> <em>(early adopter)</em><br><code>GET /locations/status (/platform/synthetic/v1)</code> <em>(early adopter)</em><br>+4 more</td>
+</tr>
+<tr>
+<td><code>synthetic:locations:write</code></td>
+<td>Synthetic admins who decide where monitors may run.</td>
+<td>Monitor authors — it changes where everyone's monitors can run.</td>
+<td><code>dynatrace.synthetic</code></td>
+<td><code>DELETE /locations/{location-id} (/platform/synthetic/v1)</code> <em>(early adopter)</em><br><code>POST /locations (/platform/synthetic/v1)</code> <em>(early adopter)</em><br><code>PUT /locations/status (/platform/synthetic/v1)</code> <em>(early adopter)</em><br>+1 more</td>
+</tr>
+<tr>
+<td><code>synthetic:environment-configuration:read</code></td>
+<td>Synthetic admins and monitor authors.</td>
+<td>—</td>
+<td><code>dynatrace.dashboards</code>, <code>dynatrace.notebooks</code>, <code>dynatrace.synthetic</code></td>
+<td><code>GET /configuration (/platform/synthetic/v1)</code> <em>(early adopter)</em></td>
+</tr>
+<tr>
+<td><code>synthetic:environment-configuration:write</code></td>
+<td>Synthetic admins.</td>
+<td>Everyone else.</td>
+<td>none declare it</td>
+<td><code>PUT /configuration (/platform/synthetic/v1)</code> <em>(early adopter)</em></td>
+</tr>
+<tr>
+<td><a id="generated-group-synthetic-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control">Access control — Synthetic (DT docs)</a> — as quoted; <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-location-id-put">PUT synthetic location — platform API (DT docs)</a> — <em>&quot;for public locations you can only change the location status&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic-v2/synthetic-locations-v2/put-a-location">PUT a synthetic location (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="credential-vault"></a></p>
+<h2>14. Credential vault</h2>
+<p>IAM decides whether a user reaches the vault; each credential then has its own owner, sharing mode (owner only, shared, public) and scopes.</p>
+<p><a id="generated-group-credentials-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>credential-vault:entries:read</code></td>
+<td>➕</td>
+<td>Grants permission to read entries from the credential vault</td>
+<td>none</td>
+<td>List and read vault entries the caller may see; each credential also has its own owner, sharing and scope.</td>
+<td>Per credential (owner-only, shared, public)</td>
+<td>High</td>
+<td><strong>Unknown</strong> — The vault page describes access in classic-role terms (View environment); how that maps to <code>credential-vault:*</code> is undocumented.</td>
+</tr>
+<tr>
+<td><code>credential-vault:entries:write</code></td>
+<td>➕</td>
+<td>Grants permission to write entries to the credential vault</td>
+<td>none</td>
+<td>Create and change vault entries.</td>
+<td>Per credential</td>
+<td>High</td>
+<td><strong>Tested</strong> — Credential vault API: <code>POST /entries</code>, <code>PUT</code> and <code>DELETE /entries/{entry-id}</code> declare it — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>credential-vault:entries:admin</code></td>
+<td>➕</td>
+<td>Grants permission to overwrite entries in the credential vault</td>
+<td>none</td>
+<td>Overwrite vault entries — by our reading, including entries other users own.</td>
+<td>Environment-wide</td>
+<td>High</td>
+<td><strong>Inference</strong> — The reference says only <em>&quot;overwrite entries&quot;</em>; that it bypasses ownership is read from the vault page's owner rule, which is written in classic-role terms. No API operation declares it.</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>credential-vault:entries:read</code></td>
+<td>Monitor and connector authors.</td>
+<td>Readers.</td>
+<td><code>dynatrace.dashboards</code>, <code>dynatrace.notebooks</code>, <code>dynatrace.synthetic</code></td>
+<td><code>GET /entries (/platform/credential-vault/v1)</code> <em>(early adopter)</em><br><code>GET /entries/{entry-id} (/platform/credential-vault/v1)</code> <em>(early adopter)</em></td>
+</tr>
+<tr>
+<td><code>credential-vault:entries:write</code></td>
+<td>Monitor and connector authors.</td>
+<td>Readers.</td>
+<td><code>dynatrace.synthetic</code></td>
+<td><code>DELETE /entries/{entry-id} (/platform/credential-vault/v1)</code> <em>(early adopter)</em><br><code>POST /entries (/platform/credential-vault/v1)</code> <em>(early adopter)</em><br><code>PUT /entries/{entry-id} (/platform/credential-vault/v1)</code> <em>(early adopter)</em></td>
+</tr>
+<tr>
+<td><code>credential-vault:entries:admin</code></td>
+<td>Admins.</td>
+<td>Everyone else.</td>
+<td>none declare it</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><a id="generated-group-credentials-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/credential-vault">Credential vault (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="security"></a></p>
+<h2>15. Security</h2>
+<p><a id="generated-group-security-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>vulnerability-service:vulnerabilities:read</code></td>
+<td>✅</td>
+<td>Allows viewing vulnerabilities</td>
+<td>none</td>
+<td>View vulnerabilities and Davis security recommendations.</td>
+<td>Environment-wide</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Allows viewing vulnerabilities&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>security-intelligence:enrichments:run</code></td>
+<td>✅</td>
+<td>Allows execution of enrichments and discovery of integration apps.</td>
+<td>none</td>
+<td>Run threat-intelligence enrichments (e.g. on an IP) and discover integration apps.</td>
+<td>Environment-wide</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Allows execution of enrichments and discovery of integration apps.&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>environment:roles:view-security-problems</code></td>
+<td>✅</td>
+<td>Grants user the View security problems permission.</td>
+<td><code>environment:management-zone</code> (IN, startsWith, NOT startsWith, =, !=, MATCH)</td>
+<td>Classic <em>View security problems</em> role.</td>
+<td>Per management zone</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Grants user the View security problems permission.&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>vulnerability-service:vulnerabilities:read</code></td>
+<td>Security teams.</td>
+<td>General readers.</td>
+<td><code>dynatrace.security.vulnerabilities</code></td>
+<td><code>GET /davis-security-recommendations (/platform/vulnerabilities/v1)</code><br><code>GET /vulnerabilities (/platform/vulnerabilities/v1)</code><br><code>GET /vulnerabilities/{id} (/platform/vulnerabilities/v1)</code><br>+7 more</td>
+</tr>
+<tr>
+<td><code>security-intelligence:enrichments:run</code></td>
+<td>Security teams.</td>
+<td>General readers.</td>
+<td><code>dynatrace.security.enrichment</code>, <code>dynatrace.security.investigator</code>, <code>dynatrace.security.threats.exploits</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>environment:roles:view-security-problems</code></td>
+<td>Security teams on classic pages.</td>
+<td>General readers.</td>
+<td>none declare it</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><a id="generated-group-security-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="live-debugger"></a></p>
+<h2>16. Live Debugger</h2>
+<p>Breakpoints capture runtime state, and the snapshots land in <code>application.snapshots</code> (see Grail data). Grant the two together, or neither.</p>
+<p><a id="generated-group-devobs-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dev-obs:breakpoints:set</code></td>
+<td>✅</td>
+<td>Grants permission to set breakpoint using DevObs live debugger</td>
+<td><code>dev-obs:k8s.namespace.name</code> (=, IN, startsWith, !=, NOT IN, NOT startsWith)<br><code>dev-obs:dt.entity.process_group</code> (=, IN, startsWith, !=, NOT IN, NOT startsWith)<br><code>dev-obs:dt.process_group.detected_name</code> (=, IN, startsWith, !=, NOT IN, NOT startsWith)<br><code>dev-obs:k8s.cluster.name</code> (=, IN, startsWith, !=, NOT IN, NOT startsWith)<br><code>dev-obs:host.group</code> (=, IN, startsWith, !=, NOT IN, NOT startsWith)<br><code>dev-obs:host.name</code> (=, IN, startsWith, !=, NOT IN, NOT startsWith)</td>
+<td>Place non-breaking breakpoints that capture runtime state.</td>
+<td>Per process group, host or namespace</td>
+<td>High</td>
+<td><strong>Docs</strong> — <em>&quot;variable values&quot;</em> (<a href="https://docs.dynatrace.com/docs/observe/application-observability/live-debugger">Live Debugger</a>)</td>
+</tr>
+<tr>
+<td><code>dev-obs:breakpoints:manage</code></td>
+<td>➕</td>
+<td>Grants permission to manage breakpoints set in DevObs live debugger</td>
+<td>none</td>
+<td>View and disable breakpoints placed by any user.</td>
+<td>Environment-wide</td>
+<td>Medium</td>
+<td><strong>Tested</strong> — <code>dynatrace.devobs.debugger</code> manifest: <em>&quot;viewing and disabling breakpoints placed by any user&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dev-obs:breakpoints:set</code></td>
+<td>Developers, scoped to their workloads.</td>
+<td>Readers, and anywhere runtime data is sensitive.</td>
+<td><code>dynatrace.devobs.debugger</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>dev-obs:breakpoints:manage</code></td>
+<td>Admins.</td>
+<td>Everyone else.</td>
+<td><code>dynatrace.devobs.debugger</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><a id="generated-group-devobs-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/application-observability/live-debugger">Live Debugger (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="classic-roles"></a></p>
+<h2>17. Classic roles</h2>
+<p><a id="generated-group-classic-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>environment:roles:viewer</code></td>
+<td>✅</td>
+<td>Grants user the Access environment permission.</td>
+<td><code>environment:management-zone</code> (IN, startsWith, NOT startsWith, =, !=, MATCH)</td>
+<td>Classic <em>Access environment</em>: opens classic pages and APIs that check this role.</td>
+<td>Per management zone</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Grants user the Access environment permission.&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>environment:roles:viewer</code></td>
+<td>While users still work in classic pages; scope with <code>environment:management-zone</code>.</td>
+<td>Unscoped grants.</td>
+<td>none declare it</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><a id="generated-group-classic-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="other-services"></a></p>
+<h2>18. Other services</h2>
+<p><strong>External dashboard sharing has no generated row yet.</strong> The <em>Share a dashboard externally</em> page names three permissions that the policy reference (modified 10/08/2026) does not list — it lists only <code>public-access:shares:admin</code> — so this appendix cannot generate rows for them: <code>public-access:shares:read</code> and <code>public-access:shares:write</code> to create external links, and <code>public-access:shares.ip-allowlist:write</code> to switch the environment IP allowlist off for a single link. None is assigned to users by default. Treat the IP-allowlist permission as high risk: a link with no passcode, embedding on and the allowlist off can be framed by anyone on the internet.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/share-dashboard-externally">Share a dashboard externally (DT docs)</a> — <em>&quot;You need the public-access:shares:read and public-access:shares:write permissions to create external links.&quot;</em>; <em>&quot;External link permissions aren't assigned to users by default.&quot;</em>; <em>&quot;this makes the dashboard embeddable by anyone on the internet.&quot;</em></sub></p>
+</blockquote>
+<p><a id="generated-group-other-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Std User</th>
+<th>Reference says <em>(generated)</em></th>
+<th>Conditions <em>(generated)</em></th>
+<th>What it really grants</th>
+<th>Scope</th>
+<th>Risk</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>geolocation:locations:lookup</code></td>
+<td>✅</td>
+<td>Grants permission to lookup geolocations for IP adresses.</td>
+<td>none</td>
+<td>Resolve IP addresses to countries, regions and cities.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Tested</strong> — <code>dynatrace.experience.vitals</code> manifest: <em>&quot;Required for looking up countries, regions, and cities&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>slo:slos:read</code></td>
+<td>✅</td>
+<td>Grants permission to read Service-Level Objectives</td>
+<td>none</td>
+<td>Read service-level objectives.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read Service-Level Objectives&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>slo:objective-templates:read</code></td>
+<td>✅</td>
+<td>Grants permission to read Service-Level Objectives Templates</td>
+<td>none</td>
+<td>Read SLO templates.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read Service-Level Objectives Templates&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>insights:opportunities:read</code></td>
+<td>✅</td>
+<td>Grants permission to read data from the Opportunity Insights API</td>
+<td>none</td>
+<td>Read Opportunity Insights data.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read data from the Opportunity Insights API&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>insights:moments:read</code></td>
+<td>✅</td>
+<td>Grants permission to query value moments and related data</td>
+<td>none</td>
+<td>Read value moments.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to query value moments and related data&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>extensions:definitions:read</code></td>
+<td>✅</td>
+<td>Grants permission to read extension and environment configurations</td>
+<td><code>extensions:extension-name</code> (IN, NOT IN, startsWith, NOT startsWith, !=, =)</td>
+<td>Read extension definitions and their environment configuration.</td>
+<td>Per extension name</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read extension and environment configurations&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>business-analytics:business-flows:read</code></td>
+<td>✅</td>
+<td>Grants permission to read business-flows</td>
+<td>none</td>
+<td>Read business flows; the Problems app reads affected flows with it.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Tested</strong> — <code>dynatrace.davis.problems</code> manifest: <em>&quot;Read evaluation of affected Business Flows&quot;</em> — validation tenant, 10/19/2026</td>
+</tr>
+<tr>
+<td><code>deobfuscation:symbol-files:read</code></td>
+<td>➕</td>
+<td>Grants permission to retrieve information regarding Symbol files.</td>
+<td>none</td>
+<td>Read symbol-file information used to de-obfuscate RUM stack traces.</td>
+<td>Environment-wide</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to retrieve information regarding Symbol files.&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>support-and-services:support:read</code></td>
+<td>➕</td>
+<td>Grants permission to view support cases and chats in the Support and Services app. With this permission, a user sees cases they created and cases they were added to as a collaborator.</td>
+<td>none</td>
+<td>See support cases the caller created or was added to.</td>
+<td>Per user</td>
+<td>Low</td>
+<td><strong>Docs</strong> — <em>&quot;a user sees cases they created and cases they were added to&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+<tr>
+<td><code>iam:effective-permissions:read</code></td>
+<td>➕</td>
+<td>Grants permission to read effective permissions</td>
+<td><code>iam-param:entity-type</code> (=)<br><code>iam-param:entity-id</code> (=, IN)</td>
+<td>Account-level effective-permissions API for any user or group — an OAuth client scope, not the self-check.</td>
+<td>Account-wide (<code>iam-param:entity-type</code> / <code>entity-id</code>)</td>
+<td>Medium</td>
+<td><strong>Docs</strong> — <em>&quot;Grants permission to read effective permissions&quot;</em> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a>)</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allow when</th>
+<th>Avoid when</th>
+<th>Built-in apps that request it <em>(generated)</em></th>
+<th>API operations that declare it <em>(generated)</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>geolocation:locations:lookup</code></td>
+<td>With RUM data permissions.</td>
+<td>—</td>
+<td><code>dynatrace.experience.vitals</code>, <code>dynatrace.synthetic</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>slo:slos:read</code></td>
+<td>When the SLO app or SLO tiles are used.</td>
+<td>—</td>
+<td><code>dynatrace.clouds</code>, <code>dynatrace.dashboards</code>, <code>dynatrace.davis.problems</code>, <code>dynatrace.infraops</code>, <code>dynatrace.kubernetes</code>, <code>dynatrace.service.level.objectives</code></td>
+<td><code>GET /objective-templates (/platform/slo/v1)</code><br><code>GET /objective-templates/{id} (/platform/slo/v1)</code><br><code>GET /slos (/platform/slo/v1)</code><br>+4 more</td>
+</tr>
+<tr>
+<td><code>slo:objective-templates:read</code></td>
+<td>With slo:slos:read.</td>
+<td>—</td>
+<td><code>dynatrace.infraops</code>, <code>dynatrace.kubernetes</code>, <code>dynatrace.service.level.objectives</code></td>
+<td><code>GET /objective-templates (/platform/slo/v1)</code><br><code>GET /objective-templates/{id} (/platform/slo/v1)</code></td>
+</tr>
+<tr>
+<td><code>insights:opportunities:read</code></td>
+<td>When the app is used.</td>
+<td>When it isn't.</td>
+<td>none declare it</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>insights:moments:read</code></td>
+<td>When Business Insights is used.</td>
+<td>When it isn't.</td>
+<td>none declare it</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>extensions:definitions:read</code></td>
+<td>Always; several infrastructure apps use it.</td>
+<td>—</td>
+<td><code>dynatrace.clouds</code>, <code>dynatrace.database.overview</code>, <code>dynatrace.extensions.manager</code>, <code>dynatrace.fleet.management</code>, <code>dynatrace.hub</code>, <code>dynatrace.infraops</code>, +2 more</td>
+<td><code>GET /extensions (/platform/extensions/v2)</code><br><code>GET /extensions/{extension-name} (/platform/extensions/v2)</code><br><code>GET /extensions/{extension-name}/environment-configuration (/platform/extensions/v2)</code><br>+6 more</td>
+</tr>
+<tr>
+<td><code>business-analytics:business-flows:read</code></td>
+<td>When Business Flow is used.</td>
+<td>When it isn't.</td>
+<td><code>dynatrace.davis.problems</code></td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>deobfuscation:symbol-files:read</code></td>
+<td>Frontend and mobile teams.</td>
+<td>Readers without RUM.</td>
+<td><code>dynatrace.experience.vitals</code></td>
+<td><code>GET /symbol-files/js (/platform/rum/deobfuscation/v1)</code><br><code>GET /symbol-files/mobile (/platform/rum/deobfuscation/v1)</code><br><code>GET /symbol-files/mobile/dtxdss-download (/platform/rum/deobfuscation/v1)</code><br>+2 more</td>
+</tr>
+<tr>
+<td><code>support-and-services:support:read</code></td>
+<td>Your call — users see only their own cases.</td>
+<td>—</td>
+<td>none declare it</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><code>iam:effective-permissions:read</code></td>
+<td>Admins and access-review automation.</td>
+<td>Confusing it with <code>platform-management:effective-permissions:resolve</code>.</td>
+<td>none declare it</td>
+<td>no published operation declares it</td>
+</tr>
+<tr>
+<td><a id="generated-group-other-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="persona-matrix"></a></p>
+<h2>19. Persona Matrix</h2>
+<p>Five personas, as a starting point for <strong>IAM-11</strong>'s workshop — adjust them to your organization.</p>
+<table>
+<thead>
+<tr>
+<th>Persona</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Reader</strong></td>
+<td>Opens dashboards, notebooks and allowed apps for their team's data</td>
+</tr>
+<tr>
+<td><strong>Team lead</strong></td>
+<td>Reader, plus curates team content: shares, segments, team settings and monitors</td>
+</tr>
+<tr>
+<td><strong>Workflow author</strong></td>
+<td>Builds and runs workflows, connections and notifications</td>
+</tr>
+<tr>
+<td><strong>Security</strong></td>
+<td>Works with vulnerabilities, security events and threat enrichment</td>
+</tr>
+<tr>
+<td><strong>Admin</strong></td>
+<td>Runs the environment</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Mark</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>✅</td>
+<td>Grant</td>
+</tr>
+<tr>
+<td>🔶</td>
+<td>Grant, scoped by a condition or the boundary</td>
+</tr>
+<tr>
+<td>⚪</td>
+<td>Optional — grant when the feature is used</td>
+</tr>
+<tr>
+<td>—</td>
+<td>Don't grant</td>
+</tr>
+</tbody>
+</table>
+<p><a id="generated-personas-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Reader</th>
+<th>Team lead</th>
+<th>Workflow author</th>
+<th>Security</th>
+<th>Admin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>App state</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>state:app-states:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>state:app-states:write</code></td>
+<td>—</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>state:app-states:delete</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>state:user-app-states:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>state:user-app-states:write</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>state:user-app-states:delete</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>state-management:user-app-states:delete</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>state-management:user-app-states:delete-all</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>state-management:app-states:delete</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Documents</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>document:documents:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:documents:write</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:documents:delete</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:documents:admin</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:environment-shares:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:environment-shares:write</code></td>
+<td>—</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:environment-shares:claim</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:environment-shares:delete</code></td>
+<td>—</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:direct-shares:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:direct-shares:write</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:direct-shares:delete</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:trash.documents:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:trash.documents:restore</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>document:trash.documents:delete</code></td>
+<td>—</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Apps, functions and the UI shell</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>app-engine:apps:run</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>app-engine:functions:run</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>app-engine:edge-connects:read</code></td>
+<td>—</td>
+<td>⚪</td>
+<td>✅</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>unified-analysis:screen-definition:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>hub:catalog:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>platform-management:effective-permissions:resolve</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>platform-management:environments:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Grail definitions and segments</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>storage:bucket-definitions:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:fieldset-definitions:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:write</code></td>
+<td>—</td>
+<td>✅</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:delete</code></td>
+<td>—</td>
+<td>✅</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:share</code></td>
+<td>—</td>
+<td>✅</td>
+<td>—</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:filter-segments:admin</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Grail data (record tables)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>storage:buckets:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:logs:read</code></td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:spans:read</code></td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:metrics:read</code></td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:events:read</code></td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:bizevents:read</code></td>
+<td>⚪</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:entities:read</code></td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:smartscape:read</code></td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:system:read</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:files:read</code></td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:user.events:read</code></td>
+<td>⚪</td>
+<td>🔶</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:user.sessions:read</code></td>
+<td>⚪</td>
+<td>🔶</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:security.events:read</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>storage:application.snapshots:read</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Settings and app settings</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>settings:objects:read</code></td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>settings:schemas:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>settings:objects:write</code></td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>settings:objects:admin</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>app-settings:objects:read</code></td>
+<td>🔶</td>
+<td>🔶</td>
+<td>✅</td>
+<td>🔶</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>app-settings:objects:write</code></td>
+<td>—</td>
+<td>⚪</td>
+<td>✅</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>app-settings:objects:admin</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Email and notifications</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>email:emails:send</code></td>
+<td>—</td>
+<td>⚪</td>
+<td>✅</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>notification:self-notifications:read</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>notification:self-notifications:write</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>notification:notifications:read</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>notification:notifications:write</code></td>
+<td>—</td>
+<td>✅</td>
+<td>✅</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Workflows (AutomationEngine)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>automation:workflows:read</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>automation:workflows:write</code></td>
+<td>—</td>
+<td>🔶</td>
+<td>✅</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>automation:workflows:run</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>automation:workflows:admin</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>automation:calendars:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>automation:rules:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Davis analyzers and Copilot</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>davis:analyzers:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>davis:analyzers:execute</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>davis-copilot:conversations:execute</code></td>
+<td>⚪</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>davis-copilot:nl2dql:execute</code></td>
+<td>⚪</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>davis-copilot:dql2nl:execute</code></td>
+<td>⚪</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>davis-copilot:document-search:execute</code></td>
+<td>⚪</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>ai:operator:execute</code></td>
+<td>⚪</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>OpenPipeline</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>openpipeline:configurations:read</code></td>
+<td>—</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>openpipeline:events.davis:ingest</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Synthetic monitoring</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>synthetic:monitors:read</code></td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>synthetic:monitors:write</code></td>
+<td>—</td>
+<td>🔶</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>synthetic:monitors:execute</code></td>
+<td>—</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>synthetic:locations:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>synthetic:locations:write</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>synthetic:environment-configuration:read</code></td>
+<td>—</td>
+<td>⚪</td>
+<td>⚪</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>synthetic:environment-configuration:write</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Credential vault</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>credential-vault:entries:read</code></td>
+<td>—</td>
+<td>⚪</td>
+<td>✅</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>credential-vault:entries:write</code></td>
+<td>—</td>
+<td>⚪</td>
+<td>✅</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>credential-vault:entries:admin</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Security</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>vulnerability-service:vulnerabilities:read</code></td>
+<td>—</td>
+<td>⚪</td>
+<td>—</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>security-intelligence:enrichments:run</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>environment:roles:view-security-problems</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Live Debugger</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>dev-obs:breakpoints:set</code></td>
+<td>—</td>
+<td>⚪</td>
+<td>—</td>
+<td>⚪</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>dev-obs:breakpoints:manage</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Classic roles</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>environment:roles:viewer</code></td>
+<td>🔶</td>
+<td>🔶</td>
+<td>🔶</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Other services</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>geolocation:locations:lookup</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>slo:slos:read</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>slo:objective-templates:read</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>insights:opportunities:read</code></td>
+<td>⚪</td>
+<td>⚪</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>insights:moments:read</code></td>
+<td>⚪</td>
+<td>⚪</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>extensions:definitions:read</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>business-analytics:business-flows:read</code></td>
+<td>⚪</td>
+<td>⚪</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>deobfuscation:symbol-files:read</code></td>
+<td>—</td>
+<td>⚪</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>support-and-services:support:read</code></td>
+<td>⚪</td>
+<td>✅</td>
+<td>⚪</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>iam:effective-permissions:read</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><a id="generated-personas-end"></a></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><a id="open-questions"></a></p>
+<h2>20. Open Questions</h2>
+<p>Every row whose Basis is <strong>Inference</strong> or <strong>Unknown</strong>, generated from the data. Settle one with a test user (§ 2.4), then change its Basis to <strong>Tested</strong> with the date.</p>
+<p><a id="generated-open-begin"></a></p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Basis</th>
+<th>What would settle it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>state:app-states:write</code></td>
+<td><strong>Inference</strong> — Follows from app states being shared (state service page); 18 built-in apps declare it, e.g. <code>dynatrace.discovery.coverage</code> <em>&quot;write mute state&quot;</em>.</td>
+<td>A test user without it (§ 2.4), or a docs page.</td>
+</tr>
+<tr>
+<td><code>state:app-states:delete</code></td>
+<td><strong>Inference</strong> — Same reasoning as write; the state service page shows a delete that <em>&quot;completely reset[s] the app's states&quot;</em>.</td>
+<td>A test user without it (§ 2.4), or a docs page.</td>
+</tr>
+<tr>
+<td><code>document:documents:write</code></td>
+<td><strong>Inference</strong> — Ownership limits it in practice; no IAM condition exists, so scope comes from document ownership and shares.</td>
+<td>A test user without it (§ 2.4), or a docs page.</td>
+</tr>
+<tr>
+<td><code>app-engine:edge-connects:read</code></td>
+<td><strong>Unknown</strong> — Whether apps or workflows that send traffic through an EdgeConnect fail without it is not documented; <code>dynatrace.dashboards</code> and <code>dynatrace.notebooks</code> declare it <em>&quot;via functions&quot;</em>.</td>
+<td>A test user without it (§ 2.4), or a docs page.</td>
+</tr>
+<tr>
+<td><code>notification:notifications:write</code></td>
+<td><strong>Unknown</strong> — Whether a user can change notifications created by others is not documented; the API has no owner filter in its declared scopes.</td>
+<td>A test user without it (§ 2.4), or a docs page.</td>
+</tr>
+<tr>
+<td><code>davis:analyzers:execute</code></td>
+<td><strong>Inference</strong> — The analyzers take query results as input, so they reach only data the user can already read; not stated in the docs.</td>
+<td>A test user without it (§ 2.4), or a docs page.</td>
+</tr>
+<tr>
+<td><code>credential-vault:entries:read</code></td>
+<td><strong>Unknown</strong> — The vault page describes access in classic-role terms (View environment); how that maps to <code>credential-vault:*</code> is undocumented.</td>
+<td>A test user without it (§ 2.4), or a docs page.</td>
+</tr>
+<tr>
+<td><code>credential-vault:entries:admin</code></td>
+<td><strong>Inference</strong> — The reference says only <em>&quot;overwrite entries&quot;</em>; that it bypasses ownership is read from the vault page's owner rule, which is written in classic-role terms. No API operation declares it.</td>
+<td>A test user without it (§ 2.4), or a docs page.</td>
+</tr>
+<tr>
+<td><a id="generated-open-end"></a></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><a id="regenerating"></a></p>
+<h2>21. Regenerating the Fact Columns</h2>
+<p>The generated columns come from three data files in the generator repository's <code>topics/iam/docs/data/</code>:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Holds</th>
+<th>Refreshed by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>iam-permissions.json</code></td>
+<td>Every service, permission, description, condition and operator; the parsed <em>Standard User</em> policy</td>
+<td><code>--fetch</code> (docs pages)</td>
+</tr>
+<tr>
+<td><code>iam-tenant-evidence.json</code></td>
+<td>Built-in app manifest scopes and platform API operation scopes</td>
+<td><code>--tenant-context &lt;dtctl context&gt;</code></td>
+</tr>
+<tr>
+<td><code>iam-97-judgements.json</code></td>
+<td>The judgement columns and Basis, by hand</td>
+<td>Editing</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash">python3 scripts/generate_iam_permission_reference.py --fetch --tenant-context &lt;ctx&gt; --render
+python3 scripts/generate_iam_permission_reference.py --check
+</code></pre>
+<p><code>--check</code> fails when the notebook is stale, a row lacks a Basis, a Docs quote is 15 words or longer, or a judgement names a permission the reference no longer lists — so a renamed or removed permission surfaces as an error instead of a silently wrong row.</p>
+<p><a id="references"></a></p>
+<h2>22. References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Default policies (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries">Policy boundaries (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-scoped-settings-objects">Upgrade security policies for scoped settings (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Workflow security (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow">Simple workflows (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/credential-vault">Credential vault (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/application-observability/live-debugger">Live Debugger (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic-v2/synthetic-locations-v2/put-a-location">PUT a synthetic location (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/account-management/identity-access-management">Manage users, groups, and permissions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/migrate-roles">Upgrade role-based permissions to IAM (DT docs)</a></li>
+<li><a href="https://developer.dynatrace.com/develop/data/state/">Store app and user states (Dynatrace Developer)</a></li>
+<li><a href="https://developer.dynatrace.com/develop/data/app-settings/">Store app settings (Dynatrace Developer)</a></li>
+<li><a href="https://developer.dynatrace.com/develop/guides/security/add-permission-scopes-to-use-dynatrace-apis/">Add permission scopes (Dynatrace Developer)</a></li>
+<li><a href="https://developer.dynatrace.com/develop/sdks/client-app-engine-registry/">App Engine registry SDK (Dynatrace Developer)</a></li>
+<li><a href="https://developer.dynatrace.com/develop/sdks/client-platform-management-service/">Platform management SDK (Dynatrace Developer)</a></li>
+</ul>
+<h3>Related notebooks</h3>
+<ul>
+<li><strong>IAM-04</strong> — policy syntax and the services table</li>
+<li><strong>IAM-05</strong> — boundary design</li>
+<li><strong>IAM-09</strong> — troubleshooting access</li>
+<li><strong>IAM-11</strong> — persona workshop</li>
+<li><strong>MZ2POL-12</strong> — IAM reference architecture</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

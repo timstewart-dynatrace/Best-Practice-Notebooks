@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONBRD-00: Architect&#x27;s Sequence &amp; Dependency Runbook</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ONBRD — Dynatrace Onboarding</a><span class="sep">/</span><span aria-current="page">ONBRD-00</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ONBRD-00: Architect's Sequence &amp; Dependency Runbook</h1>
+<blockquote>
+<p><strong>Series:</strong> ONBRD — Dynatrace Onboarding | <strong>Reference:</strong> 00 — Architect's Sequence &amp; Dependency Runbook | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 11/16/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Sequence-and-dependency runbook for an architect or experienced tenant lead onboarding a new Dynatrace tenant in 2026. Assumes you have onboarded a tenant before — this is order, dependencies, decisions, not a GUI tour.</p>
+<p>Per-domain depth lives in the canonical series (linked at each step). For recommended defaults, the decision matrix, validation DQL, anti-patterns, and the cross-series next-steps map, see <strong>ONBRD-99: Best Practice Summary</strong>.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#the-sequence">The Sequence</a></li>
+<li><a href="#phase-1-foundation">Phase 1 — Foundation</a></li>
+<li><a href="#phase-2-organize">Phase 2 — Organize</a></li>
+<li><a href="#phase-3-operate">Phase 3 — Operate</a></li>
+<li><a href="#phase-checkpoints">Phase Checkpoints</a></li>
+<li><a href="#common-variants">Common Variants &amp; Skip Rules</a></li>
+<li><a href="#after-onbrd">After ONBRD</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tenant URL + admin credentials</td>
+<td>from procurement / account team</td>
+</tr>
+<tr>
+<td>Account-level decisions in place</td>
+<td>tenant region, SaaS vs Managed, account hierarchy. If not yet decided, see <strong>NR2DT-00: Tenant Prerequisites — Minimum Setup Before Migration</strong> — the same checklist generalizes beyond New Relic migrations.</td>
+</tr>
+<tr>
+<td>Reading time</td>
+<td>30–45 minutes for the runbook; the actual onboarding is 1–4 weeks depending on scope and skip rules applied.</td>
+</tr>
+</tbody>
+</table>
+<p><a id="the-sequence"></a></p>
+<h2>1. The Sequence</h2>
+<p>ONBRD is 10 steps grouped into 3 phases. Some are sequential, some parallel-able after their predecessor. Two phase gates separate the phases.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+T05CUkQg4oCUIEFyY2hpdGVjdCdzIFNlcXVlbmNlICZhbXA7IERlcGVuZGVuY3kgRmxvdzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj4xMCBzdGVwcyBpbiAzIHBoYXNlcy4gU29tZSBzZXF1ZW50aWFsLCBzb21lIHBhcmFsbGVsLWFibGUgYWZ0ZXIgdGhlaXIgcHJlZGVjZXNzb3IuIFR3byBwaGFzZSBnYXRlcy48L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0ib25icmRBcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gUGhhc2UgMSDigJQgRm91bmRhdGlvbiBiYW5kIC0tPgogIDxyZWN0IHg9IjIwIiB5PSI3OCIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSIxNDgiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDYiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzIiIHk9Ijk2IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5QaGFzZSAxIOKAlCBGb3VuZGF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjMyIiB5PSIxMTIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPjAxIOKGkiAwMiBzZXF1ZW50aWFsOyAwMyAvIDA0IC8gMDUgcGFyYWxsZWwtYWJsZSBhZnRlciAwMjwvdGV4dD4KCiAgPCEtLSBPTkJSRC0wMSAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMTI1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9Ijg2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjE0NSIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TdGVwIDAxPC90ZXh0PgogIDx0ZXh0IHg9IjE0NSIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5GaXJzdCBTdGVwczwvdGV4dD4KICA8dGV4dCB4PSIxNDUiIHk9IjE4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+dGVuYW50IGFjY2VzczwvdGV4dD4KICA8dGV4dCB4PSIxNDUiIHk9IjIwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+dG9rZW4gc3RyYXRlZ3k8L3RleHQ+CgogIDxsaW5lIHgxPSIyMzIiIHkxPSIxNjgiIHgyPSIyNTgiIHkyPSIxNjgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjb25icmRBcnIpIi8+CgogIDwhLS0gT05CUkQtMDIgLS0+CiAgPHJlY3QgeD0iMjYwIiB5PSIxMjUiIHdpZHRoPSIxNzAiIGhlaWdodD0iODYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzQ1IiB5PSIxNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0ZXAgMDI8L3RleHQ+CiAgPHRleHQgeD0iMzQ1IiB5PSIxNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPklBTSAmYW1wOyBBdXRoZW50aWNhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIzNDUiIHk9IjE4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U1NPICsgZ3JvdXBzPC90ZXh0PgogIDx0ZXh0IHg9IjM0NSIgeT0iMjAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5wYXJhbWV0ZXJpemVkIHBvbGljaWVzPC90ZXh0PgoKICA8IS0tIGJyYW5jaCBhcnJvd3MgMDIg4oaSIDAzLzA0LzA1IC0tPgogIDxsaW5lIHgxPSI0MzIiIHkxPSIxNjgiIHgyPSI0NTgiIHkyPSIxMzgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjb25icmRBcnIpIi8+CiAgPGxpbmUgeDE9IjQzMiIgeTE9IjE2OCIgeDI9IjQ1OCIgeTI9IjE2OCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNvbmJyZEFycikiLz4KICA8bGluZSB4MT0iNDMyIiB5MT0iMTY4IiB4Mj0iNDU4IiB5Mj0iMTk4IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI29uYnJkQXJyKSIvPgoKICA8IS0tIE9OQlJELTAzLzA0LzA1IC0tPgogIDxyZWN0IHg9IjQ2MCIgeT0iMTIwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjM2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI1Ii8+CiAgPHRleHQgeD0iNTYwIiB5PSIxNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0ZXAgMDMg4oCUIEFjdGl2ZUdhdGU8L3RleHQ+CgogIDxyZWN0IHg9IjQ2MCIgeT0iMTU4IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjM2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI1Ii8+CiAgPHRleHQgeD0iNTYwIiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0ZXAgMDQg4oCUIENsb3VkICZhbXA7IFNhYVM8L3RleHQ+CgogIDxyZWN0IHg9IjQ2MCIgeT0iMTk2IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjM2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI1Ii8+CiAgPHRleHQgeD0iNTYwIiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0ZXAgMDUg4oCUIE9uZUFnZW50PC90ZXh0PgoKICA8IS0tIGFubm90YXRpb25zIC0tPgogIDx0ZXh0IHg9IjcwMCIgeT0iMTQ4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPnBhcmFsbGVsLWFibGU8L3RleHQ+CiAgPHRleHQgeD0iNzAwIiB5PSIxNjIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+YWZ0ZXIgMDI8L3RleHQ+CgogIDx0ZXh0IHg9IjcwMCIgeT0iMTk1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5QaGFzZSAxIG91dHB1dDo8L3RleHQ+CiAgPHRleHQgeD0iNzAwIiB5PSIyMDkiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPmhvc3RzIHJlcG9ydGluZzwvdGV4dD4KCiAgPCEtLSBHYXRlIEcxIC0tPgogIDxsaW5lIHgxPSIxMDAiIHkxPSIyMzciIHgyPSI4MzAiIHkyPSIyMzciIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSI0LDMiLz4KICA8cmVjdCB4PSIzODAiIHk9IjIyNyIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIyMiIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIgcng9IjQiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjI0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+4pyTIEdhdGUgRzEg4oCUIGhvc3RzIHJlcG9ydGluZzwvdGV4dD4KCiAgPCEtLSBQaGFzZSAyIOKAlCBPcmdhbml6ZSBiYW5kIC0tPgogIDxyZWN0IHg9IjIwIiB5PSIyNjAiIHdpZHRoPSI4OTAiIGhlaWdodD0iODAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDYiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMzIiIHk9IjI3OCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+UGhhc2UgMiDigJQgT3JnYW5pemU8L3RleHQ+CiAgPHRleHQgeD0iMzIiIHk9IjI5NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+MDYg4oaSIDA3IHNlcXVlbnRpYWw7IGRlcGVuZHMgb24gb3V0cHV0IG9mIHswMywgMDQsIDA1fTwvdGV4dD4KCiAgPHJlY3QgeD0iMTgwIiB5PSIzMDAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMzIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjUiLz4KICA8dGV4dCB4PSIzMDAiIHk9IjMyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U3RlcCAwNiDigJQgT3JnYW5pemUgRW52aXJvbm1lbnQ8L3RleHQ+CgogIDxsaW5lIHgxPSI0MjIiIHkxPSIzMTYiIHgyPSI0NDgiIHkyPSIzMTYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjb25icmRBcnIpIi8+CgogIDxyZWN0IHg9IjQ1MCIgeT0iMzAwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI1Ii8+CiAgPHRleHQgeD0iNTcwIiB5PSIzMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0ZXAgMDcg4oCUIFVuZGVyc3RhbmQgRGF0YTwvdGV4dD4KCiAgPHRleHQgeD0iNzIwIiB5PSIzMTMiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlBoYXNlIDIgb3V0cHV0OjwvdGV4dD4KICA8dGV4dCB4PSI3MjAiIHk9IjMyNyIgZmlsbD0iI0ZFRjNDNyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+dGFnZ2VkICsgc2NvcGVkPC90ZXh0PgoKICA8IS0tIEdhdGUgRzIgLS0+CiAgPGxpbmUgeDE9IjEwMCIgeTE9IjM1MCIgeDI9IjgzMCIgeTI9IjM1MCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjQsMyIvPgogIDxyZWN0IHg9IjMyMCIgeT0iMzQwIiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIiByeD0iNCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj7inJMgR2F0ZSBHMiDigJQgZHQuc2VjdXJpdHlfY29udGV4dCBwb3B1bGF0ZWQ8L3RleHQ+CgogIDwhLS0gUGhhc2UgMyDigJQgT3BlcmF0ZSBiYW5kIC0tPgogIDxyZWN0IHg9IjIwIiB5PSIzNzIiIHdpZHRoPSI4OTAiIGhlaWdodD0iMTAwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA2IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIiByeD0iNiIvPgogIDx0ZXh0IHg9IjMyIiB5PSIzOTAiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlBoYXNlIDMg4oCUIE9wZXJhdGU8L3RleHQ+CiAgPHRleHQgeD0iMzIiIHk9IjQwNiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+MDggLyAwOSAvIDEwIHBhcmFsbGVsLWFibGUgYWZ0ZXIgMDc7IE9OQlJELTk5IGNvdmVycyBvbmdvaW5nIGJlc3QgcHJhY3RpY2U8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSI0MTYiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjUiLz4KICA8dGV4dCB4PSIxNjAiIHk9IjQzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U3RlcCAwODwvdGV4dD4KICA8dGV4dCB4PSIxNjAiIHk9IjQ1MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+VmFsaWRhdGlvbiBRdWVyaWVzPC90ZXh0PgoKICA8cmVjdCB4PSIyNzAiIHk9IjQxNiIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0MiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNSIvPgogIDx0ZXh0IHg9IjM3MCIgeT0iNDM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5TdGVwIDA5PC90ZXh0PgogIDx0ZXh0IHg9IjM3MCIgeT0iNDUxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj5Xb3JrZmxvd3MgLyBBbGVydHM8L3RleHQ+CgogIDxyZWN0IHg9IjQ4MCIgeT0iNDE2IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI1Ii8+CiAgPHRleHQgeD0iNTgwIiB5PSI0MzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0ZXAgMTA8L3RleHQ+CiAgPHRleHQgeD0iNTgwIiB5PSI0NTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPkRhc2hib2FyZHM8L3RleHQ+CgogIDxyZWN0IHg9IjcwMCIgeT0iNDE2IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS1kYXNoYXJyYXk9IjMsMiIgcng9IjUiLz4KICA8dGV4dCB4PSI4MDAiIHk9IjQzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+T05CUkQtOTk8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSI0NTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtc3R5bGU9Iml0YWxpYyI+ZGVmYXVsdHMgKyBtYXA8L3RleHQ+Cjwvc3ZnPgo=" alt="ONBRD Architect Sequence and Dependency Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | Steps | Pattern |
+|---|---|---|
+| Foundation | 01 → 02 → {03, 04, 05} | 01 and 02 are sequential. 03/04/05 are parallel-able after 02. |
+| Organize | 06 → 07 | Sequential. Both depend on output of {03, 04, 05}. |
+| Operate | {08, 09, 10} | All three are parallel-able after 07. |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Steps</th>
+<th>Phase Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Phase 1 — Foundation</strong></td>
+<td>01 → 02 → {03, 04, 05}</td>
+<td>Hosts reporting; tenant lead can query data</td>
+</tr>
+<tr>
+<td><strong>Phase 2 — Organize</strong></td>
+<td>06 → 07</td>
+<td>Entities tagged and scoped; <code>dt.security_context</code> populated</td>
+</tr>
+<tr>
+<td><strong>Phase 3 — Operate</strong></td>
+<td>{08, 09, 10}</td>
+<td>Validation DQL set + at least one workflow + at least one dashboard</td>
+</tr>
+</tbody>
+</table>
+<p><a id="phase-1-foundation"></a></p>
+<h2>2. Phase 1 — Foundation</h2>
+<h3>Step 01 — First Steps</h3>
+<ul>
+<li><strong>Decision:</strong> Confirm access; record tenant URL; plan token strategy for downstream automation.</li>
+<li><strong>Depends on:</strong> procurement complete, tenant provisioned.</li>
+<li><strong>2026 specifics:</strong> Plan for Platform Tokens (<code>dt0s16</code>, <code>Authorization: Bearer</code>) as the default for new automation — the access-token upgrade guide states that Latest Dynatrace <em>&quot;replaces them with platform tokens&quot;</em>. Settings v2 / Configuration as Code (Terraform / Monaco) over Configuration API for new work (SaaS 1.337 put deprecation notices on Configuration API endpoints now covered by Settings). <strong>Extensions 2.0</strong> for any custom integrations (Extensions Framework 1.0 reached end of support on 2025-03-31).</li>
+<li><strong>Output:</strong> confirmed tenant access; first Platform Token decision recorded.</li>
+<li><strong>Deep dive:</strong> <strong>ONBRD-99: Best Practice Summary</strong> § 1 Recommended Defaults for the 2026 token / API / extension stack.</li>
+</ul>
+<h3>Step 02 — IAM and Authentication</h3>
+<ul>
+<li><strong>Decision:</strong> SSO method (SAML, optionally with SCIM provisioning); initial group structure; first parameterized policies.</li>
+<li><strong>Depends on:</strong> Step 01 (access confirmed).</li>
+<li><strong>2026 specifics:</strong> Issue the first Platform Token (<code>dt0s16</code>, <code>Authorization: Bearer</code>). Installer downloads work with a platform token carrying <code>fleet-management:oneagents:download</code> (OneAgent) or <code>fleet-management:activegates:download</code> (ActiveGate); classic access tokens (<code>dt0c01</code>, <code>InstallerDownload</code> scope) exist only on classic and hybrid environments — on a latest environment, <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em>. Use parameterized policies bound to groups via binding parameters; the <code>dt.security_context</code> field is the standardized boundary for Gen3 IAM scoping (configured fully in Step 06).</li>
+<li><strong>Output:</strong> SSO live; admin group + first parameterized policy in place; first Platform Token issued.</li>
+<li><strong>Deep dive:</strong> IAM series for full IAM administration (16 notebooks); <strong>FAQ-02: Tagging — Sources, Standards, and Strategy</strong> for <code>dt.security_context</code> strategy.</li>
+</ul>
+<h3>Step 03 — ActiveGate (parallel-able with 04 + 05 after 02)</h3>
+<ul>
+<li><strong>Decision:</strong> Need ActiveGate? Needed when hosts have no direct egress, for private synthetic locations, remote extensions, Kubernetes monitoring and classic AWS / Azure polling; otherwise routing OneAgent traffic through an ActiveGate is a trade-off against going direct (see the decision table and the routing trade-offs in <strong>ONBRD-03: Deploying ActiveGate</strong> § 2). Defer if every host can reach your environment and nothing else needs one.</li>
+<li><strong>Depends on:</strong> Step 02 (Platform Token to register AG).</li>
+<li><strong>2026 specifics:</strong> Disk at least 8 GB, about 12.5 GB on an ActiveGate that runs extensions (sizing depth in <strong>ONBRD-03</strong> and <strong>FAQ-10: How Do I Size and Scale ActiveGates?</strong>); 2–3 AGs per zone for load distribution + failover.</li>
+<li><strong>Output:</strong> at least one AG registered; cluster connectivity verified; AG visible in <strong>Fleet Management</strong> (or via <code>smartscapeNodes &quot;ACTIVEGATE&quot;</code>).</li>
+<li><strong>Deep dive:</strong> CLOUD series for AG-routed cloud integrations; AUTOM series for AG config-as-code.</li>
+</ul>
+<h3>Step 04 — Cloud &amp; SaaS Integrations (parallel-able with 03 + 05 after 02)</h3>
+<ul>
+<li><strong>Decision:</strong> Which clouds (AWS / Azure / GCP) and integration mechanism per cloud.</li>
+<li><strong>Depends on:</strong> Step 02 (Platform Token); optionally Step 03 (AG for legacy paths).</li>
+<li><strong>2026 specifics:</strong> Clouds app for AWS (GA) and Azure (direct connection since SaaS 1.337 — no ActiveGate for metric polling); the GCP Clouds-app connection is generally available (10/29/2026) — verify it has reached your tenant; until then the classic GCP integration (<code>dynatrace-gcp-monitor</code> on GKE) remains the working path. It sends straight to your environment URL and needs no ActiveGate on SaaS. AWS Lambda primary-field propagation to logs and spans via the <code>DT_TAGS</code> env var (OneAgent 1.337). IAM Role pattern for production multi-account.</li>
+<li><strong>Output:</strong> cloud entities visible in Smartscape, with cloud tags on the nodes (for example the <code>tags:aws</code> record on AWS nodes); on signals, cloud tags appear as <code>aws.tags.&lt;key&gt;</code> / <code>azure.tags.&lt;key&gt;</code> / <code>gcp.labels.&lt;key&gt;</code> only for keys you add to the tag-enrichment configuration.</li>
+<li><strong>Deep dive:</strong> CLOUD series for per-provider depth; <strong>FAQ-02: Tagging — Sources, Standards, and Strategy</strong> for cross-cloud tag normalization.</li>
+</ul>
+<h3>Step 05 — OneAgent Deployment (parallel-able with 03 + 04 after 02)</h3>
+<ul>
+<li><strong>Decision:</strong> Deployment method (direct, package manager, Operator for K8s); initial scope (pilot or full); host-tag taxonomy.</li>
+<li><strong>Depends on:</strong> Step 02 (Platform Token with <code>fleet-management:oneagents:download</code> for installer download).</li>
+<li><strong>2026 specifics:</strong> <strong>Set primary fields/tags at install</strong> via the single <code>--set-host-tag</code> form the June-2026 tags hub documents for both: <code>oneagentctl --set-host-tag=&quot;primary_tags.&lt;key&gt;=&lt;value&gt;&quot;</code> (prefix written explicitly — it is never added automatically) and <code>oneagentctl --set-host-tag=&quot;dt.security_context=&lt;value&gt;&quot;</code> — or later on existing hosts, since the enrichment page documents an option to <em>&quot;Define fields and tags for existing OneAgent installations using oneagentctl&quot;</em> (in community practice, expect the new fields only on data ingested after the change). Primary tags emit on every signal (metrics / spans / logs / events) at ingest. Kubernetes: Dynatrace Operator + <strong>Cloud Native FullStack</strong> mode (the Operator docs list Classic Full-Stack under <em>Other</em> deployment modes; in community practice, prefer Cloud Native FullStack for new clusters). DynaKube <strong>v1beta6</strong> for new manifests — the Operator 1.11 release notes say <em>&quot;Before upgrading, update all DynaKube manifests to v1beta6.&quot;</em> From <strong>OneAgent 1.337</strong>, Windows OneAgent requires <strong>Npcap</strong> for Network Agent metrics (WinPcap is no longer supported).</li>
+<li><strong>Output:</strong> OneAgent installed on at least one host group; primary tags propagating to every signal at ingest.</li>
+<li><strong>Deep dive:</strong> K8S series for DynaKube + Cloud Native FullStack; <strong>FAQ-01: Why you need a good Host Group naming strategy</strong> for host-group naming; <strong>FAQ-02: Tagging — Sources, Standards, and Strategy</strong> for primary-fields strategy; <strong>FAQ-03: OneAgent and OpenTelemetry — Choosing Per Workload</strong> for OneAgent and OTel decision.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/set-up-your-environment/upgrade-from-access-tokens-classic">Upgrade from access tokens classic (DT docs)</a> — (latest environment) <em>&quot;Platform tokens only. Classic access tokens don't exist, and v2/apiTokens isn't available.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/oneagent/download-oneagent-latest">Download latest OneAgent installer (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: fleet-management:oneagents:download&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/deployment/activegate/download-activegate-latest">Download latest ActiveGate installer (DT docs)</a> — <em>&quot;Platform Token / OAuth: Required scope: fleet-management:activegates:download&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">SaaS 1.337 release notes (DT docs)</a> — <em>&quot;Certain Configuration API endpoints are now deprecated&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337">OneAgent 1.337 release notes (DT docs)</a> — <em>&quot;Primary fields set via DT_TAGS are now added to logs and spans in AWS Lambda deployments of OneAgent.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-enterprises-iam">Enterprise identity management (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/fleet-management">Fleet Management (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/how-it-works">Kubernetes deployment modes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a></sub></li>
+<li><sub><strong>Dictionary:</strong> <code>aws.tags.__tag_key__</code> (<code>experimental</code>), <code>azure.tags.__tag_key__</code> (<code>experimental</code>), <code>gcp.labels.__label__</code> (<code>experimental</code>), read 10/02/2026; no singular <code>aws.tag.*</code> / <code>azure.tag.*</code> / <code>gcp.label.*</code> fields under the same <code>startsWith</code> filter (control: <code>tags</code>, <code>stable</code>, returned).</sub></li>
+</ul>
+</blockquote>
+<p><a id="phase-2-organize"></a></p>
+<h2>3. Phase 2 — Organize</h2>
+<h3>Step 06 — Organizing Your Environment</h3>
+<ul>
+<li><strong>Decision:</strong> Tag taxonomy (env / team / app / compliance / cost-center dimensions); host-group naming convention; bucket strategy; segment definitions.</li>
+<li><strong>Depends on:</strong> Step 05 (OneAgent hosts reporting); Step 04 (cloud tags arriving) if cross-cloud normalization is needed.</li>
+<li><strong>2026 specifics:</strong> Primary fields/tags via <code>oneagentctl --set-host-tag=&quot;primary_tags.&lt;key&gt;=&lt;value&gt;&quot;</code> and <code>--set-host-tag=&quot;dt.security_context=&lt;value&gt;&quot;</code> (the same <code>--set-host-tag</code> form the oneagentctl reference uses for <code>dt.security_context</code>). Use <strong>Segments + <code>dt.security_context</code></strong> for data scoping — <em>not</em> legacy Management Zones. API 1.337 (April 2026) marks the <code>managementZone</code> and <code>serviceTag</code> properties of calculated service metric definitions as deprecated. Bucket strategy: <code>dt.security_context</code> is the default for general data access; buckets only for compliance / retention / hard cost / hostile multi-tenancy.</li>
+<li><strong>Output:</strong> entities grouped meaningfully; <code>dt.security_context</code> populated on signals; segments defined for primary scopes; bucket strategy documented.</li>
+<li><strong>Deep dive:</strong> ORGNZ series — buckets, segments, <code>dt.security_context</code> (full depth, 11 notebooks); IAM series — parameterized policies bound to <code>dt.security_context</code>; <strong>FAQ-01: Why you need a good Host Group naming strategy</strong> — host-group naming; <strong>FAQ-02: Tagging — Sources, Standards, and Strategy</strong> — tagging strategy.</li>
+</ul>
+<h3>Step 07 — Understanding Your Data</h3>
+<ul>
+<li><strong>Decision:</strong> Which signals matter for the workloads in scope (spans / logs / metrics / events / business events). Confirm primary fields propagate.</li>
+<li><strong>Depends on:</strong> Step 06 (entities grouped); Step 05 (OneAgent producing signals).</li>
+<li><strong>2026 specifics:</strong> OneAgent attribute enrichment (OneAgent 1.333+) emits primary fields on every signal at ingest — spot-check <code>dt.security_context</code> on logs / spans / metrics with the validation DQL in <strong>ONBRD-99: Best Practice Summary</strong> § 3.</li>
+<li><strong>Output:</strong> confirmed which signal types are flowing; one validation DQL per signal type saved.</li>
+<li><strong>Deep dive:</strong> SPANS series, OPLOGS series, OPIPE series, OPMIG series — per-signal-type depth.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface">OneAgent command-line configuration (DT docs)</a> — <em>&quot;./oneagentctl --set-host-tag=dt.security_context=easytrade_sec&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-337">Dynatrace API 1.337 changelog (DT docs)</a> — <em>&quot;Changed property managementZone Deprecated changed to true&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="phase-3-operate"></a></p>
+<h2>4. Phase 3 — Operate</h2>
+<h3>Step 08 — Validation Queries (parallel-able with 09 + 10 after 07)</h3>
+<ul>
+<li><strong>Decision:</strong> Which canonical queries become the deployment's validation set (host count, service inventory, log volume per source, primary-field propagation).</li>
+<li><strong>Depends on:</strong> Step 07 (signals understood); Step 06 (entities grouped).</li>
+<li><strong>Output:</strong> validation DQL set saved as a notebook or dashboard (the architect's smoke-test for the tenant).</li>
+<li><strong>Deep dive:</strong> <strong>ONBRD-99: Best Practice Summary</strong> § 3 Validation Queries for the canonical set; SPANS, DBMON, WEBRUM, BIZEV for per-domain DQL patterns.</li>
+</ul>
+<h3>Step 09 — Workflows &amp; Alerts (parallel-able with 08 + 10 after 07)</h3>
+<ul>
+<li><strong>Decision:</strong> Which Davis-detected problems become workflows; which custom anomaly detectors are needed; notification targets; on-call routing.</li>
+<li><strong>Depends on:</strong> Step 07 (data flowing); Step 06 (entities grouped for scoping).</li>
+<li><strong>2026 specifics:</strong> Workflows over Alerting Profiles. Davis Anomaly Detectors over legacy metric-events (where the signal is supported).</li>
+<li><strong>Output:</strong> at least one workflow with notification target; first alert fires.</li>
+<li><strong>Deep dive:</strong> WFLOW series — workflows + notifications; AIOPS series — Davis problems + anomaly detection + Davis CoPilot.</li>
+</ul>
+<h3>Step 10 — Dashboards (parallel-able with 08 + 09 after 07)</h3>
+<ul>
+<li><strong>Decision:</strong> Tier strategy (Executive / Operations / Engineering); per-tier dashboard structure; sharing model.</li>
+<li><strong>Depends on:</strong> Step 07 (data understood); Step 06 (entities grouped for filters).</li>
+<li><strong>Output:</strong> at least one dashboard per tier in scope; shared with the right groups.</li>
+<li><strong>Deep dive:</strong> DASH series — dashboard strategy + executive reporting + tile-type decision.</li>
+</ul>
+<p><a id="phase-checkpoints"></a></p>
+<h2>5. Phase Checkpoints</h2>
+<p>Verify before moving from one phase to the next. The DQL queries in <strong>ONBRD-99: Best Practice Summary</strong> § 3 Validation Queries make these gates concrete.</p>
+<h3>G1 — Foundation → Organize</h3>
+<p>The tenant has at least one host reporting and the tenant lead role can query that data.</p>
+<ul>
+<li><em>Verify:</em> <code>smartscapeNodes &quot;HOST&quot;</code> returns host count &gt; 0; tenant lead role can run that query.</li>
+<li><em>If not:</em> stay in Phase 1 — most likely the OneAgent installer didn't run, or the installer-download token lacks its scope: <code>fleet-management:oneagents:download</code> on a platform token, or <code>InstallerDownload</code> on a classic access token (classic and hybrid environments only).</li>
+</ul>
+<h3>G2 — Organize → Operate</h3>
+<p>Entities are grouped meaningfully and <code>dt.security_context</code> is populated on signals.</p>
+<ul>
+<li><em>Verify:</em> <code>fetch logs, from:-1h | summarize count(), by:{dt.security_context}</code> returns at least one non-null value.</li>
+<li><em>If not:</em> OneAgent install or OpenPipeline enrichment didn't propagate the field — fix before Phase 3 (filter scoping in dashboards / alerts will not work without it).</li>
+</ul>
+<h3>After Phase 3 — exit ONBRD</h3>
+<p>ONBRD ends. The next checkpoint is <em>&quot;do you need a deeper series for the domains in scope?&quot;</em> — see <strong>ONBRD-99: Best Practice Summary</strong> § 5 Where to Go Deeper for the cross-series reference map.</p>
+<p><a id="common-variants"></a></p>
+<h2>6. Common Variants &amp; Skip Rules</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+T05CUkQg4oCUIFZhcmlhbnRzICZhbXA7IFNraXAgUnVsZXM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+VGhlIGRlZmF1bHQgcGF0aCBydW5zIGFsbCAxMCBzdGVwcy4gQ29tbW9uIHNpdHVhdGlvbnMgbW9kaWZ5IGl0IGFzIHNob3duLjwvdGV4dD4KCiAgPCEtLSBSb3cgMTogeT03OC0yNjggLS0+CgogIDwhLS0gQ2FyZCAxOiBEZWZhdWx0IOKAlCBHcmVlbmZpZWxkIC0tPgogIDxyZWN0IHg9IjIwIiB5PSI3OCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIxOTAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHJlY3QgeD0iMjAiIHk9Ijc4IiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjM0IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjI1IiBzdHJva2U9Im5vbmUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTY1IiB5PSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkRlZmF1bHQg4oCUIFN0YW5kYXJkIE5ldyBUZW5hbnQ8L3RleHQ+CiAgPHRleHQgeD0iMzgiIHk9IjEzMCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5ObyBzcGVjaWFsIHN0YXJ0aW5nIGNvbnRleHQuPC90ZXh0PgogIDx0ZXh0IHg9IjM4IiB5PSIxNDgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk1vZGlmaWVkIHBhdGg6PC90ZXh0PgogIDx0ZXh0IHg9IjM4IiB5PSIxNjciIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiPuKWuCBBbGwgMTAgc3RlcHMgaW4gb3JkZXIuPC90ZXh0PgogIDx0ZXh0IHg9IjM4IiB5PSIxODQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiPuKWuCBQaGFzZSAxOiAwMSDihpIgMDIg4oaSIHswMy8wNC8wNX08L3RleHQ+CiAgPHRleHQgeD0iMzgiIHk9IjIwMSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSI+4pa4IFBoYXNlIDI6IDA2IOKGkiAwNzwvdGV4dD4KICA8dGV4dCB4PSIzOCIgeT0iMjE4IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIj7ilrggUGhhc2UgMzogezA4LCAwOSwgMTB9IHBhcmFsbGVsPC90ZXh0PgogIDx0ZXh0IHg9IjM4IiB5PSIyNDQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk5vIHNraXAgcnVsZXMgYXBwbHkuIFVzZSB0aGUgY2Fub25pY2FsPC90ZXh0PgogIDx0ZXh0IHg9IjM4IiB5PSIyNTkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnNlcXVlbmNlIGFuZCBnYXRlcyBHMSwgRzIgYXMgd3JpdHRlbi48L3RleHQ+CgogIDwhLS0gQ2FyZCAyOiBFeGlzdGluZyBTU08gLS0+CiAgPHJlY3QgeD0iMzIwIiB5PSI3OCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIxOTAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHJlY3QgeD0iMzIwIiB5PSI3OCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIzNCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSJub25lIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5FeGlzdGluZyBTU08gZnJvbSBhbm90aGVyIERUIHRlbmFudDwvdGV4dD4KICA8dGV4dCB4PSIzMzgiIHk9IjEzMCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5PcmcgaGFzIFNBTUwgKCsgU0NJTSkgbGl2ZSBlbHNld2hlcmUuPC90ZXh0PgogIDx0ZXh0IHg9IjMzOCIgeT0iMTQ4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5Nb2RpZmllZCBwYXRoOjwvdGV4dD4KICA8dGV4dCB4PSIzMzgiIHk9IjE2NyIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSI+4pa4IFN0ZXAgMDI6IHNraXAgSURQLWNvbmZpZzsgcmV1c2U8L3RleHQ+CiAgPHRleHQgeD0iMzM4IiB5PSIxODQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiPiAgdGhlIGV4aXN0aW5nIElEUC48L3RleHQ+CiAgPHRleHQgeD0iMzM4IiB5PSIyMDEiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiPuKWuCBTdGlsbCBjb25maWd1cmUgZ3JvdXBzICs8L3RleHQ+CiAgPHRleHQgeD0iMzM4IiB5PSIyMTgiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiPiAgcGFyYW1ldGVyaXplZCBwb2xpY2llcyBpbiB0aGlzIHRlbmFudC48L3RleHQ+CiAgPHRleHQgeD0iMzM4IiB5PSIyNDQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkFsbCBvdGhlciBzdGVwcyB1bmNoYW5nZWQuPC90ZXh0PgogIDx0ZXh0IHg9IjMzOCIgeT0iMjU5IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5UeXBpY2FsbHkgc2hvcnRlciB0aGFuIGEgZnVsbCBJRFAgc2V0dXAuPC90ZXh0PgoKICA8IS0tIENhcmQgMzogUHVyZSBTYWFTLW9ubHkgLS0+CiAgPHJlY3QgeD0iNjIwIiB5PSI3OCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIxOTAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHJlY3QgeD0iNjIwIiB5PSI3OCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIzNCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSJub25lIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc2NSIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5QdXJlIFNhYVMtb25seSwgbm8gb24tcHJlbTwvdGV4dD4KICA8dGV4dCB4PSI2MzgiIHk9IjEzMCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5BbGwgd29ya2xvYWRzIGluIGNsb3VkIFNhYVMuPC90ZXh0PgogIDx0ZXh0IHg9IjYzOCIgeT0iMTQ4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5Nb2RpZmllZCBwYXRoOjwvdGV4dD4KICA8dGV4dCB4PSI2MzgiIHk9IjE2NyIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+4pa4IFN0ZXAgMDMgKEFjdGl2ZUdhdGUpIG9wdGlvbmFsIOKAlDwvdGV4dD4KICA8dGV4dCB4PSI2MzgiIHk9IjE4NCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+ICBkZWZlciB1bnRpbCBjbG91ZC1BUEkgcG9sbGluZyBhdDwvdGV4dD4KICA8dGV4dCB4PSI2MzgiIHk9IjIwMSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+ICBzY2FsZSBkZW1hbmRzIGl0LjwvdGV4dD4KICA8dGV4dCB4PSI2MzgiIHk9IjIxOCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+4pa4IEFsbCBvdGhlciBzdGVwcyB1bmNoYW5nZWQuPC90ZXh0PgogIDx0ZXh0IHg9IjYzOCIgeT0iMjQ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5SZWFzc2VzcyBTdGVwIDAzIGFzIHRoZSBlc3RhdGUgZ3Jvd3M8L3RleHQ+CiAgPHRleHQgeD0iNjM4IiB5PSIyNTkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPm9yIEFjdGl2ZUdhdGUgZXh0ZW5zaW9ucyBhcHBlYXIuPC90ZXh0PgoKICA8IS0tIFJvdyAyOiB5PTI4OC00NzggLS0+CgogIDwhLS0gQ2FyZCA0OiBDbG91ZC1vbmx5IC8gc2VydmVybGVzcyAtLT4KICA8cmVjdCB4PSIyMCIgeT0iMjg4IiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjE5MCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8cmVjdCB4PSIyMCIgeT0iMjg4IiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjM0IiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjI1IiBzdHJva2U9Im5vbmUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTY1IiB5PSIzMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkNsb3VkLW9ubHkgLyBTZXJ2ZXJsZXNzPC90ZXh0PgogIDx0ZXh0IHg9IjM4IiB5PSIzNDAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+Tm8gVk1zIC8gY29udGFpbmVycyB1bmRlciB5b3VyIGNvbnRyb2wuPC90ZXh0PgogIDx0ZXh0IHg9IjM4IiB5PSIzNTgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk1vZGlmaWVkIHBhdGg6PC90ZXh0PgogIDx0ZXh0IHg9IjM4IiB5PSIzNzciIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiPuKWuCBTdGVwIDA1OiBMYW1iZGEgbGF5ZXIsIEF6dXJlIHBsYW5zLjwvdGV4dD4KICA8dGV4dCB4PSIzOCIgeT0iMzk0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIj7ilrggRm9jdXMgb24gU3RlcCAwNCAoQ2xvdWRzIGFwcCk8L3RleHQ+CiAgPHRleHQgeD0iMzgiIHk9IjQxMSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMSI+ICArIE9UZWwgd2hlcmUgT25lQWdlbnQgY2FuJ3QgcnVuLjwvdGV4dD4KICA8dGV4dCB4PSIzOCIgeT0iNDI4IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIj7ilrggU2VlIEZBUS0wMyBmb3IgT25lQWdlbnQgYW5kIE9UZWwuPC90ZXh0PgogIDx0ZXh0IHg9IjM4IiB5PSI0NTQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlBoYXNlIDIgc3RpbGwgbmVlZGVkIOKAlCBwcmltYXJ5IHRhZ3MgdmlhPC90ZXh0PgogIDx0ZXh0IHg9IjM4IiB5PSI0NjkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk9wZW5QaXBlbGluZSBlbnJpY2htZW50LCBub3QgYXQgaW5zdGFsbC48L3RleHQ+CgogIDwhLS0gQ2FyZCA1OiBLOHMtZmlyc3QgLS0+CiAgPHJlY3QgeD0iMzIwIiB5PSIyODgiIHdpZHRoPSIyOTAiIGhlaWdodD0iMTkwIiBmaWxsPSIjMjJEM0VFIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDxyZWN0IHg9IjMyMCIgeT0iMjg4IiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjM0IiBmaWxsPSIjMjJEM0VFIiBvcGFjaXR5PSIwLjI1IiBzdHJva2U9Im5vbmUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkt1YmVybmV0ZXMtZmlyc3Q8L3RleHQ+CiAgPHRleHQgeD0iMzM4IiB5PSIzNDAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+V29ya2xvYWRzIHJ1biBwcmltYXJpbHkgb24gSzhzLjwvdGV4dD4KICA8dGV4dCB4PSIzMzgiIHk9IjM1OCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+TW9kaWZpZWQgcGF0aDo8L3RleHQ+CiAgPHRleHQgeD0iMzM4IiB5PSIzNzciIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTEiPuKWuCBTdGVwIDA1IGNvbGxhcHNlcyBpbnRvIEs4UyBzZXJpZXMuPC90ZXh0PgogIDx0ZXh0IHg9IjMzOCIgeT0iMzk0IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjExIj7ilrggT3BlcmF0b3IgKyBEeW5hS3ViZSByZXBsYWNlczwvdGV4dD4KICA8dGV4dCB4PSIzMzgiIHk9IjQxMSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMSI+ICBwZXItaG9zdCBpbnN0YWxsLjwvdGV4dD4KICA8dGV4dCB4PSIzMzgiIHk9IjQyOCIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMSI+4pa4IENsb3VkIE5hdGl2ZSBGdWxsU3RhY2sgbW9kZSBkZWZhdWx0LjwvdGV4dD4KICA8dGV4dCB4PSIzMzgiIHk9IjQ1NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RHluYUt1YmUgdjFiZXRhNiBmb3IgbmV3IG1hbmlmZXN0czwvdGV4dD4KICA8dGV4dCB4PSIzMzgiIHk9IjQ2OSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+KE9wZXJhdG9yIDEuMTE6IHVwZGF0ZSBhbGwgdG8gdjFiZXRhNikuPC90ZXh0PgoKICA8IS0tIENhcmQgNjogTWlncmF0aW5nIGZyb20gYW5vdGhlciB0b29sIC0tPgogIDxyZWN0IHg9IjYyMCIgeT0iMjg4IiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjE5MCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8cmVjdCB4PSI2MjAiIHk9IjI4OCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIzNCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSJub25lIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc2NSIgeT0iMzEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5NaWdyYXRpbmcgZnJvbSBhbm90aGVyIHRvb2w8L3RleHQ+CiAgPHRleHQgeD0iNjM4IiB5PSIzNDAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+UmVwbGFjaW5nIE5SIC8gU3BsdW5rIC8gU3VtbyAvIE1hbmFnZWQuPC90ZXh0PgogIDx0ZXh0IHg9IjYzOCIgeT0iMzU4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5Nb2RpZmllZCBwYXRoOjwvdGV4dD4KICA8dGV4dCB4PSI2MzgiIHk9IjM3NyIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+4pa4IFJ1biBPTkJSRCBmb3VuZGF0aW9uIGluIHBhcmFsbGVsPC90ZXh0PgogIDx0ZXh0IHg9IjYzOCIgeT0iMzk0IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj4gIHdpdGggdGhlIG1pZ3JhdGlvbiBzZXJpZXM6PC90ZXh0PgogIDx0ZXh0IHg9IjYzOCIgeT0iNDExIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj4gIE5SMkRUIC8gUzJEIC8gU0wyRFQgLyBNMlMgLyBTMlMuPC90ZXh0PgogIDx0ZXh0IHg9IjYzOCIgeT0iNDI4IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj7ilrggTWlncmF0aW9uIHNlcmllcyBvd25zIGN1dG92ZXIuPC90ZXh0PgogIDx0ZXh0IHg9IjYzOCIgeT0iNDU0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5PTkJSRCBwcm92aWRlcyB0aGUgZGVzdGluYXRpb24gdGVuYW50PC90ZXh0PgogIDx0ZXh0IHg9IjYzOCIgeT0iNDY5IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5zaGFwZTsgbWlncmF0aW9uIHByb3ZpZGVzIHRoZSB3b3JrbG9hZC48L3RleHQ+Cjwvc3ZnPgo=" alt="ONBRD Variants &amp; Skip Rules" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Situation | Modified path |
+|---|---|
+| Default — Standard new tenant | All 10 steps in order |
+| Existing SSO from another DT tenant | Skip IDP-config part of Step 02; configure groups + parameterized policies |
+| Pure SaaS-only, no on-prem | Step 03 (ActiveGate) optional; defer until cloud-API polling demands it |
+| Cloud-only / Serverless | Step 05 narrows: OneAgent via the AWS Lambda layer and supported Azure Functions plans (OneAgent 1.343+); OTel where OneAgent does not run (e.g. GCP Cloud Functions); focus on Step 04; see FAQ-03 |
+| Kubernetes-first | Step 05 collapses into K8S series (Operator + DynaKube + Cloud Native FullStack) |
+| Migrating from another tool | Run ONBRD foundation in parallel with NR2DT / S2D / SL2DT / M2S / S2S |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>When</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Existing SSO already configured</td>
+<td>New tenant for an org with SAML (optionally + SCIM) live on another Dynatrace tenant</td>
+<td>Skip the IDP-config part of Step 02; reuse the existing IDP. Still configure groups + parameterized policies in the new tenant.</td>
+</tr>
+<tr>
+<td>Pure SaaS-only, no on-prem</td>
+<td>All workloads in cloud; no private/on-prem footprint</td>
+<td>Step 03 (ActiveGate) is optional — defer until cloud-API polling demands it.</td>
+</tr>
+<tr>
+<td>Cloud-only, no hosts</td>
+<td>Serverless / managed services only; no VMs or containers under your control</td>
+<td>Step 05 narrows rather than disappears: OneAgent reaches AWS Lambda through the Dynatrace Lambda layer (Python, Node.js, Java, .NET) and supported Azure Functions plans from OneAgent 1.343. Use OpenTelemetry for application code where OneAgent does not run (for example GCP Cloud Functions) or where OTel is already your strategy. Focus on Step 04 (cloud integrations) either way. See <strong>FAQ-03: OneAgent and OpenTelemetry — Choosing Per Workload</strong>.</td>
+</tr>
+<tr>
+<td>Kubernetes-first</td>
+<td>Workloads run primarily on K8s</td>
+<td>Step 05 collapses into K8S series — Operator + DynaKube replaces per-host install.</td>
+</tr>
+<tr>
+<td>Migrating from another tool</td>
+<td>Replacing New Relic / Splunk / Sumo Logic / managed Dynatrace</td>
+<td>Run ONBRD foundation in parallel with the migration series (NR2DT, S2D, SL2DT, M2S, S2S).</td>
+</tr>
+<tr>
+<td>Multi-tenant org</td>
+<td>Several Dynatrace tenants for different BUs / environments</td>
+<td>Step 02 expands — see <strong>IAM-08: Multi-Environment IAM</strong> for cross-tenant patterns.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-lambda-integration">AWS Lambda integration (DT docs)</a> — <em>&quot;using auto-instrumentation without code changes&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-343">OneAgent 1.343 release notes (DT docs)</a> — Azure Functions: Python on the Flex Consumption Plan for Linux; Java and Node.js on Consumption, Premium, and Dedicated plans for Windows.</sub></p>
+</blockquote>
+<p><a id="after-onbrd"></a></p>
+<h2>7. After ONBRD</h2>
+<p>ONBRD ends after Phase 3. The next set of decisions is per-domain — observability, automation, AI/Davis, dashboards-at-scale, etc.</p>
+<p>Reference points to keep open:</p>
+<ul>
+<li><strong>ONBRD-99: Best Practice Summary</strong> — the architect's reference card: recommended defaults, decision matrix, validation queries, anti-patterns, and the <strong>cross-series reference map</strong> for what to do after ONBRD.</li>
+<li><strong>-START-HERE- › Foundation Module</strong> — cross-series Foundation Module reading order (ONBRD + ORGNZ + IAM in parallel) with priorities and skip rules.</li>
+<li><strong>-START-HERE- › Doorway 1 — Net New</strong> — doorway selection for greenfield vs migration paths (Sub-Paths A–F).</li>
+<li><strong>ADOPT series</strong> — overall maturity and adoption roadmap once ONBRD is complete.</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against the current <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

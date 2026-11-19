@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Best Practice Topics — Where to Start</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../">Best Practice Notebooks</a><span class="sep">/</span><span aria-current="page">Start here</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="best-practice-topics--where-to-start">Best Practice Topics — Where to Start</h1>
+<blockquote>
+<p><strong>Purpose:</strong> A focused table of contents for the Dynatrace Best Practice Topics. Use the entry-point selector below to find your starting path, then follow the sequenced reading order across topic series.
+<strong>Last Updated:</strong> 09/25/2026</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5Gb3VyIERvb3J3YXlzIGludG8gdGhlIFBsYXlib29rPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlBpY2sgeW91ciBlbnRyeSBwb2ludDsgYWxsIHBhdGhzIGNvbnZlcmdlIHRocm91Z2ggdGhlIHNhbWUgbW9kdWxlczwvdGV4dD4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHg9IjMwIiB5PSIxMDAiIHdpZHRoPSIyMDQiIGhlaWdodD0iMTAwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjEzMiIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5Eb29yd2F5IDE8L3RleHQ+CiAgPHRleHQgeD0iMTMyIiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk5ldCBOZXc8L3RleHQ+CiAgPHRleHQgeD0iMTMyIiB5PSIxNzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkdyZWVuZmllbGQgb3IgbWlncmF0aW5nIGZyb208L3RleHQ+CiAgPHRleHQgeD0iMTMyIiB5PSIxOTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmFub3RoZXIgdG9vbCDigJQgbmV0LW5ldyB0ZW5hbnQ8L3RleHQ+CiAgPHJlY3QgeD0iMjUyIiB5PSIxMDAiIHdpZHRoPSIyMDQiIGhlaWdodD0iMTAwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjM1NCIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5Eb29yd2F5IDI8L3RleHQ+CiAgPHRleHQgeD0iMzU0IiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkV4cGFuZGluZyAvIENvbnNvbGlkYXRpbmc8L3RleHQ+CiAgPHRleHQgeD0iMzU0IiB5PSIxNzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkV4aXN0aW5nIHRlbmFudDsgYWRkaW5nIHNjb3BlPC90ZXh0PgogIDx0ZXh0IHg9IjM1NCIgeT0iMTkxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5vciBjb25zb2xpZGF0aW5nIGFub3RoZXIgdG9vbDwvdGV4dD4KICA8cmVjdCB4PSI0NzQiIHk9IjEwMCIgd2lkdGg9IjIwNCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNTc2IiB5PSIxMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPkRvb3J3YXkgMzwvdGV4dD4KICA8dGV4dCB4PSI1NzYiIHk9IjE1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+RGVwbG95bWVudCBNaWdyYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNTc2IiB5PSIxNzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkV4aXN0aW5nIGN1c3RvbWVyIGNoYW5naW5nPC90ZXh0PgogIDx0ZXh0IHg9IjU3NiIgeT0iMTkxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5kZXBsb3ltZW50IChNMlMsIFMyUyk8L3RleHQ+CiAgPHJlY3QgeD0iNjk2IiB5PSIxMDAiIHdpZHRoPSIyMDQiIGhlaWdodD0iMTAwIiBmaWxsPSIjMjJEM0VFIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijc5OCIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5Eb29yd2F5IDQ8L3RleHQ+CiAgPHRleHQgeD0iNzk4IiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkNsYXNzaWMgdG8gR2VuMyBQbGF0Zm9ybTwvdGV4dD4KICA8dGV4dCB4PSI3OTgiIHk9IjE3NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U2FtZSB0ZW5hbnQ7IG1vdmluZyBvZmY8L3RleHQ+CiAgPHRleHQgeD0iNzk4IiB5PSIxOTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmNsYXNzaWMgc3VyZmFjZXMgb250byBwbGF0Zm9ybTwvdGV4dD4KICA8bGluZSB4MT0iMTMyIiB5MT0iMjAwIiB4Mj0iMzUwIiB5Mj0iMjQ1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxsaW5lIHgxPSIzNTQiIHkxPSIyMDAiIHgyPSI0MjgiIHkyPSIyNDUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPGxpbmUgeDE9IjU3NiIgeTE9IjIwMCIgeDI9IjUwMiIgeTI9IjI0NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KICA8bGluZSB4MT0iNzk4IiB5MT0iMjAwIiB4Mj0iNTgwIiB5Mj0iMjQ1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgogIDxyZWN0IHg9IjM1MCIgeT0iMjUwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5Gb3VuZGF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjkzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5PTkJSRCArIE9SR05aICsgSUFNPC90ZXh0PgogIDxsaW5lIHgxPSI0NjUiIHkxPSIzMDAiIHgyPSI0NjUiIHkyPSIzMzUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHJlY3QgeD0iMzUwIiB5PSIzNDAiIHdpZHRoPSIyMzAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkRvbWFpbiBFbmFibGVtZW50PC90ZXh0PgogIDxsaW5lIHgxPSI0NjUiIHkxPSIzODAiIHgyPSI0NjUiIHkyPSI0MDUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHJlY3QgeD0iMzUwIiB5PSI0MTAiIHdpZHRoPSIyMzAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSI0MzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPk9wZXJhdGlvbmFsaXplPC90ZXh0PgogIDxsaW5lIHgxPSI1ODAiIHkxPSI0MzAiIHgyPSI2NDAiIHkyPSI0MzAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPHJlY3QgeD0iNjQwIiB5PSI0MTAiIHdpZHRoPSIxNzAiIGhlaWdodD0iNDAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzI1IiB5PSI0MzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPk1hdHVyaXR5IChsb29wcyk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPkNvbnRpbnVvdXMgaW1wcm92ZW1lbnQgbG9vcHMgYmFjayB0aHJvdWdoIERvb3J3YXkgMiBvciBGb3VuZGF0aW9uIGFzIG5lZWRzIGVtZXJnZTwvdGV4dD4KPC9zdmc+Cg==" alt="Four Doorways into the Playbook" /></p>
+<hr />
+<h2 id="how-to-use-this-playbook">How to Use This Playbook</h2>
+<p>This is a navigational guide — not a content series. Each section here points to one or more topic series in this repository. Read the playbook to understand the recommended order; read the topic series themselves for the content.</p>
+<p>If you are a:</p>
+<ul>
+<li><strong>Customer</strong> evaluating or expanding Dynatrace — start with the doorway that matches your situation below.</li>
+<li><strong>Partner or SI consultant</strong> scoping an engagement — see <a href="10-workshop-agendas.html">Workshop Agendas</a> for sample 1-day, 3-day, and 5-day plans built from the topic series.</li>
+<li><strong>Self-paced learner</strong> — pick a doorway based on your situation (greenfield, migration, expanding, deployment change, classic-to-Gen3) and follow the sequenced reading order. Time estimates are calendar weeks for a small/mid-sized team; enterprise scale takes longer.</li>
+</ul>
+<hr />
+<h2 id="pick-your-doorway">Pick Your Doorway</h2>
+<p>Four entry points, each routing to the right combination of topic series. Doorways 1–3 are keyed to a change in <em>circumstance</em> — a new tenant, new scope, a new deployment model. Doorway 4 is keyed to a change in <em>surface</em>: the environment stays put, but the constructs you operate it with are replaced. Pick the one that matches your situation:</p>
+<h3 id="doorway-1--net-new">Doorway 1 — <a href="01-net-new.html">Net New</a></h3>
+<p>You are starting fresh with Dynatrace, with or without an existing observability tool to migrate from. Net-new tenant.</p>
+<p>Sub-paths covered:</p>
+<ul>
+<li>Greenfield (no prior observability platform)</li>
+<li>Migrating from New Relic</li>
+<li>Migrating from Splunk</li>
+<li>Migrating from Sumo Logic</li>
+<li>Migrating from multiple tools</li>
+</ul>
+<h3 id="doorway-2--expanding-or-consolidating">Doorway 2 — <a href="02-expand-consolidate.html">Expanding or Consolidating</a></h3>
+<p>You already have a Dynatrace tenant and are adding scope, pulling data in from another tool, or maturing operations.</p>
+<p>Sub-paths covered:</p>
+<ul>
+<li>Adding a new domain (Kubernetes, Mobile, RUM, Database, Synthetic, Business Events, Cloud, Security)</li>
+<li>Consolidating logs from Splunk or Sumo Logic into an existing tenant</li>
+<li>Consolidating APM from New Relic into an existing tenant</li>
+<li>Maturing operations (dashboards, alerting, automation, AI)</li>
+</ul>
+<h3 id="doorway-3--deployment-migration">Doorway 3 — <a href="03-deployment-migration.html">Deployment Migration</a></h3>
+<p>You are an existing Dynatrace customer changing your deployment model.</p>
+<p>Sub-paths covered:</p>
+<ul>
+<li>Managed → SaaS migration</li>
+<li>SaaS → SaaS tenant consolidation or region change</li>
+</ul>
+<h3 id="doorway-4--classic--gen3-platform">Doorway 4 — <a href="04-gen2-to-gen3.html">Classic → Gen3 Platform</a></h3>
+<p>You have a working SaaS tenant that is not moving, but it still runs classic constructs — management zones used for access control, metric events, alerting profiles, classic dashboards, Classic Logs, or USQL.</p>
+<p>Phases covered:</p>
+<ul>
+<li>Understand the shift (Grail, Smartscape, navigation)</li>
+<li>Access and data architecture (MZs → policies, boundaries, segments; buckets; security_context)</li>
+<li>Query surfaces (selectors and USQL → DQL; Classic Logs → OpenPipeline)</li>
+<li>Dashboards and notebooks</li>
+<li>Alerting and SLOs (metric events → anomaly detectors; alerting profiles → workflows)</li>
+<li>Config-as-code and go-live</li>
+</ul>
+<hr />
+<h2 id="reusable-modules">Reusable Modules</h2>
+<p>After picking a doorway, the recommended path will route you through one or more of these modules. They can also be read directly:</p>
+<ul>
+<li><a href="05-foundation.html">Foundation Module</a> — ONBRD + ORGNZ + IAM reading order, mandatory vs optional flags</li>
+<li><a href="06-domain-enablement.html">Domain Enablement Module</a> — Pick-list of domains with prerequisites and recommended sequencing</li>
+<li><a href="07-operationalize.html">Operationalize Module</a> — ALERT → DASH → WFLOW → SLO → AUTOM → AIOPS → FINOPS sequence, with reasoning for that order</li>
+<li><a href="08-maturity.html">Maturity Module</a> — ADOPT framing for continuous improvement</li>
+</ul>
+<hr />
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="09-overlap-map.html">Overlap Map</a> — Where multiple series cover the same ground; which is canonical and recommended reading order</li>
+<li><a href="10-workshop-agendas.html">Workshop Agendas</a> — Sample 1-day, 3-day, and 5-day partner/SI workshop plans</li>
+<li><a href="99-index.html">Series Catalog &amp; Cross-Reference</a> — Full inventory of all 33 topic series with cross-reference matrix and reading-order presets</li>
+</ul>
+<hr />
+<h2 id="time-investment-overview">Time Investment Overview</h2>
+<p>Rough estimates for a small to mid-sized team. Enterprise scale takes longer due to coordination overhead, change-management process, and the number of in-scope applications.</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Time</th>
+<th>What you accomplish</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Foundation</td>
+<td>2–3 weeks</td>
+<td>Tenant operational; OneAgent and ActiveGate deployed; basic IAM, tagging, and bucket strategy in place</td>
+</tr>
+<tr>
+<td>First domain</td>
+<td>1–2 weeks per domain</td>
+<td>One observability domain (Kubernetes, web RUM, mobile, database, etc.) producing useful data</td>
+</tr>
+<tr>
+<td>Migration (Net New from another tool)</td>
+<td>3–9 months</td>
+<td>Dual-running the source tool and Dynatrace; staged cutover by component</td>
+</tr>
+<tr>
+<td>Classic → Gen3 surface migration</td>
+<td>3–6 months</td>
+<td>Access model, query surfaces, dashboards, and alerting moved off classic constructs; see <a href="04-gen2-to-gen3.html">Doorway 4</a> for the phase breakdown</td>
+</tr>
+<tr>
+<td>Operationalize</td>
+<td>4–8 weeks</td>
+<td>Dashboards, alerts, workflows, and automation in steady state</td>
+</tr>
+<tr>
+<td>Maturity</td>
+<td>Continuous</td>
+<td>Ongoing optimization, governance, FinOps, platform expansion</td>
+</tr>
+</tbody>
+</table>
+<p>Time estimates within each doorway file refine these numbers by sub-track.</p>
+<hr />
+<h2 id="conventions-used">Conventions Used</h2>
+<ul>
+<li><strong>Topic series codes</strong> (e.g., ONBRD, ORGNZ, IAM) appear as inline text. Click the topic name to open the series directory.</li>
+<li><strong>Notebook references</strong> (e.g., ONBRD-01..05) appear as inline text — the numbers help you locate specific notebooks within a topic; they are not hyperlinks.</li>
+<li><strong>Mandatory / Recommended / Optional</strong> flags indicate priority within a reading list:
+<ul>
+<li><strong>Mandatory</strong> — required for a working tenant in this scenario</li>
+<li><strong>Recommended</strong> — significantly improves the outcome; skip only with a reason</li>
+<li><strong>Optional</strong> — context-specific; read if the topic applies to your environment</li>
+<li><strong>Skip if already have</strong> — covered by another series you have read or by a prior tenant; skim only</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2 id="where-to-get-help">Where to Get Help</h2>
+<ul>
+<li>For frequently-asked questions, see the <a href="../FAQ%20-%20Frequently%20Asked%20Questions/">FAQ</a> topic series — standalone single-page reference docs (host group naming, tagging strategy, and growing).</li>
+<li>For DQL syntax and query patterns, the <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> and <a href="../SPANS%20-%20Distributed%20Tracing%20and%20Spans/">SPANS</a> series each have query references. Official Dynatrace documentation is authoritative.</li>
+<li>For unresolved questions during a migration, see the appropriate migration series: <a href="../NR2DT%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Steps/">NR2DT</a>, <a href="../NRLC%20-%20New%20Relic%20to%20Dynatrace%20Migration%20Deep%20Dives/">NRLC</a>, <a href="../S2D%20-%20Splunk%20to%20Dynatrace%20Migration/">S2D</a>, <a href="../SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/">SL2DT</a>, <a href="../M2S%20-%20Managed%20to%20SaaS%20Migration/">M2S</a>, <a href="../S2S%20-%20SaaS%20to%20SaaS%20Migration/">S2S</a>.</li>
+<li>For platform maturity and adoption questions, see <a href="../ADOPT%20-%20Observability%20Adoption%20&amp;%20Maturity/">ADOPT</a>.</li>
+</ul>
+<hr />
+<hr />
+<h2 id="maintenance-mandate">Maintenance Mandate</h2>
+<p><strong>When new topic series are added to <code>topics/</code>, the -START-HERE- playbook MUST be updated in the same PR/release.</strong></p>
+<p>This includes:</p>
+<ul>
+<li>Adding the new series to <code>99-index.md</code> with notebook count and focus area</li>
+<li>Placing the series in the appropriate module/category</li>
+<li>Adding cross-references in <code>09-overlap-map.md</code> if overlaps exist with other series</li>
+<li>Updating last Updated dates across all affected files to the current date</li>
+<li>Updating series count references (e.g., &quot;28 topic series&quot; → &quot;32 topic series&quot;) in all files if the count changes</li>
+<li>Verifying doorway-specific impact (if the new series affects any reading path in 01/02/03/04)</li>
+</ul>
+<p>The playbook is the primary navigation aid for all users; stale series counts or missing categories create confusion and degraded user experience.</p>
+<hr />
+<blockquote>
+<p><em>This playbook was AI-generated from community-submitted and publicly available sources. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

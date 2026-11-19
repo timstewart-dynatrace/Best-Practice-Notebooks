@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPIPE-07: Pipeline Group Governance Patterns</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPIPE — OpenPipeline Beyond Logs</a><span class="sep">/</span><span aria-current="page">OPIPE-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPIPE-07: Pipeline Group Governance Patterns</h1>
+<blockquote>
+<p><strong>Series:</strong> OPIPE — OpenPipeline Beyond Logs | <strong>Notebook:</strong> 7 of 7 | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 10/26/2026</p>
+</blockquote>
+<h2>Central Control, Team Autonomy</h2>
+<p>A pipeline group lets a central team enforce stages — permissions, cost and product allocation, bucket assignment, masking — on many pipelines that other teams own. <strong>OPIPE-01</strong> covers <em>when</em> a group is the right tool. This notebook covers <em>how to run one</em>: who owns which object, which stages to mandate or hand to teams, how the composition executes, what to budget for, how to gate changes, and how to verify that data really flows through the group.</p>
+<p>Every behavior below that goes beyond the documentation was reproduced on a SaaS tenant on 10/26/2026 with throwaway pipelines in the logs scope. Where a recommendation is practitioner experience rather than documented behavior, the text says so.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-a-pipeline-group-is">What a Pipeline Group Is</a></li>
+<li><a href="#ownership-model">Ownership Model</a></li>
+<li><a href="#stage-allocation-tiers">Stage Allocation Tiers</a></li>
+<li><a href="#stage-overlap-and-memberstages">Stage Overlap and memberStages</a></li>
+<li><a href="#composition-layout-and-execution-order">Composition Layout and Execution Order</a></li>
+<li><a href="#grouping-topologies">Grouping Topologies</a></li>
+<li><a href="#routing-into-a-group">Routing Into a Group</a></li>
+<li><a href="#capacity-budgeting">Capacity Budgeting</a></li>
+<li><a href="#extending-ready-made-extension-pipelines">Extending Ready-Made Extension Pipelines</a></li>
+<li><a href="#risks-of-member-side-extraction">Risks of Member-Side Extraction</a></li>
+<li><a href="#enablement-and-automated-gating">Enablement and Automated Gating</a></li>
+<li><a href="#verification-and-monitoring">Verification and Monitoring</a></li>
+<li><a href="#anti-patterns">Anti-Patterns</a></li>
+<li><a href="#configuration-as-code-example">Configuration-as-Code Example</a></li>
+<li><a href="#summary">Summary</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail and OpenPipeline</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>settings:objects:read</code> and <code>settings:objects:write</code> for <code>builtin:openpipeline.&lt;scope&gt;.pipelines</code>, <code>.pipeline-groups</code> and <code>.routing</code>; <code>storage:logs:read</code> and <code>storage:system:read</code> for the verification queries</td>
+</tr>
+<tr>
+<td><strong>Recommended</strong></td>
+<td><strong>OPIPE-01</strong> (stages, matching conditions vs. pipelines vs. groups) and <strong>OPIPE-04</strong> (cardinality)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="what-a-pipeline-group-is"></a></p>
+<h2>1. What a Pipeline Group Is</h2>
+<p>A pipeline group binds three things together inside one configuration scope (logs, spans, events, and so on):</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>What it is</th>
+<th>Who owns it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Base pipelines</strong></td>
+<td>Pipelines with the <code>basePipeline</code> role. They carry the shared processing.</td>
+<td>Administrators</td>
+</tr>
+<tr>
+<td><strong>Composition</strong></td>
+<td>The ordered list of base pipelines plus one <strong>member pipeline placeholder</strong>, and the stages each base pipeline runs</td>
+<td>Administrators</td>
+</tr>
+<tr>
+<td><strong>Member pipelines</strong></td>
+<td>Pipelines with the <code>memberPipeline</code> role that hold team-specific processing, limited to the stages the group allows (<code>memberStages</code>)</td>
+<td>Development teams</td>
+</tr>
+</tbody>
+</table>
+<p>Facts that shape every design decision:</p>
+<ul>
+<li><strong>A member pipeline belongs to one group; a base pipeline can serve several.</strong> The concepts page says <em>&quot;A pipeline belongs to only one pipeline group at a time.&quot;</em> The multi-cloud tutorial, though, builds one global base pipeline that <em>&quot;will be used by both groups (AWS pipelines and Azure pipelines) to assign buckets and dt.cost.cost_center&quot;</em>. The two agree once you read the group schema: it enforces uniqueness on <code>memberPipelines</code> across groups, and nothing on the base pipelines in a composition. On a tenant (10/26/2026), a second group reusing a base pipeline saved, and a second group listing an existing member was rejected with <em>&quot;[memberPipelines] must be unique&quot;</em>.</li>
+<li><strong>Groups can't be nested.</strong> In the docs' words, <em>&quot;Pipeline groups can't be nested.&quot;</em></li>
+<li><strong>The role is fixed at creation.</strong> The limits page says <em>&quot;The pipeline role is permanent.&quot;</em> An attempt to change a member pipeline to <code>basePipeline</code> was rejected (10/26/2026). Decide the role before you create the pipeline.</li>
+<li><strong>A base pipeline does nothing on its own.</strong> It <em>&quot;Can exist standalone but is inactive unless part of a pipeline group.&quot;</em></li>
+<li><strong><code>compositionPipeline</code> is the old name for <code>basePipeline</code>.</strong> The pipelines schema (version 1.77, read 10/26/2026) lists both values and marks <code>compositionPipeline</code> as deprecated. Exports and older examples, including the Terraform provider's own example, still use it. Use <code>basePipeline</code> in new configuration.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">OpenPipeline pipeline groups (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/pipeline-groups-multicloud">Configure multi-cloud ingest governance with pipeline groups (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline limits (DT docs)</a>. Schema constraints and the rejected requests were read and reproduced on a tenant on 10/26/2026 (<code>builtin:openpipeline.logs.pipeline-groups</code>, <code>builtin:openpipeline.logs.pipelines</code>, schema version 1.77).</sub></p>
+</blockquote>
+<p><a id="ownership-model"></a></p>
+<h2>2. Ownership Model</h2>
+<p>The docs split ownership in two: <em>&quot;Administrators own and manage the group, as well as its compositions&quot;</em>, while <em>&quot;Development teams own their member pipelines which operate within the group's boundaries.&quot;</em> The multi-cloud tutorial adds a middle layer — a mid-level team that owns cloud-specific processing and the security-context pipelines — which is the model most large estates end up with.</p>
+<table>
+<thead>
+<tr>
+<th>Object</th>
+<th>Platform admins</th>
+<th>Domain / mid-level team</th>
+<th>Development team</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pipeline group and composition</td>
+<td><strong>Owns</strong></td>
+<td>Consulted</td>
+<td>Informed</td>
+</tr>
+<tr>
+<td>Member assignment (<code>memberPipelines</code>)</td>
+<td><strong>Owns</strong> — <em>&quot;Only administrators can manage member pipeline assignment to a group.&quot;</em></td>
+<td>Consulted</td>
+<td>Requests</td>
+</tr>
+<tr>
+<td>Global base pipeline (bucket, cost center)</td>
+<td><strong>Owns</strong></td>
+<td>Informed</td>
+<td>Informed</td>
+</tr>
+<tr>
+<td>Domain base pipelines (processing, permission, product allocation)</td>
+<td>Approves</td>
+<td><strong>Owns</strong></td>
+<td>Consulted</td>
+</tr>
+<tr>
+<td>Member pipeline</td>
+<td>Approves when gating fails</td>
+<td>Consulted</td>
+<td><strong>Owns</strong></td>
+</tr>
+<tr>
+<td>Routing table</td>
+<td><strong>Owns</strong> (see §7)</td>
+<td>Consulted</td>
+<td>Requests</td>
+</tr>
+</tbody>
+</table>
+<p>How the access control works underneath:</p>
+<ul>
+<li><strong>Pipelines and groups are owned objects.</strong> Both settings schemas use owner-based access control (read 10/26/2026), so a team can be given its own member pipeline without being able to edit the composition. The processing page puts it this way: <em>&quot;By adding custom pipelines per team, you can manage them via owner-based access control.&quot;</em></li>
+<li><strong>The routing table is not.</strong> The access-control page says <em>&quot;Owner-based control is available for pipelines and ingest sources, and not routing.&quot;</em> Each scope has a single routing object (<code>builtin:openpipeline.&lt;scope&gt;.routing</code>), so a write permission on a scope's schemas covers every route in it — the page's own example warns that such a policy <em>&quot;gives users write permissions to all routes for a configuration scope and should therefore be used with caution.&quot;</em> A team that can edit routes can point another team's traffic at its own pipeline. Keep route edits with the platform team.</li>
+<li><strong>API scopes.</strong> The tutorial lists <em>&quot;settings:objects:read and settings:objects:write with builtin:openpipeline.<configuration-scope>.pipeline-groups scope&quot;</em> for group management. The same pair on <code>.pipelines</code> and <code>.routing</code> covers the rest.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">OpenPipeline pipeline groups (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/pipeline-groups-multicloud">Configure multi-cloud ingest governance with pipeline groups (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control">Owner-based access control in OpenPipeline (DT docs)</a></sub></li>
+<li><sub>Owner-based access control on the pipeline and pipeline-group schemas, and the single routing object, were read from the settings schemas on 10/26/2026.</sub></li>
+</ul>
+</blockquote>
+<p><a id="stage-allocation-tiers"></a></p>
+<h2>3. Stage Allocation Tiers</h2>
+<p>The group decides which stages a member pipeline may run. The stage identifiers the API and Terraform accept (group schema version 1.77, read 10/26/2026) are:</p>
+<table>
+<thead>
+<tr>
+<th>Stage (UI)</th>
+<th>API / Terraform value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Processing</td>
+<td><code>processing</code></td>
+</tr>
+<tr>
+<td>Smartscape node</td>
+<td><code>smartscapeNodeExtraction</code></td>
+</tr>
+<tr>
+<td>Smartscape edge</td>
+<td><code>smartscapeEdgeExtraction</code></td>
+</tr>
+<tr>
+<td>Permission</td>
+<td><code>securityContext</code></td>
+</tr>
+<tr>
+<td>Product allocation</td>
+<td><code>productAllocation</code></td>
+</tr>
+<tr>
+<td>Cost allocation</td>
+<td><code>costAllocation</code></td>
+</tr>
+<tr>
+<td>Bucket assignment</td>
+<td><code>storage</code></td>
+</tr>
+<tr>
+<td>Metric extraction</td>
+<td><code>metricExtraction</code></td>
+</tr>
+<tr>
+<td>Davis</td>
+<td><code>davis</code></td>
+</tr>
+<tr>
+<td>Data extraction</td>
+<td><code>dataExtraction</code></td>
+</tr>
+</tbody>
+</table>
+<p>The schema also lists a <code>security</code> stage value that the processing page's stage table does not describe; leave it out of policy until it is documented.</p>
+<p><strong>Which tier each stage belongs in is a design decision, not documented behavior.</strong> The Dynatrace multi-cloud example gives members only <code>processing</code>. In community practice, the following split is a common starting point — adapt it to your teams:</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Stages</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Always central</strong></td>
+<td>Permission (<code>securityContext</code>), Cost allocation, Product allocation, Bucket assignment (<code>storage</code>)</td>
+<td>These decide who can see the data, who pays for it, and how long it is kept. A team that can set them can widen its own access or move cost elsewhere.</td>
+</tr>
+<tr>
+<td><strong>Member by default</strong></td>
+<td>Processing, Metric extraction, Data extraction (business and SDLC events)</td>
+<td>Domain knowledge lives with the team; the risks (§10) are manageable with naming and cardinality gates (§11).</td>
+</tr>
+<tr>
+<td><strong>Judgment call</strong></td>
+<td>Davis, Smartscape node/edge, and Bucket assignment for a team with a real retention need</td>
+<td>Davis events open problems for everyone who watches the environment; Smartscape extraction creates topology others rely on. Grant them to teams that have shown they can tune them.</td>
+</tr>
+</tbody>
+</table>
+<p>Teams can still add their own stages after the mandated ones — <em>&quot;Teams can add optional stages after mandated ones, but can't override restricted stages.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">OpenPipeline pipeline groups (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/pipeline-groups-multicloud">Configure multi-cloud ingest governance with pipeline groups (DT docs)</a>. Stage values read from <code>builtin:openpipeline.logs.pipeline-groups</code> (version 1.77) on 10/26/2026.</sub></p>
+</blockquote>
+<p><a id="stage-overlap-and-memberstages"></a></p>
+<h2>4. Stage Overlap and memberStages</h2>
+<p><strong>Stages are not exclusive.</strong> If a base pipeline and a member pipeline both enable the same stage, both run: <em>&quot;When a base pipeline and a member pipeline both have the same stage enabled, both run—stages are not mutually exclusive.&quot;</em> Mandating a stage in a base pipeline does <strong>not</strong> stop a member from also running it. To stop the member, exclude the stage in the group's <code>memberStages</code>.</p>
+<p><code>memberStages</code> takes one of three forms (group schema, read 10/26/2026):</p>
+<table>
+<thead>
+<tr>
+<th><code>type</code></th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>includeAll</code></td>
+<td>Members may run every stage</td>
+<td><code>{&quot;type&quot;: &quot;includeAll&quot;}</code></td>
+</tr>
+<tr>
+<td><code>include</code></td>
+<td>Members may run only the listed stages</td>
+<td><code>{&quot;type&quot;: &quot;include&quot;, &quot;include&quot;: [&quot;processing&quot;, &quot;metricExtraction&quot;]}</code></td>
+</tr>
+<tr>
+<td><code>exclude</code></td>
+<td>Members may run everything except the listed stages</td>
+<td><code>{&quot;type&quot;: &quot;exclude&quot;, &quot;exclude&quot;: [&quot;securityContext&quot;, &quot;storage&quot;]}</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two details that catch people out:</p>
+<ul>
+<li><strong>&quot;No stages&quot; is a UI state, not an API payload.</strong> The docs say that with <em>Enable all stages</em> off, <em>&quot;If off and no stages are selected, member stages are blocked.&quot;</em> Through the API, an empty <code>include</code> list is rejected — the list needs at least one entry (reproduced 10/26/2026). In configuration as code, block members with an <code>include</code> list of the stages you do allow, or an <code>exclude</code> list of the ones you don't.</li>
+<li><strong>Prefer <code>include</code> over <code>exclude</code> for the central stages.</strong> With <code>exclude</code>, a stage added to the platform later is open to members until someone notices. With <code>include</code>, it is closed until someone opens it. This is a recommendation, not documented behavior.</li>
+</ul>
+<p><strong>Verified on a tenant (10/26/2026).</strong> A member pipeline set its own security context while the group's <code>memberStages</code> allowed only <code>processing</code> and <code>metricExtraction</code>. Every stored record carried the value set by the base pipeline, not the member's.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">OpenPipeline pipeline groups (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="composition-layout-and-execution-order"></a></p>
+<h2>5. Composition Layout and Execution Order</h2>
+<p>The composition is an ordered list. The docs: <em>&quot;Base pipelines above the placeholder run before the member pipeline; those below run after.&quot;</em> What &quot;before&quot; and &quot;after&quot; mean is easy to misread, so it was tested.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CjxkZWZzPjxtYXJrZXIgaWQ9ImFycm93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+PC9kZWZzPgo8cmVjdCB3aWR0aD0iOTMwIiBoZWlnaHQ9IjUwMCIgZmlsbD0iIzBGMTcyQSIvPgo8dGV4dCB4PSI0NjUiIHk9IjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5QaXBlbGluZSBHcm91cCBFeGVjdXRpb24gT3JkZXI8L3RleHQ+Cjx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlN0YWdlcyBydW4gaW4gdGhlaXIgZml4ZWQgb3JkZXI7IHdpdGhpbiBlYWNoIHN0YWdlLCBjb21wb3NpdGlvbiBlbnRyaWVzIHJ1biB0b3AgdG8gYm90dG9tPC90ZXh0Pgo8cmVjdCB4PSIyNzAiIHk9Ijc4IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgo8dGV4dCB4PSIzNzAiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5CYXNlIHBpcGVsaW5lPC90ZXh0Pgo8dGV4dCB4PSIzNzAiIHk9IjExMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YWJvdmUgdGhlIHBsYWNlaG9sZGVyPC90ZXh0Pgo8cmVjdCB4PSI0OTAiIHk9Ijc4IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgo8dGV4dCB4PSI1OTAiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5NZW1iZXIgcGlwZWxpbmU8L3RleHQ+Cjx0ZXh0IHg9IjU5MCIgeT0iMTExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hdCB0aGUgcGxhY2Vob2xkZXI8L3RleHQ+CjxyZWN0IHg9IjcxMCIgeT0iNzgiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDAiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+Cjx0ZXh0IHg9IjgxMCIgeT0iOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkJhc2UgcGlwZWxpbmU8L3RleHQ+Cjx0ZXh0IHg9IjgxMCIgeT0iMTExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5iZWxvdyB0aGUgcGxhY2Vob2xkZXI8L3RleHQ+Cjx0ZXh0IHg9IjQwIiB5PSIxMDMiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0YWdlIChmaXhlZCBvcmRlcik8L3RleHQ+CjxyZWN0IHg9IjM2IiB5PSIxMjgiIHdpZHRoPSI4NTgiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIG9wYWNpdHk9IjAuNSIgcng9IjQiLz4KPHRleHQgeD0iNDQiIHk9IjE0NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+MS48L3RleHQ+Cjx0ZXh0IHg9IjY0IiB5PSIxNDYiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPlByb2Nlc3Npbmc8L3RleHQ+CjxyZWN0IHg9IjI4MCIgeT0iMTMxIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNSIvPgo8dGV4dCB4PSIzNzAiIHk9IjE0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+cnVuczwvdGV4dD4KPHJlY3QgeD0iNTAwIiB5PSIxMzEiIHdpZHRoPSIxODAiIGhlaWdodD0iMjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI1Ii8+Cjx0ZXh0IHg9IjU5MCIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5ydW5zPC90ZXh0Pgo8cmVjdCB4PSI3MjAiIHk9IjEzMSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjUiLz4KPHRleHQgeD0iODEwIiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPnJ1bnM8L3RleHQ+CjxsaW5lIHgxPSI0NjAiIHkxPSIxNDIiIHgyPSI1MDAiIHkyPSIxNDIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CjxsaW5lIHgxPSI2ODAiIHkxPSIxNDIiIHgyPSI3MjAiIHkyPSIxNDIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CjxyZWN0IHg9IjM2IiB5PSIxNjAiIHdpZHRoPSI4NTgiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIG9wYWNpdHk9IjAuNSIgcng9IjQiLz4KPHRleHQgeD0iNDQiIHk9IjE3OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Mi48L3RleHQ+Cjx0ZXh0IHg9IjY0IiB5PSIxNzgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPlNtYXJ0c2NhcGUgbm9kZTwvdGV4dD4KPHRleHQgeD0iMzcwIiB5PSIxNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPm5vdCBlbmFibGVkPC90ZXh0Pgo8cmVjdCB4PSI1MDAiIHk9IjE2MyIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2UtZGFzaGFycmF5PSI0IDMiIHJ4PSI1Ii8+Cjx0ZXh0IHg9IjU5MCIgeT0iMTc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj5ibG9ja2VkIGJ5IG1lbWJlclN0YWdlczwvdGV4dD4KPHRleHQgeD0iODEwIiB5PSIxNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPm5vdCBlbmFibGVkPC90ZXh0Pgo8cmVjdCB4PSIzNiIgeT0iMTkyIiB3aWR0aD0iODU4IiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBvcGFjaXR5PSIwLjUiIHJ4PSI0Ii8+Cjx0ZXh0IHg9IjQ0IiB5PSIyMTAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjMuPC90ZXh0Pgo8dGV4dCB4PSI2NCIgeT0iMjEwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5TbWFydHNjYXBlIGVkZ2U8L3RleHQ+Cjx0ZXh0IHg9IjM3MCIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5ub3QgZW5hYmxlZDwvdGV4dD4KPHJlY3QgeD0iNTAwIiB5PSIxOTUiIHdpZHRoPSIxODAiIGhlaWdodD0iMjIiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLWRhc2hhcnJheT0iNCAzIiByeD0iNSIvPgo8dGV4dCB4PSI1OTAiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+YmxvY2tlZCBieSBtZW1iZXJTdGFnZXM8L3RleHQ+Cjx0ZXh0IHg9IjgxMCIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5ub3QgZW5hYmxlZDwvdGV4dD4KPHJlY3QgeD0iMzYiIHk9IjIyNCIgd2lkdGg9Ijg1OCIgaGVpZ2h0PSIyOCIgZmlsbD0iIzFFMjkzQiIgb3BhY2l0eT0iMC41IiByeD0iNCIvPgo8dGV4dCB4PSI0NCIgeT0iMjQyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj40LjwvdGV4dD4KPHRleHQgeD0iNjQiIHk9IjI0MiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+UGVybWlzc2lvbjwvdGV4dD4KPHJlY3QgeD0iMjgwIiB5PSIyMjciIHdpZHRoPSIxODAiIGhlaWdodD0iMjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI1Ii8+Cjx0ZXh0IHg9IjM3MCIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5ydW5zPC90ZXh0Pgo8cmVjdCB4PSI1MDAiIHk9IjIyNyIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2UtZGFzaGFycmF5PSI0IDMiIHJ4PSI1Ii8+Cjx0ZXh0IHg9IjU5MCIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj5ibG9ja2VkIGJ5IG1lbWJlclN0YWdlczwvdGV4dD4KPHRleHQgeD0iODEwIiB5PSIyNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPm5vdCBlbmFibGVkPC90ZXh0Pgo8cmVjdCB4PSIzNiIgeT0iMjU2IiB3aWR0aD0iODU4IiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBvcGFjaXR5PSIwLjUiIHJ4PSI0Ii8+Cjx0ZXh0IHg9IjQ0IiB5PSIyNzQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjUuPC90ZXh0Pgo8dGV4dCB4PSI2NCIgeT0iMjc0IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5Qcm9kdWN0IGFsbG9jYXRpb248L3RleHQ+Cjx0ZXh0IHg9IjM3MCIgeT0iMjc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5ub3QgZW5hYmxlZDwvdGV4dD4KPHJlY3QgeD0iNTAwIiB5PSIyNTkiIHdpZHRoPSIxODAiIGhlaWdodD0iMjIiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLWRhc2hhcnJheT0iNCAzIiByeD0iNSIvPgo8dGV4dCB4PSI1OTAiIHk9IjI3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+YmxvY2tlZCBieSBtZW1iZXJTdGFnZXM8L3RleHQ+Cjx0ZXh0IHg9IjgxMCIgeT0iMjc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjExIj5ub3QgZW5hYmxlZDwvdGV4dD4KPHJlY3QgeD0iMzYiIHk9IjI4OCIgd2lkdGg9Ijg1OCIgaGVpZ2h0PSIyOCIgZmlsbD0iIzFFMjkzQiIgb3BhY2l0eT0iMC41IiByeD0iNCIvPgo8dGV4dCB4PSI0NCIgeT0iMzA2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj42LjwvdGV4dD4KPHRleHQgeD0iNjQiIHk9IjMwNiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+Q29zdCBhbGxvY2F0aW9uPC90ZXh0Pgo8cmVjdCB4PSIyODAiIHk9IjI5MSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjUiLz4KPHRleHQgeD0iMzcwIiB5PSIzMDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPnJ1bnM8L3RleHQ+CjxyZWN0IHg9IjUwMCIgeT0iMjkxIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS1kYXNoYXJyYXk9IjQgMyIgcng9IjUiLz4KPHRleHQgeD0iNTkwIiB5PSIzMDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPmJsb2NrZWQgYnkgbWVtYmVyU3RhZ2VzPC90ZXh0Pgo8dGV4dCB4PSI4MTAiIHk9IjMwNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+bm90IGVuYWJsZWQ8L3RleHQ+CjxyZWN0IHg9IjM2IiB5PSIzMjAiIHdpZHRoPSI4NTgiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIG9wYWNpdHk9IjAuNSIgcng9IjQiLz4KPHRleHQgeD0iNDQiIHk9IjMzOCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Ny48L3RleHQ+Cjx0ZXh0IHg9IjY0IiB5PSIzMzgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPkJ1Y2tldCBhc3NpZ25tZW50PC90ZXh0Pgo8cmVjdCB4PSIyODAiIHk9IjMyMyIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjUiLz4KPHRleHQgeD0iMzcwIiB5PSIzMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPnJ1bnM8L3RleHQ+CjxyZWN0IHg9IjUwMCIgeT0iMzIzIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS1kYXNoYXJyYXk9IjQgMyIgcng9IjUiLz4KPHRleHQgeD0iNTkwIiB5PSIzMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPmJsb2NrZWQgYnkgbWVtYmVyU3RhZ2VzPC90ZXh0Pgo8dGV4dCB4PSI4MTAiIHk9IjMzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+bm90IGVuYWJsZWQ8L3RleHQ+CjxyZWN0IHg9IjM2IiB5PSIzNTIiIHdpZHRoPSI4NTgiIGhlaWdodD0iMjgiIGZpbGw9IiMxRTI5M0IiIG9wYWNpdHk9IjAuNSIgcng9IjQiLz4KPHRleHQgeD0iNDQiIHk9IjM3MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+OC48L3RleHQ+Cjx0ZXh0IHg9IjY0IiB5PSIzNzAiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiPk1ldHJpYyBleHRyYWN0aW9uPC90ZXh0Pgo8dGV4dCB4PSIzNzAiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+bm90IGVuYWJsZWQ8L3RleHQ+CjxyZWN0IHg9IjUwMCIgeT0iMzU1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNSIvPgo8dGV4dCB4PSI1OTAiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+cnVuczwvdGV4dD4KPHRleHQgeD0iODEwIiB5PSIzNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPm5vdCBlbmFibGVkPC90ZXh0Pgo8cmVjdCB4PSIzNiIgeT0iMzg0IiB3aWR0aD0iODU4IiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBvcGFjaXR5PSIwLjUiIHJ4PSI0Ii8+Cjx0ZXh0IHg9IjQ0IiB5PSI0MDIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjkuPC90ZXh0Pgo8dGV4dCB4PSI2NCIgeT0iNDAyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIj5EYXZpczwvdGV4dD4KPHRleHQgeD0iMzcwIiB5PSI0MDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPm5vdCBlbmFibGVkPC90ZXh0Pgo8cmVjdCB4PSI1MDAiIHk9IjM4NyIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2UtZGFzaGFycmF5PSI0IDMiIHJ4PSI1Ii8+Cjx0ZXh0IHg9IjU5MCIgeT0iNDAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj5ibG9ja2VkIGJ5IG1lbWJlclN0YWdlczwvdGV4dD4KPHRleHQgeD0iODEwIiB5PSI0MDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPm5vdCBlbmFibGVkPC90ZXh0Pgo8cmVjdCB4PSIzNiIgeT0iNDE2IiB3aWR0aD0iODU4IiBoZWlnaHQ9IjI4IiBmaWxsPSIjMUUyOTNCIiBvcGFjaXR5PSIwLjUiIHJ4PSI0Ii8+Cjx0ZXh0IHg9IjQ0IiB5PSI0MzQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjEwLjwvdGV4dD4KPHRleHQgeD0iNjQiIHk9IjQzNCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+RGF0YSBleHRyYWN0aW9uPC90ZXh0Pgo8dGV4dCB4PSIzNzAiIHk9IjQzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+bm90IGVuYWJsZWQ8L3RleHQ+CjxyZWN0IHg9IjUwMCIgeT0iNDE5IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNSIvPgo8dGV4dCB4PSI1OTAiIHk9IjQzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+cnVuczwvdGV4dD4KPHRleHQgeD0iODEwIiB5PSI0MzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPm5vdCBlbmFibGVkPC90ZXh0Pgo8dGV4dCB4PSI0NjUiIHk9IjQ2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QSBiYXNlIHBpcGVsaW5lIGJlbG93IHRoZSBwbGFjZWhvbGRlciBzdGlsbCBydW5zIGl0cyBQcm9jZXNzaW5nIGJlZm9yZSB0aGUgbWVtYmVyIHJlYWNoZXMgTWV0cmljIGV4dHJhY3Rpb24sPC90ZXh0Pgo8dGV4dCB4PSI0NjUiIHk9IjQ3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+c28gbWVtYmVyLXNpZGUgZXh0cmFjdGlvbiBzZWVzIHRoZSBzZWN1cml0eSBjb250ZXh0IHRoZSBjb21wb3NpdGlvbiBzZXQgKHZlcmlmaWVkIG9uIGEgdGVuYW50LCAxMC8yNi8yMDI2KS48L3RleHQ+Cjwvc3ZnPgo=" alt="Pipeline group execution order" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage (fixed order) | Base pipeline above the placeholder | Member pipeline | Base pipeline below the placeholder |
+|---|---|---|---|
+| 1. Processing | runs | runs | runs |
+| 2. Smartscape node | not enabled | blocked by memberStages | not enabled |
+| 3. Smartscape edge | not enabled | blocked by memberStages | not enabled |
+| 4. Permission | runs | blocked by memberStages | not enabled |
+| 5. Product allocation | not enabled | blocked by memberStages | not enabled |
+| 6. Cost allocation | runs | blocked by memberStages | not enabled |
+| 7. Bucket assignment | runs | blocked by memberStages | not enabled |
+| 8. Metric extraction | not enabled | runs | not enabled |
+| 9. Davis | not enabled | blocked by memberStages | not enabled |
+| 10. Data extraction | not enabled | runs | not enabled |
+Stages run in their fixed order; within each stage, composition entries run top to bottom. A base pipeline below the placeholder still runs its Processing before the member reaches Metric extraction, so member-side extraction sees the security context the composition set (verified on a tenant, 10/26/2026).
+-->
+<p><strong>What the test showed (10/26/2026).</strong> Three pipelines each appended one letter to the same field in their Processing stage: <code>A</code> (base, above the placeholder), <code>M</code> (member), <code>B</code> (base, below). The member also extracted a counter metric split by that field and by <code>dt.security_context</code>. Stored records carried <code>AMB</code>, and so did the member's metric. So the member's Metric extraction stage already saw the change from the base pipeline <em>below</em> the placeholder, and it saw the security context set by the base pipeline above.</p>
+<p>The stage sequence is fixed — <em>&quot;The sequence of stages is fixed for all pipelines and cannot be modified.&quot;</em> Within a group, composition position orders the pipelines <strong>inside each stage</strong>. &quot;Below the placeholder&quot; therefore means <em>after the member within each stage</em>, not <em>after the whole member pipeline</em>. Two consequences:</p>
+<ul>
+<li><strong>A base pipeline below the placeholder can override member Processing</strong>, and its result is what member extraction sees. Put normalization that must win (schema enforcement, field clean-up) below the placeholder.</li>
+<li><strong>Central Permission, Cost allocation, Product allocation and Bucket assignment run before any extraction stage</strong>, wherever their base pipeline sits, because those stages come earlier in the fixed sequence. Member-extracted metrics and events see the central values. This was tested for the security context; cost and bucket follow from the same stage order.</li>
+</ul>
+<p><strong>Reference layout</strong> (community practice — adjust to your stages):</p>
+<table>
+<thead>
+<tr>
+<th>Position</th>
+<th>Base pipeline</th>
+<th>Stages it runs</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 (above)</td>
+<td>Masking and security context</td>
+<td><code>processing</code> (masking processors only), <code>securityContext</code></td>
+<td>Platform</td>
+</tr>
+<tr>
+<td>2 (above)</td>
+<td>Domain processing</td>
+<td><code>processing</code>, and any extraction the domain team owns</td>
+<td>Domain team</td>
+</tr>
+<tr>
+<td>3 (above)</td>
+<td>Cost, product and bucket</td>
+<td><code>costAllocation</code>, <code>productAllocation</code>, <code>storage</code></td>
+<td>Platform</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Member placeholder</strong></td>
+<td>per <code>memberStages</code></td>
+<td>Dev teams</td>
+</tr>
+<tr>
+<td>5 (below)</td>
+<td>Normalization that must win</td>
+<td><code>processing</code></td>
+<td>Platform or domain team</td>
+</tr>
+</tbody>
+</table>
+<p>Masking goes in position 1 so no member processor ever sees the raw value — <strong>OPMIG-08</strong> covers masking order. The masking pipeline only protects downstream processors; routing still sees the raw record (§7).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">OpenPipeline pipeline groups (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a>. <strong>Derived:</strong> the stage-by-stage reading of composition order combines the fixed stage sequence with the tenant test above.</sub></p>
+</blockquote>
+<p><a id="grouping-topologies"></a></p>
+<h2>6. Grouping Topologies</h2>
+<p>Pick one grouping axis per scope and keep it. Common choices, in community practice:</p>
+<table>
+<thead>
+<tr>
+<th>Axis</th>
+<th>Group per…</th>
+<th>Works well when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cloud provider</td>
+<td>AWS, Azure, GCP, on-premises</td>
+<td>Cost and access split by provider — the Dynatrace multi-cloud example</td>
+</tr>
+<tr>
+<td>Business unit</td>
+<td>BU or product line</td>
+<td>Each BU has its own security context and cost center</td>
+</tr>
+<tr>
+<td>Data domain</td>
+<td>Payments, identity, logistics</td>
+<td>Domain teams own processing; one platform team owns access</td>
+</tr>
+<tr>
+<td>Environment</td>
+<td>prod / non-prod</td>
+<td>Retention and access differ sharply between environments</td>
+</tr>
+</tbody>
+</table>
+<p>Constraints that limit the design:</p>
+<ul>
+<li>A member pipeline is in <strong>one</strong> group, and groups can't be nested (§1). A record cannot be governed by a BU group <em>and</em> an environment group. Use one axis for groups and handle the other with conditions inside the base pipelines — for example, a bucket-assignment processor that matches on <code>deployment.release_stage</code>.</li>
+<li>A base pipeline <strong>can</strong> serve several groups (§1), so a global pipeline (bucket, cost center) is written once and listed in every group's composition.</li>
+<li>Every group counts against the scope's limits (§8).</li>
+</ul>
+<p><a id="routing-into-a-group"></a></p>
+<h2>7. Routing Into a Group</h2>
+<p>Data enters a group only through a route to one of its <strong>member</strong> pipelines:</p>
+<ul>
+<li><strong>Base pipelines are not routable.</strong> The docs: <em>&quot;base pipelines are typically not routable&quot;</em>, with standalone ready-made extension pipelines as the exception. A route pointing at a custom base pipeline was rejected by the API on 10/26/2026.</li>
+<li><strong>First match wins.</strong> <em>&quot;Each record is routed to and processed by only one member pipeline, according to the first matching route.&quot;</em> Order routes from specific to general, and keep conditions mutually exclusive.</li>
+<li><strong>Watch the default route.</strong> Records that match no route skip the group entirely — no central permission, cost or bucket. The query in §12 shows how much traffic lands there.</li>
+<li><strong>Routing sees raw data.</strong> Routing runs before any pipeline processor, so masking in a base pipeline does not protect a route condition. Keep PII out of route matchers (<strong>OPMIG-08</strong>).</li>
+<li><strong>The platform team owns the routing table</strong> (§2). Routing has no owner-based access control, so a team that can edit a route can capture another team's traffic.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">OpenPipeline pipeline groups (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/pipeline-groups-multicloud">Configure multi-cloud ingest governance with pipeline groups (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control">Owner-based access control in OpenPipeline (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="capacity-budgeting"></a></p>
+<h2>8. Capacity Budgeting</h2>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Applies to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pipeline groups</td>
+<td>100</td>
+<td>per configuration scope</td>
+</tr>
+<tr>
+<td>Pipelines (all types, including base and member)</td>
+<td>100</td>
+<td>per configuration scope</td>
+</tr>
+<tr>
+<td>Pipeline slots</td>
+<td>10</td>
+<td>per group</td>
+</tr>
+<tr>
+<td>Member pipelines</td>
+<td>1,000</td>
+<td>per group</td>
+</tr>
+<tr>
+<td>Processors in a base pipeline</td>
+<td>100</td>
+<td>per base pipeline (1,000 in other pipelines)</td>
+</tr>
+<tr>
+<td>Pipelines a record can be extracted in</td>
+<td>5</td>
+<td>per record (<code>dt.openpipeline.pipelines</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>What to plan for:</p>
+<ul>
+<li><strong>Base pipelines are small.</strong> At 100 processors each, keep each base pipeline to one job (masking, permission, cost and bucket) rather than one large shared pipeline.</li>
+<li><strong>Base and member pipelines share the 100-pipeline budget of the scope.</strong> Thirty teams with one member pipeline each, plus five base pipelines, use 35 of 100.</li>
+<li><strong>The extraction limit.</strong> <em>&quot;You can extract data on a single record in a maximum of five different pipelines&quot;</em>, and past that <em>&quot;The record continues to be processed and persisted.&quot;</em> — without further extraction. On a tenant (10/26/2026) a record processed by two base pipelines and one member carried <strong>one</strong> entry in <code>dt.openpipeline.pipelines</code>: <code>logs:&lt;member&gt;(&lt;group name&gt;)</code>. The docs do not say whether extraction inside base pipelines draws on the limit separately. Until they do, treat each pipeline that extracts from the same record — base or member — as using one of the five, and recheck with the §12 query.</li>
+</ul>
+<p><strong>Worked example.</strong> A logs group has a global base pipeline (cost, bucket), a security base pipeline (masking, permission) and a domain base pipeline that extracts two metrics and a business event. The domain team's member pipeline also extracts metrics. Counted conservatively, two pipelines extract from each record — domain base and member — which leaves three of five for downstream re-ingestion chains, such as a business event that is extracted again in its own scope. Add a base pipeline that extracts and you are at three.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline limits (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="extending-ready-made-extension-pipelines"></a></p>
+<h2>9. Extending Ready-Made Extension Pipelines</h2>
+<p>Ready-made pipelines that extensions install are view-only — you cannot edit their processors. A group lets you add to them: one documented use case is to <em>&quot;Extend an immutable extension pipeline by adding a base pipeline to the group that applies custom processing&quot;</em>, for example to drop records the extension would keep.</p>
+<p>The docs allow a ready-made pipeline in either role — base or member — and a standalone ready-made base pipeline stays routable, while one inside a group does not. They do not give a worked composition for this case, and it was not tested for this notebook. Before relying on it, confirm on a non-production tenant that your added processing runs where you expect: §5's stage-by-stage order means a base pipeline's Processing runs before every pipeline's extraction stages, whatever its position.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">OpenPipeline pipeline groups (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="risks-of-member-side-extraction"></a></p>
+<h2>10. Risks of Member-Side Extraction</h2>
+<p>Handing Metric extraction, Davis or Data extraction to teams moves three risks out of the platform team's view:</p>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>What happens</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cardinality</strong></td>
+<td>A team adds <code>k8s.pod.name</code> or a request ID as a metric dimension; storage and query cost grow with every pod</td>
+<td>Dimension allow-list and the cardinality budget from <strong>OPIPE-04</strong></td>
+</tr>
+<tr>
+<td><strong>Metric-key collisions</strong></td>
+<td>Two teams both extract <code>log.error_count</code> with different meanings</td>
+<td>Prefix keys with the team or domain (<code>log.payments.error_count</code>) — a naming convention, enforced in CI (§11)</td>
+</tr>
+<tr>
+<td><strong>Davis noise and attribution</strong></td>
+<td>Davis events open problems for everyone; an event without a real <code>dt.smartscape_source.id</code> lands on the environment entity and merges with unrelated events</td>
+<td>Allow the Davis stage only for teams that set <code>dt.smartscape_source.id</code> — <strong>OPLOGS-03</strong> covers the prerequisite</td>
+</tr>
+</tbody>
+</table>
+<p>None of these is stopped by <code>memberStages</code> alone, which is all-or-nothing per stage for the whole group. The finer control is a pipeline check (§11).</p>
+<p><a id="enablement-and-automated-gating"></a></p>
+<h2>11. Enablement and Automated Gating</h2>
+<p><strong>Train before you assign.</strong> Only administrators can assign a member pipeline to a group (§2), which gives you a natural gate: make completing onboarding — naming conventions, allowed stages, cardinality rules, routing rules — the condition for assignment.</p>
+<p><strong>Gate member changes in CI.</strong> When pipelines live in configuration as code, these checks catch most problems before they reach the tenant. They are community practice, not product features:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Fails when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Metric key prefix</td>
+<td>A <code>counterMetric</code> / <code>valueMetric</code> key does not start with the team's prefix</td>
+</tr>
+<tr>
+<td>Davis allow-list</td>
+<td>A <code>davis</code> processor appears in a pipeline whose team is not on the allow-list</td>
+</tr>
+<tr>
+<td>Dimension deny-list</td>
+<td>A metric dimension is a known high-cardinality field (<code>k8s.pod.name</code>, <code>trace.id</code>, request or session IDs)</td>
+</tr>
+<tr>
+<td>Processor count</td>
+<td>A member pipeline nears 1,000 processors, or a base pipeline nears 100</td>
+</tr>
+<tr>
+<td>Extraction count</td>
+<td>More than five pipelines on one data path extract (§8)</td>
+</tr>
+<tr>
+<td>Route scope</td>
+<td>A route matcher references fields outside the team's own sources, or a PII field</td>
+</tr>
+<tr>
+<td>Role and routing</td>
+<td>A new pipeline lacks an explicit <code>groupRole</code> and <code>routing</code> — both are permanent (§1)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Roll the checks out gradually.</strong> Start every rule as a warning, then switch it to a failure once the existing pipelines pass — the same warn-then-deny approach as the policy-as-code gates in <strong>AUTOM-07</strong>. Before deploying, run the payload through the Settings API with <code>validateOnly=true</code> (<strong>AUTOM-02</strong>); the server applies the full validation, including the group uniqueness and minimum-size constraints shown in §1 and §4.</p>
+<p><strong>Why CI rather than another group.</strong> <code>memberStages</code> applies to every member of a group. Allowing Davis for two teams but not the other twenty would otherwise mean a separate group for those two. A CI rule keyed on the team is the finer control.</p>
+<p><a id="verification-and-monitoring"></a></p>
+<h2>12. Verification and Monitoring</h2>
+<p><code>dt.openpipeline.pipelines</code> records the path a record took. A record processed by a group carries <code>&lt;scope&gt;:&lt;member custom ID&gt;(&lt;group name&gt;)</code> — for example <code>logs:payments-member(Payments group)</code>. Records on the default route carry <code>logs:default</code>.</p>
+<p><strong>Which pipelines and groups carry your data:</strong></p>
+<pre><code class="language-dql">// Records per pipeline path; group members show as &quot;&lt;scope&gt;:&lt;member&gt;(&lt;group&gt;)&quot;
+fetch logs, from:-15m
+| summarize {records = count()}, by:{dt.openpipeline.pipelines}
+| sort records desc
+| limit 20
+</code></pre>
+<p><strong>How much traffic skips every group</strong> — records on the default route get none of the central stages:</p>
+<pre><code class="language-dql">// Share of records on the default route (no group, no central stages)
+fetch logs, from:-15m
+| summarize {total = count(),
+    on_default = countIf(iAny(dt.openpipeline.pipelines[] == &quot;logs:default&quot;))}
+| fieldsAdd pct_on_default = round(100.0 * toDouble(on_default) / toDouble(total), decimals: 1)
+</code></pre>
+<p><strong>Whether the mandated Permission stage actually applied</strong> — any group path with records that lack a security context points at a composition that does not cover them:</p>
+<pre><code class="language-dql">// Records without a security context, per pipeline path
+fetch logs, from:-15m
+| summarize {records = count(),
+    without_context = countIf(isNull(dt.security_context))},
+    by:{dt.openpipeline.pipelines}
+| fieldsAdd pct_without_context = round(100.0 * toDouble(without_context) / toDouble(records), decimals: 1)
+| sort without_context desc
+| limit 20
+</code></pre>
+<p><strong>Who changed configuration.</strong> Settings writes appear as audit events. Updates and deletes name the object ID in <code>resource</code>; match it against the object IDs of your groups and base pipelines (from your configuration-as-code state). New objects are created by a <code>POST</code> to the collection, so the <code>resource</code> of a create does not name the object.</p>
+<pre><code class="language-dql">// Updates and deletions of settings objects in the last 7 days
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and in(event.type, {&quot;PUT&quot;, &quot;DELETE&quot;})
+| filter contains(resource, &quot;settings/objects/&quot;)
+| fields timestamp, event.type, event.outcome, user.id, resource
+| sort timestamp desc
+| limit 50
+</code></pre>
+<p>All four queries were executed on a SaaS tenant on 10/26/2026. Change the scope prefix (<code>logs:</code>) and the data object for other configuration scopes.</p>
+<p><a id="anti-patterns"></a></p>
+<h2>13. Anti-Patterns</h2>
+<table>
+<thead>
+<tr>
+<th>Anti-pattern</th>
+<th>Problem</th>
+<th>Instead</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One group for everything</td>
+<td>Every team gets the same <code>memberStages</code>; the composition becomes a shared bottleneck</td>
+<td>One group per axis value (§6)</td>
+</tr>
+<tr>
+<td>Security context, masking or bucket assignment left to member pipelines</td>
+<td>A team can widen its own access, unmask data or change retention</td>
+<td>Mandate them in base pipelines and exclude them from <code>memberStages</code> (§3–4)</td>
+</tr>
+<tr>
+<td>Mandating a stage but not excluding it</td>
+<td>Both the base and member versions run (§4)</td>
+<td>Exclude the stage in <code>memberStages</code></td>
+</tr>
+<tr>
+<td>Extraction stages without naming and cardinality rules</td>
+<td>Metric-key collisions and cost growth (§10)</td>
+<td>CI checks (§11)</td>
+</tr>
+<tr>
+<td>A group where a matching condition would do</td>
+<td>Extra pipelines and slots for a difference one processor could express</td>
+<td>Matching conditions inside one pipeline — <strong>OPIPE-01</strong></td>
+</tr>
+<tr>
+<td>Base pipelines near 100 processors</td>
+<td>No headroom; one change hits the limit</td>
+<td>One job per base pipeline (§8)</td>
+</tr>
+<tr>
+<td>Editing groups in the UI JSON view</td>
+<td>The JSON view is read-only — <em>&quot;You can copy the JSON from there, but not edit it directly.&quot;</em></td>
+<td>Edit in the UI forms, or manage the objects as code (§14)</td>
+</tr>
+<tr>
+<td>Development teams with write access to routing</td>
+<td>One routing object per scope — a team can redirect another team's traffic (§2)</td>
+<td>Platform team owns routes</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">OpenPipeline pipeline groups (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="configuration-as-code-example"></a></p>
+<h2>14. Configuration-as-Code Example</h2>
+<p>The Settings API and the Terraform provider manage the same three object types. The payloads below are the shapes that were created on a tenant on 10/26/2026, renamed for readability. Create base and member pipelines first, then the group (it references their object IDs), then the route.</p>
+<p><strong>Base pipeline</strong> — <code>POST /api/v2/settings/objects</code>, schema <code>builtin:openpipeline.logs.pipelines</code>:</p>
+<pre><code class="language-json">{
+  &quot;schemaId&quot;: &quot;builtin:openpipeline.logs.pipelines&quot;,
+  &quot;scope&quot;: &quot;environment&quot;,
+  &quot;value&quot;: {
+    &quot;customId&quot;: &quot;platform-security-context&quot;,
+    &quot;displayName&quot;: &quot;Platform - security context&quot;,
+    &quot;groupRole&quot;: &quot;basePipeline&quot;,
+    &quot;routing&quot;: &quot;notRoutable&quot;,
+    &quot;securityContext&quot;: {
+      &quot;processors&quot;: [{
+        &quot;type&quot;: &quot;securityContext&quot;,
+        &quot;id&quot;: &quot;set-security-context&quot;,
+        &quot;description&quot;: &quot;Central security context&quot;,
+        &quot;enabled&quot;: true,
+        &quot;matcher&quot;: &quot;true&quot;,
+        &quot;securityContext&quot;: {&quot;value&quot;: {&quot;type&quot;: &quot;constant&quot;, &quot;constant&quot;: &quot;payments&quot;}}
+      }]
+    }
+  }
+}
+</code></pre>
+<p><strong>Member pipeline</strong> — same schema; note <code>memberPipeline</code> and <code>routable</code>:</p>
+<pre><code class="language-json">{
+  &quot;schemaId&quot;: &quot;builtin:openpipeline.logs.pipelines&quot;,
+  &quot;scope&quot;: &quot;environment&quot;,
+  &quot;value&quot;: {
+    &quot;customId&quot;: &quot;payments-checkout&quot;,
+    &quot;displayName&quot;: &quot;Payments - checkout&quot;,
+    &quot;groupRole&quot;: &quot;memberPipeline&quot;,
+    &quot;routing&quot;: &quot;routable&quot;,
+    &quot;processing&quot;: {
+      &quot;processors&quot;: [{
+        &quot;type&quot;: &quot;dql&quot;,
+        &quot;id&quot;: &quot;parse-checkout&quot;,
+        &quot;description&quot;: &quot;Parse order ID&quot;,
+        &quot;enabled&quot;: true,
+        &quot;matcher&quot;: &quot;true&quot;,
+        &quot;dql&quot;: {&quot;script&quot;: &quot;parse content, \&quot;LD 'order=' LD:order.id\&quot;&quot;}
+      }]
+    },
+    &quot;metricExtraction&quot;: {
+      &quot;processors&quot;: [{
+        &quot;type&quot;: &quot;counterMetric&quot;,
+        &quot;id&quot;: &quot;checkout-errors&quot;,
+        &quot;description&quot;: &quot;Checkout errors&quot;,
+        &quot;enabled&quot;: true,
+        &quot;matcher&quot;: &quot;matchesValue(status, \&quot;ERROR\&quot;)&quot;,
+        &quot;counterMetric&quot;: {
+          &quot;metricKey&quot;: &quot;log.payments.checkout_errors&quot;,
+          &quot;dimensions&quot;: [{&quot;extractionType&quot;: &quot;field&quot;, &quot;sourceFieldName&quot;: &quot;service.name&quot;}]
+        }
+      }]
+    }
+  }
+}
+</code></pre>
+<p><strong>Pipeline group</strong> — schema <code>builtin:openpipeline.logs.pipeline-groups</code>:</p>
+<pre><code class="language-json">{
+  &quot;schemaId&quot;: &quot;builtin:openpipeline.logs.pipeline-groups&quot;,
+  &quot;scope&quot;: &quot;environment&quot;,
+  &quot;value&quot;: {
+    &quot;displayName&quot;: &quot;Payments group&quot;,
+    &quot;memberPipelines&quot;: [&quot;&lt;payments-checkout-object-id&gt;&quot;],
+    &quot;memberStages&quot;: {&quot;type&quot;: &quot;include&quot;, &quot;include&quot;: [&quot;processing&quot;, &quot;metricExtraction&quot;]},
+    &quot;composition&quot;: [
+      {&quot;isPipelinePlaceholder&quot;: false, &quot;pipelineId&quot;: &quot;&lt;platform-security-context-object-id&gt;&quot;,
+        &quot;stages&quot;: {&quot;type&quot;: &quot;include&quot;, &quot;include&quot;: [&quot;securityContext&quot;]}},
+      {&quot;isPipelinePlaceholder&quot;: true}
+    ]
+  }
+}
+</code></pre>
+<p><strong>Route</strong> — add an entry to the scope's single routing object (<code>builtin:openpipeline.logs.routing</code>) that points at the <strong>member</strong> pipeline. Because the routing object holds every route, read it, insert the entry and write the whole list back; never write a list that drops existing entries.</p>
+<pre><code class="language-json">{
+  &quot;enabled&quot;: true,
+  &quot;pipelineType&quot;: &quot;custom&quot;,
+  &quot;pipelineId&quot;: &quot;&lt;payments-checkout-object-id&gt;&quot;,
+  &quot;matcher&quot;: &quot;matchesValue(k8s.namespace.name, \&quot;payments\&quot;)&quot;,
+  &quot;description&quot;: &quot;Payments namespace to the payments member pipeline&quot;
+}
+</code></pre>
+<p><strong>Terraform.</strong> The provider has one group resource per scope — <code>dynatrace_openpipeline_v2_logs_pipelinegroups</code>, <code>..._spans_pipelinegroups</code>, and so on — alongside the <code>..._pipelines</code> and <code>..._routing</code> resources:</p>
+<pre><code class="language-hcl">resource &quot;dynatrace_openpipeline_v2_logs_pipelinegroups&quot; &quot;payments&quot; {
+  display_name = &quot;Payments group&quot;
+  composition {
+    pipeline_group_composition {
+      is_pipeline_placeholder = false
+      pipeline_id             = dynatrace_openpipeline_v2_logs_pipelines.platform_security_context.id
+      stages {
+        type    = &quot;include&quot;
+        include = [&quot;securityContext&quot;]
+      }
+    }
+    pipeline_group_composition {
+      is_pipeline_placeholder = true
+    }
+  }
+  member_stages {
+    type    = &quot;include&quot;
+    include = [&quot;processing&quot;, &quot;metricExtraction&quot;]
+  }
+  member_pipelines = [dynatrace_openpipeline_v2_logs_pipelines.payments_checkout.id]
+}
+</code></pre>
+<p>The provider's own example sets <code>group_role = &quot;compositionPipeline&quot;</code> on the base pipeline; use <code>basePipeline</code> (§1). The provider page recommends platform credentials, because they set an owner on the created object — <strong>AUTOM-04</strong> covers provider authentication.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">OpenPipeline pipeline groups (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/pipeline-groups-multicloud">Configure multi-cloud ingest governance with pipeline groups (DT docs)</a>, <a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/openpipeline_v2_logs_pipelinegroups">dynatrace_openpipeline_v2_logs_pipelinegroups (Terraform Registry)</a>.</sub></p>
+</blockquote>
+<hr />
+<p><a id="summary"></a></p>
+<h2>15. Summary</h2>
+<ul>
+<li><strong>A member pipeline belongs to one group; a base pipeline can serve several.</strong> Roles are permanent, and groups don't nest.</li>
+<li><strong>Mandating a stage does not stop members from running it.</strong> Exclude it in <code>memberStages</code>; via the API, an empty <code>include</code> list is rejected.</li>
+<li><strong>Composition order applies within each stage.</strong> A base pipeline below the placeholder still runs before member extraction, and member-extracted data sees the central security context.</li>
+<li><strong>Routes go to member pipelines only, and the routing table is one shared object</strong> — keep it with the platform team and watch the default route.</li>
+<li><strong>Budget the limits:</strong> 100 processors per base pipeline, 10 slots per group, 100 pipelines per scope, five extracting pipelines per record.</li>
+<li><strong><code>memberStages</code> is coarse; CI gating is fine-grained.</strong> Train teams before assigning them, and roll out checks warn-first.</li>
+</ul>
+<hr />
+<h2>Next Steps</h2>
+<ul>
+<li><strong>OPIPE-01</strong> — deciding between matching conditions, pipelines and groups</li>
+<li><strong>OPIPE-04</strong> — the cardinality budget behind member-side metric extraction</li>
+<li><strong>OPMIG-05</strong> and <strong>OPMIG-08</strong> — routing, buckets, and masking order</li>
+<li><strong>AUTOM-04</strong> and <strong>AUTOM-07</strong> — managing the objects as code and gating changes in CI</li>
+</ul>
+<hr />
+<p><a id="references"></a></p>
+<h2>16. References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">OpenPipeline pipeline groups (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/pipeline-groups-multicloud">Configure multi-cloud ingest governance with pipeline groups (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline limits (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control">Owner-based access control in OpenPipeline (DT docs)</a></li>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs/resources/openpipeline_v2_logs_pipelinegroups">dynatrace_openpipeline_v2_logs_pipelinegroups (Terraform Registry)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

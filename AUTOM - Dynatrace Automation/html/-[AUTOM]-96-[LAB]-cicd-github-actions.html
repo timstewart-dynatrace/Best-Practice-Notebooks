@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-96 LAB: GitHub Actions CI/CD for Dynatrace Terraform</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-96 LAB</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-96 LAB: GitHub Actions CI/CD for Dynatrace Terraform</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Reference:</strong> 96 — GitHub Actions CI/CD LAB | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 10/29/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Hands-on lab that takes the GitHub Actions material from <strong>AUTOM-07: CI/CD Integration</strong> §3 and the credential-handling pattern from <strong>AUTOM-04: Terraform Provider</strong> §3 and walks through them end-to-end. By the end of this lab you have a working pipeline that:</p>
+<ul>
+<li>Runs <code>terraform fmt -check</code>, <code>terraform validate</code>, and <code>terraform plan</code> on every pull request, posting the plan summary back as a PR comment.</li>
+<li>Runs <code>terraform apply</code> on merge to <code>main</code>, gated by a GitHub Environment with required reviewers (on a private repo that gate needs GitHub Enterprise — see Prerequisites).</li>
+<li>Uses one GitHub OIDC token for <strong>two parallel trusts</strong>: an <strong>AWS IAM role</strong> for the S3 state backend, and a <strong>HashiCorp Vault <code>jwt</code> role</strong> for the runtime fetch of a Dynatrace Platform Token. <strong>No static Dynatrace token lives in GitHub Secrets.</strong></li>
+<li>Stores Terraform state in S3 with native S3 lockfile locking, encrypted at rest.</li>
+<li>Manages a single Settings 2.0 resource (an ownership team, <code>builtin:ownership.teams</code>) end-to-end so the credential plumbing is the focus, not the resource model.</li>
+</ul>
+<p>This LAB is the hands-on companion to AUTOM-07 §3 (which describes the patterns) and AUTOM-04 §3 (which describes the token model). It does <strong>not</strong> repeat material from those notebooks — it walks through the steps.</p>
+<p><strong>Out of scope for this LAB</strong> (cross-references provided):</p>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>See</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Other CI platforms (GitLab, Bitbucket, Bamboo, Azure DevOps)</td>
+<td>AUTOM-07 §4–§7</td>
+</tr>
+<tr>
+<td>State backend hardening (KMS, IAM scopes, multi-account)</td>
+<td>AUTOM-09 §3</td>
+</tr>
+<tr>
+<td>Multi-environment promotion patterns</td>
+<td>AUTOM-09 §6</td>
+</tr>
+<tr>
+<td>Lifecycle protections (<code>prevent_destroy</code>, <code>replace_triggered_by</code>)</td>
+<td>AUTOM-09 §9</td>
+</tr>
+<tr>
+<td>Token-model deep dive (Platform vs classic API)</td>
+<td>AUTOM-04 §3</td>
+</tr>
+<tr>
+<td><code>dynatrace_api_token</code> / state-leakage concerns</td>
+<td>AUTOM-04 §3</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#architecture">Architecture</a></li>
+<li><a href="#step-1-bootstrap-repo">Step 1 — Bootstrap the Terraform repo layout</a></li>
+<li><a href="#step-2-mint-token">Step 2 — Mint the Platform Token (out-of-band)</a></li>
+<li><a href="#step-3-oidc-trust">Step 3 — Wire OIDC trust</a></li>
+<li><a href="#step-4-workflow">Step 4 — Author the workflow file</a></li>
+<li><a href="#step-5-pr-plan">Step 5 — Run a plan-only test on a PR</a></li>
+<li><a href="#step-6-merge-apply">Step 6 — Promote to apply on merge</a></li>
+<li><a href="#step-7-validate">Step 7 — Validate</a></li>
+<li><a href="#common-pitfalls">Common Pitfalls</a></li>
+<li><a href="#where-to-go-next">Where to go next</a></li>
+<li><a href="#summary-checklist">Summary Checklist</a></li>
+<li><a href="#sources-and-references">Sources and References</a></li>
+</ol>
+<hr />
+<p><a id="prerequisites"></a></p>
+<h2>1. Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Completed</strong></td>
+<td>AUTOM-04 (Terraform Provider) and AUTOM-07 (CI/CD Integration) §3 read at least once</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Gen3 SaaS tenant; account-admin access to mint a Platform Token on a service user</td>
+</tr>
+<tr>
+<td><strong>GitHub Account</strong></td>
+<td>Repository with admin access (to add Environments, configure OIDC permissions, set repo secrets)</td>
+</tr>
+<tr>
+<td><strong>GitHub plan</strong></td>
+<td>The apply gate uses an environment with <strong>required reviewers</strong>. On GitHub Free, Pro and Team those are available <strong>only for public repositories</strong> — use a public repo for this LAB (nothing secret lives in it) or GitHub Enterprise. See Step 4.</td>
+</tr>
+<tr>
+<td><strong>AWS Account</strong></td>
+<td>Account where you can create an IAM OIDC identity provider, an IAM role, an S3 bucket, and (optionally) a KMS key. A Free Tier account works.</td>
+</tr>
+<tr>
+<td><strong>HashiCorp Vault</strong></td>
+<td>An instance reachable from GitHub Actions, with a KV v2 engine at <code>secret/</code>: a self-hosted Vault behind a public endpoint or a runner-reachable VPN endpoint, or <strong>HCP Vault Dedicated</strong> (check its current tiers and trial). On HCP Vault Dedicated the top-level namespace is <code>admin</code>, which the commands below must target — see Step 3.</td>
+</tr>
+<tr>
+<td><strong>Local tools</strong></td>
+<td><code>terraform &gt;= 1.11</code> (S3 native locking is GA from 1.11), <code>aws</code> CLI, <code>vault</code> CLI, <code>gh</code> CLI (GitHub CLI), <code>git</code></td>
+</tr>
+<tr>
+<td><strong>Time budget</strong></td>
+<td>Roughly 1.5–2 hours end-to-end, the first time you run it.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tenant URL placeholder.</strong> Throughout this LAB, replace <code>https://&lt;your-tenant&gt;.apps.dynatrace.com</code> (UI host) and <code>https://&lt;your-tenant&gt;.live.dynatrace.com</code> (API host) with your actual tenant identifier.</p>
+</blockquote>
+<hr />
+<p><a id="architecture"></a></p>
+<h2>2. Architecture</h2>
+<p>The pipeline has three zones: <strong>GitHub</strong> (source + runner + state), a <strong>trust boundary</strong> crossed by short-lived federated identity (no static secrets), and <strong>Dynatrace</strong> (the Platform Token mint side and the eventual API target).</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBNYXJrZXJzIC0tPgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXJyb3dHcmV5IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0FtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iI0ZGQjgwMCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0dyZWVuIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzczQkUyOCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPkdpdEh1YiBBY3Rpb25zIENJL0NEIGZvciBEeW5hdHJhY2UgVGVycmFmb3JtIOKAlCBUb2tlbiBMaWZlY3ljbGU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+UGxhbiBvbiBQUiDCtyBBcHBseSBvbiBtZXJnZSDCtyBPSURDIC0+IFZhdWx0IGZvciBydW50aW1lIHRva2VuIGZldGNoPC90ZXh0PgoKICA8IS0tID09PT0gWm9uZSAxOiBHaXRIdWIgc2lkZSAobGVmdCwgYmx1ZSkgPT09PSAtLT4KICA8cmVjdCB4PSIyMCIgeT0iODAiIHdpZHRoPSIzMjAiIGhlaWdodD0iMzgwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMTAzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5HaXRIdWI8L3RleHQ+CgogIDwhLS0gRGV2ZWxvcGVyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIxMjAiIHdpZHRoPSIxMzUiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICA8dGV4dCB4PSIxMDciIHk9IjE0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RGV2ZWxvcGVyPC90ZXh0PgogIDx0ZXh0IHg9IjEwNyIgeT0iMTU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5vcGVucyBQUjwvdGV4dD4KCiAgPCEtLSBSZXBvIC0tPgogIDxyZWN0IHg9IjE5NSIgeT0iMTIwIiB3aWR0aD0iMTI1IiBoZWlnaHQ9IjUwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjU3IiB5PSIxNDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlJlcG88L3RleHQ+CiAgPHRleHQgeD0iMjU3IiB5PSIxNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPi50ZiArIHdvcmtmbG93LnltbDwvdGV4dD4KCiAgPCEtLSBQUiAtPiBSdW5uZXIgYXJyb3cgLS0+CiAgPGxpbmUgeDE9IjE3NSIgeTE9IjE0NSIgeDI9IjE5NSIgeTI9IjE0NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0dyZXkpIi8+CgogIDwhLS0gR0ggQWN0aW9ucyBSdW5uZXIgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjE5NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5HaXRIdWIgQWN0aW9ucyBSdW5uZXI8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIyMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmlkLXRva2VuOiB3cml0ZSAgfCAgc2V0dXAtdGVycmFmb3JtPC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iMjQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj50ZXJyYWZvcm0gaW5pdCAvIHBsYW4gLyBhcHBseTwvdGV4dD4KCiAgPCEtLSBQUiBjb21tZW50IC0tPgogIDxyZWN0IHg9IjQwIiB5PSIyODUiIHdpZHRoPSIxMzUiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICA8dGV4dCB4PSIxMDciIHk9IjMwNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+UFIgY29tbWVudDwvdGV4dD4KICA8dGV4dCB4PSIxMDciIHk9IjMyMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+cGxhbiBzdW1tYXJ5PC90ZXh0PgoKICA8IS0tIE1lcmdlIC0tPgogIDxyZWN0IHg9IjE5NSIgeT0iMjg1IiB3aWR0aD0iMTI1IiBoZWlnaHQ9IjUwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMjU3IiB5PSIzMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPk1lcmdlIHRvIG1haW48L3RleHQ+CiAgPHRleHQgeD0iMjU3IiB5PSIzMjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnRyaWdnZXJzIGFwcGx5PC90ZXh0PgoKICA8IS0tIFJ1bm5lciAtPiBQUiBjb21tZW50ICsgTWVyZ2UgLS0+CiAgPGxpbmUgeDE9IjEwNyIgeTE9IjI1NSIgeDI9IjEwNyIgeTI9IjI4NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0dyZXkpIi8+CiAgPGxpbmUgeDE9IjI1NyIgeTE9IjI1NSIgeDI9IjI1NyIgeTI9IjI4NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0dyZXkpIi8+CgogIDwhLS0gU3RhdGUgYmFja2VuZCAoUzMpIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIzNjUiIHdpZHRoPSIyODAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjYiLz4KICA8dGV4dCB4PSIxODAiIHk9IjM4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U3RhdGUgYmFja2VuZDwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjQwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UzMgYnVja2V0ICsgbG9ja2ZpbGUgKGVuY3J5cHRlZCBhdCByZXN0KTwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjQxNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+YXV0aG4gdmlhIE9JREMgLT4gQVdTIElBTSByb2xlPC90ZXh0PgoKICA8IS0tID09PT0gWm9uZSAyOiBUcnVzdCBib3VuZGFyeSAoY2VudGVyLCBhbWJlcikgPT09PSAtLT4KICA8cmVjdCB4PSIzNjAiIHk9IjgwIiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjM4MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4IiBzdHJva2UtZGFzaGFycmF5PSI2LDQiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjEwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+VHJ1c3QgYm91bmRhcnk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPm5vIHN0YXRpYyBzZWNyZXRzIGNyb3NzIGhlcmU8L3RleHQ+CgogIDwhLS0gT0lEQyB0b2tlbiAtLT4KICA8cmVjdCB4PSIzODAiIHk9IjE0NSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTY3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5HaXRIdWIgT0lEQyB0b2tlbjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE4MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+SldULCBlcGhlbWVyYWw7IHN1YiA9IHJlcG8gcGx1czwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjE5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+cmVmLCBlbnZpcm9ubWVudCBvciBwdWxsX3JlcXVlc3Q8L3RleHQ+CgogIDwhLS0gQVdTIElBTSB0cnVzdCAtLT4KICA8cmVjdCB4PSIzODAiIHk9IjIyMCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BV1MgSUFNIHRydXN0PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5PSURDIHByb3ZpZGVyIHJvbGU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnNjb3BlZCBieSBzdWItY2xhaW0gZ2xvYjwvdGV4dD4KCiAgPCEtLSBWYXVsdCBKV1QgYXV0aCAtLT4KICA8cmVjdCB4PSIzODAiIHk9IjI5NSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzE3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5WYXVsdCBqd3QgYXV0aCByb2xlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5ib3VuZF9hdWRpZW5jZXMsPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5ib3VuZF9jbGFpbXMgKHN1YiBnbG9iKTwvdGV4dD4KCiAgPCEtLSBEVCBQbGF0Zm9ybSBUb2tlbiAoaW4gdHJhbnNpdCkgLS0+CiAgPHJlY3QgeD0iMzgwIiB5PSIzNzAiIHdpZHRoPSIxNzAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RFQgUGxhdGZvcm0gVG9rZW48L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0MDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmluIHJ1bm5lciBtZW1vcnkgb25seTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+bmV2ZXIgd3JpdHRlbiB0byBzdGF0ZTwvdGV4dD4KCiAgPCEtLSBSdW5uZXIgLT4gT0lEQyB0b2tlbiAoYW1iZXIsIGdvaW5nIHJpZ2h0KSAtLT4KICA8bGluZSB4MT0iMzIwIiB5MT0iMjI1IiB4Mj0iMzgwIiB5Mj0iMTcyIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93QW1iZXIpIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIxOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iOSI+cmVxdWVzdDwvdGV4dD4KCiAgPCEtLSBPSURDIC0+IEFXUyAtLT4KICA8bGluZSB4MT0iNDY1IiB5MT0iMjAwIiB4Mj0iNDY1IiB5Mj0iMjIwIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93QW1iZXIpIi8+CiAgPCEtLSBPSURDIC0+IFZhdWx0IChzZWNvbmQsIHBhcmFsbGVsIHRydXN0IOKAlCBub3QgdmlhIEFXUykgLS0+CiAgPHBhdGggZD0iTSA1NTAgMTcyIEwgNTYyIDE3MiBMIDU2MiAzMTIgTCA1NTEgMzEyIiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93QW1iZXIpIi8+CiAgPCEtLSBWYXVsdCAtPiBEVCBUb2tlbiAtLT4KICA8bGluZSB4MT0iNDY1IiB5MT0iMzUwIiB4Mj0iNDY1IiB5Mj0iMzcwIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93QW1iZXIpIi8+CgogIDwhLS0gRFQgVG9rZW4gLT4gUnVubmVyIChiYWNrIGxlZnQsIHJldHVybmluZyB0aGUgc2VjcmV0KSAtLT4KICA8bGluZSB4MT0iMzgwIiB5MT0iMzk1IiB4Mj0iMzIwIiB5Mj0iMjQwIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93QW1iZXIpIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iOSI+ZW52IHZhcnM8L3RleHQ+CgogIDwhLS0gPT09PSBab25lIDM6IER5bmF0cmFjZSBzaWRlIChyaWdodCwgZ3JlZW4pID09PT0gLS0+CiAgPHJlY3QgeD0iNTkwIiB5PSI4MCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIzODAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNzUwIiB5PSIxMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkR5bmF0cmFjZTwvdGV4dD4KCiAgPCEtLSBEVCBBZG1pbiAtLT4KICA8cmVjdCB4PSI2MTAiIHk9IjEyMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc1MCIgeT0iMTQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5EVCBBZG1pbiAob3V0LW9mLWJhbmQpPC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iMTU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5taW50cyBQbGF0Zm9ybSBUb2tlbiBpbiBEVCBVSSAtPiBkZXBvc2l0cyBpbiBWYXVsdDwvdGV4dD4KCiAgPCEtLSBWYXVsdCBTdG9yYWdlIChEVC1zaWRlIGNyZWRlbnRpYWwgdmF1bHQpIC0tPgogIDxyZWN0IHg9IjYxMCIgeT0iMTk1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzUwIiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkhhc2hpQ29ycCBWYXVsdCAoS1YgdjIpPC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iMjM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5zZWNyZXQvZHluYXRyYWNlL2xhYiBwbGF0Zm9ybV90b2tlbjwvdGV4dD4KICA8dGV4dCB4PSI3NTAiIHk9IjI0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+YXVkaXQgbG9nLCBvbmNlIGEgZGV2aWNlIGlzIGVuYWJsZWQ8L3RleHQ+CgogIDwhLS0gUHJvdmlkZXIgYXV0aCAoRFQgc2lkZSB0ZXJtaW5hdGluZyBjYWxsKSAtLT4KICA8cmVjdCB4PSI2MTAiIHk9IjI4NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc1MCIgeT0iMzA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2UgQVBJIGF1dGg8L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSIzMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkF1dGhvcml6YXRpb246IEJlYXJlciBkdDBzMTYuLi48L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSIzMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnNjb3BlID0gc2V0dGluZ3M6b2JqZWN0czpyZWFkL3dyaXRlPC90ZXh0PgoKICA8IS0tIERUIHRlbmFudCAodGVybWluYWwsIGdyZWVuKSAtLT4KICA8cmVjdCB4PSI2MTAiIHk9IjM2NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzUwIiB5PSIzODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkR5bmF0cmFjZSB0ZW5hbnQ8L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSI0MDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlNldHRpbmdzIDIuMCByZXNvdXJjZSBjcmVhdGVkL3VwZGF0ZWQ8L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSI0MTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmF1ZGl0IGV2ZW50IHJlY29yZGVkPC90ZXh0PgoKICA8IS0tIEFkbWluIC0+IFZhdWx0IChkZXBvc2l0KSAtLT4KICA8bGluZSB4MT0iNzUwIiB5MT0iMTcwIiB4Mj0iNzUwIiB5Mj0iMTk1IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93R3JlZW4pIi8+CgogIDwhLS0gVmF1bHQgLT4gdHJ1c3QgYm91bmRhcnkgKERUIHRva2VuIGV4cG9ydCB0byBWYXVsdCBhdXRoIHJvbGUgc3VyZmFjZSkgLS0+CiAgPGxpbmUgeDE9IjYxMCIgeTE9IjIyNSIgeDI9IjU1MCIgeTI9IjMyMiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNhcnJvd0FtYmVyKSIvPgoKICA8IS0tIFByb3ZpZGVyIGF1dGggLT4gdGVuYW50IC0tPgogIDxsaW5lIHgxPSI3NTAiIHkxPSIzNDUiIHgyPSI3NTAiIHkyPSIzNjUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dHcmVlbikiLz4KCiAgPCEtLSBSdW5uZXIgLT4gUHJvdmlkZXIgYXV0aCAodGVycmFmb3JtIGFwcGx5IGNhbGwpIOKAlCBsb25nIGFycm93IGFjcm9zcyB0aGUgdG9wIC0tPgogIDxwYXRoIGQ9Ik0gMzIwIDI1MCBMIDM3MiAyODAgTCA1NzUgMjgwIEwgNjA5IDMwNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iMywzIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93R3JlZW4pIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIyOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOC41Ij50ZXJyYWZvcm0gYXBwbHk8L3RleHQ+CgogIDwhLS0gPT09PSBMZWdlbmQgPT09PSAtLT4KICA8cmVjdCB4PSIyMCIgeT0iNDY4IiB3aWR0aD0iODkwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHJ4PSI0Ii8+CiAgPGNpcmNsZSBjeD0iNDAiIGN5PSI0NzkiIHI9IjQiIGZpbGw9IiMxNDk2RkYiLz4KICA8dGV4dCB4PSI1MCIgeT0iNDgzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5HaXRIdWIgc2lkZTwvdGV4dD4KICA8Y2lyY2xlIGN4PSIxNjAiIGN5PSI0NzkiIHI9IjQiIGZpbGw9IiNGRkI4MDAiLz4KICA8dGV4dCB4PSIxNzAiIHk9IjQ4MyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+dHJ1c3QtYm91bmRhcnkgY3Jvc3NpbmcgKG5vIHN0YXRpYyBzZWNyZXQpPC90ZXh0PgogIDxjaXJjbGUgY3g9IjQzMCIgY3k9IjQ3OSIgcj0iNCIgZmlsbD0iIzczQkUyOCIvPgogIDx0ZXh0IHg9IjQ0MCIgeT0iNDgzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5EeW5hdHJhY2Ugc2lkZSAvIHRlcm1pbmFsIG5vZGVzPC90ZXh0PgogIDxjaXJjbGUgY3g9IjY0MCIgY3k9IjQ3OSIgcj0iNCIgZmlsbD0iI0E3OEJGQSIvPgogIDx0ZXh0IHg9IjY1MCIgeT0iNDgzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5kdXJhYmxlIHN0b3JhZ2UgKHN0YXRlLCB2YXVsdCk8L3RleHQ+Cjwvc3ZnPgo=" alt="GitHub Actions CI/CD for Dynatrace Terraform — Token Lifecycle" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Zone | Component | Role |
+|------|-----------|------|
+| GitHub | Developer / Repo / Actions Runner / PR comment / Merge | The source-of-truth + execution surface |
+| GitHub | S3 state backend | Durable Terraform state; itself authn'd via OIDC |
+| Trust boundary | GitHub OIDC token | JWT issued per workflow run; sub claim carries the repo plus the ref, the environment, or pull_request |
+| Trust boundary | AWS IAM trust + Vault jwt auth | Two parallel federated trusts (GitHub -> AWS for state, GitHub -> Vault for the token), scoped by a sub-claim glob — no static credential |
+| Trust boundary | DT Platform Token | Lives in Vault at secret/dynatrace/lab; scopes settings:objects:read/write; only ephemerally in runner memory; never in GitHub Secrets, never in Terraform state |
+| Dynatrace | DT Admin (out-of-band) | Mints the Platform Token in DT UI, deposits it in Vault |
+| Dynatrace | API auth + tenant | Validates the bearer token; applies the Settings 2.0 change |
+For environments where SVG doesn't render
+-->
+<h3>Why this shape</h3>
+<ul>
+<li><strong>Mint out-of-band, deliver in-band</strong> (the pattern from AUTOM-04 §3): the long-lived Dynatrace credential is generated once by an admin, deposited in Vault, and never touched by Terraform or by GitHub Secrets.</li>
+<li><strong>OIDC federation</strong> removes the chicken-and-egg of &quot;what authenticates the credential fetch?&quot; — GitHub's OIDC identity authenticates to AWS IAM and to Vault directly, so there is no static AWS access key or static Vault token in GitHub Secrets either.</li>
+<li><strong>Single <code>id-token: write</code></strong> permission on the workflow is the only GitHub-side configuration that matters; the rest is set up once on the AWS and Vault sides.</li>
+</ul>
+<hr />
+<p><a id="step-1-bootstrap-repo"></a></p>
+<h2>3. Step 1 — Bootstrap the Terraform repo layout</h2>
+<p>The LAB uses the simplest layout that exercises the credential plumbing — one directory, three <code>.tf</code> files, one Settings 2.0 resource. For multi-environment / module-based layouts see <strong>AUTOM-09 §2</strong>.</p>
+<h3>Create the directory and files</h3>
+<pre><code class="language-bash">mkdir -p dynatrace-terraform/.github/workflows
+cd dynatrace-terraform
+git init
+touch versions.tf main.tf backend.tf .gitignore
+</code></pre>
+<h3><code>.gitignore</code> (mandatory before first commit)</h3>
+<pre><code class="language-gitignore"># Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# Local credentials
+*.tfvars
+!example.tfvars
+.env
+</code></pre>
+<blockquote>
+<p><strong>Why this matters.</strong> State files and <code>.tfvars</code> files routinely contain sensitive values — even with <code>sensitive = true</code> they are still plain-text on disk (see AUTOM-04 §3 <em>Operational Safety</em>). Committing them to Git is the most common credential-leak path in real Terraform shops.</p>
+</blockquote>
+<blockquote>
+<p><strong>Do commit <code>.terraform.lock.hcl</code>.</strong> It records the exact provider build <code>terraform init</code> selected, so the PR plan and the merge apply run the same provider. HashiCorp: <em>&quot;You should include this file in your version control repository&quot;</em> (<a href="https://developer.hashicorp.com/terraform/language/files/dependency-lock">Dependency lock file (Terraform docs)</a>). Run <code>terraform init</code> once locally and commit the file it creates.</p>
+</blockquote>
+<h3><code>versions.tf</code> — pin everything</h3>
+<pre><code class="language-hcl">terraform {
+  required_version = &quot;&gt;= 1.11.0&quot; # use_lockfile (backend.tf) is GA from 1.11
+
+  required_providers {
+    dynatrace = {
+      source  = &quot;dynatrace-oss/dynatrace&quot;
+      version = &quot;~&gt; 1.93&quot;
+    }
+  }
+}
+</code></pre>
+<h3><code>backend.tf</code> — S3 state, native S3 lockfile</h3>
+<pre><code class="language-hcl">terraform {
+  backend &quot;s3&quot; {
+    bucket = &quot;my-org-terraform-state&quot;
+    key    = &quot;dynatrace/lab/terraform.tfstate&quot;
+    region = &quot;us-east-1&quot;
+
+    # Native S3 lockfile — added in Terraform 1.10, GA in 1.11; replaces the
+    # DynamoDB lock table, which HashiCorp has deprecated.
+    # See https://developer.hashicorp.com/terraform/language/backend/s3 for the
+    # current locking model.
+    use_lockfile = true
+
+    encrypt = true
+  }
+}
+</code></pre>
+<blockquote>
+<p><strong>Bucket setup is out of scope for this LAB.</strong> Create the bucket once via console / CloudFormation / a separate Terraform configuration; enable bucket versioning; consider an SSE-KMS key. See <strong>AUTOM-09 §3</strong> for the hardening checklist.</p>
+</blockquote>
+<h3><code>main.tf</code> — one Settings 2.0 resource</h3>
+<p>We pick an <strong>ownership team</strong> (<code>builtin:ownership.teams</code>) because it (a) is a Settings 2.0 schema, so it works with a Platform Token alone, (b) is a <strong>multi-object</strong> schema (up to 1,000 teams), so creating one never overwrites an existing object, (c) is not deprecated and is not on Dynatrace's removed-schemas list, and (d) is harmless to create and delete in a non-prod tenant.</p>
+<pre><code class="language-hcl">provider &quot;dynatrace&quot; {
+  # Picked up from environment variables at apply time:
+  #   DYNATRACE_ENV_URL
+  #   DYNATRACE_PLATFORM_TOKEN
+}
+
+resource &quot;dynatrace_generic_setting&quot; &quot;lab_team&quot; {
+  schema = &quot;builtin:ownership.teams&quot;
+  scope  = &quot;environment&quot;
+
+  value = jsonencode({
+    name        = &quot;LAB Team&quot;
+    identifier  = &quot;lab-team&quot;
+    description = &quot;Created by the AUTOM CI/CD LAB - safe to delete&quot;
+    responsibilities = {
+      development    = false
+      infrastructure = false
+      lineOfBusiness = false
+      operations     = true
+      security       = false
+    }
+    supplementaryIdentifiers = []
+    contactDetails           = []
+    links                    = []
+    additionalInformation    = []
+  })
+}
+</code></pre>
+<blockquote>
+<p><strong><code>schema</code>, not <code>schema_id</code>.</strong> <code>dynatrace_generic_setting</code> takes <code>schema</code>, <code>scope</code> and a JSON <code>value</code>; <code>schema_id</code> fails <code>terraform validate</code>. The value above passes the Settings API's own validation for <code>builtin:ownership.teams</code> (checked with a validate-only request, 09/18/2026). Earlier versions of this LAB used <code>builtin:kubernetes.generic.metadata.enrichment</code>, which is a deprecated <strong>singleton</strong> (<code>maxObjects: 1</code>) — creating it would have overwritten a tenant's existing object — and whose rule fields were misnamed.</p>
+</blockquote>
+<blockquote>
+<p><strong>No <code>dt_platform_token</code> argument in the provider block.</strong> The Dynatrace provider reads <code>DYNATRACE_ENV_URL</code> and <code>DYNATRACE_PLATFORM_TOKEN</code> from the environment when the corresponding HCL arguments are absent. This is what lets the OIDC -&gt; Vault -&gt; env-vars chain work without HCL-level coupling.</p>
+</blockquote>
+<p><a id="step-2-mint-token"></a></p>
+<h2>4. Step 2 — Mint the Platform Token (out-of-band)</h2>
+<p>This step happens <strong>once</strong>, in the Dynatrace UI, by a human admin. It is deliberately not part of the pipeline. The full rationale (mint-out-of-band-vs-in-pipeline trade-offs) is in <strong>AUTOM-04 §3 <em>Operational Safety — State File Leakage</em></strong> — read that subsection if you have not already.</p>
+<h3>UI steps</h3>
+<ol>
+<li>Sign in to <code>https://&lt;your-tenant&gt;.apps.dynatrace.com</code> as an account administrator.</li>
+<li>Open the <strong>Account Management</strong> console (the user-icon menu in the top right) -&gt; <strong>Identity &amp; access management</strong> -&gt; <strong>Service users</strong>.</li>
+<li>Create or select the service user that will own this token (e.g. <code>svc-terraform-lab</code>).</li>
+<li>Confirm the service user is in a group with the IAM permissions needed for Settings 2.0 management — at minimum the equivalent of <strong>&quot;Change monitoring settings&quot;</strong> (<code>environment:roles:manage-settings</code>) on the tenant.</li>
+<li>Switch to <strong>Platform tokens</strong> (myaccount.dynatrace.com -&gt; Platform tokens) and click <strong>Generate new token</strong>.</li>
+<li><strong>On behalf of:</strong> select the <code>svc-terraform-lab</code> service user.</li>
+<li><strong>Scopes:</strong> select <code>settings:objects:read</code> and <code>settings:objects:write</code>. (Add <code>settings:schemas:read</code> if your tenant requires it for schema discovery.)</li>
+<li>Set an <strong>expiration</strong> appropriate to your rotation policy (the LAB recommendation is 90 days — short enough to force you through the rotation flow at least once during the LAB lifetime).</li>
+<li>Copy the token value (<code>dt0s16....</code>). It is shown <strong>once</strong>.</li>
+</ol>
+<h3>Deposit the token into Vault</h3>
+<pre><code class="language-bash"># Authenticate to Vault as a human admin (any auth method that works for you)
+vault login -method=oidc
+
+# On HCP Vault Dedicated: export VAULT_NAMESPACE=admin   (see Step 3)
+# If no KV v2 engine is mounted at secret/ yet:
+#   vault secrets enable -path=secret kv-v2
+
+# Write the token to the path the workflow will read from
+vault kv put secret/dynatrace/lab \
+  platform_token=&quot;dt0s16.XXXX...&quot; \
+  env_url=&quot;https://&lt;your-tenant&gt;.live.dynatrace.com&quot;
+</code></pre>
+<blockquote>
+<p><strong>Three things must align</strong> for the Platform Token to actually work — service user IAM permissions, the creator's <code>iam:service-users:use</code> permission, and the scopes selected at token creation. AUTOM-04 §3 <em>Service User Credentials for Terraform</em> covers the model in full. If <code>terraform apply</code> later fails with a 403, this is the first place to look.</p>
+</blockquote>
+<hr />
+<p><a id="step-3-oidc-trust"></a></p>
+<h2>5. Step 3 — Wire OIDC trust</h2>
+<p>Two trust relationships need to exist before the workflow can run. Both rest on the same GitHub OIDC token, and they are <strong>independent</strong> of each other:</p>
+<ol>
+<li><strong>GitHub -&gt; AWS</strong> — the workflow assumes an AWS IAM role to reach S3 (state) without a static AWS access key. AWS is used for nothing else.</li>
+<li><strong>GitHub -&gt; Vault</strong> — Vault's <code>jwt</code> auth method trusts GitHub's OIDC issuer directly, so the workflow pulls the Dynatrace Platform Token without a static Vault token. No AWS credential is involved.</li>
+</ol>
+<p>The <a href="https://docs.github.com/en/actions/concepts/security/openid-connect">GitHub OIDC docs (GitHub docs)</a> name both kinds of target: <em>&quot;access a cloud provider (such as AWS, Azure, GCP, HashiCorp Vault, and others)&quot;</em>.</p>
+<h3>The <code>sub</code> claim — check its format first</h3>
+<p>Both trusts match on the token's <code>sub</code> claim, and its format depends on the repository and the job:</p>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th><code>sub</code> looks like</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Repo created on GitHub.com <strong>after July 15, 2026</strong> (or opted in) — includes any repo you create for this LAB</td>
+<td><code>repo:&lt;org&gt;@&lt;org-id&gt;/&lt;repo&gt;@&lt;repo-id&gt;:ref:refs/heads/main</code></td>
+</tr>
+<tr>
+<td>Older repo</td>
+<td><code>repo:&lt;org&gt;/&lt;repo&gt;:ref:refs/heads/main</code></td>
+</tr>
+<tr>
+<td>A job that references an environment (the <code>apply</code> job uses <code>production</code>)</td>
+<td><code>…:environment:production</code> — the ref is <strong>not</strong> included</td>
+</tr>
+</tbody>
+</table>
+<p>Get the two IDs with <code>gh api repos/&lt;your-org&gt;/&lt;your-repo&gt; --jq '.owner.id, .id'</code>. If in doubt, run <a href="https://github.com/github/actions-oidc-debugger"><code>github/actions-oidc-debugger</code> (GitHub)</a> once and copy the <code>sub</code> it prints.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.github.com/en/actions/reference/security/oidc">OIDC reference (GitHub docs)</a> — <em>&quot;repositories created after July 15, 2026 now use an immutable default subject format that includes both the owner ID and repository ID&quot;</em>; <em>&quot;The subject claim includes the branch name of the workflow, but only if the job doesn't reference an environment&quot;</em>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Preview — skipping the stored Dynatrace token entirely.</strong> Dynatrace now documents <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/workload-identity-federation">Workload identity federation (DT docs)</a> as a <strong>Preview</strong> feature: <em>&quot;Workload identity federation (WIF) lets an external workload call the Dynatrace API with a token issued by its own identity provider.&quot;</em> The page names a GitHub Actions job as a fitting workload, so the GitHub OIDC token could authenticate to Dynatrace directly, mapped to a service user — no Platform Token in Vault at all. Verify that WIF is available in your account before relying on it; until then, the Vault-held Platform Token in this LAB remains the working path.</p>
+</blockquote>
+<h3>5.1 — Create the GitHub OIDC identity provider in AWS</h3>
+<p>This is a one-time, account-wide setup. If your AWS account already has the GitHub provider registered, skip this.</p>
+<pre><code class="language-bash"># Use the AWS account where the S3 state bucket lives
+aws iam create-open-id-connect-provider \
+  --url https://token.actions.githubusercontent.com \
+  --client-id-list sts.amazonaws.com
+</code></pre>
+<blockquote>
+<p><strong>No thumbprint needed.</strong> <code>--thumbprint-list</code> is optional: <em>&quot;If it is not included, IAM will retrieve and use the top intermediate certificate authority (CA) thumbprint of the OpenID Connect identity provider server certificate.&quot;</em> (<a href="https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateOpenIDConnectProvider.html">CreateOpenIDConnectProvider (AWS docs)</a>)</p>
+</blockquote>
+<h3>5.2 — Create the AWS IAM role the workflow assumes</h3>
+<p>Create <code>trust-policy.json</code>:</p>
+<pre><code class="language-json">{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Principal&quot;: {
+        &quot;Federated&quot;: &quot;arn:aws:iam::&lt;your-aws-account-id&gt;:oidc-provider/token.actions.githubusercontent.com&quot;
+      },
+      &quot;Action&quot;: &quot;sts:AssumeRoleWithWebIdentity&quot;,
+      &quot;Condition&quot;: {
+        &quot;StringEquals&quot;: {
+          &quot;token.actions.githubusercontent.com:aud&quot;: &quot;sts.amazonaws.com&quot;
+        },
+        &quot;StringLike&quot;: {
+          &quot;token.actions.githubusercontent.com:sub&quot;: &quot;repo:&lt;your-org&gt;@&lt;org-id&gt;/&lt;your-repo&gt;@&lt;repo-id&gt;:*&quot;
+        }
+      }
+    }
+  ]
+}
+</code></pre>
+<blockquote>
+<p><strong>The <code>sub</code> claim is the load-bearing scoping mechanism.</strong> The policy uses the immutable format of a repo created after July 15, 2026 (see the table above); for an older repo use <code>repo:&lt;your-org&gt;/&lt;your-repo&gt;:*</code>. The <code>:*</code> suffix admits any branch, pull request and environment in the repo — right for a shared plan/apply role like this LAB's. To tighten a separate <strong>apply</strong> role, match the environment, not the branch: <code>repo:&lt;your-org&gt;@&lt;org-id&gt;/&lt;your-repo&gt;@&lt;repo-id&gt;:environment:production</code>. A <code>:ref:refs/heads/main</code> condition never matches the apply job, because a job that references an environment presents <code>:environment:…</code> instead of the ref. A mismatched <code>sub</code> is a frequent cause of a failed role assumption — see Common Pitfalls.</p>
+</blockquote>
+<p>Create the role and attach a least-privilege policy that allows S3 state access only:</p>
+<pre><code class="language-bash">aws iam create-role \
+  --role-name github-actions-dynatrace-terraform \
+  --assume-role-policy-document file://trust-policy.json
+
+aws iam put-role-policy \
+  --role-name github-actions-dynatrace-terraform \
+  --policy-name terraform-state-access \
+  --policy-document '{
+    &quot;Version&quot;: &quot;2012-10-17&quot;,
+    &quot;Statement&quot;: [
+      {
+        &quot;Effect&quot;: &quot;Allow&quot;,
+        &quot;Action&quot;: [&quot;s3:GetObject&quot;,&quot;s3:PutObject&quot;,&quot;s3:DeleteObject&quot;],
+        &quot;Resource&quot;: &quot;arn:aws:s3:::my-org-terraform-state/dynatrace/lab/*&quot;
+      },
+      {
+        &quot;Effect&quot;: &quot;Allow&quot;,
+        &quot;Action&quot;: [&quot;s3:ListBucket&quot;],
+        &quot;Resource&quot;: &quot;arn:aws:s3:::my-org-terraform-state&quot;
+      }
+    ]
+  }'
+</code></pre>
+<h3>5.3 — Configure Vault to trust GitHub OIDC</h3>
+<p>Vault accepts the GitHub OIDC JWT directly through its <code>jwt</code> auth method — AWS plays no part in this trust. You only need this once per Vault instance.</p>
+<blockquote>
+<p><strong>On HCP Vault Dedicated</strong>, the top-level namespace is <code>admin</code>, not root. Run <code>export VAULT_NAMESPACE=admin</code> before these commands (and before the <code>vault kv put</code> in Step 2), and uncomment <code>namespace: admin</code> on both <code>vault-action</code> steps in Step 4. Without it, the commands and the workflow reach the wrong namespace. (<a href="https://developer.hashicorp.com/vault/cloud">What is HCP Vault Dedicated (HashiCorp)</a>, <a href="https://developer.hashicorp.com/vault/docs/commands">Vault CLI <code>VAULT_NAMESPACE</code> (Vault docs)</a>)</p>
+</blockquote>
+<pre><code class="language-bash"># Enable the jwt auth method (idempotent; skip if already enabled)
+vault auth enable jwt
+
+# Configure it to trust GitHub's OIDC issuer
+vault write auth/jwt/config \
+  oidc_discovery_url=&quot;https://token.actions.githubusercontent.com&quot; \
+  bound_issuer=&quot;https://token.actions.githubusercontent.com&quot;
+
+# Create a policy that grants read on the secret we wrote in Step 2
+vault policy write dynatrace-lab-read - &lt;&lt;'EOF'
+path &quot;secret/data/dynatrace/lab&quot; {
+  capabilities = [&quot;read&quot;]
+}
+EOF
+
+# Create a role that is assumable by the workflow. bound_claims is a map, which the
+# Vault CLI cannot set as a key=value argument, so pass the whole role as JSON
+vault write auth/jwt/role/dynatrace-terraform-lab - &lt;&lt;'EOF'
+{
+  &quot;role_type&quot;: &quot;jwt&quot;,
+  &quot;user_claim&quot;: &quot;actor&quot;,
+  &quot;bound_audiences&quot;: &quot;https://github.com/&lt;your-org&gt;&quot;,
+  &quot;bound_claims_type&quot;: &quot;glob&quot;,
+  &quot;bound_claims&quot;: { &quot;sub&quot;: &quot;repo:&lt;your-org&gt;@&lt;org-id&gt;/&lt;your-repo&gt;@&lt;repo-id&gt;:*&quot; },
+  &quot;policies&quot;: &quot;dynatrace-lab-read&quot;,
+  &quot;ttl&quot;: &quot;15m&quot;
+}
+EOF
+</code></pre>
+<blockquote>
+<p><strong><code>bound_claims</code> uses the same <code>sub</code> format as the AWS trust policy</strong> — for a repo created before July 15, 2026, use <code>repo:&lt;your-org&gt;/&lt;your-repo&gt;:*</code>.</p>
+<p><strong><code>bound_audiences</code> must match the audience the workflow requests.</strong> If <code>jwtGithubAudience</code> is omitted, the token carries GitHub's default audience — <em>&quot;the URL of the repository owner&quot;</em>, i.e. <code>https://github.com/&lt;your-org&gt;</code> (<a href="https://docs.github.com/en/actions/reference/security/oidc">OIDC reference (GitHub docs)</a>). The workflow below sets it explicitly so the value visibly matches <code>bound_audiences</code>.</p>
+</blockquote>
+<p>See the <a href="https://developer.hashicorp.com/vault/docs/auth/jwt">Vault JWT auth method (Vault docs)</a> for the full claim-binding reference.</p>
+<hr />
+<p><a id="step-4-workflow"></a></p>
+<h2>6. Step 4 — Author the workflow file</h2>
+<p>Two jobs in one file: <code>plan</code> runs on every pull request; <code>apply</code> runs only on push to <code>main</code> and is gated by a GitHub Environment. Both jobs share a composite step that performs the OIDC -&gt; Vault -&gt; Dynatrace-token fetch, so the credential plumbing exists once.</p>
+<p>Create <code>.github/workflows/terraform.yml</code>:</p>
+<pre><code class="language-yaml">name: Terraform — Dynatrace Lab
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - &quot;**/*.tf&quot;
+      - &quot;.github/workflows/terraform.yml&quot;
+  push:
+    branches: [main]
+    paths:
+      - &quot;**/*.tf&quot;
+      - &quot;.github/workflows/terraform.yml&quot;
+
+# Required for OIDC. Without id-token:write the workflow has no OIDC token to present.
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: &quot;true&quot;
+  TF_INPUT: &quot;false&quot;
+
+# Action majors checked 10/2026 — all run on Node 24 (GitHub removed Node 20 from the
+# runners on 09/23/2026). Terraform pinned to an exact release.
+jobs:
+  plan:
+    name: terraform plan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: &quot;1.16.5&quot;
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::&lt;your-aws-account-id&gt;:role/github-actions-dynatrace-terraform
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fetch Dynatrace Platform Token from Vault
+        id: vault
+        uses: hashicorp/vault-action@v4
+        with:
+          url: https://vault.example.com:8200
+          # namespace: admin   # HCP Vault Dedicated only
+          method: jwt
+          jwtGithubAudience: https://github.com/&lt;your-org&gt;
+          role: dynatrace-terraform-lab
+          secrets: |
+            secret/data/dynatrace/lab platform_token | DYNATRACE_PLATFORM_TOKEN ;
+            secret/data/dynatrace/lab env_url        | DYNATRACE_ENV_URL
+
+      - name: terraform fmt -check
+        run: terraform fmt -check -recursive
+
+      - name: terraform init
+        run: terraform init -input=false
+
+      - name: terraform validate
+        run: terraform validate -no-color
+
+      - name: terraform plan
+        id: plan
+        run: |
+          terraform plan -no-color -out=tfplan
+          terraform show -no-color tfplan &gt; plan.txt
+        env:
+          DYNATRACE_PLATFORM_TOKEN: ${{ env.DYNATRACE_PLATFORM_TOKEN }}
+          DYNATRACE_ENV_URL: ${{ env.DYNATRACE_ENV_URL }}
+
+      - name: Post plan to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('plan.txt', 'utf8').slice(0, 60000);
+            const body = [
+              '### Terraform Plan',
+              '',
+              '&lt;details&gt;&lt;summary&gt;Click to expand&lt;/summary&gt;',
+              '',
+              '```hcl',
+              plan,
+              '```',
+              '',
+              '&lt;/details&gt;',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+  apply:
+    name: terraform apply
+    needs: plan
+    if: github.ref == 'refs/heads/main' &amp;&amp; github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production    # gated by GitHub Environment Protection Rules
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: &quot;1.16.5&quot;
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::&lt;your-aws-account-id&gt;:role/github-actions-dynatrace-terraform
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fetch Dynatrace Platform Token from Vault
+        uses: hashicorp/vault-action@v4
+        with:
+          url: https://vault.example.com:8200
+          # namespace: admin   # HCP Vault Dedicated only
+          method: jwt
+          jwtGithubAudience: https://github.com/&lt;your-org&gt;
+          role: dynatrace-terraform-lab
+          secrets: |
+            secret/data/dynatrace/lab platform_token | DYNATRACE_PLATFORM_TOKEN ;
+            secret/data/dynatrace/lab env_url        | DYNATRACE_ENV_URL
+
+      - name: terraform init
+        run: terraform init -input=false
+
+      - name: terraform apply
+        run: terraform apply -auto-approve -input=false
+</code></pre>
+<h3>What the workflow does, in order</h3>
+<ol>
+<li><strong>Checkout the repo</strong> — standard.</li>
+<li><strong>Setup Terraform</strong> — <code>hashicorp/setup-terraform@v4</code> pins to a known version. Pin a real version, not <code>latest</code>, so plan output is reproducible across reruns.</li>
+<li><strong>AWS credentials via OIDC</strong> — the workflow's OIDC token is exchanged for short-lived AWS credentials by assuming the IAM role created in Step 3.2. <strong>No static AWS access key in GitHub Secrets.</strong></li>
+<li><strong>Vault token fetch</strong> — the same OIDC token (re-issued for the Vault audience) is exchanged for a short-lived Vault token bound to <code>dynatrace-terraform-lab</code> role. <strong>No static Vault token in GitHub Secrets.</strong> <code>vault-action</code> automatically masks the secrets in subsequent log lines.</li>
+<li><strong><code>terraform fmt -check</code></strong> — fail fast on style.</li>
+<li><strong><code>terraform init</code></strong> — downloads the Dynatrace provider; AWS credentials from step 3 authorize state read/write.</li>
+<li><strong><code>terraform validate</code></strong> — schema/HCL validation.</li>
+<li><strong><code>terraform plan</code></strong> — generates the plan; environment variables for the Dynatrace provider come from the Vault step.</li>
+<li><strong>PR-comment step</strong> — only runs on <code>pull_request</code> events; posts the plan back as a comment using <code>actions/github-script</code>.</li>
+<li><strong>Apply job</strong> — only runs on push-to-main, only after <code>plan</code> succeeds, and only after the GitHub Environment's required reviewers approve — if your plan supports required reviewers on this repo (below).</li>
+</ol>
+<blockquote>
+<p><strong><code>workflow_dispatch</code> is intentionally omitted.</strong> Adding manual-trigger support is a one-line addition (<code>on.workflow_dispatch:</code> block) but it widens the surface — anyone with workflow-write permission can apply on demand. Add it explicitly if your team needs it; defaulting it off is safer.</p>
+</blockquote>
+<h3>Configure the GitHub Environment</h3>
+<p>In the GitHub UI: <strong>Settings -&gt; Environments -&gt; New environment -&gt; <code>production</code></strong>. Then:</p>
+<ul>
+<li><strong>Required reviewers:</strong> add at least one team member who is not the author. This is the apply gate.</li>
+</ul>
+<blockquote>
+<p><strong>Check your GitHub plan before relying on the gate.</strong> <em>&quot;If you are on a GitHub Free, GitHub Pro, or GitHub Team plan, other deployment protection rules, such as a wait timer or required reviewers, are only available for public repositories.&quot;</em> On GitHub Free, a private repository gets no environments at all. Without the gate, every merge to <code>main</code> runs <code>terraform apply -auto-approve</code> with no approval and no warning. Use a public repository for this LAB (the token lives in Vault, not the repo) or GitHub Enterprise. (<a href="https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments">Managing environments (GitHub docs)</a>)</p>
+</blockquote>
+<ul>
+<li><strong>Wait timer:</strong> optional 5–15 minute delay before the gate can be approved (useful for last-call review).</li>
+<li><strong>Deployment branches:</strong> restrict to <code>main</code> only.</li>
+<li><strong>Environment secrets:</strong> none needed for this LAB — secrets come from Vault at runtime.</li>
+</ul>
+<hr />
+<p><a id="step-5-pr-plan"></a></p>
+<h2>7. Step 5 — Run a plan-only test on a PR</h2>
+<pre><code class="language-bash"># From your local clone of the repo
+git checkout -b lab-add-ownership-team
+git add .
+git commit -m &quot;feat: add Settings 2.0 ownership team&quot;
+git push -u origin lab-add-ownership-team
+
+# Open the PR
+gh pr create --base main --title &quot;LAB: add ownership team&quot; --body &quot;Lab change.&quot;
+</code></pre>
+<h3>What you should see, in order</h3>
+<ol>
+<li>
+<p>The <code>plan</code> job starts immediately on PR open. Expect ~60–90 seconds total wall-clock.</p>
+</li>
+<li>
+<p>The first run downloads the Dynatrace provider — adds about 20 seconds you won't pay on subsequent runs.</p>
+</li>
+<li>
+<p>The Vault step prints <code>Reading secret from secret/data/dynatrace/lab</code> and the masked secret values are not echoed. If you see the actual token value in the log, <strong>stop</strong>: the masking is broken or you typed it into the workflow YAML by mistake.</p>
+</li>
+<li>
+<p>The <code>terraform plan</code> step prints something like:</p>
+<pre><code>Plan: 1 to add, 0 to change, 0 to destroy.
+</code></pre>
+</li>
+<li>
+<p>Within 5–10 seconds of the run completing, a new comment appears on the PR titled <strong>Terraform Plan</strong>, containing the collapsed plan output.</p>
+</li>
+</ol>
+<h3>What you should NOT see</h3>
+<ul>
+<li>A comment with raw token values. If the plan or apply ever leaks a token into logs, treat it as a credential incident: rotate the Platform Token in DT, rotate any downstream tokens, audit recent activity.</li>
+<li>A failed apply on a PR. Apply should be skipped entirely on PRs (the <code>if:</code> condition gates it). If apply runs on a PR, the <code>if:</code> is wrong.</li>
+</ul>
+<hr />
+<p><a id="step-6-merge-apply"></a></p>
+<h2>8. Step 6 — Promote to apply on merge</h2>
+<pre><code class="language-bash"># After PR review and approval
+gh pr merge --squash --delete-branch
+</code></pre>
+<h3>What you should see, in order</h3>
+<ol>
+<li>
+<p>A new workflow run starts on <code>main</code>, triggered by the merge commit.</p>
+</li>
+<li>
+<p>The <code>plan</code> job runs again (and should produce the same plan as the PR-time run — see Common Pitfalls if it doesn't).</p>
+</li>
+<li>
+<p>The <code>apply</code> job appears as <strong>Waiting</strong> with a <em>Review deployments</em> button — this is the GitHub Environment gate.</p>
+</li>
+<li>
+<p>An approver clicks <em>Review deployments</em>, optionally adds a comment, and approves.</p>
+</li>
+<li>
+<p>The <code>apply</code> job runs through the same checkout / Terraform / OIDC / Vault steps, then runs <code>terraform apply -auto-approve</code>. Output ends with:</p>
+<pre><code>Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+</code></pre>
+</li>
+</ol>
+<h3>Manual approval is the load-bearing safety net</h3>
+<p>Because <code>apply</code> is <code>-auto-approve</code>, the GitHub Environment gate is the <strong>only</strong> human checkpoint — and it exists only where your plan provides required reviewers for this repository (Step 4). Without it, a merge applies unattended. Treat the required-reviewers list with the same care as production deploy access for any other system. Two-person rule (author cannot self-approve) is the standard configuration in <strong>Settings -&gt; Environments -&gt; production -&gt; <em>Prevent self-review</em></strong>.</p>
+<hr />
+<p><a id="step-7-validate"></a></p>
+<h2>9. Step 7 — Validate</h2>
+<p>Three places to check, in order:</p>
+<h3>9.1 — Dynatrace tenant</h3>
+<ol>
+<li>Sign in to <code>https://&lt;your-tenant&gt;.apps.dynatrace.com</code>.</li>
+<li>Open the Settings app and search for <strong>Teams</strong> (schema <code>builtin:ownership.teams</code>) — or list the objects with <code>GET /api/v2/settings/objects?schemaIds=builtin:ownership.teams</code>.</li>
+<li>Confirm a team exists with name <code>LAB Team</code> and identifier <code>lab-team</code>.</li>
+<li>Check the object's modification info — it should show the service user (e.g. <code>svc-terraform-lab</code>), not a human.</li>
+</ol>
+<h3>9.2 — GitHub</h3>
+<ol>
+<li><strong>Actions</strong> tab -&gt; the merge-commit run -&gt; confirm both jobs are green.</li>
+<li><strong>Settings -&gt; Environments -&gt; production -&gt; Deployment history</strong> — confirm one deployment, with the approver's name.</li>
+<li>The closed PR shows the <em>Terraform Plan</em> comment from the plan run.</li>
+</ol>
+<h3>9.3 — Vault audit log</h3>
+<p>Vault starts with auditing <strong>disabled</strong>, and <code>vault audit list</code> only lists the audit devices that are enabled — it shows no requests. To check the reads, enable a file audit device <strong>before</strong> the merge run (on a Vault where you can manage audit devices), then search the log on the Vault server:</p>
+<pre><code class="language-bash"># Before the run
+vault audit enable file file_path=/var/log/vault_audit.log
+
+# After the run, on the Vault server
+grep 'secret/data/dynatrace/lab' /var/log/vault_audit.log
+# Expect two reads from the merge run (plan + apply), each authenticated
+# via auth/jwt with role dynatrace-terraform-lab.
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.hashicorp.com/vault/docs/audit">Audit logging (Vault docs)</a> — <em>&quot;When you initialize a new Vault cluster, auditing is disabled.&quot;</em>; <a href="https://developer.hashicorp.com/vault/docs/commands/audit/list">audit list (Vault docs)</a> — <em>&quot;List information about active audit devices.&quot;</em></sub></p>
+</blockquote>
+<p>If all three places show what you expect, the pipeline is wired correctly end-to-end.</p>
+<hr />
+<p><a id="common-pitfalls"></a></p>
+<h2>10. Common Pitfalls</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>Error: Could not satisfy plugin requirements</code> on <code>terraform init</code> after a state-backend change</td>
+<td>Stale <code>.terraform/</code> cache</td>
+<td><code>rm -rf .terraform &amp;&amp; terraform init</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>Error: state lock could not be acquired</code></td>
+<td>A previous run died holding the lock; with <code>use_lockfile = true</code> the lock object is <code>key.tflock</code> in the same prefix</td>
+<td>Verify no run is actually in progress, then <code>terraform force-unlock &lt;LOCK_ID&gt;</code> (the ID is in the error message)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>Not authorized to perform sts:AssumeRoleWithWebIdentity</code> at the <em>Configure AWS credentials</em> step (<code>terraform init</code> never runs)</td>
+<td>The trust policy's <code>sub</code> (or <code>aud</code>) condition does not match the token — commonly the old <code>repo:&lt;org&gt;/&lt;repo&gt;:*</code> form on a repo that issues the immutable <code>repo:&lt;org&gt;@&lt;id&gt;/&lt;repo&gt;@&lt;id&gt;:…</code> format, or a <code>:ref:refs/heads/main</code> condition on the apply job, which presents <code>:environment:production</code></td>
+<td>Print the token's claims once with <code>github/actions-oidc-debugger</code> and match the condition to the <code>sub</code> it shows (Step 3 table)</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>permission denied: cannot retrieve credential from Vault</code></td>
+<td>Workflow lacks <code>id-token: write</code> permission, the Vault role's <code>bound_audiences</code> does not match <code>jwtGithubAudience</code>, or its <code>bound_claims</code> <code>sub</code> glob uses the wrong <code>sub</code> format (Step 3 table)</td>
+<td>Add <code>id-token: write</code> to the workflow's <code>permissions:</code> block; align the audience strings exactly — Vault is whitespace and case sensitive on this field</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Plan posts the Dynatrace token in cleartext into the PR comment</td>
+<td><code>terraform plan</code> rendered an attribute that contains the token (e.g. an output, or a debug <code>local</code>)</td>
+<td>Mark any <code>output</code> referencing the token as <code>sensitive = true</code> and, more importantly, <strong>never echo <code>TF_VAR_*</code> or <code>DYNATRACE_PLATFORM_TOKEN</code> from a <code>run:</code> step</strong> — <code>vault-action</code>'s masking only catches values it injected, not values you re-stringify</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>Error: 403 Forbidden</code> from the Dynatrace API on apply</td>
+<td>Three-things-align failure: service user IAM permissions, creator's <code>iam:service-users:use</code> at mint time, or scope selection</td>
+<td>Re-read AUTOM-04 §3 <em>Service User Credentials</em>; the most common variant is the service user lacking the <strong>Change monitoring settings</strong> permission</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Plan on PR succeeds; same plan on merge-to-main fails</td>
+<td>Drift between PR-time and merge-time tenant state, or the apply role can read state but the plan role cannot (or vice versa)</td>
+<td>If you split the IAM roles per environment, both must permit S3 state access on the same prefix; for this LAB they share a role, so look for tenant drift first</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>AccessDenied</code> on <code>s3:GetObject</code> / <code>s3:PutObject</code> during <code>terraform init</code></td>
+<td>The role was assumed, but its <strong>permission</strong> policy does not cover the bucket, the <code>dynatrace/lab/</code> prefix or the <code>.tflock</code> lock object</td>
+<td>Fix the resource ARNs in the role's <code>terraform-state-access</code> policy (Step 3.2)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="where-to-go-next"></a></p>
+<h2>11. Where to go next</h2>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Other CI platforms (GitLab, Bitbucket, Bamboo, Azure DevOps) following the same OIDC + Vault shape</td>
+<td><strong>AUTOM-07</strong> §4–§7</td>
+</tr>
+<tr>
+<td>State backend hardening — KMS keys, IAM scopes per environment, multi-account state, audit logging</td>
+<td><strong>AUTOM-09</strong> §3</td>
+</tr>
+<tr>
+<td>Multi-environment promotion — <code>envs/dev/</code>, <code>envs/staging/</code>, <code>envs/prod/</code> directories vs Terraform workspaces</td>
+<td><strong>AUTOM-09</strong> §6</td>
+</tr>
+<tr>
+<td>Lifecycle protections — <code>prevent_destroy</code>, <code>ignore_changes</code>, <code>replace_triggered_by</code> for critical resources</td>
+<td><strong>AUTOM-09</strong> §9</td>
+</tr>
+<tr>
+<td>Token-model deep dive — Platform Token vs classic API Token vs OAuth Client; when each applies</td>
+<td><strong>AUTOM-04</strong> §3</td>
+</tr>
+<tr>
+<td><code>dynatrace_api_token</code> / state-leakage operational safety</td>
+<td><strong>AUTOM-04</strong> §3 <em>Operational Safety</em></td>
+</tr>
+<tr>
+<td>Drift detection (scheduled <code>terraform plan -detailed-exitcode</code> workflow)</td>
+<td><strong>AUTOM-07</strong> §3 <em>Drift Detection</em></td>
+</tr>
+<tr>
+<td>Reusable workflows for multi-team / multi-tenant orgs</td>
+<td><strong>AUTOM-07</strong> §3 <em>Reusable Workflows</em></td>
+</tr>
+<tr>
+<td>Policy-as-code gates (OPA/Conftest, Sentinel)</td>
+<td><strong>AUTOM-07</strong> §3 <em>Policy-as-Code Gates</em></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="summary-checklist"></a></p>
+<h2>12. Summary Checklist</h2>
+<p>Tick off each item to confirm a working LAB:</p>
+<ul>
+<li>[ ] Repo created with <code>versions.tf</code>, <code>main.tf</code>, <code>backend.tf</code>, <code>.gitignore</code>; <code>.terraform.lock.hcl</code> committed</li>
+<li>[ ] S3 state bucket created, versioning enabled, encryption enabled</li>
+<li>[ ] Platform Token minted in DT UI on a service user; deposited in Vault at <code>secret/dynatrace/lab</code></li>
+<li>[ ] AWS OIDC identity provider for <code>token.actions.githubusercontent.com</code> exists</li>
+<li>[ ] AWS IAM role <code>github-actions-dynatrace-terraform</code> with trust policy scoped to your repo, in the <code>sub</code> format your repo issues</li>
+<li>[ ] Vault <code>jwt</code> auth method enabled and bound to GitHub's OIDC issuer</li>
+<li>[ ] Vault role <code>dynatrace-terraform-lab</code> with policy granting read on <code>secret/data/dynatrace/lab</code></li>
+<li>[ ] <code>.github/workflows/terraform.yml</code> committed; permissions block contains <code>id-token: write</code></li>
+<li>[ ] PR run shows green <code>plan</code> job; PR comment with plan summary posted</li>
+<li>[ ] No raw token values appear in any log line</li>
+<li>[ ] <code>production</code> GitHub Environment created; required reviewers configured (public repo or GitHub Enterprise); deployment branches restricted to <code>main</code></li>
+<li>[ ] Merge-to-main run shows <code>apply</code> job waiting on approval; approval triggers apply</li>
+<li>[ ] Validation: DT tenant shows the new ownership team; modified-by = service user</li>
+<li>[ ] Validation: GitHub Environments page shows the deployment with approver's name</li>
+<li>[ ] Validation: Vault audit log (device enabled before the run) shows two reads from the workflow's OIDC identity</li>
+</ul>
+<hr />
+<p><a id="sources-and-references"></a></p>
+<h2>13. Sources and References</h2>
+<h3>Dynatrace</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform Tokens (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/terraform">Terraform for Dynatrace (DT docs)</a></li>
+<li><a href="https://registry.terraform.io/providers/dynatrace-oss/dynatrace/latest/docs">Dynatrace Terraform Provider (Terraform Registry)</a></li>
+<li><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace">Dynatrace Terraform Provider (Dynatrace GitHub)</a></li>
+</ul>
+<h3>GitHub Actions</h3>
+<ul>
+<li><a href="https://docs.github.com/en/actions/concepts/security/openid-connect">About security hardening with OpenID Connect (GitHub docs)</a></li>
+<li><a href="https://docs.github.com/en/actions/reference/security/oidc">OpenID Connect reference — subject claims and immutable format (GitHub docs)</a></li>
+<li><a href="https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/">Deprecation of Node 20 on GitHub Actions runners (GitHub changelog)</a> — <em>&quot;remove Node20 on September 23rd, 2026&quot;</em></li>
+<li><a href="https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws">Configuring OpenID Connect in Amazon Web Services (GitHub docs)</a></li>
+<li><a href="https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets">Using secrets in GitHub Actions (GitHub docs)</a></li>
+<li><a href="https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments">Using environments for deployment (GitHub docs)</a></li>
+</ul>
+<h3>Actions used in the workflow</h3>
+<ul>
+<li><a href="https://github.com/hashicorp/setup-terraform">hashicorp/setup-terraform (HashiCorp GitHub)</a></li>
+<li><a href="https://github.com/hashicorp/vault-action">hashicorp/vault-action (HashiCorp GitHub)</a></li>
+<li><a href="https://github.com/aws-actions/configure-aws-credentials">aws-actions/configure-aws-credentials (AWS GitHub)</a></li>
+<li><a href="https://github.com/actions/github-script">actions/github-script (GitHub)</a></li>
+<li><a href="https://github.com/github/actions-oidc-debugger">github/actions-oidc-debugger (GitHub)</a></li>
+</ul>
+<h3>Terraform / Vault</h3>
+<ul>
+<li><a href="https://developer.hashicorp.com/terraform/language/backend/s3">S3 backend (Terraform docs)</a> — current S3-lockfile locking model</li>
+<li><a href="https://developer.hashicorp.com/terraform/language/manage-sensitive-data">Sensitive data in state (Terraform docs)</a></li>
+<li><a href="https://developer.hashicorp.com/vault/docs/auth/jwt">JWT auth method (Vault docs)</a></li>
+<li><a href="https://developer.hashicorp.com/terraform/language/files/dependency-lock">Dependency lock file (Terraform docs)</a></li>
+<li><a href="https://github.com/hashicorp/terraform/releases/tag/v1.11.0">Terraform v1.11.0 release notes (HashiCorp GitHub)</a> — <em>&quot;S3 native state locking is now generally available.&quot;</em></li>
+<li><a href="https://developer.hashicorp.com/vault/cloud">What is HCP Vault Dedicated (HashiCorp)</a></li>
+<li><a href="https://developer.hashicorp.com/vault/docs/audit">Audit logging (Vault docs)</a></li>
+</ul>
+<h3>AWS</h3>
+<ul>
+<li><a href="https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateOpenIDConnectProvider.html">CreateOpenIDConnectProvider (AWS docs)</a></li>
+</ul>
+<hr />
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

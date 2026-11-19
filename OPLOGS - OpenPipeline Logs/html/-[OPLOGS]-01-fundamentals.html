@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPLOGS-01: OpenPipeline Fundamentals</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPLOGS — OpenPipeline Logs</a><span class="sep">/</span><span aria-current="page">OPLOGS-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPLOGS-01: OpenPipeline Fundamentals</h1>
+<blockquote>
+<p><strong>Series:</strong> OPLOGS — OpenPipeline Logs | <strong>Notebook:</strong> 1 of 8 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/06/2026</p>
+</blockquote>
+<h2>Understanding the Unified Data Ingestion Framework</h2>
+<p>This notebook introduces OpenPipeline, Dynatrace's unified data processing framework for logs, traces, metrics, and events.</p>
+<blockquote>
+<p>🆕 <strong>New Addition (March 2026)</strong></p>
+<p><strong>Companion Series</strong></p>
+<ul>
+<li><strong>OPMIG</strong> — Migrating from classic logs to OpenPipeline? Start with <strong>OPMIG-01: Why Migrate</strong></li>
+<li><strong>OPIPE</strong> — Ready to process spans, metrics, and events? Continue to <strong>OPIPE-01: OpenPipeline as a Multi-Scope Platform</strong></li>
+<li><strong>SPANS</strong> — Need to query and analyze distributed traces? See <strong>SPANS-01: Fundamentals</strong></li>
+</ul>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-is-openpipeline">What is OpenPipeline?</a></li>
+<li><a href="#openpipeline-architecture">OpenPipeline Architecture</a></li>
+<li><a href="#exploring-your-openpipeline-data">Exploring Your OpenPipeline Data</a></li>
+<li><a href="#key-openpipeline-fields">Key OpenPipeline Fields</a></li>
+<li><a href="#data-sources-explained">Data Sources Explained</a></li>
+<li><a href="#pipeline-stages-overview">Pipeline Stages</a></li>
+<li><a href="#environment-summary">Environment Summary</a></li>
+<li><a href="#summary">📝 Summary</a></li>
+<li><a href="#next-steps">➡️ Next Steps</a></li>
+<li><a href="#references">📚 References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with log data</li>
+<li>✅ DQL query permissions (viewer role minimum)</li>
+<li>✅ Basic understanding of log management concepts</li>
+</ul>
+<p><a id="what-is-openpipeline"></a></p>
+<h2>1. What is OpenPipeline?</h2>
+<p><strong>OpenPipeline</strong> is Dynatrace's unified data ingestion and processing framework that replaces classic log ingestion. It provides:</p>
+<ul>
+<li><strong>Unified Processing</strong>: Single framework for logs, metrics, traces, and business events</li>
+<li><strong>Real-time Transformation</strong>: Parse, enrich, mask, and route data at ingestion</li>
+<li><strong>Grail Storage</strong>: Direct integration with Dynatrace's data lakehouse</li>
+<li><strong>Flexible Routing</strong>: Send data to different buckets with custom retention</li>
+<li><strong>Cost Control</strong>: Drop unnecessary data before storage</li>
+</ul>
+<h3>OpenPipeline vs the Classic Log Pipeline</h3>
+<p>On Grail, OpenPipeline replaces the <strong>classic log pipeline</strong> — log processing rules under <em>Settings &gt; Log Monitoring</em>. Both process records <strong>before</strong> they are stored; the differences are scope, language and structure:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Classic log pipeline</th>
+<th>OpenPipeline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data Processing</td>
+<td>Processing rules at ingest, before storage</td>
+<td>Pipelines at ingest, before storage</td>
+</tr>
+<tr>
+<td>Signal types</td>
+<td>Logs and business events</td>
+<td>Logs, spans, metrics, events, business events, and more</td>
+</tr>
+<tr>
+<td>Rule language</td>
+<td>Processing-rule commands with DPL</td>
+<td>DQL processors with DPL, plus no-code processors</td>
+</tr>
+<tr>
+<td>Routing</td>
+<td>One ordered list of rules</td>
+<td>Dynamic routing to many pipelines, pipeline groups</td>
+</tr>
+<tr>
+<td>Data Masking</td>
+<td>Mask / drop attributes in a rule</td>
+<td>DQL processor with DPL (<code>replacePattern</code>), <code>replaceString</code>, <code>ipMask</code></td>
+</tr>
+<tr>
+<td>Extraction</td>
+<td>Log metrics</td>
+<td>Metric, Davis event, business event, SDLC event, Smartscape stages</td>
+</tr>
+<tr>
+<td>Retention</td>
+<td>Bucket per record</td>
+<td>Bucket assignment stage, or No storage assignment</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-classic-log-processing">Log processing with classic pipeline (DT docs)</a> — <em>&quot;Log processing occurs as log data arrives in the Dynatrace SaaS environment and before it is written to disk (stored).&quot;</em></sub></p>
+</blockquote>
+<p><a id="openpipeline-architecture"></a></p>
+<h2>2. OpenPipeline Architecture</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPgogIDxkZWZzPgogICAgPGZpbHRlciBpZD0ib3BTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9Im9wQXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzY0NzQ4YiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjgiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PcGVuUGlwZWxpbmUgTG9nIFByb2Nlc3NpbmcgQXJjaGl0ZWN0dXJlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDgiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJvdXRpbmcgcGlja3MgdGhlIHBpcGVsaW5lLiBJbnNpZGUgaXQsIHRlbiBzdGFnZXMgcnVuIGluIGEgZml4ZWQgb3JkZXIuIFRoZSByZWNvcmQgaXMgc3RvcmVkIGluIEdyYWlsIGFmdGVyd2FyZHMuPC90ZXh0PgoKICA8IS0tIERhdGEgc291cmNlcyAtLT4KICA8dGV4dCB4PSI3MiIgeT0iODAiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EYXRhIHNvdXJjZXM8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjkwIiB3aWR0aD0iMTA1IiBoZWlnaHQ9IjM4IiByeD0iNiIgZmlsbD0iIzI1NjNlYiIgZmlsdGVyPSJ1cmwoI29wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjcyIiB5PSIxMTMiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PbmVBZ2VudDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMTM2IiB3aWR0aD0iMTA1IiBoZWlnaHQ9IjM4IiByeD0iNiIgZmlsbD0iIzI1NjNlYiIgZmlsdGVyPSJ1cmwoI29wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjcyIiB5PSIxNTkiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Mb2cgaW5nZXN0IEFQSTwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMTgyIiB3aWR0aD0iMTA1IiBoZWlnaHQ9IjM4IiByeD0iNiIgZmlsbD0iIzI1NjNlYiIgZmlsdGVyPSJ1cmwoI29wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjcyIiB5PSIyMDUiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PVExQPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIyMjgiIHdpZHRoPSIxMDUiIGhlaWdodD0iMzgiIHJ4PSI2IiBmaWxsPSIjMjU2M2ViIiBmaWx0ZXI9InVybCgjb3BTaGFkb3cpIi8+CiAgPHRleHQgeD0iNzIiIHk9IjI1MSIgZm9udC1zaXplPSIxMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk90aGVyIGluZ2VzdCBzb3VyY2VzPC90ZXh0PgoKICA8cGF0aCBkPSJNMTI3LDE3OCBMMTQzLDE3OCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjb3BBcnJvdykiLz4KCiAgPCEtLSBSb3V0aW5nIC0tPgogIDxyZWN0IHg9IjE0NyIgeT0iMTMwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9Ijk2IiByeD0iOCIgZmlsbD0iIzdjM2FlZCIgZmlsdGVyPSJ1cmwoI29wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjE5NyIgeT0iMTU2IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJPVVRJTkc8L3RleHQ+CiAgPHRleHQgeD0iMTk3IiB5PSIxNzYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QaWNrcyB0aGUgcGlwZWxpbmU8L3RleHQ+CiAgPHRleHQgeD0iMTk3IiB5PSIxOTQiIGZvbnQtc2l6ZT0iOSIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRRTCBtYXRjaGVyLCBvciBhPC90ZXh0PgogIDx0ZXh0IHg9IjE5NyIgeT0iMjA3IiBmb250LXNpemU9IjkiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zdGF0aWMgcm91dGU8L3RleHQ+CgogIDxwYXRoIGQ9Ik0yNDksMTc4IEwyNjMsMTc4IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNvcEFycm93KSIvPgoKICA8IS0tIFBpcGVsaW5lIGNvbnRhaW5lciAtLT4KICA8cmVjdCB4PSIyNjciIHk9IjY2IiB3aWR0aD0iNTM4IiBoZWlnaHQ9IjIyMCIgcng9IjEwIiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiNjYmQ1ZTEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjUzNiIgeT0iODMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QaXBlbGluZTogZml4ZWQgc3RhZ2Ugb3JkZXIgKGNhbm5vdCBiZSBjaGFuZ2VkKTwvdGV4dD4KCiAgPCEtLSBSb3cgQTogc3RhZ2VzIDEtNSAtLT4KICA8cmVjdCB4PSIyNzYiIHk9IjkyIiB3aWR0aD0iOTYiIGhlaWdodD0iNzQiIHJ4PSI3IiBmaWxsPSIjZGMyNjI2IiBmaWx0ZXI9InVybCgjb3BTaGFkb3cpIi8+CiAgPHRleHQgeD0iMzI0IiB5PSIxMDciIGZvbnQtc2l6ZT0iOSIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YWdlIDE8L3RleHQ+CiAgPHRleHQgeD0iMzI0IiB5PSIxMjYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJvY2Vzc2luZzwvdGV4dD4KICA8dGV4dCB4PSIzMjQiIHk9IjE0MyIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGFyc2UsIG1hc2ssIGRyb3AsPC90ZXh0PgogIDx0ZXh0IHg9IjMyNCIgeT0iMTU2IiBmb250LXNpemU9IjkiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj50cmFuc2Zvcm08L3RleHQ+CgogIDxyZWN0IHg9IjM4MiIgeT0iOTIiIHdpZHRoPSI5NiIgaGVpZ2h0PSI3NCIgcng9IjciIGZpbGw9IiM0NzU1NjkiIGZpbHRlcj0idXJsKCNvcFNoYWRvdykiLz4KICA8dGV4dCB4PSI0MzAiIHk9IjEwNyIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3RhZ2UgMjwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjEyNiIgZm9udC1zaXplPSIxMC41IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNtYXJ0c2NhcGU8L3RleHQ+CiAgPHRleHQgeD0iNDMwIiB5PSIxMzkiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ub2RlPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMTU2IiBmb250LXNpemU9IjkiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FeHRyYWN0IG5vZGVzPC90ZXh0PgoKICA8cmVjdCB4PSI0ODgiIHk9IjkyIiB3aWR0aD0iOTYiIGhlaWdodD0iNzQiIHJ4PSI3IiBmaWxsPSIjNDc1NTY5IiBmaWx0ZXI9InVybCgjb3BTaGFkb3cpIi8+CiAgPHRleHQgeD0iNTM2IiB5PSIxMDciIGZvbnQtc2l6ZT0iOSIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YWdlIDM8L3RleHQ+CiAgPHRleHQgeD0iNTM2IiB5PSIxMjYiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TbWFydHNjYXBlPC90ZXh0PgogIDx0ZXh0IHg9IjUzNiIgeT0iMTM5IiBmb250LXNpemU9IjEwLjUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZWRnZTwvdGV4dD4KICA8dGV4dCB4PSI1MzYiIHk9IjE1NiIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RXh0cmFjdCBlZGdlczwvdGV4dD4KCiAgPHJlY3QgeD0iNTk0IiB5PSI5MiIgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijc0IiByeD0iNyIgZmlsbD0iIzFkNGVkOCIgc3Ryb2tlPSIjMGYxNzJhIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjQgMyIgZmlsdGVyPSJ1cmwoI29wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjY0MiIgeT0iMTA3IiBmb250LXNpemU9IjkiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TdGFnZSA0PC90ZXh0PgogIDx0ZXh0IHg9IjY0MiIgeT0iMTI2IiBmb250LXNpemU9IjEwLjUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGVybWlzc2lvbjwvdGV4dD4KICA8dGV4dCB4PSI2NDIiIHk9IjE0MyIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2V0IHNlY3VyaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjY0MiIgeT0iMTU2IiBmb250LXNpemU9IjkiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jb250ZXh0PC90ZXh0PgoKICA8cmVjdCB4PSI3MDAiIHk9IjkyIiB3aWR0aD0iOTYiIGhlaWdodD0iNzQiIHJ4PSI3IiBmaWxsPSIjMWQ0ZWQ4IiBzdHJva2U9IiMwZjE3MmEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNCAzIiBmaWx0ZXI9InVybCgjb3BTaGFkb3cpIi8+CiAgPHRleHQgeD0iNzQ4IiB5PSIxMDciIGZvbnQtc2l6ZT0iOSIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YWdlIDU8L3RleHQ+CiAgPHRleHQgeD0iNzQ4IiB5PSIxMjYiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm9kdWN0PC90ZXh0PgogIDx0ZXh0IHg9Ijc0OCIgeT0iMTM5IiBmb250LXNpemU9IjEwLjUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+YWxsb2NhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI3NDgiIHk9IjE1NiIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RFBTIGNvc3QgYWxsb2NhdGlvbjwvdGV4dD4KCiAgPHBhdGggZD0iTTM3MiwxMjkgTDM4MCwxMjkiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI29wQXJyb3cpIi8+CiAgPHBhdGggZD0iTTQ3OCwxMjkgTDQ4NiwxMjkiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI29wQXJyb3cpIi8+CiAgPHBhdGggZD0iTTU4NCwxMjkgTDU5MiwxMjkiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI29wQXJyb3cpIi8+CiAgPHBhdGggZD0iTTY5MCwxMjkgTDY5OCwxMjkiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI29wQXJyb3cpIi8+CgogIDwhLS0gV3JhcCBmcm9tIHN0YWdlIDUgdG8gc3RhZ2UgNiAtLT4KICA8cGF0aCBkPSJNNzQ4LDE2NiBMNzQ4LDE3NSBMMzI0LDE3NSBMMzI0LDE4MiIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjb3BBcnJvdykiLz4KCiAgPCEtLSBSb3cgQjogc3RhZ2VzIDYtMTAgLS0+CiAgPHJlY3QgeD0iMjc2IiB5PSIxODYiIHdpZHRoPSI5NiIgaGVpZ2h0PSI3NCIgcng9IjciIGZpbGw9IiMxZDRlZDgiIHN0cm9rZT0iIzBmMTcyYSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI0IDMiIGZpbHRlcj0idXJsKCNvcFNoYWRvdykiLz4KICA8dGV4dCB4PSIzMjQiIHk9IjIwMSIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3RhZ2UgNjwvdGV4dD4KICA8dGV4dCB4PSIzMjQiIHk9IjIyMCIgZm9udC1zaXplPSIxMC41IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNvc3Q8L3RleHQ+CiAgPHRleHQgeD0iMzI0IiB5PSIyMzMiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hbGxvY2F0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjMyNCIgeT0iMjUwIiBmb250LXNpemU9IjkiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EUFMgY29zdCBjZW50ZXI8L3RleHQ+CgogIDxyZWN0IHg9IjM4MiIgeT0iMTg2IiB3aWR0aD0iOTYiIGhlaWdodD0iNzQiIHJ4PSI3IiBmaWxsPSIjYmUxODVkIiBzdHJva2U9IiMwZjE3MmEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNCAzIiBmaWx0ZXI9InVybCgjb3BTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDMwIiB5PSIyMDEiIGZvbnQtc2l6ZT0iOSIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YWdlIDc8L3RleHQ+CiAgPHRleHQgeD0iNDMwIiB5PSIyMjAiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CdWNrZXQ8L3RleHQ+CiAgPHRleHQgeD0iNDMwIiB5PSIyMzMiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hc3NpZ25tZW50PC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMjUwIiBmb250LXNpemU9IjkiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CdWNrZXQsIG9yIG5vIHN0b3JhZ2U8L3RleHQ+CgogIDxyZWN0IHg9IjQ4OCIgeT0iMTg2IiB3aWR0aD0iOTYiIGhlaWdodD0iNzQiIHJ4PSI3IiBmaWxsPSIjMDU5NjY5IiBmaWx0ZXI9InVybCgjb3BTaGFkb3cpIi8+CiAgPHRleHQgeD0iNTM2IiB5PSIyMDEiIGZvbnQtc2l6ZT0iOSIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YWdlIDg8L3RleHQ+CiAgPHRleHQgeD0iNTM2IiB5PSIyMjAiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NZXRyaWM8L3RleHQ+CiAgPHRleHQgeD0iNTM2IiB5PSIyMzMiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5leHRyYWN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjUzNiIgeT0iMjUwIiBmb250LXNpemU9IjkiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db3VudGVyLCB2YWx1ZSwgaGlzdG8uPC90ZXh0PgoKICA8cmVjdCB4PSI1OTQiIHk9IjE4NiIgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijc0IiByeD0iNyIgZmlsbD0iIzA1OTY2OSIgZmlsdGVyPSJ1cmwoI29wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjY0MiIgeT0iMjAxIiBmb250LXNpemU9IjkiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TdGFnZSA5PC90ZXh0PgogIDx0ZXh0IHg9IjY0MiIgeT0iMjI2IiBmb250LXNpemU9IjEwLjUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGF2aXM8L3RleHQ+CiAgPHRleHQgeD0iNjQyIiB5PSIyNTAiIGZvbnQtc2l6ZT0iOSIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRhdmlzIGV2ZW50czwvdGV4dD4KCiAgPHJlY3QgeD0iNzAwIiB5PSIxODYiIHdpZHRoPSI5NiIgaGVpZ2h0PSI3NCIgcng9IjciIGZpbGw9IiMwNTk2NjkiIGZpbHRlcj0idXJsKCNvcFNoYWRvdykiLz4KICA8dGV4dCB4PSI3NDgiIHk9IjIwMSIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3RhZ2UgMTA8L3RleHQ+CiAgPHRleHQgeD0iNzQ4IiB5PSIyMjAiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EYXRhPC90ZXh0PgogIDx0ZXh0IHg9Ijc0OCIgeT0iMjMzIiBmb250LXNpemU9IjEwLjUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZXh0cmFjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI3NDgiIHk9IjI1MCIgZm9udC1zaXplPSI5IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Qml6ZXZlbnRzLCBTRExDPC90ZXh0PgoKICA8cGF0aCBkPSJNMzcyLDIyMyBMMzgwLDIyMyIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjb3BBcnJvdykiLz4KICA8cGF0aCBkPSJNNDc4LDIyMyBMNDg2LDIyMyIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjb3BBcnJvdykiLz4KICA8cGF0aCBkPSJNNTg0LDIyMyBMNTkyLDIyMyIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjb3BBcnJvdykiLz4KICA8cGF0aCBkPSJNNjkwLDIyMyBMNjk4LDIyMyIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjb3BBcnJvdykiLz4KCiAgPCEtLSBMZWdlbmQgaW5zaWRlIGNvbnRhaW5lciAtLT4KICA8cmVjdCB4PSIzMDAiIHk9IjI2OCIgd2lkdGg9IjE4IiBoZWlnaHQ9IjEwIiByeD0iMiIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjMGYxNzJhIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iMyAyIi8+CiAgPHRleHQgeD0iMzI0IiB5PSIyNzciIGZvbnQtc2l6ZT0iOS41IiBmaWxsPSIjNDc1NTY5Ij5EYXNoZWQ6IGZpcnN0IG1hdGNoIG9ubHkgKHN0YWdlcyA0LTcpLiBPdGhlcnMgcnVuIGV2ZXJ5IG1hdGNoaW5nIHByb2Nlc3Nvci48L3RleHQ+CgogIDxwYXRoIGQ9Ik04MDcsMTc4IEw4MjMsMTc4IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNvcEFycm93KSIvPgoKICA8IS0tIFN0b3JhZ2UgLS0+CiAgPHJlY3QgeD0iODI3IiB5PSIxMzAiIHdpZHRoPSI4NSIgaGVpZ2h0PSI5NiIgcng9IjgiIGZpbGw9IiNiZTE4NWQiIGZpbHRlcj0idXJsKCNvcFNoYWRvdykiLz4KICA8dGV4dCB4PSI4NjkiIHk9IjE2MCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TVE9SQUdFPC90ZXh0PgogIDx0ZXh0IHg9Ijg2OSIgeT0iMTgwIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R3JhaWwgYnVja2V0PC90ZXh0PgogIDx0ZXh0IHg9Ijg2OSIgeT0iMTk2IiBmb250LXNpemU9IjkiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jaG9zZW4gaW48L3RleHQ+CiAgPHRleHQgeD0iODY5IiB5PSIyMDkiIGZvbnQtc2l6ZT0iOSIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnN0YWdlIDc8L3RleHQ+CgogIDwhLS0gS2V5IHBvaW50cyAtLT4KICA8cmVjdCB4PSIyMCIgeT0iMzAwIiB3aWR0aD0iODkwIiBoZWlnaHQ9IjE4NSIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzI0IiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+V2hhdCB0aGUgc3RhZ2Ugb3JkZXIgbWVhbnMgZm9yIGxvZyBwaXBlbGluZXM8L3RleHQ+CgogIDxyZWN0IHg9IjM2IiB5PSIzMzgiIHdpZHRoPSIyMDQiIGhlaWdodD0iMTM0IiByeD0iNiIgZmlsbD0iI2ZlZjJmMiIvPgogIDx0ZXh0IHg9IjEzOCIgeT0iMzYwIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2RjMjYyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TWFza2luZzwvdGV4dD4KICA8dGV4dCB4PSIxMzgiIHk9IjM4MSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzdmMWQxZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QSBEUUwgcHJvY2Vzc29yIGluIHN0YWdlIDEuPC90ZXh0PgogIDx0ZXh0IHg9IjEzOCIgeT0iMzk3IiBmb250LXNpemU9IjEwIiBmaWxsPSIjN2YxZDFkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm9jZXNzb3JzIGluIGEgc3RhZ2UgcnVuIGluPC90ZXh0PgogIDx0ZXh0IHg9IjEzOCIgeT0iNDEzIiBmb250LXNpemU9IjEwIiBmaWxsPSIjN2YxZDFkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj50aGUgb3JkZXIgeW91IHBsYWNlIHRoZW0sIHNvPC90ZXh0PgogIDx0ZXh0IHg9IjEzOCIgeT0iNDI5IiBmb250LXNpemU9IjEwIiBmaWxsPSIjN2YxZDFkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wdXQgaXQgYmVmb3JlIGFueSBwcm9jZXNzb3I8L3RleHQ+CiAgPHRleHQgeD0iMTM4IiB5PSI0NDUiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ZjFkMWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnRoYXQgY29waWVzIG9yIHBhcnNlcyB0aGUgZmllbGQuPC90ZXh0PgoKICA8cmVjdCB4PSIyNTQiIHk9IjMzOCIgd2lkdGg9IjIwNCIgaGVpZ2h0PSIxMzQiIHJ4PSI2IiBmaWxsPSIjZmVmM2M3Ii8+CiAgPHRleHQgeD0iMzU2IiB5PSIzNjAiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Wb2x1bWU8L3RleHQ+CiAgPHRleHQgeD0iMzU2IiB5PSIzODEiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ODM1MGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRyb3AgcmVjb3JkIChzdGFnZSAxKSByZW1vdmVzPC90ZXh0PgogIDx0ZXh0IHg9IjM1NiIgeT0iMzk3IiBmb250LXNpemU9IjEwIiBmaWxsPSIjNzgzNTBmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5yZWNvcmRzIHlvdSBuZXZlciBuZWVkLjwvdGV4dD4KICA8dGV4dCB4PSIzNTYiIHk9IjQxMyIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzc4MzUwZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Tm8gc3RvcmFnZSBhc3NpZ25tZW50PC90ZXh0PgogIDx0ZXh0IHg9IjM1NiIgeT0iNDI5IiBmb250LXNpemU9IjEwIiBmaWxsPSIjNzgzNTBmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oc3RhZ2UgNykgc2tpcHMgc3RvcmFnZSBidXQgdGhlPC90ZXh0PgogIDx0ZXh0IHg9IjM1NiIgeT0iNDQ1IiBmb250LXNpemU9IjEwIiBmaWxsPSIjNzgzNTBmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5yZWNvcmQgc3RpbGwgcmVhY2hlcyBzdGFnZXMgOC0xMC48L3RleHQ+CgogIDxyZWN0IHg9IjQ3MiIgeT0iMzM4IiB3aWR0aD0iMjA0IiBoZWlnaHQ9IjEzNCIgcng9IjYiIGZpbGw9IiNkMWZhZTUiLz4KICA8dGV4dCB4PSI1NzQiIHk9IjM2MCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPkV4dHJhY3Rpb248L3RleHQ+CiAgPHRleHQgeD0iNTc0IiB5PSIzODEiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwNjRlM2IiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YWdlcyA4LTEwIGNyZWF0ZSBtZXRyaWNzLDwvdGV4dD4KICA8dGV4dCB4PSI1NzQiIHk9IjM5NyIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA2NGUzYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGF2aXMgZXZlbnRzLCBidXNpbmVzcyBldmVudHM8L3RleHQ+CiAgPHRleHQgeD0iNTc0IiB5PSI0MTMiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwNjRlM2IiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmFuZCBTRExDIGV2ZW50cy4gVGhleSBjYW4gcmVhZDwvdGV4dD4KICA8dGV4dCB4PSI1NzQiIHk9IjQyOSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA2NGUzYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZmllbGRzIHRoYXQgc3RhZ2UgMSBwYXJzZWQuPC90ZXh0PgoKICA8cmVjdCB4PSI2OTAiIHk9IjMzOCIgd2lkdGg9IjIwNCIgaGVpZ2h0PSIxMzQiIHJ4PSI2IiBmaWxsPSIjZGJlYWZlIi8+CiAgPHRleHQgeD0iNzkyIiB5PSIzNjAiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWU0MGFmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CdWNrZXRzIGFuZCBhY2Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iNzkyIiB5PSIzODEiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZTNhOGEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YWdlIDcgcGlja3Mgb25lIGJ1Y2tldCAoZmlyc3Q8L3RleHQ+CiAgPHRleHQgeD0iNzkyIiB5PSIzOTciIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZTNhOGEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm1hdGNoKSwgd2hpY2ggc2V0cyByZXRlbnRpb24uPC90ZXh0PgogIDx0ZXh0IHg9Ijc5MiIgeT0iNDEzIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMWUzYThhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TdGFnZSA0IHNldHMgdGhlIHNlY3VyaXR5PC90ZXh0PgogIDx0ZXh0IHg9Ijc5MiIgeT0iNDI5IiBmb250LXNpemU9IjEwIiBmaWxsPSIjMWUzYThhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jb250ZXh0IHVzZWQgYnkgcGVybWlzc2lvbnMuPC90ZXh0Pgo8L3N2Zz4K" alt="OpenPipeline Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Component | Function |
+|------|-----------|----------|
+| **Data sources** | OneAgent, Log ingest API, OTLP, other ingest sources | Ingestion entry points; source recorded as `dt.openpipeline.source` |
+| **Routing** | Picks the pipeline | Dynamic (DQL matcher) or static route |
+| **Stage 1 — Processing** | DQL, Add/Remove/Rename fields, Drop record, GeoIP lookup (Early Access), Inline lookup | Parse, mask, drop, transform; processors run in the order you place them |
+| **Stage 2 — Smartscape node** | Smartscape node | Extract nodes |
+| **Stage 3 — Smartscape edge** | Smartscape edge | Extract edges |
+| **Stage 4 — Permission** *(first match only)* | Set security context | Security context used by permissions |
+| **Stage 5 — Product allocation** *(first match only)* | DPS Cost Allocation - Product | Product or application usage |
+| **Stage 6 — Cost allocation** *(first match only)* | DPS Cost Allocation - Cost Center | Cost-center usage |
+| **Stage 7 — Bucket assignment** *(first match only)* | Bucket assignment, No storage assignment | Picks the bucket (and so the retention), or no storage |
+| **Stage 8 — Metric extraction** | Counter, Histogram, Value metric | Metrics from records |
+| **Stage 9 — Davis** | Davis event | Davis events |
+| **Stage 10 — Data extraction** | Business event, Software development lifecycle event | Business and SDLC events |
+| **Storage** | Grail bucket chosen in stage 7 | Records with No storage assignment still reach stages 8–10, then are not stored |
+
+| Key point | What the diagram says |
+|-----------|-----------------------|
+| Masking | A DQL processor in stage 1; place it before any processor that copies or parses the field |
+| Volume | Drop record (stage 1) removes records you never need; No storage assignment (stage 7) skips storage but the record still reaches stages 8–10 |
+| Extraction | Stages 8–10 create metrics, Davis events, business events and SDLC events, and can read fields stage 1 parsed |
+| Buckets and access | Stage 7 picks one bucket (first match); stage 4 sets the security context |
+-->
+<blockquote>
+<p><strong>Stage model (verified 09/24/2026):</strong> data flows Ingest → Routing → pipeline → Storage. Inside a pipeline, per <em>Processing in OpenPipeline</em>, &quot;The sequence of stages is fixed for all pipelines and cannot be modified.&quot; Masking, dropping, parsing and transformation are processors in the first stage, <strong>Processing</strong>; <strong>Bucket assignment</strong> comes seventh, and <strong>Metric extraction</strong>, <strong>Davis</strong> and <strong>Data extraction</strong> run after it. The diagram shows all ten stages in that order; stages 4–7 run only the first matching processor.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a></sub></p>
+</blockquote>
+<p><a id="exploring-your-openpipeline-data"></a></p>
+<h2>3. Exploring Your OpenPipeline Data</h2>
+<p>Let's start by discovering what data sources and pipelines are active in your environment.</p>
+<pre><code class="language-dql">// Discover data sources feeding OpenPipeline
+fetch logs, from: now() - 1h
+| summarize {log_count = count()}, by: {dt.openpipeline.source}
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// See which pipelines are processing your logs
+fetch logs, from: now() - 1h
+| summarize {log_count = count()}, by: {dt.openpipeline.pipelines}
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// Check storage bucket distribution
+fetch logs, from: now() - 1h
+| summarize {log_count = count()}, by: {dt.system.bucket}
+| sort log_count desc
+</code></pre>
+<p><a id="key-openpipeline-fields"></a></p>
+<h2>4. Key OpenPipeline Fields</h2>
+<p>OpenPipeline adds metadata fields to every log record:</p>
+<h3>Pipeline Metadata</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.openpipeline.source</code></td>
+<td>How the log was ingested</td>
+<td><code>oneagent</code>, <code>/api/v2/logs/ingest</code>, <code>/api/v2/otlp/v1/logs</code></td>
+</tr>
+<tr>
+<td><code>dt.openpipeline.pipelines</code></td>
+<td>Pipeline(s) that processed the log</td>
+<td><code>[&quot;logs:pipeline_Default_Pipeline_2798&quot;]</code></td>
+</tr>
+<tr>
+<td><code>dt.system.bucket</code></td>
+<td>Storage bucket name</td>
+<td><code>default_logs</code>, <code>custom_logs</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Core Log Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>timestamp</code></td>
+<td>When the log was generated</td>
+</tr>
+<tr>
+<td><code>content</code></td>
+<td>The log message body</td>
+</tr>
+<tr>
+<td><code>loglevel</code></td>
+<td>Log severity as ingested — e.g. ERROR, SEVERE, WARN, INFO, DEBUG, NONE (the <code>status</code> row below lists every value and its group)</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>Severity group derived from <code>loglevel</code>: ERROR (SEVERE, ERROR, CRITICAL, ALERT, FATAL, EMERGENCY), WARN, INFO (INFO, TRACE, DEBUG, NOTICE), NONE — use it for error-class counts</td>
+</tr>
+<tr>
+<td><code>log.source</code></td>
+<td>Source identifier (e.g., &quot;Container Output&quot;)</td>
+</tr>
+<tr>
+<td><code>log.iostream</code></td>
+<td>Stream type (stdout, stderr)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// View a sample log record with all key fields
+fetch logs, from: now() - 1h
+| fields timestamp, content, loglevel, status, log.source, log.iostream,
+         dt.openpipeline.source, dt.openpipeline.pipelines, dt.system.bucket
+| limit 5
+</code></pre>
+<pre><code class="language-dql">// Analyze log levels in your environment
+fetch logs, from: now() - 1h
+| summarize {count = count()}, by: {loglevel}
+| sort count desc
+</code></pre>
+<p><a id="data-sources-explained"></a></p>
+<h2>5. Data Sources Explained</h2>
+<h3>OneAgent (<code>oneagent</code>)</h3>
+<p>Logs collected automatically by Dynatrace OneAgent from:</p>
+<ul>
+<li>Container stdout/stderr</li>
+<li>Process log files</li>
+<li>System logs</li>
+</ul>
+<h3>Log Ingest API (<code>/api/v2/logs/ingest</code>)</h3>
+<p>Logs sent directly via the Dynatrace API:</p>
+<ul>
+<li>Custom application logs</li>
+<li>Third-party integrations</li>
+<li>Cloud provider logs (AWS, Azure, GCP)</li>
+</ul>
+<h4>Delivery reliability</h4>
+<p>The Log Ingest API acknowledges accepted data with <strong>HTTP 204 No Content</strong> (empty body). When a request fails on a <em>retryable</em> response code (each endpoint documents which codes are retryable), the <strong>client is responsible for retrying with exponential backoff</strong> — Dynatrace does not retry on the sender's behalf. The ActiveGate that serves the endpoint buffers ingested data to an on-disk queue (default <strong>300 MB</strong>, configured by <code>disk_queue_max_size_mb</code>; location by <code>disk_queue_path</code>) and forwards it to Dynatrace in batches; when that queue fills, the API returns <strong><code>503 Usable space limit reached</code></strong> as a back-pressure signal — increase <code>disk_queue_max_size_mb</code> if this recurs under normal load. Cloud-forwarder integrations (e.g. Amazon Data Firehose) implement their own buffering and smart-retry against the OpenPipeline endpoint.</p>
+<h3>OTLP (<code>/api/v2/otlp/v1/logs</code>)</h3>
+<p>OpenTelemetry Protocol logs:</p>
+<ul>
+<li>OpenTelemetry Collector</li>
+<li>Fluent Bit with OTLP output</li>
+<li>Custom OTLP exporters</li>
+</ul>
+<pre><code class="language-dql">// Compare volume by data source
+fetch logs, from: now() - 24h
+| summarize {
+    log_count = count(),
+    unique_hosts = countDistinct(dt.entity.host)
+  }, by: {dt.openpipeline.source}
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// Logs per hour by source (trend analysis)
+fetch logs, from: now() - 24h
+| makeTimeseries {log_count = count()}, by: {dt.openpipeline.source}, interval: 1h
+</code></pre>
+<p><a id="pipeline-stages-overview"></a></p>
+<h2>6. Pipeline Stages Overview</h2>
+<p>A record first passes <strong>Routing</strong>, which picks the pipeline (a dynamic DQL matcher, or a static route for custom ingest sources). Inside the pipeline it then runs through a <strong>fixed</strong> sequence of ten stages — the order cannot be changed:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Stage</th>
+<th>What it does in a log pipeline</th>
+<th>Processors</th>
+<th>Executed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Processing</strong></td>
+<td>Parse values into fields, transform the schema, filter records, mask sensitive data</td>
+<td>DQL, Add fields, Remove fields, Rename fields, Drop record, GeoIP lookup (Early Access), Inline lookup</td>
+<td>All matches</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Smartscape node</td>
+<td>Extract Smartscape nodes from matching records</td>
+<td>Smartscape node</td>
+<td>All matches</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Smartscape edge</td>
+<td>Extract Smartscape edges from matching records</td>
+<td>Smartscape edge</td>
+<td>All matches</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Permission</td>
+<td>Apply a security context to matching records</td>
+<td>Set security context</td>
+<td>First match only</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Product allocation</td>
+<td>Assign product or application usage</td>
+<td>DPS Cost Allocation - Product</td>
+<td>First match only</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Cost allocation</td>
+<td>Assign cost-center usage</td>
+<td>DPS Cost Allocation - Cost Center</td>
+<td>First match only</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Bucket assignment</strong></td>
+<td>Choose the Grail bucket — or not to store the record</td>
+<td>Bucket assignment, No storage assignment</td>
+<td>First match only</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Metric extraction</td>
+<td>Extract metrics from matching records</td>
+<td>Counter metric, Histogram metric, Value metric</td>
+<td>All matches</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Davis</td>
+<td>Extract a Davis event and re-ingest it into another pipeline</td>
+<td>Davis event</td>
+<td>All matches</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Data extraction</td>
+<td>Extract a business event or SDLC event and re-ingest it</td>
+<td>Business event, Software development lifecycle event</td>
+<td>All matches</td>
+</tr>
+</tbody>
+</table>
+<p>Masking, dropping and parsing are not separate stages: they are processors in stage 1, and within a stage they run in the order you place them. Storage in the chosen Grail bucket happens after the pipeline, so a record's retention is set by stage 7 — which is also why the extraction stages (8–10) still see records assigned to <strong>No storage assignment</strong>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — <em>&quot;each processor output becomes the input for the next one&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples">OpenPipeline processing examples (DT docs)</a> — <em>&quot;The record continues through all pipeline stages, including metric extraction, and is not stored only at the end.&quot;</em></sub></p>
+</blockquote>
+<p><a id="environment-summary"></a></p>
+<h2>7. Environment Summary</h2>
+<p>Let's get a complete picture of your OpenPipeline environment:</p>
+<pre><code class="language-dql">// Complete environment summary
+fetch logs, from: now() - 1h
+| summarize {
+    total_logs = count(),
+    unique_sources = countDistinct(dt.openpipeline.source),
+    unique_buckets = countDistinct(dt.system.bucket),
+    unique_hosts = countDistinct(dt.entity.host),
+    error_count = countIf(loglevel == &quot;ERROR&quot; OR status == &quot;ERROR&quot;),
+    warn_count = countIf(loglevel == &quot;WARN&quot; OR status == &quot;WARN&quot;)
+  }
+</code></pre>
+<pre><code class="language-dql">// Top log sources by entity
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.entity.host)
+| summarize {log_count = count()}, by: {host.name, log.source}
+| sort log_count desc
+| limit 15
+</code></pre>
+<hr />
+<p><a id="summary"></a></p>
+<h2>📝 Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>What OpenPipeline is</strong> - Dynatrace's unified data processing framework<br />
+✅ <strong>Architecture</strong> - Data flow from sources through processing to Grail<br />
+✅ <strong>Key fields</strong> - <code>dt.openpipeline.source</code>, <code>dt.openpipeline.pipelines</code>, <code>dt.system.bucket</code><br />
+✅ <strong>Data sources</strong> - OneAgent, Log Ingest API, OTLP<br />
+✅ <strong>Pipeline stages</strong> - a fixed sequence: Processing (mask, drop, parse, transform) → … → Bucket assignment → Metric / Davis / Data extraction</p>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>➡️ Next Steps</h2>
+<p>Continue to <strong>OPLOGS-02: Migration Guide</strong> to learn how to migrate from classic log ingestion to OpenPipeline v2.0.</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>📚 References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline">OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail">Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">Dynatrace Query Language (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api/lma-log-data-transformation">Automatic log enrichment (DT docs)</a> — <em>&quot;a status attribute is created with a value that is a sum of loglevel values based on the following grouping&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api">Log ingestion API (DT docs)</a> — client retries with exponential backoff, ActiveGate disk-queue buffering, <code>503 Usable space limit reached</code></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs">Log Monitoring API v2 - POST ingest logs (DT docs)</a> — HTTP 204 success (no body); each response code marked retryable or not</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IAM-03: Group Architecture and Design</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">IAM — IAM Administration</a><span class="sep">/</span><span aria-current="page">IAM-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>IAM-03: Group Architecture and Design</h1>
+<blockquote>
+<p><strong>Series:</strong> IAM — IAM Administration | <strong>Notebook:</strong> 3 of 12 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/10/2026</p>
+</blockquote>
+<h2>Designing Scalable Group Structures</h2>
+<p>Groups are the foundation of access management. A well-designed group architecture simplifies administration, improves security, and scales with your organization.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#group-fundamentals">Group Fundamentals</a></li>
+<li><a href="#group-hierarchy-patterns">Group Design Patterns</a></li>
+<li><a href="#naming-conventions">Naming Conventions</a></li>
+<li><a href="#saml-group-mapping">SAML Group Mapping</a></li>
+<li><a href="#group-lifecycle-management">Group Lifecycle Management</a></li>
+<li><a href="#separation-of-duties">Separation of Duties</a></li>
+<li><a href="#cross-environment-patterns">Cross-Environment Patterns</a></li>
+<li><a href="#group-assessment-queries">Group Assessment Queries</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Gen3 IAM enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>account-user-management</code> or group management rights</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td><strong>IAM-01</strong> and <strong>IAM-02</strong> (SSO configured)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="group-fundamentals"></a></p>
+<h2>1. Group Fundamentals</h2>
+<p>Groups in Dynatrace Gen3 IAM are collections of users that share access permissions. Groups exist at the <strong>account level</strong> and can be assigned to one or more environments.</p>
+<h3>Group Properties</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Description</th>
+<th>Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Group name</strong></td>
+<td>Unique identifier for the group</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Description</strong></td>
+<td>Purpose and ownership information (max 255 characters) — groups have no separate owner field, so record the owner here</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td><strong>Security claims</strong> (SAML Group Attribute Value)</td>
+<td>Federated group values that map IdP users into the group</td>
+<td>Optional — only with an active SAML federation</td>
+</tr>
+</tbody>
+</table>
+<h3>What Groups Control</h3>
+<p>Groups are assigned:</p>
+<ul>
+<li><strong>Account-level policies</strong> (apply to all environments)</li>
+<li><strong>Environment-level policies</strong> (scoped to specific environments)</li>
+<li><strong>Boundaries</strong> (attached to each policy binding, narrowing what that policy grants)</li>
+</ul>
+<h3>Permissions Come Only Through Groups</h3>
+<p>Users get their Dynatrace permissions from the groups they belong to — there is no direct policy assignment to a user. Temporary or break-glass access is therefore a <strong>group membership</strong> change (see the break-glass group in Section 6), which keeps every grant visible in group membership and the account audit log.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-group-management">Group management (DT docs)</a> — <em>&quot;users inherit the Dynatrace access permissions that are assigned to the Dynatrace groups they belong to.&quot;</em></sub></p>
+</blockquote>
+<p><a id="group-hierarchy-patterns"></a></p>
+<h2>2. Group Design Patterns</h2>
+<p>Choose a structure that matches your organization and scales appropriately. Dynatrace groups are <strong>flat</strong> — the group documentation describes no nesting and no inheritance between groups — so every pattern below is a naming and membership convention over peer groups. A user who belongs to several groups gets the permissions of each.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-group-management">Group management (DT docs)</a> — <em>&quot;users inherit the Dynatrace access permissions that are assigned to the Dynatrace groups they belong to.&quot;</em></sub></p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ2hwQmx1ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZDRlZDg7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJnaHBHcmVlbkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0iZ2hwU2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjcwMCIgaGVpZ2h0PSIzODAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWUyOTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Hcm91cCBEZXNpZ24gUGF0dGVybnM8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSI1MiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Rm91ciBjb252ZW50aW9ucyBvdmVyIGZsYXQsIHBlZXIgZ3JvdXBzPC90ZXh0PgoKICA8IS0tIENvbHVtbiAxOiBBZCBob2MgLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjcwIiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjIzMCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjZ2hwU2hhZG93KSIvPgogIDxyZWN0IHg9IjIwIiB5PSI3MCIgd2lkdGg9IjE1NSIgaGVpZ2h0PSIzNSIgcng9IjgiIGZpbGw9InVybCgjZ2hwQmx1ZUdyYWQpIi8+CiAgPHJlY3QgeD0iMjAiIHk9Ijk1IiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjEwIiBmaWxsPSJ1cmwoI2docEJsdWVHcmFkKSIvPgogIDx0ZXh0IHg9Ijk3IiB5PSI5MyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFkIEhvYzwvdGV4dD4KICA8cmVjdCB4PSIzMiIgeT0iMTE4IiB3aWR0aD0iMTMxIiBoZWlnaHQ9IjI2IiByeD0iNCIgZmlsbD0iI2UwZjJmZSIgc3Ryb2tlPSIjMDI4NGM3IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI5NyIgeT0iMTM1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDM2OWExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wbGF0Zm9ybS1hZG1pbnM8L3RleHQ+CiAgPHJlY3QgeD0iMzIiIHk9IjE1MiIgd2lkdGg9IjEzMSIgaGVpZ2h0PSIyNiIgcng9IjQiIGZpbGw9IiNlMGYyZmUiIHN0cm9rZT0iIzAyODRjNyIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iOTciIHk9IjE2OSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzAzNjlhMSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dGVhbS1hLXVzZXJzPC90ZXh0PgogIDxyZWN0IHg9IjMyIiB5PSIxODYiIHdpZHRoPSIxMzEiIGhlaWdodD0iMjYiIHJ4PSI0IiBmaWxsPSIjZTBmMmZlIiBzdHJva2U9IiMwMjg0YzciIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9Ijk3IiB5PSIyMDMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwMzY5YTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmF1ZGl0b3JzPC90ZXh0PgogIDx0ZXh0IHg9IjMyIiB5PSIyMzgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxNmEzNGEiPisgUXVpY2sgdG8gc3RhcnQ8L3RleHQ+CiAgPHRleHQgeD0iMzIiIHk9IjI1MyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjMjYyNiI+LSBObyBjb252ZW50aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjMyIiB5PSIyODQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNDc1NTY5Ij5CZXN0IGZvcjogJmx0OyA1MCB1c2VyczwvdGV4dD4KCiAgPCEtLSBDb2x1bW4gMjogUm9sZS1CYXNlZCAtLT4KICA8cmVjdCB4PSIxODciIHk9IjcwIiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjIzMCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjZ2hwU2hhZG93KSIvPgogIDxyZWN0IHg9IjE4NyIgeT0iNzAiIHdpZHRoPSIxNTUiIGhlaWdodD0iMzUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2docEJsdWVHcmFkKSIvPgogIDxyZWN0IHg9IjE4NyIgeT0iOTUiIHdpZHRoPSIxNTUiIGhlaWdodD0iMTAiIGZpbGw9InVybCgjZ2hwQmx1ZUdyYWQpIi8+CiAgPHRleHQgeD0iMjY0IiB5PSI5MyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJvbGUtQmFzZWQ8L3RleHQ+CiAgPHJlY3QgeD0iMTk5IiB5PSIxMTgiIHdpZHRoPSIxMzEiIGhlaWdodD0iMjYiIHJ4PSI0IiBmaWxsPSIjZTBmMmZlIiBzdHJva2U9IiMwMjg0YzciIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjI2NCIgeT0iMTM1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDM2OWExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kdC1hZG1pbnM8L3RleHQ+CiAgPHJlY3QgeD0iMTk5IiB5PSIxNTIiIHdpZHRoPSIxMzEiIGhlaWdodD0iMjYiIHJ4PSI0IiBmaWxsPSIjZTBmMmZlIiBzdHJva2U9IiMwMjg0YzciIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjI2NCIgeT0iMTY5IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDM2OWExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kdC1lZGl0b3JzPC90ZXh0PgogIDxyZWN0IHg9IjE5OSIgeT0iMTg2IiB3aWR0aD0iMTMxIiBoZWlnaHQ9IjI2IiByeD0iNCIgZmlsbD0iI2UwZjJmZSIgc3Ryb2tlPSIjMDI4NGM3IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIyNjQiIHk9IjIwMyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzAzNjlhMSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZHQtdmlld2VyczwvdGV4dD4KICA8dGV4dCB4PSIxOTkiIHk9IjIzOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzE2YTM0YSI+KyBDbGVhciBwZXJtaXNzaW9uIGxldmVsczwvdGV4dD4KICA8dGV4dCB4PSIxOTkiIHk9IjI1MyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjMjYyNiI+LSBMaXR0bGUgZGF0YSBzZXBhcmF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjE5OSIgeT0iMjg0IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzQ3NTU2OSI+QmVzdCBmb3I6IHNpbXBsZSBtb2RlbHM8L3RleHQ+CgogIDwhLS0gQ29sdW1uIDM6IFRlYW0tQmFzZWQgLS0+CiAgPHJlY3QgeD0iMzU0IiB5PSI3MCIgd2lkdGg9IjE1NSIgaGVpZ2h0PSIyMzAiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2docFNoYWRvdykiLz4KICA8cmVjdCB4PSIzNTQiIHk9IjcwIiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjM1IiByeD0iOCIgZmlsbD0idXJsKCNnaHBHcmVlbkdyYWQpIi8+CiAgPHJlY3QgeD0iMzU0IiB5PSI5NSIgd2lkdGg9IjE1NSIgaGVpZ2h0PSIxMCIgZmlsbD0idXJsKCNnaHBHcmVlbkdyYWQpIi8+CiAgPHRleHQgeD0iNDMxIiB5PSI5MyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRlYW0tQmFzZWQ8L3RleHQ+CiAgPHJlY3QgeD0iMzY2IiB5PSIxMTgiIHdpZHRoPSIxMzEiIGhlaWdodD0iMjYiIHJ4PSI0IiBmaWxsPSIjZDFmYWU1IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQzMSIgeT0iMTM1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jaGVja291dC10ZWFtPC90ZXh0PgogIDxyZWN0IHg9IjM2NiIgeT0iMTUyIiB3aWR0aD0iMTMxIiBoZWlnaHQ9IjI2IiByeD0iNCIgZmlsbD0iI2QxZmFlNSIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0MzEiIHk9IjE2OSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA0Nzg1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cGF5bWVudHMtdGVhbTwvdGV4dD4KICA8cmVjdCB4PSIzNjYiIHk9IjE4NiIgd2lkdGg9IjEzMSIgaGVpZ2h0PSIyNiIgcng9IjQiIGZpbGw9IiNkMWZhZTUiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDMxIiB5PSIyMDMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPnBsYXRmb3JtLXRlYW08L3RleHQ+CiAgPHRleHQgeD0iMzY2IiB5PSIyMzgiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxNmEzNGEiPisgTWFwcyB0byBvd25lcnNoaXA8L3RleHQ+CiAgPHRleHQgeD0iMzY2IiB5PSIyNTMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNkYzI2MjYiPi0gTWl4ZWQgcGVybWlzc2lvbiBsZXZlbHM8L3RleHQ+CiAgPHRleHQgeD0iMzY2IiB5PSIyODQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNDc1NTY5Ij5CZXN0IGZvcjogRGV2T3BzIG1vZGVsczwvdGV4dD4KCiAgPCEtLSBDb2x1bW4gNDogTWF0cml4IC0tPgogIDxyZWN0IHg9IjUyMSIgeT0iNzAiIHdpZHRoPSIxNTkiIGhlaWdodD0iMjMwIiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNnaHBTaGFkb3cpIi8+CiAgPHJlY3QgeD0iNTIxIiB5PSI3MCIgd2lkdGg9IjE1OSIgaGVpZ2h0PSIzNSIgcng9IjgiIGZpbGw9InVybCgjZ2hwR3JlZW5HcmFkKSIvPgogIDxyZWN0IHg9IjUyMSIgeT0iOTUiIHdpZHRoPSIxNTkiIGhlaWdodD0iMTAiIGZpbGw9InVybCgjZ2hwR3JlZW5HcmFkKSIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iOTMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NYXRyaXggKFRlYW0gw5cgUm9sZSk8L3RleHQ+CiAgPHJlY3QgeD0iNTMxIiB5PSIxMTgiIHdpZHRoPSIxMzkiIGhlaWdodD0iMjYiIHJ4PSI0IiBmaWxsPSIjZDFmYWU1IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iMTM1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jaGVja291dC1hZG1pbnM8L3RleHQ+CiAgPHJlY3QgeD0iNTMxIiB5PSIxNTIiIHdpZHRoPSIxMzkiIGhlaWdodD0iMjYiIHJ4PSI0IiBmaWxsPSIjZDFmYWU1IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iMTY5IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5jaGVja291dC12aWV3ZXJzPC90ZXh0PgogIDxyZWN0IHg9IjUzMSIgeT0iMTg2IiB3aWR0aD0iMTM5IiBoZWlnaHQ9IjI2IiByeD0iNCIgZmlsbD0iI2QxZmFlNSIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjIwMyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA0Nzg1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cGF5bWVudHMtYWRtaW5zIOKApjwvdGV4dD4KICA8dGV4dCB4PSI1MzEiIHk9IjIzOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzE2YTM0YSI+KyBGaW5lLWdyYWluZWQsIHNjYWxlczwvdGV4dD4KICA8dGV4dCB4PSI1MzEiIHk9IjI1MyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjMjYyNiI+LSBNb3JlIGdyb3VwcyB0byBtYW5hZ2U8L3RleHQ+CiAgPHRleHQgeD0iNTMxIiB5PSIyODQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNDc1NTY5Ij5CZXN0IGZvcjogbGFyZ2UgZW50ZXJwcmlzZXM8L3RleHQ+CgogIDwhLS0gRm9vdGVyIG5vdGUgLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjMxNSIgd2lkdGg9IjY2MCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9IiNmZmY3ZWQiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzUwIiB5PSIzMzYiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BbGwgZ3JvdXBzIGFyZSBwZWVycyDigJQgbm8gbmVzdGluZywgbm8gaW5oZXJpdGFuY2UgYmV0d2VlbiBncm91cHM8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIzNTQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkEgdXNlciBpbiBzZXZlcmFsIGdyb3VwcyBnZXRzIHRoZSBwZXJtaXNzaW9ucyBvZiBlYWNoIGdyb3VwIHRoZXkgYmVsb25nIHRvPC90ZXh0Pgo8L3N2Zz4K" alt="Group Design Patterns" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Pattern | Example groups | Best For |
+|---------|----------------|----------|
+| Ad hoc | platform-admins, team-a-users, auditors | Small orgs (< 50 users) |
+| Role-Based | dt-admins, dt-editors, dt-viewers | Simple permission models |
+| Team-Based | checkout-team, payments-team, platform-team | Ownership (DevOps) models |
+| Matrix | checkout-admins, checkout-viewers, payments-admins, payments-viewers | Large enterprises |
+All groups are peers: no nesting, no inheritance between groups. A user in several groups gets the permissions of each.
+-->
+<h3>Pattern 1: Ad Hoc</h3>
+<p>Groups created as needs arise, with no role or team convention.</p>
+<pre><code>Groups:
+├── platform-admins
+├── platform-viewers
+├── team-a-users
+├── team-b-users
+└── auditors
+</code></pre>
+<p><strong>Pros:</strong> Simple, easy to understand<br />
+<strong>Cons:</strong> Doesn't scale — no role or team convention to keep group names and grants consistent</p>
+<h3>Pattern 2: Role-Based</h3>
+<p>Groups organized by function/role.</p>
+<pre><code>Groups:
+├── dt-admins              (full access)
+├── dt-editors             (read + write)
+├── dt-viewers             (read only)
+└── dt-auditors            (compliance access)
+</code></pre>
+<p><strong>Pros:</strong> Clear permission levels<br />
+<strong>Cons:</strong> Limited data segregation</p>
+<h3>Pattern 3: Team-Based</h3>
+<p>Groups organized by team ownership.</p>
+<pre><code>Groups:
+├── checkout-team          (checkout service owners)
+├── payments-team          (payments service owners)
+├── platform-team          (infrastructure owners)
+└── sre-oncall             (incident response)
+</code></pre>
+<p><strong>Pros:</strong> Maps to ownership model<br />
+<strong>Cons:</strong> Permission levels mixed within groups</p>
+<h3>Pattern 4: Matrix (Recommended for Enterprise)</h3>
+<p>Combines role and team dimensions.</p>
+<pre><code>Groups:
+├── checkout-admins        (checkout team, admin access)
+├── checkout-editors       (checkout team, edit access)
+├── checkout-viewers       (checkout team, view access)
+├── payments-admins
+├── payments-editors
+├── payments-viewers
+├── platform-admins        (cross-cutting admin)
+└── all-viewers            (everyone, read-only)
+</code></pre>
+<p><strong>Pros:</strong> Fine-grained control, scales well<br />
+<strong>Cons:</strong> More groups to manage</p>
+<h3>Choosing a Pattern</h3>
+<table>
+<thead>
+<tr>
+<th>Organization Size</th>
+<th>Recommended Pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt; 50 users</td>
+<td>Ad hoc or Role-Based</td>
+</tr>
+<tr>
+<td>50-500 users</td>
+<td>Team-Based or Matrix</td>
+</tr>
+<tr>
+<td>&gt; 500 users</td>
+<td>Matrix</td>
+</tr>
+</tbody>
+</table>
+<p><a id="naming-conventions"></a></p>
+<h2>3. Naming Conventions</h2>
+<p>Consistent naming makes groups discoverable and self-documenting.</p>
+<h3>Recommended Format</h3>
+<pre><code>&lt;scope&gt;-&lt;team/domain&gt;-&lt;role&gt;
+</code></pre>
+<p><strong>Examples:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Group Name</th>
+<th>Scope</th>
+<th>Team</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt-checkout-admins</code></td>
+<td>Dynatrace</td>
+<td>Checkout</td>
+<td>Admin</td>
+</tr>
+<tr>
+<td><code>dt-payments-viewers</code></td>
+<td>Dynatrace</td>
+<td>Payments</td>
+<td>Viewer</td>
+</tr>
+<tr>
+<td><code>dt-platform-editors</code></td>
+<td>Dynatrace</td>
+<td>Platform</td>
+<td>Editor</td>
+</tr>
+<tr>
+<td><code>dt-all-oncall</code></td>
+<td>Dynatrace</td>
+<td>All</td>
+<td>On-call access</td>
+</tr>
+</tbody>
+</table>
+<h3>Naming Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use lowercase</td>
+<td>Consistency, SAML compatibility</td>
+</tr>
+<tr>
+<td>Use hyphens (not underscores)</td>
+<td>URL-safe, readable</td>
+</tr>
+<tr>
+<td>Prefix with <code>dt-</code></td>
+<td>Identify Dynatrace groups in IdP</td>
+</tr>
+<tr>
+<td>Keep under 50 characters</td>
+<td>Display limits</td>
+</tr>
+<tr>
+<td>Avoid abbreviations</td>
+<td>Clarity over brevity</td>
+</tr>
+</tbody>
+</table>
+<h3>Anti-Patterns to Avoid</h3>
+<table>
+<thead>
+<tr>
+<th>Bad Name</th>
+<th>Problem</th>
+<th>Better Name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Team A</code></td>
+<td>Spaces, generic</td>
+<td><code>dt-team-a-users</code></td>
+</tr>
+<tr>
+<td><code>ADMINS</code></td>
+<td>Uppercase, no context</td>
+<td><code>dt-platform-admins</code></td>
+</tr>
+<tr>
+<td><code>grp_dt_chk_adm</code></td>
+<td>Cryptic abbreviations</td>
+<td><code>dt-checkout-admins</code></td>
+</tr>
+<tr>
+<td><code>dynatrace-users</code></td>
+<td>Too generic</td>
+<td><code>dt-all-viewers</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="saml-group-mapping"></a></p>
+<h2>4. SAML Group Mapping</h2>
+<p>Federating groups from your Identity Provider (IdP) automates user provisioning and ensures consistent access.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic2dtQmx1ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWQ0ZWQ4O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic2dtUHVycGxlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzZ21HcmVlbkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDU5NjY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNnbVNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0ic2dtQXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzY0NzQ4YiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjcwMCIgaGVpZ2h0PSIzNDAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWUyOTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TQU1MIEdyb3VwIE1hcHBpbmcgRmxvdzwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjUyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JZFAgZ3JvdXBzIHRvIER5bmF0cmFjZSBncm91cHMgc3luY2hyb25pemF0aW9uPC90ZXh0PgoKICA8IS0tIElkUCBCb3ggLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjgwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjIyMCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjc2dtU2hhZG93KSIvPgogIDxyZWN0IHg9IjQwIiB5PSI4MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIzNSIgcng9IjgiIGZpbGw9InVybCgjc2dtQmx1ZUdyYWQpIi8+CiAgPHJlY3QgeD0iNDAiIHk9IjEwNSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxMCIgZmlsbD0idXJsKCNzZ21CbHVlR3JhZCkiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjEwMyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPklkZW50aXR5IFByb3ZpZGVyPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMTM1IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oT2t0YSwgQXp1cmUgQUQsIGV0Yy4pPC90ZXh0PgoKICA8IS0tIElkUCBHcm91cHMgLS0+CiAgPHJlY3QgeD0iNTUiIHk9IjE1NSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiNkYmVhZmUiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMTMwIiB5PSIxNzMiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZDRlZDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPklULURULVBsYXRmb3JtLUFkbWluczwvdGV4dD4KCiAgPHJlY3QgeD0iNTUiIHk9IjE5MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiNkYmVhZmUiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMTMwIiB5PSIyMDgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZDRlZDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPklULURULUNoZWNrb3V0LVRlYW08L3RleHQ+CgogIDxyZWN0IHg9IjU1IiB5PSIyMjUiIHdpZHRoPSIxNTAiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSIjZGJlYWZlIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iMjQzIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMWQ0ZWQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JVC1EVC1TZWN1cml0eS1BdWRpdDwvdGV4dD4KCiAgPHJlY3QgeD0iNTUiIHk9IjI2MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiNkYmVhZmUiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMTMwIiB5PSIyNzgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZDRlZDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFsbC1FbXBsb3llZXM8L3RleHQ+CgogIDwhLS0gU0FNTCBBc3NlcnRpb24gLS0+CiAgPHJlY3QgeD0iMjYwIiB5PSIxMjAiIHdpZHRoPSIxODAiIGhlaWdodD0iMTYwIiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjOGI1Y2Y2IiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNzZ21TaGFkb3cpIi8+CiAgPHJlY3QgeD0iMjYwIiB5PSIxMjAiIHdpZHRoPSIxODAiIGhlaWdodD0iMzUiIHJ4PSI4IiBmaWxsPSJ1cmwoI3NnbVB1cnBsZUdyYWQpIi8+CiAgPHJlY3QgeD0iMjYwIiB5PSIxNDUiIHdpZHRoPSIxODAiIGhlaWdodD0iMTAiIGZpbGw9InVybCgjc2dtUHVycGxlR3JhZCkiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjE0MyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNBTUwgQXNzZXJ0aW9uPC90ZXh0PgoKICA8dGV4dCB4PSIyNzUiIHk9IjE3NSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzQ3NTU2OSI+R3JvdXBzIEF0dHJpYnV0ZTo8L3RleHQ+CiAgPHJlY3QgeD0iMjc1IiB5PSIxODUiIHdpZHRoPSIxNTAiIGhlaWdodD0iODAiIHJ4PSI0IiBmaWxsPSIjZjVmM2ZmIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjI4NSIgeT0iMjAzIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiIGZpbGw9IiM2ZDI4ZDkiPklULURULVBsYXRmb3JtLUFkbWluczwvdGV4dD4KICA8dGV4dCB4PSIyODUiIHk9IjIxOCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5IiBmaWxsPSIjNmQyOGQ5Ij5JVC1EVC1DaGVja291dC1UZWFtPC90ZXh0PgogIDx0ZXh0IHg9IjI4NSIgeT0iMjMzIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiIGZpbGw9IiM2ZDI4ZDkiPklULURULVNlY3VyaXR5LUF1ZGl0PC90ZXh0PgogIDx0ZXh0IHg9IjI4NSIgeT0iMjQ4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiIGZpbGw9IiM2ZDI4ZDkiPkFsbC1FbXBsb3llZXM8L3RleHQ+CgogIDwhLS0gRHluYXRyYWNlIEJveCAtLT4KICA8cmVjdCB4PSI0ODAiIHk9IjgwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjIyMCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjc2dtU2hhZG93KSIvPgogIDxyZWN0IHg9IjQ4MCIgeT0iODAiIHdpZHRoPSIxODAiIGhlaWdodD0iMzUiIHJ4PSI4IiBmaWxsPSJ1cmwoI3NnbUdyZWVuR3JhZCkiLz4KICA8cmVjdCB4PSI0ODAiIHk9IjEwNSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxMCIgZmlsbD0idXJsKCNzZ21HcmVlbkdyYWQpIi8+CiAgPHRleHQgeD0iNTcwIiB5PSIxMDMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2U8L3RleHQ+CiAgPHRleHQgeD0iNTcwIiB5PSIxMzUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihNYXBwZWQgR3JvdXBzKTwvdGV4dD4KCiAgPCEtLSBEVCBHcm91cHMgLS0+CiAgPHJlY3QgeD0iNDk1IiB5PSIxNTUiIHdpZHRoPSIxNTAiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSIjZGNmY2U3IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjU3MCIgeT0iMTczIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTY2NTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kdC1wbGF0Zm9ybS1hZG1pbnM8L3RleHQ+CgogIDxyZWN0IHg9IjQ5NSIgeT0iMTkwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2RjZmNlNyIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1NzAiIHk9IjIwOCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzE2NjUzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZHQtY2hlY2tvdXQtZWRpdG9yczwvdGV4dD4KCiAgPHJlY3QgeD0iNDk1IiB5PSIyMjUiIHdpZHRoPSIxNTAiIGhlaWdodD0iMjgiIHJ4PSI0IiBmaWxsPSIjZGNmY2U3IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjU3MCIgeT0iMjQzIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTY2NTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kdC1zZWN1cml0eS12aWV3ZXJzPC90ZXh0PgoKICA8cmVjdCB4PSI0OTUiIHk9IjI2MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIyOCIgcng9IjQiIGZpbGw9IiNkY2ZjZTciIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNTcwIiB5PSIyNzgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxNjY1MzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmR0LWFsbC12aWV3ZXJzPC90ZXh0PgoKICA8IS0tIEFycm93cyAtLT4KICA8bGluZSB4MT0iMjIwIiB5MT0iMjAwIiB4Mj0iMjU1IiB5Mj0iMjAwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNzZ21BcnJvdykiLz4KICA8dGV4dCB4PSIyMzciIHk9IjE5MCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TU088L3RleHQ+CgogIDxsaW5lIHgxPSI0NDAiIHkxPSIyMDAiIHgyPSI0NzUiIHkyPSIyMDAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI3NnbUFycm93KSIvPgogIDx0ZXh0IHg9IjQ1NyIgeT0iMTkwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1hcDwvdGV4dD4KCiAgPCEtLSBMZWdlbmQgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjMxMCIgd2lkdGg9IjYyMCIgaGVpZ2h0PSIyNSIgcng9IjQiIGZpbGw9IiNmMWY1ZjkiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjMyNyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2V0IGVhY2ggZ3JvdXAncyBTQU1MIEdyb3VwIEF0dHJpYnV0ZSBWYWx1ZSB0byB3aGF0IHRoZSBJZFAgc2VuZHMg4oCUIHR5cGljYWxseSBub3QgYSBkaXNwbGF5IG5hbWUuPC90ZXh0Pgo8L3N2Zz4K" alt="SAML Group Mapping" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Component | Action |
+|------|-----------|--------|
+| 1 | IdP | User authenticates, groups in assertion |
+| 2 | Dynatrace | Receives SAML assertion |
+| 3 | Mapping | IdP group mapped to DT group |
+| 4 | Access | User gets group permissions |
+-->
+<h3>How It Works</h3>
+<ol>
+<li>User authenticates via SAML SSO</li>
+<li>IdP includes group memberships in SAML assertion</li>
+<li>Dynatrace adds the user to every Dynatrace group whose SAML Group Attribute Value matches a value in the assertion</li>
+<li>User receives permissions from mapped groups</li>
+</ol>
+<h3>Mapping Strategies</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Description</th>
+<th>Use When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1:1 Mapping</strong></td>
+<td>IdP group = DT group</td>
+<td>Simple, clear ownership</td>
+</tr>
+<tr>
+<td><strong>Many:1 Mapping</strong></td>
+<td>Multiple IdP groups → one DT group</td>
+<td>Consolidating access</td>
+</tr>
+<tr>
+<td><strong>1:Many Mapping</strong></td>
+<td>One IdP group → multiple DT groups</td>
+<td>Granting multiple roles</td>
+</tr>
+</tbody>
+</table>
+<h3>IdP Group Attribute</h3>
+<p>Configure your IdP to send groups in the SAML assertion:</p>
+<p><strong>Azure AD (Entra ID):</strong></p>
+<pre><code>Claim name: groups
+Source attribute: user.assignedgroups
+</code></pre>
+<p><strong>Okta:</strong></p>
+<pre><code>Attribute: groups
+Value: Matches regex: dt-.*
+</code></pre>
+<p><strong>OneLogin:</strong></p>
+<pre><code>SAML Attribute: groups
+Value: Member Of (filtered)
+</code></pre>
+<h3>Mapping Configuration in Dynatrace</h3>
+<p>Mapping is set <strong>on each Dynatrace group</strong>: Account Management → <strong>Identity &amp; access management</strong> → <strong>Group management</strong> → the group's <strong>Edit</strong> pane → <strong>SAML Group Attribute Value</strong>. Enter the value(s) your IdP sends in the groups attribute — typically an identifier such as an LDAP ID, not the group's display name. One group can list several values (many-to-one), and the same value can be entered on several groups (one-to-many).</p>
+<p><strong>Example Mappings:</strong></p>
+<table>
+<thead>
+<tr>
+<th>IdP Group</th>
+<th>Dynatrace Group</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IT-Dynatrace-Admins</code></td>
+<td><code>dt-platform-admins</code></td>
+</tr>
+<tr>
+<td><code>App-Checkout-Team</code></td>
+<td><code>dt-checkout-editors</code></td>
+</tr>
+<tr>
+<td><code>All-Employees</code></td>
+<td><code>dt-all-viewers</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>⚠️ Converting a LOCAL group to SAML removes all its members.</strong> Adding a SAML Group Attribute Value to an existing local group switches it to SAML and drops every current user assignment — plan the cutover per group and confirm the IdP sends the value first.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;This typically isn't a group display name.&quot;</em>, <em>&quot;Switching a LOCAL group to SAML removes all user assignments to that group.&quot;</em></sub></p>
+</blockquote>
+<p><a id="group-lifecycle-management"></a></p>
+<h2>5. Group Lifecycle Management</h2>
+<p>Groups have a lifecycle that requires ongoing management.</p>
+<h3>Group Lifecycle Stages</h3>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Actions</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Request</strong></td>
+<td>Business justification, approval</td>
+<td>Requestor</td>
+</tr>
+<tr>
+<td><strong>Create</strong></td>
+<td>Create group, configure policies</td>
+<td>IAM Admin</td>
+</tr>
+<tr>
+<td><strong>Populate</strong></td>
+<td>Add initial members</td>
+<td>IAM Admin / Group Owner</td>
+</tr>
+<tr>
+<td><strong>Operate</strong></td>
+<td>Ongoing membership changes</td>
+<td>Group Owner</td>
+</tr>
+<tr>
+<td><strong>Review</strong></td>
+<td>Periodic membership audit</td>
+<td>Group Owner + Auditor</td>
+</tr>
+<tr>
+<td><strong>Retire</strong></td>
+<td>Remove members, delete group</td>
+<td>IAM Admin</td>
+</tr>
+</tbody>
+</table>
+<h3>Group Owner Responsibilities</h3>
+<p>Every group should have a designated owner who:</p>
+<ul>
+<li>Approves membership requests</li>
+<li>Removes departed employees</li>
+<li>Participates in access reviews</li>
+<li>Maintains group description/documentation</li>
+</ul>
+<h3>Membership Change Process</h3>
+<p><strong>Adding Members:</strong></p>
+<ol>
+<li>User or manager requests access</li>
+<li>Group owner approves request</li>
+<li>IAM admin (or automated process) adds user</li>
+<li>User confirms access works</li>
+</ol>
+<p><strong>Removing Members:</strong></p>
+<ol>
+<li>Triggered by: role change, termination, access review</li>
+<li>Group owner authorizes removal</li>
+<li>IAM admin removes user</li>
+<li>Audit log captures change</li>
+</ol>
+<h3>Periodic Access Reviews</h3>
+<table>
+<thead>
+<tr>
+<th>Group Type</th>
+<th>Review Frequency</th>
+<th>Reviewer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Account admin groups</td>
+<td>Monthly</td>
+<td>CISO / Security</td>
+</tr>
+<tr>
+<td>Admin groups</td>
+<td>Quarterly</td>
+<td>Security + Account Admin</td>
+</tr>
+<tr>
+<td>Editor groups</td>
+<td>Semi-annually</td>
+<td>Group Owner + Manager</td>
+</tr>
+<tr>
+<td>Viewer groups</td>
+<td>Annually</td>
+<td>Group Owner</td>
+</tr>
+</tbody>
+</table>
+<p>See <strong>IAM-07: Audit Logging and Compliance</strong> for access review automation.</p>
+<p><a id="separation-of-duties"></a></p>
+<h2>6. Separation of Duties</h2>
+<blockquote>
+<p><strong>No read-only IAM role yet.</strong> Dynatrace briefly announced a read-only <code>View users and groups</code> role in the SaaS 1.346 release notes; the page's changelog records that entry as removed on 09/01/2026. Until such a role ships, give inspection-only staff <code>account-viewer</code>, and route IAM change review through the account audit log (IAM-07).</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">What's new in Dynatrace SaaS 1.346 (DT docs)</a>.</sub></p>
+</blockquote>
+<p>Design your group structure to enforce separation of duties and reduce risk.</p>
+<h3>Key Separations</h3>
+<table>
+<thead>
+<tr>
+<th>Separation</th>
+<th>Groups to Separate</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Admin vs User</td>
+<td><code>dt-platform-admins</code> vs <code>dt-all-viewers</code></td>
+<td>Prevent privilege escalation</td>
+</tr>
+<tr>
+<td>Dev vs Prod</td>
+<td><code>dt-app-dev-*</code> vs <code>dt-app-prod-*</code></td>
+<td>Protect production</td>
+</tr>
+<tr>
+<td>Configure vs Operate</td>
+<td><code>dt-config-editors</code> vs <code>dt-operations</code></td>
+<td>Change control</td>
+</tr>
+<tr>
+<td>Audit vs Admin</td>
+<td><code>dt-auditors</code> vs <code>dt-*-admins</code></td>
+<td>Independent oversight</td>
+</tr>
+</tbody>
+</table>
+<h3>Incompatible Group Pairs</h3>
+<p>Users should NOT be in both groups simultaneously:</p>
+<table>
+<thead>
+<tr>
+<th>Group A</th>
+<th>Group B</th>
+<th>Risk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Production Admins</td>
+<td>Development Editors</td>
+<td>Dev-to-prod escalation</td>
+</tr>
+<tr>
+<td>Security Auditors</td>
+<td>Platform Admins</td>
+<td>Self-audit</td>
+</tr>
+<tr>
+<td>Token Managers</td>
+<td>Application Users</td>
+<td>Token abuse</td>
+</tr>
+</tbody>
+</table>
+<h3>Enforcement Options</h3>
+<ol>
+<li><strong>Manual Review</strong>: Check during access reviews</li>
+<li><strong>IdP Rules</strong>: Configure mutually exclusive groups in IdP</li>
+<li><strong>Automation</strong>: Script to detect violations</li>
+</ol>
+<h3>Break-Glass Groups</h3>
+<p>Emergency access should be handled through special groups:</p>
+<pre><code>dt-breakglass-admins
+├── Empty by default
+├── Temporary membership only (&lt; 24h)
+├── Requires documented incident
+└── Automatic expiration
+</code></pre>
+<p><a id="cross-environment-patterns"></a></p>
+<h2>7. Cross-Environment Patterns</h2>
+<p>When you have multiple Dynatrace environments, design groups that work across them.</p>
+<h3>Environment Types</h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Purpose</th>
+<th>Typical Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Production</td>
+<td>Live customer data</td>
+<td>Restricted, audit-heavy</td>
+</tr>
+<tr>
+<td>Non-Production</td>
+<td>Dev, test, staging</td>
+<td>Broader access</td>
+</tr>
+<tr>
+<td>Sandbox</td>
+<td>Learning, experimentation</td>
+<td>Open access</td>
+</tr>
+</tbody>
+</table>
+<h3>Cross-Environment Group Patterns</h3>
+<p><strong>Pattern A: Environment-Specific Groups</strong></p>
+<pre><code>dt-prod-checkout-admins    (prod env only)
+dt-nonprod-checkout-admins (nonprod env only)
+</code></pre>
+<p><strong>Pattern B: Role Groups + Environment Assignment</strong></p>
+<pre><code>dt-checkout-admins
+├── Assigned to Prod env with boundary X
+└── Assigned to NonProd env with boundary Y
+</code></pre>
+<p><strong>Pattern C: Tiered Groups</strong></p>
+<pre><code>dt-tier1-admins  (all environments, full access)
+dt-tier2-admins  (nonprod only, full access)
+dt-tier3-viewers (all environments, view only)
+</code></pre>
+<h3>Recommendations</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommended Pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Strong prod/nonprod separation</td>
+<td>Pattern A (env-specific)</td>
+</tr>
+<tr>
+<td>Simplified management</td>
+<td>Pattern B (role + assignment)</td>
+</tr>
+<tr>
+<td>Clear access tiers</td>
+<td>Pattern C (tiered)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="group-assessment-queries"></a></p>
+<h2>8. Group Assessment Queries</h2>
+<p>Use these queries to understand your current group usage.</p>
+<blockquote>
+<p><strong>Group, policy, boundary and binding changes are account-level, and this environment's audit events are not their change log.</strong> <em>&quot;Dynatrace provides audit logs of changes to your account-level identity and access (IAM) management settings&quot;</em> — <em>&quot;Administrators can view these logs in Account Management &gt; Settings &gt; Audit log&quot;</em>, where they are kept for up to ten years (also queryable through the Account Audits API). The same page says <em>&quot;The Account Management audit log doesn't yet cover every account-level change. Some IAM configuration and login events aren't recorded.&quot;</em> The query below shows IAM API calls made <strong>through this environment</strong> — useful for spotting automation, not a change log. These events show IAM API calls made through this environment, including environment-level policy-binding changes; scheduled <code>/lookups/iam_*</code> file uploads are excluded by the query. Account-level group and policy changes are recorded in the account audit log.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/account-management/audit-logs">Account Management audit logs (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// IAM API activity in this environment — recent calls
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;}) and contains(resource, &quot;iam&quot;)
+| filter not startsWith(resource, &quot;/lookups/&quot;)
+| fields timestamp, user.id, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// IAM API activity in this environment over 90 days (group creation itself is account-level)
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-90d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;}) and contains(resource, &quot;iam&quot;)
+| filter not startsWith(resource, &quot;/lookups/&quot;)
+| fields timestamp, user.id, event.type, resource, event.outcome
+| sort timestamp desc
+| limit 50
+</code></pre>
+<pre><code class="language-dql">// IAM API activity in this environment, by user
+// Data object corrected 08/12/2026. The Dynatrace audit trail is NOT in `logs`: this cell used
+// `fetch logs | filter matchesPhrase(log.source, &quot;audit&quot;)`, and no log.source on a Grail tenant
+// contains &quot;audit&quot; — the filter matched nothing, silently, forever. Platform audit records live in
+// `dt.system.events` with `event.kind == &quot;AUDIT_EVENT&quot;` (265,000+ records over 7 days here), and
+// they are STRUCTURED, so the old `matchesPhrase(content, ...)` string-scraping is replaced by real
+// field predicates. Key fields: user.id, user.organization, event.type (GET/POST/PUT/PATCH/DELETE/
+// CREATE/LOGIN/app.opened), event.outcome (HTTP status or &quot;success&quot;), authentication.type
+// (OAUTH2/TOKEN/NONE), authentication.grant.type, resource (the API path), origin.address,
+// origin.type, request.source, dt.app.id, event.provider.
+// Enumerate your own with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;AUDIT_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;AUDIT_EVENT&quot;
+| filter in(event.type, {&quot;POST&quot;, &quot;PUT&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;CREATE&quot;, &quot;UPDATE&quot;}) and contains(resource, &quot;iam&quot;)
+| filter not startsWith(resource, &quot;/lookups/&quot;)
+| summarize changes = count(), by:{user.id, event.type}
+| sort changes desc
+| limit 25
+</code></pre>
+<h2>Next Steps</h2>
+<p>With your group architecture defined, proceed to configure access controls:</p>
+<h3>Recommended Path</h3>
+<ol>
+<li><strong>IAM-04: Policy Authoring and Management</strong> - Create policies for your groups</li>
+<li><strong>IAM-05: Boundary Design Patterns</strong> - Define what each group can see</li>
+<li><strong>IAM-06: User Lifecycle and Provisioning</strong> - Automate user management</li>
+</ol>
+<blockquote>
+<p><strong>Workshop:</strong> See <strong>IAM-11: Policy Persona Workshop</strong> for a guided exercise on mapping personas to groups.</p>
+</blockquote>
+<h3>Group Architecture Checklist</h3>
+<p>Before moving on, ensure you have:</p>
+<ul>
+<li>[ ] Chosen a group design pattern</li>
+<li>[ ] Defined naming conventions</li>
+<li>[ ] Configured SAML group mappings (if using SSO)</li>
+<li>[ ] Documented group ownership</li>
+<li>[ ] Planned separation of duties</li>
+<li>[ ] Designed cross-environment patterns (if applicable)</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Group fundamentals and properties</li>
+<li>Four flat group design patterns: ad hoc, role-based, team-based, and matrix</li>
+<li>Naming conventions for scalable group management</li>
+<li>SAML group mapping strategies</li>
+<li>Group lifecycle management and ownership</li>
+<li>Separation of duties through group design</li>
+<li>Cross-environment group patterns</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-group-management">User Groups</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML 2.0 Integration</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies">Manage User Permissions</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

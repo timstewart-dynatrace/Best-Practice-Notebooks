@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FINOPS-02: Forecasting and Anomaly Detection on DPS Consumption</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FINOPS — Cost Management &amp; FinOps</a><span class="sep">/</span><span aria-current="page">FINOPS-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FINOPS-02: Forecasting and Anomaly Detection on DPS Consumption</h1>
+<blockquote>
+<p><strong>Series:</strong> FINOPS — Cost Management &amp; FinOps | <strong>Reference:</strong> 02 — Forecasting and Anomaly Detection on DPS Consumption | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 10/14/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Knowing <em>current</em> consumption (covered in FINOPS-01) is operational. Knowing <em>projected</em> consumption — and being alerted when the trajectory breaks — is what turns FinOps from a monthly report into a daily control loop. This entry walks through both the native Dynatrace surfaces (Account Management Cost Monitors and Budget Alerts) and the in-tenant DIY surfaces (Davis Predictive AI on <code>dt.billing.*</code> series, plus Workflow-driven burn-rate alerts).</p>
+<p><strong>Three layers of cost visibility:</strong> <em>Operational</em> (what's happening right now), <em>Tactical</em> (where are we trending this week / this month), <em>Strategic</em> (will we hit our annual commit?). Each layer pairs with different surfaces, different cadences, and different audiences. In community practice, treating them as one thing — &quot;the cost dashboard&quot; — is a frequent reason cost programs never escape monthly snapshots.</p>
+<p><strong>Native first, DIY where native is silent.</strong> Cost Monitors and Budget Alerts cover most strategic and tactical use cases out of the box. DIY DQL forecasting is for the operational layer where you want a custom signal (per-bucket trajectory, per-team burn, per-capability projection), or when the native surface doesn't yet exist for the cut you need.</p>
+<blockquote>
+<p><strong>Scope:</strong> Dynatrace SaaS on DPS. Davis Predictive AI's <code>timeseries-forecast</code> and <code>seasonal-baseline-anomaly-detector</code> analyzers run on any time-aligned metric series, including <code>dt.billing.*</code>. The portal-side Cost Monitors evolve sprint-to-sprint — verify specific UI affordances against current docs at procurement-review time.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#three-layers">Three Layers of Cost Visibility</a></li>
+<li><a href="#cost-monitors">Native — Account Management Cost Monitors</a></li>
+<li><a href="#budget-alerts">Native — Budget Alerts</a></li>
+<li><a href="#dql-trends">DIY — DQL Trend Queries with <code>makeTimeseries</code></a></li>
+<li><a href="#davis-forecast">DIY — Davis Predictive AI on <code>dt.billing.*</code></a></li>
+<li><a href="#workflow-alerts">DIY — Workflow Burn-Rate Alerts</a></li>
+<li><a href="#wx-projection">Worked Example — End-of-Month Projection</a></li>
+<li><a href="#wx-anomaly">Worked Example — Capability-Level Anomaly Alert</a></li>
+<li><a href="#native-vs-diy">When to Use Native vs DIY</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS on DPS. Davis Predictive AI is available platform-wide. Cost Monitors and Budget Alerts require Account Management portal access (separate IAM scope from tenant IAM).</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:metrics:read</code> for <code>timeseries dt.billing.*</code> queries; <code>davis:analyzers:execute</code> for <code>timeseries-forecast</code> and <code>seasonal-baseline-anomaly-detector</code>; <code>automation:workflows:write</code> for workflow-based burn-rate alerts; account-level admin or finance role for Cost Monitors and Budget Alerts configuration.</td>
+</tr>
+<tr>
+<td><strong>FINOPS-01 understanding</strong></td>
+<td>This entry assumes familiarity with <code>dt.billing.*</code> vs <code>dt.system.events</code> and the per-capability schema.</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform / Observability Lead (DIY surfaces), Executive / Procurement (native surfaces and §11 recommendation).</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>One-line answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Will we hit our annual commit?</td>
+<td>Account Management → <strong>Cost Overview</strong> → forecast line on Cost Overview. Native, automatic, billing-period-aligned.</td>
+</tr>
+<tr>
+<td>Alert me if we're on course to overshoot</td>
+<td>Account Management → <strong>Budgets</strong>. 75% / 90% / 100% of the annual commitment are pre-configured; add account-, environment-, or capability-level budgets. Notifications via the Notification Center and email, evaluated daily.</td>
+</tr>
+<tr>
+<td>Alert me if a <em>specific capability</em> is spiking</td>
+<td>Account Management → <strong>Cost Monitors</strong> — on automatically; they check each capability in each environment daily.</td>
+</tr>
+<tr>
+<td>Forecast per-bucket / per-team consumption</td>
+<td>DIY — <code>timeseries dt.billing.*</code> + Davis <code>timeseries-forecast</code> analyzer.</td>
+</tr>
+<tr>
+<td>Alert when per-bucket burn exceeds threshold</td>
+<td>DIY — Workflow with scheduled DQL trigger + Davis anomaly analyzer or static threshold.</td>
+</tr>
+<tr>
+<td>7-day / 30-day trend visualization</td>
+<td>DIY — <code>timeseries dt.billing.&lt;capability&gt;.usage</code> for host-based; <code>fetch dt.system.events | makeTimeseries</code> for byte/count-based.</td>
+</tr>
+<tr>
+<td>Day-over-day or week-over-week comparison</td>
+<td>DIY — DQL with two parallel time ranges; pattern in <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language"><code>dt-dql-essentials</code></a> skill.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The headline:</strong> native surfaces (Cost Monitors, Budgets) cover commitment-level visibility automatically. Dynatrace's own guidance draws the line where the built-in forecast stops — it <em>&quot;only goes as far as environment and capability level&quot;</em> — and points to DQL for growth rates, 30/60/90-day scenarios, cost-center or team breakdowns, and days-until-a-budget-fires. That is the DIY layer: DQL + Davis analyzers + Workflows.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage-your-costs/predict/project-run-rate">Forecast costs with run-rate projections (DT docs)</a> — <em>&quot;Account Management already gives you a built-in forecast, but it only goes as far as environment and capability level.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage-your-costs/control/budgets">Budget alerts (DT docs)</a> — <em>&quot;Dynatrace notifies you as actual or forecasted consumption approaches each threshold (defaults: 75%, 90%, 100%).&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage-your-costs/control/cost-monitors">Cost monitors (DT docs)</a> — <em>&quot;Cost monitors inspect costs for each capability in each environment daily and notify you when a capability exhibits an unexpected increase&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL reference (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="three-layers"></a></p>
+<h2>2. Three Layers of Cost Visibility</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+VGhyZWUgTGF5ZXJzIG9mIENvc3QgVmlzaWJpbGl0eTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5PcGVyYXRpb25hbCDCtyBUYWN0aWNhbCDCtyBTdHJhdGVnaWMg4oCUIGRpZmZlcmVudCBjYWRlbmNlcywgZGlmZmVyZW50IHN1cmZhY2VzLCBkaWZmZXJlbnQgYXVkaWVuY2VzPC90ZXh0PgoKICA8IS0tIE9wZXJhdGlvbmFsIExheWVyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI4MCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIzODAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIxMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPk9wZXJhdGlvbmFsPC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iMTI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5NaW51dGVzIHRvIGhvdXJzPC90ZXh0PgoKICA8dGV4dCB4PSI2MCIgeT0iMTU1IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5RdWVzdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTc0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4iV2hhdCdzIGhhcHBlbmluZyByaWdodCBub3c/IjwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjIwNSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U3VyZmFjZTwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMjE1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM4NkVGQUMiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI3MCIgeT0iMjMwIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIj50aW1lc2VyaWVzIGR0LmJpbGxpbmcuKjwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMjQwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM4NkVGQUMiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI3MCIgeT0iMjU1IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIj5Ob3RlYm9vayAvIERhc2hib2FyZCB0aWxlczwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMjY1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM4NkVGQUMiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI3MCIgeT0iMjgwIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIj5Xb3JrZmxvdyBidXJuLXJhdGUgYWxlcnRzPC90ZXh0PgoKICA8dGV4dCB4PSI2MCIgeT0iMzEyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5DYWRlbmNlPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIzMzEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkNvbnRpbnVvdXM8L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIzNjIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkF1ZGllbmNlPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIzODEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlBsYXRmb3JtIHRlYW0gwrcgT24tY2FsbDwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjQxMiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Q2F0Y2hlczwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNDMxIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIj7inJMgU3Bpa2VzIMK3IHN1ZGRlbiBzdXJnZXM8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjQ0NyIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+4pyXIEdyYWR1YWwgZHJpZnQ8L3RleHQ+CgogIDwhLS0gVGFjdGljYWwgTGF5ZXIgKGhpZ2hsaWdodGVkIGFzIG1vc3QgaW1wb3J0YW50KSAtLT4KICA8cmVjdCB4PSIzMzUiIHk9IjgwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjM4MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjEwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCI+VGFjdGljYWwg4piFPC90ZXh0PgogIDx0ZXh0IHg9IjQ3NSIgeT0iMTI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EYXlzIHRvIHdlZWtzPC90ZXh0PgoKICA8dGV4dCB4PSIzNTUiIHk9IjE1NSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+UXVlc3Rpb248L3RleHQ+CiAgPHRleHQgeD0iMzU1IiB5PSIxNzQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPiJXaGVyZSBhcmUgd2UgdHJlbmRpbmcgdGhpcyB3ZWVrPyI8L3RleHQ+CgogIDx0ZXh0IHg9IjM1NSIgeT0iMjA1IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TdXJmYWNlPC90ZXh0PgogIDxyZWN0IHg9IjM1NSIgeT0iMjE1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGQ0QzNEQiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSIzNjUiIHk9IjIzMCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+RFFMIHdlZWstb3Zlci13ZWVrIGNvbXBhcmlzb248L3RleHQ+CiAgPHJlY3QgeD0iMzU1IiB5PSIyNDAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZDRDM0RCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjM2NSIgeT0iMjU1IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIj5EYXZpcyB0aW1lc2VyaWVzLWZvcmVjYXN0PC90ZXh0PgogIDxyZWN0IHg9IjM1NSIgeT0iMjY1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGQ0QzNEQiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSIzNjUiIHk9IjI4MCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+Q29zdCBNb25pdG9ycyAoY2FwYWJpbGl0eSBhbm9tYWx5KTwvdGV4dD4KCiAgPHRleHQgeD0iMzU1IiB5PSIzMTIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkNhZGVuY2U8L3RleHQ+CiAgPHRleHQgeD0iMzU1IiB5PSIzMzEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkRhaWx5IC8gd2Vla2x5IHJldmlldzwvdGV4dD4KCiAgPHRleHQgeD0iMzU1IiB5PSIzNjIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkF1ZGllbmNlPC90ZXh0PgogIDx0ZXh0IHg9IjM1NSIgeT0iMzgxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5QbGF0Zm9ybSBsZWFkIMK3IEZpbmFuY2UgcGFydG5lcjwvdGV4dD4KCiAgPHRleHQgeD0iMzU1IiB5PSI0MTIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPk1vc3Qtb2Z0ZW4tbWlzc2luZyBsYXllcjwvdGV4dD4KICA8dGV4dCB4PSIzNTUiIHk9IjQzMSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC1zdHlsZT0iaXRhbGljIj5XaGVyZSBjb3Vyc2UgY29ycmVjdGlvbnMgYXJlIHN0aWxsIGNoZWFwLjwvdGV4dD4KICA8dGV4dCB4PSIzNTUiIHk9IjQ0NyIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+QnVpbGQgdGhpcyBsYXllciBkZWxpYmVyYXRlbHkuPC90ZXh0PgoKICA8IS0tIFN0cmF0ZWdpYyBMYXllciAtLT4KICA8cmVjdCB4PSI2MzAiIHk9IjgwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjM4MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NjAiIHk9IjEwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCI+U3RyYXRlZ2ljPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMTI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Nb250aHMgdG8geWVhcjwvdGV4dD4KCiAgPHRleHQgeD0iNjUwIiB5PSIxNTUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlF1ZXN0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjY1MCIgeT0iMTc0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4iV2lsbCB3ZSBoaXQgYW5udWFsIGNvbW1pdD8iPC90ZXh0PgoKICA8dGV4dCB4PSI2NTAiIHk9IjIwNSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U3VyZmFjZTwvdGV4dD4KICA8cmVjdCB4PSI2NTAiIHk9IjIxNSIgd2lkdGg9IjIyMCIgaGVpZ2h0PSIyMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQkZEQkZFIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNjYwIiB5PSIyMzAiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTEiPkNvc3QgT3ZlcnZpZXcgZm9yZWNhc3Q8L3RleHQ+CiAgPHJlY3QgeD0iNjUwIiB5PSIyNDAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0JGREJGRSIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjY2MCIgeT0iMjU1IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIj5CdWRnZXQgQWxlcnRzPC90ZXh0PgogIDxyZWN0IHg9IjY1MCIgeT0iMjY1IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNCRkRCRkUiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI2NjAiIHk9IjI4MCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSI+QWNjb3VudCBNYW5hZ2VtZW50IHBvcnRhbDwvdGV4dD4KCiAgPHRleHQgeD0iNjUwIiB5PSIzMTIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkNhZGVuY2U8L3RleHQ+CiAgPHRleHQgeD0iNjUwIiB5PSIzMzEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk1vbnRobHkgcmV2aWV3PC90ZXh0PgoKICA8dGV4dCB4PSI2NTAiIHk9IjM2MiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+QXVkaWVuY2U8L3RleHQ+CiAgPHRleHQgeD0iNjUwIiB5PSIzODEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZpbmFuY2UgwrcgUHJvY3VyZW1lbnQgwrcgRXhlYzwvdGV4dD4KCiAgPHRleHQgeD0iNjUwIiB5PSI0MTIiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkNhdGNoZXM8L3RleHQ+CiAgPHRleHQgeD0iNjUwIiB5PSI0MzEiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiPuKckyBDb21taXQgbWlzcyAvIG92ZXJzaG9vdDwvdGV4dD4KICA8dGV4dCB4PSI2NTAiIHk9IjQ0NyIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+4pyXIFRvbyBsYXRlIGlmIGFsb25lPC90ZXh0PgoKICA8IS0tIEZvb3RlciAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjQ4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+4piFIFRhY3RpY2FsIGxheWVyIGlzIG1vc3Qgb2Z0ZW4gbWlzc2luZyBpbiBjb3N0IHByb2dyYW1zIOKAlCBkZWxpYmVyYXRlIGJ1aWxkIHBheXMgYmFjayBmYXN0ZXN0PC90ZXh0Pgo8L3N2Zz4K" alt="Three Layers of Cost Visibility" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | Horizon | Question | Surface | Cadence | Audience |
+|-------|---------|----------|---------|---------|----------|
+| Operational | minutes-hours | What's happening now? | timeseries dt.billing.* + Workflow alerts | Continuous | Platform team / On-call |
+| Tactical ★ | days-weeks | Where are we trending this week? | DQL week-over-week + Davis forecast + Cost Monitors | Daily / weekly | Platform lead + Finance partner |
+| Strategic | months-year | Will we hit annual commit? | Cost Overview + Budget Alerts | Monthly | Finance / Procurement / Exec |
+★ Tactical is the layer most often missing
+-->
+<p>In community practice, a working FinOps program operates at three time horizons, and conflating them is a common failure mode — &quot;the cost dashboard&quot; usually means one of the three was built and the other two are missing. The three layers are this entry's framing, not a Dynatrace taxonomy.</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Time horizon</th>
+<th>Question</th>
+<th>Best surface</th>
+<th>Cadence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Operational</strong></td>
+<td>minutes to hours</td>
+<td>What's happening right now?</td>
+<td><code>timeseries dt.billing.*</code> in a Dynatrace dashboard; Workflow burn-rate alerts</td>
+<td>continuous</td>
+</tr>
+<tr>
+<td><strong>Tactical</strong></td>
+<td>days to weeks</td>
+<td>Where are we trending this week / this month?</td>
+<td>DQL forecast (Davis <code>timeseries-forecast</code>); Cost Monitors anomaly alerts</td>
+<td>daily / weekly review</td>
+</tr>
+<tr>
+<td><strong>Strategic</strong></td>
+<td>months to year</td>
+<td>Will we hit our annual commit?</td>
+<td>Account Management → Cost Overview forecast; Budget Alerts</td>
+<td>monthly review</td>
+</tr>
+</tbody>
+</table>
+<h3>Why all three matter</h3>
+<ul>
+<li><strong>Operational alone</strong> catches spikes but misses gradual drift. A team that doubles ingestion volume over six weeks looks fine hour-by-hour but blows the annual commit.</li>
+<li><strong>Strategic alone</strong> catches the commit miss but only after most of the year has been spent. The conversation with the team that doubled ingest happens in November, when there's no runway left.</li>
+<li><strong>Tactical alone</strong> is where most cost programs actually live, and it's the layer most likely to be silent — daily / weekly trend is exactly the cadence at which course corrections are still cheap.</li>
+</ul>
+<p><strong>In community practice, the layer most often missing is tactical.</strong> Operational dashboards get built because they're easy. Strategic Cost Overview is automatic. The weekly burn-rate alert that says &quot;this team's ingest is 40% above its 4-week baseline&quot; is the layer that takes deliberate work — and the layer that prevents the November conversation. Verify against your own program before treating it as universal.</p>
+<p><a id="cost-monitors"></a></p>
+<h2>3. Native — Account Management Cost Monitors</h2>
+<p><strong>Cost Monitors</strong> are Dynatrace's native anomaly-detection surface for DPS consumption. They live in the Account Management portal (not in the tenant) and work on the same cost data that powers the Subscription overview.</p>
+<h3>What they do</h3>
+<ul>
+<li>Are <strong>on by default</strong> — enabled automatically for every DPS account, notifying license administrators with no configuration</li>
+<li>Watch the <strong>forecast</strong>: notify when the end-of-period forecast crosses a threshold (default 95% of the commitment) or jumps week-over-week</li>
+<li>Watch <strong>daily cost per capability per environment</strong>, and raise a cost event when a capability shows an unexpected increase</li>
+<li>Use <strong>linear forecasting</strong> over the past month of consumption, weighting recent days more heavily — no forecast is shown until 15 days of data exist</li>
+<li>Deliver through the <strong>Notification Center</strong>, <strong>email</strong> (up to 50 recipients), and the <strong>API</strong></li>
+</ul>
+<h3>What to configure</h3>
+<ol>
+<li><strong>Recipients.</strong> License administrators are notified by default. Add the people who can act — a Cost Monitor that alerts a finance distribution list is information; one that reaches the platform team owning the OpenPipeline pipeline behind the spike is action. The Notification Center can route different alert categories to different teams.</li>
+<li><strong>Forecast thresholds.</strong> Set the week-over-week threshold and the total-forecast threshold (default 95%) to match how early you want warning.</li>
+<li><strong>Expect ramp-up noise.</strong> Dynatrace's own guidance is that week-over-week forecast notifications can be ignored during the deployment phase, when rising usage is expected. In community practice, review the cost events weekly for the first month and note which ones were actionable before changing thresholds.</li>
+</ol>
+<h3>When Cost Monitors are silent</h3>
+<p>Cost Monitors operate at the capability-and-environment level — they catch &quot;Logs ingest is way up in production&quot; but not &quot;the <code>payments-team</code> bucket is way up while the <code>marketing-team</code> bucket is steady.&quot; For per-bucket / per-team anomaly detection, see §6 (Davis Predictive AI in DQL).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage-your-costs/control/cost-monitors">Cost monitors (DT docs)</a> — <em>&quot;Cost monitors are enabled automatically for all DPS accounts and will notify license administrators by default without configuration&quot;</em>; <em>&quot;Cost monitor algorithms use linear forecasting techniques to predict future usage from the past month of consumption data.&quot;</em>; <em>&quot;If you're still in the deployment phase of Dynatrace, you can ignore this kind of notification, as increased weekly usage is expected.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage-your-costs/control">Control (DT docs)</a> — <em>&quot;Cost monitors detect unexpected changes as they happen and route alerts to the team that owns the consumption.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="budget-alerts"></a></p>
+<h2>4. Native — Budget Alerts</h2>
+<p>Where Cost Monitors are anomaly-detection (&quot;is this period unusual&quot;), <strong>Budget Alerts</strong> are threshold-based (&quot;are we on track to hit the commit&quot;). Both surfaces live in Account Management, often configured by the same person, but they answer different questions.</p>
+<blockquote>
+<p>Neither Cost Monitors nor Budget Alerts have a Settings 2.0 schema or Terraform resource — they're Account Management API objects, confirmed not to exist alongside the rest of the repo's schema catalog in <strong>AUTOM-02</strong>. Don't go looking for a <code>builtin:</code> schema for cost config; it isn't there.</p>
+</blockquote>
+<h3>What they do</h3>
+<ul>
+<li>Compare actual <strong>and forecast</strong> consumption against a threshold you set at the account, environment, or capability level — a fixed amount or a percentage of the annual commitment (up to 20 active budgets)</li>
+<li>Ship with defaults — every DPS account gets 75% / 90% / 100% of the annual commitment, notifying license administrators; adjust them or add tiers for earlier signal</li>
+<li>Notify through the Notification Center and email; each budget has its own recipient list</li>
+<li>Evaluate once a day, after the daily cost calculation (usually by 12:00 UTC), and email only on the day a threshold is first exceeded</li>
+</ul>
+<h3>What to configure</h3>
+<ol>
+<li><strong>Scope budgets where one area drives cost.</strong> Keep the account-level defaults and add environment- or capability-scoped budgets — Dynatrace's own examples are 10% of total subscription costs for a sandbox environment, and a fixed USD 1,000 threshold for a new capability.</li>
+<li><strong>Pick threshold tiers based on time-to-react.</strong> The default is 75/90/100 of the annual commitment, enabled automatically. In community practice, many programs add an earlier custom tier (e.g., 50%) for more lead time; tight-commit customers sometimes run 25/50/75.</li>
+<li><strong>Tier the notification escalation.</strong> In community practice: 50% → platform team; 75% → platform team + finance; 90% → procurement + leadership. The threshold tiers map to who needs to act.</li>
+<li><strong>Remember the daily cadence.</strong> Budgets have no intra-day alerting — a same-day spike surfaces the next evaluation at the earliest. Pair them with Cost Monitors and the DIY alerts below when you need faster signal.</li>
+</ol>
+<h3>When Budget Alerts are insufficient</h3>
+<p>Budget Alerts are coarse — account-, environment-, or capability-level, evaluated daily. They don't decompose to per-team / per-bucket attribution at all. Pair them with Cost Monitors (capability-level anomalies) and DIY DQL queries (team-level attribution).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage-your-costs/control/budgets">Budget alerts (DT docs)</a> — <em>&quot;A Dynatrace Platform Subscription automatically enables three initial budget thresholds that notify license administrators when total account level consumption reaches 75%, 90%, and 100% of the annual commitment.&quot;</em>; <em>&quot;You can get notifications in the Notification Center and via email.&quot;</em> <a href="https://docs.dynatrace.com/docs/manage-your-costs/predict/project-run-rate">Forecast costs with run-rate projections (DT docs)</a> — <em>&quot;There is no intra-day alerting.&quot;</em></sub></p>
+</blockquote>
+<p><a id="dql-trends"></a></p>
+<h2>5. DIY — DQL Trend Queries with <code>makeTimeseries</code></h2>
+<p>For host-based capabilities, prefer <code>timeseries dt.billing.*</code> (covered in FINOPS-01 §5). For byte- and count-based capabilities, use <code>fetch dt.system.events | makeTimeseries</code> to build a time-aligned trend series:</p>
+<pre><code class="language-dql">// Daily log ingest GiB per bucket — 30-day trend
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+| filter event.type == &quot;Log Management &amp; Analytics - Ingest &amp; Process&quot;
+| dedup event.id
+| fieldsAdd gib = toDouble(billed_bytes) / 1073741824
+| makeTimeseries daily_gib = sum(gib), by:{ usage.bucket }, interval:24h
+</code></pre>
+<p><strong>Worked example — week-over-week comparison via two parallel time ranges:</strong></p>
+<pre><code class="language-dql">// Week-over-week log-ingest comparison — this week vs last week
+fetch dt.system.events, from:-14d, to:-7d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+| filter event.type == &quot;Log Management &amp; Analytics - Ingest &amp; Process&quot;
+| dedup event.id
+| summarize { last_week_gib = sum(toDouble(billed_bytes)) / 1073741824 }, by:{ usage.bucket }
+| lookup [
+    fetch dt.system.events, from:-7d
+    | filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+    | filter event.type == &quot;Log Management &amp; Analytics - Ingest &amp; Process&quot;
+    | dedup event.id
+    | summarize { this_week_gib = sum(toDouble(billed_bytes)) / 1073741824 }, by:{ usage.bucket }
+  ], sourceField:usage.bucket, lookupField:usage.bucket
+| fieldsAdd this_week_gib = lookup.this_week_gib
+| fieldsAdd delta_pct = round((this_week_gib - last_week_gib) / last_week_gib * 100, decimals: 1)
+| fields usage.bucket, last_week_gib, this_week_gib, delta_pct
+| sort delta_pct desc
+</code></pre>
+<p>Buckets with high positive <code>delta_pct</code> are growing fast and merit a closer look. The pattern generalizes to month-over-month (<code>from:-60d, to:-30d</code> and <code>from:-30d</code>), day-over-day (1d), or any other comparison window.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL <code>makeTimeseries</code> (DT docs)</a>. The week-over-week <code>lookup</code> pattern is canonical in <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language"><code>dynatrace-dql-examples</code></a> (parameter-level optimization recipes). Both queries are syntactically valid; execution-dependent on having ≥14 days of tenant history. The daily trend query re-executed 10/05/2026 with <code>interval:24h</code> (no notifications; <code>1d</code> raised a deprecated-calendar-duration notice).</sub></p>
+</blockquote>
+<p><a id="davis-forecast"></a></p>
+<h2>6. DIY — Davis Predictive AI on <code>dt.billing.*</code></h2>
+<p>Davis Predictive AI's forecast analysis runs against any numeric time series, which includes the <code>dt.billing.*</code> family. This is the in-tenant equivalent of the Account Management Cost Overview forecast, but at a finer cut — per bucket, per cost center, per capability.</p>
+<h3>How to invoke it</h3>
+<p>The analyzer takes a time-bucketed input series (at least 14 data points) and returns point predictions plus a prediction interval. Two access paths:</p>
+<ol>
+<li><strong>Notebook</strong> — run a forecast analysis on a <code>timeseries</code> query result.</li>
+<li><strong>Workflow task</strong> — a Davis analyzer action with the analyzer <code>dt.statistics.GenericForecastAnalyzer</code> and the DQL query as input. (Earlier revisions named <code>dt.statistics.forecast</code>, which is not an analyzer; the name here was read from the tenant's analyzer list on 09/28/2026.)</li>
+</ol>
+<h3>Pattern — forecast per-capability host-hours for the next 30 days</h3>
+<p>Input series (28-day history, hourly):</p>
+<pre><code class="language-dql">// Forecast input — 28-day Full-Stack Monitoring history at hourly granularity
+timeseries hourlyUsage = sum(dt.billing.full_stack_monitoring.usage, rate:1h),
+  from:-28d, interval:1h
+</code></pre>
+<p>Feed this query into the forecast analyzer. The horizon is counted in data points and capped at 600, so at hourly granularity the longest horizon is 25 days — for a full 30 days, rebuild the input at <code>interval:24h</code> and forecast 30 points. Output: forecasted usage per step with a prediction interval (default coverage probability 0.9).</p>
+<h3>What to do with the output</h3>
+<ul>
+<li>Sum the forecast over the remaining month → end-of-month projection</li>
+<li>Compare projection × rate-card conversion against the monthly budget</li>
+<li>Surface in a Workflow that posts to Slack / email if the projection exceeds threshold</li>
+</ul>
+<h3>Pattern — anomaly detection on consumption (seasonal baseline)</h3>
+<p>For &quot;is <em>this</em> hour unusual given the seasonal pattern,&quot; use the seasonal baseline anomaly detection analyzer (<code>dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer</code>) instead of the forecast analyzer. Same input shape; different output — a confidence band learned from the series' seasonality, whose width is set by the <code>tolerance</code> parameter (0.1–10, default 4), and the points that violate it.</p>
+<h3>When Davis Predictive AI on consumption is wrong</h3>
+<p>Forecasting assumes stationary or seasonally-stationary input. Consumption time series are <em>not</em> stationary during onboarding phases — a new tenant ramps up over weeks, adoption changes the baseline, new buckets get created. Treat the first 2–4 weeks of any new tenant or major rollout as too-noisy-to-forecast: the analyzer needs 14+ days of input to detect weekly seasonality, and Dynatrace's own built-in forecast waits for 15 days of data and is to be treated with caution below 30.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/reference/ai-models/forecast-analysis">Predictive AI analysis (DT docs)</a> — <em>&quot;The forecast analysis predicts future values of any time series of numeric values.&quot;</em>; minimum 14 data points, horizon 1–600, default coverage probability 0.9, weekly seasonality needs 14+ days of input</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/reference/ai-models/seasonal-baseline">Seasonal baseline (DT docs)</a> — tolerance range 0.1–10, default 4</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage-your-costs/predict/built-in-forecast">Use the built-in forecast (DT docs)</a> — the 15-day minimum and the under-30-days caution for the built-in forecast</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows (DT docs)</a>. Analyzer names read from the validation tenant's analyzer list (<code>dtctl get analyzers</code>), 09/28/2026.</sub></li>
+<li><sub><strong>Derived:</strong> applying the analyzer to <code>dt.billing.*</code> follows from its any-numeric-series scope; the 2–4 week settling window combines the 14-day seasonality requirement with the built-in forecast's 15/30-day guidance.</sub></li>
+</ul>
+</blockquote>
+<p><a id="workflow-alerts"></a></p>
+<h2>7. DIY — Workflow Burn-Rate Alerts</h2>
+<p><strong>Workflow burn-rate alerts</strong> combine the DQL trend queries (§5) and Davis forecast / anomaly (§6) into an active control loop: scheduled execution, threshold evaluation, notification.</p>
+<p>In community practice, two recipes cover most needs. Their DQL building blocks — week-over-week growth and days-until-a-budget-fires — are the ones Dynatrace documents in its run-rate tutorial.</p>
+<h3>Recipe — daily per-bucket burn-rate workflow</h3>
+<ol>
+<li><strong>Trigger:</strong> Schedule — daily at a consistent time (e.g., 09:00 in the platform team's time zone).</li>
+<li><strong>Task 1 — DQL query:</strong> week-over-week per-bucket comparison (the §5 pattern).</li>
+<li><strong>Task 2 — Filter / threshold:</strong> select buckets with <code>delta_pct &gt; 50%</code> (a configurable threshold).</li>
+<li><strong>Task 3 — Notify:</strong> post to Slack / email with the list, linking back to the FINOPS-01 §10 attribution query for drill-down.</li>
+</ol>
+<h3>Recipe — capability-level Davis-forecast workflow</h3>
+<ol>
+<li><strong>Trigger:</strong> Schedule — weekly (Monday 09:00 covers the prior-week trajectory).</li>
+<li><strong>Task 1 — DQL query:</strong> 28-day hourly history of each <code>dt.billing.&lt;capability&gt;.usage</code>.</li>
+<li><strong>Task 2 — Davis-forecast analyzer:</strong> project forward (the horizon caps at 600 points — 25 days at hourly input, or use daily input for 30 days).</li>
+<li><strong>Task 3 — Compare against budget:</strong> if <code>projection × rate &gt; monthly_budget × (days_remaining / days_in_month)</code>, fire.</li>
+<li><strong>Task 4 — Notify:</strong> post to a finance-and-platform escalation channel.</li>
+</ol>
+<h3>When workflow alerts overlap with native</h3>
+<p>Native Cost Monitors and Budget Alerts cover the <em>strategic</em> layer. Workflow alerts cover the <em>tactical</em> layer — finer cuts, faster cadence, your-team's-own-action-handoff. The two should not duplicate; if a Cost Monitor already catches &quot;Logs ingest is way up,&quot; don't build a workflow that re-detects the same condition. Build the workflow at the cut native is silent on (per-bucket, per-team, per-cost-center).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/reference/ai-models/forecast-analysis">Predictive AI analysis (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage-your-costs/predict/project-run-rate">Forecast costs with run-rate projections (DT docs)</a> — week-over-week growth and days-until-budget-alert DQL.</sub></p>
+</blockquote>
+<p><a id="wx-projection"></a></p>
+<h2>8. Worked Example — End-of-Month Projection</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+RW5kLW9mLU1vbnRoIEJ1cm4tUmF0ZSBUcmFqZWN0b3J5PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPldvcmtlZCBleGFtcGxlIOKAlCBkYXkgMTggb2YgMzAsIGN1cnJlbnQgTVREID0gNTQwIEdpQiwgbW9udGhseSBidWRnZXQgPSA4MDAgR2lCPC90ZXh0PgoKICA8IS0tIENoYXJ0IGFyZWEgLS0+CiAgPHJlY3QgeD0iODAiIHk9IjkwIiB3aWR0aD0iNzAwIiBoZWlnaHQ9IjMyMCIgZmlsbD0iIzFFMjkzQiIgb3BhY2l0eT0iMC40IiByeD0iNCIvPgoKICA8IS0tIEdyaWQgbGluZXMgKGhvcml6b250YWwpIC0tPgogIDxsaW5lIHgxPSI4MCIgeTE9IjE3MCIgeDI9Ijc4MCIgeTI9IjE3MCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2UtZGFzaGFycmF5PSIyLDMiIHN0cm9rZS13aWR0aD0iMC41Ii8+CiAgPGxpbmUgeDE9IjgwIiB5MT0iMjUwIiB4Mj0iNzgwIiB5Mj0iMjUwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS1kYXNoYXJyYXk9IjIsMyIgc3Ryb2tlLXdpZHRoPSIwLjUiLz4KICA8bGluZSB4MT0iODAiIHkxPSIzMzAiIHgyPSI3ODAiIHkyPSIzMzAiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLWRhc2hhcnJheT0iMiwzIiBzdHJva2Utd2lkdGg9IjAuNSIvPgoKICA8IS0tIFktYXhpcyBsYWJlbHMgKEdpQikgLS0+CiAgPHRleHQgeD0iNzIiIHk9IjQxNCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+MDwvdGV4dD4KICA8dGV4dCB4PSI3MiIgeT0iMzM0IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj4zMDA8L3RleHQ+CiAgPHRleHQgeD0iNzIiIHk9IjI1NCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+NTQwPC90ZXh0PgogIDx0ZXh0IHg9IjcyIiB5PSIxNzQiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPjgwMDwvdGV4dD4KICA8dGV4dCB4PSI1NSIgeT0iMjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhCIiBmb250LXNpemU9IjkiIHRyYW5zZm9ybT0icm90YXRlKC05MCA1NSAyNTApIj5HaUI8L3RleHQ+CgogIDwhLS0gWC1heGlzIGxhYmVscyAoZGF5cykgLS0+CiAgPHRleHQgeD0iODAiIHk9IjQzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RGF5IDE8L3RleHQ+CiAgPHRleHQgeD0iMzEzIiB5PSI0MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRheSAxMDwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjQzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RGF5IDE4ICh0b2RheSk8L3RleHQ+CiAgPHRleHQgeD0iNzgwIiB5PSI0MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRheSAzMDwvdGV4dD4KCiAgPCEtLSAiVG9kYXkiIHZlcnRpY2FsIG1hcmtlciAtLT4KICA8bGluZSB4MT0iNTAwIiB5MT0iOTAiIHgyPSI1MDAiIHkyPSI0MTAiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLWRhc2hhcnJheT0iMywzIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1MDAiIHk9IjgzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5Ub2RheTwvdGV4dD4KCiAgPCEtLSBCdWRnZXQgbGluZSAoODAwIEdpQikgLS0+CiAgPGxpbmUgeDE9IjgwIiB5MT0iMTcwIiB4Mj0iNzgwIiB5Mj0iMTcwIiBzdHJva2U9IiNGQ0E1QTUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNSwzIi8+CiAgPHRleHQgeD0iNzg1IiB5PSIxNzMiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkJ1ZGdldCA4MDA8L3RleHQ+CgogIDwhLS0gQWN0dWFsIGNvbnN1bXB0aW9uIGxpbmUgKDEgdG8gMTgsIGVuZGluZyBhdCA1NDApIC0tPgogIDxwb2x5bGluZSBwb2ludHM9IjgwLDQxMCAxMTAsNDAwIDE0MCwzODggMTcwLDM3OCAyMDAsMzY1IDIzMCwzNTMgMjYwLDM0MCAyOTAsMzI4IDMyMCwzMTcgMzUwLDMwNSAzODAsMjkwIDQxMCwyNzggNDQwLDI2NSA0NzAsMjUzIDUwMCwyNDUiCiAgICAgICAgICAgIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzg2RUZBQyIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8Y2lyY2xlIGN4PSI1MDAiIGN5PSIyNDUiIHI9IjUiIGZpbGw9IiM4NkVGQUMiLz4KICA8dGV4dCB4PSI0ODUiIHk9IjI0MCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+NTQwPC90ZXh0PgoKICA8IS0tIE5haXZlIHByb2plY3Rpb24gbGluZSAobGluZWFyIGV4dHJhcG9sYXRpb246IDU0MCAqIDMwLzE4ID0gOTAwIEdpQikgLS0+CiAgPGxpbmUgeDE9IjUwMCIgeTE9IjI0NSIgeDI9Ijc4MCIgeTI9IjE1MCIgc3Ryb2tlPSIjRkNBNUE1IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYsNCIvPgogIDx0ZXh0IHg9Ijc4NSIgeT0iMTUzIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5OYWl2ZSA5MDA8L3RleHQ+CiAgPHRleHQgeD0iNzg1IiB5PSIxNjUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAiPihsaW5lYXIgZXh0cmFwb2xhdGlvbik8L3RleHQ+CgogIDwhLS0gRGF2aXMgZm9yZWNhc3QgbGluZSAoYmV0dGVyLCBhY2NvdW50cyBmb3Igc2Vhc29uYWxpdHkg4oCUIHNheSA4NjAgR2lCKSAtLT4KICA8bGluZSB4MT0iNTAwIiB5MT0iMjQ1IiB4Mj0iNzgwIiB5Mj0iMTYxIiBzdHJva2U9IiNGQ0QzNEQiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPHRleHQgeD0iNzg1IiB5PSIxODUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkZvcmVjYXN0IDg2MDwvdGV4dD4KICA8dGV4dCB4PSI3ODUiIHk9IjE5NyIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMCI+KERhdmlzIFByZWRpY3RpdmUgQUkpPC90ZXh0PgoKICA8IS0tIENvbmZpZGVuY2UgYmFuZCBmb3IgRGF2aXMgZm9yZWNhc3QgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSI1MDAsMjQ1IDc4MCwxNDggNzgwLDE3OCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4xOCIvPgoKICA8IS0tIExlZ2VuZCAtLT4KICA8cmVjdCB4PSI4MCIgeT0iNDQ1IiB3aWR0aD0iNzAwIiBoZWlnaHQ9IjQ1IiBmaWxsPSIjMUUyOTNCIiBvcGFjaXR5PSIwLjYiIHJ4PSI0Ii8+CiAgPGNpcmNsZSBjeD0iMTAwIiBjeT0iNDYwIiByPSI1IiBmaWxsPSIjODZFRkFDIi8+CiAgPHRleHQgeD0iMTE1IiB5PSI0NjQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkFjdHVhbCAoTVREKTwvdGV4dD4KICA8bGluZSB4MT0iMjIwIiB5MT0iNDYwIiB4Mj0iMjQwIiB5Mj0iNDYwIiBzdHJva2U9IiNGQ0E1QTUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNSwzIi8+CiAgPHRleHQgeD0iMjQ4IiB5PSI0NjQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkJ1ZGdldDwvdGV4dD4KICA8bGluZSB4MT0iMzAwIiB5MT0iNDYwIiB4Mj0iMzIwIiB5Mj0iNDYwIiBzdHJva2U9IiNGQ0E1QTUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNiw0Ii8+CiAgPHRleHQgeD0iMzI4IiB5PSI0NjQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk5haXZlIHByb2plY3Rpb248L3RleHQ+CiAgPGxpbmUgeDE9IjQzMCIgeTE9IjQ2MCIgeDI9IjQ1MCIgeTI9IjQ2MCIgc3Ryb2tlPSIjRkNEMzREIiBzdHJva2Utd2lkdGg9IjIuNSIvPgogIDx0ZXh0IHg9IjQ1OCIgeT0iNDY0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EYXZpcyBmb3JlY2FzdCAocHJlZmVycmVkKTwvdGV4dD4KICA8cmVjdCB4PSI2MDAiIHk9IjQ1NSIgd2lkdGg9IjE0IiBoZWlnaHQ9IjEwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjMiLz4KICA8dGV4dCB4PSI2MjAiIHk9IjQ2NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+OTAlIGNvbmZpZGVuY2UgYmFuZDwvdGV4dD4KCiAgPHRleHQgeD0iNDY1IiB5PSI0ODMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkRlY2lzaW9uOiBib3RoIHByb2plY3Rpb25zIGV4Y2VlZCBidWRnZXQg4oCUIGFjdCBub3cgKHNlZSBGSU5PUFMtMDMgZm9yIEN1dCAvIFR1bmUgLyBGaWx0ZXIpPC90ZXh0Pgo8L3N2Zz4K" alt="End-of-Month Burn-Rate Trajectory" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Day | MTD GiB | Budget | Naive projection | Davis forecast |
+|-----|---------|--------|------------------|----------------|
+| 18 (today) | 540 | 800 | 900 (linear) | 860 (with seasonality + confidence band) |
+Both projections exceed budget — act now (see FINOPS-03 for Cut / Tune / Filter)
+-->
+<p><strong>Scenario:</strong> It's day 18 of a 30-day billing month. The platform team wants to know whether the current burn projects to exceed the monthly Log Ingest budget of 800 GiB.</p>
+<p><strong>Step 1 — Month-to-date consumption:</strong></p>
+<pre><code class="language-dql">// Month-to-date log ingest GiB — replace the from: range with your billing-month start in the contract time zone
+// @M = start of the current calendar month in the query time zone; for a contract-time-zone billing month, set explicit from:/to:
+fetch dt.system.events, from:@M
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+| filter event.type == &quot;Log Management &amp; Analytics - Ingest &amp; Process&quot;
+| dedup event.id
+| summarize { mtd_gib = sum(toDouble(billed_bytes)) / 1073741824 }
+</code></pre>
+<p>Suppose this returns <code>mtd_gib = 540</code>. The team has consumed 540 GiB in the first 18 days.</p>
+<p><strong>Step 2 — Linear projection (naive):</strong></p>
+<p><code>projection = 540 × (30 / 18) = 900 GiB</code> — that's 12.5% over the 800 GiB budget. The naive projection assumes uniform daily consumption.</p>
+<p><strong>Step 3 — Davis-forecast projection (better):</strong></p>
+<p>Run the 28-day input through the <code>timeseries-forecast</code> analyzer for a 12-day horizon (the rest of the month). The forecast accounts for daily / weekly seasonality (e.g., lower weekend traffic), which the naive projection ignores.</p>
+<p><strong>Step 4 — Decision:</strong></p>
+<p>In community practice, the decision rule is simple. If both projections agree the budget will be exceeded: act now. The Cut / Tune / Filter framework in FINOPS-03 covers what to do. If they disagree: investigate the forecast confidence bands — wide bands suggest the recent history is too noisy to forecast reliably (re-baseline after 1-2 more weeks; until then, manage tactically week-over-week).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/reference/ai-models/forecast-analysis">Predictive AI analysis (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage-your-costs/predict/project-run-rate">Forecast costs with run-rate projections (DT docs)</a> — the flat run-rate is <em>&quot;your flat run-rate baseline, with no growth assumed&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="wx-anomaly"></a></p>
+<h2>9. Worked Example — Capability-Level Anomaly Alert</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJmbG93LWFycm93MiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q2FwYWJpbGl0eS1MZXZlbCBBbm9tYWx5IERldGVjdGlvbiDigJQgV29ya2Zsb3cgQXJjaGl0ZWN0dXJlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlNjaGVkdWxlZCBXb3JrZmxvdyBjaGFpbnMgRFFMIOKGkiBEYXZpcyBhbmFseXplciDihpIgbm90aWZpY2F0aW9uIOKGkiBhdHRyaWJ1dGlvbiBkcmlsbC1kb3duPC90ZXh0PgoKICA8IS0tIFN0ZXAgMTogU2NoZWR1bGUgdHJpZ2dlciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMTAwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjEyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MS4gU2NoZWR1bGUgdHJpZ2dlcjwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjE0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2Vla2x5PC90ZXh0PgogIDx0ZXh0IHg9IjEyMCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Nb25kYXkgMDk6MDA8L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIxNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPihwbGF0Zm9ybS10ZWFtIHRpbWUgem9uZSk8L3RleHQ+CgogIDxsaW5lIHgxPSIyMDAiIHkxPSIxNDAiIHgyPSIyNDAiIHkyPSIxNDAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmxvdy1hcnJvdzIpIi8+CgogIDwhLS0gU3RlcCAyOiBEUUwgcXVlcnkgKDI4LWRheSBiYXNlbGluZSBpbnB1dCkgLS0+CiAgPHJlY3QgeD0iMjQwIiB5PSIxMDAiIHdpZHRoPSIyMDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iNiIvPgogIDx0ZXh0IHg9IjM0MCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4yLiBEUUwgcXVlcnk8L3RleHQ+CiAgPHRleHQgeD0iMzQwIiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRpbWVzZXJpZXMgZHQuYmlsbGluZy4qPC90ZXh0PgogIDx0ZXh0IHg9IjM0MCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4yOC1kYXkgZGFpbHkgaGlzdG9yeTwvdGV4dD4KICA8dGV4dCB4PSIzNDAiIHk9IjE3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+cGVyIGNhcGFiaWxpdHk8L3RleHQ+CgogIDxsaW5lIHgxPSI0NDAiIHkxPSIxNDAiIHgyPSI0OTAiIHkyPSIxNDAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmxvdy1hcnJvdzIpIi8+CgogIDwhLS0gU3RlcCAzOiBEYXZpcyBhbmFseXplciAtLT4KICA8cmVjdCB4PSI0OTAiIHk9IjEwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI4MCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTkwIiB5PSIxMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjMuIERhdmlzIGFuYWx5emVyPC90ZXh0PgogIDx0ZXh0IHg9IjU5MCIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5zZWFzb25hbC1iYXNlbGluZS08L3RleHQ+CiAgPHRleHQgeD0iNTkwIiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmFub21hbHktZGV0ZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iNTkwIiB5PSIxNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPnNjb3JlcyBsYXN0IDI0aCB2cyBiYXNlbGluZTwvdGV4dD4KCiAgPGxpbmUgeDE9IjY5MCIgeTE9IjE0MCIgeDI9IjczMCIgeTI9IjE0MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmbG93LWFycm93MikiLz4KCiAgPCEtLSBTdGVwIDQ6IENvbmRpdGlvbmFsIGRlY2lzaW9uIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iNzMwLDEwMCA4NzAsMTQwIDczMCwxODAgODUwLDE0MCA3MzAsMTAwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9Ijc4MCIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj40LiBBbm9tYWx5PC90ZXh0PgogIDx0ZXh0IHg9Ijc4MCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5zY29yZSAmZ3Q7IHRocmVzaG9sZD88L3RleHQ+CgogIDwhLS0gUGF0aCAxOiBObyBhbm9tYWx5IOKGkiBlbmQgLS0+CiAgPGxpbmUgeDE9Ijc4MCIgeTE9IjE4MCIgeDI9Ijc4MCIgeTI9IjIzMCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmbG93LWFycm93MikiLz4KICA8dGV4dCB4PSI3ODAiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCI+Tm88L3RleHQ+CiAgPHJlY3QgeD0iNzAwIiB5PSIyMjUiIHdpZHRoPSIxNjAiIGhlaWdodD0iMzUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc4MCIgeT0iMjQ3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIj5Xb3JrZmxvdyBlbmRzPC90ZXh0PgoKICA8IS0tIFBhdGggMjogQW5vbWFseSDihpIgbm90aWZpY2F0aW9uICsgZHJpbGwtZG93biAtLT4KICA8bGluZSB4MT0iNzMwIiB5MT0iMTQwIiB4Mj0iNjUwIiB5Mj0iMjMwIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Zsb3ctYXJyb3cyKSIvPgogIDx0ZXh0IHg9IjY3OCIgeT0iMTk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEwIj5ZZXM8L3RleHQ+CgogIDwhLS0gU3RlcCA1OiBOb3RpZnkgKyBhdHRyaWJ1dGlvbiAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjcwIiB3aWR0aD0iODUwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjI5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+NS4gTm90aWZ5ICsgYXR0cmlidXRpb24gZHJpbGwtZG93bjwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjMwNSIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTkwIiB5PSIzMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlNsYWNrIC8gZW1haWwgbWVzc2FnZTwvdGV4dD4KICA8dGV4dCB4PSIxOTAiIHk9IjM0MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+Q2FwYWJpbGl0eSArIG1hZ25pdHVkZSArIGxpbms8L3RleHQ+CgogIDxyZWN0IHg9IjM0MCIgeT0iMzA1IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI0NzAiIHk9IjMyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+TGluayDihpIgYXR0cmlidXRpb24gcXVlcnk8L3RleHQ+CiAgPHRleHQgeD0iNDcwIiB5PSIzNDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkZJTk9QUy0wMSDCpzEwIGNoYXJnZWJhY2sgdmlldzwvdGV4dD4KCiAgPHJlY3QgeD0iNjIwIiB5PSIzMDUiIHdpZHRoPSIyNTAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc0NSIgeT0iMzI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5PcGVyYXRvciBhY3Rpb248L3RleHQ+CiAgPHRleHQgeD0iNzQ1IiB5PSIzNDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkN1dCAvIFR1bmUgLyBGaWx0ZXIgKEZJTk9QUy0wMyk8L3RleHQ+CgogIDwhLS0gQm90dG9tOiBkZXNpZ24gbm90ZXMgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjM5NSIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzFFMjkzQiIgb3BhY2l0eT0iMC41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjU1IiB5PSI0MTgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkRlc2lnbiBub3RlczwvdGV4dD4KICA8dGV4dCB4PSI1NSIgeT0iNDM4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgVHdvLXN0ZXAgZGlhZ25vc2lzOiBjYXBhYmlsaXR5IGFub21hbHkgc2F5cyA8dHNwYW4gZmlsbD0iI0ZDRDM0RCIgZm9udC1zdHlsZT0iaXRhbGljIj53aGF0PC90c3Bhbj4gaXMgdXA7IGF0dHJpYnV0aW9uIHF1ZXJ5IHNheXMgPHRzcGFuIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc3R5bGU9Iml0YWxpYyI+d2hvPC90c3Bhbj4gaXMgZHJpdmluZyBpdDwvdGV4dD4KICA8dGV4dCB4PSI1NSIgeT0iNDU1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgVHVuZSB0aHJlc2hvbGQgYWZ0ZXIgMi00IHdlZWtzIG9mIGJhc2VsaW5lIGVzdGFibGlzaG1lbnQg4oCUIGluaXRpYWwgYWxlcnRzIGxpa2VseSBpbmNsdWRlIGZhbHNlIHBvc2l0aXZlcyBmcm9tIGtub3duIHNlYXNvbmFsIGV2ZW50czwvdGV4dD4KICA8dGV4dCB4PSI1NSIgeT0iNDcxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgRG8gbm90IGR1cGxpY2F0ZSBuYXRpdmUgQ29zdCBNb25pdG9ycyDigJQgb25seSBidWlsZCBESVkgYW5vbWFseSBhdCBmaW5lci10aGFuLWNhcGFiaWxpdHkgY3V0cyAocGVyIGJ1Y2tldCwgcGVyIHRlYW0pPC90ZXh0Pgo8L3N2Zz4K" alt="Capability-Level Anomaly Detection Workflow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Component | Action |
+|------|-----------|--------|
+| 1 | Schedule trigger | Weekly, Monday 09:00 (platform-team time zone) |
+| 2 | DQL query | timeseries dt.billing.* — 28-day daily history per capability |
+| 3 | Davis analyzer | seasonal-baseline-anomaly-detector scores last 24h |
+| 4 | Conditional | Anomaly score > threshold? |
+| 5 | Notify + drill-down | Slack/email with capability + link to FINOPS-01 §10 attribution query |
+Two-step diagnosis: anomaly says WHAT is up; attribution says WHO is driving it.
+-->
+<p><strong>Scenario:</strong> The platform team wants its own in-tenant signal when any host-monitoring capability's daily consumption deviates from its 4-week baseline, routed through a workflow to its own channel. (Cost Monitors already check each capability daily, but deliver through Account Management — Notification Center, email, API.)</p>
+<p><strong>Step 1 — Build the input series (28-day daily history per capability):</strong></p>
+<pre><code class="language-dql">// Daily host-hours per host capability — 28-day baseline input
+timeseries {
+  full_stack = sum(dt.billing.full_stack_monitoring.usage, rate:24h),
+  infrastructure = sum(dt.billing.infrastructure_monitoring.usage, rate:24h),
+  code = sum(dt.billing.code_monitoring.usage, rate:24h),
+  k8s = sum(dt.billing.kubernetes_monitoring.usage, rate:24h)
+  },
+  from:-28d, interval:24h
+</code></pre>
+<p><strong>Step 2 — Feed into the seasonal baseline anomaly detection analyzer</strong>, checking the latest day against the confidence band learned from the preceding days.</p>
+<p><strong>Step 3 — Workflow logic:</strong></p>
+<ul>
+<li>If any capability's latest value falls outside the analyzer's confidence band (width set by <code>tolerance</code>, default 4), the workflow fires.</li>
+<li>The notification includes the capability name, the magnitude of deviation, and a link to the FINOPS-01 §5 per-host (or §10 per-cost-center) attribution query for drill-down.</li>
+</ul>
+<p><strong>Step 4 — Tune the threshold:</strong></p>
+<p>Start with the analyzer's default tolerance. After the first 2-4 alerts, judge whether each was actionable: a true cost spike, or a known event (a planned rollout, a synthetic-test enable, a one-time job)? Adjust threshold + add filter conditions (e.g., &quot;ignore Tuesday 02:00-04:00 when the weekly cleanup job runs&quot;) to suppress known patterns.</p>
+<p><strong>Step 5 — Pair with bucket-level attribution:</strong></p>
+<p>Capability-level anomaly tells you something is up; FINOPS-01 §10 (per-cost-center attribution) tells you <em>which</em> bucket or team is driving it. Dynatrace's own cost-spike tutorial runs the same two steps: identify the capability, then attribute the spike to the entity, dashboard, workflow, or detector behind it — followed by the conversation with the owning team.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike">Trace a cost spike to its root cause (DT docs)</a> — <em>&quot;Identify which DPS capability is driving a cost spike&quot;</em>, then <em>&quot;Attribute the spike to the responsible entity, dashboard, workflow, or detector.&quot;</em> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/reference/ai-models/seasonal-baseline">Seasonal baseline (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows (DT docs)</a>. The Step 1 input query re-executed 10/05/2026 with grouped aggregations and <code>24h</code> (29 daily points, no notifications).</sub></p>
+</blockquote>
+<p><a id="native-vs-diy"></a></p>
+<h2>10. When to Use Native vs DIY</h2>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Native (Account portal)</th>
+<th>DIY (DQL + Davis + Workflow)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Will we hit annual commit?</td>
+<td>✓ Cost Overview forecast</td>
+<td>(overkill)</td>
+</tr>
+<tr>
+<td>Alert on month-to-date overshoot</td>
+<td>✓ Budget Alerts</td>
+<td>(overkill)</td>
+</tr>
+<tr>
+<td>Alert on capability-level anomaly</td>
+<td>✓ Cost Monitors</td>
+<td>DIY only if you need per-bucket cut</td>
+</tr>
+<tr>
+<td>Alert on per-bucket / per-team anomaly</td>
+<td>✗ — not currently available natively</td>
+<td>✓ DIY required</td>
+</tr>
+<tr>
+<td>Forecast per-bucket consumption</td>
+<td>✗ — capability-level only</td>
+<td>✓ DIY required</td>
+</tr>
+<tr>
+<td>Per-cost-center chargeback forecast</td>
+<td>✗ — not currently available natively</td>
+<td>✓ DIY required (use <code>_by_costcenter</code> series)</td>
+</tr>
+<tr>
+<td>Day-over-day burn comparison</td>
+<td>(Cost Overview gives weekly cut)</td>
+<td>✓ DIY for fine-grained cut</td>
+</tr>
+<tr>
+<td>Custom escalation routing (team → finance → exec)</td>
+<td>(per-budget recipients; Notification Center routing by alert category)</td>
+<td>✓ DIY workflow with conditional routing</td>
+</tr>
+</tbody>
+</table>
+<h3>The pattern</h3>
+<p><strong>Adopt native first.</strong> Cost Monitors and Budget Alerts cover the strategic layer with no engineering work. <strong>Add DIY where native is silent.</strong> That's almost always at finer-than-capability granularity — per bucket, per team, per cost center. <strong>Do not duplicate.</strong> If Cost Monitors already alerts on &quot;Logs ingest spike,&quot; don't build a workflow that re-detects the same thing — build the workflow on the per-team cut.</p>
+<p>In community practice, the most common DIY use cases are:</p>
+<ol>
+<li>Per-bucket weekly trend with delta-vs-baseline alert (most useful single signal)</li>
+<li>Per-cost-center monthly chargeback report (delivered to finance as a scheduled notebook export)</li>
+<li>Capability-level forecast with end-of-month projection (validates Cost Overview's forecast at finer granularity)</li>
+</ol>
+<p>The native column moves with the product — verify current Cost Monitor and Budget capability before building a DIY pattern that may already be covered.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage-your-costs/predict/project-run-rate">Forecast costs with run-rate projections (DT docs)</a> — <em>&quot;Account Management already gives you a built-in forecast, but it only goes as far as environment and capability level.&quot;</em>; its Account-Management-vs-DQL table marks capability-level forecast, cost-center or team breakdown, and days-until-threshold as DQL-only. <a href="https://docs.dynatrace.com/docs/manage-your-costs/control/cost-monitors">Cost monitors (DT docs)</a> — <em>&quot;Route different alert categories to different teams&quot;</em></sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>11. Recommended Approach</h2>
+<p>A six-step plan for layering forecasting + anomaly detection on top of FINOPS-01's consumption visibility:</p>
+<ol>
+<li><strong>Review the Budgets you already have.</strong> Every DPS account starts with 75/90/100 thresholds notifying license administrators. Add the recipients who can act, add an earlier custom tier (e.g., 50%) if you want more lead time, and add environment- or capability-scoped budgets where one area drives cost.</li>
+<li><strong>Point Cost Monitor notifications at the people who can act.</strong> They are already on and check every capability daily; what you set is recipients and the forecast thresholds (week-over-week jump, total forecast — default 95%).</li>
+<li><strong>Build one DIY weekly per-bucket trend report.</strong> The week-over-week pattern in §5 with delta-pct sort, scheduled via Workflow, delivered to a <code>#cost-watch</code> Slack channel. This is the tactical-layer signal that most programs lack.</li>
+<li><strong>Once the trend report has 4 weeks of history, add anomaly detection.</strong> Run the §9 per-capability anomaly workflow against <code>dt.billing.*</code> series.</li>
+<li><strong>Add the end-of-month projection workflow.</strong> Combine the §8 worked example into a weekly workflow that posts the projection alongside the budget.</li>
+<li><strong>Pair with FINOPS-01 attribution queries for drill-down.</strong> Anomalies and projections answer <em>whether</em>; FINOPS-01 §10 answers <em>who</em>. Wire the two together so an alert link points to the attribution view.</li>
+</ol>
+<p>Resist the temptation to build elaborate forecasting before basic Budget Alerts and Cost Monitors are wired. Native covers most cases; DIY adds value where native is silent, not where it duplicates.</p>
+<p><a id="summary"></a></p>
+<h2>12. Summary</h2>
+<p>Forecasting and anomaly detection on DPS consumption operate at three layers — operational, tactical, strategic — and across two surfaces: native (Cost Monitors, Budget Alerts in Account Management) and DIY (DQL trend queries, Davis Predictive AI, Workflow burn-rate alerts). Native covers the strategic layer automatically; DIY fills in the tactical and operational layers at finer granularity than native currently exposes. The most common gap in cost programs is the tactical layer — weekly per-bucket / per-team burn-rate alerts that turn cost surprises into cost conversations early enough to act.</p>
+<h2>Next Steps</h2>
+<ul>
+<li>Read <strong>FINOPS-03</strong> for the Cut / Tune / Filter optimization decision framework — once an alert fires, what do you actually do about it?</li>
+<li>Read the <strong>WFLOW</strong> topic series for Workflow construction patterns — scheduled triggers, DQL tasks, notification actions.</li>
+<li>Read the <strong>ORGNZ</strong> topic series for bucket and cost-center labeling — the upstream lever for meaningful per-team forecasts.</li>
+<li>Review the default Budgets and Cost Monitor recipients in Account Management today — both are already on, and a few minutes adding the right recipients covers most of the strategic layer.</li>
+<li>Open the ready-made <strong>Usage - Overview</strong> dashboard (<a href="https://docs.dynatrace.com/docs/manage-your-costs/view/usage-dashboards">Ready-made usage dashboards (DT docs)</a>) and use the trends visible there as the starting input for your first Davis-forecast notebook.</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2S-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2S — SaaS to SaaS Migration</a><span class="sep">/</span><span aria-current="page">S2S-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2S-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> S2S — SaaS to SaaS Migration | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/18/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook consolidates <strong>112 actionable best practices</strong> from the S2S series into a single reference organized around the 9-step migration framework. Each practice is definitive: it tells you exactly what to set, when, and why. Use this as a pre-flight checklist and ongoing reference throughout your SaaS-to-SaaS migration.</p>
+<p>The S2S series follows a <strong>9-step framework</strong> (Discover through Optimize) supported by an <strong>11-step Order of Operations</strong> that governs execution sequence. When the migration retires a cloud provider — moving the environment to an Azure-hosted cluster <em>and</em> the workloads from AWS to Azure — the appendix LAB <strong>S2S-94</strong> sequences both.</p>
+<h2>The 9-Step Migration Framework</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Name</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td><strong>Discover</strong></td>
+<td>Migration scenarios and inventory</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>Strategize</strong></td>
+<td>Define your migration approach</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>Design</strong></td>
+<td>Target tenant architecture</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td><strong>Prepare</strong></td>
+<td>Export and pre-stage</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td><strong>Execute</strong></td>
+<td>Configuration import and agent cutover</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><strong>Integrate</strong></td>
+<td>Cloud, dashboards, and workflows</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td><strong>Expand</strong></td>
+<td>OpenPipeline, SLOs, and alerting</td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td><strong>Enable</strong></td>
+<td>Parallel operation and stakeholder handover</td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td><strong>Optimize</strong></td>
+<td>Cutover validation and decommission</td>
+</tr>
+</tbody>
+</table>
+<h2>The 11-Step Order of Operations</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Operation</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Assess</strong></td>
+<td>Inventory source tenant</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Provision</strong></td>
+<td>Target SaaS tenant and access (SSO/IAM)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Export</strong></td>
+<td>Configuration from source tenant</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Migrate</strong></td>
+<td>Configuration to target tenant</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Rebuild</strong></td>
+<td>Dashboards, SLOs, alerts</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Redirect</strong></td>
+<td>OneAgents and operators to target</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Reconnect</strong></td>
+<td>Cloud integrations and extensions</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Migrate</strong></td>
+<td>Any remaining configuration</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Validate</strong></td>
+<td>Data flow and performance</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>Cutover</strong></td>
+<td>Full switch to target tenant</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Decommission</strong></td>
+<td>Source tenant</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>OneAgent Attribute Enrichment (1.333+):</strong> OneAgent can enrich telemetry at the source — metrics, spans, logs, events and entities — with primary fields (<code>dt.security_context</code>, <code>dt.cost.costcenter</code>, <code>dt.cost.product</code>) and primary tags (<code>primary_tags.environment</code>, <code>primary_tags.team</code>). The values travel with the data into OpenPipeline routing, bucket assignment and record-level permissions. Set them with <code>--set-host-tag</code> at install time or with <code>oneagentctl</code> afterwards, or per process with <code>DT_TAGS</code>. See <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">docs</a>.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#step-1-discover">Step 1: Discover — Migration Scenarios and Inventory</a></li>
+<li><a href="#step-2-strategize">Step 2: Strategize — Define Your Migration Approach</a></li>
+<li><a href="#step-3-design">Step 3: Design — Target Tenant Architecture</a></li>
+<li><a href="#step-4-prepare">Step 4: Prepare — Export and Pre-Stage</a></li>
+<li><a href="#step-5-execute">Step 5: Execute — Configuration Import and Agent Cutover</a></li>
+<li><a href="#step-6-integrate">Step 6: Integrate — Cloud, Dashboards, and Workflows</a></li>
+<li><a href="#step-7-expand">Step 7: Expand — OpenPipeline, SLOs, and Alerting</a></li>
+<li><a href="#step-8-enable">Step 8: Enable — Parallel Operation and Stakeholder Handover</a></li>
+<li><a href="#step-9-optimize">Step 9: Optimize — Cutover Validation and Decommission</a></li>
+<li><a href="#five-principles">The Five Principles of S2S Migration</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>S2S Series</strong></td>
+<td>Read S2S-01 through S2S-09 for full context</td>
+</tr>
+<tr>
+<td><strong>Source Tenant</strong></td>
+<td>Active Dynatrace SaaS with admin access</td>
+</tr>
+<tr>
+<td><strong>Target Tenant</strong></td>
+<td>Provisioned Dynatrace SaaS with admin access</td>
+</tr>
+<tr>
+<td><strong>CLI Tools</strong></td>
+<td>Monaco CLI v2.x, Terraform v1.5+ with provider ~&gt; 1.91</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-1-discover"></a></p>
+<h2>1. Step 1: Discover — Migration Scenarios and Inventory</h2>
+<p><em>Source: S2S-01</em></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Complete entity discovery before anything else</td>
+<td>Run <code>smartscapeNodes &quot;HOST&quot;, from:-7d | summarize count()</code> (and the <code>SERVICE</code> / <code>FRONTEND</code> equivalents; process groups stay on <code>fetch dt.entity.process_group</code>) to establish baseline numbers — and run the same queries in the target later</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Identify your migration scenario</td>
+<td>Classify as consolidation (many-to-one), split (one-to-many), regional relocation, hosting-cloud change (the environment moves to another cloud), or workload cloud change (the monitored workloads move) — retiring a cloud is both at once</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Select Monaco for configuration, Terraform for IAM</td>
+<td>Monaco v2 covers the settings, document, automation, bucket, segment, slo-v2 and classic api config types (OpenPipeline as <code>builtin:openpipeline.*</code> settings — Monaco 2.31.0 removed the <code>openpipeline</code> type), and account IAM through <code>monaco account</code> (OAuth client); Terraform is the common choice for IAM because it keeps state and shows drift</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Plan for entity ID changes</td>
+<td>Entity IDs (HOST-xxx, SERVICE-xxx) are tenant-specific and will change; identify every dashboard, SLO, and alert that hardcodes an entity ID</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Document the manual remainder</td>
+<td>Most configuration moves with tooling; budget most of your effort for the remainder — entity ID remapping, integration repointing, IAM redesign, credential recreation (&quot;90/10&quot; is community shorthand, not a measured ratio)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Build a comprehensive endpoint inventory</td>
+<td>Document every agent URL, API call, webhook, and integration endpoint that references the source tenant URL</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Triage detected problems before migration</td>
+<td>Active, short-lived and duplicate problems carry noise to the target tenant; tune the detectors behind sources with &gt;500 active problems (the frequent-issue flag is being phased out — do not measure noise with it)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>8</td>
+<td>Identify configuration debt to leave behind</td>
+<td>Catalog stale maintenance windows, disabled notification rules, inactive synthetic monitors, unused management zones — do not migrate these</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Inventory Extensions 2.0 separately</td>
+<td>Monaco does not export extension installations; Terraform can install/activate (<code>dynatrace_hub_extension_active_version</code>) and configure (<code>dynatrace_hub_extension_v2_config</code>) Hub extensions — otherwise reinstall from Hub; list all extensions and plan their path before migration</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>10</td>
+<td>Audit configuration changes from last 30 days</td>
+<td>Query audit logs to identify recently changed settings that may not be in your last export</td>
+<td><strong>Recommended</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-2-strategize"></a></p>
+<h2>2. Step 2: Strategize — Define Your Migration Approach</h2>
+<p><em>Source: S2S-02</em></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>11</td>
+<td>Choose phased approach for environments with &gt;500 hosts</td>
+<td>Migrate dev first (weeks 1-2), staging (weeks 3-4), production (weeks 5-6); gives Dynatrace Intelligence time to build baselines</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>12</td>
+<td>Define success criteria before starting</td>
+<td>Document measurable targets: host count parity, service count parity, log volume parity, SLO evaluation accuracy, alerting coverage</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>13</td>
+<td>Engage your account team for licensing early</td>
+<td>Contact Dynatrace to discuss temporary parallel licensing; negotiate before the migration window opens</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>14</td>
+<td>Plan a per-wave overlap, sized by measurement</td>
+<td>Historical data does not migrate; keep the source readable while each wave builds history in the target, and measure per-host history depth (FAQ-25 §5) rather than fixing a number of weeks</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>15</td>
+<td>Establish a configuration freeze window</td>
+<td>No settings modifications in the source tenant during cutover; communicate freeze dates to all teams</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>16</td>
+<td>Migrate multi-source consolidations sequentially</td>
+<td>Complete Source 1 → validate → Source 2 → validate; never migrate two sources in parallel; migrate the simpler source first (non-K8s before K8s)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>17</td>
+<td>Align migration timing with stable traffic periods</td>
+<td>Avoid holidays, sales events, or other atypical traffic patterns that would distort Dynatrace Intelligence baselines</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>18</td>
+<td>Expect the 90/10 shape</td>
+<td>Most configuration moves with tooling; budget most of the effort for the remainder</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>19</td>
+<td>Prepare a rollback plan</td>
+<td>Document how to revert agents to the source tenant if issues arise during cutover</td>
+<td><strong>Recommended</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-3-design"></a></p>
+<h2>3. Step 3: Design — Target Tenant Architecture</h2>
+<p><em>Source: S2S-03</em></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>20</td>
+<td>Redesign IAM during consolidation</td>
+<td>Use the migration as the opportunity to fix group sprawl and overprivileged policies; redesign from scratch for the target tenant</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>21</td>
+<td>Deploy data foundation before governance</td>
+<td>Buckets and enrichment rules must exist before OpenPipeline routing, segments, SLOs, and IAM policies that reference them</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>22</td>
+<td>Replace entity IDs with tag-based filters</td>
+<td>Convert <code>entityId(&quot;HOST-xxxx&quot;)</code> to <code>tag(app:checkout),tag(env:production)</code> in dashboards, SLOs, and notification rules before migration</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>23</td>
+<td>Design bucket naming for consolidation</td>
+<td>Use prefix naming (e.g., <code>us-east_app_logs</code>, <code>eu-west_app_logs</code>) to prevent collisions when consolidating multiple tenants</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>24</td>
+<td>Plan the 24-item deployment order</td>
+<td>Buckets (1st) → Enrichment (2nd) → OpenPipeline (3rd) → Segments (4th) → Gen2 config (5th-13th) → Alerting/SLOs (14th-18th) → Dashboards/Workflows (19th-21st) → IAM last (22nd-24th)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>25</td>
+<td>Replace management zone ID references with names</td>
+<td>Convert <code>mzId(123)</code> to <code>mzName(&quot;Production&quot;)</code> because zone IDs change between tenants</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>26</td>
+<td>Prefix resources with source identifier during consolidation</td>
+<td>Set <code>name = &quot;${source_prefix} - ${resource_name}&quot;</code> on all dashboards, rules, and SLOs to prevent naming collisions</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>27</td>
+<td>Tag everything by business unit before splitting a tenant</td>
+<td>Apply auto-tags identifying ownership before splitting one tenant into many</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>28</td>
+<td>Map cloud provider identity constructs when changing providers</td>
+<td>AWS IAM roles to Azure Service Principals, Azure AD Groups to GCP Google Groups, etc.</td>
+<td><strong>Recommended</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-4-prepare"></a></p>
+<h2>4. Step 4: Prepare — Export and Pre-Stage</h2>
+<p><em>Source: S2S-04, S2S-10</em></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>29</td>
+<td>Export via <code>monaco download</code></td>
+<td>Run <code>monaco download --manifest manifest.yaml --environment source-tenant</code> to export all configuration in one operation</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>30</td>
+<td>Use the S2S-10 migration scripts for export</td>
+<td>Automates Monaco download with a short-lived, auto-revoked read-only token and stages a timestamped folder for <code>monaco deploy</code>, with an optional SaaS Upgrade Assistant package; Bash and PowerShell versions provided</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>31</td>
+<td>Plan on <code>monaco deploy</code>; treat the SaaS Upgrade Assistant as an optional, rehearsed path</td>
+<td>The SUA is documented for a Managed source (<em>&quot;imports your Dynatrace Managed environment configuration&quot;</em>); importing a packaged Monaco export (S2S-10 §1) is a field practice — rehearse it on a non-production target and keep <code>monaco deploy</code> as the fallback</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>32</td>
+<td>Store exported configuration in Git</td>
+<td>Commit the Monaco export directory to a Git repository immediately after download</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>33</td>
+<td>Validate export completeness</td>
+<td>Compare <code>ls projects/full-export/settings/ | wc -l</code> against Settings API <code>totalCount</code> per schema</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>34</td>
+<td>Validate export contains no secrets</td>
+<td>Run <code>grep -r &quot;dt0c01&quot; projects/</code> after export and confirm 0 matches</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>35</td>
+<td>Run <code>monaco deploy manifest.yaml --environment &lt;target&gt; --dry-run</code> before any deploy</td>
+<td>Checks manifest structure, references and template rendering; it does not contact the tenant, so a deploy can still fail with HTTP 400. Monaco has no <code>validate</code> command</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>36</td>
+<td>Provision target tenant and verify admin access</td>
+<td>Choose the hosting cloud and region deliberately (Azure-hosted regions are <em>&quot;Available on request&quot;</em>; Azure Native Dynatrace Service creates a new account and environment); confirm SSO, API token creation, and environment admin role before proceeding</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>37</td>
+<td>Configure SSO with full SAML message signing</td>
+<td>Create a new SAML application in your IdP for the target tenant — new Entity ID, new ACS URL; never reuse the source SAML app. Dynatrace returns <code>400</code> for assertion-only signatures, and Microsoft Entra signs only the assertion by default — set <em>Sign SAML response and assertion</em></td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>38</td>
+<td>Test SSO with a pilot user before cutover</td>
+<td>SAML configuration issues are the #1 day-of-cutover blocker</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>39</td>
+<td>Deploy ActiveGates in the target tenant</td>
+<td>ActiveGates cannot be reconfigured like OneAgents; install fresh from the target tenant UI</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>40</td>
+<td>Prepare K8s operator manifests for the target tenant</td>
+<td>Write a new DynaKube for the target in an API version your Operator release supports (check its release notes); the switch is delete-and-recreate — <em>&quot;starting with Dynatrace Operator version 1.3.0, editing spec.apiUrl is not allowed&quot;</em></td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>41</td>
+<td>Recreate network zones in the target</td>
+<td>Export with <code>monaco download … --settings-schema builtin:networkzones.zones</code> and deploy to the target before agent migration; zone names must match because agents keep their zone setting</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>42</td>
+<td>Create new OAuth clients and API tokens in the target</td>
+<td>Source credentials cannot be exported; create fresh clients with matching scopes</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>43</td>
+<td>Keep Microsoft Entra ID group claims under 150 per SAML assertion</td>
+<td>Microsoft: <em>&quot;The number of groups emitted in a token is limited to 150 for SAML assertions&quot;</em> — above it the claim is omitted entirely; emit only groups assigned to the application, or filter (<a href="https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/how-to-connect-fed-group-claims">Group claims (Microsoft Learn)</a>)</td>
+<td><strong>Recommended</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-5-execute"></a></p>
+<h2>5. Step 5: Execute — Configuration Import and Agent Cutover</h2>
+<p><em>Source: S2S-05</em></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>44</td>
+<td>Follow the 24-item deployment order</td>
+<td>Buckets → Enrichment → OpenPipeline → Segments → Gen2 config → Alerting/SLOs → Dashboards/Workflows → IAM last</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>45</td>
+<td>Deploy IAM groups, policies, and bindings last</td>
+<td>IAM <code>WHERE</code> clauses reference schemas, buckets, and security contexts that must already exist</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>46</td>
+<td>Use <code>monaco deploy manifest.yaml --environment target</code> for import</td>
+<td>Monaco resolves dependencies automatically within a single run (except IAM)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>47</td>
+<td>Read a clean dry-run as structure-only</td>
+<td>Payload errors (HTTP 400) and missing permissions (HTTP 403) surface only at deploy time — deploy to a non-production target first</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>48</td>
+<td>Deploy IAM via Terraform with <code>account-idm-read</code>, <code>account-idm-write</code>, and <code>iam-policies-management</code> scopes</td>
+<td>These three OAuth scopes are required to manage groups, policies, and bindings</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>49</td>
+<td>Reconfigure OneAgent with <code>oneagentctl</code> — do not reinstall</td>
+<td>Run <code>oneagentctl --set-server=&lt;target-url&gt;/communication --set-tenant=&lt;target-id&gt; --set-tenant-token=&lt;target-token&gt; --restart-service</code>, then restart applications monitored with deep code modules</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>50</td>
+<td>Route firewall-restricted hosts through ActiveGates</td>
+<td>Use <code>--set-server=&quot;https://&lt;ag-host&gt;:9999/communication&quot;</code> for on-prem or DMZ hosts; semicolon-separate multiple AGs for failover</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>51</td>
+<td>Restart application processes after agent reconfiguration</td>
+<td>Application processes must restart for the agent to report to the new tenant</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>52</td>
+<td>Migrate non-production first</td>
+<td>Dev agents first (weeks 1-2), staging (weeks 3-4), production last (weeks 5-6)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>53</td>
+<td>Validate after each migration wave</td>
+<td>Verify host count, service count, and data flow in the target after each environment wave</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>54</td>
+<td>Automate fleet-wide <code>oneagentctl</code> with config management</td>
+<td>Use Ansible, Chef, Puppet, AWS SSM, or Azure Automation for large fleets</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>55</td>
+<td>Budget 540m CPU and 872Mi memory per node for Dynatrace overhead</td>
+<td>OneAgent (100m/512Mi) + CSI Driver (440m/360Mi) per node; control plane adds 650m/320Mi per cluster</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>56</td>
+<td>Update IRSA (AWS), Managed Identity (Azure), or Workload Identity (GCP) to reference target</td>
+<td>Cloud-specific K8s identity must point to the new tenant</td>
+<td><strong>Critical</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-6-integrate"></a></p>
+<h2>6. Step 6: Integrate — Cloud, Dashboards, and Workflows</h2>
+<p><em>Source: S2S-06</em></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>57</td>
+<td>Recreate cloud provider connections in the target tenant</td>
+<td><code>monaco download</code> cannot export AWS, Azure, or K8s credentials; create new connections from the target (Latest Dynatrace Cloud Platform Monitoring first, classic integrations only as fallback)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>58</td>
+<td>Create the target's AWS connection</td>
+<td><em>&quot;All AWS connection creation methods are powered by CloudFormation&quot;</em> — deploy the stack the target generates in each account (classic fallback: IAM role trust policy with the target's external ID)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>59</td>
+<td>Create a new, dedicated service principal for the target's Azure connection</td>
+<td><em>&quot;Do not share it across Dynatrace environments&quot;</em>; and never leave a subscription on two connections — switch it per subscription</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>60</td>
+<td>Create new GCP Service Account with <code>Monitoring Viewer</code> and <code>Compute Viewer</code> roles</td>
+<td>Generate new JSON key for the target tenant integration</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>61</td>
+<td>Move cloud log ingest to the target</td>
+<td>AWS: subscribe log groups to the Firehose streams of the target's connection (classic fallback: a new Lambda forwarder). Azure: Event Hubs ingest (classic forwarder: switch within 24 hours — older logs are rejected)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>62</td>
+<td>Update webhook URLs that reference source-tenant-specific endpoints</td>
+<td>Verify custom webhooks accept traffic from the target tenant's IP range</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>63</td>
+<td>Migrate dashboards via Monaco and audit for hardcoded entity IDs</td>
+<td>Search dashboard JSON for <code>entityId(</code>, <code>HOST-</code>, <code>SERVICE-</code>, <code>PROCESS_GROUP-</code> patterns and replace with tag-based filters</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>64</td>
+<td>Reassign dashboard ownership to a target tenant user or service account</td>
+<td>Source user accounts may not exist in the target; set <code>owner</code> field to a valid target identity</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>65</td>
+<td>Create new workflow service user (actor) in the target tenant</td>
+<td>Source service users cannot be migrated; create new service user and set as workflow actor</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>66</td>
+<td>Recreate Synthetic private locations in the target tenant</td>
+<td>Private Synthetic locations are tenant-specific; update location references in all monitor configs</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>67</td>
+<td>Use a classic API token (not OAuth) for Synthetic monitor migration</td>
+<td>Synthetic monitors require classic token as of provider v1.88.0+</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>68</td>
+<td>Plan Extensions 2.0 separately</td>
+<td>Monaco does not export extension installations; Terraform can install/activate (<code>dynatrace_hub_extension_active_version</code>) and configure (<code>dynatrace_hub_extension_v2_config</code>) Hub extensions — otherwise reinstall from Hub. Remote extensions run on an ActiveGate group; SQL extensions can alternatively run in Kubernetes via Dynatrace Operator — verify per extension</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>69</td>
+<td>Standardize tag naming across cloud providers</td>
+<td>Use consistent keys (<code>app</code>, <code>env</code>, <code>team</code>) regardless of AWS/Azure/GCP</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>70</td>
+<td>Verify every webhook integration (Teams, Slack, PagerDuty, ServiceNow, Jira)</td>
+<td>Check each integration's URL and credential; many are unchanged, but none is guaranteed (see #62)</td>
+<td><strong>Recommended</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-7-expand"></a></p>
+<h2>7. Step 7: Expand — OpenPipeline, SLOs, and Alerting</h2>
+<p><em>Source: S2S-07</em></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>71</td>
+<td>Deploy Grail buckets before OpenPipeline routing rules</td>
+<td>Routing rules that target nonexistent buckets cause data loss</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>72</td>
+<td>Deploy in order: buckets → enrichment rules → OpenPipeline rules</td>
+<td>This three-step sequence ensures data flows correctly from the first byte</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>73</td>
+<td>Wait for K8s enrichment propagation before deploying routing rules</td>
+<td>Enrichment rules typically take ~45 min to propagate on EKS; routing rules that depend on enriched attributes fail silently until propagation completes — data lands in <code>default_logs</code></td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>74</td>
+<td>Add a CI/CD validation gate between enrichment and routing deploys</td>
+<td>Query for the enriched field your routing matches on (e.g. <code>isNotNull(k8s.namespace.name)</code>) before applying routing rules; do not rely on <code>monaco deploy</code> alone (it does not wait for propagation)</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>75</td>
+<td>Use prefix naming for bucket consolidation</td>
+<td>E.g., <code>us-east_app_logs</code>, <code>eu-west_app_logs</code> to prevent collisions when consolidating tenants</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>76</td>
+<td>Match retention policies exactly for regulated environments</td>
+<td>Set to same days as source (e.g., 360 days for PCI); verify compliance requirements before cutover</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>77</td>
+<td>Update bucket references in OpenPipeline routing rules</td>
+<td>Routing rules from export contain source bucket names; replace with target bucket names</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>78</td>
+<td>Rebuild SLOs without source-tenant entity IDs</td>
+<td>Entity IDs change in the target tenant. Write each SLI as DQL (<code>dynatrace_platform_slo</code> or Monaco <code>slo-v2</code>) and scope it with a segment deployed to the target, not <code>dt.entity.service == &quot;SERVICE-xxx&quot;</code>; rewrite classic entity-selector SLOs rather than copying them (classic <code>dynatrace_slo_v2</code> targets: <code>tag(...)</code> filters, see S2S-07 §3 and SLO-05)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>79</td>
+<td>Shorten SLO timeframes while target history fills</td>
+<td>The target tenant has no data from before cutover, so a 30-day SLO reads partial data for 30 days. Start with <code>timeframe_from = &quot;now-7d&quot;</code> on <code>dynatrace_platform_slo</code>, then move to the full window (S2S-07 §3)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>80</td>
+<td>Align SLO cutover with calendar boundaries</td>
+<td>If using calendar-based SLOs, switch at the start of a month or quarter to avoid partial evaluation</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>81</td>
+<td>Port alerting profile severity and tag filters as-is</td>
+<td>Ensure the referenced tags exist in the target tenant before deploying alerting profiles</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>82</td>
+<td>Verify maintenance window timezone settings</td>
+<td>Cron expressions are timezone-sensitive; confirm schedules are correct after import</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>83</td>
+<td>Update maintenance window entity scopes</td>
+<td>Source entity references in scope definitions must be remapped to target tenant entities</td>
+<td><strong>Critical</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-8-enable"></a></p>
+<h2>8. Step 8: Enable — Parallel Operation and Stakeholder Handover</h2>
+<p><em>Source: S2S-08</em></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>84</td>
+<td>Keep the source readable through every wave's overlap</td>
+<td>Historical data does not migrate; size each wave's overlap from measured history depth in the target (FAQ-25 §5)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>85</td>
+<td>Treat baseline timescales as estimates and measure them</td>
+<td>In community practice: availability 2-3 days; response time and error rate 1-2 weeks; resource utilization 2-4 weeks — confirm per host with the FAQ-25 §5 history-depth query</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>86</td>
+<td>Use phased parallel model to control cost</td>
+<td>Each host reports to one tenant (OneAgent cannot dual-report), so agent cost does not double; overlap cost comes from integrations, synthetics and forwarders you point at both tenants, plus the per-wave window</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>87</td>
+<td>Communicate to all personas</td>
+<td>Engineering teams: 4 weeks before cutover; SRE/on-call: 2 weeks before; executives: weekly status</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>88</td>
+<td>Communicate the SLO baseline gap to stakeholders</td>
+<td>SLOs start at 0% in the target and accumulate data over 7-30 days depending on evaluation window</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>89</td>
+<td>Warn about Dynatrace Intelligence false positives</td>
+<td>Baselines relearn from the target's own data; expect noisier alerting for recently migrated hosts, and route it to a staging channel rather than disabling it</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>90</td>
+<td>Negotiate dual licensing with Dynatrace</td>
+<td>Contact your account team to discuss temporary parallel licensing to reduce cost</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>91</td>
+<td>Configure SCIM provisioning for the target tenant</td>
+<td>Set new SCIM URL and token; users sync automatically on first login</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>92</td>
+<td>Export problem history before decommission</td>
+<td>Problem history cannot migrate; export critical incidents as documentation for post-mortem reference</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>93</td>
+<td>Keep a fallback local admin account</td>
+<td>If SAML is misconfigured on day of cutover, local admin bypasses SSO</td>
+<td><strong>Critical</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-9-optimize"></a></p>
+<h2>9. Step 9: Optimize — Cutover Validation and Decommission</h2>
+<p><em>Source: S2S-09</em></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Best Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>94</td>
+<td>Complete go/no-go checklist before cutover</td>
+<td>Verify host count, service count, log volume, span volume, SLO evaluation, alerting coverage — all must match success criteria</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>95</td>
+<td>Validate all data flows via DQL</td>
+<td>Run <code>fetch logs, from:-1h | summarize count()</code>, <code>fetch spans, from:-1h | summarize count()</code>, and entity count queries to confirm parity</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>96</td>
+<td>Verify enrichment tags are populating</td>
+<td>Run <code>fetch logs, from:-1h | filter isNotNull(dt.security_context) | summarize count()</code> and confirm count &gt; 0</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>97</td>
+<td>Run final <code>monaco download</code> → <code>monaco deploy</code> sync before cutover</td>
+<td>Captures any configuration changes made since initial export</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>98</td>
+<td>Get stakeholder sign-off</td>
+<td>SRE, dev, security, management, and compliance each validate their domain: alerting, dashboards, IAM, SLO reporting, retention</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>99</td>
+<td>Disable alerting in source tenant after cutover</td>
+<td>Prevents duplicate alerts during the transition tail</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>100</td>
+<td>Keep source tenant running 30 days minimum after cutover</td>
+<td>Stop ingest (redirect agents and integrations, revoke ingest tokens); data stays queryable for its bucket retention. Do not deprovision until all stakeholders confirm</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>101</td>
+<td>Rotate all credentials within 30 days of cutover</td>
+<td>API tokens, OAuth clients, cloud provider keys — revoke any temporary migration credentials</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>102</td>
+<td>Revoke all source tenant API tokens and deactivate OAuth clients</td>
+<td>Prevents unauthorized access to the deprecated tenant</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>103</td>
+<td>Remove SAML/SSO application from IdP for source tenant</td>
+<td>Eliminates stale IdP configuration and prevents confusion</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>104</td>
+<td>Export final audit logs from source before decommission</td>
+<td>Compliance requires audit trail retention; export before access is lost</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>105</td>
+<td>Update all documentation</td>
+<td>Replace source tenant URLs, API endpoints, and dashboard links in runbooks, CI/CD pipelines, and architecture diagrams</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>106</td>
+<td>Tune Dynatrace Intelligence anomaly detection after the relearn window</td>
+<td>Not during it — thresholds set against a half-learned baseline get baked in (FAQ-25 § 5). Route noise to a staging channel first, then tune what actually fired</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>107</td>
+<td>Expand SLO timeframes to full duration by week 4</td>
+<td>Move <code>timeframe_from</code> from <code>now-7d</code> to the full window (e.g. <code>now-30d</code>) once 30 days of target data exist</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>108</td>
+<td>Consolidate redundant Synthetic monitors</td>
+<td>If consolidating tenants, deduplicate monitors that tested the same endpoints from different tenants</td>
+<td><strong>Optional</strong></td>
+</tr>
+<tr>
+<td>109</td>
+<td>Replace all remaining entity ID references</td>
+<td>Post-migration cleanup ensures configuration is fully portable for future migrations</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>110</td>
+<td>Schedule credential rotation for cloud provider integrations</td>
+<td>Rotate within 30 days of cutover for all AWS, Azure, and GCP integrations</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>111</td>
+<td>Conduct a lessons-learned review within 2 weeks of cutover</td>
+<td>Capture planning gaps, tool issues, communication effectiveness, timeline accuracy</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td>112</td>
+<td>Stop ingest into the source tenant after cutover</td>
+<td>Redirect agents and integrations and revoke ingest tokens; historical data stays queryable for its bucket retention without active monitoring cost</td>
+<td><strong>Critical</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="five-principles"></a></p>
+<h2>The Five Principles of S2S Migration</h2>
+<ol>
+<li><strong>Export early, validate often</strong> — do not wait for cutover to discover missing config</li>
+<li><strong>Tags over entity IDs</strong> — make all configuration portable before migration</li>
+<li><strong>Parallel is not optional</strong> — historical data does not migrate; 30 days minimum</li>
+<li><strong>IAM last</strong> — deploy the resources first, then lock them down with policies</li>
+<li><strong>Communicate relentlessly</strong> — migration is as much about people as technology</li>
+</ol>
+<h2>Summary</h2>
+<p>This notebook contains <strong>112 best practices</strong> across 9 migration steps. The breakdown by priority:</p>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Count</th>
+<th>Guidance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Critical</strong></td>
+<td>84</td>
+<td>Must implement. Skipping any of these risks data loss, access failures, or migration rollback.</td>
+</tr>
+<tr>
+<td><strong>Recommended</strong></td>
+<td>27</td>
+<td>Implement unless there is a documented reason not to. These reduce risk and cost.</td>
+</tr>
+<tr>
+<td><strong>Optional</strong></td>
+<td>1</td>
+<td>Implement if resources allow. These improve efficiency but are not blockers.</td>
+</tr>
+</tbody>
+</table>
+<p>Use the 9-step framework table and the 11-step Order of Operations table at the top of this notebook to track progress and govern execution sequence. Each step's best practices align to the corresponding S2S notebook (S2S-01 through S2S-10) for full context and worked examples.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

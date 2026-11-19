@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M2S-04: Step 4 — Prepare: Readiness and Pre-Migration</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">M2S — Managed to SaaS Migration</a><span class="sep">/</span><span aria-current="page">M2S-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>M2S-04: Step 4 — Prepare: Readiness and Pre-Migration</h1>
+<blockquote>
+<p><strong>Series:</strong> M2S — Managed to SaaS Migration | <strong>Notebook:</strong> 4 of 9 | <strong>Phase:</strong> Upgrade | <strong>Step:</strong> Prepare | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/17/2026</p>
+</blockquote>
+<p>With the target architecture designed, it is time to prepare everything needed for migration execution. This step ensures your SaaS tenant is provisioned, identity is configured, ActiveGates are deployed in parallel, and rollback procedures are tested—so that when you flip the switch in Step 5, there are no surprises.</p>
+<blockquote>
+<p><strong>M2S Migration Journey — 3 Phases / 9 Steps</strong></p>
+<p><strong>Plan:</strong> 1. Discover | 2. Strategize | 3. Design</p>
+<p><strong>Upgrade:</strong> <strong>4. Prepare</strong> | 5. Execute | 6. Integrate</p>
+<p><strong>Run:</strong> 7. Enable | 8. Expand | 9. Optimize</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#licensing-and-contract-alignment">Licensing and Contract Alignment</a></li>
+<li><a href="#saas-tenant-provisioning">SaaS Tenant Provisioning</a></li>
+<li><a href="#sso-and-identity-setup">SSO and Identity Setup</a></li>
+<li><a href="#activegate-provisioning">ActiveGate Provisioning</a></li>
+<li><a href="#saas-upgrade-assistant-setup">SaaS Upgrade Assistant Setup</a></li>
+<li><a href="#network-zone-recreation">Network Zones in the SaaS Tenant</a></li>
+<li><a href="#configuration-freeze">Configuration Freeze</a></li>
+<li><a href="#rollback-procedure">Rollback Procedure</a></li>
+<li><a href="#readiness-checklist">Readiness Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this notebook, you should have:</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Steps 1–3 completed</strong></td>
+<td>Discovery inventory, migration strategy, and target architecture designed</td>
+</tr>
+<tr>
+<td><strong>Dynatrace account team contact</strong></td>
+<td>For licensing coordination and tenant provisioning</td>
+</tr>
+<tr>
+<td><strong>Identity provider access</strong></td>
+<td>Admin access to your SAML IdP (Azure Entra, Okta, etc.)</td>
+</tr>
+<tr>
+<td><strong>Infrastructure access</strong></td>
+<td>Ability to deploy new ActiveGate VMs/instances</td>
+</tr>
+<tr>
+<td><strong>Network changes approved</strong></td>
+<td>Firewall rules from Design step implemented or in progress</td>
+</tr>
+<tr>
+<td><strong>Managed cluster version</strong></td>
+<td>Align to the same <em>major</em> version as the target SaaS tenant (docs state no fixed minimum — verify the current requirement)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Understand the licensing considerations for a dual-run migration period</li>
+<li>Provision and configure a SaaS tenant in the correct region</li>
+<li>Set up SAML SSO and initial IAM groups and policies</li>
+<li>Deploy SaaS-connected ActiveGates in parallel with Managed AGs</li>
+<li>Install the SaaS Upgrade Assistant and import a Managed configuration archive</li>
+<li>Confirm or create network zones in the SaaS tenant</li>
+<li>Implement a configuration freeze on the Managed environment</li>
+<li>Document and test a rollback procedure</li>
+<li>Complete the readiness checklist before proceeding to Execute</li>
+</ul>
+<hr />
+<blockquote>
+<p><strong>Order of Operations — You Are Here</strong></p>
+<p>This notebook covers operations <strong>1-3</strong> of the 11-step Order of Operations (see <strong>M2S-02: Step 2 — Strategize</strong>) defined in Step 2:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Operation</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td><strong>Assess — Inventory current environment</strong></td>
+<td><strong>This notebook</strong></td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>Provision — SaaS tenant and access (SSO)</strong></td>
+<td><strong>This notebook</strong></td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>Install — New ActiveGates in parallel</strong></td>
+<td><strong>This notebook</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Migrate — Configuration and integrations</td>
+<td>Step 5: Execute</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Rebuild — Dashboards, zones, alerts</td>
+<td>Step 5: Execute</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Redirect — OneAgents to SaaS</td>
+<td>Step 5: Execute</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Reconnect — Integrations and extensions</td>
+<td>Step 6: Integrate</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Migrate — Remaining config and integrations</td>
+<td>Step 6: Integrate</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Validate — Data flow and performance</td>
+<td>Step 9: Optimize</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Cutover — Full switch to SaaS</td>
+<td>Step 9: Optimize</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Decommission — Managed environment</td>
+<td>Step 9: Optimize</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<p><a id="licensing-and-contract-alignment"></a></p>
+<h2>1. Licensing and Contract Alignment</h2>
+<p>Before any technical work begins, coordinate with your Dynatrace account team to ensure licensing covers the migration period.</p>
+<h3>1.1 Dual-Run Licensing</h3>
+<p>During migration, both the Managed environment and the SaaS tenant are active simultaneously. This <strong>dual-run period</strong> typically lasts 2–4 weeks, depending on the size and complexity of your environment.</p>
+<table>
+<thead>
+<tr>
+<th>Consideration</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Overlap period</strong></td>
+<td>Plan for 2–4 weeks of parallel operation</td>
+</tr>
+<tr>
+<td><strong>DPS model</strong></td>
+<td>SaaS uses Dynatrace Platform Subscription (DPS)</td>
+</tr>
+<tr>
+<td><strong>Managed licensing</strong></td>
+<td>Existing Managed license remains active during migration</td>
+</tr>
+<tr>
+<td><strong>Budget impact</strong></td>
+<td>Account for additional cost during overlap</td>
+</tr>
+<tr>
+<td><strong>Account team</strong></td>
+<td>Coordinate timing so both licenses are active simultaneously</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Do not let the Managed license expire before all agents are migrated. If the Managed license lapses during migration, OneAgents still connected to Managed will stop reporting.</p>
+</blockquote>
+<blockquote>
+<p><strong>Complimentary overlap licensing:</strong> In community practice, Dynatrace commonly provides complimentary parallel SaaS licensing to cover the migration overlap (often cited as up to ~6 months) — this is not a contractual entitlement, so confirm the scope and duration with your account team when you plan the dual-run window above.</p>
+</blockquote>
+<h3>1.2 DPS (Dynatrace Platform Subscription)</h3>
+<p>SaaS uses the DPS consumption model. Key differences from Managed licensing:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Managed</th>
+<th>SaaS (DPS)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Billing unit</strong></td>
+<td>Host units (HU)</td>
+<td>DPS credits</td>
+</tr>
+<tr>
+<td><strong>Consumption model</strong></td>
+<td>Fixed capacity</td>
+<td>Consumption-based</td>
+</tr>
+<tr>
+<td><strong>Data retention</strong></td>
+<td>Managed by customer</td>
+<td>Configurable per data type</td>
+</tr>
+<tr>
+<td><strong>Grail storage</strong></td>
+<td>N/A (Managed uses Cassandra)</td>
+<td>Included in DPS</td>
+</tr>
+</tbody>
+</table>
+<h3>1.3 Timeline Coordination</h3>
+<table>
+<thead>
+<tr>
+<th>Milestone</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T-4 weeks</td>
+<td>Confirm dual-run licensing with account team</td>
+</tr>
+<tr>
+<td>T-2 weeks</td>
+<td>SaaS tenant provisioned and accessible</td>
+</tr>
+<tr>
+<td>T-1 week</td>
+<td>All preparation complete (this notebook)</td>
+</tr>
+<tr>
+<td>T-0</td>
+<td>Begin agent migration (Step 5)</td>
+</tr>
+<tr>
+<td>T+2–4 weeks</td>
+<td>Complete migration, decommission Managed</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="saas-tenant-provisioning"></a></p>
+<h2>2. SaaS Tenant Provisioning</h2>
+<p>Your Dynatrace account team provisions the SaaS tenant. You must provide key decisions before provisioning begins.</p>
+<h3>2.1 Provisioning Decisions</h3>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Options</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cloud provider</strong></td>
+<td>AWS, Azure or Google Cloud</td>
+<td>Determines underlying infrastructure and the regions on offer</td>
+</tr>
+<tr>
+<td><strong>Data residency region</strong></td>
+<td>One of the regions listed on the data-security-controls page</td>
+<td><strong>Treat as permanent</strong> — moving means a new tenant</td>
+</tr>
+<tr>
+<td><strong>Azure Native</strong></td>
+<td>Azure Native Dynatrace Service (if applicable)</td>
+<td>Simplified billing via Azure Marketplace</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Critical:</strong> The data residency region is permanent. Confirm your choice with compliance, legal, and security teams before requesting provisioning. Moving to a different region later requires a new tenant and full re-migration.</p>
+</blockquote>
+<h3>2.2 Azure Native Dynatrace Service</h3>
+<p>If your organization uses Azure, consider the Azure Native Dynatrace Service:</p>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Marketplace billing</strong></td>
+<td>Dynatrace costs appear on your Azure invoice</td>
+</tr>
+<tr>
+<td><strong>Simplified provisioning</strong></td>
+<td>Create Dynatrace resources directly in Azure portal</td>
+</tr>
+<tr>
+<td><strong>Native integration</strong></td>
+<td>Automatic log and metric forwarding from Azure resources</td>
+</tr>
+<tr>
+<td><strong>Single sign-on</strong></td>
+<td>Leverage existing Azure Entra ID without separate SAML config</td>
+</tr>
+</tbody>
+</table>
+<h3>2.3 Initial Tenant Configuration</h3>
+<p>After the tenant is provisioned, configure these baseline settings:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Location</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Timezone</strong></td>
+<td>Settings &gt; Preferences</td>
+<td>Match your primary operations timezone</td>
+</tr>
+<tr>
+<td><strong>Currency</strong></td>
+<td>Settings &gt; Preferences</td>
+<td>Match your reporting currency</td>
+</tr>
+<tr>
+<td><strong>Data retention</strong></td>
+<td>Settings &gt; Data privacy &gt; Data retention</td>
+<td>Set per data type (logs, metrics, spans)</td>
+</tr>
+<tr>
+<td><strong>Session timeout</strong></td>
+<td>Account Management &gt; Security</td>
+<td>Align with your organization's policy</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Decide Grail bucket strategy before any logs flow — it is largely irreversible.</strong> The <strong>Data retention</strong> row above sets <em>default</em> per-type retention. For a log-heavy migration the higher-leverage decision is your <strong>custom Grail bucket layout</strong>: which log sources land in which buckets, each bucket's retention, and its query-billing model. Records cannot be moved between buckets after ingest, and a bucket's name and class (live/historic) are fixed at creation, while retention and the query-billing model can be changed later — so this must be designed <em>before</em> Step 5 redirects high-volume log sources (otherwise everything lands in <code>default_logs</code> and cannot be re-bucketed later). Design it now against <strong>ORGNZ-03: Bucket Strategy and Design</strong> and <strong>OPLOGS-04: Buckets &amp; Data Governance</strong>, and plan to route logs via the OpenPipeline <strong>Storage</strong> stage.</p>
+</blockquote>
+<h3>2.4 Verify Tenant Access</h3>
+<p>Confirm all migration team members can access the new tenant:</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>https://{tenant-id}.live.dynatrace.com</code></td>
+<td>Browser login succeeds</td>
+</tr>
+<tr>
+<td><code>https://{tenant-id}.apps.dynatrace.com</code></td>
+<td>Apps platform loads</td>
+</tr>
+<tr>
+<td><code>https://{tenant-id}.live.dynatrace.com/api/v1/time</code></td>
+<td>API responds with server time</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash"># Verify API access
+curl -s &quot;https://{tenant-id}.live.dynatrace.com/api/v1/time&quot; \
+  -H &quot;Authorization: Api-Token {token}&quot; | python3 -m json.tool
+</code></pre>
+<h3>2.5 Request Feature Flags (if needed)</h3>
+<p>Some SaaS capabilities are gated behind <strong>feature flags</strong> that Dynatrace enables per tenant on request. If your target design depends on a feature that is not visible in the freshly provisioned tenant, raise a Dynatrace Support request during preparation so it is enabled before Step 5 (Execute) — do not wait until cutover to discover a gap.</p>
+<hr />
+<p><a id="sso-and-identity-setup"></a></p>
+<h2>3. SSO and Identity Setup</h2>
+<p>Dynatrace documents SAML 2.0 federation for SaaS single sign-on. If your Managed environment uses LDAP, this is the point where you transition to SAML.</p>
+<h3>3.1 SAML 2.0 Configuration Requirements</h3>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Protocol</strong></td>
+<td>SAML 2.0</td>
+</tr>
+<tr>
+<td><strong>IdP signing</strong></td>
+<td>Must sign the <strong>entire SAML message</strong> (not just the assertion)</td>
+</tr>
+<tr>
+<td><strong>Name ID</strong></td>
+<td>Email address format recommended</td>
+</tr>
+<tr>
+<td><strong>Attributes</strong></td>
+<td>First name, last name, email, groups</td>
+</tr>
+<tr>
+<td><strong>SP Entity ID</strong></td>
+<td>Provided by Dynatrace during SAML setup</td>
+</tr>
+<tr>
+<td><strong>ACS URL</strong></td>
+<td>Provided by Dynatrace during SAML setup</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Critical:</strong> If the IdP signs only the SAML assertion (not the full message), sign-in fails with <code>400 Bad Request</code>. <strong>Microsoft Entra ID signs only the assertion by default</strong> for most gallery applications — set the enterprise application's signing option to <strong>Sign SAML response and assertion</strong>. For other IdPs (Okta, PingFederate, ADFS), verify the equivalent setting explicitly.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML (DT docs)</a> — <em>&quot;The entire SAML message must be signed (signing only SAML assertions is insufficient and generates a 400 Bad Request response).&quot;</em>; <a href="https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/certificate-signing-options">Advanced certificate signing options in a SAML token (Microsoft Learn)</a> — <em>&quot;default option set for most of the gallery applications&quot;</em>.</sub></p>
+</blockquote>
+<h3>3.2 Azure Entra ID Configuration</h3>
+<p>For organizations using Azure Entra ID as their IdP:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Create Enterprise Application for Dynatrace SSO</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Configure SAML settings with SP Entity ID and ACS URL; set <strong>Signing Option</strong> to <em>Sign SAML response and assertion</em></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Map attributes: UPN, email, first name, last name</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Filter group claims</strong> to Dynatrace-related groups only</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Assign users and groups to the application</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Test SSO login</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Warning:</strong> Azure Entra has a <strong>150-group limit</strong> per SAML token. If a user belongs to more than 150 groups, the token will contain a group overage claim instead of individual group IDs. Always filter group claims to include only Dynatrace-relevant groups.</p>
+</blockquote>
+<h3>3.3 DNS Domain Validation</h3>
+<p>Dynatrace requires domain validation for SSO:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Add your email domain in Dynatrace Account Management</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Add the provided TXT record to your DNS</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Wait for DNS propagation (typically minutes, up to 24 hours)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Verify domain in Dynatrace Account Management</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/access-saml">SAML (DT docs)</a> — <em>&quot;It typically takes a few minutes for a record to propagate through the DNS system and the value to become available for Dynatrace to verify. In some cases, it may take up to 24 hours.&quot;</em></sub></p>
+</blockquote>
+<h3>3.4 Test SSO Login</h3>
+<p>Before proceeding, verify SSO works end-to-end:</p>
+<ol>
+<li>Open an incognito/private browser window</li>
+<li>Navigate to <code>https://{tenant-id}.apps.dynatrace.com</code></li>
+<li>Click &quot;Sign in with SSO&quot;</li>
+<li>Authenticate via your IdP</li>
+<li>Verify you land in the Dynatrace tenant with correct permissions</li>
+</ol>
+<blockquote>
+<p><strong>Tip:</strong> Test with at least one user from each IAM group to confirm group-based policy assignment works correctly.</p>
+</blockquote>
+<h3>3.5 Initial IAM Groups and Policies</h3>
+<p>Create the IAM structure designed in Step 3. At minimum:</p>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Policy</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>migration-admins</code></td>
+<td>Account admin + Environment admin</td>
+<td>Migration team full access</td>
+</tr>
+<tr>
+<td><code>platform-admins</code></td>
+<td>Environment admin</td>
+<td>Day-to-day administration</td>
+</tr>
+<tr>
+<td><code>sre-team</code></td>
+<td>Environment editor</td>
+<td>SRE operations access</td>
+</tr>
+<tr>
+<td><code>viewers</code></td>
+<td>Environment viewer</td>
+<td>Read-only stakeholders</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> These are starting groups. Refine IAM after migration is complete in Step 6 (Integrate). The goal here is to have enough access for migration activities.</p>
+</blockquote>
+<hr />
+<p><a id="activegate-provisioning"></a></p>
+<h2>4. ActiveGate Provisioning</h2>
+<p>Deploy new SaaS-connected ActiveGates <strong>in parallel</strong> with your existing Managed ActiveGates. This ensures continuous monitoring during migration and provides an easy rollback path.</p>
+<h3>4.1 Parallel Deployment Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Managed AGs</th>
+<th>SaaS AGs</th>
+<th>OneAgents Point To</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pre-migration (now)</strong></td>
+<td>Running</td>
+<td>Deploying</td>
+<td>Managed AGs</td>
+</tr>
+<tr>
+<td><strong>During migration</strong></td>
+<td>Running</td>
+<td>Running</td>
+<td>Gradually shifting to SaaS AGs</td>
+</tr>
+<tr>
+<td><strong>Post-migration</strong></td>
+<td>Decommissioning</td>
+<td>Running</td>
+<td>SaaS AGs</td>
+</tr>
+</tbody>
+</table>
+<h3>4.2 ActiveGate Installation</h3>
+<p>Install ActiveGates connected to the SaaS tenant. Use the sizing from your Design step.</p>
+<pre><code class="language-bash"># Download ActiveGate installer from SaaS tenant
+curl -o Dynatrace-ActiveGate-Linux.sh \
+  &quot;https://{tenant-id}.live.dynatrace.com/api/v1/deployment/installer/gateway/unix/latest&quot; \
+  -H &quot;Authorization: Api-Token {paas-token}&quot;
+
+# Install with network zone assignment
+sudo /bin/sh Dynatrace-ActiveGate-Linux.sh \
+  --set-network-zone={zone-name}
+</code></pre>
+<blockquote>
+<p><strong>Deprecation note (SaaS 1.343, July 2026):</strong> this classic ActiveGate deployment API (<code>/api/v1/deployment/installer/gateway/...</code>) is <strong>deprecated</strong> in favor of the Latest Dynatrace deployment REST API (platform-token support with fine-grained OAuth scopes; GA/enabled-by-default status arrives with the staged SaaS 1.343 tenant rollout from mid-July 2026 — verify in your tenant). The classic endpoint still works during the deprecation period — use it for in-flight migrations, but point new automation at the platform API.</p>
+</blockquote>
+<h3>4.3 Network Zone Assignment</h3>
+<p>Assign each AG to the correct network zone during installation:</p>
+<pre><code class="language-bash"># Assign during installation (recommended)
+sudo /bin/sh Dynatrace-ActiveGate-Linux.sh --set-network-zone=datacenter-east
+
+# Or assign after installation (ActiveGate 1.333+)
+sudo agctl network-zone set datacenter-east
+# ...or in /var/lib/dynatrace/gateway/config/custom.properties:
+#   [connectivity]
+#   networkZone = datacenter-east
+# Then restart: sudo systemctl restart dynatracegateway
+</code></pre>
+<h3>4.4 ActiveGate Groups</h3>
+<p>Create AG groups as designed in Step 3:</p>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Purpose</th>
+<th>Configuration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>production-routing</code></td>
+<td>Route production OneAgent traffic</td>
+<td>Default group for production zones</td>
+</tr>
+<tr>
+<td><code>nonprod-routing</code></td>
+<td>Route non-production traffic</td>
+<td>Default group for non-production zones</td>
+</tr>
+<tr>
+<td><code>extensions</code></td>
+<td>Extensions 2.0 execution</td>
+<td>Host-based AGs only</td>
+</tr>
+<tr>
+<td><code>synthetic</code></td>
+<td>Private synthetic monitoring</td>
+<td>Dedicated synthetic AGs</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Reminder:</strong> Plan host-based ActiveGates for Extensions 2.0. The documented Kubernetes path covers SQL extensions run through the Dynatrace Operator (M2S-03 § 3.4).</p>
+</blockquote>
+<h3>4.5 Validate AG Connectivity</h3>
+<p>After deploying each ActiveGate, verify it appears in the SaaS tenant and is healthy.</p>
+<pre><code class="language-dql">// Verify ActiveGates connected to SaaS tenant
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| fields name, version = dt.active_gate.version, zone = dt.network_zone.id, is_containerized
+| sort name asc
+
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from &quot;no ActiveGates deployed&quot;. `smartscapeNodes &quot;ACTIVEGATE&quot;` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+// ActiveGate 1.343 (published 07/15/2026, staged tenant rollout from 07/28/2026) deprecates
+// GET /api/v2/activeGates, /api/v2/activeGates/{agId} and /api/v2/activeGates/groups in favour of
+// this same Smartscape node — the classic entity and the classic REST endpoints were retired as one
+// move. If you need a REST surface in the meantime, the classic Entities API v2 selector
+// (GET /api/v2/entities?entitySelector=type(&quot;ENVIRONMENT_ACTIVE_GATE&quot;)) is a different surface and
+// may still respond; the DQL `fetch dt.entity.*` form does not.
+</code></pre>
+<pre><code class="language-dql">// Verify ActiveGate distribution across network zones
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| summarize agCount = count(), by:{dt.network_zone.id}
+| sort agCount desc
+
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from &quot;no ActiveGates deployed&quot;. `smartscapeNodes &quot;ACTIVEGATE&quot;` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+</code></pre>
+<h3>4.6 Connectivity Validation Checklist</h3>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Command</th>
+<th>Expected Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AG → SaaS</td>
+<td><code>curl -v https://{tenant-id}.live.dynatrace.com</code> from AG host</td>
+<td>HTTP 200</td>
+</tr>
+<tr>
+<td>AG appears in tenant</td>
+<td>DQL query above returns the AG</td>
+<td>AG listed with correct zone</td>
+</tr>
+<tr>
+<td>AG version current</td>
+<td>Compare version to latest available</td>
+<td>Within 1–2 minor versions</td>
+</tr>
+<tr>
+<td>AG health</td>
+<td>Dynatrace UI &gt; Deployment status</td>
+<td>Green / Healthy</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="saas-upgrade-assistant-setup"></a></p>
+<h2>5. SaaS Upgrade Assistant Setup</h2>
+<p>The <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant</a> is a Dynatrace app that automates configuration migration from Managed to SaaS. Install and connect it now so it is ready for Step 5 (Execute).</p>
+<h3>5.1 Prerequisites</h3>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Managed cluster version</strong></td>
+<td>No fixed minimum in the SaaS Upgrade Assistant docs; align to the same <em>major</em> version as the target SaaS tenant, and verify the current requirement in docs</td>
+</tr>
+<tr>
+<td><strong>Version alignment</strong></td>
+<td>Export from the same <strong>major</strong> version as the target SaaS environment to avoid false-positive migration failures (docs example: Managed 1.284.x → SaaS 1.284.x)</td>
+</tr>
+<tr>
+<td><strong>IAM policy</strong></td>
+<td><code>upgrade-assistant:environments:write</code> (operate the app) + <code>app-engine:apps:install</code> (install the Hub app) assigned to migration users</td>
+</tr>
+<tr>
+<td><strong>Token scopes</strong></td>
+<td><code>Read network zones</code>, <code>Write network zones</code>, <code>Capture request data</code> — added when the app gained network-zone and request-attribute support</td>
+</tr>
+</tbody>
+</table>
+<h3>5.2 Installation Steps</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Open the Dynatrace Hub in your <strong>SaaS tenant</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Search for &quot;SaaS Upgrade Assistant&quot;</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Install the app</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Grant the required IAM policy to migration users</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Open the app. It is ready to import a configuration archive (§ 5.3)</td>
+</tr>
+</tbody>
+</table>
+<h3>5.3 Export the Managed Configuration and Upload It</h3>
+<p>The Upgrade Assistant does not connect to the Managed cluster. It works from a <strong>configuration archive</strong> that you export from the Cluster Management Console and upload to the app:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Sign in to the Managed <strong>Cluster Management Console</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Go to <strong>Environments</strong> and select the environment to migrate</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Select <strong>Export configuration</strong>, confirm, and store the archive locally</td>
+</tr>
+<tr>
+<td>4</td>
+<td>In the SaaS tenant, open the SaaS Upgrade Assistant and import the archive</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Review the configurations it lists, grouped by type</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT Managed docs)</a> — export from the CMC <em>Environments</em> page, then import, review, edit and deploy in the app; <a href="https://www.dynatrace.com/hub/detail/saas-upgrade-assistant/">SaaS Upgrade Assistant (Dynatrace Hub)</a> — <em>&quot;the required token's scope was extended to Read network zones, Write network zones and Capture request data&quot;</em>.</sub></p>
+</blockquote>
+<h3>5.4 Verify the Import</h3>
+<p>After the upload, confirm the app lists configurations for the environment you exported, and that the archive came from a Managed version aligned with the SaaS tenant (§ 5.1).</p>
+<blockquote>
+<p><strong>Tip:</strong> Upload and review now, but do <strong>not</strong> deploy any configurations yet. Configuration migration happens in Step 5. Export a fresh archive just before Step 5 if anything changed on Managed since — the configuration freeze (§ 7) is what keeps that delta small.</p>
+</blockquote>
+<h3>5.5 Review Configuration Scope</h3>
+<p>The SaaS Upgrade Assistant groups configurations by type. Review the counts to validate against your Discovery inventory from Step 1:</p>
+<table>
+<thead>
+<tr>
+<th>Configuration Type</th>
+<th>Expected Count (from Step 1)</th>
+<th>SUA Count</th>
+<th>Match?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Management zones</td>
+<td></td>
+<td></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Auto-tagging rules</td>
+<td></td>
+<td></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Dashboards</td>
+<td></td>
+<td></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Alerting profiles</td>
+<td></td>
+<td></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Request attributes</td>
+<td></td>
+<td></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Service detection rules</td>
+<td></td>
+<td></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>SLOs</td>
+<td></td>
+<td></td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Cluster-level safeguards:</strong> in community practice, cluster overload-prevention settings — the maximum entry-point PurePaths/traces per process per minute and the maximum user actions per minute (RUM) — are reported as not carried by the export. Check whether they appear in your archive's review screen; if not, re-apply the values you inventoried in Step 1 manually on the SaaS tenant.</p>
+</blockquote>
+<hr />
+<p><a id="network-zone-recreation"></a></p>
+<h2>6. Network Zones in the SaaS Tenant</h2>
+<p>Network zones are among the configuration types the SaaS Upgrade Assistant migrates — its Hub listing names <em>network zones</em> in the supported list. Either way, every zone your agents will use must exist in the SaaS tenant, with SaaS ActiveGates assigned to it, <strong>before</strong> you redirect any OneAgent. Confirm the zones arrived with the archive; create any that did not.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://www.dynatrace.com/hub/detail/saas-upgrade-assistant/">SaaS Upgrade Assistant (Dynatrace Hub)</a> — lists <em>network zones</em> among the configurations the app supports.</sub></p>
+</blockquote>
+<h3>6.1 What Has to Be True Before Agents Move</h3>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Zones exist in SaaS</strong></td>
+<td>Imported by the Upgrade Assistant or created by hand</td>
+</tr>
+<tr>
+<td><strong>SaaS ActiveGates assigned</strong></td>
+<td>Managed ActiveGates do not connect to the SaaS tenant — the new ones carry the zones</td>
+</tr>
+<tr>
+<td><strong>Alternative zones and fallback mode set</strong></td>
+<td>Decide where traffic goes if a zone's ActiveGates are down (M2S-03 § 2)</td>
+</tr>
+<tr>
+<td><strong>Names match</strong></td>
+<td>OneAgents keep their <code>--set-network-zone</code> value across the redirect, so SaaS zone names must match the Managed ones unless you reassign agents</td>
+</tr>
+</tbody>
+</table>
+<h3>6.2 Create Zones in SaaS</h3>
+<p>Create any zone the archive did not carry. Use the Settings UI or API:</p>
+<p><strong>Via Settings UI:</strong></p>
+<p>Settings &gt; Network zones &gt; Add network zone</p>
+<blockquote>
+<p><strong>API 1.339 deprecation (May 2026):</strong> the <code>/api/v2/networkZones</code> endpoints are deprecated in favor of the Settings 2.0 schema <code>builtin:networkzones.zones</code>. Prefer the Settings 2.0 form below for new automation; the legacy endpoint still works during the deprecation period.</p>
+</blockquote>
+<p><strong>Via Settings 2.0 API (recommended):</strong></p>
+<pre><code class="language-bash"># Create a network zone via Settings 2.0
+curl -X POST &quot;https://{tenant-id}.live.dynatrace.com/api/v2/settings/objects&quot; \
+  -H &quot;Authorization: Api-Token {token}&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '[{
+    &quot;schemaId&quot;: &quot;builtin:networkzones.zones&quot;,
+    &quot;scope&quot;: &quot;environment&quot;,
+    &quot;value&quot;: {
+      &quot;id&quot;: &quot;datacenter-east&quot;,
+      &quot;description&quot;: &quot;Primary datacenter in East region&quot;,
+      &quot;alternativeZones&quot;: [&quot;datacenter-west&quot;],
+      &quot;fallbackMode&quot;: &quot;ANY_ACTIVE_GATE&quot;
+    }
+  }]'
+# id, alternativeZones (may be empty) and fallbackMode are required. Needs settings.write.
+</code></pre>
+<p><strong>Via legacy Configuration API (deprecated, still functional during deprecation window):</strong></p>
+<pre><code class="language-bash"># Create (or update) a network zone — PUT to the zone's ID; needs networkZones.write
+curl -X PUT &quot;https://{tenant-id}.live.dynatrace.com/api/v2/networkZones/datacenter-east&quot; \
+  -H &quot;Authorization: Api-Token {token}&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{
+    &quot;description&quot;: &quot;Primary datacenter in East region&quot;,
+    &quot;alternativeZones&quot;: [&quot;datacenter-west&quot;]
+  }'
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/network-zones-classic/manage-via-settings-api">Network zones - Settings API (DT docs)</a> — <code>fallbackMode</code> <em>&quot;Valid values: ANY_ACTIVE_GATE (default), ONLY_DEFAULT_ZONE, NONE&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/network-zones/put-network-zone">PUT a network zone (DT docs)</a> — <em>&quot;This API is deprecated. Use the Settings API instead.&quot;</em>; <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/configure-activegate">Configure ActiveGate (DT docs)</a> — <code>networkZone</code> <em>&quot;Defines the network zone to which the ActiveGate belongs.&quot;</em></sub></p>
+</blockquote>
+<h3>6.3 Assign ActiveGates to Zones</h3>
+<p>If you deployed AGs with <code>--set-network-zone</code> during installation (Section 4), they are already assigned. Otherwise, update the assignment:</p>
+<pre><code class="language-bash"># Update AG network zone after installation (ActiveGate 1.333+)
+sudo agctl network-zone set datacenter-east
+# ...or in /var/lib/dynatrace/gateway/config/custom.properties:
+#   [connectivity]
+#   networkZone = datacenter-east
+sudo systemctl restart dynatracegateway
+</code></pre>
+<h3>6.4 Verify Zone Topology</h3>
+<pre><code class="language-dql">// Verify network zone configuration and AG assignment
+smartscapeNodes &quot;ACTIVEGATE&quot;
+| fields name, zone = dt.network_zone.id
+| sort zone asc, name asc
+
+// Correction (verified 07/2026): this cell previously ran `fetch dt.entity.active_gate` and
+// carried a note claiming Smartscape had no ActiveGate node. Both were wrong. There is NO classic
+// ActiveGate entity type in any spelling (active_gate, environment_active_gate,
+// environment_activegate), so the classic query returned zero rows in every tenant —
+// indistinguishable from &quot;no ActiveGates deployed&quot;. `smartscapeNodes &quot;ACTIVEGATE&quot;` (no
+// underscore) is the working path, and it works on tenants today.
+// Field maps: entity.name → name, softwareVersion → dt.active_gate.version,
+// networkZone → dt.network_zone.id.
+</code></pre>
+<h3>6.5 Zone Topology Validation</h3>
+<p>Compare the SaaS zone topology against your Design step:</p>
+<table>
+<thead>
+<tr>
+<th>Zone Name</th>
+<th>Alternative Zone</th>
+<th>AGs Assigned</th>
+<th>Matches Design?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Every network zone must have at least 2 ActiveGates for high availability. Verify this before proceeding.</p>
+</blockquote>
+<hr />
+<p><a id="configuration-freeze"></a></p>
+<h2>7. Configuration Freeze</h2>
+<p>Announce and enforce a configuration freeze on the Managed environment. This prevents configuration drift between the source (Managed) and target (SaaS) during migration.</p>
+<h3>7.1 What to Freeze</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Freeze Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dashboards</strong></td>
+<td>No new dashboards or modifications to existing ones</td>
+</tr>
+<tr>
+<td><strong>Alerting</strong></td>
+<td>No new alerting profiles, metric events, or notification rules</td>
+</tr>
+<tr>
+<td><strong>Settings</strong></td>
+<td>No changes to management zones, auto-tagging, or service detection</td>
+</tr>
+<tr>
+<td><strong>Monitoring config</strong></td>
+<td>No changes to OneAgent features, deep monitoring, or anomaly detection</td>
+</tr>
+<tr>
+<td><strong>RUM/Mobile</strong></td>
+<td>No new web or mobile application definitions</td>
+</tr>
+</tbody>
+</table>
+<h3>7.2 Exception Process</h3>
+<p>Some changes may be unavoidable during the freeze period:</p>
+<table>
+<thead>
+<tr>
+<th>Exception Type</th>
+<th>Approval Required</th>
+<th>Documentation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Critical fix</strong></td>
+<td>Migration lead</td>
+<td>Document change and apply to both Managed and SaaS</td>
+</tr>
+<tr>
+<td><strong>Security patch</strong></td>
+<td>Security team + Migration lead</td>
+<td>Apply to both environments</td>
+</tr>
+<tr>
+<td><strong>New deployment</strong></td>
+<td>Migration lead</td>
+<td>Ensure monitoring config exists in both environments</td>
+</tr>
+</tbody>
+</table>
+<h3>7.3 Communication Template</h3>
+<p>Send to all Dynatrace users and configuration owners:</p>
+<blockquote>
+<p><strong>Subject:</strong> Dynatrace Configuration Freeze — Effective {date}</p>
+<p>As part of the Managed-to-SaaS migration, a configuration freeze is now in effect on the Managed environment. <strong>Do not create or modify</strong> dashboards, alerting rules, management zones, or any other configuration in the Managed tenant.</p>
+<p>All configuration changes during this period require approval from the migration lead. Contact {migration-lead-email} for exception requests.</p>
+<p>The freeze will remain in effect until the migration is complete (estimated {end-date}).</p>
+</blockquote>
+<h3>7.4 Freeze Verification</h3>
+<p>Monitor for unauthorized changes during the freeze period. The check runs in two places, with two different tools.</p>
+<p><strong>On Managed (the frozen source), use the audit log API, not DQL.</strong> Grail and DQL are not available on Managed. Configuration changes are recorded in the Environment API v2 audit log under the <code>CONFIG</code> category:</p>
+<pre><code class="language-bash"># Managed: configuration changes in the last 24 h
+curl -s -G &quot;https://{managed}/e/{env-id}/api/v2/auditlogs&quot; \
+  --data-urlencode 'filter=category(&quot;CONFIG&quot;)' \
+  --data-urlencode 'from=now-24h' \
+  -H &quot;Authorization: Api-Token {MANAGED_TOKEN}&quot;
+</code></pre>
+<p>The token needs the <code>auditLogs.read</code> scope.</p>
+<p><strong>On SaaS (the target), use DQL.</strong> Changes made directly in the SaaS tenant after the Upgrade Assistant run drift away from what was migrated. Settings changes are recorded as platform audit events in <code>dt.system.events</code>:</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/dynatrace-api/environment-api/audit-logs/get-log">Audit logs API - GET audit log (DT Managed docs)</a> — <em>&quot;you need an access token with auditLogs.read scope&quot;</em>; <a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/configuration/audit-logs-grail">Audit logs (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// SaaS target: configuration changes in the last 24 h (Settings audit events)
+// Do not run this on Managed — Grail and DQL are SaaS-only; use the audit log API shown above there
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.provider == &quot;SETTINGS&quot;
+| fields timestamp, event.type, user.id, schema = details.dt.settings.schema_id
+| sort timestamp desc
+| limit 50
+</code></pre>
+<hr />
+<p><a id="rollback-procedure"></a></p>
+<h2>8. Rollback Procedure</h2>
+<p>Before executing the migration, document and test a rollback procedure. If issues arise during Step 5, you need to be able to revert OneAgents back to Managed quickly.</p>
+<h3>8.1 Rollback Approach</h3>
+<p>Rollback redirects OneAgents from the SaaS tenant back to the Managed environment:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Rollback Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Redirect to Managed server URL</td>
+</tr>
+<tr>
+<td><strong>ActiveGate</strong></td>
+<td>No change needed (Managed AGs still running during dual-run)</td>
+</tr>
+<tr>
+<td><strong>Configuration</strong></td>
+<td>No change needed (Managed config is frozen, not deleted)</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Managed retains all historical data until decommissioned</td>
+</tr>
+</tbody>
+</table>
+<h3>8.2 OneAgent Rollback Command</h3>
+<p>The key rollback command redirects the OneAgent back to Managed:</p>
+<pre><code class="language-bash"># Linux rollback — server, environment ID and tenant token change together
+sudo /opt/dynatrace/oneagent/agent/tools/oneagentctl \
+  --set-server=&quot;{managed-server-url}&quot; \
+  --set-tenant={managed-env-id} \
+  --set-tenant-token={managed-tenant-token} \
+  --restart-service
+
+# Windows rollback
+&quot;C:\Program Files\dynatrace\oneagent\agent\tools\oneagentctl.exe&quot; ^
+  --set-server=&quot;{managed-server-url}&quot; ^
+  --set-tenant={managed-env-id} ^
+  --set-tenant-token={managed-tenant-token} ^
+  --restart-service
+</code></pre>
+<p>Changing <code>--set-server</code> alone is not enough: the agent would keep the SaaS environment ID and token and fail to authenticate against Managed. Dynatrace's own guidance for <code>--set-tenant</code> is <em>&quot;Always use in combination with --set-tenant-token&quot;</em>. Take the exact server URL from the Managed OneAgent deployment page, or from <code>oneagentctl --get-server</code> on a host before you redirect it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface">OneAgent configuration via command-line interface (DT docs)</a> — <em>&quot;Always use in combination with --set-tenant-token&quot;</em>.</sub></p>
+</blockquote>
+<h3>8.3 Pre-Migration Rollback Test</h3>
+<p>Test rollback on a non-production host <strong>before</strong> the production migration:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Select a non-production host currently reporting to Managed</td>
+<td>Host visible in Managed UI</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Redirect OneAgent to SaaS: <code>oneagentctl --set-server=... --set-tenant={tenant-id} --set-tenant-token=... --restart-service</code> (M2S-05 § 4)</td>
+<td>Host appears in SaaS UI within 5 minutes</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Verify monitoring data flows to SaaS</td>
+<td>Metrics, logs, spans visible in SaaS</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Execute rollback with the full command in § 8.2</td>
+<td>Host reappears in Managed UI</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Verify monitoring data resumes in Managed</td>
+<td>Metrics, logs, spans visible in Managed</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Do not proceed to Step 5 until you have successfully tested rollback on at least one host. This validates that the Managed environment is still fully operational and ready to accept agents back if needed.</p>
+</blockquote>
+<h3>8.4 Document Rollback Details</h3>
+<p>Record these values for use during migration:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Managed server URL</strong></td>
+<td><code>{managed-server-url}</code> (copy the exact value from <code>oneagentctl --get-server</code>)</td>
+</tr>
+<tr>
+<td><strong>Managed environment ID</strong></td>
+<td><code>{managed-env-id}</code></td>
+</tr>
+<tr>
+<td><strong>Managed tenant token</strong></td>
+<td>(retrieve from Managed UI &gt; Deployment &gt; OneAgent)</td>
+</tr>
+<tr>
+<td><strong>SaaS server URL</strong></td>
+<td><code>https://{tenant-id}.live.dynatrace.com/communication</code></td>
+</tr>
+<tr>
+<td><strong>SaaS environment ID</strong></td>
+<td><code>{tenant-id}</code></td>
+</tr>
+<tr>
+<td><strong>SaaS tenant token</strong></td>
+<td>(retrieve from SaaS UI &gt; Deployment &gt; OneAgent)</td>
+</tr>
+<tr>
+<td><strong>Rollback tested on</strong></td>
+<td>{hostname}, {date}</td>
+</tr>
+<tr>
+<td><strong>Rollback time</strong></td>
+<td>~5 minutes for agent to reconnect</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="readiness-checklist"></a></p>
+<h2>9. Readiness Checklist</h2>
+<p>Complete every checkpoint before proceeding to Step 5 (Execute). Each item corresponds to a section in this notebook.</p>
+<h3>Licensing</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dual-run licensing confirmed with Dynatrace account team</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>DPS consumption model understood and budgeted</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Migration timeline communicated to account team</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h3>SaaS Tenant</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SaaS tenant provisioned in correct data residency region</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Tenant accessible at <code>{tenant-id}.live.dynatrace.com</code></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Tenant accessible at <code>{tenant-id}.apps.dynatrace.com</code></td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Baseline settings configured (timezone, currency, retention)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Grail bucket strategy designed before ingest (buckets, retention, query-billing) — see ORGNZ-03 / OPLOGS-04</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>API access verified</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h3>SSO and Identity</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SAML SSO configured and tested</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>IdP signs full SAML message (Entra: <em>Sign SAML response and assertion</em>)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Azure Entra group claims filtered (if applicable)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>DNS domain validated</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Initial IAM groups and policies created</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>SSO tested with users from each IAM group</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h3>ActiveGates</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New SaaS-connected AGs deployed per Design step sizing</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Each AG assigned to correct network zone</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Minimum 2 AGs per network zone for HA</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>AG groups created (routing, extensions, synthetic)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>AG connectivity to SaaS validated</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>AG health confirmed in Dynatrace UI</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h3>SaaS Upgrade Assistant</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>App installed in SaaS tenant</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td><code>upgrade-assistant:environments:write</code> IAM policy granted</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Managed configuration archive exported from the CMC</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Archive imported and reviewed in the app</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Configuration counts match Discovery inventory</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h3>Network Zones</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All zones present in SaaS (imported by the Upgrade Assistant or created)</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Alternative zones configured for failover</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>AGs assigned to correct zones</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Zone topology matches Design step</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h3>Configuration Freeze</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Configuration freeze announced to all stakeholders</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Exception process documented and communicated</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Monitoring for unauthorized changes in place</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h3>Rollback</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Managed server URL, environment ID and tenant token documented</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>SaaS server URL, environment ID and tenant token documented</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Rollback procedure documented</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Rollback tested on non-production host</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Rollback test successful (agent reconnected to Managed)</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<h3>Communication</h3>
+<table>
+<thead>
+<tr>
+<th>Checkpoint</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Migration schedule communicated to stakeholders</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Support team briefed on rollback procedure</td>
+<td>[ ]</td>
+</tr>
+<tr>
+<td>Escalation contacts identified for migration window</td>
+<td>[ ]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Next Step</h2>
+<blockquote>
+<p><strong>→ M2S-05: Step 5 — Execute</strong> — Migrate configurations using the SaaS Upgrade Assistant and redirect OneAgents from Managed to SaaS.</p>
+</blockquote>
+<h3>Continue the Series</h3>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>M2S-05: Step 5 — Execute</strong></td>
+<td>Configuration migration and agent redirection</td>
+</tr>
+</tbody>
+</table>
+<h3>Preparation Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant Documentation</a></li>
+<li><a href="https://www.dynatrace.com/hub/detail/saas-upgrade-assistant/">SaaS Upgrade Assistant on Dynatrace Hub</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation">ActiveGate Installation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/network-zones-classic">Network Zones Configuration</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/user-and-group-management/access-saml">SAML SSO Setup</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management">IAM Documentation</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oa-requirements">OneAgent Communication</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-native-integration">Azure Native Dynatrace Service</a></li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you prepared:</p>
+<ul>
+<li><strong>Licensing</strong> — Dual-run licensing coordinated with Dynatrace account team for the overlap period</li>
+<li><strong>SaaS tenant</strong> — Provisioned in the correct data residency region with baseline configuration</li>
+<li><strong>SSO and identity</strong> — SAML 2.0 configured, DNS domain validated, initial IAM groups created</li>
+<li><strong>ActiveGates</strong> — New SaaS-connected AGs deployed in parallel, assigned to network zones</li>
+<li><strong>SaaS Upgrade Assistant</strong> — Installed, Managed configuration archive exported and imported for review</li>
+<li><strong>Network zones</strong> — All zones present in SaaS (imported or created) matching the Design step topology</li>
+<li><strong>Configuration freeze</strong> — Announced and enforced on the Managed environment</li>
+<li><strong>Rollback</strong> — Procedure documented and tested on a non-production host</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> Preparation is the most critical step in a smooth migration. Every item in the readiness checklist reduces risk during execution. Do not proceed to Step 5 until every checkbox is complete—especially the rollback test. A tested rollback gives confidence to move forward.</p>
+</blockquote>
+<hr />
+<p><em>Continue to <strong>M2S-05: Step 5 — Execute</strong> to begin migrating configurations and redirecting agents.</em></p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

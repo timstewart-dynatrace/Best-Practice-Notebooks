@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLOUD-07: CloudWatch Log Ingestion</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">CLOUD — Cloud Provider Integrations</a><span class="sep">/</span><span aria-current="page">CLOUD-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>CLOUD-07: CloudWatch Log Ingestion</h1>
+<blockquote>
+<p><strong>Series:</strong> CLOUD — Cloud Provider Integrations | <strong>Notebook:</strong> 7 of 8 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/10/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook covers strategies for forwarding cloud provider logs into Dynatrace. While the focus is on AWS CloudWatch log forwarding (the most common pattern), the principles apply to Azure (Event Hub) and GCP (Pub/Sub) as well. You will learn about Amazon Data Firehose (the recommended approach), alternative methods, filtering strategies, OpenPipeline processing, and cost optimization.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#log-architecture">Log Ingestion Architecture</a></li>
+<li><a href="#firehose">Amazon Data Firehose (Recommended)</a></li>
+<li><a href="#alternative-methods">Alternative Ingestion Methods</a></li>
+<li><a href="#filtering-strategies">Filtering at Source vs Dynatrace</a></li>
+<li><a href="#openpipeline">OpenPipeline Processing</a></li>
+<li><a href="#querying-logs">Querying Cloud Logs</a></li>
+<li><a href="#cost-optimization">Cost Optimization</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code> + <code>storage:buckets:read</code>, <code>logs.ingest</code>; to view or build the §5 pipeline, <code>settings:objects:read</code> / <code>settings:objects:write</code> (API token: <code>settings.read</code> / <code>settings.write</code>) — OpenPipeline configuration is Settings 2.0 objects. Changing <strong>routing</strong> needs <code>settings:objects:write</code> on <code>builtin:openpipeline.logs.routing</code> (routing has no owner-based sharing, so a write grant covers every route in the scope — grant it narrowly)</td>
+</tr>
+<tr>
+<td><strong>AWS Integration</strong></td>
+<td>CloudWatch log groups generating data</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>CLOUD-01 and CLOUD-02 fundamentals</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/access-control">Owner-based access control in OpenPipeline (DT docs)</a> — <em>&quot;Owner-based control is available for pipelines and ingest sources, and not routing.&quot;</em>, <em>&quot;This policy gives users write permissions to all routes for a configuration scope and should therefore be used with caution.&quot;</em></sub></p>
+</blockquote>
+<p><a id="log-architecture"></a></p>
+<h2>1. Log Ingestion Architecture</h2>
+<h3>AWS CloudWatch Log Forwarding Options</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Mechanism</th>
+<th>Latency</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Amazon Data Firehose</strong></td>
+<td>CloudWatch → Firehose → Dynatrace API</td>
+<td>1-5 min (buffered)</td>
+<td><strong>Recommended</strong></td>
+</tr>
+<tr>
+<td><strong>S3 direct ingestion</strong></td>
+<td>S3 event notification → <strong>Dynatrace-maintained Lambda forwarder</strong> → Dynatrace AWS S3 logs ingest API. Deployed by a single <strong>CloudFormation</strong> stack; records are <strong>linked to their Smartscape entity</strong>. Bypasses CloudWatch and Firehose entirely</td>
+<td>Minutes</td>
+<td><strong>Available from SaaS 1.344</strong> — see §3</td>
+</tr>
+<tr>
+<td><strong>Lambda Log Collection</strong></td>
+<td>Direct Lambda function log forwarding</td>
+<td>Seconds</td>
+<td>Supported (Lambda-specific)</td>
+</tr>
+<tr>
+<td><strong>CloudWatch-subscription Lambda forwarder (legacy)</strong></td>
+<td>CloudWatch Subscription Filter → <code>dynatrace-aws-log-forwarder</code> Lambda → Dynatrace API</td>
+<td>Seconds</td>
+<td><strong>Deprecated</strong> — migrate to Firehose</td>
+</tr>
+<tr>
+<td><strong>OpenTelemetry Collector</strong></td>
+<td>FluentBit/FluentD → OTLP → Dynatrace</td>
+<td>Seconds</td>
+<td>Supported (agent-based)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important — what is deprecated, precisely:</strong> the <code>dynatrace-aws-log-forwarder</code> Lambda function, on the <strong>CloudWatch Subscription Filter → Lambda → Dynatrace API</strong> path, is <strong>deprecated</strong> and will not receive further updates. For new <strong>CloudWatch</strong> log forwarding, use <strong>Amazon Data Firehose</strong>; existing deployments of that forwarder should plan migration to Firehose.</p>
+<p><strong>This is not a prohibition on Lambda-based log forwarding.</strong> It retires one named component serving one source. The <strong>S3 direct-ingestion</strong> path is a <em>different</em>, Dynatrace-maintained Lambda forwarder reading a <em>different</em> source, and it is supported — available from <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344"><strong>SaaS 1.344</strong></a> (staged tenant rollout from 07/29/2026). Verify it has reached your tenant before designing around it; see §3 for the pre-1.344 working path.</p>
+</blockquote>
+<h3>Cross-Cloud Log Forwarding</h3>
+<table>
+<thead>
+<tr>
+<th>Cloud Provider</th>
+<th>Primary Method</th>
+<th>Alternative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AWS</strong></td>
+<td>Amazon Data Firehose (CloudWatch logs)</td>
+<td>S3 direct ingestion (SaaS 1.344), Lambda Layer log collection</td>
+</tr>
+<tr>
+<td><strong>Azure</strong></td>
+<td>Azure Event Hub / Diagnostic Settings</td>
+<td>Azure Functions forwarder</td>
+</tr>
+<tr>
+<td><strong>GCP</strong></td>
+<td>Log Router sink → Pub/Sub → <code>dynatrace-gcp-monitor</code> (CLOUD-06 §6)</td>
+<td>GCP connection in the Clouds app (GA — verify it has reached your tenant); the Cloud Function deployment is deprecated and unsupported</td>
+</tr>
+</tbody>
+</table>
+<h3>Architecture Overview</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYXdzR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmZjk5MDA7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2U2OGEwMDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImR0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNDk2ZmY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBhNjRiYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWlsR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmM1NWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE2YTM0YTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImZpcmVob3NlR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlNDRkMjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2MwMzkyYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSI0IiBmbG9vZC1vcGFjaXR5PSIwLjEyIi8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iNzAwIiBoZWlnaHQ9IjQyMCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q2xvdWRXYXRjaCBMb2cgSW5nZXN0aW9uIEZsb3c8L3RleHQ+CgogIDwhLS0gQVdTIFpvbmUgLS0+CiAgPHJlY3QgeD0iMjAiIHk9IjUwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjM1MCIgcng9IjgiIGZpbGw9IiNmZmY3ZWQiIHN0cm9rZT0iI2ZmOTkwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjYsMyIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iNzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZjk5MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFXUzwvdGV4dD4KCiAgPCEtLSBDbG91ZFdhdGNoIExvZyBHcm91cCAtLT4KICA8cmVjdCB4PSI1MCIgeT0iOTAiIHdpZHRoPSIyMjAiIGhlaWdodD0iNTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2F3c0dyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iMTEyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DbG91ZFdhdGNoIExvZyBHcm91cDwvdGV4dD4KICA8dGV4dCB4PSIxNjAiIHk9IjEyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZmZmM2UwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4vYXdzL2xhbWJkYS8qLCAvZWNzLyosIC9yZHMvKjwvdGV4dD4KCiAgPCEtLSBTdWJzY3JpcHRpb24gRmlsdGVyIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIxNzAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSIjZmVmM2M3IiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMS41IiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iMTk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TdWJzY3JpcHRpb24gRmlsdGVyPC90ZXh0PgoKICA8IS0tIEFtYXpvbiBEYXRhIEZpcmVob3NlIChQUklNQVJZKSAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMjQwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjUwIiByeD0iOCIgZmlsbD0idXJsKCNmaXJlaG9zZUdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iMjYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BbWF6b24gRGF0YSBGaXJlaG9zZTwvdGV4dD4KICA8dGV4dCB4PSIxNjAiIHk9IjI3OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZmRlOGU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CdWZmZXJlZCBkZWxpdmVyeSAocmVjb21tZW5kZWQpPC90ZXh0PgoKICA8IS0tIFJlY29tbWVuZGVkIGJhZGdlIC0tPgogIDxyZWN0IHg9IjE5OCIgeT0iMjMyIiB3aWR0aD0iODAiIGhlaWdodD0iMTYiIHJ4PSI4IiBmaWxsPSIjMjJjNTVlIi8+CiAgPHRleHQgeD0iMjM4IiB5PSIyNDMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UkVDT01NRU5ERUQ8L3RleHQ+CgogIDwhLS0gTGVnYWN5IExhbWJkYSBGb3J3YXJkZXIgKGRhc2hlZCwgbXV0ZWQpIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIzMjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSIjZjFmNWY5IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI0LDMiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMTYwIiB5PSIzNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TGFtYmRhIEZvcndhcmRlciAoZGVwcmVjYXRlZCk8L3RleHQ+CgogIDwhLS0gRGVwcmVjYXRlZCBiYWRnZSAtLT4KICA8cmVjdCB4PSIxOTAiIHk9IjMxMiIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjE2IiByeD0iOCIgZmlsbD0iI2VmNDQ0NCIvPgogIDx0ZXh0IHg9IjIyOSIgeT0iMzIzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRFUFJFQ0FURUQ8L3RleHQ+CgogIDwhLS0gRHluYXRyYWNlIFpvbmUgLS0+CiAgPHJlY3QgeD0iNDAwIiB5PSI1MCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIzNTAiIHJ4PSI4IiBmaWxsPSIjZWZmNmZmIiBzdHJva2U9IiMxNDk2ZmYiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI2LDMiLz4KICA8dGV4dCB4PSI1NDAiIHk9IjcyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMTQ5NmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EeW5hdHJhY2U8L3RleHQ+CgogIDwhLS0gTG9nIEluZ2VzdCBBUEkgLS0+CiAgPHJlY3QgeD0iNDIwIiB5PSIxNDAiIHdpZHRoPSIyNDAiIGhlaWdodD0iNDUiIHJ4PSI4IiBmaWxsPSJ1cmwoI2R0R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNTQwIiB5PSIxNTkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkxvZyBJbmdlc3QgQVBJPC90ZXh0PgogIDx0ZXh0IHg9IjU0MCIgeT0iMTc1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNkYmVhZmUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPi9hcGkvdjIvbG9ncy9pbmdlc3QvYXdzX2ZpcmVob3NlPC90ZXh0PgoKICA8IS0tIE9wZW5QaXBlbGluZSAtLT4KICA8cmVjdCB4PSI0MjAiIHk9IjIyMCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI0NSIgcng9IjgiIGZpbGw9InVybCgjZHRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI1NDAiIHk9IjIzOSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T3BlblBpcGVsaW5lPC90ZXh0PgogIDx0ZXh0IHg9IjU0MCIgeT0iMjU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNkYmVhZmUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBhcnNlLCByb3V0ZSwgbWFzaywgZW5yaWNoPC90ZXh0PgoKICA8IS0tIEdyYWlsIFN0b3JhZ2UgLS0+CiAgPHJlY3QgeD0iNDIwIiB5PSIzMDAiIHdpZHRoPSIyNDAiIGhlaWdodD0iNTAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2dyYWlsR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iNTQwIiB5PSIzMjIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkdyYWlsIFN0b3JhZ2U8L3RleHQ+CiAgPHRleHQgeD0iNTQwIiB5PSIzNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjZmNlNyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QnVja2V0czogbGFtYmRhX2xvZ3MsIGFwcF9sb2dzLCBkYl9sb2dzPC90ZXh0PgoKICA8IS0tIEFycm93czogQ2xvdWRXYXRjaCDihpIgRmlsdGVyIC0tPgogIDxsaW5lIHgxPSIxNjAiIHkxPSIxNDAiIHgyPSIxNjAiIHkyPSIxNjgiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBvbHlnb24gcG9pbnRzPSIxNTUsMTY1IDE2NSwxNjUgMTYwLDE3MyIgZmlsbD0iIzk0YTNiOCIvPgoKICA8IS0tIEZpbHRlciDihpIgRmlyZWhvc2UgLS0+CiAgPGxpbmUgeDE9IjE2MCIgeTE9IjIxMCIgeDI9IjE2MCIgeTI9IjIzOCIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cG9seWdvbiBwb2ludHM9IjE1NSwyMzUgMTY1LDIzNSAxNjAsMjQzIiBmaWxsPSIjOTRhM2I4Ii8+CgogIDwhLS0gRmlyZWhvc2Ug4oaSIEFQSSAobWFpbiBwYXRoLCBib2xkKSAtLT4KICA8bGluZSB4MT0iMjcwIiB5MT0iMjYwIiB4Mj0iNDE4IiB5Mj0iMTY1IiBzdHJva2U9IiNlNDRkMjYiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxwb2x5Z29uIHBvaW50cz0iNDEyLDE3MCA0MjAsMTYyIDQxNiwxNzMiIGZpbGw9IiNlNDRkMjYiLz4KICA8dGV4dCB4PSIzNDUiIHk9IjIwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZTQ0ZDI2IiBmb250LXdlaWdodD0iYm9sZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SFRUUFM8L3RleHQ+CgogIDwhLS0gTGVnYWN5IExhbWJkYSDihpIgQVBJIChkYXNoZWQsIG11dGVkKSAtLT4KICA8bGluZSB4MT0iMjYwIiB5MT0iMzQwIiB4Mj0iNDE4IiB5Mj0iMTcwIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtZGFzaGFycmF5PSI2LDMiLz4KICA8cG9seWdvbiBwb2ludHM9IjQxMiwxNzUgNDIwLDE2NyA0MTYsMTc4IiBmaWxsPSIjOTRhM2I4Ii8+CgogIDwhLS0gQVBJIOKGkiBPcGVuUGlwZWxpbmUgLS0+CiAgPGxpbmUgeDE9IjU0MCIgeTE9IjE4NSIgeDI9IjU0MCIgeTI9IjIxOCIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cG9seWdvbiBwb2ludHM9IjUzNSwyMTUgNTQ1LDIxNSA1NDAsMjIzIiBmaWxsPSIjOTRhM2I4Ii8+CgogIDwhLS0gT3BlblBpcGVsaW5lIOKGkiBHcmFpbCAtLT4KICA8bGluZSB4MT0iNTQwIiB5MT0iMjY1IiB4Mj0iNTQwIiB5Mj0iMjk4IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwb2x5Z29uIHBvaW50cz0iNTM1LDI5NSA1NDUsMjk1IDU0MCwzMDMiIGZpbGw9IiM5NGEzYjgiLz4KCiAgPCEtLSBMYXRlbmN5IGxhYmVscyAtLT4KICA8dGV4dCB4PSIzNDUiIHk9IjI2NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjkiIGZpbGw9IiNlNDRkMjYiIGZvbnQtd2VpZ2h0PSJib2xkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QcmltYXJ5OiAxLTUgbWluIGJ1ZmZlcmVkPC90ZXh0PgogIDx0ZXh0IHg9IjM0NSIgeT0iMzMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzk0YTNiOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TGVnYWN5OiBzZWNvbmRzIChkZXByZWNhdGVkKTwvdGV4dD4KCiAgPCEtLSBGaWx0ZXIg4oaSIExlZ2FjeSBMYW1iZGEgKGRhc2hlZCkgLS0+CiAgPHBhdGggZD0iTSAxNjAsMjEwIFEgNjAsMjcwIDYwLDMyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNCwzIi8+Cjwvc3ZnPgo=" alt="CloudWatch Log Ingestion Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Component | Description |
+|------|-----------|-------------|
+| 1 | CloudWatch Log Group | Source: /aws/lambda/*, /ecs/*, /rds/* |
+| 2 | Subscription Filter | Pattern-based log selection |
+| 3 | Amazon Data Firehose | Primary path: buffered delivery to Dynatrace (recommended) |
+| 4 | Dynatrace Log Ingest API (Firehose endpoint) | /api/v2/logs/ingest/aws_firehose |
+| 5 | OpenPipeline | Parse, route, mask, enrich |
+| 6 | Grail Storage | Buckets: lambda_logs, app_logs, db_logs |
+For environments where SVG doesn't render
+-->
+<p><a id="firehose"></a></p>
+<h2>2. Amazon Data Firehose (Recommended)</h2>
+<p>Amazon Data Firehose is the recommended method for forwarding CloudWatch logs to Dynatrace. It provides a fully managed, serverless log pipeline with no infrastructure to maintain.</p>
+<h3>How It Works</h3>
+<ol>
+<li><strong>CloudWatch Subscription Filters</strong> are attached to target log groups</li>
+<li>Logs matching the filter are delivered to an <strong>Amazon Data Firehose</strong> delivery stream</li>
+<li>Firehose buffers, compresses, and delivers logs to the <strong>Dynatrace Log Ingest API</strong></li>
+<li>Logs are processed through <strong>OpenPipeline</strong> and stored in <strong>Grail</strong></li>
+</ol>
+<h3>Key Benefits</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fully managed</strong></td>
+<td>No Lambda functions or custom code to maintain</td>
+</tr>
+<tr>
+<td><strong>Auto-scaling</strong></td>
+<td>Handles any log volume automatically</td>
+</tr>
+<tr>
+<td><strong>Smart retry</strong></td>
+<td>Built-in retry with exponential backoff on delivery failures</td>
+</tr>
+<tr>
+<td><strong>Buffering</strong></td>
+<td>Configurable buffer size (1-128 MB) and interval (60-900 seconds)</td>
+</tr>
+<tr>
+<td><strong>Compression</strong></td>
+<td>Automatic GZIP compression reduces transfer costs</td>
+</tr>
+<tr>
+<td><strong>S3 backup</strong></td>
+<td>Optional backup of all or failed records to S3</td>
+</tr>
+</tbody>
+</table>
+<h3>Setup via Clouds App</h3>
+<p>When you onboard an AWS account via the <strong>Clouds app</strong>, CloudWatch log forwarding via Firehose can be configured as part of the guided setup. The CloudFormation template creates:</p>
+<ul>
+<li>Firehose delivery stream configured with Dynatrace endpoint</li>
+<li>IAM roles for Firehose to deliver to Dynatrace</li>
+<li>Secrets Manager entry for the Dynatrace API token</li>
+<li>Optional: CloudWatch subscription filters for selected log groups</li>
+</ul>
+<h3>Manual Setup Steps</h3>
+<ol>
+<li>Create a <strong>Firehose delivery stream</strong> with HTTP endpoint destination</li>
+<li>Set the endpoint URL to the Dynatrace <strong>Firehose</strong> log ingest endpoint: <code>https://{env-id}.live.dynatrace.com/api/v2/logs/ingest/aws_firehose</code> — not the generic <code>/api/v2/logs/ingest</code> endpoint</li>
+<li>Configure an <strong>access key</strong> using a Dynatrace API token with the <strong>Ingest logs</strong> permission</li>
+<li>Set buffer conditions (recommended: 1 MB or 60 seconds)</li>
+<li>Enable GZIP compression</li>
+<li>Create <strong>CloudWatch Subscription Filters</strong> on target log groups pointing to the Firehose stream</li>
+</ol>
+<h3>Subscription Filter Patterns</h3>
+<p>CloudWatch subscription filters support pattern matching to pre-filter logs before forwarding:</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>What It Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&quot;&quot;</code> (empty)</td>
+<td>All log events</td>
+</tr>
+<tr>
+<td><code>&quot;ERROR&quot;</code></td>
+<td>Lines containing ERROR</td>
+</tr>
+<tr>
+<td><code>?&quot;ERROR&quot; ?&quot;WARN&quot;</code></td>
+<td>Lines containing ERROR or WARN</td>
+</tr>
+<tr>
+<td><code>{ $.level = &quot;error&quot; }</code></td>
+<td>JSON logs where level is error</td>
+</tr>
+<tr>
+<td><code>[ip, id, user, timestamp, request, status_code &gt;= 400]</code></td>
+<td>Space-delimited logs with status &gt;= 400</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services-classic/integrate-with-aws/aws-logs-ingest/lma-stream-logs-with-firehose">Stream logs via Amazon Data Firehose (DT docs)</a> — <em>&quot;use the full URL: <code>https://&lt;your_environment_ID&gt;.live.dynatrace.com/api/v2/logs/ingest/aws_firehose</code>&quot;</em>; the same page gives the <strong>Ingest logs</strong> token permission and the 1 MiB / 60 s buffer hints used in steps 3–4.</sub></p>
+</blockquote>
+<p><a id="alternative-methods"></a></p>
+<h2>3. Alternative Ingestion Methods</h2>
+<h3>S3 Log Ingestion</h3>
+<p>For logs already stored in S3 (e.g., ALB access logs, CloudTrail, VPC Flow Logs). <strong>The table below describes the Dynatrace-maintained forwarder introduced in SaaS 1.344</strong> — read the rollout note beneath it for what to use until it reaches your tenant:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mechanism</strong></td>
+<td>S3 event notification → <strong>Dynatrace-maintained Lambda forwarder</strong>, deployed in your centralized logging account → Dynatrace <strong>AWS S3 logs ingest API</strong>. The forwarder parses, enriches, and forwards each new object's records</td>
+</tr>
+<tr>
+<td><strong>Deployment</strong></td>
+<td>A <strong>single CloudFormation stack blueprint</strong> creates and wires every moving part; version upgrades go through standard CFN stack updates</td>
+</tr>
+<tr>
+<td><strong>Entity linking</strong></td>
+<td>When the producing AWS account has an active AWS connection, records from supported sources are <strong>linked to their Dynatrace Smartscape entity</strong> — S3-resident logs land in topology context rather than as orphaned records</td>
+</tr>
+<tr>
+<td><strong>Best for</strong></td>
+<td>Historical log import, services that write directly to S3, and bypassing the CloudWatch/Firehose layers to cut cost and operational overhead</td>
+</tr>
+<tr>
+<td><strong>Parsing</strong></td>
+<td>Out-of-the-box parsing for common AWS log formats</td>
+</tr>
+<tr>
+<td><strong>Multi-region</strong></td>
+<td>Supports cross-region and multi-account setups</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Available from SaaS 1.344:</strong> the Dynatrace-maintained S3 forwarder, its CloudFormation blueprint, and Smartscape entity linking arrived with <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344"><strong>SaaS 1.344</strong></a> — <strong>staged tenant rollout</strong> from 07/29/2026. Verify the capability has reached your tenant before designing around it. Until it does, you do not have to build one: <strong><a href="https://github.com/dynatrace-oss/dynatrace-aws-s3-log-forwarder">dynatrace-aws-s3-log-forwarder (Dynatrace GitHub)</a></strong> is Dynatrace-published and actively maintained (verified not archived, 08/27/2026), with out-of-the-box parsing for ELB, CloudFront, CloudTrail, VPC Flow, WAF and MSK, plus cross-region and multi-account rules. ⚠️ <strong>Do not confuse it with <code>dynatrace-aws-log-forwarder</code></strong> — one token shorter, and <strong>archived</strong> (last commit 01/2025). The two names differ by <code>s3-</code>, and picking the wrong one lands you on a dead project. The parsing, multi-region and multi-account guidance above applies to <strong>both</strong>.</p>
+</blockquote>
+<h3>Lambda Log Collection</h3>
+<p>For AWS Lambda function logs specifically, Dynatrace offers direct log collection:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mechanism</strong></td>
+<td>Dynatrace Lambda Layer captures logs directly</td>
+</tr>
+<tr>
+<td><strong>Best for</strong></td>
+<td>Lambda-specific monitoring (cost-optimized, lower latency)</td>
+</tr>
+<tr>
+<td><strong>Prerequisite</strong></td>
+<td>Dynatrace Lambda Layer already deployed for tracing</td>
+</tr>
+<tr>
+<td><strong>Advantage</strong></td>
+<td>No subscription filter or Firehose needed for Lambda logs</td>
+</tr>
+</tbody>
+</table>
+<h3>Legacy: CloudWatch-Subscription Lambda Forwarder (Deprecated)</h3>
+<blockquote>
+<p><strong>Deprecated:</strong> The <code>dynatrace-aws-log-forwarder</code> Lambda function — the <strong>CloudWatch Subscription Filter → Lambda → Dynatrace API</strong> path — is deprecated and will not receive further updates. Migrate existing deployments to Amazon Data Firehose.</p>
+<p><strong>Scope:</strong> this deprecation covers that one component and that one source. It does <strong>not</strong> apply to the <strong>S3 direct-ingestion</strong> forwarder described above, which is a separate, supported, Dynatrace-maintained Lambda function reading S3 rather than CloudWatch.</p>
+</blockquote>
+<p>The legacy Lambda forwarder used CloudWatch Subscription Filters to invoke a custom Lambda function that forwarded logs to Dynatrace. While it provided low-latency delivery, it required maintaining custom Lambda infrastructure.</p>
+<h3>Method Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Latency</th>
+<th>Maintenance</th>
+<th>Cost</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Firehose</strong></td>
+<td>1-5 min</td>
+<td>None (managed)</td>
+<td>Firehose + data transfer</td>
+<td>General CloudWatch logs (recommended)</td>
+</tr>
+<tr>
+<td><strong>S3 ingestion</strong></td>
+<td>Minutes</td>
+<td>Low</td>
+<td>S3 storage + transfer</td>
+<td>Historical logs, S3-native services</td>
+</tr>
+<tr>
+<td><strong>Lambda log collection</strong></td>
+<td>Seconds</td>
+<td>None</td>
+<td>Included with Lambda Layer</td>
+<td>Lambda function logs</td>
+</tr>
+<tr>
+<td><strong>CloudWatch-subscription Lambda forwarder</strong></td>
+<td>Seconds</td>
+<td>High (deprecated)</td>
+<td>Lambda invocations</td>
+<td><strong>Do not use for new CloudWatch forwarding</strong> — this row says nothing about S3 direct ingestion</td>
+</tr>
+</tbody>
+</table>
+<p><a id="filtering-strategies"></a></p>
+<h2>4. Filtering at Source vs Dynatrace</h2>
+<p>A critical design decision is <strong>where</strong> to filter logs: at the cloud provider level or within Dynatrace.</p>
+<h3>Comparison</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Filter at Source (CloudWatch)</th>
+<th>Filter in Dynatrace (OpenPipeline)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cost</strong></td>
+<td>Reduces ingestion volume and DPS/DDU cost</td>
+<td>Full volume ingested, higher DPS/DDU cost</td>
+</tr>
+<tr>
+<td><strong>Flexibility</strong></td>
+<td>Limited pattern matching</td>
+<td>Full DQL-based processing</td>
+</tr>
+<tr>
+<td><strong>Data loss risk</strong></td>
+<td>Filtered logs are not recoverable</td>
+<td>All logs retained (can filter at query time)</td>
+</tr>
+<tr>
+<td><strong>Latency</strong></td>
+<td>Immediate (before forwarding)</td>
+<td>At ingestion (OpenPipeline processing)</td>
+</tr>
+<tr>
+<td><strong>Maintenance</strong></td>
+<td>Subscription filters per log group</td>
+<td>Centralized OpenPipeline rules</td>
+</tr>
+</tbody>
+</table>
+<h3>Recommended Hybrid Approach</h3>
+<ol>
+<li><strong>Source-level (CloudWatch):</strong> Filter out known noise (health checks, debug logs in production)</li>
+<li><strong>OpenPipeline:</strong> Enrich, parse, route, and selectively discard or downsample</li>
+<li><strong>Query-time:</strong> Use DQL filters for ad-hoc analysis</li>
+</ol>
+<h3>Common Source-Level Filters</h3>
+<table>
+<thead>
+<tr>
+<th>Log Group</th>
+<th>Filter Pattern</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/aws/lambda/*</code></td>
+<td><code>?&quot;ERROR&quot; ?&quot;WARN&quot; ?&quot;CRITICAL&quot;</code></td>
+<td>Skip DEBUG/INFO for Lambda</td>
+</tr>
+<tr>
+<td><code>/ecs/service/*</code></td>
+<td><code>&quot;&quot;</code> (all)</td>
+<td>Forward all application logs</td>
+</tr>
+<tr>
+<td><code>/aws/rds/*</code></td>
+<td><code>?&quot;error&quot; ?&quot;slow query&quot;</code></td>
+<td>Focus on errors and slow queries</td>
+</tr>
+<tr>
+<td>ALB access logs</td>
+<td><code>[w1, w2, w3, w4, w5, w6, w7, status_code &gt;= 400, ...]</code></td>
+<td>Only 4xx/5xx responses</td>
+</tr>
+</tbody>
+</table>
+<p><a id="openpipeline"></a></p>
+<h2>5. OpenPipeline Processing</h2>
+<p>Once cloud logs reach Dynatrace, OpenPipeline processes them before storage in Grail.</p>
+<h3>Common OpenPipeline Operations for Cloud Logs</h3>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Purpose</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Parse</strong></td>
+<td>Extract structured fields from unstructured logs</td>
+<td>Parse JSON, extract IP addresses</td>
+</tr>
+<tr>
+<td><strong>Route</strong></td>
+<td>Send logs to specific Grail buckets</td>
+<td>Route Lambda logs to <code>lambda_logs</code> bucket</td>
+</tr>
+<tr>
+<td><strong>Enrich</strong></td>
+<td>Add metadata fields</td>
+<td>Add <code>cloud.provider: aws</code>, <code>environment: prod</code></td>
+</tr>
+<tr>
+<td><strong>Filter/Drop</strong></td>
+<td>Discard noisy log lines</td>
+<td>Drop health check entries</td>
+</tr>
+<tr>
+<td><strong>Transform</strong></td>
+<td>Modify field values</td>
+<td>Normalize severity levels</td>
+</tr>
+</tbody>
+</table>
+<h3>Example Pipeline Logic</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImMwNy1hcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5FeGFtcGxlIE9wZW5QaXBlbGluZSBMb2dpYyBmb3IgQVdTIENsb3VkIExvZ3M8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+SWxsdXN0cmF0aXZlOiBwcm9jZXNzIHJlY29yZHMgZmlyc3QsIGRyb3AgdGhlIG5vaXNlLCB0aGVuIGFzc2lnbiBlYWNoIHJlY29yZCB0byBhIGJ1Y2tldDwvdGV4dD4KICA8cmVjdCB4PSIzMCIgeT0iMjEwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjEwNS4wIiB5PSIyNDUuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+SW5jb21pbmc8L3RleHQ+CiAgPHRleHQgeD0iMTA1LjAiIHk9IjI2Mi41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jbG91ZCBsb2dzPC90ZXh0PgogIDxsaW5lIHgxPSIxODAiIHkxPSIyNTAiIHgyPSIyMjAiIHkyPSIyNTAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYzA3LWFycm93KSIvPgogIDxyZWN0IHg9IjIyMCIgeT0iOTUiIHdpZHRoPSIzMzAiIGhlaWdodD0iMzMwIiBmaWxsPSIjQTc4QkZBIiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMjM0IiB5PSIxMTciIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+UHJvY2Vzc2luZzwvdGV4dD4KICA8cmVjdCB4PSIyNDAiIHk9IjEzMCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSI1NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIzODUuMCIgeT0iMTUzLjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlBhcnNlIEpTT04gY29udGVudDwvdGV4dD4KICA8dGV4dCB4PSIzODUuMCIgeT0iMTcwLjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm9ubHkgaWYgdGhlIGNvbnRlbnQgaXMgSlNPTjwvdGV4dD4KICA8bGluZSB4MT0iMzg1IiB5MT0iMTg2IiB4Mj0iMzg1IiB5Mj0iMjAyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2MwNy1hcnJvdykiLz4KICA8cmVjdCB4PSIyNDAiIHk9IjIwMiIgd2lkdGg9IjI5MCIgaGVpZ2h0PSI1NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIzODUuMCIgeT0iMjI1LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkV4dHJhY3QgbG9nX2dyb3VwLCBsb2dfc3RyZWFtPC90ZXh0PgogIDx0ZXh0IHg9IjM4NS4wIiB5PSIyNDIuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZnJvbSB0aGUgcmVjb3JkJ3MgYXR0cmlidXRlczwvdGV4dD4KICA8bGluZSB4MT0iMzg1IiB5MT0iMjU4IiB4Mj0iMzg1IiB5Mj0iMjc0IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2MwNy1hcnJvdykiLz4KICA8cmVjdCB4PSIyNDAiIHk9IjI3NCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSI1NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIzODUuMCIgeT0iMjk3LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkFkZCBjbG91ZC5wcm92aWRlciA9ICJhd3MiPC90ZXh0PgogIDx0ZXh0IHg9IjM4NS4wIiB5PSIzMTQuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+ZW5yaWNobWVudCBmaWVsZDwvdGV4dD4KICA8bGluZSB4MT0iMzg1IiB5MT0iMzMwIiB4Mj0iMzg1IiB5Mj0iMzQ2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2MwNy1hcnJvdykiLz4KICA8cmVjdCB4PSIyNDAiIHk9IjM0NiIgd2lkdGg9IjI5MCIgaGVpZ2h0PSI1NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIzODUuMCIgeT0iMzY5LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkRyb3AgaGVhbHRoLWNoZWNrIHJlY29yZHM8L3RleHQ+CiAgPHRleHQgeD0iMzg1LjAiIHk9IjM4Ni41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jb250ZW50IG1hdGNoZXMgdGhlIHBhdHRlcm48L3RleHQ+CiAgPGxpbmUgeDE9IjU1MCIgeTE9IjI1MCIgeDI9IjU5MCIgeTI9IjI1MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNjMDctYXJyb3cpIi8+CiAgPHJlY3QgeD0iNTkwIiB5PSI5NSIgd2lkdGg9IjMxMCIgaGVpZ2h0PSIzMzAiIGZpbGw9IiM3M0JFMjgiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2MDQiIHk9IjExNyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5CdWNrZXQgYXNzaWdubWVudDwvdGV4dD4KICA8cmVjdCB4PSI2MTAiIHk9IjE0MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSI2NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NDUuMCIgeT0iMTY4LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPi9hd3MvbGFtYmRhLyo8L3RleHQ+CiAgPHRleHQgeD0iNzQ1LjAiIHk9IjE4NS41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7ihpIgYnVja2V0OiBsYW1iZGFfbG9nczwvdGV4dD4KICA8cmVjdCB4PSI2MTAiIHk9IjIzMCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSI2NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI3NDUuMCIgeT0iMjU4LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPi9lY3MvKjwvdGV4dD4KICA8dGV4dCB4PSI3NDUuMCIgeT0iMjc1LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPuKGkiBidWNrZXQ6IGFwcGxpY2F0aW9uX2xvZ3M8L3RleHQ+CiAgPHJlY3QgeD0iNjEwIiB5PSIzMjAiIHdpZHRoPSIyNzAiIGhlaWdodD0iNjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzQ1LjAiIHk9IjM0OC41IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4vYXdzL3Jkcy8qPC90ZXh0PgogIDx0ZXh0IHg9Ijc0NS4wIiB5PSIzNjUuNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oaSIGJ1Y2tldDogZGF0YWJhc2VfbG9nczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMiI+QnVja2V0IG5hbWVzIGFuZCBwYXR0ZXJucyBhcmUgZXhhbXBsZXMg4oCUIHVzZSB0aGUgbG9nIGdyb3VwcyBhbmQgYnVja2V0cyB5b3VyIGVzdGF0ZSBkZWZpbmVzLjwvdGV4dD4KPC9zdmc+Cg==" alt="Example OpenPipeline logic for AWS cloud logs" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Rule |
+|------|------|
+| Processing | Parse JSON content (if JSON) |
+| Processing | Extract `log_group` and `log_stream` from attributes |
+| Processing | Add `cloud.provider = "aws"` |
+| Processing | Drop if content matches the health-check pattern |
+| Bucket assignment | `/aws/lambda/*` → bucket `lambda_logs` |
+| Bucket assignment | `/ecs/*` → bucket `application_logs` |
+| Bucket assignment | `/aws/rds/*` → bucket `database_logs` |
+For environments where SVG doesn't render
+-->
+<p><a id="querying-logs"></a></p>
+<h2>6. Querying Cloud Logs</h2>
+<h3>All CloudWatch-Sourced Logs</h3>
+<pre><code class="language-dql">// Recent logs from AWS (last hour)
+//
+// Corrected 08/12/2026: `contains(log.source, &quot;aws&quot;)` returned nothing while 262,723 AWS log
+// records sat in the window — CloudWatch-forwarded logs carry the log GROUP in aws.log_group and
+// log.source holds the OneAgent/stream name, which does not contain &quot;aws&quot;. Select on the
+// provider field instead.
+fetch logs, from:-1h
+| filter cloud.provider == &quot;aws&quot;
+| fieldsKeep timestamp, content, aws.log_group, log.source, loglevel
+| sort timestamp desc
+| limit 20
+</code></pre>
+<h3>Log Volume by Source</h3>
+<pre><code class="language-dql">// Log volume by source over the last 24 hours
+fetch logs, from:-24h
+| summarize log_count = count(), by:{log.source}
+| sort log_count desc
+| limit 15
+</code></pre>
+<h3>Error Log Trend Over Time</h3>
+<pre><code class="language-dql">// Error logs per hour over the last 24 hours
+fetch logs, from:-24h
+// status == &quot;ERROR&quot; also counts SEVERE, CRITICAL and FATAL logs; loglevel == &quot;ERROR&quot; misses them
+| filter status == &quot;ERROR&quot;
+| makeTimeseries error_count = count(), interval:1h
+</code></pre>
+<h3>Top Error Messages</h3>
+<pre><code class="language-dql">// Most frequent error log messages in the last 6 hours
+fetch logs, from:-6h
+// status == &quot;ERROR&quot; also counts SEVERE, CRITICAL and FATAL logs; loglevel == &quot;ERROR&quot; misses them
+| filter status == &quot;ERROR&quot;
+| summarize error_count = count(), by:{content}
+| sort error_count desc
+| limit 10
+</code></pre>
+<h3>Log Volume by Kubernetes Namespace</h3>
+<pre><code class="language-dql">// Log volume by Kubernetes namespace over the last 6 hours
+fetch logs, from:-6h
+| filter isNotNull(k8s.namespace.name)
+| summarize log_count = count(), by:{k8s.namespace.name, loglevel}
+| sort log_count desc
+| limit 20
+</code></pre>
+<p><a id="cost-optimization"></a></p>
+<h2>7. Cost Optimization</h2>
+<p>Log ingestion is typically the largest cost driver in cloud monitoring. Optimization is critical.</p>
+<h3>Cost Impact by Layer</h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Cost Type</th>
+<th>Optimization Lever</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CloudWatch</strong></td>
+<td>Per GB ingested and per GB-month stored (for example $0.50 and $0.03 in us-east-1 for standard logs — check AWS pricing for your region)</td>
+<td>Reduce log retention, filter at source</td>
+</tr>
+<tr>
+<td><strong>Firehose</strong></td>
+<td>Per GB ingested (check AWS pricing for your region)</td>
+<td>Buffer settings, compression</td>
+</tr>
+<tr>
+<td><strong>Dynatrace</strong></td>
+<td>DPS/DDU per GB ingested</td>
+<td>Source filtering, OpenPipeline drop rules</td>
+</tr>
+<tr>
+<td><strong>Grail storage</strong></td>
+<td>DPS/DDU per GB stored x retention</td>
+<td>Bucket-level retention policies</td>
+</tr>
+</tbody>
+</table>
+<h3>Optimization Strategies</h3>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Where</th>
+<th>Complexity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Drop debug/trace logs at source</strong> (subscription filter pattern)</td>
+<td>AWS</td>
+<td>Low</td>
+</tr>
+<tr>
+<td><strong>Filter health checks at source</strong></td>
+<td>AWS</td>
+<td>Low</td>
+</tr>
+<tr>
+<td><strong>Drop remaining noise</strong> with a <em>Drop record</em> processor</td>
+<td>OpenPipeline</td>
+<td>Low</td>
+</tr>
+<tr>
+<td><strong>Store low-value logs in a shorter-retention bucket</strong></td>
+<td>OpenPipeline bucket assignment</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><strong>Compress Firehose payloads</strong></td>
+<td>AWS</td>
+<td>Low</td>
+</tr>
+</tbody>
+</table>
+<p>How much each saves depends entirely on your log mix. In community practice, dropping debug and trace logs at the source is usually the largest single lever — measure your own split first (<code>fetch logs, from:-24h | filter cloud.provider == &quot;aws&quot; | summarize n = count(), by:{loglevel}</code>). OpenPipeline has no sampling processor for logs; anything you do not want stored is dropped, not sampled.</p>
+<h3>Monitoring Your Log Costs</h3>
+<pre><code class="language-dql">// CloudWatch log volume trend by hour over the last 7 days
+// Scoped to AWS logs, the subject of this notebook. A 7-day scan of the logs table is billed by
+// bytes read, and an unfiltered version of this cell read hundreds of GB on the validation tenant.
+// For a trend you look at every day, extract a metric in OpenPipeline instead (FAQ-09).
+fetch logs, from:-7d
+| filter cloud.provider == &quot;aws&quot;
+| makeTimeseries log_count = count(), interval:1h
+</code></pre>
+<pre><code class="language-dql">// Top 10 CloudWatch log groups by volume over the last 24 hours
+fetch logs, from:-24h
+| filter cloud.provider == &quot;aws&quot;
+| summarize log_count = count(), by:{aws.log_group}
+| sort log_count desc
+| limit 10
+</code></pre>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<h3>Key Takeaways</h3>
+<ul>
+<li><strong>Amazon Data Firehose</strong> is the recommended approach for AWS CloudWatch log ingestion — fully managed, auto-scaling, no custom code</li>
+<li>The legacy <strong>CloudWatch-subscription</strong> Lambda forwarder (<code>dynatrace-aws-log-forwarder</code>) is <strong>deprecated</strong> — migrate existing CloudWatch deployments to Firehose. This is <strong>not</strong> a blanket rule against Lambda-based forwarding: the <strong>S3 direct-ingestion</strong> forwarder (SaaS 1.344) is a separate, supported component — see §3</li>
+<li><strong>Filter at the source</strong> (CloudWatch subscription filters) to reduce costs before logs reach Dynatrace</li>
+<li>Use <strong>OpenPipeline</strong> for enrichment, routing, and fine-grained filtering within Dynatrace</li>
+<li><strong>Monitor log volume</strong> regularly to prevent cost surprises</li>
+<li>Apply similar patterns for <strong>Azure (Event Hub)</strong> and <strong>GCP (Pub/Sub)</strong> log forwarding</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>CLOUD-08: Multi-Cloud Patterns</strong> — Unified log analysis across providers</li>
+<li>See the <strong>OPLOGS notebook series</strong> for deep dive into OpenPipeline log processing</li>
+<li>See the <strong>OPMIG notebook series</strong> for migrating from classic logs to OpenPipeline</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

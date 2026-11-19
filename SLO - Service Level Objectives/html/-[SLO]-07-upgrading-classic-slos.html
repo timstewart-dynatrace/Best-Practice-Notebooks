@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SLO-07: Upgrading Classic SLOs</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SLO — Service Level Objectives</a><span class="sep">/</span><span aria-current="page">SLO-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SLO-07: Upgrading Classic SLOs</h1>
+<blockquote>
+<p><strong>Series:</strong> SLO — Service Level Objectives | <strong>Notebook:</strong> 7 of 7 | <strong>Created:</strong> November 2026 | <strong>Last Updated:</strong> 11/19/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>SLO-01 to SLO-06 build SLOs in the Service-Level Objectives app from scratch. This notebook is for the other starting point: a tenant that already has <strong>SLO Classic</strong> definitions, and the alerts, guardians, dashboards and Terraform that depend on them.</p>
+<p>Dynatrace publishes an upgrade guide, and it is the procedure this notebook follows. The guide covers one SLO at a time, by hand. It does not cover finding every Classic SLO, what else points at each one, or checking that the rewritten query measures the same services. Those are the steps that go wrong, so most of this notebook is about them:</p>
+<ul>
+<li><strong>Inventory and classify</strong> every Classic SLO before rewriting any of them</li>
+<li><strong>Translate</strong> the metric expression and entity selector to a DQL SLI, following the guide</li>
+<li><strong>Prove the scope</strong> — on the validation tenant, a name filter written the obvious new way selected five services where the classic selector selected one</li>
+<li><strong>Move the dependents</strong> — status and burn-rate alerts, guardian objectives, dashboard tiles, API users and Terraform state</li>
+<li><strong>Run both for one evaluation period</strong>, then retire the Classic SLO last</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-changes">What Changes</a></li>
+<li><a href="#inventory">Inventory and Classify</a></li>
+<li><a href="#translate">Translate the SLI</a></li>
+<li><a href="#prove-scope">Prove the Query Selects the Same Services</a></li>
+<li><a href="#scope-and-access">Scope and Access</a></li>
+<li><a href="#criteria">Criteria</a></li>
+<li><a href="#dependents">Alerts and Other Dependents</a></li>
+<li><a href="#as-code">SLOs as Code</a></li>
+<li><a href="#run-both">Run Both, Then Retire</a></li>
+<li><a href="#checklist">Checklist and Summary</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail and the Service-Level Objectives app, with SLO Classic definitions still present</td>
+</tr>
+<tr>
+<td><strong>Permissions (new SLOs)</strong></td>
+<td><code>slo:slos:read</code> and <code>slo:slos:write</code>, plus read access to the data the SLI queries (<code>storage:metrics:read</code> for the service metrics used here); <code>storage:filter-segments:read</code> to apply a segment (SLO-01 §3)</td>
+</tr>
+<tr>
+<td><strong>Permissions (inventory)</strong></td>
+<td>A classic API token with <code>slo.read</code> for the Classic SLO list and <code>settings.read</code> for the metric-event search (§2)</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>SLO-01 (the two SLO generations), SLO-02 (SLI query shapes), SLO-04 (burn-rate alerts), SLO-05 (SLOs as code)</td>
+</tr>
+<tr>
+<td><strong>If zones are involved</strong></td>
+<td>MZ2POL-12 (the access model) and MZ2POL-16 §4 (classic SLOs as one of several zone consumers)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="what-changes"></a></p>
+<h2>1. What Changes</h2>
+<p>The upgrade guide sums up the difference in one table. The rows that change the work:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>SLO Classic</th>
+<th>Service-Level Objectives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SLI</strong></td>
+<td>A percentage metric expression over built-in or calculated metrics</td>
+<td>A DQL query that returns a field named <code>sli</code> — over metrics, spans, logs, events or business events</td>
+</tr>
+<tr>
+<td><strong>Data filtering</strong></td>
+<td>Management zones</td>
+<td>Segments</td>
+</tr>
+<tr>
+<td><strong>Tags</strong></td>
+<td>None</td>
+<td>SLO tags (key-value pairs)</td>
+</tr>
+<tr>
+<td><strong>Dashboard tile</strong></td>
+<td>Classic dashboard tile</td>
+<td>Dashboards SLO tile</td>
+</tr>
+<tr>
+<td><strong>API</strong></td>
+<td>Service-level Objectives API classic (<code>/api/v2/slo</code>)</td>
+<td>SLO Service Public API</td>
+</tr>
+<tr>
+<td><strong>Settings schema</strong></td>
+<td><code>builtin:monitoring.slo</code></td>
+<td>None — the SLO service is the store</td>
+</tr>
+<tr>
+<td><strong>Terraform</strong></td>
+<td><code>dynatrace_slo_v2</code></td>
+<td><code>dynatrace_platform_slo</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>There is no automated path.</strong> The guide: <em>&quot;An automated upgrade flow is under consideration; however, given the highly customized nature of SLOs, manual review is expected to yield the best results.&quot;</em> Each Classic SLO becomes a new SLO, created by hand or by code, next to the old one.</p>
+<p><strong>The classic schema is on the removal list.</strong> <code>builtin:monitoring.slo</code> (<em>Service-level objective definitions</em>) appears on Dynatrace's list of Settings 2.0 schemas removed in Latest Dynatrace, replaced by Service-Level Objectives. The page says <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em> and asks for automations that reference these schemas by ID to be updated <em>&quot;before the schemas are removed from your environment.&quot;</em> It gives no removal date. SLO-01 §3 explains how this relates to the tenant upgrade readiness scan, which flags the classic surfaces as blocked at upgrade.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+VXBncmFkaW5nIGEgQ2xhc3NpYyBTTE88L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+QSBuZXcgU0xPIGlzIGJ1aWx0IG5leHQgdG8gdGhlIG9sZCBvbmUuIE5vdGhpbmcgY2xhc3NpYyBpcyBkZWxldGVkIHVudGlsIHRoZSB0d28gYWdyZWUuPC90ZXh0PgoKICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk0QTNCOCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFN0ZXAgYm94ZXM6IDYgeCAxMzUgd2lkZSwgMTUgZ2FwLCBzdGFydCB4PTE1IC0tPgogIDxyZWN0IHg9IjE1IiB5PSI5MCIgd2lkdGg9IjEzNSIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjgyIiB5PSIxMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjEgSW52ZW50b3J5PC90ZXh0PgogIDx0ZXh0IHg9IjgyIiB5PSIxNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkxpc3QgZXZlcnkgQ2xhc3NpYyBTTE88L3RleHQ+CiAgPHRleHQgeD0iODIiIHk9IjE1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+KC9hcGkvdjIvc2xvKTwvdGV4dD4KICA8dGV4dCB4PSI4MiIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5GaW5kIGl0cyBhbGVydHMsPC90ZXh0PgogIDx0ZXh0IHg9IjgyIiB5PSIxOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmd1YXJkaWFucywgdGlsZXM8L3RleHQ+CiAgPHRleHQgeD0iODIiIHk9IjIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YW5kIGNvZGU8L3RleHQ+CgogIDxsaW5lIHgxPSIxNTAiIHkxPSIxNjUiIHgyPSIxNjMiIHkyPSIxNjUiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8cmVjdCB4PSIxNjUiIHk9IjkwIiB3aWR0aD0iMTM1IiBoZWlnaHQ9IjE1MCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMjMyIiB5PSIxMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjIgVHJhbnNsYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjIzMiIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5NZXRyaWMgZXhwcmVzc2lvbjwvdGV4dD4KICA8dGV4dCB4PSIyMzIiIHk9IjE1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dG8gRFFMIHdpdGggc2xpPC90ZXh0PgogIDx0ZXh0IHg9IjIzMiIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5FbnRpdHkgc2VsZWN0b3I8L3RleHQ+CiAgPHRleHQgeD0iMjMyIiB5PSIxOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRvIERRTCBmaWx0ZXI8L3RleHQ+CiAgPHRleHQgeD0iMjMyIiB5PSIyMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlpvbmUgdG8gc2VnbWVudDwvdGV4dD4KCiAgPGxpbmUgeDE9IjMwMCIgeTE9IjE2NSIgeDI9IjMxMyIgeTI9IjE2NSIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CgogIDxyZWN0IHg9IjMxNSIgeT0iOTAiIHdpZHRoPSIxMzUiIGhlaWdodD0iMTUwIiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIzODIiIHk9IjExNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+MyBQcm92ZSBzY29wZTwvdGV4dD4KICA8dGV4dCB4PSIzODIiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RG9lcyB0aGUgRFFMIHNlbGVjdDwvdGV4dD4KICA8dGV4dCB4PSIzODIiIHk9IjE1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dGhlIHNlcnZpY2VzIHRoZTwvdGV4dD4KICA8dGV4dCB4PSIzODIiIHk9IjE3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+c2VsZWN0b3Igc2VsZWN0ZWQ/PC90ZXh0PgogIDx0ZXh0IHg9IjM4MiIgeT0iMTk2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5DbGFzc2ljIG5hbWUgaXMgbm90PC90ZXh0PgogIDx0ZXh0IHg9IjM4MiIgeT0iMjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hbHdheXMgZHQuc2VydmljZS5uYW1lPC90ZXh0PgoKICA8bGluZSB4MT0iNDUwIiB5MT0iMTY1IiB4Mj0iNDYzIiB5Mj0iMTY1IiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPHJlY3QgeD0iNDY1IiB5PSI5MCIgd2lkdGg9IjEzNSIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjUzMiIgeT0iMTE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj40IFJlYnVpbGQ8L3RleHQ+CiAgPHRleHQgeD0iNTMyIiB5PSIxNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkN1c3RvbSBTTE8sIHNhbWU8L3RleHQ+CiAgPHRleHQgeD0iNTMyIiB5PSIxNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRhcmdldCBhbmQgcGVyaW9kPC90ZXh0PgogIDx0ZXh0IHg9IjUzMiIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5CdXJuLXJhdGUgYWxlcnQ8L3RleHQ+CiAgPHRleHQgeD0iNTMyIiB5PSIxOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnJlYnVpbHQsIG5vdDwvdGV4dD4KICA8dGV4dCB4PSI1MzIiIHk9IjIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dHJhbnNmb3JtZWQ8L3RleHQ+CgogIDxsaW5lIHgxPSI2MDAiIHkxPSIxNjUiIHgyPSI2MTMiIHkyPSIxNjUiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgoKICA8cmVjdCB4PSI2MTUiIHk9IjkwIiB3aWR0aD0iMTM1IiBoZWlnaHQ9IjE1MCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjgyIiB5PSIxMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPjUgUnVuIGJvdGg8L3RleHQ+CiAgPHRleHQgeD0iNjgyIiB5PSIxNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk9uZSBldmFsdWF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjY4MiIgeT0iMTU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5wZXJpb2Qgc2lkZSBieSBzaWRlPC90ZXh0PgogIDx0ZXh0IHg9IjY4MiIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Db21wYXJlIHZhbHVlczs8L3RleHQ+CiAgPHRleHQgeD0iNjgyIiB5PSIxOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnN3aXRjaCBndWFyZGlhbnMsPC90ZXh0PgogIDx0ZXh0IHg9IjY4MiIgeT0iMjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50aWxlcyBhbmQgQVBJIHVzZXJzPC90ZXh0PgoKICA8bGluZSB4MT0iNzUwIiB5MT0iMTY1IiB4Mj0iNzYzIiB5Mj0iMTY1IiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KCiAgPHJlY3QgeD0iNzY1IiB5PSI5MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxNTAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9Ijg0MCIgeT0iMTE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj42IFJldGlyZTwvdGV4dD4KICA8dGV4dCB4PSI4NDAiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RGVsZXRlIHRoZSBjbGFzc2ljPC90ZXh0PgogIDx0ZXh0IHg9Ijg0MCIgeT0iMTU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5hbGVydCwgdGhlbiB0aGU8L3RleHQ+CiAgPHRleHQgeD0iODQwIiB5PSIxNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkNsYXNzaWMgU0xPPC90ZXh0PgogIDx0ZXh0IHg9Ijg0MCIgeT0iMTk2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SZW1vdmUgaXQgZnJvbTwvdGV4dD4KICA8dGV4dCB4PSI4NDAiIHk9IjIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VGVycmFmb3JtIC8gTW9uYWNvPC90ZXh0PgoKICA8IS0tIFdoYXQgZG9lcyBub3QgY2Fycnkgb3ZlciAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjI4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+V2hhdCB0aGUgdXBncmFkZSBkb2VzIG5vdCBkbyBmb3IgeW91PC90ZXh0PgoKICA8cmVjdCB4PSIxNSIgeT0iMzAwIiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjEyMCIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzAiIHk9IjMyNCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gYXV0b21hdGVkIGZsb3c8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjM0NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RWFjaCBTTE8gaXMgcmV3cml0dGVuIGJ5IGhhbmQuIFRoZSBTTEk8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjM2MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YmVjb21lcyBEUUwgdGhhdCByZXR1cm5zIGEgZmllbGQgbmFtZWQgc2xpLjwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMzg2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BIG5ldyBvYmplY3QsIGEgbmV3IEFQSSBhbmQgbmV3IGF1dGg6PC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSI0MDIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm5vdCBhIHJlbmFtZSBvZiB0aGUgY2xhc3NpYyBvbmUuPC90ZXh0PgoKICA8cmVjdCB4PSIzMjAiIHk9IjMwMCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIxMjAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjMzNSIgeT0iMzI0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TZWdtZW50cyBhcmUgbm90IGFjY2VzcyBjb250cm9sPC90ZXh0PgogIDx0ZXh0IHg9IjMzNSIgeT0iMzQ2IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5BIHpvbmUgYWxzbyBoaWQgdGhlIFNMTyBmcm9tIHVzZXJzIG91dHNpZGU8L3RleHQ+CiAgPHRleHQgeD0iMzM1IiB5PSIzNjIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPml0LiBBIHNlZ21lbnQgb25seSBmaWx0ZXJzIHRoZSBkYXRhLjwvdGV4dD4KICA8dGV4dCB4PSIzMzUiIHk9IjM4NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2hvIHNlZXMgU0xPcyBpcyBhbiBJQU0gcXVlc3Rpb248L3RleHQ+CiAgPHRleHQgeD0iMzM1IiB5PSI0MDIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPihzbG86c2xvczpyZWFkLCBkYXRhIGFjY2VzcyBwb2xpY2llcykuPC90ZXh0PgoKICA8cmVjdCB4PSI2MjUiIHk9IjMwMCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSIxMjAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjY0MCIgeT0iMzI0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5EZXBlbmRlbnRzIGJyZWFrIG9uIGRlbGV0ZTwvdGV4dD4KICA8dGV4dCB4PSI2NDAiIHk9IjM0NiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U3RhdHVzIGFuZCBidXJuLXJhdGUgYWxlcnRzIGFyZSBtZXRyaWM8L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIzNjIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmV2ZW50cy4gR3VhcmRpYW5zIG1heSByZWZlcmVuY2UgdGhlIFNMTy48L3RleHQ+CiAgPHRleHQgeD0iNjQwIiB5PSIzODYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPk1vdmUgZWFjaCBvbmUgdG8gdGhlIG5ldyBTTE8gYmVmb3JlPC90ZXh0PgogIDx0ZXh0IHg9IjY0MCIgeT0iNDAyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj50aGUgQ2xhc3NpYyBTTE8gaXMgcmVtb3ZlZC48L3RleHQ+CgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5TdGVwcyAxLCAzIGFuZCB0aGUgb3JkZXIgb2YgNiBhcmUgdGhpcyBub3RlYm9vaydzIHJlY29tbWVuZGF0aW9uLiBTdGVwcyAyLCA0IGFuZCA1IGZvbGxvdyB0aGUgRHluYXRyYWNlIHVwZ3JhZGUgZ3VpZGUuPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIj5TTE8tMDcgc2VjdGlvbnM6IDIgaW52ZW50b3J5IMK3IDPigJM0IHRyYW5zbGF0ZSBhbmQgcHJvdmUgwrcgNeKAkzcgc2NvcGUsIGNyaXRlcmlhLCBkZXBlbmRlbnRzIMK3IDggYXMgY29kZSDCtyA5IHJ1biBib3RoIGFuZCByZXRpcmU8L3RleHQ+Cjwvc3ZnPgo=" alt="Upgrading a Classic SLO" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | What happens | Source |
+|------|--------------|--------|
+| 1 Inventory | List every Classic SLO (/api/v2/slo); find its alerts, guardians, tiles and code | This notebook's recommendation |
+| 2 Translate | Metric expression to DQL with sli; entity selector to DQL filter; zone to segment | Upgrade guide |
+| 3 Prove scope | Check the DQL selects the services the selector selected — the classic name is not always dt.service.name | This notebook's recommendation |
+| 4 Rebuild | Custom SLO with the same target and period; burn-rate alert rebuilt, not transformed | Upgrade guide; metric alerting guide |
+| 5 Run both | One evaluation period side by side; compare values; switch guardians, tiles and API users | Upgrade guide |
+| 6 Retire | Delete the classic alert, then the Classic SLO; remove it from Terraform or Monaco | Order is this notebook's recommendation |
+| Not automated | Each SLO is rewritten by hand; a new object, API and auth, not a rename | |
+| Not access control | A zone also hid the SLO; a segment only filters data; visibility is IAM | |
+| Dependents | Status and burn-rate alerts are metric events; guardians may reference the SLO | |
+For environments where SVG doesn't render
+-->
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic">Upgrade from Service-Level Objectives Classic to Service-Level Objectives (DT docs)</a> — <em>&quot;An automated upgrade flow is under consideration; however, given the highly customized nature of SLOs, manual review is expected to yield the best results.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a> — <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em>; <em>&quot;If you use configuration-as-code or other automations that reference these schemas by ID, you need to update these automations before the schemas are removed from your environment.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/service-level-objectives-classic">Service-level Objectives API classic (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-slo-v1">Service-Level Objectives API (DT docs)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md">platform_slo.md (Dynatrace GitHub)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/slo_v2.md">slo_v2.md (Dynatrace GitHub)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="inventory"></a></p>
+<h2>2. Inventory and Classify</h2>
+<p>The guide starts from one SLO you have already chosen. Start one step earlier: list them all, and decide for each one what the upgrade involves. A Classic SLO that is disabled, or that nobody reads, is cheaper to retire than to upgrade.</p>
+<p>The Classic SLO API lists every SLO with the fields this notebook needs: <code>metricExpression</code> (<em>&quot;The percentage-based metric expression for the calculation of the SLO.&quot;</em>), <code>filter</code> (<em>&quot;The entity filter for the SLO evaluation.&quot;</em>), <code>timeframe</code>, <code>target</code>, <code>warning</code>, <code>enabled</code> and <code>metricKey</code>, the <code>func:slo.*</code> key of the SLO's status metric.</p>
+<pre><code class="language-shellscript"># List every Classic SLO, enabled or not, one row each, into classic-slos.tsv.
+# Token: classic API token with slo.read (a platform token or OAuth client needs settings:objects:read).
+# pageSize 10000 is the documented maximum. If totalCount is larger, call again with nextPageKey
+# and no other parameters.
+curl -sS -G &quot;https://${DT_ENV_ID}.live.dynatrace.com/api/v2/slo&quot; \
+  -H &quot;Authorization: Api-Token ${DT_API_TOKEN}&quot; \
+  --data-urlencode &quot;pageSize=10000&quot; \
+  --data-urlencode &quot;enabledSlos=all&quot; \
+  --data-urlencode &quot;showGlobalSlos=true&quot; \
+| jq -r '&quot;id\tname\tenabled\ttimeframe\ttarget\twarning\tmetricKey\tfilter\tmetricExpression&quot;,
+         (.slo[] | [.id, .name, .enabled, .timeframe, .target, .warning, .metricKey, .filter, .metricExpression] | @tsv)' \
+&gt; classic-slos.tsv
+</code></pre>
+<p>To list one zone's SLOs, add <code>--data-urlencode 'sloSelector=managementZone(&quot;Payments Prod&quot;)'</code>. MZ2POL-15 §3 finds every SLO whose <code>filter</code> names a zone, by name or ID.</p>
+<p><strong>Find the alerts.</strong> A Classic SLO's status and burn-rate alerts are metric events: <em>&quot;Your newly created SLO or burn rate alert will appear on the Metric events page, where you can configure it further.&quot;</em> The cell below searches every metric-event object for a <code>func:slo.</code> key. That the alert stores the key in its value is an assumption, not documented, so compare the result with the Metric events page before trusting it — a zero here proves nothing on its own.</p>
+<pre><code class="language-shellscript"># Metric events that mention an SLO func metric, into slo-alerts.tsv: objectId, summary, func:slo keys.
+# Token: classic API token with settings.read. Follows nextPageKey until it is empty.
+url=&quot;https://${DT_ENV_ID}.live.dynatrace.com/api/v2/settings/objects&quot;
+params=(--data-urlencode &quot;schemaIds=builtin:anomaly-detection.metric-events&quot;
+        --data-urlencode &quot;fields=objectId,value&quot;
+        --data-urlencode &quot;pageSize=500&quot;)
+: &gt; slo-alerts.tsv
+while :; do
+  page=$(curl -sS -G &quot;$url&quot; -H &quot;Authorization: Api-Token ${DT_API_TOKEN}&quot; &quot;${params[@]}&quot;)
+  echo &quot;$page&quot; | jq -r '.items[]
+    | (.value | tostring) as $v
+    | select($v | test(&quot;func:slo\\.&quot;))
+    | [.objectId, (.value.summary // &quot;&quot;), ([$v | scan(&quot;func:slo\\.[A-Za-z0-9_.]+&quot;)] | unique | join(&quot;,&quot;))]
+    | @tsv' &gt;&gt; slo-alerts.tsv
+  next=$(echo &quot;$page&quot; | jq -r '.nextPageKey // empty')
+  [ -z &quot;$next&quot; ] &amp;&amp; break
+  params=(--data-urlencode &quot;nextPageKey=${next}&quot;)
+done
+</code></pre>
+<blockquote>
+<p><strong>Execution status:</strong> the two cells above were <strong>not executed</strong> for this notebook. The CLI session to the validation tenant was unavailable on 11/19/2026. The endpoints, parameters and response fields follow the API reference pages cited below. Run them against a non-production tenant first and check the row counts against the Classic SLO and Metric events pages.</p>
+</blockquote>
+<p><strong>Classify each row.</strong> One question per column:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>How to tell</th>
+<th>What it means for the upgrade</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Is it worth upgrading?</td>
+<td><code>enabled</code> is false, or nobody reads it</td>
+<td>Retire instead of upgrading</td>
+</tr>
+<tr>
+<td>Simple or complex SLI?</td>
+<td><code>metricExpression</code> uses only service request and failure counts</td>
+<td>Simple: §3. Complex: the metric-selector conversion guide, and some transformations have no DQL form (§3)</td>
+</tr>
+<tr>
+<td>Does a zone scope it?</td>
+<td><code>filter</code> contains <code>mzName(…)</code> or <code>mzId(…)</code></td>
+<td>A segment for the data, and IAM for who can see it (§5)</td>
+</tr>
+<tr>
+<td>Does a name select its entities?</td>
+<td><code>filter</code> contains <code>entityName…(…)</code></td>
+<td>Prove the new query selects the same services (§4)</td>
+</tr>
+<tr>
+<td>Does it alert?</td>
+<td>A row in <code>slo-alerts.tsv</code> for its <code>metricKey</code> family</td>
+<td>Rebuild the alert on the new SLO, don't transform it (§7)</td>
+</tr>
+<tr>
+<td>Does a guardian reference it?</td>
+<td>A guardian objective of type Reference SLO</td>
+<td>Replace the objective with a DQL one before retiring (§7)</td>
+</tr>
+<tr>
+<td>Is it managed as code?</td>
+<td>A <code>dynatrace_slo_v2</code> resource or a Monaco <code>builtin:monitoring.slo</code> config</td>
+<td>Add the new resource, retire the old one last (§8)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/service-level-objectives-classic/get-all">List all SLOs — Service-level Objectives API classic (DT docs)</a> — <em>&quot;The maximal allowed page size is 10000.&quot;</em>; <em>&quot;When the nextPageKey is set to obtain subsequent pages, you must omit all other query parameters.&quot;</em>; <em>&quot;The percentage-based metric expression for the calculation of the SLO.&quot;</em>; <em>&quot;The entity filter for the SLO evaluation.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives-classic/configure-and-monitor-slo">Configure and monitor service-level objectives (SLOs Classic) (DT docs)</a> — <em>&quot;Burn rate alerts are sent when the error budget of an SLO decreases at a specific rate.&quot;</em>; <em>&quot;will appear on the Metric events page, where you can configure it further.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings">Settings API (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="translate"></a></p>
+<h2>3. Translate the SLI</h2>
+<h3>The documented path</h3>
+<p>For a simple SLO, the guide's procedure turns the classic expression into DQL through Data Explorer. In outline: open the Classic SLO, select <strong>View in Data Explorer</strong>, then <strong>Open with… &gt; Add to notebook</strong>. In the notebook, rename the result field on the last line of the query to <code>sli</code> — <em>&quot;The SLO requires the query to return a field named <code>sli</code>.&quot;</em> Copy the query, create a <strong>Custom SLO</strong> in Service-Level Objectives, paste it into <strong>Custom DQL</strong> and select <strong>Refresh</strong> to see it in the preview. Then set the criteria (§6) and the name, and save.</p>
+<p>Two warnings from the same page. Data Explorer uses its own timeframe, so the value it shows will not match the Classic SLO — compare values in §9, not here. And <em>&quot;If the Classic SLO used entity selectors, management zones, or SLO tags, you may have to upgrade metrics, entities, and filters separately.&quot;</em></p>
+<h3>Metric keys</h3>
+<p>Most Classic SLOs measure service success. The classic keys they use map to two Grail metrics:</p>
+<table>
+<thead>
+<tr>
+<th>Classic metric key</th>
+<th>Grail metric</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>builtin:service.requestCount.server</code>, <code>builtin:service.requestCount.total</code></td>
+<td><code>dt.service.request.count</code></td>
+</tr>
+<tr>
+<td><code>builtin:service.errors.server.successCount</code>, <code>builtin:service.errors.total.successCount</code></td>
+<td><code>dt.service.request.count</code> with <code>failed == false</code></td>
+</tr>
+<tr>
+<td><code>builtin:service.errors.total.count</code></td>
+<td><code>dt.service.request.failure_count</code></td>
+</tr>
+</tbody>
+</table>
+<p>The service metric migration guide: <em>&quot;To convert the Classic service metrics that track the count and rate of successful versus failed requests, use the <code>dt.service.request.count</code> Grail-based metric filtered by <code>failed == false</code> or <code>failed == true</code>.&quot;</em> Subtracting <code>dt.service.request.failure_count</code> from the total gives the same number: on the validation tenant both forms returned 99.889% for the same service over 24 h (11/19/2026). The <code>server</code> and <code>total</code> variants of a classic key map to the same Grail metric, and neither page explains the difference — one more reason to compare values in §9.</p>
+<p>For anything beyond these keys — <code>:fold</code>, <code>:rollup</code>, <code>:default</code>, arithmetic between selectors — follow the metric-selector conversion guide. It says <em>&quot;Not all Classic metric selectors have equivalent DQL.&quot;</em> For example, <em>&quot;The Classic <code>smooth</code> transformation has no equivalent in DQL.&quot;</em> A Classic SLO built on one of those has no one-to-one upgrade: decide what it should measure now, and build that (SLO-02).</p>
+<h3>Entity selectors</h3>
+<p>The guide maps entity-selector conditions to DQL:</p>
+<table>
+<thead>
+<tr>
+<th>Classic entity selector</th>
+<th>DQL in the guide</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type(&quot;SERVICE&quot;)</code></td>
+<td><code>by: {dt.entity.service}</code></td>
+</tr>
+<tr>
+<td><code>entityId(&quot;SERVICE-…&quot;)</code></td>
+<td><code>filter in(dt.entity.service, …)</code></td>
+</tr>
+<tr>
+<td><code>entityName.equals / .in / .contains / .startsWith(…)</code></td>
+<td><code>fieldsAdd name = entityName(dt.entity.service)</code>, then filter on <code>name</code></td>
+</tr>
+<tr>
+<td><code>tag(&quot;myTag&quot;)</code></td>
+<td><code>fieldsAdd tags = entityAttr(dt.entity.service, &quot;tags&quot;)</code>, then filter on <code>tags</code></td>
+</tr>
+<tr>
+<td><code>mzId(…)</code> / <code>mzName(…)</code></td>
+<td>Use segments (§5)</td>
+</tr>
+<tr>
+<td><code>toRelationship</code> / <code>fromRelationship</code></td>
+<td>The relationship mapping table for querying entities in Grail</td>
+</tr>
+</tbody>
+</table>
+<h3>A worked translation</h3>
+<p>The cell translates a Classic SLO that measures three services together. <code>:splitBy()</code> with no dimension merged the selected services into one series, so the <code>summarize</code> merges them back into one, element by element. Without it, the query returns one <code>sli</code> series per service.</p>
+<p>On the validation tenant this query matched <strong>one</strong> service, not three. §4 shows why, and why the other obvious translation is worse.</p>
+<pre><code class="language-dql">// Classic SLO, translated:
+//   metricExpression: (100)*(builtin:service.errors.server.successCount:splitBy())/(builtin:service.requestCount.server:splitBy())
+//   filter:           type(&quot;SERVICE&quot;),entityName.in(&quot;frontend&quot;,&quot;recommendationservice&quot;,&quot;offerservice&quot;)
+// entityName() returns the classic entity name, the name the selector matched (§4).
+// summarize merges the services into one series, as :splitBy() did.
+// Executed 11/19/2026: one service matched, 145 ten-minute buckets, notifications []
+// Remove from: when pasting into the SLO app; the SLO's criteria set the period
+timeseries {
+  total = sum(dt.service.request.count),
+  failures = sum(dt.service.request.failure_count)
+}, by: { dt.entity.service }, from:-24h
+| fieldsAdd name = entityName(dt.entity.service)
+| filter in(name, {&quot;frontend&quot;, &quot;recommendationservice&quot;, &quot;offerservice&quot;})
+| summarize {
+    total = sum(total[]),
+    failures = sum(failures[]),
+    timeframe = takeAny(timeframe),
+    interval = takeAny(interval)
+  }
+| fieldsAdd sli = ((total[] - failures[]) / total[]) * 100
+</code></pre>
+<p>The query keeps <code>timeframe</code> and <code>interval</code> after the <code>summarize</code>, as the guide's own example keeps them in its final <code>fields</code>. The merged form was run as a notebook query only. Check it in the SLO app's preview before saving: the app requires <em>&quot;an <code>sli</code> field that returns an array of <code>double</code> type values&quot;</em>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic">Upgrade from Service-Level Objectives Classic to Service-Level Objectives (DT docs)</a> — <em>&quot;The SLO requires the query to return a field named <code>sli</code>.&quot;</em>; <em>&quot;If the Classic SLO used entity selectors, management zones, or SLO tags, you may have to upgrade metrics, entities, and filters separately.&quot;</em>; <em>&quot;For complex metric expressions, you might need to manually adapt the DQL queries.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/service-metric-migration">Service metric migration (DT docs)</a> — <em>&quot;To convert the Classic service metrics that track the count and rate of successful versus failed requests, use the <code>dt.service.request.count</code> Grail-based metric filtered by <code>failed == false</code> or <code>failed == true</code>.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/metrics/built-in-metrics-on-grail">Built-in Metrics on Grail (DT docs)</a> — the classic keys listed under <code>dt.service.request.count</code> and <code>dt.service.request.failure_count</code></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/metric-selector-conversion">Upgrade metric selectors to DQL (DT docs)</a> — <em>&quot;Not all Classic metric selectors have equivalent DQL.&quot;</em>; <em>&quot;The Classic <code>smooth</code> transformation has no equivalent in DQL.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives/create-slo">Create service-level objectives (DT docs)</a> — <em>&quot;Your query must include an <code>sli</code> field that returns an array of <code>double</code> type values&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="prove-scope"></a></p>
+<h2>4. Prove the Query Selects the Same Services</h2>
+<p>A Classic SLO's <code>entityName</code> condition matches the <strong>classic entity name</strong>. Grail service metrics also carry <code>dt.service.name</code>, which the semantic dictionary describes as <em>&quot;The Dynatrace service name derived from service detection rules. It is equal to the Smartscape service node name.&quot;</em> The two are not always the same string, and the difference changes which services an SLO measures.</p>
+<p>The cell lists every service that either name matches, with both names side by side.</p>
+<pre><code class="language-dql">// Which services does each name select? One row per service that either name matches.
+// Executed 11/19/2026: 5 rows. The classic name matched 1 service; dt.service.name matched all 5.
+timeseries total = sum(dt.service.request.count), by: { dt.entity.service, dt.service.name }, from:-24h
+| fieldsAdd classic_name = entityName(dt.entity.service), requests = arraySum(total)
+| filter in(dt.service.name, {&quot;frontend&quot;, &quot;recommendationservice&quot;, &quot;offerservice&quot;})
+    or in(classic_name, {&quot;frontend&quot;, &quot;recommendationservice&quot;, &quot;offerservice&quot;})
+| fields dt.entity.service, classic_name, dt.service.name, requests
+| sort requests desc
+</code></pre>
+<p><strong>What the validation tenant returned (11/19/2026, names shortened).</strong> Five services:</p>
+<table>
+<thead>
+<tr>
+<th>Classic name</th>
+<th><code>dt.service.name</code></th>
+<th>Requests, 24 h</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[cluster] - frontend</code></td>
+<td><code>frontend</code></td>
+<td>249,595</td>
+</tr>
+<tr>
+<td><code>[cluster] - recommendationservice</code></td>
+<td><code>recommendationservice</code></td>
+<td>198,354</td>
+</tr>
+<tr>
+<td><code>[cluster] - offerservice</code></td>
+<td><code>offerservice</code></td>
+<td>144,269</td>
+</tr>
+<tr>
+<td><code>frontend</code></td>
+<td><code>frontend</code></td>
+<td>29,633</td>
+</tr>
+<tr>
+<td><code>[cluster] - frontend</code></td>
+<td><code>frontend</code></td>
+<td>2,164</td>
+</tr>
+</tbody>
+</table>
+<p>Three different services are called <code>frontend</code> in <code>dt.service.name</code>. Most classic names carry a prefix that <code>dt.service.name</code> does not. So the two filters share one service out of five:</p>
+<ul>
+<li>A <strong>classic-name</strong> filter on <code>frontend</code> selects only the service whose classic name is exactly <code>frontend</code> — 29,633 requests. That is what a Classic SLO with <code>entityName.equals(&quot;frontend&quot;)</code> measured. Its 24 h success rate was <strong>97.03%</strong>.</li>
+<li>A <strong><code>dt.service.name</code></strong> filter on <code>frontend</code> selects all three <code>frontend</code> services — about 281,000 requests, at <strong>99.59%</strong>.</li>
+</ul>
+<p>Nothing errors in either case. An SLO rebuilt on <code>dt.service.name</code> would report a higher success rate, measured over different services, and the parallel run in §9 is the only place that difference shows.</p>
+<p><strong>Choose the form deliberately:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Filter on</th>
+<th>Selects</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>entityName(dt.entity.service)</code> (the guide's form)</td>
+<td>Exactly what the classic name selector selected</td>
+<td>You need the same result as the Classic SLO. <code>dt.entity.service</code> is <code>deprecated</code> in the semantic dictionary, so plan to move off it</td>
+</tr>
+<tr>
+<td><code>dt.smartscape.service</code> IDs, with <code>toSmartscapeId(&quot;SERVICE-…&quot;)</code></td>
+<td>A fixed list of services</td>
+<td>The set of services is fixed. Resolve the IDs with this cell, then pin them — SLO-02 §2 shows the filter</td>
+</tr>
+<tr>
+<td><code>dt.service.name</code></td>
+<td>Services by their Smartscape name — possibly more than before</td>
+<td>The cell above shows the same set as the classic name, or you mean to change the scope</td>
+</tr>
+</tbody>
+</table>
+<p>Run the cell for every SLO whose <code>filter</code> selects by name, with that SLO's names. Do the same for <code>tag(…)</code> conditions: compare the services the tag selects with the ones the new filter selects.</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>dt.service.name</code> (<code>stable</code>) — <em>&quot;The Dynatrace service name derived from service detection rules. It is equal to the Smartscape service node name.&quot;</em>; <code>dt.smartscape.service</code> (<code>stable</code>, type <code>smartscapeId</code>); <code>dt.entity.service</code> (<code>deprecated</code>), read 11/19/2026.</sub></p>
+</blockquote>
+<p><a id="scope-and-access"></a></p>
+<h2>5. Scope and Access</h2>
+<p>A management zone did two jobs for a Classic SLO. It <strong>filtered the data</strong> — <code>mzName(…)</code> in the SLO's <code>filter</code> — and it <strong>controlled who could see the SLO</strong>: <em>&quot;If you add an SLO to a management zone, only users who have access to that management zone can see it&quot;</em>.</p>
+<p>Only the first job moves to a segment. The guide: <em>&quot;In this step, management zones become segments.&quot;</em> In a Custom SLO, <em>&quot;The selected segments are stored with the SLO definition.&quot;</em> and a segment <em>&quot;is an additional filter to the query.&quot;</em> In Terraform it is <code>custom_sli.filter_segments</code> (§8). MZ2POL-05 covers building a segment that matches a zone.</p>
+<p>The second job does not move at all. The guide's own entity-selector table says <em>&quot;Segments aren't related to permissions or access control.&quot;</em>, and the segments documentation adds that <em>&quot;All queries, with or without segments, always respect data access permissions enforced by IAM policies.&quot;</em> Who can see SLOs in the new app is set by IAM (<code>slo:slos:read</code>, SLO-01 §3), and what data a viewer's SLO queries return is set by their data-access policies. If a zone was hiding SLOs from some users, design that with MZ2POL-12 before the Classic SLO goes away.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives-classic/configure-and-monitor-slo">Configure and monitor service-level objectives (SLOs Classic) (DT docs)</a> — <em>&quot;If you add an SLO to a management zone, only users who have access to that management zone can see it&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic">Upgrade from Service-Level Objectives Classic to Service-Level Objectives (DT docs)</a> — <em>&quot;In this step, management zones become segments.&quot;</em>; <em>&quot;Segments aren't related to permissions or access control.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives/create-slo">Create service-level objectives (DT docs)</a> — <em>&quot;The selected segments are stored with the SLO definition.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility">Visibility of segments (DT docs)</a> — <em>&quot;All queries, with or without segments, always respect data access permissions enforced by IAM policies.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="criteria"></a></p>
+<h2>6. Criteria</h2>
+<p>The guide's instruction is to enter the same target and evaluation period as the Classic SLO, with an optional warning. The fields map directly:</p>
+<table>
+<thead>
+<tr>
+<th>Classic SLO (API / <code>dynatrace_slo_v2</code>)</th>
+<th>Service-Level Objectives (app / <code>dynatrace_platform_slo</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>target</code> / <code>target_success</code></td>
+<td><strong>Target</strong> / <code>criteria_detail.target</code></td>
+</tr>
+<tr>
+<td><code>warning</code> / <code>target_warning</code></td>
+<td><strong>Show warning at</strong> / <code>criteria_detail.warning</code></td>
+</tr>
+<tr>
+<td><code>timeframe</code> / <code>evaluation_window</code>, e.g. <code>-30d</code></td>
+<td>Evaluation period / <code>criteria_detail.timeframe_from</code> and <code>timeframe_to</code>, e.g. <code>now-30d</code> and <code>now</code></td>
+</tr>
+<tr>
+<td><code>evaluationType</code> (<code>AGGREGATE</code> only)</td>
+<td>No equivalent field</td>
+</tr>
+</tbody>
+</table>
+<p>Keep the target and period the same during the parallel run, even if you plan to change them. A changed target makes the §9 comparison meaningless. Change it after the Classic SLO is retired.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic">Upgrade from Service-Level Objectives Classic to Service-Level Objectives (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives/create-slo">Create service-level objectives (DT docs)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md">platform_slo.md (Dynatrace GitHub)</a>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/slo_v2.md">slo_v2.md (Dynatrace GitHub)</a>. <strong>Derived:</strong> the field mapping pairs the two resources' schemas; no page lists it.</sub></p>
+</blockquote>
+<p><a id="dependents"></a></p>
+<h2>7. Alerts and Other Dependents</h2>
+<p>Everything that points at a Classic SLO stops working when it is deleted. Move each dependent to the new SLO during the parallel run.</p>
+<h3>Status and burn-rate alerts</h3>
+<p>The metric alerting upgrade guide lists SLO alerts among the metric events other solutions create: <em>&quot;In Service-Level Objectives Classic you have the option to create a burn rate or status alerts.&quot;</em> It also warns <em>&quot;SLO use functional metrics which behave different during transformation.&quot;</em> and <em>&quot;We're working on a separated guide, covering SLOs and how to upgrade them.&quot;</em> No such guide is linked as of 11/19/2026.</p>
+<p>So <strong>do not transform</strong> a Classic SLO's metric event. Build the alert again on the new SLO with the burn-rate recipe in SLO-04 §3, and route it with SLO-04 §4. One difference to plan for: <em>&quot;Segments are currently not supported by Anomaly Detection.&quot;</em> A burn-rate alert for a segment-scoped SLO must carry the scope as a filter in its own DQL.</p>
+<p>During the parallel run, both alerts can fire for the same breach. Send the new one to a test channel until cutover, or accept duplicate pages for one period — decide which before the new alert goes live.</p>
+<h3>Site Reliability Guardian objectives</h3>
+<p>A guardian objective can reference a Classic SLO. The guardian reference marks that option <strong>Deprecated</strong>: <em>&quot;If you want to reference a Classic SLO, you need to create a Classic SLO first and then the SRG allows you to select it.&quot;</em> Replace each such objective with a DQL objective that reuses the new SLO's SLI query (SLO-06 §2) before the Classic SLO is deleted.</p>
+<h3>Dashboards, API users and other readers</h3>
+<ul>
+<li><strong>Dashboard tiles.</strong> Classic SLO tiles live on classic dashboards. Add the new SLO to a dashboard with <strong>Add to Dashboard</strong> from the SLO's actions.</li>
+<li><strong>API users.</strong> Scripts on <code>/api/v2/slo</code> move to the SLO Service Public API — a different API with different auth.</li>
+<li><strong><code>func:slo.*</code> readers.</strong> Charts and metric events that read a Classic SLO's status, error-budget or burn-rate metrics read nothing once it is gone. The <code>slo-alerts.tsv</code> search in §2 finds the metric events, not the charts.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting">Upgrade Metric Alerting (DT docs)</a> — <em>&quot;In Service-Level Objectives Classic you have the option to create a burn rate or status alerts.&quot;</em>; <em>&quot;SLO use functional metrics which behave different during transformation.&quot;</em>; <em>&quot;We're working on a separated guide, covering SLOs and how to upgrade them.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-Level Objectives (DT docs)</a> — <em>&quot;Segments are currently not supported by Anomaly Detection.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/reference">Add Site Reliability Guardian objective (DT docs)</a> — <em>&quot;If you want to reference a Classic SLO, you need to create a Classic SLO first and then the SRG allows you to select it.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives/service-level-objective-tile-view">Service-level objective tile view (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-slo-v1">Service-Level Objectives API (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="as-code"></a></p>
+<h2>8. SLOs as Code</h2>
+<p>A Classic SLO in Terraform is a <code>dynatrace_slo_v2</code> resource. Its successor is a <code>dynatrace_platform_slo</code> resource — a different resource type, on a different API, with different auth:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>dynatrace_slo_v2</code></th>
+<th><code>dynatrace_platform_slo</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Writes to</td>
+<td><code>builtin:monitoring.slo</code></td>
+<td>The SLO Service</td>
+</tr>
+<tr>
+<td>Auth</td>
+<td>Classic API token: <code>slo.read</code>, <code>slo.write</code>, <code>settings.read</code>, <code>settings.write</code></td>
+<td>OAuth client: <code>slo:slos:read</code>, <code>slo:slos:write</code></td>
+</tr>
+<tr>
+<td>SLI</td>
+<td><code>metric_expression</code> (metric selector)</td>
+<td><code>custom_sli.indicator</code> (DQL)</td>
+</tr>
+<tr>
+<td>Zone or segment</td>
+<td><code>mzName(…)</code> in <code>filter</code></td>
+<td><code>custom_sli.filter_segments</code></td>
+</tr>
+<tr>
+<td>Export</td>
+<td><code>terraform-provider-dynatrace -export dynatrace_slo_v2</code></td>
+<td>Excluded by default — name it explicitly</td>
+</tr>
+</tbody>
+</table>
+<p><strong>It is a new object, not a rename.</strong> Terraform can move an object between resource types only where the provider supports it: <em>&quot;Refer to the provider documentation for details on which resources can move between types.&quot;</em> The <code>platform_slo</code> documentation (read 11/19/2026) describes no move from <code>slo_v2</code> and has no import section. So add the new resource next to the old one, rather than editing the old block into the new type:</p>
+<pre><code class="language-terraform"># Before: the Classic SLO, unchanged during the parallel run
+resource &quot;dynatrace_slo_v2&quot; &quot;checkout_availability&quot; {
+  name              = &quot;Checkout availability&quot;
+  enabled           = true
+  evaluation_type   = &quot;AGGREGATE&quot;
+  evaluation_window = &quot;-30d&quot;
+  filter            = &quot;type(\&quot;SERVICE\&quot;),mzName(\&quot;Payments Prod\&quot;)&quot;
+  metric_expression = &quot;(100)*(builtin:service.errors.server.successCount:splitBy())/(builtin:service.requestCount.server:splitBy())&quot;
+  metric_name       = &quot;checkout_availability&quot;
+  target_success    = 99.5
+  target_warning    = 99.9
+
+  error_budget_burn_rate {
+    burn_rate_visualization_enabled = true
+  }
+}
+
+# After: a new SLO on the SLO Service, added next to the classic one.
+# Same target, warning and period (Section 6). The zone becomes a segment (Section 5).
+resource &quot;dynatrace_platform_slo&quot; &quot;checkout_availability&quot; {
+  name        = &quot;Checkout availability&quot;
+  description = &quot;Upgraded from the Classic SLO checkout_availability&quot;
+  tags        = [&quot;upgraded-from:classic&quot;]
+
+  criteria {
+    criteria_detail {
+      target         = 99.5
+      warning        = 99.9
+      timeframe_from = &quot;now-30d&quot;
+      timeframe_to   = &quot;now&quot;
+    }
+  }
+
+  custom_sli {
+    indicator = &lt;&lt;-EOT
+      timeseries {
+        total    = sum(dt.service.request.count),
+        failures = sum(dt.service.request.failure_count)
+      }
+      | fieldsAdd sli = ((total[] - failures[]) / total[]) * 100
+      | fieldsRemove total, failures
+    EOT
+
+    filter_segments {
+      filter_segment {
+        id = var.payments_prod_segment_id # the segment built for the zone
+      }
+    }
+  }
+}
+</code></pre>
+<p>After the parallel run (§9), delete the <code>dynatrace_slo_v2</code> block. The next <code>terraform apply</code> deletes the Classic SLO. If the Classic SLO must outlive Terraform's management of it — someone else deletes it later — use a <code>removed</code> block instead: <em>&quot;Set <code>destroy</code> to <code>false</code> to remove the resource from state without destroying the actual resource.&quot;</em></p>
+<pre><code class="language-terraform">removed {
+  from = dynatrace_slo_v2.checkout_availability
+
+  lifecycle {
+    destroy = false
+  }
+}
+</code></pre>
+<p>If the classic alert is in Terraform too, retire it in the same change, after its replacement is live (§7).</p>
+<p><strong>Monaco.</strong> A classic config of <code>builtin:monitoring.slo</code> moves to the <code>slo-v2</code> type (SLO-05 §4). The two are not interchangeable: <em>&quot;These two configuration types are incompatible,&quot;</em> says the Monaco type reference. Validate the SLI in a notebook, create the SLO, and capture it with <code>monaco download</code> rather than hand-writing the JSON.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/platform_slo.md">platform_slo.md (Dynatrace GitHub)</a> — <em>&quot;This resource is excluded by default in the export utility&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/slo_v2.md">slo_v2.md (Dynatrace GitHub)</a> — <em>&quot;downloads all existing service-level objectives configuration&quot;</em></sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/modules/develop/refactoring">Refactoring (HashiCorp)</a> — <em>&quot;Refer to the provider documentation for details on which resources can move between types.&quot;</em></sub></li>
+<li><sub><a href="https://developer.hashicorp.com/terraform/language/block/removed">removed block reference (HashiCorp)</a> — <em>&quot;Set <code>destroy</code> to <code>false</code> to remove the resource from state without destroying the actual resource.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields">Monaco YAML configuration: SaaS type fields (DT docs)</a> — <em>&quot;These two configuration types are incompatible,&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic">Upgrade from Service-Level Objectives Classic to Service-Level Objectives (DT docs)</a> — <em>&quot;Configuration as Code via Terraform overview support the SLO Service Public API since v1.78.0&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="run-both"></a></p>
+<h2>9. Run Both, Then Retire</h2>
+<p>The guide's verification rule: <em>&quot;To verify the upgraded SLO, keep both SLOs running for one evaluation period and compare the values before you remove the Classic SLO.&quot;</em> For a 30-day SLO, that is 30 days. Put the end date in the plan when the new SLO goes live.</p>
+<p>To compare at any point, read the new SLI once over the Classic SLO's timeframe and set it next to <code>evaluatedPercentage</code> from <code>GET /api/v2/slo/{id}</code>. The cell divides window totals, as SLO-02 §2 does. Averaging the per-bucket ratios weights a quiet bucket like a busy one.</p>
+<pre><code class="language-dql">// The new SLI as one number over the Classic SLO's timeframe (here &quot;-1d&quot;).
+// Compare with evaluatedPercentage from GET /api/v2/slo/{id} for the same timeframe.
+// Executed 11/19/2026: 97.03 for the one service the classic name matched (Section 4)
+timeseries {
+  total = sum(dt.service.request.count),
+  failures = sum(dt.service.request.failure_count)
+}, by: { dt.entity.service }, from:-24h
+| fieldsAdd name = entityName(dt.entity.service)
+| filter in(name, {&quot;frontend&quot;, &quot;recommendationservice&quot;, &quot;offerservice&quot;})
+| summarize { total = sum(total[]), failures = sum(failures[]) }
+| fieldsAdd window_sli = (arraySum(total) - arraySum(failures)) / arraySum(total) * 100
+| fields window_sli
+</code></pre>
+<p><strong>Where a difference comes from.</strong> Work down this list before you accept a gap or wave one through:</p>
+<ol>
+<li><strong>Different services</strong> — run the §4 cell again with the SLO's names.</li>
+<li><strong>Different metrics</strong> — a <code>server</code> key and a <code>total</code> key map to the same Grail metric (§3).</li>
+<li><strong>Different windows</strong> — the classic <code>timeframe</code> and the new evaluation period must match (§6). Data Explorer's timeframe is neither.</li>
+<li><strong>Merged or not</strong> — a classic <code>:splitBy()</code> with no dimension is one series. A query without the <code>summarize</code> is one series per service.</li>
+</ol>
+<p><strong>Retire in this order.</strong> Each step removes something the next one would otherwise still need:</p>
+<ol>
+<li>The new SLO is live, with the same target and period.</li>
+<li>The new burn-rate alert is live and routed (§7).</li>
+<li>Guardian objectives, dashboard tiles and API users point at the new SLO (§7).</li>
+<li>One full evaluation period has passed, and the values agree, or every difference is explained.</li>
+<li>Delete the classic status and burn-rate alerts (the metric events from §2).</li>
+<li>Delete the Classic SLO — from Terraform or Monaco if it is managed there (§8), otherwise in the app.</li>
+</ol>
+<p>Rollback lasts until step 6: while the Classic SLO exists, it keeps evaluating, and a problem found in step 4 costs nothing more than a fix to the new SLO. The guide does not describe carrying a Classic SLO's past results over to the new one. If you report on them, export them before step 6.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic">Upgrade from Service-Level Objectives Classic to Service-Level Objectives (DT docs)</a> — <em>&quot;To verify the upgraded SLO, keep both SLOs running for one evaluation period and compare the values before you remove the Classic SLO.&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/service-level-objectives-classic/get-all">List all SLOs — Service-level Objectives API classic (DT docs)</a> — the <code>evaluatedPercentage</code> field. <strong>Derived:</strong> the retirement order follows from which dependents need the Classic SLO to exist (§7); no page sets an order.</sub></p>
+</blockquote>
+<p><a id="checklist"></a></p>
+<h2>10. Checklist and Summary</h2>
+<p>One row per Classic SLO:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Done when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Inventoried</strong></td>
+<td>A row in <code>classic-slos.tsv</code>, with its alerts from <code>slo-alerts.tsv</code> (§2)</td>
+</tr>
+<tr>
+<td><strong>Classified</strong></td>
+<td>Upgrade or retire decided; simple or complex SLI; zone, name and code dependencies noted (§2)</td>
+</tr>
+<tr>
+<td><strong>SLI translated</strong></td>
+<td>DQL returns <code>sli</code>; the preview accepts it (§3)</td>
+</tr>
+<tr>
+<td><strong>Scope proven</strong></td>
+<td>The §4 cell selects the same services as the classic filter</td>
+</tr>
+<tr>
+<td><strong>Access designed</strong></td>
+<td>Anyone the zone hid the SLO from is handled by IAM, not a segment (§5)</td>
+</tr>
+<tr>
+<td><strong>Criteria matched</strong></td>
+<td>Same target, warning and period as the Classic SLO (§6)</td>
+</tr>
+<tr>
+<td><strong>Alert rebuilt</strong></td>
+<td>Burn-rate alert built on the new SLO and routed; classic alert not transformed (§7)</td>
+</tr>
+<tr>
+<td><strong>Dependents moved</strong></td>
+<td>Guardians, tiles, API users and <code>func:slo.*</code> readers point at the new SLO (§7)</td>
+</tr>
+<tr>
+<td><strong>As code</strong></td>
+<td><code>dynatrace_platform_slo</code> or Monaco <code>slo-v2</code> in place; classic resource still present (§8)</td>
+</tr>
+<tr>
+<td><strong>Parallel run</strong></td>
+<td>One evaluation period; values agree or every difference is explained (§9)</td>
+</tr>
+<tr>
+<td><strong>Retired</strong></td>
+<td>Classic alert deleted, then the Classic SLO, then its code (§9)</td>
+</tr>
+</tbody>
+</table>
+<h3>Summary</h3>
+<ul>
+<li>There is no automated upgrade. Each Classic SLO becomes a new SLO with a DQL SLI, built next to the old one.</li>
+<li>The classic name a selector matched is not always <code>dt.service.name</code>. Prove the scope before trusting the new numbers.</li>
+<li>A segment replaces a zone's data filter, not its access control.</li>
+<li>Status and burn-rate alerts are metric events. Rebuild them on the new SLO, don't transform them.</li>
+<li>In Terraform, <code>dynatrace_platform_slo</code> is a new resource, not a renamed one.</li>
+<li>Run both for one evaluation period, then retire dependents first and the Classic SLO last.</li>
+</ul>
+<h3>Related Notebooks</h3>
+<ul>
+<li><strong>SLO-01</strong> — the two SLO generations, and the readiness scan</li>
+<li><strong>SLO-02</strong> — SLI query shapes and the SLO-ready form</li>
+<li><strong>SLO-04</strong> — burn-rate alerting and routing</li>
+<li><strong>SLO-05</strong> — <code>dynatrace_platform_slo</code> and Monaco <code>slo-v2</code> in depth</li>
+<li><strong>SLO-06</strong> — guardian DQL objectives</li>
+<li><strong>MZ2POL-16 §4</strong> — classic SLOs as one of the zone consumers in a management zone migration</li>
+<li><strong>FAQ-16</strong> — translating classic entity selectors to Smartscape</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

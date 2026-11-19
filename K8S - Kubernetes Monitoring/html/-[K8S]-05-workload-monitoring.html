@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8S-05: Workload Monitoring</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">K8S — Kubernetes Monitoring</a><span class="sep">/</span><span aria-current="page">K8S-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>K8S-05: Workload Monitoring</h1>
+<blockquote>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 5 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/15/2026</p>
+</blockquote>
+<h2>Application-Level Observability in Kubernetes</h2>
+<p>Workload monitoring focuses on the application layer: deployments, pods, containers, and the services they provide. This notebook covers monitoring Kubernetes workloads from deployment health to service performance.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#workload-types-and-monitoring">Workload Types and Monitoring</a></li>
+<li><a href="#deployment-health">Deployment Health</a></li>
+<li><a href="#pod-and-container-metrics">Pod and Container Metrics</a></li>
+<li><a href="#service-performance">Service Performance</a></li>
+<li><a href="#distributed-tracing-in-k8s">Distributed Tracing in K8s</a></li>
+<li><a href="#application-logs">Application Logs</a></li>
+<li><a href="#workload-anomalies">Workload Anomalies</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Kubernetes monitoring</td>
+</tr>
+<tr>
+<td><strong>DynaKube</strong></td>
+<td>cloudNativeFullStack or applicationMonitoring</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:metrics:read</code>, <code>storage:spans:read</code>, <code>storage:logs:read</code>, <code>storage:events:read</code>, <code>storage:smartscape:read</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>K8S-01 Fundamentals, K8S-04 Cluster Monitoring</td>
+</tr>
+</tbody>
+</table>
+<p><a id="workload-types-and-monitoring"></a></p>
+<h2>1. Workload Types and Monitoring</h2>
+<h3>Kubernetes Workload Controllers</h3>
+<table>
+<thead>
+<tr>
+<th>Workload Type</th>
+<th>Use Case</th>
+<th>Monitoring Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Deployment</strong></td>
+<td>Stateless apps</td>
+<td>Replica availability, rollout status</td>
+</tr>
+<tr>
+<td><strong>StatefulSet</strong></td>
+<td>Stateful apps (DBs)</td>
+<td>Pod identity, persistent storage</td>
+</tr>
+<tr>
+<td><strong>DaemonSet</strong></td>
+<td>Node-level agents</td>
+<td>Coverage across all nodes</td>
+</tr>
+<tr>
+<td><strong>Job</strong></td>
+<td>Batch processing</td>
+<td>Completion rate, duration</td>
+</tr>
+<tr>
+<td><strong>CronJob</strong></td>
+<td>Scheduled tasks</td>
+<td>Execution timing, failures</td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Workload Entities</h3>
+<table>
+<thead>
+<tr>
+<th>Smartscape node</th>
+<th>Classic entity</th>
+<th>Kubernetes resource</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>K8S_DEPLOYMENT</code>, <code>K8S_STATEFULSET</code>, <code>K8S_DAEMONSET</code>, <code>K8S_REPLICASET</code>, <code>K8S_JOB</code>, <code>K8S_CRONJOB</code></td>
+<td><code>CLOUD_APPLICATION</code> (one classic type for every workload kind)</td>
+<td>The workload controllers</td>
+</tr>
+<tr>
+<td><code>K8S_NAMESPACE</code></td>
+<td><code>CLOUD_APPLICATION_NAMESPACE</code></td>
+<td>Namespace</td>
+</tr>
+<tr>
+<td><code>K8S_POD</code></td>
+<td><code>CLOUD_APPLICATION_INSTANCE</code></td>
+<td>Pod</td>
+</tr>
+<tr>
+<td><code>CONTAINER</code></td>
+<td><code>CONTAINER_GROUP_INSTANCE</code></td>
+<td>Container</td>
+</tr>
+<tr>
+<td><code>SERVICE</code></td>
+<td><code>SERVICE</code></td>
+<td>A Dynatrace-detected service — not the Kubernetes <code>Service</code> object (<code>K8S_SERVICE</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>In metrics, spans and logs the workload is identified by the dimensions <code>k8s.workload.name</code> and <code>k8s.workload.kind</code>, which cover every workload kind.</p>
+<pre><code class="language-dql">// List Kubernetes workloads (Deployments) via smartscape topology
+smartscapeNodes &quot;K8S_DEPLOYMENT&quot;
+| fields entity.name = name, tags
+| sort entity.name asc
+| limit 50
+
+// For StatefulSets, DaemonSets, etc., substitute the type:
+// smartscapeNodes &quot;K8S_STATEFULSET&quot;
+// smartscapeNodes &quot;K8S_DAEMONSET&quot;
+
+// Legacy alternative (deprecated for new content):
+// fetch dt.entity.cloud_application
+// | fields entity.name, tags
+// | sort entity.name asc
+// | limit 50
+
+</code></pre>
+<p><a id="deployment-health"></a></p>
+<h2>2. Deployment Health</h2>
+<h3>Deployment Status Indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+<th>Healthy State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Available Replicas</strong></td>
+<td>Pods passing readiness</td>
+<td>Equals desired</td>
+</tr>
+<tr>
+<td><strong>Ready Replicas</strong></td>
+<td>Pods passing all probes</td>
+<td>Equals desired</td>
+</tr>
+<tr>
+<td><strong>Updated Replicas</strong></td>
+<td>Pods with latest spec</td>
+<td>Equals desired</td>
+</tr>
+<tr>
+<td><strong>Collision Count</strong></td>
+<td>Hash collisions</td>
+<td>Zero</td>
+</tr>
+</tbody>
+</table>
+<p>Dynatrace records the Deployment conditions as the metric <code>dt.kubernetes.workload.conditions</code> (dimensions <code>workload_condition</code>, boolean <code>condition_status</code>). A workload whose <code>Available</code> condition is false has fewer available replicas than its minimum — the query below lists them.</p>
+<h3>Rollout Monitoring</h3>
+<p>During deployments, monitor:</p>
+<ul>
+<li>Old ReplicaSet scaling down</li>
+<li>New ReplicaSet scaling up</li>
+<li>Pod readiness during transition</li>
+</ul>
+<pre><code class="language-dql">// Workloads whose Available condition is false in the last hour
+// dt.kubernetes.workload.conditions writes 1 per (workload, condition, status) present.
+// bucketsUnavailable counts time buckets (one minute each at from:-1h). Executed 10/02/2026.
+timeseries c = max(dt.kubernetes.workload.conditions), from:-1h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.kind, k8s.workload.name, workload_condition, condition_status}
+| filter workload_condition == &quot;Available&quot; and condition_status == false
+| fieldsAdd bucketsUnavailable = arraySize(arrayRemoveNulls(c))
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.kind, k8s.workload.name, bucketsUnavailable
+| sort bucketsUnavailable desc
+</code></pre>
+<pre><code class="language-dql">// Workload lifecycle events - track rollouts and restarts
+// Data object corrected 08/12/2026. Kubernetes events are NOT logs. This cell scraped
+// `fetch logs` for `log.source` containing &quot;kubernetes&quot; or for content substrings like &quot;BackOff&quot; —
+// no log.source matches, and kubelet event text is not in the log stream, so it returned nothing
+// while the cluster emitted 231,296 Kubernetes event records in the same window.
+// They arrive as `fetch events | filter event.provider == &quot;KUBERNETES_EVENT&quot;`, STRUCTURED:
+//   dt.kubernetes.event.reason            Unhealthy · BackOff · Killing · FailedScheduling ·
+//                                         FailedMount · BackoffLimitExceeded · EvictionThresholdMet …
+//   dt.kubernetes.event.message           the human-readable text
+//   status                                &quot;WARN&quot; for Kubernetes Warning events, &quot;INFO&quot; for Normal
+//   dt.kubernetes.event.involved_object.kind / .name
+//   dt.kubernetes.event.count / .first_seen / .last_seen
+//   plus k8s.cluster.name · k8s.namespace.name · k8s.pod.name · k8s.workload.name · k8s.node.name
+// NOTE: event.type is CUSTOM_INFO on every one of these — it is NOT &quot;Warning&quot;. The Warning/Normal
+// split is in status (&quot;WARN&quot; / &quot;INFO&quot;). dt.kubernetes.event.important was &quot;true&quot; on all 204,078
+// event records over 30 days (10/02/2026), so it separates nothing. Enumerate reasons with:
+//   fetch events, from:-24h | filter event.provider == &quot;KUBERNETES_EVENT&quot;
+//   | summarize n = countDistinctExact(event.id), by:{dt.kubernetes.event.reason} | sort n desc
+// Each open event is re-written about every 5 min under the same event.id with a cumulative
+// dt.kubernetes.event.count — count events with countDistinctExact(event.id), never count().
+fetch events, from:-6h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter isNotNull(k8s.workload.name)
+| summarize events = countDistinctExact(event.id), by:{k8s.namespace.name, k8s.workload.name, dt.kubernetes.event.reason}
+| sort events desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Container restarts per pod - identify unstable workloads
+// Use the restart counter, not events: a BackOff or Unhealthy event is not a restart, and one
+// restart loop can produce many events (or few, since Kubernetes aggregates repeats into one
+// event with a rising count). Executed 10/02/2026.
+timeseries r = sum(dt.kubernetes.container.restarts), from:-24h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name, k8s.pod.name}
+| fieldsAdd restarts = arraySum(r)
+| filter restarts &gt; 0
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name, k8s.pod.name, restarts
+| sort restarts desc
+| limit 25
+</code></pre>
+<p><a id="pod-and-container-metrics"></a></p>
+<h2>3. Pod and Container Metrics</h2>
+<h3>Container Resource Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+<th>Alert Threshold</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CPU Usage %</strong></td>
+<td>Usage vs. limit</td>
+<td>&gt;85% sustained</td>
+</tr>
+<tr>
+<td><strong>Memory Usage %</strong></td>
+<td>Usage vs. limit</td>
+<td>&gt;90%</td>
+</tr>
+<tr>
+<td><strong>CPU Throttled</strong></td>
+<td>Time throttled</td>
+<td>&gt;10% of time</td>
+</tr>
+<tr>
+<td><strong>Memory Working Set</strong></td>
+<td>Active memory</td>
+<td>Approaching limit</td>
+</tr>
+</tbody>
+</table>
+<h3>Pod Lifecycle States</h3>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Description</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pending</strong></td>
+<td>Waiting to schedule</td>
+<td>Check resources, node selectors</td>
+</tr>
+<tr>
+<td><strong>Running</strong></td>
+<td>At least one container running</td>
+<td>Normal</td>
+</tr>
+<tr>
+<td><strong>Succeeded</strong></td>
+<td>All containers exited 0</td>
+<td>Job completed</td>
+</tr>
+<tr>
+<td><strong>Failed</strong></td>
+<td>Containers exited non-zero</td>
+<td>Check logs</td>
+</tr>
+<tr>
+<td><strong>Unknown</strong></td>
+<td>Node communication lost</td>
+<td>Check node health</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Container CPU usage — high consumers
+// Sort on a scalar. `sort` on the timeseries array itself compares arrays element by element,
+// so the order has nothing to do with the average — reduce with arrayAvg() first.
+timeseries cpu = avg(dt.kubernetes.container.cpu_usage), from:-1h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name}
+| fieldsAdd avgCpuMillicores = round(arrayAvg(cpu), decimals: 0)
+| fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name, avgCpuMillicores
+| sort avgCpuMillicores desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Container memory usage approaching limits
+// &quot;Approaching the limit&quot; needs the limit: compare working set with limits_memory per container.
+// Containers with no memory limit drop out (limitMiB is null) — they cannot be OOM-killed for
+// exceeding a limit, only by node pressure.
+timeseries {
+    used = avg(dt.kubernetes.container.memory_working_set),
+    lim = avg(dt.kubernetes.container.limits_memory)
+  }, from:-1h, by:{k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name}
+| fieldsAdd usedMiB = round(arrayAvg(used) / 1048576, decimals: 0),
+            limitMiB = round(arrayAvg(lim) / 1048576, decimals: 0)
+| filter limitMiB &gt; 0
+| fieldsAdd pctOfLimit = round(100 * usedMiB / limitMiB, decimals: 1)
+| fields k8s.cluster.name, k8s.namespace.name, k8s.pod.name, k8s.container.name, usedMiB, limitMiB, pctOfLimit
+| sort pctOfLimit desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Container CPU throttling - performance impact
+timeseries avgThrottled = avg(dt.containers.cpu.throttled_time), from:-1h, by:{dt.entity.container_group_instance}
+| fieldsAdd avgThrottledValue = arrayAvg(avgThrottled)
+| filter avgThrottledValue &gt; 0
+| sort avgThrottledValue desc
+| limit 15
+</code></pre>
+<p><a id="service-performance"></a></p>
+<h2>4. Service Performance</h2>
+<h3>Service-Level Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+<th>SLO Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Response Time</strong></td>
+<td>P50, P90, P99 latency</td>
+<td>P99 &lt; 500ms</td>
+</tr>
+<tr>
+<td><strong>Error Rate</strong></td>
+<td>Failed requests %</td>
+<td>&lt; 0.1%</td>
+</tr>
+<tr>
+<td><strong>Throughput</strong></td>
+<td>Requests per second</td>
+<td>Based on capacity</td>
+</tr>
+<tr>
+<td><strong>Availability</strong></td>
+<td>Successful responses</td>
+<td>&gt; 99.9%</td>
+</tr>
+</tbody>
+</table>
+<h3>Golden Signals for Services</h3>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>What to Monitor</th>
+<th>DQL Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Latency</strong></td>
+<td>Response time distribution</td>
+<td>Timeseries with percentiles</td>
+</tr>
+<tr>
+<td><strong>Traffic</strong></td>
+<td>Request rate</td>
+<td>Count over time</td>
+</tr>
+<tr>
+<td><strong>Errors</strong></td>
+<td>Error rate, types</td>
+<td><code>countIf(span.status_code == &quot;error&quot;)</code></td>
+</tr>
+<tr>
+<td><strong>Saturation</strong></td>
+<td>Resource utilization</td>
+<td>CPU, memory, connections</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Span failure status: three traps, all silent.</strong> Getting error rate right on spans depends on three facts, and each of them fails by returning a plausible number rather than an error.</p>
+<table>
+<thead>
+<tr>
+<th>Trap</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>otel.status_code</code></td>
+<td><strong>The field does not exist</strong> — it has no row in <code>dt.semantic_dictionary.fields</code>. The real field is <strong><code>span.status_code</code></strong> (<code>stable</code>). Likewise <code>otel.status_message</code> → <code>span.status_message</code> (<code>experimental</code>, and frequently null even on failing spans).</td>
+</tr>
+<tr>
+<td><code>== &quot;ERROR&quot;</code></td>
+<td>Values are <strong>lowercase</strong>. On a live tenant <code>span.status_code == &quot;ERROR&quot;</code> matched <strong>0</strong> spans against <strong>18,630</strong> for <code>&quot;error&quot;</code> in the same two-hour window (08/11/2026). A rename without the case fix converts a hard failure into a silent zero.</td>
+</tr>
+<tr>
+<td><code>countIf(span.status_code != &quot;error&quot;)</code></td>
+<td><strong><code>span.status_code</code> is null on virtually every successful span</strong> — <code>&quot;ok&quot;</code> is written so rarely it is noise (9 spans out of ~659,000 in that window). A <code>!=</code> comparison against null yields null, not true, so this counts almost nothing. Derive successes as <strong><code>total - errors</code></strong>.</td>
+</tr>
+</tbody>
+</table>
+<p>The third trap is the expensive one: an availability SLO built on <code>countIf(… != &quot;error&quot;)</code> reads <strong>0% available</strong> on a healthy service, and nothing in the query errors to tell you.</p>
+</blockquote>
+<pre><code class="language-dql">// Service response time (server spans), slowest p99 first
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    p50_ms = percentile(duration, 50) / 1ms,
+    p90_ms = percentile(duration, 90) / 1ms,
+    p99_ms = percentile(duration, 99) / 1ms
+  }, by:{dt.service.name}
+| sort p99_ms desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Service error rates
+// The field is span.status_code (stable). otel.status_code does not exist.
+// Values are lowercase (&quot;error&quot;), and the field is NULL on successful spans —
+// so successes must be derived as total - errors, never counted directly.
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {
+    total = count(),
+    errors = countIf(span.status_code == &quot;error&quot;)
+  }, by:{dt.entity.service}
+| fieldsAdd successes = total - errors
+| fieldsAdd errorRate = round(100.0 * errors / total, decimals: 2)
+| filter errors &gt; 0
+| sort errorRate desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Service throughput
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize requestCount = count(), by:{dt.entity.service}
+| sort requestCount desc
+| limit 10
+</code></pre>
+<p><a id="distributed-tracing-in-k8s"></a></p>
+<h2>5. Distributed Tracing in K8s</h2>
+<h3>Trace Context in Kubernetes</h3>
+<p>Distributed tracing in Kubernetes follows requests across:</p>
+<ul>
+<li>Ingress → Services</li>
+<li>Service → Service (east-west traffic)</li>
+<li>Service → External (databases, APIs)</li>
+</ul>
+<h3>Trace Attributes in K8s</h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Source</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>k8s.cluster.name</code></td>
+<td>OneAgent</td>
+<td>Filter by cluster</td>
+</tr>
+<tr>
+<td><code>k8s.namespace.name</code></td>
+<td>OneAgent</td>
+<td>Filter by namespace</td>
+</tr>
+<tr>
+<td><code>k8s.workload.name</code></td>
+<td>OneAgent</td>
+<td>Identify workload (any kind — use <code>k8s.workload.kind</code> to tell them apart)</td>
+</tr>
+<tr>
+<td><code>k8s.pod.name</code></td>
+<td>OneAgent</td>
+<td>Instance-level analysis</td>
+</tr>
+<tr>
+<td><code>k8s.container.name</code></td>
+<td>OneAgent</td>
+<td>Container identification</td>
+</tr>
+</tbody>
+</table>
+<p>On the validation tenant (10/02/2026) every span carrying <code>k8s.namespace.name</code> also carried the four fields above, and none carried <code>k8s.deployment.name</code> — group spans by <code>k8s.workload.name</code>.</p>
+<pre><code class="language-dql">// Spans by namespace — span volume, not request count (one request produces many spans)
+fetch spans, from:-1h
+| filter isNotNull(k8s.namespace.name)
+| summarize {spanCount = count(), avgDurationMs = avg(duration) / 1ms}, by:{k8s.namespace.name}
+| sort spanCount desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Slow traces by workload
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot; and duration &gt; 1s
+| filter isNotNull(k8s.workload.name)
+| fields start_time, trace.id, k8s.namespace.name, k8s.workload.name, duration
+| sort duration desc
+| limit 20
+</code></pre>
+<p><a id="application-logs"></a></p>
+<h2>6. Application Logs</h2>
+<h3>Container Log Collection</h3>
+<p>OneAgent collects container logs from:</p>
+<ul>
+<li>stdout/stderr streams</li>
+<li>Mounted log files (with configuration)</li>
+</ul>
+<h3>Log Attributes</h3>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>k8s.namespace.name</code></td>
+<td>Source namespace</td>
+</tr>
+<tr>
+<td><code>k8s.pod.name</code></td>
+<td>Source pod</td>
+</tr>
+<tr>
+<td><code>k8s.container.name</code></td>
+<td>Source container</td>
+</tr>
+<tr>
+<td><code>dt.entity.container_group_instance</code></td>
+<td>Entity relationship</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Application error logs by namespace
+fetch logs, from:-1h
+| filter loglevel == &quot;ERROR&quot; or loglevel == &quot;SEVERE&quot;
+| filter isNotNull(k8s.namespace.name)
+| summarize errorCount = count(), by:{k8s.namespace.name}
+| sort errorCount desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Recent application logs with context
+fetch logs, from:-1h
+| filter isNotNull(k8s.namespace.name)
+// status == &quot;ERROR&quot; also counts SEVERE, CRITICAL and FATAL logs; loglevel == &quot;ERROR&quot; misses them
+| filter status == &quot;ERROR&quot;
+| fields timestamp, k8s.namespace.name, k8s.pod.name, content
+| sort timestamp desc
+| limit 30
+</code></pre>
+<p><a id="workload-anomalies"></a></p>
+<h2>7. Workload Anomalies</h2>
+<h3>Common Anomaly Types</h3>
+<table>
+<thead>
+<tr>
+<th>Anomaly</th>
+<th>Indicators</th>
+<th>Root Cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Memory Leak</strong></td>
+<td>Steadily increasing memory</td>
+<td>Application bug</td>
+</tr>
+<tr>
+<td><strong>CPU Spike</strong></td>
+<td>Sudden CPU increase</td>
+<td>Traffic surge, infinite loop</td>
+</tr>
+<tr>
+<td><strong>Error Storm</strong></td>
+<td>Rapid error increase</td>
+<td>Dependency failure</td>
+</tr>
+<tr>
+<td><strong>Latency Degradation</strong></td>
+<td>Increasing response time</td>
+<td>Resource contention</td>
+</tr>
+</tbody>
+</table>
+<h3>Dynatrace Intelligence for Workloads</h3>
+<p>Dynatrace Intelligence automatically detects:</p>
+<ul>
+<li>Response time degradation</li>
+<li>Error rate increases</li>
+<li>Resource saturation</li>
+<li>Failure rate anomalies</li>
+</ul>
+<pre><code class="language-dql">// Error count by namespace (detecting increases)
+fetch logs, from:-1h
+// status == &quot;ERROR&quot; also counts SEVERE, CRITICAL and FATAL logs; loglevel == &quot;ERROR&quot; misses them
+| filter status == &quot;ERROR&quot;
+| filter isNotNull(k8s.namespace.name)
+| summarize errorCount = count(), by:{k8s.namespace.name}
+| sort errorCount desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Memory usage by workload (detecting high consumers)
+// Workload memory is the sum of its containers (and replicas). rollup: avg averages each container
+// within a time bucket before the cross-container sum. Sort on the scalar, never on the array.
+timeseries mem = sum(dt.kubernetes.container.memory_working_set, rollup: avg), from:-1h,
+  by:{k8s.cluster.name, k8s.namespace.name, k8s.workload.name}
+| fieldsAdd avgMemMiB = round(arrayAvg(mem) / 1048576, decimals: 0)
+| fields k8s.cluster.name, k8s.namespace.name, k8s.workload.name, avgMemMiB
+| sort avgMemMiB desc
+| limit 10
+</code></pre>
+<h2>Next Steps</h2>
+<p>With workload monitoring configured, proceed to:</p>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>K8S-06: Namespace Organization</strong></td>
+<td>Boundaries and access control</td>
+</tr>
+<tr>
+<td><strong>K8S-07: Events and Logs</strong></td>
+<td>Kubernetes event analysis</td>
+</tr>
+<tr>
+<td><strong>K8S-08: DQL for Kubernetes</strong></td>
+<td>Advanced query patterns</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Kubernetes workload types and their monitoring focus</li>
+<li>Deployment health indicators and rollout monitoring</li>
+<li>Pod and container resource metrics</li>
+<li>Service-level performance monitoring (golden signals)</li>
+<li>Distributed tracing with Kubernetes attributes</li>
+<li>Application log analysis by namespace and pod</li>
+<li>Workload anomaly detection patterns</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Set up Dynatrace on Kubernetes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/full-stack-observability">Full observability deployment (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/application-observability">Application observability deployment (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/kubernetes-app">Kubernetes app — workloads view (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability-classic/container-platform-monitoring-classic">Container platform monitoring — Classic (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/application-observability/services">Service monitoring (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">smartscapeNodes command (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

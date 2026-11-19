@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALERT-02: Choosing and Building Detection</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ALERT — Alerting Strategy and Design</a><span class="sep">/</span><span aria-current="page">ALERT-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ALERT-02: Choosing and Building Detection</h1>
+<blockquote>
+<p><strong>Series:</strong> ALERT — Alerting Strategy and Design | <strong>Notebook:</strong> 02 of 05 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 10/23/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Detection is a choice between four mechanisms, and picking the wrong one is the root of most alert noise. This notebook is the <strong>decision framework</strong> — which mechanism for which signal, and why — then it hands off to AIOPS-02 for the build mechanics and SLO-04 for reliability alerting. It deliberately does not re-document the anomaly detector's knobs; it tells you <em>which</em> tool to reach for.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#mechanisms">The Four Mechanisms</a></li>
+<li><a href="#decision">The Decision</a></li>
+<li><a href="#antipatterns">Anti-Patterns</a></li>
+<li><a href="#classic-metric-events">Migrating Classic Metric Events: Measure First</a></li>
+<li><a href="#prototype">Prototype Before You Commit</a></li>
+<li><a href="#handoff">Hand-Off</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3. Custom alerts are created in <strong>Settings</strong> from SaaS 1.344, and in the Anomaly Detection app before that (§ 2)</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>ALERT-01 (the end-to-end picture)</td>
+</tr>
+<tr>
+<td><strong>Build mechanics</strong></td>
+<td>AIOPS-02 (anomaly detector setup), SLO-02/04 (SLIs and burn-rate)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="mechanisms"></a></p>
+<h2>1. The Four Mechanisms</h2>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>What it detects</th>
+<th>Owns the detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OOTB Davis</strong></td>
+<td>Latency/error/saturation anomalies, automatically, with seasonal baselines</td>
+<td>AIOPS-02 §1</td>
+</tr>
+<tr>
+<td><strong>Custom Davis anomaly detector</strong></td>
+<td>A business-specific signal Davis does not cover, expressed as a DQL query an analyzer judges</td>
+<td>AIOPS-02 §4</td>
+</tr>
+<tr>
+<td><strong>OpenPipeline-derived metric</strong></td>
+<td>A signal that lives in logs/spans, extracted to a metric at ingest and then alerted on cheaply</td>
+<td>OPIPE, FAQ-09</td>
+</tr>
+<tr>
+<td><strong>SLO burn-rate</strong></td>
+<td>A user journey burning its error budget too fast</td>
+<td>SLO-04</td>
+</tr>
+</tbody>
+</table>
+<p>These are not alternatives to rank once — they are a toolkit. Most environments use all four.</p>
+<p><a id="decision"></a></p>
+<h2>2. The Decision</h2>
+<p>Walk it top-down and stop at the first match:</p>
+<ol>
+<li><strong>Is OOTB Davis already detecting it?</strong> Check the problem feed and anomaly detection settings first. If yes → tune sensitivity, do not build anything.</li>
+<li><strong>Is it a reliability promise about a user journey?</strong> → an <strong>SLO</strong> with burn-rate alerting (SLO-04). This is the highest-signal option.</li>
+<li><strong>Does the signal live in logs or spans, and recur?</strong> → extract an <strong>OpenPipeline metric</strong>, then put a detector on the metric. Cheaper than querying raw data on every evaluation.</li>
+<li><strong>Is it a custom condition on existing metrics?</strong> → a <strong>custom Davis anomaly detector</strong> with an auto-adaptive or seasonal analyzer.</li>
+</ol>
+<p>The cost — to build and to maintain — rises as you go down. Staying high is the lever on noise (ALERT-01 §2).</p>
+<blockquote>
+<p><strong>Where a custom detector is created (SaaS 1.344+).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344's staged rollout started 07/29/2026, so Settings is the place to create a custom detector. On a tenant still below 1.344, the <strong>Anomaly Detection</strong> app is where custom alerts are created, and AIOPS-02 § 4 walks that build.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">SaaS 1.344 release notes (DT docs)</a> — <em>&quot;Rollout start on Jul 29, 2026&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="antipatterns"></a></p>
+<h2>3. Anti-Patterns</h2>
+<ul>
+<li><strong>Static thresholds on traffic-correlated metrics.</strong> They alert every off-peak hour and every traffic spike. Use auto-adaptive or seasonal (AIOPS-02 §1). Reserve static thresholds for true hard limits (SLO/contract/capacity).</li>
+<li><strong>Duplicating Davis.</strong> Before building a custom detector, confirm OOTB Davis or an existing metric event does not already cover the condition. Duplicate detection means duplicate alerts.</li>
+<li><strong>Querying logs/traces directly in a recurring detector.</strong> Pays query cost on every evaluation, forever. Extract a metric first (FAQ-09, OPIPE).</li>
+<li><strong>A detector with a bare event template.</strong> No team or area property means nothing to route on (ALERT-01 §4). Set <code>dt.smartscape_source.id</code> too. The docs ask for <em>&quot;an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string&quot;</em>, because that is what lets the correlation engine resolve the entity and apply its same-entity grouping rule. They do not say what happens to an event that has no source, but on a real tenant (7 days to 10/06/2026) every custom alert raised without one, 670 events, was attached to the environment entity alone. Problems attached only to the environment averaged 8.5 grouped events each, against about one for every other problem: many alerts end up in one problem whose only affected entity is the environment, which points no one at the thing that broke. Treat that as the likely outcome, not a documented rule. Either way, no threshold change fixes it; only the event template does (AIOPS-02 §4).</li>
+<li><strong>Splitting the alert on a high-cardinality dimension.</strong> Grouping a detector by application version, pod name, or HTTP status code turns one condition into one alert per dimension value. Alert volume then scales with your deployment frequency, and alerts strand themselves on entities that no longer exist — a pod replaced an hour ago still carries an open problem. Alert on the aggregate; working out <em>which</em> version or pod caused it is a downstream investigation step, not an alerting dimension. (Davis's own multi-dimensional baselining is a different mechanism and does want the dimensions — AIOPS-02 §1.4.)</li>
+<li><strong>The cloned detector.</strong> In a fast rollout the dominant noise source is not one badly-tuned alert — it is a base detector template copied across teams with its threshold, sensitivity, and routing left unchanged. Two weeks later that team has muted the channel. You cannot review your way out of this one clone at a time; defend at the template, not at each copy.</li>
+</ul>
+<p><strong>Make the base template safe by default.</strong> The fix is to make the <em>default</em> shape adaptive, not static, so the worst case of a copy-paste is a correctly-scoped, loosely-tuned alert — never an unscoped firehose. A base detector template should ship with:</p>
+<ul>
+<li>An <strong>auto-adaptive (or seasonal) analyzer as the default</strong>, not a static threshold — the only inputs a team must supply are the metric/selector and the owning team/area property.</li>
+<li><strong>No-data does not alert</strong>, so missing telemetry during onboarding stays silent until instrumentation lands.</li>
+<li>A <strong>violating-samples / sliding-window minimum</strong> (e.g. ≥3-of-5) so a single transient spike never pages.</li>
+<li><strong>Routing bound to the team/area property the template already requires</strong>, so even an untuned clone reaches the right owner.</li>
+</ul>
+<h3>A second lever, at a different layer</h3>
+<p><strong>Available (SaaS 1.344):</strong> the workflow <strong>Problem trigger</strong> has a <strong>Minimum duration</strong> option (under <em>Advanced options</em>) that postpones the trigger until the problem has been open for at least the configured duration: 5 minutes up to one week. SaaS 1.344's rollout started <strong>07/29/2026</strong>; verify it has reached your tenant before designing around it.</p>
+<p>This is <strong>not</strong> a fifth analyzer knob, and it does not replace the sliding-window minimum above. The analyzer parameters decide whether a series is anomalous; Minimum duration decides how long a problem must stay open before the workflow runs. The problem itself opens immediately. They act on different steps, so they compose — and because the delay applies at the workflow trigger, it damps notifications from flapping detectors you do not own, which is exactly the case a template standard cannot reach. Where it is not available yet, the violating-samples / sliding-window minimum remains the control to rely on for transient-spike noise.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">SaaS 1.344 release notes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a> — <em>&quot;The Minimum duration option postpones the trigger until the problem has been open for at least the configured duration.&quot;</em> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting">Avoid overalerting (DT docs)</a> — <em>&quot;an existing Smartscape entity ID, like a host or service entity ID rather than an arbitrary string&quot;</em>; it does not describe events without a source, so the environment-only figures are tenant measurements (<code>dt.davis.events</code> and <code>dt.davis.problems</code>, 7 days, run 10/06/2026). <strong>Derived:</strong> the &quot;composes rather than substitutes&quot; placement follows from the delay acting on the problem-to-notification step while analyzer parameters act on the series.</sub></p>
+</blockquote>
+<p><a id="classic-metric-events"></a></p>
+<h2>4. Migrating Classic Metric Events: Measure First</h2>
+<p>If you are moving off classic alerting, the decision above applies to every classic metric event you own, not just to new signals. The mistake to avoid is porting them all one-to-one. A tenant accumulates metric events over years: some were created by an extension or a cloud integration, some guarded a system that is gone, and some still matter. The configuration list cannot tell those apart. The alert history can.</p>
+<p><strong>First, what is configured.</strong> Classic metric events are Settings 2.0 objects under <code>builtin:anomaly-detection.metric-events</code>, so one read lists them, with the enabled flag and the query type:</p>
+<pre><code class="language-bash">dtctl get settings --schema builtin:anomaly-detection.metric-events -o json --limit 0
+</code></pre>
+<p>The query type matters because the Anomaly Detection app's transformation only covers one of the two kinds:</p>
+<blockquote>
+<p><em>&quot;You can only transform metric selectors.&quot;</em></p>
+</blockquote>
+<p>Events built on a plain metric key (<code>METRIC_KEY</code>) cannot go through the transformation and have to be rebuilt by hand. When a transformation does run, <em>&quot;the metric event we selected for transformations is automatically disabled, and the newly created configuration is active instead.&quot;</em> Before you transform an event, decide whether you still want it.</p>
+<p><strong>A zone-scoped metric event loses its zone on transform.</strong> The custom-alert page says <em>&quot;Management zones aren't supported in Anomaly Detection and will be lost after transforming metric events.&quot;</em> and <em>&quot;The converted metric event is automatically disabled, and the newly created configuration is active instead.&quot;</em> Taken together, one click swaps a detector that watched one zone for an active detector that evaluates its metric selector across the whole environment — expect it to fire for entities the zone used to exclude. Before you rely on the transformed alert, set its <strong>segment</strong> scope (<em>&quot;Segment filters are automatically applied to your query during execution.&quot;</em>) and preview the result. MZ2POL-05 builds the segments; MZ2POL-15 finds which metric events name a zone.</p>
+<p><strong>Then, what actually fires.</strong> Every alert a metric event raises lands in <code>dt.davis.events</code> carrying the settings object it came from, so the history joins back to the configuration on <code>dt.settings.object_id</code>:</p>
+<pre><code class="language-dql">// Which classic metric events raised anything in the last 30 days?
+// Filter on the settings schema, NOT on event.provider: &quot;METRIC_EVENTS&quot; is also the
+// provider for the new DQL anomaly detectors and for built-in infrastructure detection.
+fetch dt.davis.events, from:-30d
+| filter dt.settings.schema_id == &quot;builtin:anomaly-detection.metric-events&quot;
+| summarize {alerts = count(), last_raised = max(timestamp)}, by:{dt.settings.object_id, event.name}
+| sort alerts desc
+</code></pre>
+<p>Compare the two lists. An enabled metric event that does not appear in the history has raised nothing in the window.</p>
+<p><strong>What this looked like on a real tenant (09/29/2026).</strong> 125 classic metric events were configured and 19 were enabled: 18 on a metric key and 1 on a metric selector. The query above returned <strong>zero rows</strong>. Over the same 30 days, the identical query with the schema set to <code>builtin:davis.anomaly-detectors</code> returned 35 detectors, which rules out an empty result caused by the query itself. So the whole migration came down to 19 decisions. Of those, 18 could not be transformed, and not one had raised an alert in a month.</p>
+<p><strong>Two traps.</strong></p>
+<ul>
+<li><strong><code>event.provider == &quot;METRIC_EVENTS&quot;</code> is not &quot;classic metric events&quot;.</strong> On the same tenant that provider covered 1,054 events from <code>builtin:anomaly-detection.infrastructure-hosts</code>, 500 from the new <code>builtin:davis.anomaly-detectors</code>, and a few from <code>builtin:anomaly-detection.infrastructure-disks</code>, but none from classic metric events. A migration inventory built on the provider mostly counts detectors you have already migrated.</li>
+<li><strong>Silence is not the same as useless.</strong> A metric event that guards a rare condition, such as a certificate about to expire or a batch job that failed, may stay quiet for months and still be the only thing watching that condition. Widen the window, check the event's name and owner, and make a <em>retire</em> or <em>migrate</em> decision per event. Do not delete everything that did not fire.</li>
+</ul>
+<p>For each event you keep, run it through <a href="#decision">the decision</a> above. A static threshold is where the classic event started, and it is not necessarily where it should end up.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting">Upgrade Metric Alerting (DT docs)</a> — both quotes above; <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/configure-a-simple-ad">Configure a simple custom alert (DT docs)</a> — <em>&quot;Management zones aren't supported in Anomaly Detection and will be lost after transforming metric events.&quot;</em>, <em>&quot;The converted metric event is automatically disabled, and the newly created configuration is active instead.&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection">Use segments with Anomaly Detection custom alerts (DT docs)</a> — <em>&quot;Segment filters are automatically applied to your query during execution.&quot;</em> <strong>Derived:</strong> a zone-scoped metric event widens to the whole environment on transform unless a segment is set — combines the two custom-alert quotes. <strong>Dictionary:</strong> <code>dt.settings.schema_id</code> (<code>experimental</code>), <code>dt.settings.object_id</code> (<code>experimental</code>), <code>event.provider</code> (<code>stable</code>), read 09/29/2026 (<a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-351">Semantic Dictionary 1.351 (DT docs)</a>, published 10/05/2026, promotes the <code>dt.settings.*</code> fields to <code>stable</code>; the validation tenant still returned <code>experimental</code> on 10/23/2026). Tenant counts from <code>dtctl get settings</code> and the query above, both run 09/29/2026, with the <code>builtin:davis.anomaly-detectors</code> run as the control. Re-run 10/06/2026 as shown: zero rows and no notifications, while the control returned 2,434 events from 8 detectors.</sub></p>
+</blockquote>
+<p><a id="prototype"></a></p>
+<h2>5. Prototype Before You Commit</h2>
+<p>Whichever mechanism you choose, develop the underlying query in a notebook first — run it, confirm it returns a sane result over a representative window, <em>then</em> wire it into the detector or SLO. A detector built on a query that silently returns nothing never fires and is worse than no alert, because the team believes it is covered. This notebook-as-scratchpad discipline is covered in AIOPS-02 §4 and SLO-02 §6.</p>
+<p><strong>Then deploy relaxed, and tighten later.</strong> Once the query is sound, resist configuring the detector at the sensitivity you think you want. Ship it with a high static threshold or a wide deviation margin, watch it for one to two weeks without acting on every trigger, and only then reduce the margin toward the real signal.</p>
+<p>The asymmetry is the whole argument: under-alerting for a fortnight is recoverable, whereas a team that muted your channel because the first week was noise is a much harder problem — and they will still be muted when the detector is finally tuned correctly. Alert fatigue is easier to avoid than to undo.</p>
+<p>The rigorous version of this makes the observation window explicit rather than informal: deploy the detector with its event type set to <code>CUSTOM_INFO</code>, so it is recorded and queryable but never opens a problem, measure how often it actually fires over two to four weeks, and promote it to <code>CUSTOM_ALERT</code> only once that number looks sane. AIOPS-02 §4 covers the mechanics and §8 the measuring query.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/avoid-overalerting">Avoid overalerting (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="handoff"></a></p>
+<h2>6. Hand-Off</h2>
+<table>
+<thead>
+<tr>
+<th>Mechanism chosen</th>
+<th>Build it in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tune OOTB Davis</td>
+<td>AIOPS-02 §1–§3</td>
+</tr>
+<tr>
+<td>Custom anomaly detector</td>
+<td>AIOPS-02 §4 (analyzer, tuning knobs, event template)</td>
+</tr>
+<tr>
+<td>Metric events / schemas as code</td>
+<td>AIOPS-02 §6, AUTOM-05/06</td>
+</tr>
+<tr>
+<td>OpenPipeline-derived metric</td>
+<td>OPIPE, FAQ-09</td>
+</tr>
+<tr>
+<td>SLO burn-rate</td>
+<td>SLO-02 (SLI), SLO-04 (alerting)</td>
+</tr>
+</tbody>
+</table>
+<p>Then return to ALERT-03 to route what fires.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection app (DT docs)</a>. <strong>Derived:</strong> the top-down decision order synthesises OOTB-first guidance with the query-cost economics in OPIPE/FINOPS.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WEBRUM-09: Migrating USQL to DQL</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WEBRUM — Web Real User Monitoring</a><span class="sep">/</span><span aria-current="page">WEBRUM-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WEBRUM-09: Migrating USQL to DQL</h1>
+<blockquote>
+<p><strong>Series:</strong> WEBRUM — Web Real User Monitoring | <strong>Notebook:</strong> 9 of 10 | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>User Sessions Query Language (USQL) is Dynatrace's own Gen2 query language for RUM data. On Gen3 it is replaced by DQL — but unlike the competitor translations elsewhere in this corpus (SPL, NRQL, SumoQL), this one has <strong>two possible targets</strong>, and which one you need depends on the RUM generation your tenant serves.</p>
+<p>That distinction is the whole notebook. Get it wrong and every query returns zero rows with no error to explain why.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Classic RUM on Grail</th>
+<th>New RUM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Session fields</td>
+<td><code>userActionCount</code>, <code>totalErrorCount</code>, <code>browserFamily</code></td>
+<td><code>user_action_count</code>, <code>error.count</code>, <code>browser.name</code></td>
+</tr>
+<tr>
+<td>Event typing</td>
+<td><code>action.type == &quot;Load&quot;</code></td>
+<td><code>characteristics.has_user_action == true</code></td>
+</tr>
+<tr>
+<td>What changes from USQL</td>
+<td><strong>Grammar only</strong> — field names carry over</td>
+<td>Grammar <strong>and</strong> every field name</td>
+</tr>
+</tbody>
+</table>
+<p>The useful surprise is on the left: classic RUM on Grail preserves the USQL field names almost verbatim, so that migration is a grammar exercise. Migrating to New RUM is a genuine field-by-field translation.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-this-is-two-migrations">Why This Is Two Migrations</a></li>
+<li><a href="#determining-which-model-your-tenant-serves">Determining Which Model Your Tenant Serves</a></li>
+<li><a href="#grammar-mapping">Grammar Mapping</a></li>
+<li><a href="#table-mapping">Table Mapping</a></li>
+<li><a href="#field-mapping--sessions">Field Mapping — Sessions</a></li>
+<li><a href="#field-mapping--user-actions">Field Mapping — User Actions</a></li>
+<li><a href="#worked-conversions">Worked Conversions</a></li>
+<li><a href="#what-does-not-translate">What Does Not Translate</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<p><a id="prerequisites"></a></p>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail</td>
+</tr>
+<tr>
+<td><strong>RUM data</strong></td>
+<td>At least one application reporting real-user sessions</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.sessions:read</code> and <code>storage:user.events:read</code></td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>WEBRUM-01 (fundamentals), WEBRUM-04 (session analysis)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>On the validation status of the queries in this notebook.</strong> The field names on both sides are sourced from primary references — the USQL/classic column from the Dynatrace <strong>User sessions API</strong> documentation, the New RUM column from a live query against <code>dt.semantic_dictionary.models</code> on a Dynatrace tenant (07/23/2026). Both are authoritative for <em>what the fields are called</em>.</p>
+<p>The two discovery queries in <a href="#determining-which-model-your-tenant-serves">section 2</a> were executed against a live tenant and returned the results described. The conversion examples in <a href="#worked-conversions">section 7</a> were <strong>not</strong> executed — the validation tenant holds zero records in <code>default_user_sessions</code> and <code>default_user_events</code>, so there was no real-user RUM data to run them against. They are schema-verified, not execution-verified. Run section 2 first, then confirm each conversion against your own data before relying on it.</p>
+</blockquote>
+<p><a id="why-this-is-two-migrations"></a></p>
+<h2>1. Why This Is Two Migrations</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5VU1FMIE1pZ3JhdGlvbiBIYXMgVHdvIFRhcmdldHM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+V2hpY2ggb25lIGFwcGxpZXMgZGVwZW5kcyBvbiB0aGUgUlVNIGdlbmVyYXRpb24geW91ciB0ZW5hbnQgc2VydmVzPC90ZXh0PgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPHJlY3QgeD0iNDAiIHk9IjE4MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxNDAiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTQwIiB5PSIyMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPlVTUUwgKEdlbjIpPC90ZXh0PgogIDx0ZXh0IHg9IjE0MCIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj51c2Vyc2Vzc2lvbjwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dXNlcmFjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjI3NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dXNlcmV2ZW50PC90ZXh0PgogIDx0ZXh0IHg9IjE0MCIgeT0iMjk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj51c2VyZXJyb3I8L3RleHQ+CgogIDxsaW5lIHgxPSIyNDAiIHkxPSIyMzAiIHgyPSIzMzAiIHkyPSIxNjAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KICA8bGluZSB4MT0iMjQwIiB5MT0iMjcwIiB4Mj0iMzMwIiB5Mj0iMzQ1IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CgogIDxyZWN0IHg9IjM0MCIgeT0iOTUiIHdpZHRoPSI1NTAiIGhlaWdodD0iMTQ1IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjM2NSIgeT0iMTI0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5DbGFzc2ljIFJVTSBvbiBHcmFpbCDigJQgZ3JhbW1hciBvbmx5PC90ZXh0PgogIDx0ZXh0IHg9IjM2NSIgeT0iMTUwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5GaWVsZCBuYW1lcyBjYXJyeSBvdmVyIGZyb20gVVNRTCB1bmNoYW5nZWQ6PC90ZXh0PgogIDx0ZXh0IHg9IjM2NSIgeT0iMTcyIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIj5kdXJhdGlvbiDCtyB1c2VyQWN0aW9uQ291bnQgwrcgdG90YWxFcnJvckNvdW50IMK3IGJyb3dzZXJGYW1pbHk8L3RleHQ+CiAgPHRleHQgeD0iMzY1IiB5PSIxOTYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPldoYXQgY2hhbmdlczogYWRkIGEgdGltZSByYW5nZSwgYWxpYXMgYWdncmVnYXRpb25zLDwvdGV4dD4KICA8dGV4dCB4PSIzNjUiIHk9IjIxMyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+PSBiZWNvbWVzID09LCBHUk9VUCBCWSBiZWNvbWVzIHN1bW1hcml6ZSBieTp7fTwvdGV4dD4KCiAgPHJlY3QgeD0iMzQwIiB5PSIyNzgiIHdpZHRoPSI1NTAiIGhlaWdodD0iMTYwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjM2NSIgeT0iMzA3IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5OZXcgUlVNIOKAlCBncmFtbWFyIHBsdXMgZXZlcnkgZmllbGQgbmFtZTwvdGV4dD4KICA8dGV4dCB4PSIzNjUiIHk9IjMzMyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U2VtYW50aWMgRGljdGlvbmFyeSBuYW1pbmc6PC90ZXh0PgogIDx0ZXh0IHg9IjM2NSIgeT0iMzU1IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIj5kdXJhdGlvbiDCtyB1c2VyX2FjdGlvbl9jb3VudCDCtyBlcnJvci5jb3VudCDCtyBicm93c2VyLm5hbWU8L3RleHQ+CiAgPHRleHQgeD0iMzY1IiB5PSIzNzkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnVzZXIuZXZlbnRzIHNwbGl0cyBpbnRvIGV2ZW50LXR5cGUgbW9kZWxzICgyMCBvbiAxMC8zMS8yMDI2KSBzZWxlY3RlZCBieTwvdGV4dD4KICA8dGV4dCB4PSIzNjUiIHk9IjM5NiIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiI+Y2hhcmFjdGVyaXN0aWNzLmhhc191c2VyX2FjdGlvbiDCtyBoYXNfZXJyb3IgwrcgaGFzX3JlcXVlc3Q8L3RleHQ+CiAgPHRleHQgeD0iMzY1IiB5PSI0MjAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkFkZHMgd2ViX3ZpdGFscy4qIGFuZCBhIGJyb2tlbi1vdXQgZXJyb3IuKiBjb3VudGVyIGZhbWlseTwvdGV4dD4KCiAgPGxpbmUgeDE9IjQwIiB5MT0iNDYyIiB4Mj0iODkwIiB5Mj0iNDYyIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQwIiB5PSI0ODYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlJ1biB0aGUgU2VtYW50aWMgRGljdGlvbmFyeSBxdWVyeSBpbiBzZWN0aW9uIDIgZmlyc3Qg4oCUIGEgd3JvbmcgdGFyZ2V0IHJldHVybnMgemVybyByb3dzIHdpdGggbm8gZXJyb3IgdG8gZXhwbGFpbiB3aHkuPC90ZXh0Pgo8L3N2Zz4K" alt="USQL migration has two possible targets" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Source | Target | Nature of the change |
+|--------|--------|----------------------|
+| USQL on Gen2 | Classic RUM on Grail | Grammar only — SELECT/FROM/WHERE become fetch/filter/summarize; field names carry over |
+| USQL on Gen2 | New RUM | Grammar plus a full field-name translation; user.events splits into a set of event-type models (20 on 10/31/2026) |
+For environments where SVG doesn't render
+-->
+<p>USQL ran against a purpose-built session store. Gen3 moved RUM into Grail, and it did so in two stages:</p>
+<ul>
+<li><strong>Classic RUM on Grail</strong> lifted the existing session model into Grail largely intact. In practice the USQL column names came along — <code>duration</code>, <code>userActionCount</code>, <code>totalErrorCount</code>, <code>userType</code> read as the same identifiers in both, which is how the classic queries in this series use them — so what changes is mainly the query grammar. That mapping is inferred rather than documented; confirm it with section 2's query before relying on it.</li>
+<li><strong>New RUM</strong> is a redesign around the Dynatrace Semantic Dictionary. Fields are renamed to the platform's snake_case dotted conventions, and <code>user.events</code> is no longer one flat table of typed actions — it is a set of event-type models distinguished by <code>characteristics.has_*</code> flags.</li>
+</ul>
+<p>The rest of the WEBRUM series is written against the New RUM vocabulary. On a classic-RUM-on-Grail tenant, use the second column of the tables below to translate it back.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/rum/user-sessions/user-session-structure">User session structure (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data">Custom queries, segmentation, and aggregation of session data (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="determining-which-model-your-tenant-serves"></a></p>
+<h2>2. Determining Which Model Your Tenant Serves</h2>
+<p>Run this first. It decides which column of every table below applies to you.</p>
+<p>The Semantic Dictionary is the authoritative description of the New RUM model. If it returns the <code>rum.user_session</code> model with snake_case dotted fields, your tenant knows about New RUM.</p>
+<pre><code class="language-dql">// Which RUM session model does this tenant describe?
+// Snake_case dotted fields (browser.name, user_action_count) =&gt; New RUM.
+fetch dt.semantic_dictionary.models
+| filter data_object == &quot;user.sessions&quot;
+| fields name, title, fields
+</code></pre>
+<p>The event side matters just as much. Under New RUM, <code>user.events</code> is described by a set of event-type models rather than one flat table — <code>rum_user_action</code>, <code>rum_page_summary</code>, <code>rum_navigation</code>, <code>rum_request</code>, <code>rum_exception</code>, <code>rum_crash</code>, and others. That is what replaces USQL's <code>useraction</code> / <code>userevent</code> / <code>usererror</code> split.</p>
+<pre><code class="language-dql">// Event-type models behind user.events under New RUM.
+// Each is selected in a query via its characteristics.has_* flag.
+fetch dt.semantic_dictionary.models
+| filter data_object == &quot;user.events&quot;
+| fields name, title
+| sort name asc
+</code></pre>
+<p>Then confirm where the data actually is. A tenant can describe New RUM while its populated buckets still hold classic-shaped data, so check record counts rather than assuming.</p>
+<pre><code class="language-dql">// Which RUM buckets hold data, and can you read them?
+// has_access == false means your permissions, not the data, are the problem.
+fetch dt.system.buckets
+| filter in(dt.system.table, {&quot;user.sessions&quot;, &quot;user.events&quot;})
+| fields name, dt.system.table, retention_days, records, has_access
+| sort records desc
+</code></pre>
+<blockquote>
+<p><strong>Reading the result.</strong> Records in <code>default_user_sessions</code> and <code>default_user_events</code> are your real-user data. Records only in <code>default_synthetic_user_sessions</code> / <code>default_synthetic_user_events</code> mean the tenant is carrying synthetic traffic alone — conversions will parse and return nothing, which looks identical to a wrong field name. Confirm you have real-user records before concluding a query is broken.</p>
+</blockquote>
+<p><a id="grammar-mapping"></a></p>
+<h2>3. Grammar Mapping</h2>
+<p>The grammar change is identical for both targets — only the field names in the third column differ.</p>
+<table>
+<thead>
+<tr>
+<th>USQL</th>
+<th>DQL</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SELECT &lt;fields&gt;</code></td>
+<td><code>fields &lt;fields&gt;</code></td>
+<td>Or omit — DQL returns all fields by default</td>
+</tr>
+<tr>
+<td><code>SELECT &lt;agg&gt;</code></td>
+<td><code>summarize &lt;alias&gt; = &lt;agg&gt;</code></td>
+<td><strong>DQL requires an alias</strong> if you sort on it afterwards</td>
+</tr>
+<tr>
+<td><code>FROM usersession</code></td>
+<td><code>fetch user.sessions, from:-24h</code></td>
+<td><strong>The time range is mandatory in DQL</strong>; USQL inherited it from the UI or API call</td>
+</tr>
+<tr>
+<td><code>WHERE &lt;cond&gt;</code></td>
+<td><code>| filter &lt;cond&gt;</code></td>
+<td><code>=</code> becomes <code>==</code></td>
+</tr>
+<tr>
+<td><code>GROUP BY a, b</code></td>
+<td><code>| summarize ..., by:{a, b}</code></td>
+<td>Curly braces, not bare list</td>
+</tr>
+<tr>
+<td><code>ORDER BY x DESC</code></td>
+<td><code>| sort x desc</code></td>
+<td>Lowercase <code>desc</code></td>
+</tr>
+<tr>
+<td><code>LIMIT 100</code></td>
+<td><code>| limit 100</code></td>
+<td>USQL default 50, max 5000; DQL default 1000</td>
+</tr>
+<tr>
+<td><code>TOP(field, 10)</code></td>
+<td><code>| summarize c = count(), by:{field} | sort c desc | limit 10</code></td>
+<td>No direct equivalent — decompose</td>
+</tr>
+<tr>
+<td><code>COUNT(*)</code></td>
+<td><code>count()</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>AVG</code> / <code>SUM</code> / <code>MIN</code> / <code>MAX</code></td>
+<td><code>avg</code> / <code>sum</code> / <code>min</code> / <code>max</code></td>
+<td>Same names, lowercase</td>
+</tr>
+<tr>
+<td><code>MEDIAN(x)</code></td>
+<td><code>percentile(x, 50)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>PERCENTILE(x, 90)</code></td>
+<td><code>percentile(x, 90)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>DISTINCT</code></td>
+<td><code>countDistinctExact()</code> / <code>collectDistinct()</code></td>
+<td>Depending on whether you want the count or the values</td>
+</tr>
+<tr>
+<td><code>LIKE '%x%'</code></td>
+<td><code>contains(field, &quot;x&quot;)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>STARTSWITH</code></td>
+<td><code>startsWith(field, &quot;x&quot;)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>IN (a, b)</code></td>
+<td><code>in(field, {&quot;a&quot;, &quot;b&quot;})</code></td>
+<td>Curly braces for the value set</td>
+</tr>
+<tr>
+<td><code>BETWEEN a AND b</code></td>
+<td><code>field &gt;= a and field &lt;= b</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>IS NULL</code> / <code>IS NOT NULL</code></td>
+<td><code>isNull(field)</code> / <code>isNotNull(field)</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>YEAR</code> / <code>MONTH</code> / <code>DAY</code> / <code>HOUR</code></td>
+<td><code>getYear()</code> / <code>getMonth()</code> / <code>getDayOfMonth()</code> / <code>getHour()</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Two rules cause most first-attempt failures:</strong></p>
+<ol>
+<li><strong>Every <code>fetch</code> needs a time range.</strong> USQL took its window from the dashboard, the management-zone selector, or the API request. DQL does not — <code>fetch user.sessions</code> without <code>from:</code> is not the same query.</li>
+<li><strong>Aggregations must be aliased before you sort on them.</strong> <code>sort count() desc</code> is invalid; <code>summarize c = count()</code> then <code>sort c desc</code> is what USQL's implicit ordering becomes.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data">Custom queries, segmentation, and aggregation of session data (DT docs)</a> — USQL keyword, function, and operator lists.</sub></p>
+</blockquote>
+<p><a id="table-mapping"></a></p>
+<h2>4. Table Mapping</h2>
+<p>USQL had four tables. DQL has two, and the distinction USQL encoded in the table name moves into a filter.</p>
+<table>
+<thead>
+<tr>
+<th>USQL table</th>
+<th>Classic RUM on Grail</th>
+<th>New RUM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>usersession</code></td>
+<td><code>fetch user.sessions</code></td>
+<td><code>fetch user.sessions</code></td>
+</tr>
+<tr>
+<td><code>useraction</code></td>
+<td><code>fetch user.events</code> + <code>filter action.type == &quot;Load&quot;</code> (or <code>&quot;Xhr&quot;</code>, <code>&quot;Click&quot;</code>, …)</td>
+<td><code>fetch user.events</code> + <code>filter characteristics.has_user_action == true</code></td>
+</tr>
+<tr>
+<td><code>userevent</code></td>
+<td><code>fetch user.events</code></td>
+<td><code>fetch user.events</code> + the relevant <code>characteristics.has_*</code> flag</td>
+</tr>
+<tr>
+<td><code>usererror</code></td>
+<td><code>fetch user.events</code> + error-type filter</td>
+<td><code>fetch user.events</code> + <code>filter characteristics.has_error == true</code></td>
+</tr>
+</tbody>
+</table>
+<p>Under New RUM the event-type models each expose their own fields — <code>rum_exception</code> carries <code>error.name</code> / <code>error.type</code> / <code>error.is_fatal</code>, <code>rum_crash</code> adds <code>exception.stack_trace</code> and <code>exception.crash_signal_name</code>, <code>rum_request</code> carries <code>http.request.method</code> and <code>http.response.status_code</code>. Filter to the event type first, then reference its fields.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> live query of <code>dt.semantic_dictionary.models</code> (Dynatrace tenant, 07/23/2026) for the New RUM column; <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data">Custom queries, segmentation, and aggregation of session data (DT docs)</a> for the USQL table list.</sub></p>
+</blockquote>
+<p><a id="field-mapping--sessions"></a></p>
+<h2>5. Field Mapping — Sessions</h2>
+<p><code>usersession</code> → <code>user.sessions</code>. The classic column is <strong>inferred, not documented</strong>: it assumes the USQL name carries over unchanged, as the classic queries elsewhere in this series use them. Verify it against your own tenant per section 2 before relying on it.</p>
+<table>
+<thead>
+<tr>
+<th>USQL (<code>usersession</code>)</th>
+<th>Classic RUM on Grail</th>
+<th>New RUM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>duration</code></td>
+<td><code>duration</code></td>
+<td><code>duration</code></td>
+</tr>
+<tr>
+<td><code>startTime</code> / <code>endTime</code></td>
+<td><code>startTime</code> / <code>endTime</code></td>
+<td><code>start_time</code> / <code>end_time</code></td>
+</tr>
+<tr>
+<td><code>endReason</code></td>
+<td><code>endReason</code></td>
+<td><code>end_reason</code></td>
+</tr>
+<tr>
+<td><code>userActionCount</code></td>
+<td><code>userActionCount</code></td>
+<td><code>user_action_count</code></td>
+</tr>
+<tr>
+<td><code>totalErrorCount</code></td>
+<td><code>totalErrorCount</code></td>
+<td><code>error.count</code></td>
+</tr>
+<tr>
+<td><code>hasError</code></td>
+<td><code>totalErrorCount &gt; 0</code></td>
+<td><code>error.count &gt; 0</code></td>
+</tr>
+<tr>
+<td><code>hasCrash</code></td>
+<td><code>hasCrash</code></td>
+<td><code>error.has_crash</code></td>
+</tr>
+<tr>
+<td><code>userType</code></td>
+<td><code>userType</code></td>
+<td><code>dt.rum.user_type</code></td>
+</tr>
+<tr>
+<td><code>userSessionId</code></td>
+<td><code>sessionId</code></td>
+<td><code>dt.rum.session.id</code></td>
+</tr>
+<tr>
+<td><code>browserFamily</code></td>
+<td><code>browserFamily</code></td>
+<td><code>browser.name</code></td>
+</tr>
+<tr>
+<td><code>browserMajorVersion</code></td>
+<td><code>browserMajorVersion</code></td>
+<td><code>browser.version</code></td>
+</tr>
+<tr>
+<td><code>osFamily</code> / <code>osVersion</code></td>
+<td><code>osFamily</code> / <code>osVersion</code></td>
+<td><code>os.name</code> / <code>os.version</code></td>
+</tr>
+<tr>
+<td><code>country</code></td>
+<td><code>country</code></td>
+<td><code>geo.country.iso_code</code></td>
+</tr>
+<tr>
+<td><code>ip</code></td>
+<td><code>ip</code></td>
+<td><code>client.ip</code></td>
+</tr>
+<tr>
+<td><code>isp</code></td>
+<td><code>isp</code></td>
+<td><code>client.isp</code></td>
+</tr>
+<tr>
+<td><code>device</code></td>
+<td><code>device</code></td>
+<td><code>device.type</code> — <strong>being removed; see note below</strong></td>
+</tr>
+<tr>
+<td><code>manufacturer</code></td>
+<td><code>manufacturer</code></td>
+<td><code>device.manufacturer</code></td>
+</tr>
+<tr>
+<td><code>screenWidth</code> / <code>screenHeight</code></td>
+<td><code>screenWidth</code> / <code>screenHeight</code></td>
+<td><code>device.screen.width</code> / <code>device.screen.height</code></td>
+</tr>
+<tr>
+<td><code>appVersion</code></td>
+<td><code>appVersion</code></td>
+<td><code>app.version</code></td>
+</tr>
+<tr>
+<td><code>hasSessionReplay</code></td>
+<td><code>hasSessionReplay</code></td>
+<td><code>characteristics.has_replay</code></td>
+</tr>
+<tr>
+<td><code>rootedOrJailbroken</code></td>
+<td><code>rootedOrJailbroken</code></td>
+<td><code>device.is_rooted</code></td>
+</tr>
+<tr>
+<td><code>stringProperties.&lt;key&gt;</code></td>
+<td><code>stringProperties.&lt;key&gt;</code></td>
+<td><code>session_properties.&lt;key&gt;</code></td>
+</tr>
+<tr>
+<td><code>bounce</code></td>
+<td><code>userActionCount == 1</code></td>
+<td><code>user_action_count == 1</code> — see note below</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Added in SaaS 1.348 (rollout from 10/12/2026, staged — verify on your tenant):</strong> <code>userExperienceScore</code> maps to <code>experience.score</code> (<code>experimental</code>). <code>city</code> / <code>continent</code> / <code>region</code> map to <code>geo.city.name</code> / <code>geo.continent.name</code> / <code>geo.region.name</code> on <code>user.events</code>; on <code>user.sessions</code>, verify on your tenant. Until these reach you, section 8's working paths apply.</p>
+<p><strong>Fields with no direct New RUM equivalent in the session model:</strong> <code>matchingConversionGoals</code>, <code>newUser</code>, <code>numberOfRageClicks</code>. See <a href="#what-does-not-translate">section 8</a>.</p>
+<p><strong>Bounce.</strong> Dynatrace defines a bounced session as <em>&quot;A session with only one user action or navigation&quot;</em>. The rest of this series counts it as <code>user_action_count == 1</code>, which keeps sessions with zero user actions out of the bounce count; compare the result with the <strong>Bounced Sessions</strong> filter in Users &amp; Sessions before treating the two as identical.</p>
+<p><strong>New RUM adds</strong> counters USQL had no equivalent for: <code>navigation_count</code>, <code>page_summary_count</code>, <code>request_count</code>, <code>user_interaction_count</code>, <code>view_summary_count</code>, and a broken-out error family (<code>error.exception_count</code>, <code>error.http_4xx_count</code>, <code>error.http_5xx_count</code>, <code>error.csp_violation_count</code>, <code>error.anr_count</code>).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-sessions">User sessions — semantic dictionary (DT docs)</a> — <em>&quot;Weighted average Experience Score for the user session&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/rum/user-sessions/user-session-structure">User session structure (DT docs)</a> for the USQL column; live query of <code>dt.semantic_dictionary.models</code> (model <code>rum.user_session</code>, Dynatrace tenant, 07/23/2026) for the New RUM column; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/web-frontends/concepts/user-sessions-web">User sessions in web frontends (DT docs)</a> — <em>&quot;A session with only one user action or navigation is tagged as bounced.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong><code>device.type</code> is being removed from the user-session model (Semantic Dictionary 1.348, released 08/25/2026).</strong> A migrated USQL <code>device</code> query that lands on <code>device.type</code> stops resolving once 1.348 reaches your tenant.</p>
+<p><strong>No replacement is documented.</strong> The same version adds a <code>client.*</code> family (<code>client.type</code>, <code>client.version</code>, <code>client.application.id</code>, and others) which <em>looks</em> like the successor, but the changelog states no mapping and this entry will not assert one. The docs session-model page no longer lists <code>device.type</code>. Verified against a live tenant on 10/31/2026: <code>device.type</code> is still on the <code>rum.user_session</code> model and on 3,269 of 3,269 sessions in 24 h, and <code>client.type</code> on none, so the row above still holds there and cannot responsibly be re-pointed yet.</p>
+<p>The removal is scoped to the <strong>user-session</strong> model. <code>device.type</code> also sits on three <code>dt.system.events</code> RUM billing models (<code>real_user_monitoring_usage_event</code> and siblings) that the changelog does not touch, so consumption queries splitting by it are unaffected — see FINOPS-01.</p>
+</blockquote>
+<p><a id="field-mapping--user-actions"></a></p>
+<h2>6. Field Mapping — User Actions</h2>
+<p><code>useraction</code> → <code>user.events</code>. This is where the two targets diverge most.</p>
+<table>
+<thead>
+<tr>
+<th>USQL (<code>useraction</code>)</th>
+<th>Classic RUM on Grail</th>
+<th>New RUM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td><code>action.name</code></td>
+<td><code>interaction.name</code> / <code>ui_element.name</code></td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td><code>action.type</code></td>
+<td><code>characteristics.has_*</code> flags (<code>has_page_summary</code>, <code>has_navigation</code>, <code>has_request</code>, …) — not <code>characteristics.classifier</code></td>
+</tr>
+<tr>
+<td><code>duration</code></td>
+<td><code>duration</code></td>
+<td><code>duration</code></td>
+</tr>
+<tr>
+<td><code>application</code></td>
+<td><code>application</code></td>
+<td><code>frontend.name</code></td>
+</tr>
+<tr>
+<td><code>largestContentfulPaint</code></td>
+<td><code>largestContentfulPaint</code></td>
+<td><code>web_vitals.largest_contentful_paint</code></td>
+</tr>
+<tr>
+<td><code>firstInputDelay</code></td>
+<td><code>firstInputDelay</code></td>
+<td><code>web_vitals.first_input_delay</code></td>
+</tr>
+<tr>
+<td><code>cumulativeLayoutShift</code></td>
+<td><code>cumulativeLayoutShift</code></td>
+<td><code>web_vitals.cumulative_layout_shift</code></td>
+</tr>
+<tr>
+<td><em>(no equivalent)</em></td>
+<td><em>(no equivalent)</em></td>
+<td><code>web_vitals.interaction_to_next_paint</code></td>
+</tr>
+<tr>
+<td><em>(no equivalent)</em></td>
+<td><em>(no equivalent)</em></td>
+<td><code>web_vitals.time_to_first_byte</code> (on <code>rum_request</code>)</td>
+</tr>
+<tr>
+<td><code>javascriptErrorCount</code></td>
+<td><code>javascriptErrorCount</code></td>
+<td>count <code>rum_exception</code> events</td>
+</tr>
+<tr>
+<td><code>requestErrorCount</code></td>
+<td><code>requestErrorCount</code></td>
+<td><code>characteristics.has_failed_request</code></td>
+</tr>
+<tr>
+<td><code>hasCrash</code></td>
+<td><code>hasCrash</code></td>
+<td><code>characteristics.has_crash</code></td>
+</tr>
+</tbody>
+</table>
+<p>Request-shaped actions (USQL <code>type == 'Xhr'</code>) map onto the <code>rum_request</code> model, which exposes <code>http.request.method</code>, <code>http.response.status_code</code>, and <code>http.response.reason_phrase</code> — none of which existed as USQL user-action fields.</p>
+<blockquote>
+<p><strong>Select <code>user.events</code> with the <code>characteristics.has_*</code> flags, not <code>characteristics.classifier</code>.</strong> The User events semantic-dictionary page describes <code>characteristics.classifier</code> as the single characteristic picked by priority when an event has several, and says it is <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em> <strong>Semantic Dictionary 1.349</strong> (published 09/04/2026) removes it from the user-event models, with a <strong>staged tenant rollout</strong> — a tenant that has not reached 1.349 still returns the field, so a classifier filter keeps working until the change arrives and then silently matches nothing. The stable flags (<code>has_page_summary</code>, <code>has_navigation</code>, <code>has_error</code>, <code>has_request</code>, …) are the documented selectors and work on both sides of the change. <strong>Semantic Dictionary 1.350</strong> (published 09/21/2026) re-lists <code>characteristics.classifier</code> under the Basic user-event model, still <code>experimental</code>, and the User events page still calls it <em>&quot;not intended for query usage&quot;</em> — so the flags above remain the selectors.</p>
+<p>The flags can <strong>overlap</strong> where the classifier picked one winner. A navigation that also carried an error was classified <code>error</code>, so <code>classifier == &quot;navigation&quot;</code> silently dropped it; <code>characteristics.has_navigation == true</code> keeps it. On the validation tenant (24 h, 09/28/2026) that is <strong>7,387</strong> navigations against <strong>6,235</strong> — the 1,152 recovered page loads have full navigation timing. For page summaries the two filters select the same 7,268 events.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/rum/user-sessions/user-session-structure">User session structure (DT docs)</a> for the documented user-action fields; live query of <code>dt.semantic_dictionary.models</code> (models <code>rum_user_action</code>, <code>rum_request</code>, <code>rum_exception</code>, <code>rum_crash</code>, Dynatrace tenant, 07/23/2026) for the New RUM column; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events — semantic dictionary (DT docs)</a> — <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em>; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349">Semantic Dictionary changelog 1.349 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-350">Semantic Dictionary changelog 1.350 (DT docs)</a>. <strong>Dictionary:</strong> models <code>rum_page_summary</code> / <code>rum_navigation</code> list <code>characteristics.has_page_summary</code> / <code>characteristics.has_navigation</code>, read 09/28/2026.</sub></p>
+</blockquote>
+<p><a id="worked-conversions"></a></p>
+<h2>7. Worked Conversions</h2>
+<p>Each cell shows the original USQL as a comment, then the DQL for both targets. Uncomment the one matching your tenant.</p>
+<blockquote>
+<p>These were not executed against real-user data — see the note in <a href="#prerequisites">Prerequisites</a>. Verify against your own tenant.</p>
+</blockquote>
+<pre><code class="language-dql">// USQL: SELECT browserFamily, COUNT(*) FROM usersession GROUP BY browserFamily
+
+// --- Classic RUM on Grail ---
+fetch user.sessions, from:-24h
+| filter userType == &quot;REAL_USER&quot;
+| summarize session_count = count(), by:{browserFamily}
+| sort session_count desc
+| limit 10
+
+// --- New RUM ---
+// fetch user.sessions, from:-24h
+// | filter dt.rum.user_type == &quot;real_user&quot;   // documented values: real_user / robot / synthetic
+// | summarize session_count = count(), by:{browser.name}
+// | sort session_count desc
+// | limit 10
+</code></pre>
+<pre><code class="language-dql">// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -&gt; dt.rum.user_type      userActionCount -&gt; user_action_count
+//   totalErrorCount -&gt; error.count    sessionId -&gt; dt.rum.session.id
+//   hasSessionReplay -&gt; characteristics.has_replay
+//   browserFamily -&gt; browser.name     osFamily -&gt; os.name
+//   application -&gt; frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
+//   country/city/continent -&gt; geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -&gt; browser.window.width|height
+//   dom.interactive.time -&gt; performance.dom_interactive
+//   load.event.time -&gt; performance.load_event_end
+//   server.time -&gt; ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == &quot;synthetic&quot;, so a real-user filter matches nothing —
+//     the documented values are &quot;real_user&quot; / &quot;robot&quot; / &quot;synthetic&quot; (lowercase);
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
+// USQL: SELECT AVG(duration) FROM usersession WHERE browserFamily = 'Chrome'
+// Note the two changes: = becomes ==, and the aggregation gets an alias.
+
+// --- Classic RUM on Grail ---
+fetch user.sessions, from:-24h
+| filter browserFamily == &quot;Chrome&quot;
+| summarize avg_duration = avg(duration)
+
+// --- New RUM ---
+// fetch user.sessions, from:-24h
+// | filter browser.name == &quot;Chrome&quot;
+// | summarize avg_duration = avg(duration)
+</code></pre>
+<pre><code class="language-dql">// USQL: SELECT country, COUNT(*) FROM usersession WHERE hasError IS TRUE GROUP BY country
+// hasError has no DQL equivalent — it becomes a count comparison.
+
+// --- Classic RUM on Grail ---
+fetch user.sessions, from:-24h
+| filter userType == &quot;REAL_USER&quot;
+| summarize {total = count(),
+    with_errors = countIf(totalErrorCount &gt; 0)},
+    by:{country}
+| fieldsAdd error_pct = round(toDouble(with_errors) / toDouble(total) * 100.0, decimals: 1)
+| sort error_pct desc
+| limit 20
+
+// --- New RUM ---
+// fetch user.sessions, from:-24h
+// | filter dt.rum.user_type == &quot;real_user&quot;
+// | summarize {total = count(),
+//     with_errors = countIf(error.count &gt; 0)},
+//     by:{geo.country.iso_code}
+// | fieldsAdd error_pct = round(toDouble(with_errors) / toDouble(total) * 100.0, decimals: 1)
+// | sort error_pct desc
+// | limit 20
+</code></pre>
+<pre><code class="language-dql">// USQL: SELECT TOP(name, 10), COUNT(*) FROM useraction GROUP BY name
+// TOP() decomposes into summarize + sort + limit.
+
+// --- Classic RUM on Grail ---
+fetch user.events, from:-24h
+| filter action.type == &quot;Load&quot;
+| summarize action_count = count(), by:{action.name}
+| sort action_count desc
+| limit 10
+
+// --- New RUM ---
+// fetch user.events, from:-24h
+// | filter characteristics.has_user_action == true
+// | summarize action_count = count(), by:{interaction.name}
+// | sort action_count desc
+// | limit 10
+</code></pre>
+<pre><code class="language-dql">// USQL: SELECT AVG(largestContentfulPaint) FROM useraction WHERE type = 'Load' GROUP BY application
+// Web Vitals move into the web_vitals.* namespace under New RUM.
+
+// --- Classic RUM on Grail ---
+fetch user.events, from:-24h
+| filter action.type == &quot;Load&quot;
+| filter isNotNull(largestContentfulPaint)
+| summarize {avg_lcp = avg(largestContentfulPaint),
+    p90_lcp = percentile(largestContentfulPaint, 90)},
+    by:{application}
+| sort p90_lcp desc
+
+// --- New RUM ---
+// fetch user.events, from:-24h
+// | filter characteristics.has_user_action == true
+// | filter isNotNull(web_vitals.largest_contentful_paint)
+// | summarize {avg_lcp = avg(web_vitals.largest_contentful_paint),
+//     p90_lcp = percentile(web_vitals.largest_contentful_paint, 90)},
+//     by:{frontend.name}
+// | sort p90_lcp desc
+</code></pre>
+<p><a id="what-does-not-translate"></a></p>
+<h2>8. What Does Not Translate</h2>
+<table>
+<thead>
+<tr>
+<th>USQL feature</th>
+<th>Status</th>
+<th>What to do instead</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FUNNEL</code></td>
+<td>No DQL equivalent</td>
+<td>Rebuild as sequential <code>countIf()</code> stages, or model the funnel as business events — see the BIZEV series</td>
+</tr>
+<tr>
+<td><code>matchingConversionGoals</code></td>
+<td>Not in the New RUM session model</td>
+<td>Conversion goals are a classic-application construct; express the goal as a filter on the action or as a business event</td>
+</tr>
+<tr>
+<td><code>userExperienceScore</code></td>
+<td><code>experience.score</code> (<code>experimental</code>), SaaS 1.348, staged tenant rollout</td>
+<td>Verify the field has reached your tenant. Until then, deriving an Apdex-style classification from duration thresholds remains the working path</td>
+</tr>
+<tr>
+<td><code>city</code> / <code>continent</code> / <code>region</code></td>
+<td><code>geo.city.name</code> / <code>geo.continent.name</code> / <code>geo.region.name</code> on <code>user.events</code></td>
+<td>SaaS 1.348, staged tenant rollout. On <code>user.sessions</code>, verify on your tenant: the 1.348 note says all events and sessions, while the session model page lists only <code>geo.country.iso_code</code>. Until then, country-level granularity on sessions remains the working path</td>
+</tr>
+<tr>
+<td><code>newUser</code></td>
+<td>Not in the New RUM session model</td>
+<td>Derive from user-id first-seen, or track as a session property</td>
+</tr>
+<tr>
+<td><code>numberOfRageClicks</code> / <code>numberOfRageTaps</code></td>
+<td>No rage-click field or event model in the dictionary (10/31/2026)</td>
+<td>See WEBRUM-05 § 6</td>
+</tr>
+<tr>
+<td><code>KEYS</code> / <code>CONDITION</code></td>
+<td>No DQL equivalent</td>
+<td><code>KEYS</code> was USQL property discovery; use <code>fieldsSummary</code> or the Semantic Dictionary</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Two behavioural differences worth knowing before you trust a result:</strong></p>
+<ul>
+<li><strong>Session windowing.</strong> <code>fetch user.sessions, from:-24h</code> queries a time window. Long sessions can begin outside a narrow window, so a correlation query over a short range can under-count. Widen the lookback and filter afterwards when session boundaries matter.</li>
+<li><strong>Closed sessions only.</strong> USQL documented that only closed sessions are queryable. Expect a comparable lag before an in-flight session is complete in Grail, and do not treat the most recent minutes as final.</li>
+</ul>
+<p><strong>If <code>fetch user.sessions</code> returns nothing at all</strong>, work through section 2 before assuming a field name is wrong — an unpopulated bucket, a missing <code>storage:user.sessions:read</code> scope, and a wrong field name all produce an empty result set, and only one of them is a query problem.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data">Custom queries, segmentation, and aggregation of session data (DT docs)</a> — <code>FUNNEL</code> limits, closed-session constraint, <code>KEYS</code>/<code>CONDITION</code>; live query of <code>dt.semantic_dictionary.models</code> for the absent-field determinations; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-sessions">User sessions — semantic dictionary (DT docs)</a> — <em>&quot;Weighted average Experience Score for the user session&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">Dynatrace SaaS release notes 1.348 (DT docs)</a> — <em>&quot;Rollout start on Oct 12, 2026&quot;</em>; <em>&quot;The following new attributes are available across all RUM events and sessions&quot;</em>. <strong>Dictionary:</strong> no field containing <code>rage</code> on any <code>user.events</code> or <code>user.sessions</code> model, read 10/31/2026 (control: the same filter returned <code>characteristics.classifier</code> on 20 models).</sub></p>
+</blockquote>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>9. Summary and Next Steps</h2>
+<p><strong>The three things to carry away:</strong></p>
+<ol>
+<li><strong>Establish your target before translating anything.</strong> Section 2 takes a minute and determines which column of every table applies. Skipping it produces queries that parse cleanly and return nothing.</li>
+<li><strong>On classic RUM, this is a grammar migration.</strong> The USQL field names carry over. Fix the time range, alias the aggregations, swap <code>=</code> for <code>==</code>, and most queries work.</li>
+<li><strong>On New RUM, budget for a rewrite.</strong> Field names change, and the <code>useraction</code> / <code>userevent</code> / <code>usererror</code> split becomes <code>characteristics.has_*</code> filters over event-type models with their own field sets.</li>
+</ol>
+<p><strong>Where to go next:</strong></p>
+<table>
+<thead>
+<tr>
+<th>If you need…</th>
+<th>Read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Session analysis patterns on Gen3</td>
+<td>WEBRUM-04 (session analysis)</td>
+</tr>
+<tr>
+<td>Error and crash analysis</td>
+<td>WEBRUM-05 (error analysis)</td>
+</tr>
+<tr>
+<td>Core Web Vitals in depth</td>
+<td>WEBRUM-03 (core web vitals)</td>
+</tr>
+<tr>
+<td>Funnels and conversion analytics</td>
+<td>The BIZEV series</td>
+</tr>
+<tr>
+<td>DQL syntax generally</td>
+<td>ORGNZ-99 (best practice summary and DQL reference)</td>
+</tr>
+<tr>
+<td>The wider classic-to-Gen3 migration this sits inside</td>
+<td>The -START-HERE- playbook, Doorway 4</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

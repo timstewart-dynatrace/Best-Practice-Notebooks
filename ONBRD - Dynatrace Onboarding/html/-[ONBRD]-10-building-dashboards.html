@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONBRD-10: Building Dashboards</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ONBRD — Dynatrace Onboarding</a><span class="sep">/</span><span aria-current="page">ONBRD-10</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ONBRD-10: Building Dashboards</h1>
+<blockquote>
+<p><strong>Series:</strong> ONBRD — Dynatrace Onboarding | <strong>Notebook:</strong> 10 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/16/2026</p>
+</blockquote>
+<h2>Visualizing Your Data</h2>
+<p>Dashboards provide at-a-glance visibility into your environment's health and performance. This notebook covers dashboard creation, common visualization patterns, and sharing with your team.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#dashboards-vs-notebooks">Dashboards vs Notebooks</a></li>
+<li><a href="#creating-your-first-dashboard">Creating Your First Dashboard</a></li>
+<li><a href="#common-tile-types">Tile and Visualization Types</a></li>
+<li><a href="#dashboard-patterns">Dashboard Patterns</a></li>
+<li><a href="#useful-queries-for-dashboards">Useful Queries for Dashboards</a></li>
+<li><a href="#sharing-and-permissions">Sharing and Permissions</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>Viewer access or higher</li>
+<li>Familiarity with DQL (ONBRD-08)</li>
+<li>Data in your environment to visualize</li>
+</ul>
+<p><a id="dashboards-vs-notebooks"></a></p>
+<h2>1. Dashboards vs Notebooks</h2>
+<p>Dynatrace offers two visualization tools:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Dashboard</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Purpose</strong></td>
+<td>Monitoring at a glance</td>
+<td>Interactive analysis</td>
+</tr>
+<tr>
+<td><strong>Layout</strong></td>
+<td>Fixed grid tiles</td>
+<td>Sequential document</td>
+</tr>
+<tr>
+<td><strong>Auto-refresh</strong></td>
+<td>Yes</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td><strong>Interactivity</strong></td>
+<td>Click-through links</td>
+<td>Query editing</td>
+</tr>
+<tr>
+<td><strong>Sharing</strong></td>
+<td>Wall displays, reports</td>
+<td>Investigation documentation</td>
+</tr>
+<tr>
+<td><strong>Best for</strong></td>
+<td>NOC screens, status pages</td>
+<td>Troubleshooting, exploration</td>
+</tr>
+</tbody>
+</table>
+<p>This notebook uses <strong>Dashboards</strong>, the Latest Dynatrace app. Dashboards Classic is the older surface, and Dynatrace's advice for it is: <em>&quot;If you're still using classic dashboards, we encourage you to upgrade your dashboards and benefit from all the latest dashboarding possibilities made available by the Dashboards app in the latest Dynatrace.&quot;</em> Classic tiles such as <strong>Host health</strong> and <strong>Service health</strong> do not exist in the Dashboards app; their job is done with DQL tiles (§5).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-classic">Dashboards Classic (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>When to Use Each</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Team status display</td>
+<td>Dashboard</td>
+</tr>
+<tr>
+<td>Incident investigation</td>
+<td>Notebook</td>
+</tr>
+<tr>
+<td>Executive summary</td>
+<td>Dashboard</td>
+</tr>
+<tr>
+<td>Root cause analysis</td>
+<td>Notebook</td>
+</tr>
+<tr>
+<td>SLA reporting</td>
+<td>Dashboard</td>
+</tr>
+<tr>
+<td>Ad-hoc queries</td>
+<td>Notebook</td>
+</tr>
+</tbody>
+</table>
+<p><a id="creating-your-first-dashboard"></a></p>
+<h2>2. Creating Your First Dashboard</h2>
+<p><strong>Location:</strong> the <strong>Dashboards</strong> app → create a dashboard</p>
+<h3>Dashboard Creation Steps</h3>
+<ol>
+<li>Click &quot;Create dashboard&quot;</li>
+<li>Name your dashboard (e.g., &quot;Production Overview&quot;)</li>
+<li>Add tiles by clicking &quot;+&quot; or dragging</li>
+<li>Configure each tile</li>
+<li>Arrange and resize as needed</li>
+<li>Save</li>
+</ol>
+<h3>Dashboard Settings</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Name</strong></td>
+<td>Dashboard title</td>
+</tr>
+<tr>
+<td><strong>Time frame</strong></td>
+<td>Default time range</td>
+</tr>
+<tr>
+<td><strong>Segment</strong></td>
+<td>Default filter scope</td>
+</tr>
+<tr>
+<td><strong>Variables</strong></td>
+<td><em>&quot;Configure variable filters to monitor different resources within a single dashboard.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Refresh rate</strong></td>
+<td>Auto-refresh interval. <em>&quot;When you open a dashboard for the first time, the refresh rate is set to Off (no automatic refresh).&quot;</em> A rate you pick is remembered the next time you open the dashboard</td>
+</tr>
+<tr>
+<td><strong>Owner</strong></td>
+<td>Dashboard owner</td>
+</tr>
+<tr>
+<td><strong>Sharing</strong></td>
+<td>Who can view/edit (§6)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new">Dashboards (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="common-tile-types"></a></p>
+<h2>3. Tile and Visualization Types</h2>
+<h3>Tiles</h3>
+<table>
+<thead>
+<tr>
+<th>Tile Type</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Query</strong></td>
+<td>A DQL query against Grail, shown with any visualization below</td>
+</tr>
+<tr>
+<td><strong>Explore</strong></td>
+<td>Point-and-click data exploration, no DQL needed</td>
+</tr>
+<tr>
+<td><strong>Code</strong></td>
+<td>Data returned by code run as a Dynatrace function</td>
+</tr>
+<tr>
+<td><strong>Markdown</strong></td>
+<td>Documentation, links</td>
+</tr>
+<tr>
+<td><strong>Image</strong></td>
+<td>Logos, diagrams</td>
+</tr>
+<tr>
+<td><strong>Service-Level Objective</strong></td>
+<td>SLO status</td>
+</tr>
+<tr>
+<td><strong>Variables</strong></td>
+<td>Filters that drive the other tiles</td>
+</tr>
+</tbody>
+</table>
+<h3>Visualizations for Query and Explore Tiles</h3>
+<table>
+<thead>
+<tr>
+<th>Visualization</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Single value</strong></td>
+<td>Key metrics (request count, error rate)</td>
+</tr>
+<tr>
+<td><strong>Line / Area / Band chart</strong></td>
+<td>Time series data</td>
+</tr>
+<tr>
+<td><strong>Bar / Categorical chart</strong></td>
+<td>Comparisons and ranked top-N (sort and <code>limit</code> in the query)</td>
+</tr>
+<tr>
+<td><strong>Top list</strong> (SaaS 1.349+)</td>
+<td>Ranking entities by a metric</td>
+</tr>
+<tr>
+<td><strong>Table / Record list</strong></td>
+<td>Lists and details, including active problems from <code>dt.davis.problems</code></td>
+</tr>
+<tr>
+<td><strong>Pie / Donut</strong></td>
+<td>Distribution</td>
+</tr>
+<tr>
+<td><strong>Honeycomb</strong></td>
+<td>Entity health grid</td>
+</tr>
+<tr>
+<td><strong>Meter bar / Gauge</strong></td>
+<td>Value against a range</td>
+</tr>
+<tr>
+<td><strong>Maps</strong> (choropleth, dot, connection, bubble)</td>
+<td>Geographic data</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>SaaS 1.349 (staged tenant rollout from 10/27/2026):</strong> <em>&quot;Top list visualizations are now integrated into Dashboards and Notebooks&quot;</em> (<a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-349">What's new in Dynatrace SaaS 1.349 (DT docs)</a>) — use it to <em>&quot;Rank entities by a metric. For example, to identify the top 10 hosts by CPU usage or the bottom 5 services by availability.&quot;</em> (<a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/edit-visualizations/visualization-top-list">Top list visualization (DT docs)</a>). Verify it has reached your tenant; until then a ranked list is a bar or categorical chart (or a table) over a query that ends in <code>sort … | limit N</code>.</p>
+</blockquote>
+<h3>Visualization Types</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idml6SGVhZGVyR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNDk2ZmY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBhNjRiYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJ2aXpTaGFkb3ciPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIxIiBkeT0iMSIgc3RkRGV2aWF0aW9uPSIyIiBmbG9vZC1vcGFjaXR5PSIwLjE1Ii8+CiAgICA8L2ZpbHRlcj4KICAgIDxtYXJrZXIgaWQ9InZpekFycm93IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI2IiByZWZYPSI3IiByZWZZPSIzIiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgOCAzLCAwIDYiIGZpbGw9IiMzYjgyZjYiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5WaXN1YWxpemF0aW9uIFNlbGVjdGlvbiBHdWlkZTwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNob29zZSB0aGUgcmlnaHQgdmlzdWFsaXphdGlvbiBmb3IgeW91ciBkYXRhPC90ZXh0PgoKICA8IS0tIENvbnRhaW5lciAtLT4KICA8cmVjdCB4PSI0MCIgeT0iNjUiIHdpZHRoPSI3MjAiIGhlaWdodD0iMjIwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjdml6U2hhZG93KSIvPgogIDxyZWN0IHg9IjQwIiB5PSI2NSIgd2lkdGg9IjcyMCIgaGVpZ2h0PSIzNSIgcng9IjEwIiBmaWxsPSJ1cmwoI3ZpekhlYWRlckdyYWQpIi8+CiAgPHJlY3QgeD0iNDAiIHk9IjkyIiB3aWR0aD0iNzIwIiBoZWlnaHQ9IjgiIGZpbGw9InVybCgjdml6SGVhZGVyR3JhZCkiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjkwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+V2hhdCBkbyB5b3Ugd2FudCB0byBzaG93PzwvdGV4dD4KCiAgPCEtLSBMZWZ0IENvbHVtbjogRGF0YSBUeXBlcyAtLT4KICA8dGV4dCB4PSI4MCIgeT0iMTMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMzMzMiPlNpbmdsZSBudW1iZXI8L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjE1NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjMzMzIj5UcmVuZCBvdmVyIHRpbWU8L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjE4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjMzMzIj5Db21wYXJlIHZhbHVlczwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iMjA1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMzMzMiPkRpc3RyaWJ1dGlvbjwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iMjMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMzMzMiPlRvcCBOIGl0ZW1zPC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSIyNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzMzMyI+RGV0YWlsZWQgbGlzdDwvdGV4dD4KCiAgPCEtLSBBcnJvd3MgLS0+CiAgPHBhdGggZD0iTTE5MCwxMjYgTDI1MCwxMjYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjdml6QXJyb3cpIi8+CiAgPHBhdGggZD0iTTE5MCwxNTEgTDI1MCwxNTEiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjdml6QXJyb3cpIi8+CiAgPHBhdGggZD0iTTE5MCwxNzYgTDI1MCwxNzYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjdml6QXJyb3cpIi8+CiAgPHBhdGggZD0iTTE5MCwyMDEgTDI1MCwyMDEiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjdml6QXJyb3cpIi8+CiAgPHBhdGggZD0iTTE5MCwyMjYgTDI1MCwyMjYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjdml6QXJyb3cpIi8+CiAgPHBhdGggZD0iTTE5MCwyNTEgTDI1MCwyNTEiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjdml6QXJyb3cpIi8+CgogIDwhLS0gUmlnaHQgQ29sdW1uOiBWaXN1YWxpemF0aW9uIFR5cGVzIC0tPgogIDxyZWN0IHg9IjI2MCIgeT0iMTE1IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjIyIiByeD0iNCIgZmlsbD0iI2RiZWFmZSIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzMjUiIHk9IjEzMSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlNDBhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2luZ2xlIFZhbHVlPC90ZXh0PgoKICA8cmVjdCB4PSIyNjAiIHk9IjE0MCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIyMiIgcng9IjQiIGZpbGw9IiNkMWZhZTUiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzI1IiB5PSIxNTYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPkxpbmUvQXJlYSBDaGFydDwvdGV4dD4KCiAgPHJlY3QgeD0iMjYwIiB5PSIxNjUiIHdpZHRoPSIxMzAiIGhlaWdodD0iMjIiIHJ4PSI0IiBmaWxsPSIjZmVmM2M3IiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjMyNSIgeT0iMTgxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CYXIgQ2hhcnQ8L3RleHQ+CgogIDxyZWN0IHg9IjI2MCIgeT0iMTkwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjIyIiByeD0iNCIgZmlsbD0iI2VkZTlmZSIgc3Ryb2tlPSIjOGI1Y2Y2IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzMjUiIHk9IjIwNiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzZkMjhkOSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGllIENoYXJ0PC90ZXh0PgoKICA8cmVjdCB4PSIyNjAiIHk9IjIxNSIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIyMiIgcng9IjQiIGZpbGw9IiNmY2U3ZjMiIHN0cm9rZT0iI2VjNDg5OSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzI1IiB5PSIyMzEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI5LjUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjYmUxODVkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ub3AgbGlzdCAvIEJhciAoc29ydGVkKTwvdGV4dD4KCiAgPHJlY3QgeD0iMjYwIiB5PSIyNDAiIHdpZHRoPSIxMzAiIGhlaWdodD0iMjIiIHJ4PSI0IiBmaWxsPSIjZjFmNWY5IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjMyNSIgeT0iMjU2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjNDc1NTY5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5UYWJsZTwvdGV4dD4KCiAgPCEtLSBBZGRpdGlvbmFsIFR5cGVzIC0tPgogIDxyZWN0IHg9IjQyMCIgeT0iMTE1IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjIyIiByeD0iNCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NDUiIHk9IjEzMSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjQ3NDhiIj5FbnRpdHkgc3RhdHVzPC90ZXh0PgogIDxwYXRoIGQ9Ik01NDAiIHkxPSIxMjYiIHgxPSI1NDAiIHgyPSI1ODUiIHkyPSIxMjYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjdml6QXJyb3cpIi8+CiAgPHJlY3QgeD0iNTk1IiB5PSIxMTUiIHdpZHRoPSIxMDAiIGhlaWdodD0iMjIiIHJ4PSI0IiBmaWxsPSIjZDFmYWU1IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjY0NSIgeT0iMTMxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ib25leWNvbWI8L3RleHQ+CgogIDxyZWN0IHg9IjQyMCIgeT0iMTQ1IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjIyIiByeD0iNCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NDUiIHk9IjE2MSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjQ3NDhiIj5HZW9ncmFwaGljPC90ZXh0PgogIDxwYXRoIGQ9Ik01NDAiIHkxPSIxNTYiIHgxPSI1NDAiIHgyPSI1ODUiIHkyPSIxNTYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjdml6QXJyb3cpIi8+CiAgPHJlY3QgeD0iNTk1IiB5PSIxNDUiIHdpZHRoPSIxMDAiIGhlaWdodD0iMjIiIHJ4PSI0IiBmaWxsPSIjZGJlYWZlIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjY0NSIgeT0iMTYxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWU0MGFmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NYXA8L3RleHQ+CgogIDxyZWN0IHg9IjQyMCIgeT0iMTc1IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjIyIiByeD0iNCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NDUiIHk9IjE5MSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjQ3NDhiIj5BY3RpdmUgcHJvYmxlbXM8L3RleHQ+CiAgPHBhdGggZD0iTTU0MCIgeTE9IjE4NiIgeDE9IjU0MCIgeDI9IjU4NSIgeTI9IjE4NiIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjEuNSIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCN2aXpBcnJvdykiLz4KICA8cmVjdCB4PSI1OTUiIHk9IjE3NSIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIyMiIgcng9IjQiIGZpbGw9IiNmZWYyZjIiIHN0cm9rZT0iI2VmNDQ0NCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjQ1IiB5PSIxOTEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkYzI2MjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRhYmxlIChEUUwpPC90ZXh0PgoKICA8cmVjdCB4PSI0MjAiIHk9IjIwNSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIyMiIgcng9IjQiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDQ1IiB5PSIyMjEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY0NzQ4YiI+U0xPIHN0YXR1czwvdGV4dD4KICA8cGF0aCBkPSJNNTQwIiB5MT0iMjE2IiB4MT0iNTQwIiB4Mj0iNTg1IiB5Mj0iMjE2IiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMS41IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI3ZpekFycm93KSIvPgogIDxyZWN0IHg9IjU5NSIgeT0iMjA1IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjIyIiByeD0iNCIgZmlsbD0iI2ZlZjNjNyIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2NDUiIHk9IjIyMSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0xPIFRpbGU8L3RleHQ+Cjwvc3ZnPgo=" alt="Visualization Guide" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Show This | Use This Visualization |
+|-----------|---------------|
+| Single number | Single Value |
+| Trend over time | Line/Area Chart |
+| Compare values | Bar Chart |
+| Distribution | Pie Chart |
+| Top N items | Top list (1.349+), or bar chart sorted and limited |
+| Detailed list | Table |
+| Entity status | Honeycomb |
+| Geographic | Map |
+| Active problems | Table on a `dt.davis.problems` query |
+| SLO status | Service-Level Objective tile |
+-->
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new">Dashboards (DT docs)</a> — tile types; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/edit-visualizations">Edit visualizations (DT docs)</a> — the visualization list.</sub></p>
+</blockquote>
+<p><a id="dashboard-patterns"></a></p>
+<h2>4. Dashboard Patterns</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNTAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaGVhZGVyR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNDk2ZmY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBhNjRiYztzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJkYXNoU2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRhc2hib2FyZCBQYXR0ZXJuczwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT09PT09PT09PSBFWEVDVVRJVkUgU1VNTUFSWSA9PT09PT09PT09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iNTAiIHdpZHRoPSIzNjAiIGhlaWdodD0iMjAwIiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjIiIGZpbHRlcj0idXJsKCNkYXNoU2hhZG93KSIvPgogIDxyZWN0IHg9IjMwIiB5PSI1MCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSIyOCIgcng9IjgiIGZpbGw9InVybCgjaGVhZGVyR3JhZCkiLz4KICA8cmVjdCB4PSIzMCIgeT0iNzAiIHdpZHRoPSIzNjAiIGhlaWdodD0iOCIgZmlsbD0idXJsKCNoZWFkZXJHcmFkKSIvPgogIDx0ZXh0IHg9IjIxMCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FWEVDVVRJVkUgU1VNTUFSWTwvdGV4dD4KCiAgPCEtLSBLUEkgUm93IC0tPgogIDxyZWN0IHg9IjQwIiB5PSI4NSIgd2lkdGg9IjgwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0iI2RiZWFmZSIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI4MCIgeT0iMTAzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZTQwYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlVwdGltZTwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWU0MGFmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj45OS45JTwvdGV4dD4KCiAgPHJlY3QgeD0iMTMwIiB5PSI4NSIgd2lkdGg9IjgwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0iI2ZlZjJmMiIgc3Ryb2tlPSIjZWY0NDQ0IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxNzAiIHk9IjEwMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZGMyNjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FcnJvcnM8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkYzI2MjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjEyPC90ZXh0PgoKICA8cmVjdCB4PSIyMjAiIHk9Ijg1IiB3aWR0aD0iODAiIGhlaWdodD0iNDUiIHJ4PSI0IiBmaWxsPSIjZDFmYWU1IiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjI2MCIgeT0iMTAzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPkF2ZyBSZXNwPC90ZXh0PgogIDx0ZXh0IHg9IjI2MCIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xNDVtczwvdGV4dD4KCiAgPHJlY3QgeD0iMzEwIiB5PSI4NSIgd2lkdGg9IjcwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0iI2ZlZjNjNyIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzNDUiIHk9IjEwMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm9ibGVtczwvdGV4dD4KICA8dGV4dCB4PSIzNDUiIHk9IjEyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MjwvdGV4dD4KCiAgPCEtLSBDaGFydHMgUm93IC0tPgogIDxyZWN0IHg9IjQwIiB5PSIxMzgiIHdpZHRoPSIxNzAiIGhlaWdodD0iNTUiIHJ4PSI0IiBmaWxsPSIjZjFmNWY5IiBzdHJva2U9IiNjYmQ1ZTEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjEyNSIgeT0iMTU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJlc3BvbnNlIFRpbWUgKDI0aCk8L3RleHQ+CiAgPHBhdGggZD0iTTUwLDE3OCBMNzAsMTc1IEw5MCwxODAgTDExMCwxNzIgTDEzMCwxNjggTDE1MCwxNzUgTDE3MCwxNzAgTDE5MCwxNjUgTDIwMCwxNjgiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CgogIDxyZWN0IHg9IjIyMCIgeT0iMTM4IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjU1IiByeD0iNCIgZmlsbD0iI2YxZjVmOSIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzMDAiIHk9IjE1NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm9ibGVtIExpc3Q8L3RleHQ+CiAgPHRleHQgeD0iMjMwIiB5PSIxNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2VmNDQ0NCI+LSBEQiBTbG93ZG93bjwvdGV4dD4KICA8dGV4dCB4PSIyMzAiIHk9IjE4MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZjU5ZTBiIj4tIEhpZ2ggTWVtb3J5PC90ZXh0PgoKICA8IS0tIFNlcnZpY2UgSGVhbHRoIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIyMDAiIHdpZHRoPSIzNDAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjZjFmNWY5IiBzdHJva2U9IiNjYmQ1ZTEiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjYwIiB5PSIyMTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+U2VydmljZSBIZWFsdGg6PC90ZXh0PgogIDxjaXJjbGUgY3g9IjE0NSIgY3k9IjIyMCIgcj0iNiIgZmlsbD0iIzEwYjk4MSIvPgogIDx0ZXh0IHg9IjE1NyIgeT0iMjI0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPkFQSTwvdGV4dD4KICA8Y2lyY2xlIGN4PSIxOTUiIGN5PSIyMjAiIHI9IjYiIGZpbGw9IiMxMGI5ODEiLz4KICA8dGV4dCB4PSIyMDciIHk9IjIyNCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5XZWI8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMjUwIiBjeT0iMjIwIiByPSI2IiBmaWxsPSIjZjU5ZTBiIi8+CiAgPHRleHQgeD0iMjYyIiB5PSIyMjQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+UGF5bWVudDwvdGV4dD4KICA8Y2lyY2xlIGN4PSIzMjAiIGN5PSIyMjAiIHI9IjYiIGZpbGw9IiMxMGI5ODEiLz4KICA8dGV4dCB4PSIzMzIiIHk9IjIyNCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5EQjwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT09PT09PT09PSBTRVJWSUNFIERBU0hCT0FSRCA9PT09PT09PT09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSI0MTAiIHk9IjUwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjIwMCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjZGFzaFNoYWRvdykiLz4KICA8cmVjdCB4PSI0MTAiIHk9IjUwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjI4IiByeD0iOCIgZmlsbD0idXJsKCNoZWFkZXJHcmFkKSIvPgogIDxyZWN0IHg9IjQxMCIgeT0iNzAiIHdpZHRoPSIzNjAiIGhlaWdodD0iOCIgZmlsbD0idXJsKCNoZWFkZXJHcmFkKSIvPgogIDx0ZXh0IHg9IjU5MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TRVJWSUNFIERBU0hCT0FSRDwvdGV4dD4KCiAgPCEtLSBLUEkgUm93IC0tPgogIDxyZWN0IHg9IjQyMCIgeT0iODUiIHdpZHRoPSI4MCIgaGVpZ2h0PSI0NSIgcng9IjQiIGZpbGw9IiNkYmVhZmUiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDYwIiB5PSIxMDMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzFlNDBhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmVxdWVzdHM8L3RleHQ+CiAgPHRleHQgeD0iNDYwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTQwYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjEuMk08L3RleHQ+CgogIDxyZWN0IHg9IjUxMCIgeT0iODUiIHdpZHRoPSI4MCIgaGVpZ2h0PSI0NSIgcng9IjQiIGZpbGw9IiNmZWYyZjIiIHN0cm9rZT0iI2VmNDQ0NCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNTUwIiB5PSIxMDMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjMjYyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RXJyb3IgUmF0ZTwvdGV4dD4KICA8dGV4dCB4PSI1NTAiIHk9IjEyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2RjMjYyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MC4zJTwvdGV4dD4KCiAgPHJlY3QgeD0iNjAwIiB5PSI4NSIgd2lkdGg9IjgwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0iI2QxZmFlNSIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2NDAiIHk9IjEwMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QOTUgUmVzcDwvdGV4dD4KICA8dGV4dCB4PSI2NDAiIHk9IjEyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzA0Nzg1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ODltczwvdGV4dD4KCiAgPHJlY3QgeD0iNjkwIiB5PSI4NSIgd2lkdGg9IjcwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0iI2VkZTlmZSIgc3Ryb2tlPSIjOGI1Y2Y2IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI3MjUiIHk9IjEwMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNmQyOGQ5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BcGRleDwvdGV4dD4KICA8dGV4dCB4PSI3MjUiIHk9IjEyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzZkMjhkOSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MC45NTwvdGV4dD4KCiAgPCEtLSBUaW1lbGluZSAtLT4KICA8cmVjdCB4PSI0MjAiIHk9IjEzOCIgd2lkdGg9IjM0MCIgaGVpZ2h0PSI0NSIgcng9IjQiIGZpbGw9IiNmMWY1ZjkiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNTkwIiB5PSIxNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmVxdWVzdCBSYXRlICZhbXA7IEVycm9ycyAoVGltZWxpbmUpPC90ZXh0PgogIDxwYXRoIGQ9Ik00MzAsMTcwIEw0NzAsMTY4IEw1MTAsMTcyIEw1NTAsMTY1IEw1OTAsMTY4IEw2MzAsMTcwIEw2NzAsMTY1IEw3MTAsMTYyIEw3NTAsMTY4IiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPgogIDxwYXRoIGQ9Ik00MzAsMTc1IEw0NzAsMTc2IEw1MTAsMTc0IEw1NTAsMTc3IEw1OTAsMTc1IEw2MzAsMTc2IEw2NzAsMTc1IEw3MTAsMTc4IEw3NTAsMTc2IiBzdHJva2U9IiNlZjQ0NDQiIHN0cm9rZS13aWR0aD0iMS41IiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSIzLDIiLz4KCiAgPCEtLSBCb3R0b20gUm93IC0tPgogIDxyZWN0IHg9IjQyMCIgeT0iMTkwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjUwIiByeD0iNCIgZmlsbD0iI2YxZjVmOSIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1MDAiIHk9IjIwNyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ub3AgRW5kcG9pbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMjIyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPlBPU1QgL2NoZWNrb3V0IDQ1JTwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjIzNCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5HRVQgL2NhcnQgMzIlPC90ZXh0PgoKICA8cmVjdCB4PSI1OTAiIHk9IjE5MCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI1MCIgcng9IjQiIGZpbGw9IiNmMWY1ZjkiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjc1IiB5PSIyMDciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGVwZW5kZW5jaWVzPC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iMjIyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPlBheW1lbnQgQVBJOiA5OS45JTwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjIzNCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5EYXRhYmFzZTogMTAwJTwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT09PT09PT09PSBJTkZSQVNUUlVDVFVSRSBEQVNIQk9BUkQgPT09PT09PT09PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjI3MCIgd2lkdGg9Ijc0MCIgaGVpZ2h0PSIyMTAiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2Rhc2hTaGFkb3cpIi8+CiAgPHJlY3QgeD0iMzAiIHk9IjI3MCIgd2lkdGg9Ijc0MCIgaGVpZ2h0PSIyOCIgcng9IjgiIGZpbGw9InVybCgjaGVhZGVyR3JhZCkiLz4KICA8cmVjdCB4PSIzMCIgeT0iMjkwIiB3aWR0aD0iNzQwIiBoZWlnaHQ9IjgiIGZpbGw9InVybCgjaGVhZGVyR3JhZCkiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjI5MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPklORlJBU1RSVUNUVVJFIEhFQUxUSDwvdGV4dD4KCiAgPCEtLSBLUEkgUm93IC0tPgogIDxyZWN0IHg9IjQ1IiB5PSIzMDUiIHdpZHRoPSIxMDAiIGhlaWdodD0iNDUiIHJ4PSI0IiBmaWxsPSIjZGJlYWZlIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9Ijk1IiB5PSIzMjMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzFlNDBhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SG9zdHM8L3RleHQ+CiAgPHRleHQgeD0iOTUiIHk9IjM0MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlNDBhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NDc8L3RleHQ+CgogIDxyZWN0IHg9IjE1NSIgeT0iMzA1IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0iI2QxZmFlNSIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIyMDUiIHk9IjMyMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BdmcgQ1BVPC90ZXh0PgogIDx0ZXh0IHg9IjIwNSIgeT0iMzQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4zNCU8L3RleHQ+CgogIDxyZWN0IHg9IjI2NSIgeT0iMzA1IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0iI2ZlZjNjNyIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzMTUiIHk9IjMyMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BdmcgTWVtb3J5PC90ZXh0PgogIDx0ZXh0IHg9IjMxNSIgeT0iMzQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj42MiU8L3RleHQ+CgogIDxyZWN0IHg9IjM3NSIgeT0iMzA1IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjQ1IiByeD0iNCIgZmlsbD0iI2ZlZjJmMiIgc3Ryb2tlPSIjZWY0NDQ0IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0MjUiIHk9IjMyMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZGMyNjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EaXNrIEFsZXJ0czwvdGV4dD4KICA8dGV4dCB4PSI0MjUiIHk9IjM0MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2RjMjYyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MjwvdGV4dD4KCiAgPCEtLSBIb25leWNvbWIgdmlzdWFsaXphdGlvbiBwbGFjZWhvbGRlcnMgLS0+CiAgPHJlY3QgeD0iNDUiIHk9IjM1OCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI3MCIgcng9IjQiIGZpbGw9IiNmMWY1ZjkiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMTU1IiB5PSIzNzgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SG9zdCBDUFUgVXNhZ2UgKEhvbmV5Y29tYik8L3RleHQ+CiAgPCEtLSBIb25leWNvbWIgaGV4YWdvbnMgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSI4MCw0MDUgOTUsMzk1IDExMCw0MDUgMTEwLDQyMCA5NSw0MzAgODAsNDIwIiBmaWxsPSIjMTBiOTgxIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMSIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTEwLDQwNSAxMjUsMzk1IDE0MCw0MDUgMTQwLDQyMCAxMjUsNDMwIDExMCw0MjAiIGZpbGw9IiMxMGI5ODEiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHBvbHlnb24gcG9pbnRzPSIxNDAsNDA1IDE1NSwzOTUgMTcwLDQwNSAxNzAsNDIwIDE1NSw0MzAgMTQwLDQyMCIgZmlsbD0iI2Y1OWUwYiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8cG9seWdvbiBwb2ludHM9IjE3MCw0MDUgMTg1LDM5NSAyMDAsNDA1IDIwMCw0MjAgMTg1LDQzMCAxNzAsNDIwIiBmaWxsPSIjMTBiOTgxIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMSIvPgogIDxwb2x5Z29uIHBvaW50cz0iMjAwLDQwNSAyMTUsMzk1IDIzMCw0MDUgMjMwLDQyMCAyMTUsNDMwIDIwMCw0MjAiIGZpbGw9IiNlZjQ0NDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxIi8+CgogIDxyZWN0IHg9IjI3NSIgeT0iMzU4IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjcwIiByeD0iNCIgZmlsbD0iI2YxZjVmOSIgc3Ryb2tlPSIjY2JkNWUxIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzODUiIHk9IjM3OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NZW1vcnkgVXNhZ2UgKEhvbmV5Y29tYik8L3RleHQ+CiAgPCEtLSBNZW1vcnkgaGV4YWdvbnMgLS0+CiAgPHBvbHlnb24gcG9pbnRzPSIzMTAsNDA1IDMyNSwzOTUgMzQwLDQwNSAzNDAsNDIwIDMyNSw0MzAgMzEwLDQyMCIgZmlsbD0iIzEwYjk4MSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8cG9seWdvbiBwb2ludHM9IjM0MCw0MDUgMzU1LDM5NSAzNzAsNDA1IDM3MCw0MjAgMzU1LDQzMCAzNDAsNDIwIiBmaWxsPSIjZjU5ZTBiIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMSIvPgogIDxwb2x5Z29uIHBvaW50cz0iMzcwLDQwNSAzODUsMzk1IDQwMCw0MDUgNDAwLDQyMCAzODUsNDMwIDM3MCw0MjAiIGZpbGw9IiNmNTllMGIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI0MDAsNDA1IDQxNSwzOTUgNDMwLDQwNSA0MzAsNDIwIDQxNSw0MzAgNDAwLDQyMCIgZmlsbD0iIzEwYjk4MSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8cG9seWdvbiBwb2ludHM9IjQzMCw0MDUgNDQ1LDM5NSA0NjAsNDA1IDQ2MCw0MjAgNDQ1LDQzMCA0MzAsNDIwIiBmaWxsPSIjMTBiOTgxIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMSIvPgoKICA8IS0tIFRvcCBDUFUgQ29uc3VtZXJzIC0tPgogIDxyZWN0IHg9IjUwNSIgeT0iMzA1IiB3aWR0aD0iMjU1IiBoZWlnaHQ9IjEyMyIgcng9IjQiIGZpbGw9IiNmMWY1ZjkiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjMyIiB5PSIzMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VG9wIENQVSBDb25zdW1lcnM8L3RleHQ+CgogIDwhLS0gQmFyIGNoYXJ0IC0tPgogIDxyZWN0IHg9IjUyMCIgeT0iMzQwIiB3aWR0aD0iMTU2IiBoZWlnaHQ9IjE1IiByeD0iMiIgZmlsbD0iI2VmNDQ0NCIvPgogIDx0ZXh0IHg9IjUyNSIgeT0iMzUxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIj5wcm9kLWRiLTAxOiA3OCU8L3RleHQ+CgogIDxyZWN0IHg9IjUyMCIgeT0iMzYwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjE1IiByeD0iMiIgZmlsbD0iI2Y1OWUwYiIvPgogIDx0ZXh0IHg9IjUyNSIgeT0iMzcxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIj5wcm9kLXdlYi0wMzogNjUlPC90ZXh0PgoKICA8cmVjdCB4PSI1MjAiIHk9IjM4MCIgd2lkdGg9IjEwOCIgaGVpZ2h0PSIxNSIgcng9IjIiIGZpbGw9IiNmYmJmMjQiLz4KICA8dGV4dCB4PSI1MjUiIHk9IjM5MSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5wcm9kLWFwaS0wMjogNTQlPC90ZXh0PgoKICA8cmVjdCB4PSI1MjAiIHk9IjQwMCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjE1IiByeD0iMiIgZmlsbD0iIzEwYjk4MSIvPgogIDx0ZXh0IHg9IjUyNSIgeT0iNDExIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIj5wcm9kLXdlYi0wMTogNDAlPC90ZXh0Pgo8L3N2Zz4K" alt="Dashboard Patterns" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Pattern | Use Case |
+|---------|----------|
+| Executive Summary | High-level KPIs, problems, service health |
+| Service Dashboard | Request metrics, endpoints, dependencies |
+| Infrastructure Health | Host counts, CPU/memory, top consumers |
+-->
+<h3>Pattern: Executive Summary</h3>
+<p>Key elements:</p>
+<ul>
+<li><strong>KPI row</strong>: Uptime, Errors, Avg Response, Active Problems</li>
+<li><strong>Trend chart</strong>: Response time over 24h</li>
+<li><strong>Problem list</strong>: Current issues</li>
+<li><strong>Service health</strong>: Status indicators for key services</li>
+</ul>
+<h3>Pattern: Service Dashboard</h3>
+<p>Key elements:</p>
+<ul>
+<li><strong>KPI row</strong>: Requests, Error Rate, P95 Response, Apdex</li>
+<li><strong>Timeline</strong>: Request rate and errors over time</li>
+<li><strong>Top endpoints</strong>: Most called API endpoints</li>
+<li><strong>Dependencies</strong>: Downstream service health</li>
+</ul>
+<h3>Pattern: Infrastructure Dashboard</h3>
+<p>Key elements:</p>
+<ul>
+<li><strong>KPI row</strong>: Host count, Avg CPU, Avg Memory, Disk Alerts</li>
+<li><strong>Honeycomb views</strong>: Visual host health for CPU and memory</li>
+<li><strong>Top consumers</strong>: Hosts using most resources</li>
+</ul>
+<p><a id="useful-queries-for-dashboards"></a></p>
+<h2>5. Useful Queries for Dashboards</h2>
+<p>These queries work well as dashboard tiles. Each sets its own timeframe with <code>from:</code>, and <em>&quot;If the timeframe is defined in the query itself, the dropdown list is disabled.&quot;</em> Remove <code>from:</code> when the tile should follow the dashboard timeframe.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new">Dashboards (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Service Health Queries</h3>
+<p>The service tiles read the service request metrics <code>dt.service.request.count</code> and <code>dt.service.request.failure_count</code> rather than counting spans. Counting <code>span.kind == &quot;server&quot;</code> spans with <code>span.status_code == &quot;error&quot;</code> gives a different and misleading number. A service request is its request root span, which is not always a server span, and <em>&quot;a request counts as failed only when failure detection marks it as such.&quot;</em> On a validation tenant (1 hour, 10/02/2026) the span version read an error rate of 0.35 % (407 of 115,103 server spans); the service metrics read 4.61 % (4,807 failures in 104,191 requests).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/services-concepts">Service-related concepts (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Total request count (Single Value tile)
+timeseries requests = sum(dt.service.request.count, scalar: true), from: now() - 1h
+</code></pre>
+<pre><code class="language-dql">// Error rate percentage (Single Value tile)
+timeseries {
+    requests = sum(dt.service.request.count, scalar: true),
+    failures = sum(dt.service.request.failure_count, scalar: true)
+  }, from: now() - 1h
+| fieldsAdd error_rate = round(100.0 * failures / requests, decimals: 2)
+</code></pre>
+<pre><code class="language-dql">// Top services by request count (Bar chart tile)
+timeseries requests = sum(dt.service.request.count, scalar: true), by: {dt.service.name}, from: now() - 1h
+| sort requests desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Service error rates (Table tile)
+timeseries {
+    requests = sum(dt.service.request.count, scalar: true),
+    failures = sum(dt.service.request.failure_count, scalar: true)
+  }, by: {dt.service.name}, from: now() - 1h
+| fieldsAdd error_rate = round(100.0 * failures / requests, decimals: 2)
+| sort error_rate desc
+| limit 15
+</code></pre>
+<h3>Infrastructure Queries</h3>
+<pre><code class="language-dql">// Host count (Single Value tile)
+fetch dt.entity.host
+| filter state == &quot;RUNNING&quot;
+| summarize host_count = count()
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only field state, which has NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (ONBRD-05 § 6).
+</code></pre>
+<pre><code class="language-dql">// Hosts by OS type (Pie Chart tile)
+fetch dt.entity.host
+| summarize count = count(), by: {osType}
+| sort count desc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;HOST&quot;
+//   | summarize count = count(), by: {os.type}
+//   | sort count desc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities
+// than the classic entity store; for a pre-migration discovery inventory keep the
+// classic query above.
+// Field maps: osType -&gt; os.type (LINUX -&gt; OS_TYPE_LINUX).
+</code></pre>
+<pre><code class="language-dql">// Host inventory (Table tile)
+fetch dt.entity.host
+| fields name = entity.name, os = osType, state, cpuCores
+| sort name
+| limit 25
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query uses the
+// classic-only field state, which has NO Smartscape node equivalent
+// (Smartscape expresses liveness via node lifetime, not a state field). Keep the classic
+// query above for state detail. For monitoring mode, do not use monitoringMode — it is
+// empty on Kubernetes and Fargate hosts; read billing events instead (ONBRD-05 § 6).
+// Other fields do map: osType -&gt; os.type (LINUX -&gt; OS_TYPE_LINUX); cpuCores -&gt; cores; entity.name -&gt; name.
+</code></pre>
+<h3>Log Queries</h3>
+<p>Filter error logs on <code>status</code>, not <code>loglevel</code>. <code>loglevel</code> is the source's own severity, while <em>&quot;for each log event, a status attribute is created with a value that is a sum of loglevel values&quot;</em>, and the levels <code>SEVERE</code>, <code>ERROR</code>, <code>CRITICAL</code>, <code>ALERT</code>, <code>FATAL</code> and <code>EMERGENCY</code> all map to <code>status == &quot;ERROR&quot;</code>. Java applications log <code>SEVERE</code>, so <code>loglevel == &quot;ERROR&quot;</code> misses them. On a validation tenant (1 hour, 10/02/2026) <code>status == &quot;ERROR&quot;</code> returned 118,086 records and <code>loglevel == &quot;ERROR&quot;</code> 63,551; most of the difference was 54,535 <code>SEVERE</code> records.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api/lma-log-data-transformation">Automatic log enrichment (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Error log count (Single Value tile)
+// status groups SEVERE, ERROR, CRITICAL, ALERT, FATAL and EMERGENCY; loglevel is the raw source value
+fetch logs, from: now() - 1h
+| filter status == &quot;ERROR&quot;
+| summarize error_count = count()
+</code></pre>
+<pre><code class="language-dql">// Log volume by severity (Pie Chart tile)
+fetch logs, from: now() - 1h
+| summarize count = count(), by: {loglevel}
+| sort count desc
+</code></pre>
+<pre><code class="language-dql">// Recent errors (Table tile)
+fetch logs, from: now() - 1h
+| filter status == &quot;ERROR&quot;
+| fields timestamp, loglevel, log.source, content
+| sort timestamp desc
+| limit 10
+</code></pre>
+<h3>Problem Queries</h3>
+<pre><code class="language-dql">// Active problem count (Single Value tile)
+fetch dt.davis.problems, from: now() - 30d
+| filter event.status == &quot;ACTIVE&quot;
+| summarize active_problems = count()
+</code></pre>
+<pre><code class="language-dql">// Problems by status (Pie Chart tile)
+fetch dt.davis.problems, from: now() - 7d
+| summarize problem_count = count(), by: {event.status}
+</code></pre>
+<pre><code class="language-dql">// Recent problem list (Table tile)
+fetch dt.davis.problems, from: now() - 24h
+| fields timestamp, display_id, event.name, event.status
+| sort timestamp desc
+| limit 10
+</code></pre>
+<p><a id="sharing-and-permissions"></a></p>
+<h2>6. Sharing and Permissions</h2>
+<h3>Sharing Options</h3>
+<table>
+<thead>
+<tr>
+<th>Sharing Level</th>
+<th>Who Can Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Private</strong></td>
+<td>Only you, the owner</td>
+</tr>
+<tr>
+<td><strong>Specific users or groups</strong></td>
+<td>Named users and groups, each with <em>Can view</em> or <em>Can edit</em></td>
+</tr>
+<tr>
+<td><strong>Access for all</strong></td>
+<td><em>&quot;let everyone in your Dynatrace environment view the document&quot;</em> (view-only)</td>
+</tr>
+<tr>
+<td><strong>Share link</strong></td>
+<td>Anyone in the environment who has the link, with the permission chosen when the link was created</td>
+</tr>
+</tbody>
+</table>
+<p>A share link can be forwarded: <em>&quot;anyone in your Dynatrace environment could use it, and they would have the same permissions (Can edit or Can view) that you selected when you created the link.&quot;</em> Use it for view access, not edit.</p>
+<h3>Segment Filtering</h3>
+<p>Dashboards can be filtered using segments:</p>
+<ul>
+<li>Set a default segment in dashboard settings</li>
+<li>Viewers can switch segments if they have access</li>
+<li>Data respects viewer's permissions</li>
+</ul>
+<h3>One Dashboard, Several Views</h3>
+<p>The Dashboards documentation describes no saved presets. To give one dashboard several views, use <strong>Variables</strong> (viewer-selectable filters such as service, cluster or environment) and a <strong>Default segment</strong>. The documentation's rule of thumb: use segments for filters you reuse across dashboards, and variables <em>&quot;if you need more control over how a filter is applied&quot;</em>.</p>
+<h3>Exporting Dashboards</h3>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>JSON</strong> (<em>Download</em>)</td>
+<td>Backup, migration: <em>&quot;Download writes the dashboard to a JSON file that you can import&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Edited or generated JSON can stop displaying (SaaS 1.346, staged rollout from 08/25/2026).</strong> <em>&quot;Starting with Dynatrace version 1.346, Dynatrace applies stricter validation rules to dashboards and won't display dashboards that fail validation until you fix them.&quot;</em> It <em>&quot;will mainly affect dashboards created or modified via the API or external AI tools.&quot;</em> Import edited or generated JSON into a test environment first and confirm it displays (DASH-07). Tenants not yet on 1.346 still display such dashboards.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/share">Share documents (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new">Dashboards (DT docs)</a> — segments, variables and Download; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-346">SaaS 1.346 (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="next-steps"></a></p>
+<h2>7. Next Steps</h2>
+<p>Congratulations! You've completed the onboarding series.</p>
+<h3>What You've Learned</h3>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Key Topics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ONBRD-01</strong></td>
+<td>Tenant access, navigation</td>
+</tr>
+<tr>
+<td><strong>ONBRD-02</strong></td>
+<td>IAM, SAML, Platform Tokens, parameterized policies</td>
+</tr>
+<tr>
+<td><strong>ONBRD-03</strong></td>
+<td>ActiveGate deployment</td>
+</tr>
+<tr>
+<td><strong>ONBRD-04</strong></td>
+<td>Cloud &amp; SaaS integrations</td>
+</tr>
+<tr>
+<td><strong>ONBRD-05</strong></td>
+<td>OneAgent deployment, primary tags at source</td>
+</tr>
+<tr>
+<td><strong>ONBRD-06</strong></td>
+<td>Tags, segments, naming conventions, <code>dt.security_context</code></td>
+</tr>
+<tr>
+<td><strong>ONBRD-07</strong></td>
+<td>Data model, topology</td>
+</tr>
+<tr>
+<td><strong>ONBRD-08</strong></td>
+<td>DQL fundamentals</td>
+</tr>
+<tr>
+<td><strong>ONBRD-09</strong></td>
+<td>Workflows alerting</td>
+</tr>
+<tr>
+<td><strong>ONBRD-10</strong></td>
+<td>Dashboard creation</td>
+</tr>
+</tbody>
+</table>
+<h3>Where to Go Next — by Topic</h3>
+<table>
+<thead>
+<tr>
+<th>Goal</th>
+<th>Topic Series</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dashboard strategy + executive reporting</strong></td>
+<td>DASH series (8 notebooks)</td>
+</tr>
+<tr>
+<td><strong>Davis AI / anomaly detection / RCA</strong></td>
+<td>AIOPS series (8 notebooks)</td>
+</tr>
+<tr>
+<td><strong>Workflow automation + AI tasks</strong></td>
+<td>WFLOW series (12 notebooks)</td>
+</tr>
+<tr>
+<td><strong>Alerting strategy and design</strong></td>
+<td>ALERT series (5 notebooks)</td>
+</tr>
+<tr>
+<td><strong>Service level objectives</strong></td>
+<td>SLO series (6 notebooks)</td>
+</tr>
+<tr>
+<td><strong>Deepen DQL — spans / logs / OpenPipeline</strong></td>
+<td>SPANS, OPLOGS, OPMIG, OPIPE</td>
+</tr>
+<tr>
+<td><strong>Synthetic monitoring</strong></td>
+<td>SYNTH series</td>
+</tr>
+<tr>
+<td><strong>Web RUM / Mobile RUM</strong></td>
+<td>WEBRUM, MOBL</td>
+</tr>
+<tr>
+<td><strong>Business events &amp; funnel analysis</strong></td>
+<td>BIZEV series</td>
+</tr>
+<tr>
+<td><strong>Database monitoring</strong></td>
+<td>DBMON series</td>
+</tr>
+<tr>
+<td><strong>Cloud integration deep dives</strong></td>
+<td>CLOUD series</td>
+</tr>
+<tr>
+<td><strong>Kubernetes monitoring</strong></td>
+<td>K8S series</td>
+</tr>
+<tr>
+<td><strong>OpenTelemetry integration</strong></td>
+<td>OTEL series</td>
+</tr>
+<tr>
+<td><strong>IAM administration depth</strong></td>
+<td>IAM series</td>
+</tr>
+<tr>
+<td><strong>Configuration automation / GitOps</strong></td>
+<td>AUTOM series</td>
+</tr>
+<tr>
+<td><strong>Access control modernization</strong></td>
+<td>MZ2POL series (Management Zones → Policies)</td>
+</tr>
+<tr>
+<td><strong>Migration playbooks</strong></td>
+<td>NRLC + NR2DT (New Relic), SL2DT (Sumo), S2D (Splunk), M2S (Managed → SaaS)</td>
+</tr>
+<tr>
+<td><strong>Platform maturity / adoption</strong></td>
+<td>ADOPT series</td>
+</tr>
+<tr>
+<td><strong>Official training</strong></td>
+<td>Dynatrace University</td>
+</tr>
+<tr>
+<td><strong>Community</strong></td>
+<td>community.dynatrace.com</td>
+</tr>
+</tbody>
+</table>
+<h3>Dashboard Checklist</h3>
+<ul>
+<li>[ ] First dashboard created (using <strong>Dashboards (new)</strong>, not legacy Classic Dashboards)</li>
+<li>[ ] Key metrics visualized</li>
+<li>[ ] Problem overview included</li>
+<li>[ ] SLO / SLI tile evaluated for service-health views</li>
+<li>[ ] Dashboard shared with team</li>
+<li>[ ] Segment filter set</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Difference between Dashboards (new) and Classic Dashboards</li>
+<li>Difference between dashboards and notebooks</li>
+<li>How to create and configure dashboards</li>
+<li>Tile and visualization types and when to use them</li>
+<li>Dashboard patterns for different use cases</li>
+<li>DQL queries that work well in dashboards, including why service tiles read the service metrics and error-log tiles filter on <code>status</code></li>
+<li>That <code>dt.davis.problems</code> queries use <code>event.status</code> (<code>ACTIVE</code> / <code>CLOSED</code>), not <code>status</code> (<code>OPEN</code>)</li>
+<li>How to share dashboards with your team</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new">Dashboards (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks">Dashboards and notebooks (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/edit-visualizations">Edit visualizations (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/discover-dynatrace/get-started/dynatrace-ui/share">Share documents (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-classic">Dashboards Classic (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/notebooks">Notebooks (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">Dynatrace Query Language (DT docs)</a></li>
+<li><a href="https://community.dynatrace.com/">Dynatrace Community</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

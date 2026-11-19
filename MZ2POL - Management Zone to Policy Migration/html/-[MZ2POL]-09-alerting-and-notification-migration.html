@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-09: Migrating Management Zone-Scoped Alerting and Notifications</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 10 of 17 | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 10/26/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Management Zones do three jobs. Notebooks 02–04 and 06–08 cover the <strong>access-control</strong> job; notebook 05 covers the <strong>filtering</strong> job. This notebook covers the third: <strong>alerting</strong>.</p>
+<p>An alerting profile scoped to a Management Zone decides who gets paged. When the zone goes away, that scoping has to land somewhere — and it does not land on Segments. This notebook covers where it actually lands, what it costs, and the one step of the migration whose failure mode is undocumented.</p>
+<blockquote>
+<p>⚠️ <strong>If you read one thing here, read §2.</strong> The claim that alerting profiles will be &quot;bound to Segments&quot; circulated widely — including in earlier revisions of this series — and it is wrong. Teams that believe it <em>defer</em> the alerting work, waiting for a feature that is not coming. That deferral is what turns a manageable migration into a cutover crisis, because the alerting work is the long pole, not the short one.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#the-third-job">The Third Job</a></li>
+<li><a href="#what-replaces-a-profile">What Actually Replaces an Alerting Profile</a></li>
+<li><a href="#inventory">Inventory Before You Start</a></li>
+<li><a href="#routing-dimensions">Converting MZ Rules into Routing Dimensions</a></li>
+<li><a href="#building-the-workflow">Building the Replacement Workflow</a></li>
+<li><a href="#regressions">Capability Regressions</a></li>
+<li><a href="#visibility">Problem Visibility Is a Separate Axis</a></li>
+<li><a href="#cutover">Cutover Sequencing and the Deletion Test</a></li>
+<li><a href="#validation">Validating the Migration</a></li>
+<li><a href="#checklist">Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Environment</strong></td>
+<td>Dynatrace Gen3 SaaS with Grail</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Workflow creation; Settings read for alerting-profile export; IAM policy authoring for §7</td>
+</tr>
+<tr>
+<td><strong>Non-prod tenant</strong></td>
+<td><strong>Required</strong> for §8 — the deletion test must not be run first in production</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td><strong>MZ2POL-01</strong> §5 (the MZ-job-to-successor mapping) · <strong>MZ2POL-03</strong> (assessment) · <strong>MZ2POL-05</strong> (the filtering job, for contrast)</td>
+</tr>
+<tr>
+<td><strong>Companion series</strong></td>
+<td><strong>WFLOW-02</strong> (trigger configuration) · <strong>WFLOW-04</strong> (routing patterns) · <strong>ALERT-01</strong> (alerting architecture) · <strong>ALERT-03</strong> (destinations and cost)</td>
+</tr>
+<tr>
+<td><strong>Tagging prerequisite</strong></td>
+<td>The routing dimensions must reach the <strong>problem record</strong> — as primary Grail fields or <code>primary_tags.*</code> set on the data, not auto-tags — before any workflow can filter on them. See §4 and MZ2POL-10</td>
+</tr>
+</tbody>
+</table>
+<p><a id="the-third-job"></a></p>
+<h2>1. The Third Job</h2>
+<p>A Management Zone conflates three concerns that are three separate mechanisms on Gen3.</p>
+<table>
+<thead>
+<tr>
+<th>Axis</th>
+<th>Question it answers</th>
+<th>Gen3 mechanism</th>
+<th>Where it is covered</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Filtering</strong></td>
+<td>What does a user <em>see</em> in the UI?</td>
+<td>Segments</td>
+<td>MZ2POL-05</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>What data may a user <em>read</em>?</td>
+<td>Policies + boundaries on <code>dt.security_context</code></td>
+<td>MZ2POL-02/04</td>
+</tr>
+<tr>
+<td><strong>Routing</strong></td>
+<td>Who gets <em>paged</em>?</td>
+<td><strong>Problem-triggered workflows</strong></td>
+<td><strong>This notebook</strong></td>
+</tr>
+<tr>
+<td><strong>Visibility</strong></td>
+<td>Who may <em>see the problem</em> at all?</td>
+<td>IAM record-level policy on <code>dt.security_context</code></td>
+<td>§7 below</td>
+</tr>
+</tbody>
+</table>
+<p>Routing and visibility are related but distinct, and §7 explains why conflating them produces a model that silently does not work.</p>
+<h3>Why the alerting job is the hard one</h3>
+<p>Filtering and access both migrate to constructs that can evaluate a <strong>condition</strong>. A segment can filter on a field condition such as <code>primary_tags.team = &quot;payments&quot;</code> or <code>dt.host_group.id = &quot;PROD-*&quot;</code>; a boundary can test a <code>dt.security_context</code> prefix.</p>
+<p>A workflow trigger cannot. It evaluates the <strong>problem record</strong> — an affected-entity tag filter plus an optional DQL matcher, compiled into one expression <em>&quot;limited to 1,000 characters across all trigger fields.&quot;</em> It can only test fields the problem carries, so a Management Zone whose rules are <em>computed</em> — name patterns, entity selectors — has nothing for a trigger to filter on until the value is set on the data as a primary field or tag.</p>
+<p>That asymmetry is the single biggest source of surprise in this part of the migration, and §4 is devoted to it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/segments/reference/segments-reference-limits">Segment limits (DT docs)</a> — <em>&quot;Only operators <code>=</code>, and <code>in()</code> are supported.&quot;</em>; <em>&quot;You can use wildcards <code>*</code> for <code>starts-with</code>, <code>contains</code>, and <code>ends-with</code> matches.&quot;</em> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event trigger (DT docs)</a> — <em>&quot;limited to 1,000 characters across all trigger fields.&quot;</em></sub></p>
+</blockquote>
+<p><a id="what-replaces-a-profile"></a></p>
+<h2>2. What Actually Replaces an Alerting Profile</h2>
+<h3>It is not a segment</h3>
+<p>There is <strong>no segment field on an alerting profile, and no segment field on a workflow trigger.</strong> Segments are query-time filter conditions — they scope what a <em>query</em> returns and what a <em>user sees</em>. They do not scope what <em>fires</em>.</p>
+<p>Dynatrace's alert-notification upgrade guide moves that filtering into the workflow trigger itself: <em>&quot;A workflow's Problem trigger filters problems directly with DQL matchers on the problem.&quot;</em> There is no management-zone filter to carry over, because <em>&quot;There is no separate filter object to create, name, and maintain, nor is there a one-management-zone-per-profile constraint.&quot;</em></p>
+<p>Segments touch alerting in exactly one documented place: <strong>scoping an anomaly detector</strong> (Anomaly Detection app → <em>Set scope</em> → <em>Segments</em>). That scopes <strong>detection</strong> — which signals are evaluated — not <strong>routing</strong>.</p>
+<blockquote>
+<p><strong>Where anomaly detectors are created (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created, and the <em>Set scope</em> path above is in that app.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Where the misconception came from.</strong> The claim traces to a Dynatrace community forum answer rather than to documentation, and it propagated into this series: MZ2POL-01, -03, -05, -06, and -99 all carried some version of &quot;alerting profiles → Segments (upcoming)&quot; until July 2026. Independent corroboration that it was never the direction: Dynatrace's current <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications">alerting and notifications hub</a> links to problem triggers, Davis event triggers, the Anomaly Detection app, and workflow connectors — and does not link to alerting profiles at all.</p>
+</blockquote>
+<h3>It is a problem-triggered workflow</h3>
+<p>An alerting profile scoped to MZ <em>X</em>, routing to team <em>X</em>'s channel, becomes:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+RnJvbSBBbGVydGluZyBQcm9maWxlIHRvIFByb2JsZW0tVHJpZ2dlcmVkIFdvcmtmbG93PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+VGhlIGZpbHRlciBtb3ZlcyBpbnRvIHRoZSB0cmlnZ2VyOyB0aGVyZSBpcyBubyBzZXBhcmF0ZSBwcm9maWxlIG9iamVjdCBhbmQgbm8gem9uZSB0byBwb2ludCBhdDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iODAiIHdpZHRoPSIzODAiIGhlaWdodD0iMjMwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMwIiB5PSI5OSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BbGVydGluZyBwcm9maWxlIChjbGFzc2ljKTwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMTE2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+TWFuYWdlbWVudCB6b25lOiBUZWFtIFg8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjEzOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPlNldmVyaXR5IHJ1bGVzOiBhdmFpbGFiaWxpdHksIGVycm9yIOKApjwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+RXZlbnQgZmlsdGVyczogdGl0bGVzLCBwcm9wZXJ0aWVzPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIxODIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5EZWxheTogTiBtaW51dGVzPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIyMDQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij48L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjIyNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKGkiBwcm9ibGVtIG5vdGlmaWNhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMjQ4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+ICAgKFNsYWNrIC8gZW1haWwgLyBTZXJ2aWNlTm93IOKApik8L3RleHQ+CiAgPGxpbmUgeDE9IjQwMCIgeTE9IjE5NSIgeDI9IjQ1MCIgeTI9IjE5NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8cmVjdCB4PSI0NTIiIHk9IjgwIiB3aWR0aD0iNDU4IiBoZWlnaHQ9IjIzMCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI0NjIiIHk9Ijk5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPldvcmtmbG93ICJSb3V0ZSDigJQgVGVhbSBYIjwvdGV4dD4KICA8dGV4dCB4PSI0NjIiIHk9IjExNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPlRyaWdnZXI6IFByb2JsZW0gdHJpZ2dlcjwvdGV4dD4KICA8dGV4dCB4PSI0NjIiIHk9IjEzOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPiAgwrcgUHJvYmxlbSBzdGF0ZSAuLi4uLi4uLiBBY3RpdmU8L3RleHQ+CiAgPHRleHQgeD0iNDYyIiB5PSIxNjAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij4gIMK3IFNldmVyaXR5IC4uLi4uLi4uLi4uLi4gYXMgdGhlIHByb2ZpbGUncyBydWxlczwvdGV4dD4KICA8dGV4dCB4PSI0NjIiIHk9IjE4MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPiAgwrcgQWZmZWN0ZWQgZW50aXRpZXMgLi4uLiBpbmNsdWRlIGFsbCBlbnRpdGllczwvdGV4dD4KICA8dGV4dCB4PSI0NjIiIHk9IjIwNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPiAgwrcgQ3VzdG9tIGZpbHRlciAuLi4uLi4uLiBtYXRjaGVzVmFsdWUocHJpbWFyeV90YWdzLnRlYW0sICZxdW90O1gmcXVvdDspPC90ZXh0PgogIDx0ZXh0IHg9IjQ2MiIgeT0iMjI2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+ICDCtyBNaW5pbXVtIGR1cmF0aW9uIC4uLi4uIHJlcGxhY2VzIERlbGF5PC90ZXh0PgogIDx0ZXh0IHg9IjQ2MiIgeT0iMjQ4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+QWN0aW9uOiB0ZWFtIFgncyBkZXN0aW5hdGlvbjwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMzMwIiB3aWR0aD0iODkwIiBoZWlnaHQ9IjE0OCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIvPgogIDx0ZXh0IHg9IjM2IiB5PSIzNTQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+V2hhdCBjaGFuZ2VzPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSIzNzgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij7igKIgVGhlIHpvbmUgaGFzIG5vIHN1Y2Nlc3NvciBpbnNpZGUgYWxlcnRpbmc6IHJvdXRlIG9uIHByaW1hcnkgZmllbGRzIGFuZCBwcmltYXJ5X3RhZ3MuKiBjYXJyaWVkIGJ5IHRoZSBwcm9ibGVtIHJlY29yZC48L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjQwMSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKAoiBPbmUgdHJpZ2dlciBjYW4gY29tYmluZSB0aGUgZmlsdGVyIGxvZ2ljIG9mIHNldmVyYWwgcHJvZmlsZXMg4oCUIGZld2VyIG9iamVjdHMgdGhhbiBwcm9maWxlcywgbm90IG9uZSBwZXIgem9uZS48L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjQyNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKAoiBTZWdtZW50cyBkbyBub3Qgc2NvcGUgYWxlcnRpbmc7IHRoZXkgc2NvcGUgd2hhdCBhIHVzZXIgc2Vlcy4gRGV0ZWN0b3Igc2NvcGluZyBieSBzZWdtZW50IGlzIGEgc2VwYXJhdGUgZmVhdHVyZS48L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjQ0NyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPuKAoiBUaGUgdmFsdWVzIG11c3QgYmUgb24gdGhlIGRhdGEgZmlyc3Qg4oCUIHNldCBhdCBzb3VyY2UsIG5vdCBieSBhdXRvLXRhZ2dpbmcg4oCUIHRoZSBzYW1lIHJlYWRpbmVzcyBnYXRlIChNWjJQT0wtMTApLjwvdGV4dD4KPC9zdmc+Cg==" alt="From alerting profile to problem-triggered workflow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Alerting profile (classic) | Workflow "Route — Team X" |
+|---|---|
+| Management zone: Team X | Trigger: Problem trigger |
+| Severity rules | Severity: as the profile's rules (see the SaaS 1.348 note in §5) |
+| Event filters | Affected entities: include all entities |
+| — | Custom filter query: matchesValue(primary_tags.team, "X") — the zone's job lands here (§4) |
+| Delay | Minimum duration (§6.1) |
+| Problem notification | Action: Slack / ServiceNow / email / PagerDuty → team X's destination |
+For environments where SVG doesn't render
+-->
+<p>No separate profile object exists in this shape. <strong>The filter <em>is</em> the trigger.</strong> Dynatrace notes that <em>&quot;a single workflow trigger can encapsulate the combined filter logic of multiple alerting profiles.&quot;</em></p>
+<h3>Status of the classic surfaces</h3>
+<p>Neither alerting profiles nor classic problem notifications are deprecated. Both are labeled <strong>Dynatrace Classic</strong>, and the docs recommend simple workflows for new setups. No end-of-life date has been published for either.</p>
+<p>The forcing function is not deprecation — it is <strong>the Management Zone itself</strong>. A profile scoped by an MZ is only as durable as that MZ. Profiles scoped purely by severity rules and tags are unaffected by this migration and can be left alone.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a> — where filtering goes in a workflow, and that alerting profiles and problem notifications <em>&quot;continue to work and are not being removed on a published schedule, but they'll not receive new capabilities.&quot;</em> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event trigger (DT docs)</a> — trigger filter surface and DQL-matcher scope. <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/alerting-profiles">Alerting profiles (DT docs)</a> — Dynatrace Classic status. <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection">Use segments in anomaly detection (DT docs)</a> — the detector-scoping exception.</sub></p>
+</blockquote>
+<p><a id="inventory"></a></p>
+<h2>3. Inventory Before You Start</h2>
+<p>Alerting-profile configuration is not queryable via DQL — it lives in Settings. Export it via the Settings API (<code>builtin:alerting.profile</code>) or the UI, the same way MZ2POL-00 exports Management Zones.</p>
+<p>Collect these five columns for every profile. Each one drives a decision later, and several surface gaps that are much cheaper to find now than at cutover.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Why it matters</th>
+<th>Drives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Management zone reference</strong></td>
+<td>Identifies which profiles this migration actually touches. Profiles without one need no work</td>
+<td>Scope</td>
+</tr>
+<tr>
+<td><strong>Severity rules</strong> (level + tag filters)</td>
+<td>Carries forward directly onto the workflow trigger</td>
+<td>§5</td>
+</tr>
+<tr>
+<td><strong><code>delayInMinutes</code></strong> per severity rule</td>
+<td>Maps onto the trigger's <strong>Minimum duration</strong> option, which accepts fixed values only (§6.1). Every non-zero value needs a recorded disposition</td>
+<td>§6</td>
+</tr>
+<tr>
+<td><strong>Event filters</strong> (predefined / custom title / description)</td>
+<td>Becomes the DQL matcher on the trigger</td>
+<td>§5</td>
+</tr>
+<tr>
+<td><strong>Notification destinations</strong> consuming this profile</td>
+<td>Three destination types (Trello, VictorOps, xMatters) have no native connector; Opsgenie moves to the Jira Service Management connector</td>
+<td>§6</td>
+</tr>
+</tbody>
+</table>
+<h3>The three questions the inventory must answer</h3>
+<ol>
+<li><strong>How many profiles reference a Management Zone?</strong> This is the real work list — often far smaller than the total profile count.</li>
+<li><strong>How many use a non-zero <code>delayInMinutes</code>?</strong> Every one needs a Minimum duration value chosen deliberately — the allowed values are fixed, so some delays will not map exactly (§6.1).</li>
+<li><strong>What destinations are in play?</strong> Trello, VictorOps, and xMatters need HTTP rebuilds; Opsgenie moves to the Jira Service Management connector (§6.2).</li>
+</ol>
+<blockquote>
+<p><strong>Consolidate while you inventory.</strong> Profiles are frequently near-duplicates that differ only by zone. The target is one workflow per <strong>team/channel</strong>, not one per profile — see §5. A hundred MZ-scoped profiles routinely collapse to a much smaller set of destinations.</p>
+</blockquote>
+<p><a id="routing-dimensions"></a></p>
+<h2>4. Converting MZ Rules into Routing Dimensions</h2>
+<p>This is the actual work, and it is enrichment work, not alerting work.</p>
+<h3>Route on what the problem record carries</h3>
+<p>A problem trigger evaluates the <strong>problem record</strong>. Dynatrace's tagging guidance draws the line between the two models in one row: classic setups <em>&quot;Route alerts based on tags applied to entities&quot;</em>; on Latest Dynatrace you <em>&quot;Route alerts on the primary fields and tags carried by the alert events themselves.&quot;</em> The alert-notification upgrade guide confirms what reaches the problem: <em>&quot;Primary Grail fields and tags ( <code>primary_tags.*</code> ), <code>dt.security_context</code>, and the Cost Allocation fields are automatically propagated from the alerting events into the problem record.&quot;</em> It also lists the classic <code>entity_tags</code> field as <em>&quot;still exists but is deprecated&quot;</em>.</p>
+<p>Auto-tags are not a route. <em>&quot;Auto-tagging rules have no effect on Smartscape on Grail and are not used in any Latest Dynatrace app.&quot;</em> A dimension that exists only as an auto-tag today has to be set on the data — at the source or centrally — before a workflow can route on it.</p>
+<blockquote>
+<p><strong>What the docs do not say.</strong> The event-trigger page describes the <em>Affected entities</em> tag filter's three modes but not which tag source it evaluates — classic entity tags, <code>entity_tags</code> on the problem, or <code>primary_tags.*</code>. Until that is documented, put routing conditions in the <strong>Additional custom filter query</strong>, where the field is explicit, and confirm any tag filter against real problems with <em>Query past events</em> before relying on it.</p>
+</blockquote>
+<h3>The conversion table</h3>
+<p>Classify every MZ rule by whether its dimension already reaches the problem record. The right-hand column is your prerequisite backlog.</p>
+<table>
+<thead>
+<tr>
+<th>MZ rule shape</th>
+<th>On the problem record today?</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host group membership</td>
+<td>✅ Primary field <code>dt.host_group.id</code></td>
+<td>Route on it directly</td>
+</tr>
+<tr>
+<td>Kubernetes namespace / cluster</td>
+<td>✅ Primary fields <code>k8s.namespace.name</code>, <code>k8s.cluster.name</code></td>
+<td>Route on them directly</td>
+</tr>
+<tr>
+<td><code>dt.security_context</code> already set at the source</td>
+<td>✅ Yes</td>
+<td>Usable directly; also the visibility field (§7)</td>
+</tr>
+<tr>
+<td>Host or process tag <code>team:checkout</code></td>
+<td>⚠️ Only as a classic tag</td>
+<td>Set it as <code>primary_tags.team</code> at the source or through central enrichment (MZ2POL-10 §5)</td>
+</tr>
+<tr>
+<td>Service name <strong>contains</strong> <code>payment</code></td>
+<td>❌ Computed</td>
+<td>Set a value at the source, or with a central / OpenPipeline enrichment rule (MZ2POL-10 §5, MZ2POL-11)</td>
+</tr>
+<tr>
+<td>Entity selector expression</td>
+<td>❌ Computed</td>
+<td>Same — translate the rule to a value on the data (MZ2POL-11 §7)</td>
+</tr>
+<tr>
+<td>Process/host <strong>name pattern</strong></td>
+<td>❌ Computed</td>
+<td>Same</td>
+</tr>
+</tbody>
+</table>
+<p>Every ⚠️ and ❌ row is work that must complete — <strong>and reach new problems</strong> — before the corresponding workflow can be built. Enrichment is forward-only: problems opened before the value existed never carry it.</p>
+<h3>Auditing routing coverage on problem records</h3>
+<p>Measure on the problems themselves, not on entities. Entity-side tags tell you nothing about what a trigger can see: on the validation tenant on 10/13/2026, classic tags carried a <code>Team:</code> value on 28 of 35 services, while <code>smartscapeNodes &quot;SERVICE&quot;</code> returned <code>tags[team]</code> on <strong>0 of 35</strong> — and neither number says what reached a problem.</p>
+<p>Replace <code>team</code> / <code>Team:</code> with whichever key carries your routing dimension.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic">Differences between classic auto-tagging and primary Grail tags (DT docs)</a> — <em>&quot;Route alerts on the primary fields and tags carried by the alert events themselves.&quot;</em>; <em>&quot;Auto-tagging rules have no effect on Smartscape on Grail and are not used in any Latest Dynatrace app.&quot;</em> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a> — <em>&quot;Primary Grail fields and tags ( <code>primary_tags.*</code> ), <code>dt.security_context</code>, and the Cost Allocation fields are automatically propagated from the alerting events into the problem record.&quot;</em> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event trigger (DT docs)</a> — the <em>Affected entities</em> tag-filter modes.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Routing-tag coverage on PROBLEM RECORDS: the classic tag vs the primary tag that replaces it.
+// Executed 10/13/2026 over 7 days: 5,293 problems / classic Team: tag on 514 (9.7%) / primary_tags.team on 0.
+// entity_tags is the deprecated classic field; primary_tags.&lt;key&gt; is what a Latest Dynatrace route reads.
+fetch dt.davis.problems, from:-7d
+| fieldsAdd classic_team = iAny(startsWith(entity_tags[], &quot;Team:&quot;)),
+            primary_team = isNotNull(primary_tags.team)
+| summarize {problems = count(),
+             classic_team_tag = countIf(classic_team == true),
+             primary_team_tag = countIf(primary_team)}
+| fieldsAdd classic_pct = round(classic_team_tag * 100.0 / problems, decimals: 1),
+            primary_pct = round(primary_team_tag * 100.0 / problems, decimals: 1)
+</code></pre>
+<p><code>primary_pct</code> is the number that matters. Below 100, the gap is your §4 backlog: problems without the value match no workflow that routes on it and page nobody. On the validation tenant the classic tag reached 9.7% of problems and the primary tag none — a tenant that would route nothing if it cut over on <code>primary_tags.team</code> today.</p>
+<p>The built-in primary fields need no enrichment, so audit them the same way — they are often the fastest route to coverage:</p>
+<pre><code class="language-dql">// Primary-field coverage on problem records. On dt.davis.problems these fields are ARRAYS
+// (values accumulate across the events grouped into the problem) — hence arraySize().
+// Executed 10/13/2026 over 7 days: 5,293 problems / namespace 31.3% / host group 2.4% / security context 26.3%.
+fetch dt.davis.problems, from:-7d
+| summarize {problems = count(),
+             with_namespace = countIf(arraySize(k8s.namespace.name) &gt; 0),
+             with_host_group = countIf(arraySize(dt.host_group.id) &gt; 0),
+             with_context = countIf(arraySize(dt.security_context) &gt; 0)}
+| fieldsAdd namespace_pct = round(with_namespace * 100.0 / problems, decimals: 1),
+            host_group_pct = round(with_host_group * 100.0 / problems, decimals: 1),
+            context_pct = round(with_context * 100.0 / problems, decimals: 1)
+</code></pre>
+<blockquote>
+<p>⚠️ <strong>On a problem record these fields are arrays, and <code>==</code> silently matches nothing.</strong> The upgrade guide: <em>&quot;Values accumulate across every event grouped under the problem.&quot;</em> On the validation tenant over 7 days, <code>k8s.namespace.name == &quot;otel-demo&quot;</code> matched <strong>0</strong> problems while <code>matchesValue(k8s.namespace.name, &quot;otel-demo&quot;)</code> and <code>in(&quot;otel-demo&quot;, k8s.namespace.name)</code> each matched <strong>1,202</strong> — with no notification on the <code>==</code> form (10/13/2026). Write the trigger's custom filter as <code>matchesValue(primary_tags.team, &quot;checkout&quot;)</code>, and confirm it with <em>Query past events</em> before saving.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a> — <em>&quot;Values accumulate across every event grouped under the problem.&quot;</em> Counts executed against the validation tenant, 10/13/2026.</sub></p>
+</blockquote>
+<h3>New values reach new problems only</h3>
+<p>Setting a value at the source or in a central enrichment rule does not rewrite problems that already exist. Re-run the coverage queries over a window that starts after the change, and wait until <code>primary_pct</code> reaches 100 before building the workflow that depends on it — a trigger filtering on a value that only some problems carry will silently under-route.</p>
+<p><a id="building-the-workflow"></a></p>
+<h2>5. Building the Replacement Workflow</h2>
+<h3>The full trigger filter surface</h3>
+<p>These are all the controls a problem trigger offers:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Problem state</strong></td>
+<td><em>Active</em>, <em>Active or closed</em>, or <em>Closed</em></td>
+</tr>
+<tr>
+<td><strong>Categories</strong></td>
+<td>Davis problem categories</td>
+</tr>
+<tr>
+<td><strong>Severity</strong></td>
+<td>Minimum severity threshold</td>
+</tr>
+<tr>
+<td><strong>Affected entities</strong></td>
+<td>Filter by entity tags — three modes: include all / all defined tags / any defined tag. The page does not say which tag source it evaluates (§4)</td>
+</tr>
+<tr>
+<td><strong>Additional custom filter query</strong></td>
+<td>A DQL <strong>matcher</strong> on the problem record — a <em>subset</em> of DQL: no aggregation, no querying across a set of events</td>
+</tr>
+<tr>
+<td><strong>Minimum duration</strong></td>
+<td>Postpones the trigger until the problem has been open for a fixed duration (§6.1)</td>
+</tr>
+<tr>
+<td><strong>Updates</strong></td>
+<td>Re-trigger when selected fields change; the <em>affected entities</em> field tracks the union of <code>affected_entity_ids</code> and <code>smartscape.affected_entities</code></td>
+</tr>
+<tr>
+<td><strong>Wait for root cause analysis</strong></td>
+<td>The trigger <em>&quot;starts only after Dynatrace Intelligence has completed root cause analysis for the problem&quot;</em> — the page recommends enabling it</td>
+</tr>
+</tbody>
+</table>
+<p>No management-zone filter. No segment filter. No entity-selector filter.</p>
+<p>All of these compile into one matching expression, <em>&quot;limited to 1,000 characters across all trigger fields&quot;</em>; a trigger that exceeds it fails validation on save. A long list of tag values or entity conditions is the usual way to hit it — route on one primary tag instead (§4).</p>
+<blockquote>
+<p><strong>SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout):</strong> <em>&quot;Davis events and problems no longer default <code>event.severity</code> to <code>3</code>.&quot;</em> A severity filter carried over from a profile that never set severity explicitly may stop matching once 1.348 reaches your tenant. The release note's action plan: <em>&quot;If it was relying on the default, change the filter to Any severity so the workflow continues to fire after the upgrade.&quot;</em> For each converted trigger, decide whether its severity filter is intentional. Until 1.348 arrives, the current defaulting still applies — verify your tenant's version.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event trigger (DT docs)</a> — the problem-state options; <em>&quot;When enabled, the trigger starts only after Dynatrace Intelligence has completed root cause analysis for the problem.&quot;</em>; <em>&quot;limited to 1,000 characters across all trigger fields.&quot;</em> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 (DT docs)</a> — <em>&quot;Davis events and problems no longer default <code>event.severity</code> to <code>3</code>.&quot;</em></sub></p>
+</blockquote>
+<h3>Granularity: one simple workflow per destination</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Object count</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One workflow per Management Zone</td>
+<td>= MZ count</td>
+<td>❌ Unmanageable; most would be near-duplicates</td>
+</tr>
+<tr>
+<td><strong>One simple workflow per team/channel</strong></td>
+<td>= destination count</td>
+<td>✅ Recommended</td>
+</tr>
+<tr>
+<td>One workflow branching to all teams</td>
+<td>1</td>
+<td>❌ Single point of failure; multi-step billing; hard to review</td>
+</tr>
+</tbody>
+</table>
+<p>A <strong>simple</strong> workflow — one trigger, one notification action — avoids the workflow-hour consumption that multi-step workflows incur. Adding an HTTP action or branching logic can move it into the billed category. ALERT-03 covers that boundary; re-verify the current billing rule against your contract before committing to a fleet size.</p>
+<h3>Do not route on the management-zone payload field</h3>
+<p><code>event()[&quot;management_zones&quot;]</code> looks like a natural routing key, but on a Gen3 problem record it is not there to read. On the validation tenant, <strong>0 of 15,875</strong> problems over 30 days carried a <code>management_zones</code> field (10/05/2026) while management zones still existed, and the semantic dictionary has no such field. An expression built on it has nothing to match today — before any zone is deleted — so a workflow that depends on it either never notifies or fails at evaluation. Route on primary fields and <code>primary_tags.*</code> in the DQL matcher instead (§4–§5).</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> no row for <code>management_zone</code> / <code>managementzone</code> under <code>filter contains(name, …)</code>, read 10/05/2026 (control: <code>dt.security_context</code> (<code>stable</code>) returned by the same query). Field-presence counts from <code>fetch dt.davis.problems, from:-30d</code> with <code>affected_entity_ids</code> as the positive control (15,875 of 15,875).</sub></p>
+</blockquote>
+<p>Silent alert loss is the worst failure mode available in this migration, and this is the easiest way to cause it. WFLOW-04 §4 documents the pattern as legacy for exactly this reason.</p>
+<h3>Manage as code</h3>
+<p>At any meaningful profile count, hand-building in the UI produces drift within weeks. Template the first workflow, then generate the rest — see <strong>AUTOM-04</strong> (Terraform) or <strong>AUTOM-03</strong> (Monaco).</p>
+<p><a id="regressions"></a></p>
+<h2>6. Capability Regressions</h2>
+<p>One thing gets worse: three destinations lose their native connector. Duration-based suppression — listed here as a regression until 09/2026 — carries over, with one wrinkle. Both are cheaper to plan for than to discover.</p>
+<h3>6.1 Duration-based suppression maps onto Minimum duration</h3>
+<p>An alerting profile can delay notification until a problem has been open longer than <em>N</em> minutes (<code>delayInMinutes</code>). Teams use it to suppress transient blips.</p>
+<p><strong>The workflow model does have an equivalent — the trigger's Minimum duration option.</strong> The problem trigger's <strong>Minimum duration</strong> option (renamed from <strong>Delay</strong> in 08/2026) postpones <em>&quot;the trigger until the problem has been open for at least the configured duration&quot;</em> — 5, 10, 15, 30, 60, 120, 240, 1440, or 10080 minutes, evaluated on <code>dt.duration_marker</code>, and <em>&quot;the trigger fires once when the threshold is crossed on the active phase&quot;</em> — and where the filter also detects the closed phase, <em>&quot;the trigger will additionally fire once when the problem is closed&quot;</em></p>
+<blockquote>
+<p><strong>The documentation now agrees (09/17/2026).</strong> Until 09/07/2026 the alert-notification upgrade guide said the classic <strong>Duration</strong> filter had no alternative, and this section treated duration suppression as the migration's one hard regression. The guide was rewritten. It now lists <code>dt.duration_marker</code> as <em>&quot;How long the problem has been open, as a stepped threshold&quot;</em>, says <em>&quot;The delay, update, and severity capabilities described in this guide exist only on the workflow trigger.&quot;</em>, and names <em>&quot;separate profiles created purely to vary the delay&quot;</em> among the Classic constraints that no longer exist.</p>
+</blockquote>
+<p><strong>The wrinkle: the values are fixed.</strong> Minimum duration takes only the nine values above. A profile whose delay is not one of them — 7 or 20 minutes, say — has no exact match, and rounding changes behavior — up suppresses a little more, down pages a little sooner. Decide each one deliberately rather than letting a script round it.</p>
+<p>Per-profile options:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>When it fits</th>
+<th>Trade-off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Map to the nearest Minimum duration</strong></td>
+<td>The delay is load-bearing and close to an allowed value</td>
+<td>Rounding up suppresses slightly more; rounding down pages slightly sooner</td>
+</tr>
+<tr>
+<td><strong>Drop the delay</strong></td>
+<td>Delay was short; the signal is genuinely actionable</td>
+<td>Slight increase in short-lived pages</td>
+</tr>
+<tr>
+<td><strong>Replace with a Davis anomaly detector</strong></td>
+<td>The signal was noisy because a static threshold was wrong for it</td>
+<td>Changes detection semantics, not just routing; needs tuning</td>
+</tr>
+<tr>
+<td><strong>Express as an SLO burn-rate alert</strong></td>
+<td>The concern was sustained degradation, not a threshold crossing</td>
+<td>Best conceptual fit; requires an SLO to exist (<strong>SLO-04</strong>)</td>
+</tr>
+<tr>
+<td><strong>Retire the alert</strong></td>
+<td>The delay was masking an alert nobody acts on</td>
+<td>Free noise reduction — check usage first</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Delay-dependent profiles need no special wave.</strong> Decide each one from the table above and convert it alongside everything else. Profiles with <code>delayInMinutes: 0</code> — usually the large majority — need no decision at all.</p>
+<blockquote>
+<p><strong>A long <code>delayInMinutes</code> is usually evidence the alert was the wrong <em>shape</em>, not merely delayed.</strong> A profile suppressing 30 minutes of a firing condition is describing a burn-rate concern. Route those to SLO burn-rate alerts where an SLO exists, and to Davis where one does not.</p>
+</blockquote>
+<h3>6.2 Three destinations have no native connector</h3>
+<p>Documented connector mapping:</p>
+<table>
+<thead>
+<tr>
+<th>Classic notification</th>
+<th>Workflow equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ansible</td>
+<td>RedHat Ansible connector</td>
+</tr>
+<tr>
+<td>Custom integration</td>
+<td>HTTP Request action</td>
+</tr>
+<tr>
+<td>Email</td>
+<td>Email or Microsoft 365 connector</td>
+</tr>
+<tr>
+<td>Jira</td>
+<td>Jira connector</td>
+</tr>
+<tr>
+<td>PagerDuty</td>
+<td>PagerDuty connector</td>
+</tr>
+<tr>
+<td>ServiceNow</td>
+<td>ServiceNow connector</td>
+</tr>
+<tr>
+<td>Slack</td>
+<td>Slack connector</td>
+</tr>
+<tr>
+<td>Microsoft Teams</td>
+<td>Microsoft Teams connector</td>
+</tr>
+<tr>
+<td>Opsgenie</td>
+<td>Jira Service Management connector (Opsgenie's successor)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Trello, VictorOps, and xMatters have no dedicated connector</strong> — the guide: <em>&quot;No dedicated connector. Use HTTP Request.&quot;</em></p>
+<p><strong>Opsgenie moves to the Jira Service Management connector.</strong> Atlassian is retiring Opsgenie in favour of Jira Service Management (JSM), and Dynatrace ships a <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/jira-service-management">Jira Service Management Connector (DT docs)</a>: <em>&quot;The Jira Service Management Connector integrates Workflows with Jira Service Management (JSM) to automate the creation, enrichment, acknowledgment, and closing of alerts.&quot;</em> The <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">alert-notification upgrade guide (DT docs)</a> now agrees: <em>&quot;Opsgenie is being retired by Atlassian and replaced by Jira Service Management (JSM). Use Jira Service Management Connector or HTTP Request.&quot;</em></p>
+<p>Each of the three becomes an HTTP-action rebuild: reconstruct the payload against the destination's current API, store credentials in the vault, and accept that the workflow may now count as multi-step for billing.</p>
+<p>Rebuild the payload against the destination's current API contract — do not port the old webhook body verbatim.</p>
+<h3>Awareness-only recipients and personal notifications</h3>
+<p>Some people were added to an MZ-scoped email profile purely for awareness, not as responders. The Problems app has offered them a personal email subscription to a filter, with no workflow and no configuration permission — <em>&quot;The email notification is directly triggered within OpenPipeline, meaning only simple filters can be applied.&quot;</em></p>
+<blockquote>
+<p><strong>Problems app personal notifications — deprecated from SaaS 1.347.</strong> SaaS 1.347 (staged tenant rollout from 09/16/2026) deprecates them: <em>&quot;Personal problem notifications in Problems, are deprecated. You can no longer create new ones, and existing notifications continue to work but prompt you to turn them off. The recommended alternative is Workflows.&quot;</em> Verify your tenant's version. Before 1.347 reaches your tenant, a personal subscription still works for an awareness-only recipient; after it, that recipient needs a simple email workflow of their own. Either way, do not plan an MZ migration around <strong>new</strong> personal subscriptions. (The Problems app page still describes the feature without a deprecation note — the release note is the newer source.)</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Problems app (DT docs)</a> — <em>&quot;The email notification is directly triggered within OpenPipeline, meaning only simple filters can be applied.&quot;</em> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">SaaS 1.347 (DT docs)</a> — <em>&quot;For each personal problem notification you rely on, build a simple workflow in Workflows that sends you email alerts for problems, then turn off the corresponding personal problem notification in Problems.&quot;</em></sub></p>
+</blockquote>
+<p><a id="visibility"></a></p>
+<h2>7. Problem Visibility Is a Separate Axis</h2>
+<p>If a Management Zone was doing double duty — restricting which problems a team could <strong>see</strong>, not just which ones paged them — then replacing the routing does <strong>not</strong> replace the visibility.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Routing</th>
+<th>Visibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mechanism</td>
+<td>Workflow trigger filter</td>
+<td>IAM record-level policy</td>
+</tr>
+<tr>
+<td>Field</td>
+<td>Primary fields / <code>primary_tags.*</code> in the DQL matcher</td>
+<td><code>dt.security_context</code></td>
+</tr>
+<tr>
+<td>Failure if wrong</td>
+<td>Wrong team paged</td>
+<td>Wrong team <strong>sees data they should not</strong></td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+Um91dGluZyBhbmQgVmlzaWJpbGl0eSBBcmUgU2VwYXJhdGUgQXhlczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyLjUiPlJlcGxhY2luZyB3aG8gZ2V0cyBwYWdlZCBkb2VzIG5vdCByZXBsYWNlIHdobyBtYXkgc2VlIHRoZSBwcm9ibGVtPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSI4MCIgd2lkdGg9IjQzMCIgaGVpZ2h0PSIyMjAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzAiIHk9Ijk5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlJvdXRpbmcg4oCUIHdobyBnZXRzIHBhZ2VkPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIxMTYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5NZWNoYW5pc206IHdvcmtmbG93IHRyaWdnZXIgZmlsdGVyPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIxNDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5GaWVsZDogcHJpbWFyeSBmaWVsZHMgLyBwcmltYXJ5X3RhZ3MuKiBpbiB0aGUgRFFMIG1hdGNoZXI8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjE2NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPk93bmVyOiBhbGVydGluZyAvIG9uLWNhbGwgZGVzaWduPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIxODgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5Xcm9uZyDihpIgdGhlIHdyb25nIHRlYW0gaXMgcGFnZWQ8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjIxMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPjwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMjM2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+Q292ZXJlZDogwqc04oCTwqc2PC90ZXh0PgogIDxyZWN0IHg9IjQ4MCIgeT0iODAiIHdpZHRoPSI0MzAiIGhlaWdodD0iMjIwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjQ5MCIgeT0iOTkiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+VmlzaWJpbGl0eSDigJQgd2hvIG1heSBzZWUgaXQ8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIxMTYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5NZWNoYW5pc206IElBTSByZWNvcmQtbGV2ZWwgcG9saWN5PC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+RmllbGQ6IGR0LnNlY3VyaXR5X2NvbnRleHQgb25seTwvdGV4dD4KICA8dGV4dCB4PSI0OTAiIHk9IjE2NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPk93bmVyOiBhY2Nlc3MgZGVzaWduIChNWjJQT0wtMTIpPC90ZXh0PgogIDx0ZXh0IHg9IjQ5MCIgeT0iMTg4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+V3Jvbmcg4oaSIGEgdGVhbSBzZWVzIGRhdGEgaXQgbXVzdCBub3Q8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIyMTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij48L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIyMzYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5Db3ZlcmVkOiDCpzc8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjMyMCIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSIxNTgiIHJ4PSI3IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjAiIHk9IjMyMCIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSIxNTgiIHJ4PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzYiIHk9IjM0NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5UaGUgY29uc3RyYWludCB0aGF0IGRlY2lkZXMgdmlzaWJpbGl0eTwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+QSBwcm9ibGVtIGFnZ3JlZ2F0ZXMgZXZlbnRzLCBzbyBpdHMgZmllbGQgdmFsdWVzIGJlY29tZSBhcnJheXMg4oCUIGFuZCBvbmx5IGR0LnNlY3VyaXR5X2NvbnRleHQgc3VwcG9ydHM8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjM5NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPmZpbHRlcmluZyBhcnJheSB2YWx1ZXMgaW4gcmVjb3JkLWxldmVsIHBlcm1pc3Npb25zLiBUZWFtIHRhZ3Mgb3IgY3VzdG9tIGF0dHJpYnV0ZXMgY2Fubm90IGNhcnJ5IHByb2JsZW0gdmlzaWJpbGl0eS48L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjQxOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPlVzZSBNQVRDSCwgbm90ID0gOiBwcm9ibGVtIHJlY29yZHMgaG9sZCBkdC5zZWN1cml0eV9jb250ZXh0IGFzIGFuIGFycmF5LCBhbmQgPSBuZXZlciBtYXRjaGVzIGFuIGFycmF5LjwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iNDQyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+SWYgTVoyUE9MLTEyJ3MgYm91bmRhcmllcyBhcmUgaW4gcGxhY2UsIHZpc2liaWxpdHkgaXMgbGFyZ2VseSBoYW5kbGVkIGFscmVhZHkg4oCUIHZlcmlmeSByYXRoZXIgdGhhbiByZWJ1aWxkLjwvdGV4dD4KPC9zdmc+Cg==" alt="Routing and visibility are separate axes" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Axis | Mechanism | Field | Wrong → |
+|---|---|---|---|
+| Routing — who gets paged | Workflow trigger filter | Primary fields / primary_tags.* in the DQL matcher | The wrong team is paged |
+| Visibility — who may see it | IAM record-level policy | dt.security_context only | A team sees data it must not |
+| Constraint | Problem field values aggregate into arrays; only dt.security_context supports filtering array values; use MATCH, not = | | |
+For environments where SVG doesn't render
+-->
+<h3>The constraint that decides the design</h3>
+<p>When multiple events aggregate into a problem, the values of a given field are combined into an <strong>array</strong>. Because of how Grail record-level permission filters currently work, <strong>only <code>dt.security_context</code> supports filtering array values.</strong></p>
+<blockquote>
+<p>A problem-visibility model built on team tags, a custom attribute, or any field other than <code>dt.security_context</code> <strong>will not work</strong>. This is not a performance note or a preference — the filter will not behave correctly once events aggregate.</p>
+</blockquote>
+<p>Dynatrace propagates <code>dt.security_context</code> from an event's <code>dt.source_entity</code> onto alerting events specifically so IAM policy rules can control alert and problem visibility at the record level (SaaS 1.333).</p>
+<p>Problem records hold <code>dt.security_context</code> as an array (every problem record that carried it on the validation tenant, 10/05/2026), so the operator matters as much as the field: Grail's permission docs state <em>&quot;Using <code>=</code>, <code>STARTSWITH</code> or <code>IN</code> when the field holds an array will always return <code>false</code>. If you expect your record filters might contain an array, use the <code>MATCH</code> operator in your IAM statements.&quot;</em> A visibility policy written as <code>storage:dt.security_context = &quot;team-a&quot;</code> hides the team's own problems.</p>
+<p>This is the same field the access-control half of the migration uses, which is convenient: MZ2POL-02 and MZ2POL-04 already establish it. If those notebooks' work is done, visibility is largely already handled — verify rather than rebuild.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Problems app (DT docs)</a> — the array-filtering constraint. <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-333">SaaS 1.333 release notes (DT docs)</a> — <code>dt.security_context</code> propagation onto alerting events. <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — <em>&quot;Using <code>=</code>, <code>STARTSWITH</code> or <code>IN</code> when the field holds an array will always return <code>false</code>.&quot;</em></sub></p>
+</blockquote>
+<p><a id="cutover"></a></p>
+<h2>8. Cutover Sequencing and the Deletion Test</h2>
+<h3>The order</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+QWxlcnRpbmcgQ3V0b3ZlciBTZXF1ZW5jZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyLjUiPlNpeCBzdGVwczsgZGlzYWJsaW5nIHByb2ZpbGVzIGFuZCBkZWxldGluZyB6b25lcyBuZXZlciBzaGFyZSBhIGNoYW5nZSB3aW5kb3c8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjcyIiB3aWR0aD0iNTYwIiBoZWlnaHQ9IjU2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM2IiB5PSI5NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPjEgwrcgQnVpbGQgd29ya2Zsb3dzPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSIxMTYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cm91dGluZyB2YWx1ZXMgb24gcHJvYmxlbSByZWNvcmRzIHZlcmlmaWVkICjCpzQpPC90ZXh0PgogIDxsaW5lIHgxPSIzMDAiIHkxPSIxMjgiIHgyPSIzMDAiIHkyPSIxMzUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPHJlY3QgeD0iMjAiIHk9IjEzNiIgd2lkdGg9IjU2MCIgaGVpZ2h0PSI1NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNiIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+MiDCtyBSdW4gaW4gcGFyYWxsZWw8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjE4MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jbGFzc2ljIHByb2ZpbGVzIEFORCB3b3JrZmxvd3MgYWN0aXZlPC90ZXh0PgogIDxsaW5lIHgxPSIzMDAiIHkxPSIxOTIiIHgyPSIzMDAiIHkyPSIxOTkiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPHJlY3QgeD0iMjAiIHk9IjIwMCIgd2lkdGg9IjU2MCIgaGVpZ2h0PSI1NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNiIgeT0iMjI0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+MyDCtyBQcm92ZSBhbGVydCBwYXJpdHk8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjI0NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5wZXItdGVhbSB2b2x1bWUgbWF0Y2hlcyBmb3IgYW4gYWdyZWVkIHdpbmRvdzwvdGV4dD4KICA8bGluZSB4MT0iMzAwIiB5MT0iMjU2IiB4Mj0iMzAwIiB5Mj0iMjYzIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxyZWN0IHg9IjIwIiB5PSIyNjQiIHdpZHRoPSI1NjAiIGhlaWdodD0iNTYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzYiIHk9IjI4OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPjQgwrcgRElTQUJMRSBwcm9maWxlczwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iMzA4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmRpc2FibGUsIG5vdCBkZWxldGUg4oCUIHJvbGxiYWNrIGlzIG9uZSBjbGljazwvdGV4dD4KICA8bGluZSB4MT0iMzAwIiB5MT0iMzIwIiB4Mj0iMzAwIiB5Mj0iMzI3IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxyZWN0IHg9IjIwIiB5PSIzMjgiIHdpZHRoPSI1NjAiIGhlaWdodD0iNTYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzYiIHk9IjM1MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPjUgwrcgU29hazwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iMzcyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmFncmVlZCBxdWlldCBwZXJpb2Q8L3RleHQ+CiAgPGxpbmUgeDE9IjMwMCIgeTE9IjM4NCIgeDI9IjMwMCIgeTI9IjM5MSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8cmVjdCB4PSIyMCIgeT0iMzkyIiB3aWR0aD0iNTYwIiBoZWlnaHQ9IjU2IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM2IiB5PSI0MTYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMi41IiBmb250LXdlaWdodD0iNzAwIj42IMK3IERlbGV0ZSB6b25lczwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iNDM2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnNlcGFyYXRlIGNoYW5nZSB3aW5kb3csIGxhc3Q8L3RleHQ+CiAgPHJlY3QgeD0iNjAwIiB5PSI3MiIgd2lkdGg9IjMxMCIgaGVpZ2h0PSIxODQiIHJ4PSI3IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iNjAwIiB5PSI3MiIgd2lkdGg9IjMxMCIgaGVpZ2h0PSIxODQiIHJ4PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNjE0IiB5PSI5NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPlVudGVzdGVkOiBkZWxldGluZyBhIHpvbmU8L3RleHQ+CiAgPHRleHQgeD0iNjE0IiB5PSIxMjAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V2hhdCBhbiBhbGVydGluZyBwcm9maWxlIGRvZXMgd2hlbjwvdGV4dD4KICA8dGV4dCB4PSI2MTQiIHk9IjE0MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5pdHMgem9uZSBpcyBkZWxldGVkIGlzIHVuZG9jdW1lbnRlZDo8L3RleHQ+CiAgPHRleHQgeD0iNjE0IiB5PSIxNjAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+4oCiIGZhaWwtb3BlbiDihpIgcGFnZSBzdG9ybTwvdGV4dD4KICA8dGV4dCB4PSI2MTQiIHk9IjE4MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj7igKIgZmFpbC1jbG9zZWQg4oaSIHNpbGVudCBhbGVydCBsb3NzPC90ZXh0PgogIDx0ZXh0IHg9IjYxNCIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlJ1biB0aGUgwqc4IHRlc3QgaW4gbm9uLXByb2QgZmlyc3QuPC90ZXh0PgogIDxyZWN0IHg9IjYwMCIgeT0iMjcwIiB3aWR0aD0iMzEwIiBoZWlnaHQ9IjE4NCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIvPgogIDx0ZXh0IHg9IjYxNCIgeT0iMjk0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+V2h5IHNlcGFyYXRlIHdpbmRvd3M8L3RleHQ+CiAgPHRleHQgeD0iNjE0IiB5PSIzMTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QWZ0ZXIgYSBjb21iaW5lZCBjaGFuZ2UgdGhlcmUgaXM8L3RleHQ+CiAgPHRleHQgeD0iNjE0IiB5PSIzMzgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bm8gd2F5IHRvIHRlbGwgd2hpY2ggaGFsZiBjYXVzZWQgYTwvdGV4dD4KICA8dGV4dCB4PSI2MTQiIHk9IjM1OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5yZWdyZXNzaW9uLiBTdGVwIDQgaXMgcmV2ZXJzaWJsZTs8L3RleHQ+CiAgPHRleHQgeD0iNjE0IiB5PSIzNzgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+c3RlcCA2IGlzIG5vdC48L3RleHQ+Cjwvc3ZnPgo=" alt="Alerting cutover sequence" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action |
+|---|---|
+| 1 | Build workflows — with routing values on problem records verified (§4) |
+| 2 | Run in parallel — classic profiles AND new workflows both active |
+| 3 | Prove alert parity — per-team volume matches, for an agreed window |
+| 4 | DISABLE classic profiles — not delete; disable, so rollback is one click |
+| 5 | Soak — agreed quiet period |
+| 6 | Delete Management Zones — SEPARATE change window, last |
+| Untested | What a profile does when its zone is deleted is undocumented: fail-open (page storm) or fail-closed (silent loss) — run the test below |
+For environments where SVG doesn't render
+-->
+<p>Steps 4 and 6 must not share a change window. After a combined change there is no way to tell which half caused a regression.</p>
+<h3>The unresolved question</h3>
+<blockquote>
+<p>⚠️ <strong>Undocumented behavior — test it, do not assume it.</strong></p>
+<p><strong>What happens to an alerting profile whose Management Zone reference is deleted?</strong></p>
+<ul>
+<li><strong>Fails open</strong> — the profile matches everything. Across a large profile estate, a page storm.</li>
+<li><strong>Fails closed</strong> — the profile matches nothing. Silent alert loss, which is worse, because nothing announces it.</li>
+</ul>
+<p>This is not documented, and it could not be verified while writing this notebook. Establish it yourself before deleting any production Management Zone.</p>
+</blockquote>
+<h3>The test procedure</h3>
+<p>Run in a <strong>non-prod tenant</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Record</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Create a throwaway MZ scoped to a small, controllable entity set</td>
+<td>MZ name, scope</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Create an alerting profile scoped to that MZ, routing to a test destination</td>
+<td>Profile config</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Trigger a problem on an <strong>in-scope</strong> entity; confirm the notification fires</td>
+<td>Positive baseline</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Trigger a problem on an <strong>out-of-scope</strong> entity; confirm it does <strong>not</strong> fire</td>
+<td>Negative baseline</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Delete the Management Zone. Change nothing else</td>
+<td>Deletion timestamp</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Re-run step 3</td>
+<td>Fires / does not fire</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Re-run step 4</td>
+<td><strong>This is the answer.</strong> Fires ⇒ fail-open. Does not fire ⇒ fail-closed</td>
+</tr>
+</tbody>
+</table>
+<p>Step 4 is the one people skip, and it is the one that matters — without a negative baseline, step 7 proves nothing.</p>
+<h3>What the answer changes</h3>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fail-open</strong></td>
+<td>MZs must be deleted only <em>after</em> profiles are deleted, not merely disabled — otherwise every dangling profile pages everyone</td>
+</tr>
+<tr>
+<td><strong>Fail-closed</strong></td>
+<td>Safer, but demands parity proof <em>before</em> deletion, since failures will be silent</td>
+</tr>
+</tbody>
+</table>
+<h3>Retire Management Zones last</h3>
+<p>Classic apps still depend on Management Zones, and so do any alerting profiles you chose to keep. MZ2POL-05 §8 covers coexistence; the ordering rule is the same here — the MZ is the last thing to go.</p>
+<p><a id="validation"></a></p>
+<h2>9. Validating the Migration</h2>
+<h3>Alert parity is the acceptance test</h3>
+<p>The only meaningful proof is that each team receives the same pages after cutover as before. Compare per-team alert volume across the parallel-run window.</p>
+<blockquote>
+<p><strong>This is the one thing the platform team cannot validate alone.</strong> Only the team currently receiving an MZ-scoped page can confirm they still receive the equivalent page. Budget for their time explicitly — this is the most common source of cutover slippage.</p>
+</blockquote>
+<h3>Problem distribution by security context</h3>
+<p>Establishes the baseline distribution to compare against after cutover:</p>
+<pre><code class="language-dql">// Problem-event volume by security context over the parallel-run window.
+// Executed 07/31/2026 over 7 days; results below the cell.
+// Counts problem-EVENT records, not distinct problems - see the note that follows.
+fetch events, from: -7d
+| filter event.kind == &quot;DAVIS_PROBLEM&quot;
+| expand dt.security_context
+| summarize problems = count(), by:{dt.security_context}
+| sort problems desc
+| limit 20
+</code></pre>
+<p><code>dt.security_context</code> is an <strong>array</strong> on problem records once events aggregate — hence the <code>expand</code>. This is the same array behavior that constrains the visibility model in §7.</p>
+<h3>Security-context coverage on problems</h3>
+<p>A problem with no security context cannot be filtered for visibility and may not route as expected:</p>
+<p>Executed against a validation tenant over 7 days on 07/31/2026, the top rows were:</p>
+<table>
+<thead>
+<tr>
+<th><code>dt.security_context</code></th>
+<th style="text-align:right">problem-event records</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>(null)</em></td>
+<td style="text-align:right">2,319,333</td>
+</tr>
+<tr>
+<td><code>ENV | Prod</code></td>
+<td style="text-align:right">147,055</td>
+</tr>
+<tr>
+<td><code>Elevate | Prod | Monitoring Team</code></td>
+<td style="text-align:right">77,689</td>
+</tr>
+<tr>
+<td><code>Elevate | Prod</code></td>
+<td style="text-align:right">73,533</td>
+</tr>
+<tr>
+<td><code>Prod All (old)</code></td>
+<td style="text-align:right">73,522</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Read the unit before you read the numbers.</strong> <code>fetch events | filter event.kind == &quot;DAVIS_PROBLEM&quot;</code> returns the raw problem-event stream — many records per problem, one for each state update over its life — so these are <em>records</em>, not distinct problems. On the same tenant and window, <code>fetch dt.davis.problems</code> returned 3,318 rows against 2,480,695 problem-event records: an over-count of roughly 750×. That is fine for a <em>relative</em> comparison across contexts, which is what this baseline is for, and badly wrong if you quote it as a problem count to anyone. ALERT-99 §3 sets out all three Davis surfaces and which question each answers.</p>
+<p>Note also the shape of that top row: the largest bucket by far is the one with <strong>no security context at all</strong>.</p>
+<pre><code class="language-dql">// Security-context coverage across the problem-event stream.
+// dt.security_context is an ARRAY here: count non-empty arrays, not non-null values.
+// Executed 10/13/2026 over 7 days: total 66,803 / with_context 15,813 / 23.7%.
+fetch events, from: -7d
+| filter event.kind == &quot;DAVIS_PROBLEM&quot;
+| summarize {total = count(), with_context = countIf(arraySize(dt.security_context) &gt; 0)}
+| fieldsAdd coverage_pct = round(with_context * 100.0 / total, decimals: 1)
+</code></pre>
+<p>On the validation tenant, 10/13/2026, over 7 days:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right"><code>total</code></th>
+<th style="text-align:right"><code>with_context</code></th>
+<th style="text-align:right"><code>coverage_pct</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">66,803</td>
+<td style="text-align:right">15,813</td>
+<td style="text-align:right"><strong>23.7</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>76.3% of the problem-event stream carries no security context at all.</strong> (The 07/31/2026 run of the earlier form of this query read 6.5%; the tenant's event volume and enrichment have both changed since, so compare runs on your own tenant, not against these figures.) That number is the argument of this notebook in a single figure.</p>
+<p>The migration story people reach for is that MZ-scoped alerting will be rebuilt on a field like <code>dt.security_context</code> — swap one scoping dimension for another and the routing follows. This measurement is what that plan collides with. A field populated on under a quarter of records is not a scoping dimension yet; it is an enrichment project that has not happened. Build routing on it today and three quarters of the stream falls through to whatever the default is — which, for alerting, means either everyone is paged or nobody is.</p>
+<p>That is why §4 puts enrichment first and treats it as the prerequisite rather than a parallel workstream. <strong>Run this query before you commit to a cutover date, not after.</strong> A tenant at a quarter coverage has substantial enrichment work in front of it; a tenant already near 100% can move quickly. The number is cheap to obtain and it is the difference between a schedule and a guess.</p>
+<p>A coverage figure this low is also worth a second look before you treat it as pure bad news: check whether the contexts that <em>are</em> populated cover the entities that actually page people. Coverage weighted by alert-carrying entities is the number that matters operationally, and it is often better than the raw record-level figure — the null bucket is inflated by high-frequency events on unenriched infrastructure.</p>
+<h3>What to check before declaring done</h3>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Pass condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Routing coverage on problem records (§4)</td>
+<td><code>primary_pct</code> at 100 for every routing key, measured over a window that starts after enrichment</td>
+</tr>
+<tr>
+<td>Workflow per destination exists</td>
+<td>Every inventoried destination has a live workflow</td>
+</tr>
+<tr>
+<td>Alert parity per team</td>
+<td>Within agreed tolerance across the parallel window, <strong>confirmed by the receiving team</strong></td>
+</tr>
+<tr>
+<td>No workflow reads <code>management_zones</code></td>
+<td>Zero matches across all workflow definitions</td>
+</tr>
+<tr>
+<td><code>delayInMinutes</code> dispositions</td>
+<td>Every non-zero value has a recorded Minimum duration decision</td>
+</tr>
+<tr>
+<td>Security-context coverage</td>
+<td>100%, or every gap explained</td>
+</tr>
+<tr>
+<td>Deletion behavior established</td>
+<td>§8 test run and result recorded</td>
+</tr>
+</tbody>
+</table>
+<p><a id="checklist"></a></p>
+<h2>10. Checklist</h2>
+<p><strong>Inventory</strong></p>
+<ul>
+<li>[ ] Export alerting profiles (<code>builtin:alerting.profile</code>) — Settings API or UI</li>
+<li>[ ] Identify which profiles reference a Management Zone (the real work list)</li>
+<li>[ ] Record <code>delayInMinutes</code> per severity rule</li>
+<li>[ ] Record every notification destination and its type</li>
+<li>[ ] Identify near-duplicate profiles that collapse to one destination</li>
+</ul>
+<p><strong>Enrichment (prerequisite)</strong></p>
+<ul>
+<li>[ ] Classify every MZ rule by whether its dimension reaches the problem record (§4)</li>
+<li>[ ] Set every missing dimension on the data — at the source or with central enrichment (MZ2POL-10 §5), not with auto-tags</li>
+<li>[ ] Run the problem-record coverage queries until they reach 100%</li>
+<li>[ ] Measure over a window that starts after enrichment — existing problems are not rewritten</li>
+</ul>
+<p><strong>Build</strong></p>
+<ul>
+<li>[ ] One simple workflow per team/channel — not per Management Zone</li>
+<li>[ ] Trigger routes with a custom filter query on primary fields or <code>primary_tags.*</code> — <code>matchesValue()</code>, never <code>==</code> (problem fields are arrays)</li>
+<li>[ ] <em>Wait for root cause analysis</em> decided per trigger (the docs recommend enabling it); each trigger under the 1,000-character limit</li>
+<li>[ ] Carry severity rules across from the old profile</li>
+<li>[ ] Rebuild the three destinations with no dedicated connector (Trello, VictorOps, xMatters) as HTTP Request actions; move Opsgenie to the Jira Service Management connector</li>
+<li>[ ] Template and manage as code (AUTOM-03 / AUTOM-04)</li>
+<li>[ ] Verify no workflow reads <code>event()[&quot;management_zones&quot;]</code></li>
+</ul>
+<p><strong>Regressions</strong></p>
+<ul>
+<li>[ ] Every non-zero <code>delayInMinutes</code> has a recorded disposition</li>
+<li>[ ] On-call teams told about any delay that was rounded <em>before</em> cutover</li>
+<li>[ ] Awareness-only recipients: a simple email workflow each (SaaS 1.347 deprecates Problems-app personal notifications — §6)</li>
+</ul>
+<p><strong>Visibility</strong></p>
+<ul>
+<li>[ ] Visibility model uses <code>dt.security_context</code> and nothing else</li>
+<li>[ ] IAM record-level policies in place and tested</li>
+</ul>
+<p><strong>Cutover</strong></p>
+<ul>
+<li>[ ] Deletion-behavior test run in non-prod; result recorded (§8)</li>
+<li>[ ] Parallel run complete; alert parity confirmed <strong>by the receiving teams</strong></li>
+<li>[ ] Classic profiles <strong>disabled</strong>, not deleted</li>
+<li>[ ] Soak period elapsed</li>
+<li>[ ] Management Zones deleted in a <strong>separate</strong> change window, last</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<ol>
+<li><strong>Alerting is the third job a Management Zone does</strong>, and it migrates to problem-triggered workflows — not to Segments. Segments scope queries and anomaly detectors; they never scope triggers, notifications, or visibility.</li>
+<li><strong>The real work is enrichment.</strong> Triggers evaluate the problem record; MZ rules are computed conditions on entities. Every routing dimension must be set on the data as a primary field or <code>primary_tags.*</code> — auto-tags do not reach Grail — and must reach new problems before its workflow can exist.</li>
+<li><strong>One confirmed capability regression:</strong> three notification destinations have no native connector (Opsgenie moves to the JSM connector). Duration-based suppression maps onto the trigger's <strong>Minimum duration</strong> option, and since its 09/07/2026 rewrite the upgrade guide agrees.</li>
+<li><strong>Visibility is a separate axis</strong> and works only on <code>dt.security_context</code>, because it is the only field that filters correctly once events aggregate into a problem.</li>
+<li><strong>The deletion failure mode is undocumented.</strong> Test it in non-prod before touching production, and never delete zones and profiles in the same change window.</li>
+</ol>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>MZ2POL-16</strong> — the other zone-scoped alerting artifacts: metric events (the transform drops the zone), maintenance windows, classic SLOs, notification payloads, and proving parity</li>
+<li><strong>MZ2POL-06</strong> — migration execution, phasing, and rollback for the migration as a whole</li>
+<li><strong>MZ2POL-07</strong> — validation and troubleshooting</li>
+<li><strong>MZ2POL-99</strong> — the consolidated best-practice checklist across the series</li>
+</ul>
+<h2>Additional Resources</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a> — the authoritative old→new mapping: where filtering goes, the connector table, and delay as a workflow-trigger capability</li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event trigger (DT docs)</a> — problem-trigger filter surface and DQL-matcher scope</li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications">Alerting and notifications (DT docs)</a> — the current Gen3 hub</li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/alerting-profiles">Alerting profiles (DT docs)</a> — Dynatrace Classic status</li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/alerting-and-notifications-classic/problem-notifications">Problem notifications (DT docs)</a> — classic notification status</li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/problems-app">Problems app (DT docs)</a> — array-filtering constraint; personal email subscription (deprecated from SaaS 1.347)</li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">SaaS 1.347 release notes (DT docs)</a> — Problems-app personal notifications deprecated; migrate to Workflows</li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 release notes (DT docs)</a> — <code>event.severity</code> no longer defaulted to <code>3</code></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/use-cases/use-segments-anomaly-detection">Use segments in anomaly detection (DT docs)</a> — the one documented segment/alerting intersection</li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-333">SaaS 1.333 release notes (DT docs)</a> — <code>dt.security_context</code> propagation onto alerting events</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

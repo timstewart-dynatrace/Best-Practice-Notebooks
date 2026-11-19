@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DBMON-04: Cache and Messaging Monitoring</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DBMON — Database Monitoring</a><span class="sep">/</span><span aria-current="page">DBMON-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DBMON-04: Cache and Messaging Monitoring</h1>
+<blockquote>
+<p><strong>Series:</strong> DBMON — Database Monitoring | <strong>Notebook:</strong> 4 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook covers monitoring caches and message brokers with Dynatrace. Caches (Redis, Memcached) and message brokers (Kafka, RabbitMQ) are critical infrastructure components that behave differently from traditional databases. You will learn how to analyze Redis operation performance, Kafka consumer throughput, message broker queue health, and Elasticsearch query patterns using span data.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#cache-messaging-overview">Cache and Messaging Overview</a></li>
+<li><a href="#redis-analysis">Redis Performance Analysis</a></li>
+<li><a href="#kafka-monitoring">Kafka Consumer and Producer Monitoring</a></li>
+<li><a href="#rabbitmq-monitoring">RabbitMQ Queue Monitoring</a></li>
+<li><a href="#elasticsearch-monitoring">Elasticsearch Query Performance</a></li>
+<li><a href="#cross-system-dashboard">Cross-System Performance Dashboard</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail (Managed has no Grail, so these DQL cells do not run there)</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Deployed on application hosts using Redis, Kafka, RabbitMQ, or Elasticsearch</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:spans:read</code>, <code>storage:metrics:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Application traffic generating cache/messaging calls</td>
+</tr>
+<tr>
+<td><strong>Prior Reading</strong></td>
+<td>DBMON-01: Database Monitoring Fundamentals</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cache-messaging-overview"></a></p>
+<h2>1. Cache and Messaging Overview</h2>
+<p>Caches and message brokers serve fundamentally different purposes from databases, but Dynatrace monitors them through the same span instrumentation framework.</p>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>Category</th>
+<th>System field</th>
+<th>Typical Latency</th>
+<th>Key Concern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Redis</td>
+<td>In-Memory Cache/Store</td>
+<td><code>db.system == &quot;redis&quot;</code></td>
+<td>&lt;1ms</td>
+<td>Memory pressure, eviction rate</td>
+</tr>
+<tr>
+<td>Memcached</td>
+<td>In-Memory Cache</td>
+<td><code>db.system == &quot;memcached&quot;</code></td>
+<td>&lt;1ms</td>
+<td>Hit ratio, eviction</td>
+</tr>
+<tr>
+<td>Kafka</td>
+<td>Distributed Streaming</td>
+<td><code>messaging.system == &quot;kafka&quot;</code></td>
+<td>1-50ms</td>
+<td>Consumer lag, partition balance</td>
+</tr>
+<tr>
+<td>RabbitMQ</td>
+<td>Message Broker</td>
+<td><code>messaging.system == &quot;rabbitmq&quot;</code></td>
+<td>1-10ms</td>
+<td>Queue depth, consumer throughput</td>
+</tr>
+<tr>
+<td>Elasticsearch</td>
+<td>Search Engine</td>
+<td><code>db.system == &quot;elasticsearch&quot;</code></td>
+<td>5-500ms</td>
+<td>Query latency, indexing throughput</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Cache and messaging systems often have sub-millisecond latency. Even small increases in response time can indicate significant issues (memory pressure, network problems, or hot keys).</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+Q2FjaGUgJmFtcDsgTWVzc2FnaW5nIFNwYW4gRmxvdzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5Qcm9kdWNlciDihpIgQnJva2VyIOKGkiBDb25zdW1lciDigJQgZGlmZmVyZW50IGF0dHJpYnV0aW9uIG1vZGVsIGZyb20gcmVxdWVzdC1yZXNwb25zZSBEQnM8L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXJyb3dGbG93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzk0QTNCOCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd0thZmthIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iI0ZGQjgwMCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd1JlZGlzIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iI0RFMzUwQiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFRPUCBST1cg4oCUIE1lc3NhZ2luZyAoS2Fma2EgLyBSYWJiaXRNUSkgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjgwIiB3aWR0aD0iODUwIiBoZWlnaHQ9IjE5MCIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4wNiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI2MCIgeT0iMTA1IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5NZXNzYWdpbmcg4oCUIEthZmthIC8gUmFiYml0TVEgKGRlY291cGxlZCBwcm9kdWNlci9jb25zdW1lcik8L3RleHQ+CgogIDwhLS0gUHJvZHVjZXIgc2VydmljZSAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMTMwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTQ1IiB5PSIxNTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlByb2R1Y2VyIFNlcnZpY2U8L3RleHQ+CiAgPHRleHQgeD0iMTQ1IiB5PSIxNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm9yZGVyLXNlcnZpY2U8L3RleHQ+CgogIDwhLS0gUHJvZHVjZXIgc3BhbiAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMTk1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSIxNDUiIHk9IjIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+UHJvZHVjZXIgU3BhbjwvdGV4dD4KICA8dGV4dCB4PSIxNDUiIHk9IjIyOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI4Ij5tZXNzYWdpbmcub3BlcmF0aW9uLnR5cGUgPSBwdWJsaXNoPC90ZXh0PgogIDx0ZXh0IHg9IjE0NSIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPm1lc3NhZ2luZy5zeXN0ZW0gPSBrYWZrYTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBwcm9kdWNlciDihpIgYnJva2VyIC0tPgogIDxsaW5lIHgxPSIyMzAiIHkxPSIxNjAiIHgyPSIzODAiIHkyPSIxNjAiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93S2Fma2EpIi8+CiAgPHRleHQgeD0iMzA1IiB5PSIxNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiPnB1Ymxpc2g8L3RleHQ+CiAgPHRleHQgeD0iMzA1IiB5PSIxNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPm1lc3NhZ2luZy5kZXN0aW5hdGlvbi5uYW1lID0gIm9yZGVycy5jcmVhdGVkIjwvdGV4dD4KCiAgPCEtLSBCcm9rZXIgLS0+CiAgPHJlY3QgeD0iMzgwIiB5PSIxMzAiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+S2Fma2EgQnJva2VyPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5Ub3BpYzogb3JkZXJzLmNyZWF0ZWQ8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlBhcnRpdGlvbjogMzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gc3BhbiBvbiBicm9rZXIgaXRzZWxmPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPihicm9rZXIgaXMgcGFzcy10aHJvdWdoOzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij50cmFjZSBjb250ZXh0IHByb3BhZ2F0ZXMgdmlhIGhlYWRlcnMpPC90ZXh0PgoKICA8IS0tIEFycm93IGJyb2tlciDihpIgY29uc3VtZXIgLS0+CiAgPGxpbmUgeDE9IjU1MCIgeTE9IjE2MCIgeDI9IjcwMCIgeTI9IjE2MCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dLYWZrYSkiLz4KICA8dGV4dCB4PSI2MjUiIHk9IjE0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+ZGVsaXZlcjwvdGV4dD4KICA8dGV4dCB4PSI2MjUiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5tZXNzYWdpbmcuY29uc3VtZXIuZ3JvdXAubmFtZTwvdGV4dD4KCiAgPCEtLSBDb25zdW1lciBzcGFuIC0tPgogIDxyZWN0IHg9IjcwMCIgeT0iMTk1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMSIgcng9IjYiLz4KICA8dGV4dCB4PSI3ODUiIHk9IjIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Q29uc3VtZXIgU3BhbjwvdGV4dD4KICA8dGV4dCB4PSI3ODUiIHk9IjIyOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI4Ij5tZXNzYWdpbmcub3BlcmF0aW9uLnR5cGUgPSBwcm9jZXNzPC90ZXh0PgogIDx0ZXh0IHg9Ijc4NSIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjgiPmNvbnN1bWVyLmdyb3VwLm5hbWUgPSBvcmRlci1wcm9jZXNzb3I8L3RleHQ+CgogIDwhLS0gQ29uc3VtZXIgc2VydmljZSAtLT4KICA8cmVjdCB4PSI3MDAiIHk9IjEzMCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI1NSIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiByeD0iNiIvPgogIDx0ZXh0IHg9Ijc4NSIgeT0iMTUzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5Db25zdW1lciBTZXJ2aWNlPC90ZXh0PgogIDx0ZXh0IHg9Ijc4NSIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5mdWxmaWxsbWVudC1zZXJ2aWNlPC90ZXh0PgoKICA8IS0tIEJPVFRPTSBST1cg4oCUIENhY2hlIChSZWRpcykgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjI5MCIgd2lkdGg9Ijg1MCIgaGVpZ2h0PSIxODAiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMDYiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNjAiIHk9IjMxNSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+Q2FjaGUg4oCUIFJlZGlzIC8gTWVtY2FjaGVkIChzeW5jaHJvbm91cyByZXF1ZXN0L3Jlc3BvbnNlKTwvdGV4dD4KCiAgPCEtLSBTZXJ2aWNlIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIzNDUiIHdpZHRoPSIxNzAiIGhlaWdodD0iNTUiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgcng9IjYiLz4KICA8dGV4dCB4PSIxNDUiIHk9IjM2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+U2VydmljZTwvdGV4dD4KICA8dGV4dCB4PSIxNDUiIHk9IjM4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Y2hlY2tvdXQtc2VydmljZTwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjQxMCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iMTQ1IiB5PSI0MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkNsaWVudCBTcGFuPC90ZXh0PgogIDx0ZXh0IHg9IjE0NSIgeT0iNDQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPmRiLnN5c3RlbSA9IHJlZGlzIMK3IHNwYW4ua2luZCA9IGNsaWVudDwvdGV4dD4KCiAgPCEtLSBBcnJvdyBzZXJ2aWNlIOKGkiBjYWNoZSAtLT4KICA8bGluZSB4MT0iMjMwIiB5MT0iMzc1IiB4Mj0iMzgwIiB5Mj0iMzc1IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1JlZGlzKSIvPgogIDx0ZXh0IHg9IjMwNSIgeT0iMzY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj5HRVQgLyBTRVQ8L3RleHQ+CiAgPHRleHQgeD0iMzA1IiB5PSIzOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPmRiLm9wZXJhdGlvbi5uYW1lID0gIkdFVCI8L3RleHQ+CgogIDwhLS0gQ2FjaGUgLS0+CiAgPHJlY3QgeD0iMzgwIiB5PSIzNDUiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTE1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+UmVkaXM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlN1Yi1taWxsaXNlY29uZCBsYXRlbmN5PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDA0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5Db21wYXJlIGluIG1pY3Jvc2Vjb25kczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij5TbG93IHRocmVzaG9sZDogZHVyYXRpb24gJmd0OyA1bXM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0MzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjcwMCI+V2F0Y2ggZm9yOiBLRVlTICosIFNNRU1CRVJTPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjkiIGZvbnQtd2VpZ2h0PSI3MDAiPm9uIGxhcmdlIHNldHMsIGJpZyBMUkFOR0U8L3RleHQ+CgogIDwhLS0gU2lkZSBub3RlOiBtZXNzYWdpbmcuc3lzdGVtIGNhbm9uaWNhbCAtLT4KICA8cmVjdCB4PSI2MDAiIHk9IjM0NSIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIxMTUiIGZpbGw9IiMwRjE3MkEiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNiIvPgogIDx0ZXh0IHg9IjczNSIgeT0iMzY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5GaWVsZC1uYW1lIHJlZmVyZW5jZTwvdGV4dD4KICA8dGV4dCB4PSI2MTAiIHk9IjM4OCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIG1lc3NhZ2luZy5zeXN0ZW0gIOKGkCBjYW5vbmljYWwgKE9UZWwpPC90ZXh0PgogIDx0ZXh0IHg9IjYxMCIgeT0iNDA0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj7igKIgZGIuc3lzdGVtID09ICJrYWZrYSIg4oaQIGRlZmVuc2l2ZSBmaWx0ZXIgb25seTwvdGV4dD4KICA8dGV4dCB4PSI2MTAiIHk9IjQyMCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+4oCiIG1lc3NhZ2luZy5kZXN0aW5hdGlvbi5uYW1lID0gdG9waWM8L3RleHQ+CiAgPHRleHQgeD0iNjEwIiB5PSI0MzYiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPuKAoiBtZXNzYWdpbmcub3BlcmF0aW9uLnR5cGUgPSBwdWJsaXNoL3Byb2Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iNjEwIiB5PSI0NTIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPuKAoiBtZXNzYWdpbmcuY29uc3VtZXIuZ3JvdXAubmFtZSA9IGdyb3VwIElEPC90ZXh0PgoKICA8dGV4dCB4PSI0NjUiIHk9IjQ5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMCI+VHJhY2UgY29udGV4dCBmbG93cyB2aWEgS2Fma2EgbWVzc2FnZSBoZWFkZXJzIChXM0MgdHJhY2VwYXJlbnQpIOKAlCBwcm9kdWNlciArIGNvbnN1bWVyIHNwYW5zIGxpbmsgdmlhIHRyYWNlLmlkPC90ZXh0Pgo8L3N2Zz4K" alt="Cache &amp; Messaging Span Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | Producer span | Broker | Consumer span |
+|-------|---------------|--------|---------------|
+| Messaging (Kafka/RabbitMQ) | messaging.operation.type = publish | No span on broker; trace context flows via headers | messaging.operation.type = process; messaging.consumer.group.name |
+| Cache (Redis/Memcached) | db.system = redis; span.kind = client; db.operation.name = GET/SET | Sub-millisecond responses; compare in microseconds; slow > 5ms | (request-response, no separate consumer) |
+Note: brokers are identified by messaging.system; the cells also accept db.system for instrumentations that set it
+For environments where SVG doesn't render
+-->
+<p><em>In community practice the thresholds in this notebook are the values teams converge on as starting points — Dynatrace publishes none of them. Treat each as a first guess to tune against your own baseline, not a recommended setting.</em></p>
+<pre><code class="language-dql">// Discover active cache and messaging systems
+fetch spans, from:-1h
+| filter in(db.system, {&quot;redis&quot;, &quot;memcached&quot;, &quot;kafka&quot;, &quot;rabbitmq&quot;, &quot;elasticsearch&quot;, &quot;opensearch&quot;})
+| summarize {
+    call_count = count(),
+    avg_us = avg(duration) / 1us,
+    p95_us = percentile(duration, 95) / 1us
+}, by:{db.system, server.address}
+| sort call_count desc
+</code></pre>
+<p><a id="redis-analysis"></a></p>
+<h2>2. Redis Performance Analysis</h2>
+<p>Redis is the most commonly used in-memory data store. Monitoring Redis involves tracking operation types (GET, SET, DEL, HGET, etc.), latency distribution, and error rates. Since Redis operations should complete in microseconds, even small latency increases warrant investigation.</p>
+<p>Which field carries the command depends on the instrumentation — check <code>db.operation.name</code> first, then <code>code.function</code> (OneAgent MongoDB) or <code>span.name</code> (OTel Redis). The Redis queries below fall back to <code>span.name</code> when <code>db.operation.name</code> is empty.</p>
+<pre><code class="language-dql">// Field names corrected 08/12/2026 — pre-1.0 OpenTelemetry database semconv names had been
+// used throughout, and none of them has a row in the semantic dictionary (older OTel
+// instrumentations may still emit db.statement). They fail SILENTLY: a filter on a
+// non-existent field matches nothing and a summarize groups everything under null, so these cells
+// returned empty or single-null-group results without ever erroring.
+//   db.operation         -&gt; db.operation.name    (stable; set on 50,379 of 57,295 db spans)
+//   db.statement         -&gt; db.query.text        (stable; 33,463)
+//   db.mongodb.collection-&gt; db.collection.name   (stable; 6,912)
+//   db.name              -&gt; db.namespace         (stable; 57,281)
+// Confirm the catalog for your tenant with:
+//   fetch dt.semantic_dictionary.fields | filter startsWith(name, &quot;db.&quot;) | fields name, stability
+// Redis operation breakdown — which commands are most used?
+// OTel Redis instrumentations may omit db.operation.name; the command is also the span name.
+fetch spans, from:-1h
+| filter db.system == &quot;redis&quot;
+| fieldsAdd operation = coalesce(db.operation.name, span.name)
+| summarize {
+    call_count = count(),
+    avg_us = avg(duration) / 1us,
+    p95_us = percentile(duration, 95) / 1us,
+    max_us = max(duration) / 1us
+}, by:{operation}
+| sort call_count desc
+</code></pre>
+<pre><code class="language-dql">// Redis GET vs SET ratio — understand cache read/write balance
+// OTel Redis instrumentations may omit db.operation.name; the command is also the span name.
+fetch spans, from:-1h
+| filter db.system == &quot;redis&quot;
+| fieldsAdd operation = coalesce(db.operation.name, span.name)
+| filter isNotNull(operation)
+| fieldsAdd op_type = if(
+    in(operation, {&quot;GET&quot;, &quot;MGET&quot;, &quot;HGET&quot;, &quot;HGETALL&quot;, &quot;LRANGE&quot;, &quot;SMEMBERS&quot;, &quot;ZRANGE&quot;}),
+    then:&quot;READ&quot;,
+    else:if(
+      in(operation, {&quot;SET&quot;, &quot;MSET&quot;, &quot;HSET&quot;, &quot;HMSET&quot;, &quot;LPUSH&quot;, &quot;RPUSH&quot;, &quot;SADD&quot;, &quot;ZADD&quot;, &quot;DEL&quot;, &quot;EXPIRE&quot;}),
+      then:&quot;WRITE&quot;,
+      else:&quot;OTHER&quot;))
+| summarize op_count = count(), by:{op_type}
+| sort op_count desc
+</code></pre>
+<pre><code class="language-dql">// Redis latency over time — detect performance degradation
+fetch spans, from:-6h
+| filter db.system == &quot;redis&quot;
+| makeTimeseries {
+    avg_us = avg(duration / 1us),
+    p95_us = percentile(duration / 1us, 95),
+    call_count = count()
+  }, interval:5m
+</code></pre>
+<pre><code class="language-dql">// dt.service.name: dt.entity.service is deprecated in the semantic dictionary (dt.service.name is stable).
+// Redis slow commands — operations exceeding 5ms (abnormal for Redis)
+fetch spans, from:-1h
+| filter db.system == &quot;redis&quot;
+| filter duration &gt; 5ms
+// The command is in span.name when db.operation.name is empty (as on the validation tenant)
+| fields start_time, command = coalesce(db.operation.name, span.name), server.address,
+        duration_ms = duration / 1ms, dt.service.name
+| sort duration_ms desc
+| limit 20
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> Redis commands like <code>KEYS *</code>, <code>SMEMBERS</code> on large sets, or <code>LRANGE</code> with large ranges are known to cause latency spikes. If you see slow operations, check if the command is operating on a large data structure.</p>
+</blockquote>
+<p><a id="kafka-monitoring"></a></p>
+<h2>3. Kafka Consumer and Producer Monitoring</h2>
+<p>Apache Kafka monitoring through spans captures both producer (publish) and consumer (process) operations. Dynatrace instruments Kafka client libraries to provide visibility into message throughput, processing latency, and consumer group health.</p>
+<h3>Kafka Span Attributes</h3>
+<p><strong><code>messaging.system</code></strong> (<code>stable</code> in the semantic dictionary) is the field for Kafka and other message brokers — not <code>db.system</code>. The queries below also accept <code>db.system == &quot;kafka&quot;</code> defensively, for instrumentations that set it; no source documents which ones do.</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>messaging.system</code></td>
+<td>Always <code>kafka</code> (canonical OTel field)</td>
+<td><code>kafka</code></td>
+</tr>
+<tr>
+<td><code>messaging.operation.type</code></td>
+<td>Dynatrace's dictionary lists <code>publish</code>, <code>receive</code>, <code>process</code> and <code>peek</code>; newer OpenTelemetry instrumentations send <code>send</code> for producers</td>
+<td><code>process</code></td>
+</tr>
+<tr>
+<td><code>messaging.destination.name</code></td>
+<td>Topic name</td>
+<td><code>orders.created</code></td>
+</tr>
+<tr>
+<td><code>messaging.consumer.group.name</code></td>
+<td>Consumer group ID</td>
+<td><code>order-processor-group</code></td>
+</tr>
+<tr>
+<td><code>messaging.destination.partition.id</code></td>
+<td>Partition number</td>
+<td><code>3</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>messaging.system</code>, <code>messaging.operation.type</code>, <code>messaging.destination.name</code>, <code>messaging.consumer.group.name</code>, <code>messaging.destination.partition.id</code> (all <code>stable</code>), <code>db.system</code> (<code>experimental</code>), read 10/02/2026. No messaging spans existed on the validation tenant over 7 days, so these cells were checked for syntax only.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Kafka message throughput by topic — producer and consumer activity
+fetch spans, from:-1h
+| filter db.system == &quot;kafka&quot; or messaging.system == &quot;kafka&quot;
+| filter isNotNull(messaging.destination.name)
+| summarize {
+    msg_count = count(),
+    avg_ms = avg(duration) / 1ms
+}, by:{messaging.destination.name, messaging.operation.type}
+| sort msg_count desc
+</code></pre>
+<pre><code class="language-dql">// Kafka consumer processing time over time by topic
+fetch spans, from:-6h
+| filter messaging.system == &quot;kafka&quot; and messaging.operation.type == &quot;process&quot;
+| filter isNotNull(messaging.destination.name)
+| makeTimeseries {
+    msg_count = count(),
+    avg_process_ms = avg(duration / 1ms)
+  }, by:{messaging.destination.name}, interval:5m
+</code></pre>
+<pre><code class="language-dql">// Kafka consumer group analysis — processing latency by consumer group
+fetch spans, from:-1h
+| filter messaging.system == &quot;kafka&quot; and messaging.operation.type == &quot;process&quot;
+| filter isNotNull(messaging.consumer.group.name)
+| summarize {
+    msg_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    errors = countIf(span.status_code == &quot;error&quot;)
+}, by:{messaging.consumer.group.name, messaging.destination.name}
+| sort msg_count desc
+</code></pre>
+<h3>Service Messaging Metrics (<code>dt.service.messaging.*</code>)</h3>
+<p>The span queries above need messaging spans. The latest Dynatrace also records message processing as <strong>metrics on each service</strong>, split by <code>messaging.destination.name</code>. These metrics are collected automatically and count messages independently of trace completeness. They replace the Classic Queue entity, and the two models can run side by side while you rebuild views and alerts.</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>What it counts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.service.messaging.publish.count</code></td>
+<td>Messages a service published</td>
+</tr>
+<tr>
+<td><code>dt.service.messaging.receive.count</code></td>
+<td>Messages a service received</td>
+</tr>
+<tr>
+<td><code>dt.service.messaging.process.count</code></td>
+<td>Messages a service processed</td>
+</tr>
+<tr>
+<td><code>dt.service.messaging.process.failure_count</code></td>
+<td>Messages whose processing failed</td>
+</tr>
+</tbody>
+</table>
+<p>The query below gives per-topic throughput and failures. Alert on failures as a percentage of <code>process.count</code>. The upgrade guide also suggests an alert on the gap between <code>receive.count</code> and <code>process.count</code> as a processing-lag signal. That signal needs both counts on the consuming service: on the validation tenant (2 h, 11/11/2026) the Kafka topic <code>orders</code> reported 38 published and 38 processed messages but <strong>no</strong> received messages. A receive-minus-process lag check there would read negative rather than flag a backlog, so check that <code>receive.count</code> is populated for your consumers before you build the lag alert.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/upgrade-queue-monitoring">Upgrade queue monitoring to service message processing (DT docs)</a> — <em>&quot;In the latest Dynatrace, message processing is measured directly on your services through the dt.service.messaging.</em> metrics.&quot;*, <em>&quot;Both models can run side by side.&quot;</em>, <em>&quot;An alert on failed messages becomes an alert on dt.service.messaging.process.failure_count, usually expressed as a percentage of dt.service.messaging.process.count.&quot;</em>; re-read 11/11/2026. Query executed 11/11/2026.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Per-topic message throughput and failures from the service messaging metrics
+timeseries {
+  published = sum(dt.service.messaging.publish.count),
+  received  = sum(dt.service.messaging.receive.count),
+  processed = sum(dt.service.messaging.process.count),
+  failed    = sum(dt.service.messaging.process.failure_count)
+}, from:-2h, by:{messaging.destination.name}, nonempty:true, union:true
+| fieldsAdd published_total = arraySum(published), received_total = arraySum(received),
+    processed_total = arraySum(processed), failed_total = arraySum(failed)
+| fieldsAdd failure_pct = if(processed_total &gt; 0, round(100.0 * failed_total / processed_total, decimals: 2))
+| fields messaging.destination.name, published_total, received_total, processed_total, failed_total, failure_pct
+| sort processed_total desc
+</code></pre>
+<p><a id="rabbitmq-monitoring"></a></p>
+<h2>4. RabbitMQ Queue Monitoring</h2>
+<p>RabbitMQ monitoring focuses on message publish/consume rates, queue depth, and consumer processing latency. High queue depth with low consumer throughput indicates backpressure.</p>
+<pre><code class="language-dql">// RabbitMQ message flow by queue
+fetch spans, from:-1h
+| filter db.system == &quot;rabbitmq&quot; or messaging.system == &quot;rabbitmq&quot;
+| filter isNotNull(messaging.destination.name)
+| summarize {
+    msg_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    errors = countIf(span.status_code == &quot;error&quot;)
+}, by:{messaging.destination.name, messaging.operation.type}
+| sort msg_count desc
+</code></pre>
+<pre><code class="language-dql">// RabbitMQ message throughput trend
+fetch spans, from:-6h
+| filter messaging.system == &quot;rabbitmq&quot;
+| filter isNotNull(messaging.destination.name)
+| makeTimeseries msg_count = count(), by:{messaging.operation.type}, interval:5m
+</code></pre>
+<p><a id="elasticsearch-monitoring"></a></p>
+<h2>5. Elasticsearch Query Performance</h2>
+<p>Elasticsearch is used for full-text search, log aggregation, and analytics. Monitoring focuses on query latency, indexing throughput, and identifying expensive search operations.</p>
+<pre><code class="language-dql">// Elasticsearch operation breakdown
+fetch spans, from:-1h
+| filter in(db.system, {&quot;elasticsearch&quot;, &quot;opensearch&quot;})
+| filter isNotNull(db.operation.name)
+| summarize {
+    call_count = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms
+}, by:{db.system, db.operation.name}
+| sort call_count desc
+</code></pre>
+<pre><code class="language-dql">// Elasticsearch slow queries — search operations exceeding 200ms
+fetch spans, from:-1h
+| filter in(db.system, {&quot;elasticsearch&quot;, &quot;opensearch&quot;})
+| filter duration &gt; 200ms
+| fields start_time, db.operation.name, db.query.text, server.address,
+        duration_ms = duration / 1ms
+| sort duration_ms desc
+| limit 15
+</code></pre>
+<p><a id="cross-system-dashboard"></a></p>
+<h2>6. Cross-System Performance Dashboard</h2>
+<p>Combining all cache and messaging systems into a single view provides a quick health check across your data infrastructure.</p>
+<pre><code class="language-dql">// Unified performance summary — all cache and messaging systems
+fetch spans, from:-1h
+| filter in(db.system, {&quot;redis&quot;, &quot;memcached&quot;, &quot;kafka&quot;, &quot;rabbitmq&quot;, &quot;elasticsearch&quot;, &quot;opensearch&quot;})
+        or in(messaging.system, {&quot;kafka&quot;, &quot;rabbitmq&quot;})
+| fieldsAdd system = coalesce(db.system, messaging.system)
+| summarize {
+    total_ops = count(),
+    avg_ms = avg(duration) / 1ms,
+    p95_ms = percentile(duration, 95) / 1ms,
+    error_count = countIf(span.status_code == &quot;error&quot;)
+}, by:{system}
+| fieldsAdd error_rate_pct = round((toDouble(error_count) / toDouble(total_ops)) * 100, decimals:2)
+| sort total_ops desc
+</code></pre>
+<p><a id="summary"></a></p>
+<h2>7. Summary and Next Steps</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li>Redis operation analysis: command breakdown, read/write ratios, and slow command detection</li>
+<li>Kafka monitoring: producer/consumer throughput, consumer group latency, and topic-level analysis (with canonical <code>messaging.system</code>, plus a defensive <code>db.system == &quot;kafka&quot;</code> filter)</li>
+<li>RabbitMQ queue monitoring: publish/consume rates and message flow</li>
+<li>Elasticsearch query performance: operation breakdown and slow query detection</li>
+<li>Cross-system performance comparison for cache and messaging infrastructure</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>DBMON-05: Query Analysis</strong> — Deep query analysis including N+1 detection and optimization patterns</li>
+<li><strong>DBMON-06: Dashboards and Alerting</strong> — Building database monitoring dashboards and alerting rules</li>
+</ul>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>OTEL series</strong> (9 notebooks) — OTel-instrumented Kafka/RabbitMQ producers and consumers, semantic-convention reference</li>
+<li><strong>OPIPE series</strong> (8 notebooks) — OpenPipeline-derived metrics from messaging spans (e.g., per-topic throughput as a metric)</li>
+<li><strong>OPLOGS series</strong> — When Elasticsearch is used as a log destination upstream of Dynatrace</li>
+<li><strong>AIOPS series</strong> — Davis anomaly detection on consumer-lag and broker-health metrics</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

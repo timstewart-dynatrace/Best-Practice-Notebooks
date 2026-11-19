@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALERT-03: Routing, Destinations, and Cost</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ALERT — Alerting Strategy and Design</a><span class="sep">/</span><span aria-current="page">ALERT-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ALERT-03: Routing, Destinations, and Cost</h1>
+<blockquote>
+<p><strong>Series:</strong> ALERT — Alerting Strategy and Design | <strong>Notebook:</strong> 03 of 05 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 11/09/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Once a problem fires, getting it to the right people without waste is a routing problem with a cost dimension. This notebook covers the <strong>simple vs multi-step workflow</strong> decision (and its billing implications), the destination landscape, and where the legacy alerting-profile path still applies. It orchestrates the WFLOW series rather than repeating it.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#simple">Simple vs Multi-Step Workflows</a></li>
+<li><a href="#pattern">The Routing Pattern</a></li>
+<li><a href="#destinations">Destination Landscape</a></li>
+<li><a href="#legacy">The Legacy Path</a></li>
+<li><a href="#cost">Cost Discipline</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3 with AutomationEngine (Workflows)</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>ALERT-01; routing depth in WFLOW-03/04</td>
+</tr>
+<tr>
+<td><strong>Upstream</strong></td>
+<td>Problems enriched with routing metadata (ALERT-01 §4)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="simple"></a></p>
+<h2>1. Simple vs Multi-Step Workflows</h2>
+<p>This is the cost decision that the field most often gets wrong.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Simple workflow</th>
+<th>Multi-step workflow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Shape</strong></td>
+<td><strong>Exactly one task</strong> — any trigger except Run Workflow, any action except Run JavaScript / Run Workflow / Approval Request</td>
+<td>Trigger → conditions, multiple actions, enrichment, multiple teams</td>
+</tr>
+<tr>
+<td><strong>Billing</strong></td>
+<td>No workflow-hours — but each run can still bill Standard Function Calls and DQL query usage</td>
+<td>Workflow-hours for every hour the workflow <strong>exists</strong>, from creation, whether it runs or not (about 720 a month), <strong>plus</strong> one Standard Function Call for every executed task</td>
+</tr>
+<tr>
+<td><strong>Use when</strong></td>
+<td>Filter problems and send to one channel</td>
+<td>Routing to multiple teams, leaving comments, conditional logic, enrichment, centralised config</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Default to simple workflows where possible.</strong> This may mean several simple workflows instead of one big one — that is the cheaper shape, because they do not consume workflow-hours. <em>Cheaper is not free:</em> the docs are explicit that &quot;while simple workflows don't directly consume workflow hours, their execution can trigger the consumption of billable Dynatrace capabilities&quot; — a Standard Function Call for a Slack message, or DQL query usage for a query inside the workflow. Reach for a multi-step workflow when you genuinely need conditional branching, multi-team routing, or a single centralised configuration; the capability is worth the cost when you need it, but do not pay it by default.</p>
+<blockquote>
+<p><strong>Two Dynatrace pages describe simple-workflow invocations differently.</strong> The DPS billing page's worked example bills a simple workflow's notifications <em>&quot;as Standard Function Calls&quot;</em> (the capability formerly named AppEngine Functions). The upgrade guide (updated 09/30/2026) says each task execution <em>&quot;counts as one AppEngine function invocation, and is billed as Automation Workflow&quot;</em>. Both agree that a simple workflow consumes no workflow-hours. Check your rate card for which line the invocations land on.</p>
+</blockquote>
+<p><strong>A worked trap.</strong> A frequent pattern is <em>one routing workflow per team or area</em> that catches every problem for that area and posts to the team's chat channel. It looks like simple fan-out — but what decides the category is the <strong>task count and action type</strong>, not the apparent shape. One task with any action except Run JavaScript, Run Workflow, or Approval Request keeps the workflow simple — connector actions and HTTP Request included. A Run JavaScript task is excluded outright, and adding a second task tips the workflow into the billed multi-step category. That step does not undo itself: <em>&quot;Once you start using the full functionality, there is no option to turn it off, even if you remove any additional tasks or actions.&quot;</em> The way back is a new workflow, or a rollback to an earlier version in the version history. Choose the action type before you build, not after.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow">Create a simple workflow (DT docs)</a> — <em>&quot;limited to only one task&quot;</em>; <em>&quot;Any action (except Run JavaScript, Run Workflow, Approval Request)&quot;</em>; <em>&quot;Once you start using the full functionality, there is no option to turn it off, even if you remove any additional tasks or actions.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/capabilities/automation/automation">Automation consumption (DPS) (DT docs)</a> — <em>&quot;Workflow hours are the number of hours that a workflow has existed in your environment, measured since the point of its creation.&quot;</em>; <em>&quot;24 hours × 14 days = 336 workflow hours&quot;</em>; <em>&quot;Each executed task&quot;</em> consumes <em>&quot;one Standard Function Call&quot;</em>; <em>&quot;billed as Standard Function Calls&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;each task execution counts as one AppEngine function invocation, and is billed as Automation Workflow&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> about 720 workflow-hours a month is the page's 24-hours-a-day rule over a 30-day month.</sub></li>
+</ul>
+</blockquote>
+<p><a id="pattern"></a></p>
+<h2>2. The Routing Pattern</h2>
+<ol>
+<li>Create a workflow with a <strong>Problem trigger</strong>, and set <strong>Problem state</strong> to <em>active or closed</em> so every open notification has a matching close.</li>
+<li>Configure the trigger to <strong>filter the problems</strong> relevant to this channel, on the metadata you enriched upstream (team or area tags, service, severity).</li>
+<li>Under <em>Advanced options</em>, enable <strong>Wait for root cause analysis</strong>. Without it the workflow can fire before the affected entities and tags your filter depends on have been attached.</li>
+<li>Add the <strong>notification action</strong> for the channel, and set up its <strong>connection</strong> if not already present.</li>
+<li>Compose the message with Jinja over the problem record, for example <code>{{ event()['event.name'] }}</code>, and include <code>{{ problem_link() }}</code> so recipients reach the problem in one click.</li>
+</ol>
+<p>Routing dimensions — severity, team/ownership, service, time of day — and escalation patterns are covered in depth in WFLOW-04. Two documented routes replace a side-table. Primary Grail tags (<code>primary_tags.*</code>) are copied from the alerting events onto the problem, so the trigger filters on them directly; a problem that groups several entities holds the deduplicated union of their values. And since SaaS 1.337, ownership is available on Smartscape nodes, so a workflow can look up the owning team with the Ownership <code>get_owners</code> action. That is a second task, which makes the workflow a standard one (§1).</p>
+<blockquote>
+<p><strong>Breaking — SaaS 1.348 (rollout start 10/12/2026, staged tenant rollout): <code>event.severity</code> is no longer defaulted.</strong> <em>&quot;Davis events and problems no longer default <code>event.severity</code> to <code>3</code>.&quot;</em> If step 2 filters on severity, a filter that was silently matching the default stops matching once 1.348 reaches your tenant: <em>&quot;Workflows with a Davis event/problem trigger that filter on <code>event.severity=3</code> expecting it to be defaulted, might need to be changed to filter for <code>Any</code> severity to keep being triggered.&quot;</em> Before routing on severity, check which of your event sources actually <strong>set</strong> one. Until 1.348 reaches your tenant, the defaulting behavior still applies and severity filtering works as described above.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;Enable Wait for root cause analysis. Without this option enabled, the workflow can trigger on a problem whose root cause and affected entities are still being assembled.&quot;</em> <em>&quot;You can filter and template on them directly on the problem&quot;</em>; <em>&quot;The problem carries the deduplicated union.&quot;</em> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">SaaS 1.337 release notes (DT docs)</a> — <em>&quot;Ownership information is now available in Smartscape and for Smartscape nodes.&quot;</em> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — GA, rollout start 10/12/2026; re-read 10/23/2026.</sub></p>
+</blockquote>
+<p><a id="destinations"></a></p>
+<h2>3. Destination Landscape</h2>
+<table>
+<thead>
+<tr>
+<th>Destination</th>
+<th>Path</th>
+<th>Notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Slack / Teams</td>
+<td>Native workflow connector</td>
+<td>WFLOW-03/04</td>
+</tr>
+<tr>
+<td>PagerDuty / on-call</td>
+<td>Native connector — use for fast-burn pages</td>
+<td>WFLOW-04, SLO-04</td>
+</tr>
+<tr>
+<td>Jira</td>
+<td>Native connector — create/comment/assign issues</td>
+<td>WFLOW-04</td>
+</tr>
+<tr>
+<td>Jira Service Management</td>
+<td>Native JSM connector — create, enrich, acknowledge and close JSM alerts</td>
+<td>WFLOW-04</td>
+</tr>
+<tr>
+<td>ServiceNow</td>
+<td>Native connector / HTTP Table API / ITOM app</td>
+<td>ALERT-04</td>
+</tr>
+<tr>
+<td>Email</td>
+<td>Native action</td>
+<td>WFLOW-03</td>
+</tr>
+<tr>
+<td>xMatters</td>
+<td>HTTP Request action to an xMatters endpoint (no connector); an existing classic integration keeps working (§4)</td>
+<td>WFLOW-08</td>
+</tr>
+<tr>
+<td>Anything else</td>
+<td>HTTP action to a webhook</td>
+<td>WFLOW-08</td>
+</tr>
+</tbody>
+</table>
+<p>Match the destination to the urgency: fast-burn / acute → page (PagerDuty, on-call); slow-burn / steady → ticket (Jira, ServiceNow).</p>
+<h3>Migrating a classic notification: the official mapping</h3>
+<p>If you are converting classic problem notifications to workflows, this is the documented old→new correspondence:</p>
+<table>
+<thead>
+<tr>
+<th>Classic notification</th>
+<th>Workflow equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ansible</td>
+<td>Red Hat Ansible connector</td>
+</tr>
+<tr>
+<td>Custom integration (generic webhook)</td>
+<td>HTTP Request action</td>
+</tr>
+<tr>
+<td>Email</td>
+<td>Microsoft 365 / Email connector</td>
+</tr>
+<tr>
+<td>Jira</td>
+<td>Jira connector</td>
+</tr>
+<tr>
+<td>PagerDuty</td>
+<td>PagerDuty connector</td>
+</tr>
+<tr>
+<td>ServiceNow</td>
+<td>ServiceNow connector</td>
+</tr>
+<tr>
+<td>Slack</td>
+<td>Slack connector</td>
+</tr>
+<tr>
+<td>Microsoft Teams</td>
+<td>Microsoft Teams connector</td>
+</tr>
+</tbody>
+</table>
+<h3>The three with no native connector</h3>
+<p><strong>Trello, VictorOps, and xMatters have no native workflow connector.</strong> Opsgenie, which Atlassian is replacing with Jira Service Management, maps to the native JSM connector in the table above. Each becomes an HTTP-action rebuild against the destination's current API. A single HTTP Request task keeps the workflow <em>simple</em>; it becomes a billed standard workflow only if the payload needs a Run JavaScript step or a second task (§1). Budget for that case rather than discovering it.</p>
+<p>Rebuild the payload against the destination's live API contract; do not port the classic webhook body verbatim.</p>
+<blockquote>
+<p>⚠️ <strong>A classic integration scoped by a Management Zone is only as durable as that Management Zone.</strong> Workflows have no Management Zone filter. The upgrade guide describes the replacement: <em>&quot;A workflow's Problem trigger filters problems directly with DQL matchers on the problem.&quot;</em> <em>&quot;There is no separate filter object to create, name, and maintain, nor is there a one-management-zone-per-profile constraint.&quot;</em> If you are retiring Management Zones, rebuild those notifications as problem-triggered workflows first, filtered on entity tags or primary Grail tags. <strong>MZ2POL-09</strong> covers that conversion end to end, including the capability regressions.</p>
+</blockquote>
+<blockquote>
+<p><strong>Jira Service Management connector (SaaS 1.349, rollout from 10/27/2026):</strong> a dedicated <strong>Jira Service Management connector</strong> is part of the destination landscape — it sends Dynatrace events into JSM's alert management, distinct from the existing Jira (issue-tracking) connector; treat it as the first-choice JSM path. The existing Jira connector and custom-webhook paths described in this section remain valid alternatives.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — the classic-to-workflow mapping table and the Management Zone replacement, quoted above; <em>&quot;xMatters No dedicated connector. Use HTTP Request.&quot;</em> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow">Create a simple workflow (DT docs)</a> — <em>&quot;Any action (except Run JavaScript, Run Workflow, Approval Request)&quot;</em>. <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-349">SaaS 1.349 release notes (DT docs)</a> — <em>&quot;New Jira Service Management (JSM) Connector&quot;</em>. <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/jira-service-management">Jira Service Management Connector (DT docs)</a> — <em>&quot;The Jira Service Management Connector integrates Workflows with Jira Service Management (JSM) to automate the creation, enrichment, acknowledgment, and closing of alerts.&quot;</em></sub></p>
+</blockquote>
+<p><a id="legacy"></a></p>
+<h2>4. The Legacy Path</h2>
+<p>Some integrations predate workflows and still rely on <strong>classic problem notifications</strong> driven by alerting profiles rather than the AutomationEngine. An existing <strong>xMatters</strong> integration is a common example. Workflows have no xMatters connector, and the upgrade guide maps xMatters to an HTTP Request action that posts the problem to an xMatters endpoint — the path a new xMatters integration should take.</p>
+<p>If you have a classic problem-notification integration working, it keeps working: alerting profiles and problem notifications <em>&quot;continue to work and are not being removed on a published schedule, but they'll not receive new capabilities.&quot;</em> New integrations should use workflows. The one caveat that does bite: if the integration is scoped by a <strong>Management Zone</strong>, it inherits that zone's lifetime (see §3). When you find a destination that &quot;only works the classic way,&quot; check whether it exposes a webhook a workflow HTTP action can target before settling for the alerting-profile path.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade from Classic problem notification to simple workflows (DT docs)</a> — <em>&quot;xMatters No dedicated connector. Use HTTP Request.&quot;</em>; <em>&quot;They continue to work and are not being removed on a published schedule, but they'll not receive new capabilities.&quot;</em></sub></p>
+</blockquote>
+<p><a id="cost"></a></p>
+<h2>5. Cost Discipline</h2>
+<ul>
+<li><strong>Prefer simple workflows.</strong> Several cheap simple workflows beat one billed multi-step workflow when no conditional logic is needed.</li>
+<li><strong>One problem, one notification.</strong> Let the Davis problem group related signals; do not also alert on the underlying raw metrics, or you double-notify and double-spend.</li>
+<li><strong>Filter early in the trigger.</strong> A trigger that matches every problem and decides relevance later still evaluates on every problem.</li>
+<li><strong>Centralise only when it pays.</strong> A single multi-step routing workflow is easier to govern but is billed; weigh that against many simple ones.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions">Workflow actions — Jira / MS Teams (DT docs)</a>. <a href="https://docs.dynatrace.com/docs/license/capabilities/automation/automation">Automation consumption (DPS) (DT docs)</a> — <em>&quot;Standard workflows consume workflow hours.&quot;</em>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/simple-workflow">Create a simple workflow (DT docs)</a> — <em>&quot;limited to only one task&quot;</em>.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

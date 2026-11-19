@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SLO-02: Defining SLIs</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SLO — Service Level Objectives</a><span class="sep">/</span><span aria-current="page">SLO-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SLO-02: Defining SLIs</h1>
+<blockquote>
+<p><strong>Series:</strong> SLO — Service Level Objectives | <strong>Notebook:</strong> 2 of 7 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 11/19/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>An SLI is a <code>good ÷ total</code> ratio expressed as a percentage. This notebook builds the four SLI shapes you will use most — availability, latency, error rate, and custom business SLIs — as DQL queries. Each SLI comes in two forms: a <strong>notebook read-out</strong> that collapses the result to one number you can read, and an <strong>SLO-ready form</strong> that keeps <code>sli</code> as a timeseries array, which is what the SLO app requires. Every query here was validated against a live tenant.</p>
+<p>The pattern is always the same: count the <em>good</em> events, count the <em>total</em> events, divide, multiply by 100. The skill is in defining &quot;good&quot; correctly for each indicator.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#pattern">The SLI Ratio Pattern</a></li>
+<li><a href="#availability">Availability SLI</a></li>
+<li><a href="#latency">Latency SLI — Two Approaches</a></li>
+<li><a href="#errorrate">Error-Rate SLI</a></li>
+<li><a href="#custom">Custom / Business SLIs</a></li>
+<li><a href="#validate">Validate Before You Commit</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3 with Grail</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:metrics:read</code>, <code>storage:spans:read</code>, <code>storage:bizevents:read</code> as applicable</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>SLO-01 (fundamentals)</td>
+</tr>
+<tr>
+<td><strong>MCP (optional)</strong></td>
+<td>Dynatrace MCP server to verify queries before adding them to an SLO</td>
+</tr>
+</tbody>
+</table>
+<p><a id="pattern"></a></p>
+<h2>1. The SLI Ratio Pattern</h2>
+<p>Every SLI reduces to:</p>
+<pre><code>SLI % = (good events ÷ total events) × 100
+</code></pre>
+<p>In Dynatrace you express this as a DQL query that returns a field named <code>sli</code>. The SLO app requires <code>sli</code> to be an <strong>array</strong> of doubles (a timeseries), not a single number, and evaluates it over the SLO's own window. Two query families serve different data:</p>
+<ul>
+<li><strong>Metric-based</strong> (<code>timeseries</code>) — fast, pre-aggregated, ideal for service request metrics. Good and total are sums of metric series; divide element-wise with <code>[]</code>.</li>
+<li><strong>Event-based</strong> (<code>fetch spans</code> / <code>logs</code> / <code>bizevents</code>) — flexible, lets you define &quot;good&quot; with any filter using <code>countIf()</code>. Higher query cost but expresses conditions a metric cannot. For an SLO, aggregate with <code>makeTimeseries</code> rather than <code>summarize</code>, so <code>sli</code> stays an array.</li>
+</ul>
+<p>Both are valid SLI sources. Reach for metric-based when a service metric already captures the condition; reach for event-based when &quot;good&quot; needs a predicate the metrics do not carry.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives/create-slo">Create service-level objectives (DT docs)</a> — <em>&quot;must include an sli field that returns an array of double type values&quot;</em>; <em>&quot;use the makeTimeseries command for deriving the sli field&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="availability"></a></p>
+<h2>2. Availability SLI</h2>
+<p>Availability = the proportion of requests that did <strong>not</strong> fail. Using the pre-aggregated service request metrics, good = <code>total − failures</code>:</p>
+<pre><code class="language-dql">// Availability SLI — metric-based, request success ratio
+// Re-validated on a live tenant 10/14/2026: returned 96.21% over 30 d.
+// sli divides the window's successes by its requests. Averaging the daily
+// ratios (arrayAvg) instead weights a quiet day like a busy one: 96.18% here
+// interval:24h, not 1d — a calendar duration here raises
+// DEPRECATED_DURATION_UNIT_DAYS and is silently rewritten to 24h anyway
+timeseries {
+  total = sum(dt.service.request.count),
+  failures = sum(dt.service.request.failure_count)
+}, from:-30d, interval:24h
+| fieldsAdd sli = ((arraySum(total) - arraySum(failures)) / arraySum(total)) * 100
+| fields sli, total, failures
+</code></pre>
+<p>The query above is the notebook read-out: it divides the window's total successes by its total requests, so one <code>sli</code> number covers the whole window. Averaging the daily ratios with <code>arrayAvg</code> would weight a quiet day as heavily as a busy one. The SLO app cannot use a scalar <code>sli</code> — it needs the array, and it applies its own window. For an SLO, use the SLO-ready form below and remove <code>from:</code> (and any <code>interval:</code>) when you paste it (SLO-05).</p>
+<p>To scope the SLI to one service, filter on <code>dt.smartscape.service</code> and convert the ID with <code>toSmartscapeId()</code>: <code>filter: {dt.smartscape.service == toSmartscapeId(&quot;SERVICE-...&quot;)}</code>. Or split <code>by: {dt.smartscape.service}</code>, as below. <code>dt.entity.service</code> still works, but it is <code>deprecated</code>. Comparing <code>dt.smartscape.service</code> to a plain string returns no rows, and Grail raises only a <code>SMARTSCAPEID_TO_STRING_COMPARISON</code> warning.</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>dt.smartscape.service</code> (<code>stable</code>, type <code>smartscapeId</code>), <code>dt.entity.service</code> (<code>deprecated</code>), read 10/12/2026. The string comparison was run against the validation tenant 10/12/2026: 0 rows plus the warning, where the <code>toSmartscapeId()</code> form returned the service's requests.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// SLO-ready availability SLI — sli stays an array, one series per service
+// Validated 10/12/2026: 48 service series, notifications []
+// Remove from: when pasting into an SLO — the SLO sets its own window
+timeseries {
+  total = sum(dt.service.request.count),
+  failures = sum(dt.service.request.failure_count)
+}, by: { dt.smartscape.service }, from:-24h
+| fieldsAdd sli = ((total[] - failures[]) / total[]) * 100
+</code></pre>
+<p><a id="latency"></a></p>
+<h2>3. Latency SLI — Two Approaches</h2>
+<p>Latency has no single canonical SLI in Dynatrace, because there is no built-in &quot;count of requests faster than X&quot; metric. There are two valid approaches — pick by what you actually need.</p>
+<h3>Decision</h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>What it measures</th>
+<th>Use when</th>
+<th>Trade-off</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Percentile threshold</strong></td>
+<td>Is the p95/p99 under a limit?</td>
+<td>You care about the tail of the distribution</td>
+<td>A threshold check, not a true good/total ratio — one number per window</td>
+</tr>
+<tr>
+<td><strong>Good/total ratio</strong></td>
+<td>What fraction of requests beat the limit?</td>
+<td>You want a real SLI percentage and an error budget in &quot;slow requests&quot;</td>
+<td>Computed from spans (event-based) — higher query cost</td>
+</tr>
+</tbody>
+</table>
+<h3>3a. Percentile-threshold (metric-based)</h3>
+<p>The p95 response time, in milliseconds (<code>dt.service.request.response_time</code> is in microseconds, so divide by 1000). Do <strong>not</strong> add <code>rollup:</code> here. <code>dt.service.request.response_time</code> is a histogram metric, and <code>percentile</code> takes <code>rollup:</code> only for gauge or count metrics. With <code>rollup: avg</code>, each series is averaged first and the query returns the p95 of those averages: 5,835 ms, against 149 ms without it, on the validation tenant (10/12/2026). Nothing warns.</p>
+<p><code>arrayAvg</code> of hourly p95 values is a trend figure, not the p95 of the day. For a single-window p95, drop <code>interval:</code>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/metric-commands">DQL metric commands (DT docs)</a> — <code>percentile</code> <em>&quot;applies to metrics of type histogram&quot;</em>, and for a gauge or count <em>&quot;the rollup parameter needs to be specified&quot;</em>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Latency — p95 response time in ms (metric-based, histogram metric)
+// No rollup: — rollup:avg would return the p95 of per-series averages
+// (5,835 ms vs 149 ms on the validation tenant, 10/12/2026)
+timeseries p95 = percentile(dt.service.request.response_time, 95),
+  from:-24h, interval:1h
+| fieldsAdd p95_ms = p95[] / 1000.0
+| fieldsAdd p95_hourly_avg_ms = arrayAvg(p95_ms)
+| fields p95_hourly_avg_ms, p95_ms
+</code></pre>
+<h3>3b. Good/total ratio (span-based)</h3>
+<p>A true latency SLI: the fraction of requests that completed under the threshold. <code>countIf()</code> defines &quot;good&quot; with a duration predicate.</p>
+<p>Count each request once, at its request root span. A <code>span.kind == &quot;server&quot;</code> filter also counts server spans nested inside a request, so it inflates the denominator: on the validation tenant (last hour, 10/14/2026) 13.8% of server spans were nested, and the server-span form read 98.83% where the request-root form read 98.16%. The trace semantic model marks <code>request.is_root_span</code> as deprecated, <em>&quot;Replaced by transaction.is_root_span in combination with transaction.is_endpoint_request&quot;</em>. Both replacement fields are <code>experimental</code>. On the validation tenant the pair matched <code>request.is_root_span</code> span for span, and it counted 136,713 requests where <code>dt.service.request.count</code> counted 136,671 in a back-to-back run over the same hour. Request roots also include non-server spans such as message consumers, as the metric does.</p>
+<pre><code class="language-dql">// Latency SLI — span-based good/total ratio under 500ms, one span per request
+// Validated on a live tenant 10/14/2026: returned 98.16% (134,318/136,836)
+// A 1h window on live traffic moves — treat the figure as a shape check,
+// not a number to reproduce
+fetch spans, from:-1h
+| filter transaction.is_root_span == true and transaction.is_endpoint_request == true
+| summarize {
+    good = countIf(duration &lt; 500ms),
+    total = count()
+  }
+| fieldsAdd sli_latency = (good * 100.0) / total
+| fields sli_latency, good, total
+</code></pre>
+<blockquote>
+<p><strong>Note the field values:</strong> <code>duration</code> compares directly against a duration literal (<code>500ms</code>) — no nanosecond constants. If you filter on <code>span.kind</code>, its values are lowercase (<code>&quot;server&quot;</code>, <code>&quot;client&quot;</code>). Both are common mistakes that silently return zero rows.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/trace">Traces — semantic dictionary (DT docs)</a> — <code>request.is_root_span</code>: <em>&quot;Replaced by transaction.is_root_span in combination with transaction.is_endpoint_request&quot;</em>; page updated Sep 21, 2026, read 10/14/2026. <strong>Dictionary:</strong> <code>transaction.is_root_span</code> (<code>experimental</code>), <code>transaction.is_endpoint_request</code> (<code>experimental</code>), <code>request.is_root_span</code> (<code>deprecated</code>), read 11/09/2026.</sub></p>
+</blockquote>
+<p>The query above is the notebook read-out. The SLO-ready form uses <code>makeTimeseries</code> instead of <code>summarize</code>, so <code>sli</code> stays an array:</p>
+<pre><code class="language-dql">// SLO-ready latency SLI — makeTimeseries, as the SLO docs require for event data
+// Validated 10/14/2026: 13 five-minute buckets, 96.6–99.7%, notifications []
+// Remove from: and interval: when pasting into an SLO
+fetch spans, from:-1h
+| filter transaction.is_root_span == true and transaction.is_endpoint_request == true
+| makeTimeseries { good = countIf(duration &lt; 500ms), total = count() }, interval:5m
+| fieldsAdd sli = (good[] * 100.0) / total[]
+</code></pre>
+<p><a id="errorrate"></a></p>
+<h2>4. Error-Rate SLI</h2>
+<p>Error rate is availability's complement — sometimes you want to track it directly (and set the SLO as &quot;error rate ≤ X%&quot;). The good/total framing still applies; here &quot;good&quot; stays the success count, and you report the failure ratio alongside:</p>
+<pre><code class="language-dql">// Error-rate SLI — failure ratio, metric-based
+// Validated 10/14/2026: 3.13% over 7 d (arrayAvg of the hourly ratios read 3.16%)
+timeseries {
+  total = sum(dt.service.request.count),
+  failures = sum(dt.service.request.failure_count)
+}, from:-7d, interval:1h
+| fieldsAdd error_rate = arraySum(failures) / arraySum(total) * 100
+| fields error_rate
+</code></pre>
+<p>Express the SLO target as <code>success ≥ 99.5%</code> rather than <code>errors ≤ 0.5%</code> where you can — the SLO app and the error-budget math (SLO-03) are oriented around the &quot;good&quot; percentage, and keeping every SLI in the same direction avoids inverted-threshold confusion. For the SLO itself, that means the SLO-ready availability form in §2. The <code>error_rate</code> scalar above is a notebook read-out.</p>
+<p><a id="custom"></a></p>
+<h2>5. Custom / Business SLIs</h2>
+<p>The modern SLO app accepts any <code>good ÷ total</code> over any Grail data — which means business outcomes become first-class SLIs. Checkout success, order completion, or payment authorization rate computed from business events:</p>
+<pre><code class="language-dql">// Business SLI — checkout success rate from business events
+// Adapt event.type / field names to your bizevent schema
+fetch bizevents, from:-24h
+| filter event.type == &quot;checkout&quot;
+| summarize {
+    good = countIf(checkout.result == &quot;success&quot;),
+    total = count()
+  }
+| fieldsAdd sli_checkout = (good * 100.0) / total
+| fields sli_checkout, good, total
+</code></pre>
+<p>Business SLIs are where SLOs earn executive attention — &quot;99.9% of checkouts completed&quot; lands in a way a service availability number does not. See the BIZEV series for building the business-event stream this query consumes.</p>
+<p>The query above is the notebook read-out. The SLO-ready form uses <code>makeTimeseries</code>:</p>
+<pre><code class="language-dql">// SLO-ready business SLI — makeTimeseries keeps sli as an array
+// Adapt event.type / field names to your bizevent schema
+// Remove from: and interval: when pasting into an SLO
+fetch bizevents, from:-24h
+| filter event.type == &quot;checkout&quot;
+| makeTimeseries { good = countIf(checkout.result == &quot;success&quot;), total = count() }, interval:1h
+| fieldsAdd sli = (good[] * 100.0) / total[]
+</code></pre>
+<p><a id="validate"></a></p>
+<h2>6. Validate Before You Commit</h2>
+<p>An SLI query that returns nothing — wrong field name, wrong <code>span.kind</code> case, a filter that matches no data — produces an SLO that silently never computes. Before you save an SLI into an SLO:</p>
+<ol>
+<li><strong>Run it in a notebook</strong> over a representative window and confirm it returns a sane percentage.</li>
+<li><strong>Check the denominator.</strong> A <code>total</code> of zero means the filter is too narrow; the SLI will be undefined.</li>
+<li><strong>Verify with the MCP server</strong> (<code>execute-dql</code>) against the live tenant if you have it wired up.</li>
+<li><strong>Only then</strong> paste it into the SLO definition.</li>
+</ol>
+<p>This notebook-as-scratchpad discipline is the single best defence against a dashboard full of SLOs that read &quot;no data.&quot;</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-Level Objectives (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL — timeseries and countIf (DT docs)</a>. All five queries re-executed against a live tenant 08/28/2026 (the bizevents example returns 0 rows there by design — it is a schema template, not a tenant claim). The availability query's <code>interval</code> was changed from <code>1d</code> to <code>24h</code> in the same pass: a calendar duration raises <code>DEPRECATED_DURATION_UNIT_DAYS</code> and is silently rewritten to <code>24h</code>, so the query was never running on the interval it appeared to specify. On 10/12/2026 the p95 query (§3a) lost its <code>rollup: avg</code>, and the three SLO-ready forms were added. All were executed against the live tenant that day. The bizevent form returns 0 rows there, like its read-out twin; the same <code>makeTimeseries</code> shape returned 25 hourly buckets over all bizevents. On 10/14/2026 the availability and error-rate read-outs switched from <code>arrayAvg</code> of per-bucket ratios to window totals, and both span-based latency SLIs from <code>span.kind == &quot;server&quot;</code> to request root spans; all four were re-executed that day.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

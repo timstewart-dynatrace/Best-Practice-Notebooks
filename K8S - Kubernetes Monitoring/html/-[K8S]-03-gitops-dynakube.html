@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8S-03: GitOps for DynaKube</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">K8S — Kubernetes Monitoring</a><span class="sep">/</span><span aria-current="page">K8S-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>K8S-03: GitOps for DynaKube</h1>
+<blockquote>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 3 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/03/2026</p>
+</blockquote>
+<h2>Managing DynaKube with ArgoCD and Flux</h2>
+<p>GitOps enables declarative, version-controlled management of your Dynatrace monitoring configuration. This notebook covers integrating DynaKube with popular GitOps tools: ArgoCD and Flux.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#gitops-principles-for-observability">GitOps Principles for Observability</a></li>
+<li><a href="#argocd-integration">ArgoCD Integration</a></li>
+<li><a href="#flux-integration">Flux Integration</a></li>
+<li><a href="#secret-management">Secret Management</a></li>
+<li><a href="#multi-cluster-patterns">Multi-Cluster Patterns</a></li>
+<li><a href="#progressive-rollouts">Progressive Rollouts</a></li>
+<li><a href="#troubleshooting-gitops-deployments">Troubleshooting GitOps Deployments</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GitOps Tool</strong></td>
+<td>ArgoCD v2.x or Flux v2.x</td>
+</tr>
+<tr>
+<td><strong>Git Repository</strong></td>
+<td>Write access for configuration</td>
+</tr>
+<tr>
+<td><strong>Kubernetes</strong></td>
+<td>Dynatrace Operator installed</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Familiarity with K8S-02: DynaKube Deployment</td>
+</tr>
+</tbody>
+</table>
+<p><a id="gitops-principles-for-observability"></a></p>
+<h2>1. GitOps Principles for Observability</h2>
+<h3>Why GitOps for Monitoring?</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Version Control</strong></td>
+<td>Track all config changes in Git history</td>
+</tr>
+<tr>
+<td><strong>Audit Trail</strong></td>
+<td>Who changed what, when, and why</td>
+</tr>
+<tr>
+<td><strong>Consistency</strong></td>
+<td>Same config across dev/staging/prod</td>
+</tr>
+<tr>
+<td><strong>Self-Healing</strong></td>
+<td>Automatic drift correction</td>
+</tr>
+<tr>
+<td><strong>Rollback</strong></td>
+<td>Revert by reverting Git commits</td>
+</tr>
+</tbody>
+</table>
+<h3>GitOps Workflow for DynaKube</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImRldkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0E3OEJGQSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3QzNBRUQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdpdEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0ZGQjgwMCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdpdG9wc0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyRDNFRSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwODkxYjIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Ims4c0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZGRiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTRhOWUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im9wZXJhdG9yR3JhZDIiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I0E3OEJGQSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3QzNBRUQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im1vbml0b3JHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3M0JFMjgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMCIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2QtY29sb3I9IiMwMDAiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJhcnJvd1doaXRlIiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM5NEEzQjgiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+R2l0T3BzIFdvcmtmbG93IGZvciBEeW5hS3ViZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5EZXZlbG9wZXIgY29tbWl0IOKGkiBQUiDihpIgbWVyZ2Ug4oaSIGNvbnRyb2xsZXIgc3luYyDihpIgb3BlcmF0b3IgcmVjb25jaWxlIOKGkiBtb25pdG9yaW5nPC90ZXh0PgoKICA8IS0tIFRPUCBST1c6IEF1dGhvciBmbG93IChEZXZlbG9wZXIg4oaSIENvbW1pdCDihpIgUFIg4oaSIE1lcmdlKSAtLT4KCiAgPHJlY3QgeD0iNDAiIHk9IjEwMCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI4MCIgcng9IjgiIGZpbGw9InVybCgjZGV2R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMTEwIiB5PSIxMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkRldmVsb3BlcjwvdGV4dD4KICA8dGV4dCB4PSIxMTAiIHk9IjE1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiI+QXV0aG9yL2VkaXQgRHluYUt1YmUgWUFNTDwvdGV4dD4KICA8dGV4dCB4PSIxMTAiIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMSI+KyBIZWxtIHZhbHVlcywgb3ZlcmxheXM8L3RleHQ+CgogIDxsaW5lIHgxPSIxODUiIHkxPSIxNDAiIHgyPSIyMTUiIHkyPSIxNDAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V2hpdGUpIi8+CgogIDxyZWN0IHg9IjIyMCIgeT0iMTAwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0idXJsKCNnaXRHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSIyOTAiIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+R2l0IENvbW1pdDwvdGV4dD4KICA8dGV4dCB4PSIyOTAiIHk9IjE1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiI+UHVzaCB0byBmZWF0dXJlIGJyYW5jaDwvdGV4dD4KICA8dGV4dCB4PSIyOTAiIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+cmVwbzogZHluYXRyYWNlLWNvbmZpZzwvdGV4dD4KCiAgPGxpbmUgeDE9IjM2NSIgeTE9IjE0MCIgeDI9IjM5NSIgeTI9IjE0MCIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXaGl0ZSkiLz4KCiAgPHJlY3QgeD0iNDAwIiB5PSIxMDAiIHdpZHRoPSIxNDAiIGhlaWdodD0iODAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2dpdEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ3MCIgeT0iMTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5QdWxsIFJlcXVlc3Q8L3RleHQ+CiAgPHRleHQgeD0iNDcwIiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiPlBlZXIgcmV2aWV3ICsgQ0kgbGludDwvdGV4dD4KICA8dGV4dCB4PSI0NzAiIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+a3ViZWNvbmZvcm0sIGt1c3RvbWl6ZSBidWlsZDwvdGV4dD4KCiAgPGxpbmUgeDE9IjU0NSIgeTE9IjE0MCIgeDI9IjU3NSIgeTI9IjE0MCIgc3Ryb2tlPSIjOTRBM0I4IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dXaGl0ZSkiLz4KCiAgPHJlY3QgeD0iNTgwIiB5PSIxMDAiIHdpZHRoPSIxNDAiIGhlaWdodD0iODAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2dpdEdyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjY1MCIgeT0iMTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5NZXJnZTwvdGV4dD4KICA8dGV4dCB4PSI2NTAiIHk9IjE1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiI+VG8gbWFpbiBicmFuY2g8L3RleHQ+CiAgPHRleHQgeD0iNjUwIiB5PSIxNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiPmRlc2lyZWQgc3RhdGUgcmVjb3JkZWQ8L3RleHQ+CgogIDwhLS0gQXJyb3cgZG93biB0byBjb250cm9sbGVyIC0tPgogIDxsaW5lIHgxPSI2NTAiIHkxPSIxODUiIHgyPSI2NTAiIHkyPSIyMjAiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93V2hpdGUpIi8+CgogIDwhLS0gUk9XIDI6IEdpdE9wcyBDb250cm9sbGVyIC0tPgogIDxyZWN0IHg9IjU0MCIgeT0iMjI1IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjkwIiByeD0iOCIgZmlsbD0idXJsKCNnaXRvcHNHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdykiLz4KICA8dGV4dCB4PSI2NTAiIHk9IjI1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+R2l0T3BzIENvbnRyb2xsZXI8L3RleHQ+CiAgPHRleHQgeD0iNjUwIiB5PSIyNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTIiPkFyZ29DRCBvciBGbHV4IHBvbGxzIG1haW48L3RleHQ+CiAgPHRleHQgeD0iNjUwIiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTEiPmRldGVjdHMgZHJpZnQsIHBsYW5zICsgYXBwbGllczwvdGV4dD4KICA8dGV4dCB4PSI2NTAiIHk9IjMwNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMSI+c2VsZkhlYWw9dHJ1ZSwgcHJ1bmU9ZmFsc2U8L3RleHQ+CgogIDwhLS0gQXJyb3cgZG93biB0byBhcHBseSAtLT4KICA8bGluZSB4MT0iNjUwIiB5MT0iMzIwIiB4Mj0iNjUwIiB5Mj0iMzUwIiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1doaXRlKSIvPgoKICA8IS0tIFJPVyAzOiBrdWJlY3RsIGFwcGx5IG9uIGNsdXN0ZXIgLS0+CiAgPHJlY3QgeD0iNTQwIiB5PSIzNTUiIHdpZHRoPSIyMjAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2s4c0dyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjY1MCIgeT0iMzgzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5BcHBseSB0byBDbHVzdGVyPC90ZXh0PgogIDx0ZXh0IHg9IjY1MCIgeT0iNDAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjExIj5rdWJlY3RsIGFwcGx5IChzZXJ2ZXItc2lkZSk8L3RleHQ+CgogIDwhLS0gQXJyb3cgTEVGVCB0byBPcGVyYXRvciAtLT4KICA8bGluZSB4MT0iNTM1IiB5MT0iMzg1IiB4Mj0iNDUwIiB5Mj0iMzg1IiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1doaXRlKSIvPgoKICA8IS0tIE9wZXJhdG9yIFJlY29uY2lsZXMgLS0+CiAgPHJlY3QgeD0iMjg1IiB5PSIzNTUiIHdpZHRoPSIxNjAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSJ1cmwoI29wZXJhdG9yR3JhZDIpIiBmaWx0ZXI9InVybCgjc2hhZG93KSIvPgogIDx0ZXh0IHg9IjM2NSIgeT0iMzgzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5PcGVyYXRvciBSZWNvbmNpbGVzPC90ZXh0PgogIDx0ZXh0IHg9IjM2NSIgeT0iNDAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjExIj5EeW5hS3ViZSBDUiDihpIgZGVzaXJlZCBzdGF0ZTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBMRUZUIHRvIE1vbml0b3JpbmcgVXBkYXRlZCAtLT4KICA8bGluZSB4MT0iMjgwIiB5MT0iMzg1IiB4Mj0iMjAwIiB5Mj0iMzg1IiBzdHJva2U9IiM5NEEzQjgiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvd1doaXRlKSIvPgoKICA8IS0tIE1vbml0b3JpbmcgVXBkYXRlZCAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMzU1IiB3aWR0aD0iMTU1IiBoZWlnaHQ9IjYwIiByeD0iOCIgZmlsbD0idXJsKCNtb25pdG9yR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3cpIi8+CiAgPHRleHQgeD0iMTE4IiB5PSIzODMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk1vbml0b3JpbmcgVXBkYXRlZDwvdGV4dD4KICA8dGV4dCB4PSIxMTgiIHk9IjQwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+T25lQWdlbnQgKyBBRyBsaXZlPC90ZXh0PgoKICA8IS0tIFJJR0hUIFNJREU6IEJlbmVmaXRzIHBhbmVsIC0tPgogIDxyZWN0IHg9Ijc4MCIgeT0iMTAwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjIxNSIgcng9IjgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI4MzUiIHk9IjEyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+QmVuZWZpdHM8L3RleHQ+CiAgPHRleHQgeD0iNzk1IiB5PSIxNTUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPuKAoiBWZXJzaW9uLWNvbnRyb2xsZWQ8L3RleHQ+CiAgPHRleHQgeD0iNzk1IiB5PSIxNzgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiPuKAoiBGdWxsIGF1ZGl0IHRyYWlsPC90ZXh0PgogIDx0ZXh0IHg9Ijc5NSIgeT0iMjAxIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj7igKIgU2VsZi1oZWFsaW5nPC90ZXh0PgogIDx0ZXh0IHg9Ijc5NSIgeT0iMjI0IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj7igKIgQ29uc2lzdGVudCBlbnZzPC90ZXh0PgogIDx0ZXh0IHg9Ijc5NSIgeT0iMjQ3IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjExIj7igKIgRWFzeSByb2xsYmFjazwvdGV4dD4KICA8dGV4dCB4PSI3OTUiIHk9IjI3MCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+4oCiIFBSLWdhdGVkIHJldmlldzwvdGV4dD4KICA8dGV4dCB4PSI3OTUiIHk9IjI5MyIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+4oCiIERyaWZ0IGRldGVjdGlvbjwvdGV4dD4KCiAgPCEtLSBCb3R0b20gZ3VpZGFuY2UgYmFyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI0MzAiIHdpZHRoPSI4NTAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNTUiIHk9IjQ1MiIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+UmVjb21tZW5kZWQgQXJnb0NEIGNvbmZpZzwvdGV4dD4KICA8dGV4dCB4PSIyODAiIHk9IjQ1MiIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSI+c3luY1BvbGljeS5hdXRvbWF0ZWQuc2VsZkhlYWw9dHJ1ZTsgcHJ1bmU9ZmFsc2UgZm9yIER5bmFLdWJlOyBwaW4gSGVsbSBjaGFydCB0YXJnZXRSZXZpc2lvbjsgc3luYyB3YXZlczogbnMoMCkg4oaSIG9wZXJhdG9yKDEpIOKGkiBEeW5hS3ViZSgyKTwvdGV4dD4KICA8dGV4dCB4PSI1NSIgeT0iNDcwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TZWUgSzhTLTk5IMKnMTMgR2l0T3BzIGFuZCBMaWZlY3ljbGUgZm9yIHRoZSBmdWxsIGJlc3QtcHJhY3RpY2UgY2hlY2tsaXN0IChpdGVtcyA3MOKAkzc4KS48L3RleHQ+Cjwvc3ZnPgo=" alt="GitOps Workflow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action | Component |
+|------|--------|-----------|
+| 1 | Developer commits YAML | Git Repository |
+| 2 | Pull Request reviewed | Git Repository |
+| 3 | Merge to main | Git Repository |
+| 4 | GitOps controller detects | ArgoCD / Flux |
+| 5 | Apply to cluster | Kubernetes API |
+| 6 | Operator reconciles | Dynatrace Operator |
+| 7 | Monitoring updated | OneAgent / ActiveGate |
+For environments where SVG doesn't render
+-->
+<h3>Repository Structure</h3>
+<pre><code>monitoring-config/
+├── base/
+│   ├── namespace.yaml
+│   ├── operator/
+│   │   └── kustomization.yaml
+│   └── dynakube/
+│       ├── dynakube.yaml
+│       └── kustomization.yaml
+├── overlays/
+│   ├── dev/
+│   │   ├── kustomization.yaml
+│   │   └── dynakube-patch.yaml
+│   ├── staging/
+│   │   └── ...
+│   └── prod/
+│       └── ...
+└── clusters/
+    ├── dev-cluster/
+    ├── staging-cluster/
+    └── prod-cluster/
+</code></pre>
+<p><a id="argocd-integration"></a></p>
+<h2>2. ArgoCD Integration</h2>
+<h3>ArgoCD Application for Operator</h3>
+<pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dynatrace-operator
+  namespace: argocd
+spec:
+  project: monitoring
+  source:
+    repoURL: https://raw.githubusercontent.com/Dynatrace/dynatrace-operator/main/config/helm/repos/stable
+    chart: dynatrace-operator
+    targetRevision: 1.10.4  # Pin to a version you have validated — check https://github.com/Dynatrace/dynatrace-operator/releases for latest
+    helm:
+      releaseName: dynatrace-operator
+      values: |
+        platform: kubernetes
+        csidriver:
+          enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dynatrace
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+</code></pre>
+<blockquote>
+<p><strong>Choosing the pinned version.</strong> A GitOps pin is copy-pasted far more often than it is revisited, so pick it deliberately:</p>
+<table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Do not pin below 1.4.1</strong></td>
+<td>Operator 1.3.0 through 1.4.0 are inside the CSI driver liveness-probe crash-loop window; 1.4.1 adjusted the probe parameters. See K8S-09 §2.</td>
+</tr>
+<tr>
+<td><strong>Skip 1.10.0</strong></td>
+<td>Its own release notes advise skipping it (auto-update defect), and it is now flagged <code>prerelease: true</code> on the GitHub releases page — a signal you can verify yourself before pinning. Fixed in 1.10.1.</td>
+</tr>
+<tr>
+<td><strong>1.11.1 is the newest release</strong> (10/22/2026)</td>
+<td>A patch on 1.11.0. <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-1">Operator 1.11.1 (DT docs)</a>: <em>&quot;Fixed a security vulnerability (CVE-2026-111943) by updating the Go version used to build Dynatrace Operator to 1.27.3.&quot;</em> 1.11.0 (10/01/2026) removes DynaKube <code>v1beta4</code> from the CRD — a manifest still declaring it fails to apply after the upgrade — and adds image-volume injection and <code>spec.kubernetesMonitoring</code>. Move every DynaKube manifest in Git to <code>v1beta6</code> <em>before</em> bumping this pin, and read the notes of each minor version you cross (K8S-02 §8).</td>
+</tr>
+<tr>
+<td><strong>1.10.4 is the validated pin in this series</strong></td>
+<td>Released October 22, 2026. <strong>1.10.3</strong> (October 15, 2026) fixed the CSI driver cleanup that could delete OneAgent code modules still in use by running pods (K8S-09 §2; the Helm chart enables the CSI driver by default), and <strong>1.10.4</strong> fixes CVE-2026-111943 — its release notes say <em>&quot;We recommend that you upgrade to this version.&quot;</em> <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-10-4">1.10.4 (DT docs)</a> is <em>&quot;released only on GitHub (Helm and manifests)&quot;</em>; OperatorHub and cloud-marketplace installs get the same fix in 1.11.1. It also carries the 1.10.2 fixes (July 30, 2026): a workload/namespace <strong>tagging-precedence regression</strong> (subsequent matching rules used to overwrite earlier ones; now only the <em>first</em> matching rule per key applies — a behaviour change, see K8S-10), a <code>dynatrace-webhook</code> <code>CrashLoopBackOff</code> under the gVisor runtime class, injected pods hanging on the OneAgent-binary download (timeout raised to 15 minutes), and it now logs metadata-enrichment rules it cannot apply instead of dropping them silently.</td>
+</tr>
+<tr>
+<td><strong>Earlier 1.10.x pins keep running</strong></td>
+<td>Estates move GitOps pins on their own cadence. 1.10.1 and 1.10.2 still fix the 1.10.0 defects, but lack the CSI cleanup and CVE fixes; 1.10.1 is also subject to the OpenShift-manifest caveat in K8S-09 §2. Read the K8S-10 tagging note before bumping a cluster whose enrichment relies on last-rule-wins ordering.</td>
+</tr>
+<tr>
+<td><strong>Below 1.6.0 cannot upgrade directly</strong></td>
+<td><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 (DT docs)</a>: <em>&quot;Minimum operator version required for direct upgrade: 1.6.0&quot;</em> — older clusters step through intermediate versions.</td>
+</tr>
+</tbody>
+</table>
+<p>Pin an exact version rather than a range for the operator itself — an operator upgrade can change chart <em>defaults</em> (see K8S-02 §8), and a range lets that happen without a Git commit to review.</p>
+</blockquote>
+<h3>ArgoCD Application for DynaKube</h3>
+<pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dynakube
+  namespace: argocd
+spec:
+  project: monitoring
+  source:
+    repoURL: https://github.com/your-org/monitoring-config
+    targetRevision: main
+    path: overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dynatrace
+  syncPolicy:
+    automated:
+      prune: false  # Don't auto-delete DynaKube
+      selfHeal: true
+</code></pre>
+<h3>ArgoCD App of Apps Pattern</h3>
+<p>Manage multiple clusters from a single Application:</p>
+<pre><code class="language-yaml">apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-apps
+  namespace: argocd
+spec:
+  project: monitoring
+  source:
+    repoURL: https://github.com/your-org/monitoring-config
+    targetRevision: main
+    path: clusters
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+</code></pre>
+<p><a id="flux-integration"></a></p>
+<h2>3. Flux Integration</h2>
+<h3>Flux HelmRelease for Operator</h3>
+<pre><code class="language-yaml">apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: dynatrace
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://raw.githubusercontent.com/Dynatrace/dynatrace-operator/main/config/helm/repos/stable
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: dynatrace-operator
+  namespace: dynatrace
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: dynatrace-operator
+      version: &quot;1.10.4&quot;  # Pin exactly — see the version-choice table in §2 (do not pin below 1.4.1; skip 1.10.0)
+      sourceRef:
+        kind: HelmRepository
+        name: dynatrace
+        namespace: flux-system
+  values:
+    platform: kubernetes
+    csidriver:
+      enabled: true
+</code></pre>
+<blockquote>
+<p><strong>API versions.</strong> Current Flux controllers serve <code>HelmRelease</code> only at <code>helm.toolkit.fluxcd.io/v2</code> and <code>HelmRepository</code> only at <code>source.toolkit.fluxcd.io/v1</code>; the older <code>v2beta1</code> / <code>v1beta2</code> manifests fail to apply there. CRD versions read from the <code>fluxcd/helm-controller</code> and <code>fluxcd/source-controller</code> repositories, 10/02/2026.</p>
+</blockquote>
+<h3>Flux Kustomization for DynaKube</h3>
+<pre><code class="language-yaml">apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: dynakube
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./overlays/prod
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: monitoring-config
+  healthChecks:
+    - apiVersion: dynatrace.com/v1beta6
+      kind: DynaKube
+      name: dynakube
+      namespace: dynatrace
+  dependsOn:
+    - name: dynatrace-operator
+</code></pre>
+<h3>Flux GitRepository Source</h3>
+<pre><code class="language-yaml">apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: monitoring-config
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/your-org/monitoring-config
+  ref:
+    branch: main
+  secretRef:
+    name: git-credentials
+</code></pre>
+<p><a id="secret-management"></a></p>
+<h2>4. Secret Management</h2>
+<p>API tokens should never be stored in Git. Use these approaches:</p>
+<h3>Option 1: External Secrets Operator</h3>
+<pre><code class="language-yaml">apiVersion: external-secrets.io/v1   # v1beta1 is no longer served by current ESO releases
+kind: ExternalSecret
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault  # or aws-secrets-manager, gcp-secret-manager
+  target:
+    name: dynakube
+    creationPolicy: Owner
+  data:
+    - secretKey: apiToken
+      remoteRef:
+        key: dynatrace/operator-token
+    - secretKey: dataIngestToken
+      remoteRef:
+        key: dynatrace/data-ingest-token
+</code></pre>
+<h3>Option 2: Sealed Secrets</h3>
+<pre><code class="language-bash"># Create sealed secret from raw secret
+kubectl create secret generic dynakube \
+  --namespace dynatrace \
+  --from-literal=apiToken=&lt;your-api-token&gt; \
+  --from-literal=dataIngestToken=&lt;your-data-ingest-token&gt; \
+  --dry-run=client -o yaml | \
+  kubeseal --format yaml &gt; dynakube-sealed.yaml
+</code></pre>
+<pre><code class="language-yaml"># Sealed secret (safe to commit)
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  encryptedData:
+    apiToken: AgBy8hM...
+    dataIngestToken: AgCtr9...
+</code></pre>
+<h3>Option 3: SOPS with Age/GPG</h3>
+<pre><code class="language-yaml"># .sops.yaml in repo root
+creation_rules:
+  - path_regex: .*.secret.yaml$
+    age: age1ql3z7hjy54pw...
+</code></pre>
+<pre><code class="language-bash"># Encrypt secrets
+sops --encrypt secrets.yaml &gt; secrets.secret.yaml
+
+# Flux decrypts automatically with kustomize-controller
+</code></pre>
+<p><a id="multi-cluster-patterns"></a></p>
+<h2>5. Multi-Cluster Patterns</h2>
+<h3>Kustomize Overlays by Environment</h3>
+<p><strong>Base DynaKube (<code>base/dynakube/dynakube.yaml</code>):</strong></p>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+spec:
+  apiUrl: PLACEHOLDER  # Patched per environment
+  oneAgent:
+    cloudNativeFullStack: {}
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+      - routing
+</code></pre>
+<p><strong>Production Overlay (<code>overlays/prod/kustomization.yaml</code>):</strong></p>
+<pre><code class="language-yaml">apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: dynatrace
+resources:
+  - ../../base/dynakube
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/apiUrl
+        value: https://your-tenant.live.dynatrace.com/api
+    target:
+      kind: DynaKube
+      name: dynakube
+</code></pre>
+<h3>Environment-Specific Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Config Difference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dev</strong></td>
+<td>Lower resources, fewer replicas</td>
+</tr>
+<tr>
+<td><strong>Staging</strong></td>
+<td>Match prod config, different tenant</td>
+</tr>
+<tr>
+<td><strong>Prod</strong></td>
+<td>High availability, more resources</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Dev Patch (<code>overlays/dev/dynakube-patch.yaml</code>):</strong></p>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+spec:
+  activeGate:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+</code></pre>
+<p><a id="progressive-rollouts"></a></p>
+<h2>6. Progressive Rollouts</h2>
+<h3>ArgoCD Sync Waves</h3>
+<p>Control deployment order:</p>
+<pre><code class="language-yaml"># Wave 0: CRDs and Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dynatrace
+  annotations:
+    argocd.argoproj.io/sync-wave: &quot;0&quot;
+---
+# Wave 1: Operator
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dynatrace-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: &quot;1&quot;
+---
+# Wave 2: DynaKube
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dynakube
+  annotations:
+    argocd.argoproj.io/sync-wave: &quot;2&quot;
+</code></pre>
+<h3>Flux Dependency Ordering</h3>
+<pre><code class="language-yaml">apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: dynakube
+spec:
+  dependsOn:
+    - name: dynatrace-operator
+    - name: external-secrets  # If using ESO for tokens
+</code></pre>
+<h3>Canary Deployments</h3>
+<p>Roll out monitoring changes gradually:</p>
+<ol>
+<li>Deploy to dev cluster → validate</li>
+<li>Deploy to staging → run tests</li>
+<li>Deploy to prod-canary (subset) → monitor</li>
+<li>Deploy to prod (all clusters)</li>
+</ol>
+<p><a id="troubleshooting-gitops-deployments"></a></p>
+<h2>7. Troubleshooting GitOps Deployments</h2>
+<h3>ArgoCD Troubleshooting</h3>
+<pre><code class="language-bash"># Check application status
+argocd app get dynakube
+
+# View sync diff
+argocd app diff dynakube
+
+# Force sync
+argocd app sync dynakube --force
+
+# View logs
+kubectl -n argocd logs -l app.kubernetes.io/name=argocd-application-controller
+</code></pre>
+<h3>Flux Troubleshooting</h3>
+<pre><code class="language-bash"># Check kustomization status
+flux get kustomizations
+
+# Check helm releases
+flux get helmreleases -n dynatrace
+
+# Force reconciliation
+flux reconcile kustomization dynakube --with-source
+
+# View events
+kubectl -n flux-system get events --sort-by='.lastTimestamp'
+</code></pre>
+<h3>Common Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Secret not found</strong></td>
+<td>External secret sync delay</td>
+<td>Check ESO status, wait for sync</td>
+</tr>
+<tr>
+<td><strong>CRD not found</strong></td>
+<td>Operator not deployed</td>
+<td>Check operator app status</td>
+</tr>
+<tr>
+<td><strong>Sync failed</strong></td>
+<td>YAML syntax error</td>
+<td>Validate with <code>kubectl --dry-run</code></td>
+</tr>
+<tr>
+<td><strong>Drift detected</strong></td>
+<td>Manual changes</td>
+<td>Revert or accept drift in Git</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// GitOps controller activity, from Kubernetes events (events, not logs — K8S-01 §6).
+// Shows sync-driven pod churn and failures in the controller namespaces.
+fetch events, from:-24h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter in(k8s.namespace.name, {&quot;argocd&quot;, &quot;flux-system&quot;})
+| fields timestamp, k8s.namespace.name, dt.kubernetes.event.involved_object.kind,
+    dt.kubernetes.event.involved_object.name, dt.kubernetes.event.reason, dt.kubernetes.event.message
+| sort timestamp desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// What changed in the dynatrace namespace after a DynaKube sync?
+// A DynaKube change rolls OneAgent / ActiveGate / webhook pods; their Kubernetes events
+// (Killing, BackOff, FailedScheduling, Unhealthy …) show whether the rollout settled.
+fetch events, from:-24h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot; and k8s.namespace.name == &quot;dynatrace&quot;
+| summarize {events = countDistinctExact(event.id), last_seen = max(timestamp)},
+    by:{dt.kubernetes.event.involved_object.kind, dt.kubernetes.event.reason}
+| sort last_seen desc
+| limit 20
+</code></pre>
+<h2>Next Steps</h2>
+<p>With GitOps configured, proceed to:</p>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>K8S-04: Cluster Health Monitoring</strong></td>
+<td>Deep-dive into cluster metrics</td>
+</tr>
+<tr>
+<td><strong>K8S-05: Workload Monitoring</strong></td>
+<td>Application-level observability</td>
+</tr>
+<tr>
+<td><strong>K8S-06: Namespace Organization</strong></td>
+<td>Boundaries and access control</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>GitOps principles and benefits for monitoring</li>
+<li>ArgoCD Application definitions for operator and DynaKube</li>
+<li>Flux HelmRelease and Kustomization for DynaKube</li>
+<li>Secret management with External Secrets, Sealed Secrets, and SOPS</li>
+<li>Multi-cluster patterns with Kustomize overlays</li>
+<li>Progressive rollout strategies</li>
+<li>Troubleshooting GitOps deployments</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Set up Dynatrace on Kubernetes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a></li>
+<li><a href="https://github.com/Dynatrace/dynatrace-operator/releases">Dynatrace Operator releases (Dynatrace GitHub)</a></li>
+<li><a href="https://github.com/Dynatrace/dynatrace-operator/blob/main/config/helm/chart/default/values.yaml">Dynatrace Operator Helm chart (Dynatrace GitHub)</a></li>
+<li><a href="https://argo-cd.readthedocs.io/en/stable/">ArgoCD documentation (argoproj.io)</a></li>
+<li><a href="https://fluxcd.io/flux/">Flux documentation (fluxcd.io)</a></li>
+<li><a href="https://external-secrets.io/">External Secrets Operator (external-secrets.io)</a></li>
+<li><a href="https://kustomize.io/">Kustomize (kustomize.io)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

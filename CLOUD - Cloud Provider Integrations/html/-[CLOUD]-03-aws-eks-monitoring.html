@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLOUD-03: AWS EKS Monitoring</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">CLOUD — Cloud Provider Integrations</a><span class="sep">/</span><span aria-current="page">CLOUD-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>CLOUD-03: AWS EKS Monitoring</h1>
+<blockquote>
+<p><strong>Series:</strong> CLOUD — Cloud Provider Integrations | <strong>Notebook:</strong> 3 of 8 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook provides a deep dive into monitoring Amazon Elastic Kubernetes Service (EKS) with Dynatrace. You will learn about EKS-specific monitoring considerations including node groups, Fargate profiles, CloudWatch Container Insights vs Dynatrace, DynaKube operator deployment on EKS, and namespace-level cost allocation patterns.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#eks-architecture">EKS Monitoring Architecture</a></li>
+<li><a href="#dynakube-eks">DynaKube on EKS</a></li>
+<li><a href="#node-groups">Node Group Monitoring</a></li>
+<li><a href="#fargate-monitoring">Fargate Profile Monitoring</a></li>
+<li><a href="#eks-metrics">EKS Metrics with DQL</a></li>
+<li><a href="#container-insights-comparison">Container Insights vs Dynatrace</a></li>
+<li><a href="#namespace-cost">Namespace Cost Allocation</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail (the DQL cells do not run on Dynatrace Managed)</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:metrics:read</code>, <code>storage:entities:read</code> + <code>storage:smartscape:read</code>, <code>storage:logs:read</code>, <code>storage:buckets:read</code> (Grail IAM permissions)</td>
+</tr>
+<tr>
+<td><strong>AWS EKS Cluster</strong></td>
+<td>At least one EKS cluster with Dynatrace Operator installed</td>
+</tr>
+<tr>
+<td><strong>Dynatrace Operator</strong></td>
+<td>1.8+ (installs the current <code>v1beta6</code> DynaKube API; newest release 1.11.1, released 10/22/2026; 1.11.0, released 10/01/2026, removes <code>v1beta4</code>) via Helm or kubectl — <code>v1beta5</code> with Operator 1.6+ still works and auto-migrates on upgrade</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>CLOUD-01 fundamentals, basic Kubernetes concepts</td>
+</tr>
+</tbody>
+</table>
+<p><a id="eks-architecture"></a></p>
+<h2>1. EKS Monitoring Architecture</h2>
+<p>Monitoring EKS with Dynatrace involves multiple data paths:</p>
+<table>
+<thead>
+<tr>
+<th>Data Path</th>
+<th>Source</th>
+<th>What It Monitors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DynaKube Operator</strong></td>
+<td>OneAgent on each node</td>
+<td>Pods, containers, processes, traces</td>
+</tr>
+<tr>
+<td><strong>AWS Cloud Integration</strong></td>
+<td>CloudWatch API via the Clouds app connection (or a classic ActiveGate on Managed)</td>
+<td>EKS control plane, node group metrics</td>
+</tr>
+<tr>
+<td><strong>Kubernetes API</strong></td>
+<td>Dynatrace ActiveGate</td>
+<td>Cluster events, deployments, workload state</td>
+</tr>
+<tr>
+<td><strong>Prometheus Integration</strong></td>
+<td>kube-state-metrics, node-exporter</td>
+<td>Custom and detailed K8s metrics</td>
+</tr>
+</tbody>
+</table>
+<h3>EKS-Specific Considerations</h3>
+<ul>
+<li><strong>Control plane is managed</strong> — AWS manages the API server, etcd, and scheduler. You cannot install agents on control plane nodes.</li>
+<li><strong>Node groups vs Fargate</strong> — Different monitoring approaches for each compute type.</li>
+<li><strong>VPC CNI</strong> — EKS uses the Amazon VPC CNI plugin, which assigns VPC IP addresses to pods. This affects network monitoring.</li>
+<li><strong>IRSA (IAM Roles for Service Accounts)</strong> — Recommended for granting DynaKube pods access to AWS resources.</li>
+</ul>
+<p><a id="dynakube-eks"></a></p>
+<h2>2. DynaKube on EKS</h2>
+<p>The Dynatrace Operator (DynaKube) is the recommended way to monitor EKS workloads.</p>
+<h3>Deployment Modes</h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Description</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CloudNativeFullStack</strong></td>
+<td>Full agent injection + infrastructure monitoring</td>
+<td>Production clusters</td>
+</tr>
+<tr>
+<td><strong>ApplicationMonitoring</strong></td>
+<td>Code-level injection only (no infrastructure)</td>
+<td>Shared/multi-tenant clusters</td>
+</tr>
+<tr>
+<td><strong>ClassicFullStack</strong></td>
+<td>DaemonSet-based (legacy)</td>
+<td>Migration from classic deployment</td>
+</tr>
+</tbody>
+</table>
+<h3>DynaKube Configuration for EKS</h3>
+<pre><code class="language-yaml">apiVersion: dynatrace.com/v1beta6
+kind: DynaKube
+metadata:
+  name: dynakube
+  namespace: dynatrace
+spec:
+  apiUrl: https://&lt;environment-id&gt;.live.dynatrace.com/api
+  oneAgent:
+    cloudNativeFullStack:
+      tolerations:
+        - effect: NoSchedule
+          key: node-role
+          operator: Exists
+      nodeSelector:
+        kubernetes.io/os: linux
+  activeGate:
+    capabilities:
+      - kubernetes-monitoring
+      - routing
+</code></pre>
+<h3>Key EKS Deployment Notes</h3>
+<ul>
+<li>Use <strong>tolerations</strong> to ensure OneAgent runs on all node groups, including tainted nodes</li>
+<li>Enable <strong>kubernetes-monitoring</strong> capability on ActiveGate for cluster-level metrics</li>
+<li>Use <strong>nodeSelector</strong> to exclude Windows nodes if running mixed clusters</li>
+<li>Consider <strong>resource limits</strong> to prevent OneAgent from consuming excessive node resources</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Kubernetes setup (DT docs)</a> — the Operator/DynaKube deployment model, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a> — the deployment modes and the API versions (the worked YAML here targets <code>v1beta6</code>; K8S-02 § 4 has the served-version table), <a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-operator/dto-fix-1-11-0">Operator 1.11.0 release notes (DT docs)</a> — <em>&quot;The v1beta4 version has been removed from the DynaKube CRD.&quot;</em>, <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services">AWS integration (DT docs)</a> — the EKS side of the connection.</sub></p>
+</blockquote>
+<h3>Tagging this producer — primary Grail tags on EKS</h3>
+<p>EKS data comes from two producers, and each needs its own rules:</p>
+<ul>
+<li><strong>Workloads in the cluster</strong> — Operator and ActiveGate evaluate <em>Kubernetes</em> rules at the cluster scope. Enable <code>metadataEnrichment</code> in the DynaKube, map namespace labels (for values shared by the whole namespace, such as <code>app</code> and <code>stage</code>) and workload labels (for values that differ per workload, such as <code>team</code>). Workload and pod rule types need Dynatrace Operator 1.11+ and ActiveGate 1.347+ (a staged rollout — check both have reached you). <em>&quot;Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label.&quot;</em> K8S-10 covers the rule types in detail.</li>
+<li><strong>The EC2 and EBS resources behind the nodes, and their CloudWatch metrics</strong> — these arrive through the AWS connection, so they take the AWS-account rules in CLOUD-02, not the cluster rules.</li>
+</ul>
+<p>Configure each tag at the broadest scope where everything underneath shares one value. FAQ-26 § 5.2 has the Kubernetes options beyond central configuration.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws">Apply primary Grail tags across an example AWS estate (DT docs)</a> — <em>&quot;Values resolved from Kubernetes metadata are applied when a pod starts, so restart the pods after changing a label.&quot;</em> and <em>&quot;Configure each tag at the broadest level where everything underneath shares one value.&quot;</em></sub></p>
+</blockquote>
+<p><a id="node-groups"></a></p>
+<h2>3. Node Group Monitoring</h2>
+<p>EKS node groups are collections of EC2 instances that serve as Kubernetes worker nodes.</p>
+<h3>Node Group Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Monitoring Approach</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Managed node groups</strong></td>
+<td>OneAgent DaemonSet + CloudWatch</td>
+<td>Automatic scaling, patching</td>
+</tr>
+<tr>
+<td><strong>Self-managed nodes</strong></td>
+<td>OneAgent DaemonSet + CloudWatch</td>
+<td>Full control, manual management</td>
+</tr>
+<tr>
+<td><strong>Karpenter nodes</strong></td>
+<td>OneAgent DaemonSet</td>
+<td>Dynamic provisioning, varied instance types</td>
+</tr>
+</tbody>
+</table>
+<h3>Querying EKS Nodes</h3>
+<pre><code class="language-dql">// List Kubernetes cluster entities
+fetch dt.entity.kubernetes_cluster, from:-7d
+| fields id, entity.name, tags
+| sort entity.name asc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;K8S_CLUSTER&quot;
+//   | fieldsKeep id, name, tags
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat &quot;tags&quot; field on Smartscape (resolve via getNodeField).
+</code></pre>
+<h3>Node CPU and Memory Usage</h3>
+<pre><code class="language-dql">// Node-level CPU usage over the last hour, derived at container grain.
+//
+// `dt.kubernetes.node.cpu_usage` and `dt.kubernetes.node.memory_working_set` DO NOT EXIST
+// (verified 08/12/2026 against a full 836-key catalog enumeration). The `dt.kubernetes.node.*`
+// namespace is real, but it publishes CAPACITY and CONDITION metrics — `cpu_allocatable`,
+// `memory_allocatable`, `pods_allocatable`, `conditions` — not utilization. Node-level
+// utilization is derived by summing the container metrics per node, which is what this cell does.
+// A timeseries against a missing key returns an EMPTY result rather than an error, so the old
+// cell simply drew nothing. Enumerate the real catalog with:
+//   metrics | filter startsWith(metric.key, &quot;dt.kubernetes&quot;) | summarize n = count(), by:{metric.key} | sort metric.key asc
+// (`metrics` takes `from:` with NO leading comma; `summarize` requires an aggregation, and a
+//  bare `metrics | fields metric.key` is capped and will silently under-report the catalog.)
+timeseries used = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h, by:{dt.entity.kubernetes_node}
+| fieldsAdd avgCpu = arrayAvg(used)
+| sort avgCpu desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Node memory working set over the last hour, derived at container grain.
+//
+// `dt.kubernetes.node.cpu_usage` and `dt.kubernetes.node.memory_working_set` DO NOT EXIST
+// (verified 08/12/2026 against a full 836-key catalog enumeration). The `dt.kubernetes.node.*`
+// namespace is real, but it publishes CAPACITY and CONDITION metrics — `cpu_allocatable`,
+// `memory_allocatable`, `pods_allocatable`, `conditions` — not utilization. Node-level
+// utilization is derived by summing the container metrics per node, which is what this cell does.
+// A timeseries against a missing key returns an EMPTY result rather than an error, so the old
+// cell simply drew nothing. Enumerate the real catalog with:
+//   metrics | filter startsWith(metric.key, &quot;dt.kubernetes&quot;) | summarize n = count(), by:{metric.key} | sort metric.key asc
+// (`metrics` takes `from:` with NO leading comma; `summarize` requires an aggregation, and a
+//  bare `metrics | fields metric.key` is capped and will silently under-report the catalog.)
+//
+// The node-CPU sibling was corrected on 08/11/2026 and this cell was missed, so it kept drawing
+// an empty tile for a further day — when a key turns out not to exist, sweep the whole namespace.
+timeseries nodeMemory = sum(dt.kubernetes.container.memory_working_set, rollup: avg), from:-1h, by:{dt.entity.kubernetes_node}
+| fieldsAdd avgMemory = arrayAvg(nodeMemory)
+| sort avgMemory desc
+| limit 15
+</code></pre>
+<p><a id="fargate-monitoring"></a></p>
+<h2>4. Fargate Profile Monitoring</h2>
+<p>AWS Fargate runs pods without managing nodes. This changes the monitoring approach significantly.</p>
+<h3>Fargate Monitoring Limitations</h3>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>EC2 Nodes</th>
+<th>Fargate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OneAgent DaemonSet</strong></td>
+<td>Supported</td>
+<td>Not supported (no node access)</td>
+</tr>
+<tr>
+<td><strong>Code injection</strong></td>
+<td>Via DaemonSet</td>
+<td>Via init container (ApplicationMonitoring mode)</td>
+</tr>
+<tr>
+<td><strong>Host metrics</strong></td>
+<td>Full (CPU, memory, disk, network)</td>
+<td>Container metrics only</td>
+</tr>
+<tr>
+<td><strong>Process monitoring</strong></td>
+<td>Full</td>
+<td>Limited</td>
+</tr>
+<tr>
+<td><strong>Network monitoring</strong></td>
+<td>Full</td>
+<td>Limited</td>
+</tr>
+</tbody>
+</table>
+<h3>Monitoring Fargate Workloads</h3>
+<p>For Fargate pods, use <strong>ApplicationMonitoring</strong> mode in DynaKube:</p>
+<pre><code class="language-yaml">spec:
+  oneAgent:
+    applicationMonitoring: {}
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> <code>useCSIDriver</code> is <strong>not</strong> a DynaKube <code>v1beta5</code> / <code>v1beta6</code> field — for those versions the <code>.spec.oneAgent.applicationMonitoring</code> parameters are <code>additionalResourceAttributes</code>, <code>codeModulesImage</code>, <code>codeModulesImagePullPolicy</code>, <code>imagePullPolicy</code>, <code>initResources</code>, <code>namespaceSelector</code> and <code>version</code> (<code>useCSIDriver</code> appears only under the retired <code>v1beta1</code> / <code>v1beta2</code> APIs). Whether the CSI driver runs is decided when you <strong>install the Operator</strong>, not in the DynaKube. The driver is optional and runs as a node DaemonSet, which Fargate cannot host — so install the Operator with the <strong>Without CSI driver</strong> variant of the application-observability setup guide. For the manifest install that is <code>kubernetes.yaml</code> rather than <code>kubernetes-csi.yaml</code>:</p>
+<pre><code class="language-bash">kubectl apply -f https://github.com/Dynatrace/dynatrace-operator/releases/download/v1.10.2/kubernetes.yaml
+</code></pre>
+<p>For a Helm install, the same guide sets <code>--set &quot;csidriver.enabled=false&quot;</code> on <code>helm install dynatrace-operator oci://public.ecr.aws/dynatrace/dynatrace-operator</code>.</p>
+<p>The guide pinned <code>v1.10.2</code>, the current release on 09/24/2026; 1.11.0 followed on 10/01/2026 — substitute the Operator version you run.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/reference/dynakube-parameters">DynaKube parameters (DT docs)</a> — the per-version <code>applicationMonitoring</code> parameter tables, <a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s/deployment/application-observability">Application observability setup (DT docs)</a> — <em>&quot;CSI driver is optional (see Step 2). If enabled, it gets deployed as DaemonSet and results in a CSI driver Pod on each node.&quot;</em>; Helm tab: <em><code>--set &quot;csidriver.enabled=false&quot;</code></em>, <a href="https://docs.aws.amazon.com/eks/latest/userguide/fargate.html">Fargate considerations (AWS docs)</a> — <em>&quot;Daemonsets aren't supported on Fargate.&quot;</em></sub></p>
+</blockquote>
+<p><a id="eks-metrics"></a></p>
+<h2>5. EKS Metrics with DQL</h2>
+<h3>Pod CPU and Memory by Namespace</h3>
+<pre><code class="language-dql">// Namespace CPU: SUM of container CPU per namespace (avg would report the per-container mean)
+timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgCpu = arrayAvg(nsCpu)
+| sort avgCpu desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Namespace memory: SUM of container working set per namespace (avg would report the per-container mean)
+timeseries containerMem = sum(dt.kubernetes.container.memory_working_set, rollup: avg), from:-1h, by:{k8s.namespace.name}
+| fieldsAdd avgMem = arrayAvg(containerMem)
+| sort avgMem desc
+| limit 10
+</code></pre>
+<h3>Pod Status Overview</h3>
+<pre><code class="language-dql">// Kubernetes events by reason over the last 6 hours.
+//
+// Corrected 08/11/2026 — this cell previously carried three separate filters that each
+// matched nothing, so it returned zero rows against an estate emitting thousands:
+//   1. `event.kind == &quot;K8S_EVENT&quot;` — event.kind never takes that value. Verified over 24h
+//      the only values are DAVIS_EVENT, SYNTHETIC_EVENT, FLEET_EVENT and DAVIS_PROBLEM.
+//      Kubernetes events arrive as DAVIS_EVENT; the discriminator is event.provider.
+//   2. `event.type == &quot;Warning&quot;` — every KUBERNETES_EVENT record carries CUSTOM_INFO
+//      (3,571 of 3,571 checked). The Warning/Normal split is in status (&quot;WARN&quot; / &quot;INFO&quot;);
+//      dt.kubernetes.event.important was &quot;true&quot; on every event over 30 days (10/02/2026).
+//   3. `event.reason` — null on every record. The real field is dt.kubernetes.event.reason.
+// Each filter was valid syntax that executed cleanly, which is why this survived review.
+// Counted with countDistinctExact(event.id): an open Kubernetes event is re-written about every
+// 5 minutes under the same event.id, so count() counts refresh records (10/15/2026: 1,203
+// distinct events vs 8,259 records in 24 h).
+fetch events, from:-6h
+| filter event.provider == &quot;KUBERNETES_EVENT&quot;
+| filter status == &quot;WARN&quot;
+| summarize event_count = countDistinctExact(event.id), by:{dt.kubernetes.event.reason, k8s.namespace.name}
+| sort event_count desc
+| limit 20
+</code></pre>
+<p><a id="container-insights-comparison"></a></p>
+<h2>6. Container Insights vs Dynatrace</h2>
+<p>Many EKS users start with CloudWatch Container Insights. Here is how it compares to Dynatrace:</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>CloudWatch Container Insights</th>
+<th>Dynatrace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Setup complexity</strong></td>
+<td>AWS-native, minimal</td>
+<td>DynaKube operator deployment</td>
+</tr>
+<tr>
+<td><strong>Metric granularity</strong></td>
+<td>1-minute</td>
+<td>10-60 seconds</td>
+</tr>
+<tr>
+<td><strong>Distributed tracing</strong></td>
+<td>X-Ray integration</td>
+<td>Built-in PurePath</td>
+</tr>
+<tr>
+<td><strong>AI-powered root cause</strong></td>
+<td>Basic alarms</td>
+<td>Dynatrace Intelligence automatic root cause</td>
+</tr>
+<tr>
+<td><strong>Code-level visibility</strong></td>
+<td>None</td>
+<td>Full (method-level)</td>
+</tr>
+<tr>
+<td><strong>Log analysis</strong></td>
+<td>CloudWatch Logs Insights</td>
+<td>Grail-powered DQL</td>
+</tr>
+<tr>
+<td><strong>Cost model</strong></td>
+<td>Per metric, per log GB</td>
+<td>DPS/DDU-based</td>
+</tr>
+<tr>
+<td><strong>Cross-stack correlation</strong></td>
+<td>Limited</td>
+<td>Automatic (host → process → service → trace)</td>
+</tr>
+</tbody>
+</table>
+<h3>When to Use Both</h3>
+<ul>
+<li>Keep Container Insights for <strong>EKS control plane logging</strong> (API server, authenticator, scheduler)</li>
+<li>Use Dynatrace for <strong>workload monitoring</strong>, <strong>distributed tracing</strong>, and <strong>AI-powered alerting</strong></li>
+<li>Forward Container Insights logs to Dynatrace via <strong>CloudWatch log forwarding</strong> for unified analysis</li>
+</ul>
+<p><a id="namespace-cost"></a></p>
+<h2>7. Namespace Cost Allocation</h2>
+<p>One of the key benefits of Kubernetes monitoring is the ability to allocate costs by namespace, team, or application.</p>
+<h3>CPU-Based Cost Allocation by Namespace</h3>
+<pre><code class="language-dql">// Namespace CPU usage (sum over the namespace's containers) over the last 24 hours
+// rollup: avg averages each container WITHIN a time bucket before summing across containers.
+// Without it, sum() also adds up the 1-minute points in each bucket: at 24h (10-min buckets)
+// every value reads ~10x high (verified 09/25/2026: 19,512 vs 1,955 millicores for one namespace).
+timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-24h, by:{k8s.namespace.name}
+| fieldsAdd avgCpu = arrayAvg(nsCpu)
+| sort avgCpu desc
+| limit 15
+</code></pre>
+<h3>Memory-Based Cost Allocation by Namespace</h3>
+<pre><code class="language-dql">// Namespace memory usage over the last 24 hours
+// rollup: avg averages each container WITHIN a time bucket before summing across containers.
+// Without it, sum() also adds up the 1-minute points in each bucket: at 24h (10-min buckets)
+// every value reads ~10x high (verified 09/25/2026: 19,512 vs 1,955 millicores for one namespace).
+timeseries nsMem = sum(dt.kubernetes.container.memory_working_set, rollup: avg), from:-24h, by:{k8s.namespace.name}
+| fieldsAdd avgMemBytes = arrayAvg(nsMem)
+| fieldsAdd avgMemGB = avgMemBytes / 1073741824.0
+| sort avgMemGB desc
+| limit 15
+</code></pre>
+<h3>Cost Allocation Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Enforce namespace labels</strong></td>
+<td>Require <code>team</code>, <code>cost-center</code>, <code>environment</code> labels on all namespaces</td>
+</tr>
+<tr>
+<td><strong>Set resource requests/limits</strong></td>
+<td>Accurate requests enable fair cost attribution</td>
+</tr>
+<tr>
+<td><strong>Use Dynatrace segments</strong></td>
+<td>Create segments per team/namespace for filtered dashboards</td>
+</tr>
+<tr>
+<td><strong>Track over time</strong></td>
+<td>Use <code>makeTimeseries</code> to trend namespace costs weekly</td>
+</tr>
+</tbody>
+</table>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<h3>Key Takeaways</h3>
+<ul>
+<li>EKS monitoring requires <strong>DynaKube Operator</strong> for workload visibility and <strong>cloud integration</strong> for control plane metrics</li>
+<li><strong>Fargate</strong> pods need ApplicationMonitoring mode with the Operator installed <strong>without the CSI driver</strong> (<code>useCSIDriver</code> is not a DynaKube <code>v1beta5</code> / <code>v1beta6</code> field)</li>
+<li>Dynatrace provides deeper visibility than CloudWatch Container Insights, especially for <strong>distributed tracing</strong> and <strong>AI root cause analysis</strong></li>
+<li><strong>Namespace-level metrics</strong> enable team-based cost allocation</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>CLOUD-04: AWS Lambda &amp; Serverless</strong> — Monitoring serverless workloads</li>
+<li><strong>CLOUD-07: CloudWatch Log Ingestion</strong> — Forwarding EKS logs to Dynatrace</li>
+<li>See the <strong>K8S notebook series</strong> for general Kubernetes monitoring patterns</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

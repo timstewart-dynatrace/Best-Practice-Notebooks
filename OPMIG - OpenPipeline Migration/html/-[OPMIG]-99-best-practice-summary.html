@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPMIG-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPMIG — OpenPipeline Migration</a><span class="sep">/</span><span aria-current="page">OPMIG-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPMIG-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> OPMIG — OpenPipeline Migration | <strong>Notebook:</strong> 10 of 10 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/06/2026</p>
+</blockquote>
+<p>Definitive best practice settings for migrating from classic logs to OpenPipeline. Each entry specifies the exact configuration.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#migration-planning">Migration Planning</a></li>
+<li><a href="#pipeline-configuration">Pipeline Configuration</a></li>
+<li><a href="#routing-rules">Routing Rules</a></li>
+<li><a href="#bucket-strategy-cost">Bucket Strategy &amp; Cost</a></li>
+<li><a href="#processing-parsing">Processing &amp; Parsing</a></li>
+<li><a href="#metric-extraction-red">Metric Extraction (RED)</a></li>
+<li><a href="#security-masking">Security &amp; Masking</a></li>
+<li><a href="#compliance">Compliance</a></li>
+<li><a href="#troubleshooting-validation">Troubleshooting &amp; Validation</a></li>
+<li><a href="#data-limits-constraints">Data Limits &amp; Constraints</a></li>
+<li><a href="#dql-cookbook">DQL Cookbook</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail and OpenPipeline access — Managed is not covered by this series</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completion of or familiarity with OPMIG-01 through OPMIG-09</td>
+</tr>
+<tr>
+<td><strong>Purpose</strong></td>
+<td>This notebook serves as a reference card — no active environment required</td>
+</tr>
+</tbody>
+</table>
+<p><a id="migration-planning"></a></p>
+<h2>1. Migration Planning</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Inventory all log sources first</td>
+<td><code>fetch logs, from:-7d | summarize n = count(), by:{log.source} | sort n desc</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Score sources with weighted priority matrix</td>
+<td>Volume 25%, Cost Savings 25%, Security Risk 25%, Parsing Complexity 10%, Business Criticality 15%</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Execute migration in 4 waves</td>
+<td>Wave 1 (weeks 1-2): critical/security. Wave 2 (3-4): high-volume. Wave 3 (5-6): standard prod. Wave 4 (7+): dev/test</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Keep same API endpoint</td>
+<td><code>/api/v2/logs/ingest</code> works identically for Classic and OpenPipeline — no code changes</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Maintain <code>logs.ingest</code> token scope</td>
+<td>Metric and event extraction run inside the pipeline and need no extra ingest scope; configuring pipelines needs <code>settings:read</code> / <code>settings:write</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Backup pipeline config before every change</td>
+<td>Settings API: <code>GET /api/v2/settings/objects?schemaIds=builtin:openpipeline.logs.pipelines</code> (and <code>builtin:openpipeline.logs.routing</code>) — store timestamped JSON backups</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="pipeline-configuration"></a></p>
+<h2>2. Pipeline Configuration</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>One pipeline per use case</td>
+<td>Name as <code>{source}-{purpose}</code> (e.g., <code>nginx-access-logs</code>)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Max 100 pipelines per scope</td>
+<td>Consolidate with conditional processors if approaching limit</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Max 1,000 processors per pipeline (100 in a base pipeline)</td>
+<td>Split into multiple pipelines if exceeded</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Max 10 DQL commands per processor (not on the limits page — verify)</td>
+<td>Break into multiple processors if exceeded</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Processor order (Processing stage)</td>
+<td>Masking → Drop → Parse → Enrich → Transform; bucket assignment and extraction are later, fixed stages</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Name processors descriptively</td>
+<td><code>{action}-{target}</code> format (e.g., <code>mask-credit-cards</code>, <code>drop-debug-logs</code>)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Test every processor with sample data</td>
+<td>Use OpenPipeline UI &quot;Sample data&quot; field before saving</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Watch the default route</td>
+<td>Unmatched records take the default route — the classic pipeline (<code>logs:default</code>) for logs and business events, the view-only built-in default pipeline elsewhere. High volume there = missing routes</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Max 5 pipelines extract per record</td>
+<td>A record takes one route; a pipeline group adds its base pipelines. After 5, extraction stops but the record still persists</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline limits (DT docs)</a> — per-configuration-scope and per-pipeline tables; <em>&quot;You can extract data on a single record in a maximum of five different pipelines&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="routing-rules"></a></p>
+<h2>3. Routing Rules</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Specific routes before general routes</td>
+<td>First match wins — compliance routes at highest priority</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Max 100 routes per scope</td>
+<td>Combine conditions with AND/OR to stay within limit</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Max 10 conditions per route (not on the limits page — verify)</td>
+<td>Use broader patterns if exceeded</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Route by <code>log.source</code> for source-based routing</td>
+<td><code>log.source == &quot;nginx&quot;</code> for specific apps</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Route by <code>k8s.namespace.name</code> for environments</td>
+<td><code>prod</code> → 35-day bucket, <code>staging</code> → 14-day, <code>dev</code> → 7-day</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Do NOT route on post-Processing entity fields</td>
+<td><code>dt.entity.service</code>, the Kubernetes and cloud-application entity fields and <code>dt.source_entity</code> are added AFTER the Processing stage (full list on the limits page, OPMIG-02)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Monitor unrouted log volume</td>
+<td><code>filter in(dt.openpipeline.pipelines, &quot;logs:default&quot;)</code> grouped by <code>log.source</code> — classic-pipeline records; <code>isNull()</code> never fires because classic records carry the field too</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>A record takes the first matching route, and Bucket assignment is first-match-only</td>
+<td>Order routes and bucket-assignment processors most specific first, so compliance data reaches its high-retention bucket</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="bucket-strategy-cost"></a></p>
+<h2>4. Bucket Strategy &amp; Cost</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3-tier bucket strategy (small/medium orgs)</td>
+<td><code>critical_logs</code> 90d (10-15%), <code>default_logs</code> 35d (60-70%), <code>ephemeral_logs</code> 7d (20-30%)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>5-tier bucket strategy (enterprise)</td>
+<td>Add <code>compliance_logs</code> 365d (3-5%) and <code>security_logs</code> 180d (2-5%)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Bucket naming</td>
+<td><code>&lt;environment&gt;_&lt;purpose&gt;_logs</code> — max 100 chars, alphanumeric + underscore</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Drop DEBUG/TRACE before storage</td>
+<td>Drop processor: <code>loglevel == &quot;DEBUG&quot; OR loglevel == &quot;TRACE&quot;</code> — reduction equals your DEBUG/TRACE share; measure it first (OPMIG-03)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Drop health check logs</td>
+<td><code>matchesValue(content, &quot;*/health*&quot;) OR matchesValue(content, &quot;*/ready*&quot;) OR matchesValue(content, &quot;*/metrics*&quot;)</code> — measure the share first (<code>contains()</code> is not enabled in matchers)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Extract metrics, then don't store the raw logs</td>
+<td>Assign the raw logs <strong>No storage assignment</strong> — a Drop record processor runs before Metric extraction and would leave nothing to extract. 1M requests/day as logs = ~$140/mo; as metrics = ~$1/mo at placeholder rates (99.3% savings)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Staging/dev short retention</td>
+<td>Staging: 14 days. Dev: 7 days. Storage for that data falls with retention (7 of 35 days ≈ 80% less)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Review bucket strategy quarterly</td>
+<td>Usage trends, retention validation, unused buckets, compliance audit</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="processing-parsing"></a></p>
+<h2>5. Processing &amp; Parsing</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Use a Technology bundle where one exists</td>
+<td>Apache HTTP, Nginx, Syslog (RFC 3164/5424), Java (Log4j, Logback, …) bundles; there is no generic JSON bundle — use <code>jsonExtract</code> for JSON logs</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Apache/Nginx DPL pattern</td>
+<td><code>IPADDR:client_ip SPACE '-' SPACE LD:user SPACE '[' TIMESTAMP('dd/MMM/yyyy:HH:mm:ss Z'):log_time ']' SPACE '&quot;' LD:method SPACE LD:request_path SPACE LD:protocol '&quot;' SPACE INT:status_code SPACE INT:response_bytes</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Java/Log4j DPL pattern</td>
+<td><code>TIMESTAMP('yyyy-MM-dd HH:mm:ss,SSS'):log_timestamp SPACE '[' LD:thread ']' SPACE LD:level SPACE LD:logger SPACE '-' SPACE DATA:message</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Start key=value patterns with <code>LD?</code></td>
+<td><code>parse</code> anchors at the start of the field: <code>LD? ('user='|'userId='|'user_id=') NSPACE:user_id</code> finds the key anywhere; without <code>LD?</code> it returns null unless the line begins with the key. <code>LD? IPADDR:ip</code> on a line beginning with the IP returns <code>92.168.1.100</code> (OPMIG-06)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Grok-to-DPL conversion</td>
+<td><code>%{IP}</code> → <code>IPADDR</code>, <code>%{INT}</code> → <code>INT</code>, <code>%{WORD}</code> → <code>WORD</code>, <code>%{GREEDYDATA}</code> → <code>DATA</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Test patterns in DPL Architect</td>
+<td><code>https://{env}.apps.dynatrace.com/ui/apps/dynatrace.dpl.architect</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Target &gt;90% parsing success rate</td>
+<td>Query <code>countIf(loglevel != &quot;NONE&quot;)/count()</code> per pipeline — investigate below 90%</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Normalize missing log levels</td>
+<td><code>if(contains(content, &quot;[ERROR]&quot;), &quot;ERROR&quot;, else: ...)</code> for logs without <code>loglevel</code></td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="metric-extraction-red"></a></p>
+<h2>6. Metric Extraction (RED)</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rate metric</td>
+<td>Counter: <code>log.api.request_rate</code> with dimensions <code>method</code>, <code>path</code>, <code>status_category</code>, <code>service.name</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Error metric</td>
+<td>Counter: <code>log.api.request_errors</code> matching <code>http.response.status_code &gt;= 500 OR status == &quot;ERROR&quot;</code> (log <code>status</code> is the severity group, so it also counts <code>SEVERE</code>, <code>CRITICAL</code> and <code>FATAL</code>)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Duration metric</td>
+<td>Value: <code>log.api.response_time_ms</code> with dimensions <code>service.name</code>, <code>endpoint</code>, <code>status_category</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Metric naming convention</td>
+<td><code>&lt;source&gt;.&lt;domain&gt;.&lt;metric&gt;.&lt;unit&gt;</code> (e.g., <code>log.api.response_time_ms</code>)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Max 5-7 dimensions per metric</td>
+<td>Never use <code>user_id</code>, <code>request_id</code>, <code>session_id</code>, <code>client_ip</code> as dimensions</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Keep cardinality below 10,000 series</td>
+<td>Bucket high-cardinality fields (e.g., duration → fast/normal/slow)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Normalize API paths in dimensions</td>
+<td><code>/api/users/12345</code> → <code>/api/users/{id}</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Max 10 metric extractions per pipeline (not on the limits page — verify)</td>
+<td>Max 5 event extractions, max 3 business event extractions</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="security-masking"></a></p>
+<h2>7. Security &amp; Masking</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Masking processors FIRST in the Processing stage</td>
+<td>Sensitive data redacted before parsing, extraction and storage. Routing runs before any processor — keep PII out of routing conditions</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Credit cards</td>
+<td>Built-in <code>CREDITCARD</code> matcher, bounded: <code>!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]</code> → <code>[CC_REDACTED]</code>. Unbounded, it rewrites digit runs inside UUIDs</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>CVV codes</td>
+<td><code>('cvv='|'cvc='|'CVV='|'CVC=') [0-9]{3,4}</code> → <code>cvv=[REDACTED]</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Email addresses</td>
+<td><code>[a-zA-Z0-9._%+-]+ '@' [a-zA-Z0-9.-]+</code> → <code>[EMAIL_REDACTED]</code> (no built-in <code>EMAIL</code> matcher exists)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>IP addresses (GDPR)</td>
+<td>Built-in <code>IPADDR</code> matcher, bounded: <code>!&lt;&lt;[0-9A-Za-z:.-] IPADDR !&gt;&gt;[0-9A-Za-z-]</code> → <code>[IP_REDACTED]</code>. Unbounded, it rewrites part of an ARN such as <code>us-east-1::</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>SSNs</td>
+<td><code>!&lt;&lt;[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' [0-9]{4} !&gt;&gt;[0-9A-Za-z-]</code> → <code>[SSN_REDACTED]</code> (<code>INT</code> takes no <code>{n}</code> quantifier)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Bearer tokens</td>
+<td><code>'Bearer ' NSPACE</code> → <code>Bearer [TOKEN_REDACTED]</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>API keys and tokens</td>
+<td><code>&lt;&lt;(('api_key' | 'API_KEY' | 'apiKey' | 'apikey' | 'APIKEY' | 'token' | 'TOKEN') '=') NSPACE</code> → <code>[REDACTED]</code>, plus a separate statement for JSON-quoted keys. DPL literals are case-sensitive; a trailing <code>LD</code> would erase the rest of the line</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Passwords</td>
+<td><code>&lt;&lt;(('password' | 'PASSWORD' | 'Password' | 'passwd' | 'pwd') '=') NSPACE</code> → <code>[REDACTED]</code>; in URLs <code>'password=' [^&amp;\s]+</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Remove always-sensitive fields</td>
+<td><code>fieldsRemove password, secret, api_key, token, authorization</code></td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use descriptive placeholders</td>
+<td><code>[CC_REDACTED]</code>, <code>[EMAIL_REDACTED]</code>, <code>[PHI_REDACTED]</code> — enables audit counts by type</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Chain all masking in single processor</td>
+<td>Apply CC, CVV, email, IP, SSN, tokens in sequence — single pass</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Validate masking weekly</td>
+<td><code>filter replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, replacement: &quot;&quot;) != content</code> must return 0 — <code>matchesPhrase(content, &quot;4111&quot;)</code> misses unbroken 16-digit numbers</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Handle masking failure as critical incident</td>
+<td>Stop storing the exposed records, identify exposure window, restrict access via IAM, delete exposed records (Grail record deletion API)</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="compliance"></a></p>
+<h2>8. Compliance</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PCI-DSS</td>
+<td>Bucket <code>pci_payment_logs</code>, 365+ days (Requirement 10.5.1: at least 12 months), mask PANs/CVV, read access by IAM policy for payment team + security + auditors</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>SOC 2</td>
+<td>Bucket <code>soc2_audit_logs</code>, 365 days (no fixed SOC 2 period — match your audit window), security + auditors only. Buckets have no immutability setting</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>HIPAA</td>
+<td>Bucket <code>hipaa_phi_logs</code>, 2555 days (7 years), mask patient IDs/SSNs/DOB/MRNs</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>GDPR</td>
+<td>Bucket <code>eu_customer_logs</code>, 90 days max, mask emails/IPs, support erasure requests</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Compliance routes at highest priority</td>
+<td>Regulatory data must never accidentally route to under-retained buckets</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Annual compliance audit</td>
+<td>Verify retention, masking, erasure procedures, encryption, access controls</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="troubleshooting-validation"></a></p>
+<h2>9. Troubleshooting &amp; Validation</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Post-migration validation checklist</td>
+<td>All sources flowing, volumes match, no data loss, timestamps correct, routing correct, masking working, metrics generating</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Monitor pipeline volume hourly</td>
+<td><code>makeTimeseries count(), by:{dt.openpipeline.pipelines}, interval:1h</code> — drops = routing failures</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Check log source health</td>
+<td><code>summarize last_seen = max(timestamp), by:{log.source}</code> — sources silent &gt;30 min need investigation</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Combine DPL alternatives for performance</td>
+<td>One <code>replacePattern</code> with <code>('a'|'b'|'c')</code> instead of chained <code>replacePattern</code> calls — fewer passes per record (only when one replacement text fits all)</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Drop processors before parse processors</td>
+<td>Dropped records are never parsed — the saving is your dropped share</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Never drop ERROR/FATAL in production</td>
+<td>Safeguard: append <code>AND NOT (status == &quot;ERROR&quot;)</code> to every content- or source-based drop condition — e.g. <code>matchesValue(content, &quot;*/health*&quot;) AND NOT (status == &quot;ERROR&quot;)</code>. <code>status == &quot;ERROR&quot;</code> covers <code>ERROR</code>, <code>SEVERE</code>, <code>CRITICAL</code>, <code>ALERT</code>, <code>FATAL</code> and <code>EMERGENCY</code></td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Test changes in staging first</td>
+<td>Backup → deploy staging → validate → document → rollback plan → production</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="data-limits-constraints"></a></p>
+<h2>10. Data Limits &amp; Constraints</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Max record size</td>
+<td>Request payload max 10 MB per configuration scope; record max 16 MB after processing — exceeding = rejected/dropped</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Timestamp window</td>
+<td>Logs: 72h past for environments created after SaaS 1.348, 24h for older ones (72h on request). Metrics: 1h past. Future timestamps &gt;10 min are <strong>adjusted</strong> to ingest time + 10 min, not dropped (spans excepted)</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Max fields per record</td>
+<td>Logs: 5 levels of nested objects, 500 attributes per record, 32 KB per log attribute. Array limits are not on the limits page — verify in your tenant</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Rate limits</td>
+<td>Log Ingest API: 500 req/min/token. OTLP: 1,000 req/min. Config API: 100 req/min (not on the limits page — verify)</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-limits">Log Management and Analytics default limits (DT docs)</a> — <em>Nested objects</em>: 5 levels; <em>Number of log attributes</em>: 500; <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline limits (DT docs)</a> — <em>&quot;If the timestamp is more than 10 minutes in the future, it's adjusted to the ingest server time plus 10 minutes.&quot;</em>; <em>&quot;The request payload size maximum limit is 10 MB per configuration scope.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in SaaS 1.348 (DT docs)</a> — <em>&quot;The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past, extended from the previous 24-hour limit.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="dql-cookbook"></a></p>
+<h2>11. DQL Cookbook</h2>
+<p>Reference queries consolidated from across the OPMIG series — copy / paste into your tenant for ad-hoc validation, monitoring, or troubleshooting. These were previously scattered through OPMIG-09 (Troubleshooting &amp; Validation); they live here as a cookbook so the main notebook stays focused on teaching content.</p>
+<h3>11.1 Parsing Validation</h3>
+<p>Diagnostic queries to check whether your DQL/DPL parsers are working correctly. Run these after configuring or modifying parse processors.</p>
+<pre><code class="language-dql">// Parsing success rate by pipeline
+fetch logs, from: now() - 24h
+| summarize {
+    total = count(),
+    with_loglevel = countIf(loglevel != &quot;NONE&quot;),
+    without_loglevel = countIf(loglevel == &quot;NONE&quot;)
+  }, by: {dt.openpipeline.pipelines}
+| fieldsAdd parse_rate = round((toDouble(with_loglevel) / toDouble(total)) * 100, decimals: 1)
+| sort parse_rate asc
+</code></pre>
+<pre><code class="language-dql">// Log level distribution (verify expected values)
+fetch logs, from: now() - 24h
+| summarize {log_count = count()}, by: {loglevel}
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// Find log sources with low parsing rates
+fetch logs, from: now() - 24h
+| summarize {
+    total = count(),
+    parsed = countIf(loglevel != &quot;NONE&quot;)
+  }, by: {log.source}
+| fieldsAdd parse_rate = round((toDouble(parsed) / toDouble(total)) * 100, decimals: 1)
+| filter parse_rate &lt; 90
+| sort parse_rate asc
+</code></pre>
+<pre><code class="language-dql">// Sample unparsed logs from problematic sources
+// Replace 'your-source' with source from previous query
+fetch logs, from: now() - 1h
+| filter log.source == &quot;your-source&quot;
+| filter loglevel == &quot;NONE&quot;
+| fields content
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Verify custom field extraction
+// Add your expected custom fields here
+fetch logs, from: now() - 24h
+| summarize {
+    total = count(),
+    with_request_id = countIf(isNotNull(request_id)),
+    with_user_id = countIf(isNotNull(user_id)),
+    with_order_id = countIf(isNotNull(order_id))
+  }, by: {dt.openpipeline.pipelines}
+</code></pre>
+<h3>11.2 Volume &amp; Cost Validation</h3>
+<p>Verify post-migration data volumes match expectations and that drop processors are reducing volume as designed. Useful in the first week after cutover and as a recurring check.</p>
+<pre><code class="language-dql">// Daily log volume by bucket (cost impact)
+fetch logs, from: now() - 7d
+| fieldsAdd day = formatTimestamp(timestamp, format: &quot;yyyy-MM-dd&quot;)
+| summarize {log_count = count()}, by: {day, dt.system.bucket}
+| sort day desc, log_count desc
+</code></pre>
+<pre><code class="language-dql">// Volume trend - verify stable after migration
+fetch logs, from: now() - 7d
+| makeTimeseries {log_count = count()}, interval: 1h
+</code></pre>
+<pre><code class="language-dql">// Check if debug/trace logs are being dropped (cost savings)
+fetch logs, from: now() - 24h
+| filter loglevel == &quot;DEBUG&quot; OR loglevel == &quot;TRACE&quot;
+| summarize {debug_trace_count = count()}
+| fieldsAdd status = if(debug_trace_count == 0, 
+    &quot;✅ Debug/trace logs dropped as expected&quot;,
+    else: &quot;⚠️ Debug/trace logs still present - check drop processors&quot;)
+</code></pre>
+<pre><code class="language-dql">// Volume by log level (should see mostly INFO/WARN/ERROR)
+// percentage = share of all logs in the window, computed against the overall total
+fetch logs, from: now() - 24h
+| summarize {log_count = count()}, by: {loglevel}
+| summarize {total = sum(log_count), rows = collectArray(record(loglevel = loglevel, log_count = log_count))}
+| expand rows
+| fieldsAdd loglevel = rows[loglevel], log_count = rows[log_count]
+| fieldsAdd percentage = round(toDouble(log_count) / toDouble(total) * 100, decimals: 1)
+| fields loglevel, log_count, percentage
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// Top 10 highest volume sources
+fetch logs, from: now() - 24h
+| summarize {log_count = count()}, by: {log.source}
+| sort log_count desc
+| limit 10
+</code></pre>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FINOPS-01: DPS Capability Units and Querying Consumption with DQL</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">FINOPS — Cost Management &amp; FinOps</a><span class="sep">/</span><span aria-current="page">FINOPS-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>FINOPS-01: DPS Capability Units and Querying Consumption with DQL</h1>
+<blockquote>
+<p><strong>Series:</strong> FINOPS — Cost Management &amp; FinOps | <strong>Reference:</strong> 01 — DPS Capability Units and Querying Consumption with DQL | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 11/09/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><em>&quot;How much are we using, and where is it going?&quot;</em> — the single most common DPS question, and the one customers most often answer by squinting at the Subscription portal once a month. This entry is the platform-engineer view of the same question: how DPS consumption is recorded inside the tenant, where the data lives in Grail, what the DQL canon looks like, and how to reconcile in-tenant numbers against the Account Management portal.</p>
+<p><strong>Two surfaces, one truth.</strong> Consumption data appears in two places: as raw per-record <code>BILLING_USAGE_EVENT</code> records in <code>dt.system.events</code>, and as pre-aggregated <code>dt.billing.*</code> metric series. They report the same underlying usage, but at different granularity — choose based on whether you need per-record attribution or fast time-aligned aggregates.</p>
+<p><strong>Per-capability schemas.</strong> There is no universal <code>billed_*</code> field. Each capability has its own unit field — <code>billed_gibibyte_hours</code> for Full-Stack, <code>billed_bytes</code> for log ingest, <code>data_points</code> for metrics, <code>billed_sessions</code> for RUM, and so on. Mixing units across capabilities is the most common authoring mistake. § 2 lists the unit for each capability.</p>
+<blockquote>
+<p><strong>Scope:</strong> Dynatrace SaaS, DPS license model. Classic licensing surfaces some of the same consumption data — the linked Classic-license doc covers the equivalents. Anything called out as <strong>Softened</strong> evolves sprint-to-sprint; verify against current docs before signing off on a procurement review.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#capability-model">The DPS Capability Model</a></li>
+<li><a href="#data-surfaces">Two Data Surfaces — <code>dt.system.events</code> and <code>dt.billing.*</code></a></li>
+<li><a href="#mandatory-patterns">Mandatory Patterns — <code>dedup</code>, <code>event.kind</code>, <code>billing_type</code></a></li>
+<li><a href="#host-based">Querying Host-Based Capabilities</a></li>
+<li><a href="#byte-based">Querying Byte-Based Capabilities</a></li>
+<li><a href="#count-based">Querying Count-Based Capabilities</a></li>
+<li><a href="#metrics-ingest">Metrics-Ingest with Included-Quota Subtraction</a></li>
+<li><a href="#query-side">Query-Side Billing — Chargeback by App and User</a></li>
+<li><a href="#attribution">Per-Bucket and Per-Cost-Center Attribution</a></li>
+<li><a href="#pitfalls">Common Pitfalls</a></li>
+<li><a href="#validating">Validating Numbers Against Account Management</a></li>
+<li><a href="#bootstrap">Bootstrap from the Ready-Made Usage Dashboards</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS on the Dynatrace Platform Subscription (DPS). Most queries also work on Classic licensing — output reflects DPS-equivalent usage.</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:events:read</code> for <code>fetch dt.system.events</code>; <code>storage:metrics:read</code> for the <code>dt.billing.*</code> metric series; <code>account-management</code> role at the account level for cross-checking against the Subscription portal.</td>
+</tr>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Platform / Observability Lead (primary); Executive / Procurement (TL;DR and §12).</td>
+</tr>
+<tr>
+<td><strong>Related series</strong></td>
+<td>ORGNZ (bucket strategy, retention), OPLOGS (sampling and ingestion control), AUTOM (Cost Allocation app deployment), ADOPT-05 (optimization roadmap and ROI framing).</td>
+</tr>
+<tr>
+<td><strong>Companion FINOPS entries</strong></td>
+<td>FINOPS-02 (forecasting + anomaly detection on consumption), FINOPS-03 (the Cut / Tune / Filter optimization decision framework).</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>One-line answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Where does consumption data live?</td>
+<td>Per-record: <code>fetch dt.system.events | filter event.kind == &quot;BILLING_USAGE_EVENT&quot;</code>. Pre-aggregated: <code>timeseries &lt;metric&gt;(dt.billing.&lt;capability&gt;.usage)</code>.</td>
+</tr>
+<tr>
+<td>What's the unit field?</td>
+<td>Per capability — no single unit field. <code>billed_gibibyte_hours</code>, <code>billed_host_hours</code>, <code>billed_container_hours</code>, <code>billed_pod_hours</code>, <code>billed_bytes</code>, <code>ingested_bytes</code> (Traces-Ingest only), <code>data_points</code> (Metrics), <code>billed_synthetic_action_count</code>, <code>billed_http_request_count</code>, <code>billed_sessions</code>, <code>billed_invocations</code>, or record-count (Workflows).</td>
+</tr>
+<tr>
+<td>What's the canonical filter pattern?</td>
+<td><code>event.kind == &quot;BILLING_USAGE_EVENT&quot;</code> then <code>dedup event.id</code> before any aggregation.</td>
+</tr>
+<tr>
+<td>How do I attribute cost to a team or product?</td>
+<td>Use the pre-aggregated <code>dt.billing.*_by_costcenter</code> / <code>_by_product</code> metric series (Logs and Traces only), or <code>expand dt.cost.costcenter</code> / <code>expand dt.cost.product</code> on the per-record events. Other capabilities attribute via <code>usage.bucket</code>, <code>dt.entity.host</code> (moving to <code>dt.smartscape.host</code> with SaaS 1.347), or <code>dt.entity.application</code>.</td>
+</tr>
+<tr>
+<td>How fresh is the data?</td>
+<td>Most capabilities update every 15 minutes (<code>usage.start</code> / <code>usage.end</code>). Metrics - Ingest lags by ~4 hours, so query timeframes shorter than 4 hours are incomplete. Automation Workflow uses 1-hour windows.</td>
+</tr>
+<tr>
+<td>What's the account-level equivalent?</td>
+<td>Account Management portal → Subscription → Cost Overview (billable totals), Budget Alerts (commit tracking), Cost Monitors (anomaly detection). The portal applies subscription-currency conversion + reconciliation logic that DQL does not.</td>
+</tr>
+<tr>
+<td>When does DQL disagree with the portal?</td>
+<td>Three typical causes: (a) portal converts raw units to subscription currency, DQL does not; (b) portal includes pending reconciliations; (c) time-zone or time-window alignment. See §12.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription">Dynatrace Platform Subscription (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/dps-hosts">DPS Hosts capabilities (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/account-management">Account Management portal (DT docs)</a>. The per-capability schema table is derived from live <code>dt.system.events</code> schema inspection on a SaaS tenant (2026-05-19) — the capability-to-unit table is in § 2.</sub></p>
+</blockquote>
+<p><a id="capability-model"></a></p>
+<h2>2. The DPS Capability Model</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+RFBTIENhcGFiaWxpdHkgQ2F0ZWdvcmllczwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5Ud2VsdmUgY2FwYWJpbGl0eSBmYW1pbGllcyBiaWxsIG9uIGRpc3RpbmN0IHVuaXQgdHlwZXMg4oCUIG5ldmVyIHN1bSBhY3Jvc3MgZmFtaWxpZXM8L3RleHQ+CgogIDwhLS0gUm93IDE6IEhvc3QgTW9uaXRvcmluZyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iODAiIHdpZHRoPSIyODAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMTAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5Ib3N0IE1vbml0b3Jpbmc8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIxMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZ1bGwtU3RhY2sgwrcgSW5mcmFzdHJ1Y3R1cmU8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIxMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZvdW5kYXRpb24gJmFtcDsgRGlzY292ZXJ5PC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iMTU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Db2RlIMK3IEt1YmVybmV0ZXMgUGxhdGZvcm08L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkdpQi1ob3VycyDCtyBob3N0LWhvdXJzIMK3IHBvZC1ob3VyczwvdGV4dD4KCiAgPCEtLSBSb3cgMTogQXBwbGljYXRpb24gU2VjdXJpdHkgLS0+CiAgPHJlY3QgeD0iMzM1IiB5PSI4MCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNDc1IiB5PSIxMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkFwcGxpY2F0aW9uIFNlY3VyaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjQ3NSIgeT0iMTIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SdW50aW1lIFZ1bG5lcmFiaWxpdHkgQW5hbHl0aWNzPC90ZXh0PgogIDx0ZXh0IHg9IjQ3NSIgeT0iMTM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SdW50aW1lIEFwcGxpY2F0aW9uIFByb3RlY3Rpb248L3RleHQ+CiAgPHRleHQgeD0iNDc1IiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkdpQi1ob3VyczwvdGV4dD4KCiAgPCEtLSBSb3cgMTogU1BNIC0tPgogIDxyZWN0IHg9IjYzMCIgeT0iODAiIHdpZHRoPSIyNjAiIGhlaWdodD0iMTIwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijc2MCIgeT0iMTAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5TZWN1cml0eSBQb3N0dXJlIE1nbXQ8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIxMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkt1YmVybmV0ZXMtc2NvcGVkPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMTM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5jb25maWd1cmF0aW9uIGF1ZGl0PC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5SZWNvcmQgY291bnQ8L3RleHQ+CgogIDwhLS0gUm93IDI6IExvZ3MgcG93ZXJlZCBieSBHcmFpbCAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjE1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzIyRDNFRSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxODAiIHk9IjIzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+TG9ncyBwb3dlcmVkIGJ5IEdyYWlsPC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iMjU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Jbmdlc3QgJmFtcDsgUHJvY2VzcyDCtyBSZXRhaW48L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIyNzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlJldGFpbiB3LyBJbmNsdWRlZCBRdWVyaWVzPC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iMjg5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5RdWVyeTwvdGV4dD4KICA8dGV4dCB4PSIxODAiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+Qnl0ZXMgKGJpbGxlZF9ieXRlcyk8L3RleHQ+CgogIDwhLS0gUm93IDI6IEV2ZW50cyBwb3dlcmVkIGJ5IEdyYWlsIC0tPgogIDxyZWN0IHg9IjMzNSIgeT0iMjE1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjIzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+RXZlbnRzIHBvd2VyZWQgYnkgR3JhaWw8L3RleHQ+CiAgPHRleHQgeD0iNDc1IiB5PSIyNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkluZ2VzdCAmYW1wOyBQcm9jZXNzIMK3IFJldGFpbiDCtyBRdWVyeTwvdGV4dD4KICA8dGV4dCB4PSI0NzUiIHk9IjI3NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QnVja2V0IGZpZWxkOiB1c2FnZS5idWNrZXQ8L3RleHQ+CiAgPHRleHQgeD0iNDc1IiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkJ5dGVzIChiaWxsZWRfYnl0ZXMpPC90ZXh0PgoKICA8IS0tIFJvdyAyOiBNZXRyaWNzIHBvd2VyZWQgYnkgR3JhaWwgLS0+CiAgPHJlY3QgeD0iNjMwIiB5PSIyMTUiIHdpZHRoPSIyNjAiIGhlaWdodD0iMTIwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9Ijc2MCIgeT0iMjM3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5NZXRyaWNzIHBvd2VyZWQgYnkgR3JhaWw8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIyNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkluZ2VzdCAmYW1wOyBQcm9jZXNzIMK3IFJldGFpbjwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9IjI3NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+SW5jbHVkZXMgaW5jbHVkZWQtcXVvdGEgbWF0aDwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9IjI5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSI+fjRoIGRhdGEgbGFnPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMzE5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5kYXRhX3BvaW50cyDCtyBieXRlczwvdGV4dD4KCiAgPCEtLSBSb3cgMzogVHJhY2VzIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIzNTAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTA1IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE1MCIgeT0iMzcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5UcmFjZXMgcG93ZXJlZCBieSBHcmFpbDwvdGV4dD4KICA8dGV4dCB4PSIxNTAiIHk9IjM5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+SW5nZXN0IMK3IFJldGFpbiDCtyBRdWVyeTwvdGV4dD4KICA8dGV4dCB4PSIxNTAiIHk9IjQwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+4pqgIEluZ2VzdCB1c2VzIGluZ2VzdGVkX2J5dGVzPC90ZXh0PgogIDx0ZXh0IHg9IjE1MCIgeT0iNDM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5CeXRlczwvdGV4dD4KCiAgPCEtLSBSb3cgMzogQXV0b21hdGlvbiArIEFwcEVuZ2luZSAtLT4KICA8cmVjdCB4PSIyNzUiIHk9IjM1MCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSIxMDUiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMzg1IiB5PSIzNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkF1dG9tYXRpb24gwrcgQXBwRW5naW5lPC90ZXh0PgogIDx0ZXh0IHg9IjM4NSIgeT0iMzkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Xb3JrZmxvd3MgwrcgRnVuY3Rpb25zIChTbWFsbCk8L3RleHQ+CiAgPHRleHQgeD0iMzg1IiB5PSI0MDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkFkLWhvYyDCtyBBY3Rpb25zIMK3IEFwcCBmdW5jdGlvbnM8L3RleHQ+CiAgPHRleHQgeD0iMzg1IiB5PSI0MzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPldvcmtmbG93LWhvdXJzIMK3IGludm9jYXRpb25zPC90ZXh0PgoKICA8IS0tIFJvdyAzOiBTeW50aGV0aWMgKyBSVU0gLS0+CiAgPHJlY3QgeD0iNTEwIiB5PSIzNTAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTA1IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjYyMCIgeT0iMzcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5TeW50aGV0aWMgwrcgUlVNPC90ZXh0PgogIDx0ZXh0IHg9IjYyMCIgeT0iMzkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Ccm93c2VyIMK3IEhUVFAgwrcgQ2xpY2twYXRoPC90ZXh0PgogIDx0ZXh0IHg9IjYyMCIgeT0iNDA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TZXNzaW9uczwvdGV4dD4KICA8dGV4dCB4PSI2MjAiIHk9IjQzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+QWN0aW9ucyDCtyByZXF1ZXN0cyDCtyBzZXNzaW9uczwvdGV4dD4KCiAgPCEtLSBSb3cgMzogRmlsZXMgLS0+CiAgPHJlY3QgeD0iNzQ1IiB5PSIzNTAiIHdpZHRoPSIxNDUiIGhlaWdodD0iMTA1IiBmaWxsPSIjQTc4QkZBIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjgxNyIgeT0iMzcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5GaWxlczwvdGV4dD4KICA8dGV4dCB4PSI4MTciIHk9IjM5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UmV0YWluPC90ZXh0PgogIDx0ZXh0IHg9IjgxNyIgeT0iNDA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5UZW5hbnQtZ2xvYmFsPC90ZXh0PgogIDx0ZXh0IHg9IjgxNyIgeT0iNDM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5CeXRlczwvdGV4dD4KCiAgPCEtLSBGb290ZXIgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPlVuaXRzIGFyZSBOT1QgY29tbWVuc3VyYWJsZSBhY3Jvc3MgZmFtaWxpZXMg4oCUIGFnZ3JlZ2F0ZSB3aXRoaW4gb25lIGNhcGFiaWxpdHkgZmlyc3QsIGNvbnZlcnQgdG8gc3Vic2NyaXB0aW9uIGN1cnJlbmN5IGF0IHRoZSByZXBvcnRpbmcgYm91bmRhcnk8L3RleHQ+Cjwvc3ZnPgo=" alt="DPS Capability Categories" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Category | Capabilities | Unit |
+|----------|-------------|------|
+| Host Monitoring | Full-Stack · Infrastructure · Foundation · Code · Kubernetes | GiB-hours · host-hours · pod-hours |
+| Application Security | RVA · RAP | GiB-hours |
+| Security Posture Management | Kubernetes-scoped audit | Record count |
+| Logs powered by Grail | Ingest · Retain · Retain w/ Included Queries · Query | Bytes |
+| Events powered by Grail | Ingest · Retain · Query | Bytes |
+| Metrics powered by Grail | Ingest (with included-quota math) · Retain | data_points · Bytes |
+| Traces powered by Grail | Ingest (ingested_bytes!) · Retain · Query | Bytes |
+| Automation · AppEngine | Workflow · Functions (Small) | Workflow-hours · invocations |
+| Synthetic · RUM | Browser · HTTP · Clickpath · Sessions | Actions · requests · sessions |
+| Files | Retain (tenant-global) | Bytes |
+| Data | Data Egress (forward to S3 / GCP / Azure) | Bytes (per-destination) |
+Units are NOT commensurable — aggregate within one capability first.
+-->
+<p>DPS bills along <strong>capabilities</strong> — discrete units of platform functionality, each with its own unit of measure and a price defined in the customer's rate card. Capabilities group into categories that match the official documentation taxonomy:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Capabilities</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Host Monitoring</strong></td>
+<td>Full-Stack Monitoring, Infrastructure Monitoring, Foundation &amp; Discovery, Code Monitoring, Kubernetes Platform Monitoring</td>
+<td>GiB-hours / host-hours / container-hours / pod-hours</td>
+</tr>
+<tr>
+<td><strong>Application Security</strong></td>
+<td>Runtime Vulnerability Analytics (RVA), Runtime Application Protection (RAP)</td>
+<td>GiB-hours</td>
+</tr>
+<tr>
+<td><strong>Security Posture Management</strong></td>
+<td>Security Posture Management (Kubernetes-scoped)</td>
+<td>Record count</td>
+</tr>
+<tr>
+<td><strong>Logs powered by Grail</strong></td>
+<td>Ingest &amp; Process, Retain, Retain with Included Queries, Query</td>
+<td>Bytes</td>
+</tr>
+<tr>
+<td><strong>Events powered by Grail</strong></td>
+<td>Ingest &amp; Process, Retain, Query</td>
+<td>Bytes</td>
+</tr>
+<tr>
+<td><strong>Metrics powered by Grail</strong></td>
+<td>Ingest &amp; Process (with included-quota subtraction), Retain</td>
+<td>Data points / Bytes</td>
+</tr>
+<tr>
+<td><strong>Traces powered by Grail</strong></td>
+<td>Ingest &amp; Process, Retain, Query</td>
+<td>Bytes (<code>ingested_bytes</code> for Ingest, <code>billed_bytes</code> for Retain/Query)</td>
+</tr>
+<tr>
+<td><strong>Automation</strong></td>
+<td>Automation Workflow</td>
+<td>Workflow-hours (record count per hour)</td>
+</tr>
+<tr>
+<td><strong>Standard Function Calls</strong> (formerly AppEngine Functions)</td>
+<td>AppEngine Functions - Small (Ad-hoc, Actions, App functions)</td>
+<td>Invocations</td>
+</tr>
+<tr>
+<td><strong>Synthetic Monitoring</strong></td>
+<td>Browser Monitor / Clickpath, HTTP Monitor</td>
+<td>Synthetic actions / HTTP requests</td>
+</tr>
+<tr>
+<td><strong>Real User Monitoring</strong></td>
+<td>RUM session billing</td>
+<td>Sessions</td>
+</tr>
+<tr>
+<td><strong>Files</strong></td>
+<td>Files - Retain</td>
+<td>Bytes</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Data Egress (forward logs / metrics / events to AWS S3, GCP, Azure)</td>
+<td>Bytes (uncompressed, counted per destination)</td>
+</tr>
+</tbody>
+</table>
+<h3>Why the unit families matter</h3>
+<p>A common analysis mistake is summing across capabilities — e.g., <code>total = sum(billed_bytes) + sum(billed_gibibyte_hours)</code>. The result is dimensionally meaningless. <strong>Always aggregate within a single capability first</strong>, convert to subscription currency at the reporting boundary, and only then combine totals if a single &quot;how much&quot; number is needed.</p>
+<p>The conversion factors (units → subscription currency) are in the rate card attached to the customer's DPS agreement and are also surfaced in the Account Management portal's Cost Overview. They are not exposed via DQL — that's a deliberate separation. DQL gives raw consumption; the portal does the currency math.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription">Dynatrace Platform Subscription (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/dps-hosts">DPS Hosts (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/dps-appsec">DPS Application Security (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/dps-log-management">DPS Log Management (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics">Metrics consumption (DPS) (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/dps-traces">DPS Traces (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/dps-automation">DPS Automation (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/dps-appfunctions">DPS AppEngine Functions (DT docs)</a>. The per-capability category taxonomy matches the layout of the official <a href="https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription">DPS Usage Details DEMO dashboard</a>.</sub></p>
+</blockquote>
+<p><a id="data-surfaces"></a></p>
+<h2>3. Two Data Surfaces — <code>dt.system.events</code> and <code>dt.billing.*</code></h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJmbG93LWFycm93IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8dGV4dCB4PSI0NjUiIHk9IjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5EUFMgQmlsbGluZyBFdmVudCBGbG93PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPkZyb20gc2lnbmFsIHNvdXJjZXMgdG8gaW4tdGVuYW50IERRTCBhbmQgdGhlIEFjY291bnQgTWFuYWdlbWVudCBwb3J0YWw8L3RleHQ+CgogIDwhLS0gTGF5ZXIgMTogU2lnbmFsIHNvdXJjZXMgKGxlZnQgY29sdW1uKSAtLT4KICA8dGV4dCB4PSIxMjAiIHk9IjkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5TaWduYWwgU291cmNlczwvdGV4dD4KICA8cmVjdCB4PSI0MCIgeT0iMTAwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjQ2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjEyMCIgeT0iMTIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5PbmVBZ2VudDwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjEzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+SG9zdHMgwrcgY29udGFpbmVycyDCtyBwb2RzPC90ZXh0PgoKICA8cmVjdCB4PSI0MCIgeT0iMTU2IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjQ2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjEyMCIgeT0iMTc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5TeW50aGV0aWMgbW9uaXRvcnM8L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIxOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkJyb3dzZXIgwrcgSFRUUDwvdGV4dD4KCiAgPHJlY3QgeD0iNDAiIHk9IjIxMiIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI0NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+T3BlblBpcGVsaW5lIGluZ2VzdDwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+TG9ncyDCtyBtZXRyaWNzIMK3IGV2ZW50czwvdGV4dD4KCiAgPHJlY3QgeD0iNDAiIHk9IjI2OCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI0NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+QXBwIEVuZ2luZSBmdW5jdGlvbnM8L3RleHQ+CiAgPHRleHQgeD0iMTIwIiB5PSIzMDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkludm9jYXRpb25zPC90ZXh0PgoKICA8cmVjdCB4PSI0MCIgeT0iMzI0IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjQ2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjEyMCIgeT0iMzQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5BdXRvbWF0aW9uIHdvcmtmbG93czwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjM2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+V29ya2Zsb3ctaG91ciByZWNvcmRzPC90ZXh0PgoKICA8IS0tIEFycm93IHRvIExheWVyIDIgLS0+CiAgPGxpbmUgeDE9IjIwMCIgeTE9IjIzNSIgeDI9IjI2NSIgeTI9IjIzNSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmbG93LWFycm93KSIvPgoKICA8IS0tIExheWVyIDI6IEdyYWlsIGJpbGxpbmcgc3VyZmFjZXMgKGNlbnRlcikgLS0+CiAgPHRleHQgeD0iMzY1IiB5PSI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+R3JhaWwgKGluLXRlbmFudCk8L3RleHQ+CgogIDxyZWN0IHg9IjI2NSIgeT0iMTA1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KICA8dGV4dCB4PSIzNjUiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+ZHQuc3lzdGVtLmV2ZW50czwvdGV4dD4KICA8dGV4dCB4PSIzNjUiIHk9IjE0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+ZXZlbnQua2luZCA9PSAiQklMTElOR19VU0FHRV9FVkVOVCI8L3RleHQ+CiAgPHRleHQgeD0iMzY1IiB5PSIxNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPjE1IGNhcGFiaWxpdHkgZXZlbnQudHlwZXM8L3RleHQ+CiAgPHRleHQgeD0iMzY1IiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPlBlci1yZWNvcmQgYXR0cmlidXRpb246PC90ZXh0PgogIDx0ZXh0IHg9IjM2NSIgeT0iMTk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj51c2FnZS5idWNrZXQgwrcgZHQuZW50aXR5LiogwrcgZHQuY29zdC4qPC90ZXh0PgoKICA8cmVjdCB4PSIyNjUiIHk9IjIyNSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMzY1IiB5PSIyNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPmR0LmJpbGxpbmcuKiBtZXRyaWMgc2VyaWVzPC90ZXh0PgogIDx0ZXh0IHg9IjM2NSIgeT0iMjY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5QcmUtYWdncmVnYXRlZCwgdGltZS1hbGlnbmVkPC90ZXh0PgogIDx0ZXh0IHg9IjM2NSIgeT0iMjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5Ib3N0IGNhcGFiaWxpdGllcyArIFJWQS9SQVA8L3RleHQ+CiAgPHRleHQgeD0iMzY1IiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPl9ieV9jb3N0Y2VudGVyIC8gX2J5X3Byb2R1Y3Q8L3RleHQ+CiAgPHRleHQgeD0iMzY1IiB5PSIzMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPihMb2dzIGFuZCBUcmFjZXMgaW5nZXN0IG9ubHkpPC90ZXh0PgoKICA8dGV4dCB4PSIzNjUiIHk9IjM1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+U2FtZSB0cnV0aCwgZGlmZmVyZW50IGdyYW51bGFyaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjM2NSIgeT0iMzcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5FdmVudHM6IGF0dHJpYnV0aW9uIGRyaWxsLWRvd248L3RleHQ+CiAgPHRleHQgeD0iMzY1IiB5PSIzODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk1ldHJpYyBzZXJpZXM6IHRyZW5kcyAmYW1wOyBhbGVydHM8L3RleHQ+CgogIDwhLS0gQXJyb3dzIHRvIExheWVyIDMgLS0+CiAgPGxpbmUgeDE9IjQ2NSIgeTE9IjE1NSIgeDI9IjUzNSIgeTI9IjE1NSIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNSIgbWFya2VyLWVuZD0idXJsKCNmbG93LWFycm93KSIvPgogIDxsaW5lIHgxPSI0NjUiIHkxPSIyNzUiIHgyPSI1MzUiIHkyPSIyNzUiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjZmxvdy1hcnJvdykiLz4KCiAgPCEtLSBMYXllciAzOiBDb25zdW1lcnMgKHJpZ2h0IGNvbHVtbikgLS0+CiAgPHRleHQgeD0iNjg1IiB5PSI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Q29uc3VtZXJzPC90ZXh0PgoKICA8cmVjdCB4PSI1MzUiIHk9IjEwNSIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI1OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjYiLz4KICA8dGV4dCB4PSI2ODUiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjYwMCI+RFFMIChOb3RlYm9va3MgLyBEYXNoYm9hcmRzKTwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjE0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+ZmV0Y2ggZHQuc3lzdGVtLmV2ZW50cyDCtyB0aW1lc2VyaWVzIGR0LmJpbGxpbmcuKjwvdGV4dD4KCiAgPHJlY3QgeD0iNTM1IiB5PSIxNzUiIHdpZHRoPSIzMDAiIGhlaWdodD0iNTgiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNjg1IiB5PSIxOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPkNvc3QgTW9uaXRvcnM8L3RleHQ+CiAgPHRleHQgeD0iNjg1IiB5PSIyMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkFub21hbHkgZGV0ZWN0aW9uIG9uIGR0LmJpbGxpbmcuKiBzZXJpZXMgKEZJTk9QUy0wMik8L3RleHQ+CgogIDxyZWN0IHg9IjUzNSIgeT0iMjQ1IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjU4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iNiIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iMjY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5Xb3JrZmxvdyBidXJuLXJhdGUgYWxlcnRzPC90ZXh0PgogIDx0ZXh0IHg9IjY4NSIgeT0iMjg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5EUUwtZHJpdmVuIFdvcmtmbG93cyBvbiB1c2FnZSB0cmFqZWN0b3JpZXMgKEZJTk9QUy0wMik8L3RleHQ+CgogIDwhLS0gQXJyb3cgT1VUIHRvIEFjY291bnQgTWFuYWdlbWVudCBwb3J0YWwgKG9mZi10ZW5hbnQpIC0tPgogIDxsaW5lIHgxPSI0NjUiIHkxPSIzOTUiIHgyPSI1MzUiIHkyPSIzOTUiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Zsb3ctYXJyb3cpIiBzdHJva2UtZGFzaGFycmF5PSI1LDMiLz4KCiAgPHJlY3QgeD0iNTM1IiB5PSIzNjUiIHdpZHRoPSIzMDAiIGhlaWdodD0iNjUiIGZpbGw9IiNGRkI4MDAiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iNiIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iMzg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BY2NvdW50IE1hbmFnZW1lbnQgcG9ydGFsPC90ZXh0PgogIDx0ZXh0IHg9IjY4NSIgeT0iNDAzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5Db3N0IE92ZXJ2aWV3IMK3IEJ1ZGdldCBBbGVydHMgwrcgQ29zdCBNb25pdG9yczwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjQxOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+U3Vic2NyaXB0aW9uLWN1cnJlbmN5IGNvbnZlcnNpb24gKyByZWNvbmNpbGlhdGlvbjwvdGV4dD4KCiAgPCEtLSBGb290ZXIgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSI0NjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPkluLXRlbmFudCBEUUw6IHJhdyB1bml0cywgb3BlcmF0aW9uYWwgdmlzaWJpbGl0eSDCtyBBY2NvdW50IHBvcnRhbDogaW52b2ljZWFibGUgdG90YWxzLCBiaWxsaW5nLXBlcmlvZCBhdXRob3JpdGF0aXZlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5BbWJlciBkYXNoZWQgYXJyb3cg4oaSIG9mZi10ZW5hbnQgZmxvdyBpbnRvIEFjY291bnQgTWFuYWdlbWVudCBwb3J0YWw8L3RleHQ+Cjwvc3ZnPgo=" alt="DPS Billing Event Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Component | Function |
+|-------|-----------|----------|
+| Signal sources | OneAgent · Synthetic · OpenPipeline · AppEngine · Workflows | Emit billable activity |
+| In-tenant Grail | dt.system.events (per-record) · dt.billing.* (pre-aggregated metric series) | Same truth, different granularity |
+| Consumers | DQL queries · Cost Monitors · Workflow burn-rate alerts | Operational visibility |
+| Off-tenant (amber arrow) | Account Management portal — Cost Overview · Budget Alerts · Cost Monitors | Subscription-currency reconciliation |
+-->
+<p>Consumption appears in two distinct Grail surfaces. They report the same underlying truth but at different granularity. The right choice depends on the question being asked.</p>
+<h3><code>dt.system.events</code> — per-record billing events</h3>
+<p>Every billable activity emits a record into <code>dt.system.events</code> with <code>event.kind == &quot;BILLING_USAGE_EVENT&quot;</code>. Records carry per-capability attribution (which host, which bucket, which workflow, which synthetic test). Fields vary per <code>event.type</code>.</p>
+<p>Use this surface when you need:</p>
+<ul>
+<li>Per-host, per-bucket, per-test, per-workflow attribution</li>
+<li>Query-side billing (<code>Log Management &amp; Analytics - Query</code>, <code>Events - Query</code>, <code>Traces - Query</code>) with <code>client.source</code> and <code>user.email</code></li>
+<li>Capabilities that don't have a pre-aggregated metric series (Logs - Retain, Events, Metrics - Ingest, Synthetic, RUM, AppEngine, Automation Workflow)</li>
+<li>Custom chargeback expansion via <code>expand dt.cost.costcenter</code> / <code>dt.cost.product</code></li>
+</ul>
+<h3><code>dt.billing.*</code> — pre-aggregated metric series</h3>
+<p>For host-based and security capabilities (plus pre-aggregated chargeback views for Logs and Traces), Dynatrace exposes first-class metric series. These are faster to query, naturally time-aligned, and ideal for dashboards and alerts.</p>
+<table>
+<thead>
+<tr>
+<th>Metric series</th>
+<th>Unit</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.billing.full_stack_monitoring.usage</code></td>
+<td>GiB-hours</td>
+<td>Full-Stack hourly trend</td>
+</tr>
+<tr>
+<td><code>dt.billing.infrastructure_monitoring.usage</code></td>
+<td>host-hours</td>
+<td>Infrastructure hourly trend</td>
+</tr>
+<tr>
+<td><code>dt.billing.foundation_and_discovery.usage</code></td>
+<td>host-hours</td>
+<td>Discovery-tier hourly trend</td>
+</tr>
+<tr>
+<td><code>dt.billing.code_monitoring.usage</code></td>
+<td>container-hours</td>
+<td>Code Monitoring hourly trend</td>
+</tr>
+<tr>
+<td><code>dt.billing.kubernetes_monitoring.usage</code></td>
+<td>pod-hours</td>
+<td>K8s Platform hourly trend</td>
+</tr>
+<tr>
+<td><code>dt.billing.runtime_vulnerability_analytics.usage</code></td>
+<td>GiB-hours</td>
+<td>RVA hourly trend</td>
+</tr>
+<tr>
+<td><code>dt.billing.runtime_application_protection.usage</code></td>
+<td>GiB-hours</td>
+<td>RAP hourly trend</td>
+</tr>
+<tr>
+<td><code>dt.billing.logs.ingest.usage_by_costcenter</code></td>
+<td>bytes</td>
+<td>Log Ingest chargeback by cost center</td>
+</tr>
+<tr>
+<td><code>dt.billing.logs.ingest.usage_by_product</code></td>
+<td>bytes</td>
+<td>Log Ingest chargeback by product</td>
+</tr>
+<tr>
+<td><code>dt.billing.traces.ingest.usage_by_costcenter</code></td>
+<td>bytes</td>
+<td>Trace Ingest chargeback by cost center</td>
+</tr>
+<tr>
+<td><code>dt.billing.traces.ingest.usage_by_product</code></td>
+<td>bytes</td>
+<td>Trace Ingest chargeback by product</td>
+</tr>
+</tbody>
+</table>
+<p>Use this surface when you need:</p>
+<ul>
+<li>Fast hourly / daily trends without raw-record aggregation overhead</li>
+<li>Dashboard tiles and Davis analyzer inputs</li>
+<li>Pre-aggregated cost-center / product views (Logs, Traces)</li>
+<li>Forecast inputs for Davis Predictive AI (FINOPS-02 deep-dives this)</li>
+</ul>
+<h3>Decision</h3>
+<p>In community practice, the split that works is: if your question is <em>&quot;how much did capability X cost over time?&quot;</em> — use <code>dt.billing.*</code>. If your question is <em>&quot;who is consuming what?&quot;</em> or <em>&quot;which bucket / host / workflow drove the cost?&quot;</em> — use <code>dt.system.events</code>. Many dashboards combine both: <code>dt.billing.*</code> for the top-line trend, <code>dt.system.events</code> for drill-down attribution.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> Both surfaces verified live on a SaaS tenant (2026-05-19) — the <code>dt.billing.*</code> metric catalog returned 13 series; <code>fetch dt.system.events | filter event.kind == &quot;BILLING_USAGE_EVENT&quot;</code> returned 15 distinct <code>event.type</code> values across 7 unit-field families. § 2 carries the capability-to-unit table.</sub></p>
+</blockquote>
+<p><a id="mandatory-patterns"></a></p>
+<h2>4. Mandatory Patterns — <code>dedup</code>, <code>event.kind</code>, <code>billing_type</code></h2>
+<p>Two patterns belong in every DPS consumption query, and a third applies to Standard Function Calls (formerly AppEngine Functions), whose billing events still carry <code>event.type == &quot;AppEngine Functions - Small&quot;</code>. Skipping them produces results that look reasonable but are wrong.</p>
+<h3><code>dedup event.id</code> before any aggregation</h3>
+<p>Dynatrace documents the reason: <em>&quot;Dynatrace refreshes metering records when correcting measurements.&quot;</em> Without dedup, the same consumption period is counted more than once — Dynatrace's own tutorials put the inflation at 10–30%. The canonical pattern is:</p>
+<pre><code>fetch dt.system.events
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+| filter event.type == &quot;&lt;capability&gt;&quot;
+| dedup event.id      // ← every aggregation chain starts here
+| summarize ...
+</code></pre>
+<p>Dynatrace's cost tutorials call it mandatory in every billing query. In community practice it is also the pattern most often missing from queries passed around between teams — when adapting a community query, verify the dedup is present.</p>
+<h3>Always filter on <code>event.kind</code></h3>
+<p><code>dt.system.events</code> contains many other event kinds beyond billing. Without <code>filter event.kind == &quot;BILLING_USAGE_EVENT&quot;</code>, you'll mix billing records with diagnostic events, audit events, and other platform-internal data.</p>
+<h3><code>billing_type</code> on AppEngine — exclude non-billable, keep null</h3>
+<p><strong>AppEngine Functions - Small</strong> records can carry a <code>billing_type</code>, but the field is optional and is often empty. Exclude records explicitly marked non-billable and keep the ones with no value: <code>billing_type == &quot;BILLABLE&quot; or isNull(billing_type)</code>. Dynatrace's own AppEngine consumption queries use exactly that form. A strict <code>billing_type == &quot;BILLABLE&quot;</code> drops every record whose field is empty and returns <strong>zero rows with no warning</strong> — on the validation tenant (10/05/2026) all 60 AppEngine records in 30 days had a null <code>billing_type</code>, so the strict filter reported no AppEngine usage at all.</p>
+<h3><code>usage.bucket</code> vs <code>usage.event_bucket</code></h3>
+<p><code>usage.bucket</code> is present on every bucket-scoped capability observed, including all three Events capabilities. On the validation tenant, <strong>Events - Ingest &amp; Process</strong> also carried <code>usage.event_bucket</code> until 10/07/2026 and has not since; Events - Retain and Events - Query did not. Group by <code>usage.bucket</code>; when unifying across capabilities, <code>coalesce(usage.bucket, usage.event_bucket)</code> is a safe fold.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike">Trace a cost spike to its root cause (DT docs)</a> — <em>&quot;Dynatrace refreshes metering records when correcting measurements.&quot;</em>; every billing query in that tutorial and in <a href="https://docs.dynatrace.com/docs/manage-your-costs/predict/project-run-rate">Forecast costs with run-rate projections (DT docs)</a> applies <code>filter event.kind == &quot;BILLING_USAGE_EVENT&quot;</code> and <code>dedup event.id</code>. <a href="https://docs.dynatrace.com/docs/license/capabilities/appengine-functions/standard-function-calls">Standard Function Calls consumption (DT docs)</a> — filter on <code>event.type == &quot;AppEngine Functions - Small&quot;</code> <em>&quot;to find Standard Function Call invocations&quot;</em>, and both example queries filter on <code>(billing_type == &quot;BILLABLE&quot; OR isNull(billing_type))</code>. Field coverage read on a SaaS tenant 10/05/2026 (30 days): AppEngine <code>billing_type</code> null on 60/60 records; <code>usage.bucket</code> on 3,185/3,185 Events Ingest, 1,984/1,984 Events Retain and 8,871/8,871 Events Query records; <code>usage.event_bucket</code> on Events Ingest only.</sub></p>
+</blockquote>
+<p><a id="host-based"></a></p>
+<h2>5. Querying Host-Based Capabilities</h2>
+<p>Host-based capabilities are the easiest to query because of the pre-aggregated <code>dt.billing.*</code> metric series. For dashboards and trend views, prefer <code>timeseries</code> over <code>fetch dt.system.events</code> — it is faster, time-aligned, and the surface FINOPS-02 feeds to Davis forecast and anomaly analyzers.</p>
+<p><strong>Worked example — Full-Stack Monitoring hourly usage:</strong></p>
+<pre><code class="language-dql">// Full-Stack Monitoring — hourly GiB-hours over the last 24 hours
+timeseries hourlyUsage = sum(dt.billing.full_stack_monitoring.usage, rate:1h),
+  from:-24h, interval:1h
+</code></pre>
+<p>The <code>rate:1h</code> parameter normalizes the metric to hourly rate regardless of the underlying ingestion interval. This is the canonical hourly-trend pattern from the official DEMO dashboard.</p>
+<p><strong>Worked example — all host categories combined for a single hourly comparison:</strong></p>
+<pre><code class="language-dql">// All host-based capabilities, side-by-side hourly trend
+timeseries {
+  full_stack = sum(dt.billing.full_stack_monitoring.usage, rate:1h),
+  infrastructure = sum(dt.billing.infrastructure_monitoring.usage, rate:1h),
+  discovery = sum(dt.billing.foundation_and_discovery.usage, rate:1h),
+  code = sum(dt.billing.code_monitoring.usage, rate:1h),
+  k8s = sum(dt.billing.kubernetes_monitoring.usage, rate:1h)
+  },
+  from:-7d, interval:1h
+</code></pre>
+<p><strong>Worked example — per-host attribution for Full-Stack (which hosts are driving cost):</strong></p>
+<blockquote>
+<p><strong>SaaS 1.347 — staged tenant rollout from 09/16/2026:</strong> billing usage events are moving their host ID from <code>dt.entity.host</code> to <code>dt.smartscape.host</code>. Verbatim: <em>&quot;If you use custom DQL queries that reference entity ID attributes in billing usage events, review and update them to the new Smartscape attribute names.&quot;</em> The query below reads <code>coalesce(toString(dt.smartscape.host), dt.entity.host)</code>, so it returns the same hosts before and after the change reaches your tenant (on the validation tenant both fields were written, with identical values, on 10/05/2026). <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in SaaS 1.347 (DT docs)</a>. One trap when you filter on the new field: <code>dt.smartscape.host</code> is a <code>smartscape_id</code>, not a string, so <code>dt.smartscape.host == &quot;HOST-…&quot;</code> never matches and raises no error. Compare with <code>toSmartscapeId(&quot;HOST-…&quot;)</code>, or compare <code>toString(dt.smartscape.host)</code> (verified 10/05/2026: the string comparison returned <code>false</code> and both alternatives <code>true</code> for the same host).</p>
+</blockquote>
+<pre><code class="language-dql">// Top-spending hosts by Full-Stack Monitoring (uses per-record events for entity attribution)
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot; and event.type == &quot;Full-Stack Monitoring&quot;
+| dedup event.id
+// SaaS 1.347 moves the host ID to dt.smartscape.host; coalesce reads whichever field your tenant writes.
+| fieldsAdd host = coalesce(toString(dt.smartscape.host), dt.entity.host)
+| summarize { total_gib_hours = sum(billed_gibibyte_hours) }, by:{ host }
+| sort total_gib_hours desc
+| limit 10
+</code></pre>
+<p>Notice the pattern split — when you need <em>trend</em> (line/bar over time), use <code>dt.billing.*</code>. When you need <em>attribution</em> (which entity drives cost), use <code>dt.system.events</code>. The two queries complement each other; many dashboards run both side-by-side.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/dps-hosts">DPS Hosts capabilities (DT docs)</a>. All three queries verified live on a SaaS tenant (2026-05-19; the trend query re-run 10/05/2026 with its aggregations grouped in <code>{}</code>, no notifications); the first query returned real hourly Full-Stack values (e.g., 225.75 GiB-hours/hour during business hours, 162.25 GiB-hours/hour during off-hours).</sub></p>
+</blockquote>
+<p><a id="byte-based"></a></p>
+<h2>6. Querying Byte-Based Capabilities</h2>
+<p>Logs, Events, Traces, Files, and Data Egress all bill in bytes. Use <code>fetch dt.system.events</code> because the per-bucket (or, for egress, per-destination) attribution is essential for chargeback — but be aware of the field-name variation:</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Unit field</th>
+<th>Bucket field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Log Management &amp; Analytics - Ingest &amp; Process</td>
+<td><code>billed_bytes</code></td>
+<td><code>usage.bucket</code></td>
+</tr>
+<tr>
+<td>Log Management &amp; Analytics - Retain</td>
+<td><code>billed_bytes</code></td>
+<td><code>usage.bucket</code></td>
+</tr>
+<tr>
+<td>Log Management &amp; Analytics - Retain with Included Queries</td>
+<td><code>billed_bytes</code></td>
+<td><code>usage.bucket</code></td>
+</tr>
+<tr>
+<td>Log Management &amp; Analytics - Query</td>
+<td><code>billed_bytes</code></td>
+<td>(<code>query_start</code> instead)</td>
+</tr>
+<tr>
+<td>Events - Ingest &amp; Process</td>
+<td><code>billed_bytes</code></td>
+<td><code>usage.bucket</code></td>
+</tr>
+<tr>
+<td>Events - Retain</td>
+<td><code>billed_bytes</code></td>
+<td><code>usage.bucket</code></td>
+</tr>
+<tr>
+<td>Events - Query</td>
+<td><code>billed_bytes</code></td>
+<td><code>usage.bucket</code> — one record per query per bucket read; time on <code>query_start</code></td>
+</tr>
+<tr>
+<td><strong>Traces - Ingest &amp; Process</strong></td>
+<td><strong><code>ingested_bytes</code></strong></td>
+<td><code>usage.bucket</code></td>
+</tr>
+<tr>
+<td>Traces - Retain</td>
+<td><code>billed_bytes</code></td>
+<td><code>usage.bucket</code></td>
+</tr>
+<tr>
+<td>Traces - Query</td>
+<td><code>billed_bytes</code></td>
+<td>(<code>query_start</code> instead)</td>
+</tr>
+<tr>
+<td>Files - Retain</td>
+<td><code>billed_bytes</code></td>
+<td>(none — tenant-global)</td>
+</tr>
+<tr>
+<td>Data Egress</td>
+<td><code>billed_bytes</code></td>
+<td>(per-destination; uncompressed)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Traces - Ingest is the outlier</strong> — it uses <code>ingested_bytes</code> instead of <code>billed_bytes</code>. This is the most common cross-capability footgun.</p>
+<p><strong>Worked example — log ingest by bucket over the last 7 days:</strong></p>
+<pre><code class="language-dql">// Log Ingest &amp; Process — total GiB ingested per bucket over last 7 days
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+| filter event.type == &quot;Log Management &amp; Analytics - Ingest &amp; Process&quot;
+| dedup event.id
+| summarize { total_gib = sum(toDouble(billed_bytes)) / 1073741824 }, by:{ usage.bucket }
+| sort total_gib desc
+| limit 20
+</code></pre>
+<p>The <code>/ 1073741824</code> divisor converts bytes → GiB (<code>1024^3</code>). On a SaaS validation tenant this returned real per-bucket numbers (e.g., <code>easytrade</code> 18.5 GiB / 7 days, <code>default_logs</code> 8.8 GiB / 7 days).</p>
+<p><strong>Worked example — Trace Ingest using the <code>ingested_bytes</code> field:</strong></p>
+<pre><code class="language-dql">// Trace Ingest — note ingested_bytes, NOT billed_bytes
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+| filter event.type == &quot;Traces - Ingest &amp; Process&quot;
+| dedup event.id
+| summarize { total_gib = sum(toDouble(ingested_bytes)) / 1073741824 }, by:{ usage.bucket }
+| sort total_gib desc
+</code></pre>
+<p><strong>Worked example — hourly log retention bytes per bucket (the canonical area-chart pattern from the DEMO dashboard):</strong></p>
+<pre><code class="language-dql">// Log Retain — hourly bytes per bucket, area-chart input
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+| filter event.type == &quot;Log Management &amp; Analytics - Retain&quot;
+| dedup event.id
+| fieldsAdd billing_period = bin(timestamp, 1h)
+| fields billing_period, billed_bytes, usage.bucket = coalesce(usage.bucket, usage.event_bucket)
+| makeTimeseries billed_bytes = max(billed_bytes), by:{ usage.bucket }, time: billing_period, interval:1h
+</code></pre>
+<p>Retention queries use <code>max(billed_bytes)</code> rather than <code>sum()</code> because each hour's record carries the <em>cumulative</em> bucket size — taking the max within the bucket gives the high-water mark for that hour. Summing would double-count.</p>
+<h3>Data Egress — forwarding data out of Dynatrace</h3>
+<p><strong>Data Egress</strong> is a distinct DPS capability that bills when you forward data (logs, metrics, or events) <em>out</em> of Dynatrace to an external destination — currently <strong>AWS S3, GCP, and Azure</strong>. It bills in bytes (<code>billed_bytes</code>) measured on the <strong>uncompressed</strong> size, and is counted <strong>once per destination</strong>: routing the same data to N destinations multiplies consumption N×. List price is <strong>$0.15 / GiB</strong> at the time of writing — your rate card may differ.</p>
+<pre><code>// Data Egress — total GiB forwarded to external destinations over last 7 days
+// Doc-cited shape (event.type &quot;Data Egress&quot;, billed_bytes); validate in your tenant once egress is configured
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+| filter event.type == &quot;Data Egress&quot;
+| dedup event.id
+| summarize { total_gib = sum(toDouble(billed_bytes)) / 1073741824 }
+</code></pre>
+<p>The account-level equivalent is <strong>Account Management → Subscription → Overview → Cost and usage details → Usage summary → Data Egress</strong>, or the Account Management API <code>GET /subscriptions/{subscriptionId}/usage</code>. Because forwarding <em>is</em> the cost driver, the optimization levers are <em>filter before you forward</em> and <em>minimize the destination count</em> — the same shape as the FINOPS-03 Cut / Tune / Filter framework.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/dps-log-management">DPS Log Management (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/dps-events">DPS Events (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/dps-traces">DPS Traces (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/license/capabilities/data/dps-data-egress">Data Egress (DT docs)</a>. The hourly-area-chart pattern is lifted verbatim from the <a href="https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription">DPS Usage Details DEMO dashboard</a> (Log-Retain tile). The Log / Trace / Retain queries are verified live on a SaaS tenant (2026-05-19); the <strong>Data Egress query is doc-cited, not live-validated</strong> — egress was not configured on the validation tenant, so verify the <code>event.type</code> and <code>billed_bytes</code> shape in your own tenant once forwarding is enabled.</sub></p>
+</blockquote>
+<p><a id="count-based"></a></p>
+<h2>7. Querying Count-Based Capabilities</h2>
+<p>Synthetic, RUM, AppEngine, and Automation Workflow bill on counts rather than bytes or hours. The query shape is similar across all four — replace the unit field appropriately.</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Unit field</th>
+<th>Attribution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Browser Monitor / Clickpath</td>
+<td><code>billed_synthetic_action_count</code></td>
+<td><code>dt.entity.synthetic_test</code></td>
+</tr>
+<tr>
+<td>HTTP Monitor</td>
+<td><code>billed_http_request_count</code></td>
+<td><code>dt.entity.http_check</code></td>
+</tr>
+<tr>
+<td>Real User Monitoring</td>
+<td><code>billed_sessions</code></td>
+<td><code>coalesce(dt.entity.application, dt.entity.device_application)</code></td>
+</tr>
+<tr>
+<td>Real User Monitoring with Session Replay</td>
+<td><code>billed_replay_sessions</code></td>
+<td><code>coalesce(dt.entity.application, dt.entity.device_application)</code></td>
+</tr>
+<tr>
+<td>Real User Monitoring Property</td>
+<td><code>billed_property_sessions</code></td>
+<td><code>coalesce(dt.entity.application, dt.entity.device_application)</code></td>
+</tr>
+<tr>
+<td>AppEngine Functions - Small</td>
+<td><code>billed_invocations</code></td>
+<td><code>user.email</code>, <code>caller.app.id</code></td>
+</tr>
+<tr>
+<td>Automation Workflow</td>
+<td>(record count — 1 per standard workflow per hour of existence)</td>
+<td><code>workflow.title</code>, <code>workflow.owner</code>, <code>workflow.trigger_type</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Automation Workflow records are workflow-hours, not executions.</strong> A deployed standard workflow is billed for every hour it exists, whether it runs once a month or every minute, so execution frequency does not change this capability. Executions are billed elsewhere: each task run is a Standard Function Call invocation, and any DQL a task runs bills the query capability it reads. Simple and draft-only workflows consume no workflow-hours.</p>
+<p><strong>Worked example — workflow-hours by trigger type:</strong></p>
+<pre><code class="language-dql">// Automation Workflow — workflow-hours by trigger type (one record = one standard workflow existing for one hour)
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot; and event.type == &quot;Automation Workflow&quot;
+| dedup event.id
+| summarize { workflow_hours = count(), workflows = countDistinctExact(workflow.id) }, by:{ workflow.trigger_type }
+| sort workflow_hours desc
+</code></pre>
+<p><strong>Worked example — workflow-hours by owner (who owns the deployed standard workflows):</strong></p>
+<pre><code class="language-dql">// Workflow-hours by owner — candidates for review: delete unused standard workflows, or convert to simple / draft
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot; and event.type == &quot;Automation Workflow&quot;
+| dedup event.id
+| summarize { workflow_hours = count(), workflows = countDistinctExact(workflow.id) }, by:{ workflow.owner, workflow.trigger_type }
+| sort workflow_hours desc
+| limit 10
+</code></pre>
+<p><strong>Worked example — Standard Function Calls by function type excluding records marked non-billable:</strong></p>
+<pre><code class="language-dql">// AppEngine Functions - Small — invocation count by function type
+// (Ad-hoc = invoked in Notebooks, Dashboards, Workflows or via API; Actions = custom actions in workflows; App functions = invoked in a custom app)
+fetch dt.system.events, from:-7d
+| filter event.type == &quot;AppEngine Functions - Small&quot;
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+| filter billing_type == &quot;BILLABLE&quot; or isNull(billing_type)   // the field is often empty — keep nulls
+| dedup event.id
+| fieldsAdd category = if(matchesPhrase(function.type, &quot;AD_HOC&quot;), &quot;Ad-hoc&quot;,
+                       else: if(matchesPhrase(function.type, &quot;ACTION&quot;), &quot;Actions&quot;,
+                       else: if(matchesPhrase(function.type, &quot;STANDARD&quot;), &quot;App functions&quot;)))
+| summarize { invocations = sum(coalesce(toLong(billed_invocations), 1)) }, by:{ category }
+| sort invocations desc
+</code></pre>
+<p><strong>Worked example — synthetic action consumption by test:</strong></p>
+<pre><code class="language-dql">// Synthetic Browser / Clickpath — action count by test (high-frequency monitors are review candidates)
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot; and event.type == &quot;Browser Monitor or Clickpath&quot;
+| dedup event.id
+| summarize { actions = sum(toLong(billed_synthetic_action_count)) }, by:{ dt.entity.synthetic_test }
+| sort actions desc
+| limit 10
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/dps-automation">DPS Automation (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/dps-appfunctions">DPS AppEngine Functions (DT docs)</a>. <a href="https://docs.dynatrace.com/docs/license/capabilities/automation/automation">Calculate your consumption of Automation Workflow (DT docs)</a> — <em>&quot;Workflow hours are the number of hours that a workflow has existed in your environment, measured since the point of its creation.&quot;</em>; <em>&quot;Simple workflows do not directly consume workflow hours&quot;</em>; <em>&quot;Each workflow execution triggers Standard Function Calls that execute tasks&quot;</em> <a href="https://docs.dynatrace.com/docs/license/capabilities/appengine-functions/standard-function-calls">Standard Function Calls consumption (DT docs)</a> — the <code>billing_type</code> filter, <code>function.type</code> category mapping and <code>user.email</code> / <code>caller.app.id</code> attribution. Executed on a SaaS tenant 10/05/2026: every Automation Workflow record is unique per <code>workflow.id</code> and hour (21,954 workflow-hours, maximum 1 per hour); manual 10,920 workflow-hours / 65 workflows, schedule 8,232 / 49, event 2,802 / 17 over 7 days — 168 hours per workflow, run or not; the AppEngine query returned 60 Ad-hoc invocations over 30 days, where the strict <code>billing_type == &quot;BILLABLE&quot;</code> form returned none. Synthetic query verified 2026-05-19.</sub></p>
+</blockquote>
+<p><a id="metrics-ingest"></a></p>
+<h2>8. Metrics-Ingest with Included-Quota Subtraction</h2>
+<p>Metrics ingestion is the most subtle capability because it has <strong>included quotas</strong>. Each GiB of memory monitored under Full-Stack Monitoring grants 900 included metric data points per 15-minute interval; each host monitored under Infrastructure Monitoring grants 1,500. Billable Metrics-Ingest is <em>only the portion of total data points that exceeds the included allowance</em>.</p>
+<p>This is the canonical query from the official DEMO dashboard — annotated:</p>
+<pre><code class="language-dql">// Metrics-Ingest — billable usage after included-quota subtraction
+// (canonical pattern; tenant must have ≥4 hours of data; metrics billing lags by ~4 hours)
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot; and event.type == &quot;Metrics - Ingest &amp; Process&quot;
+| dedup event.id
+| fieldsAdd monitoring_source = if(monitoring_source == &quot;fullstack&quot; or monitoring_source == &quot;infrastructure&quot;,
+                                   monitoring_source, else: &quot;other&quot;)
+| summarize { total_data_points = toLong(sum(data_points)) }, by:{ usage.start, monitoring_source }
+| makeTimeseries { total_usage = sum(total_data_points, default: 0) },
+    interval:15m, time: usage.start, by:{ monitoring_source }
+// Join in the included-quota allowance from dt.billing.*
+// dt.billing.*.usage summed per 15-min bucket = GiB-hours (host-hours) in that bucket; × 4 → GiB (hosts);
+// × 900 (Full-Stack, per GiB) / × 1500 (Infrastructure, per host) = included points per 15 min
+| join [
+    timeseries { included_usage = sum(dt.billing.full_stack_monitoring.usage, default: 0) },
+      interval:15m, nonempty:true
+    | fields monitoring_source = &quot;fullstack&quot;, included_usage = 4 * 900 * included_usage[]
+    | append [
+        timeseries { included_usage = sum(dt.billing.infrastructure_monitoring.usage, default: 0) },
+          interval:15m, nonempty:true
+        | fields monitoring_source = &quot;infrastructure&quot;, included_usage = 4 * 1500 * included_usage[]
+      ]
+  ], on:{ monitoring_source }, fields:{ included_usage }, kind:leftOuter
+| fieldsAdd billed_usage = if(isNotNull(included_usage) and total_usage[] &gt; included_usage[],
+                              total_usage[] - included_usage[], else:0)
+| fieldsAdd billed_usage = if(isNull(included_usage), total_usage, else: billed_usage)
+| fieldsAdd billed_usage = arraySum(billed_usage)
+| fieldsKeep monitoring_source, billed_usage
+</code></pre>
+<p><strong>Key elements:</strong></p>
+<ol>
+<li><strong><code>monitoring_source</code> rollup</strong> — collapses fine-grained values into <code>fullstack</code>, <code>infrastructure</code>, or <code>other</code>. Other-source data points (e.g., custom metrics not tied to a host) have no included quota and are billed directly.</li>
+<li><strong>15-minute interval</strong> — matches Dynatrace's billing-event window. Don't change this.</li>
+<li><strong>The <code>4 * 900</code> and <code>4 * 1500</code> factors</strong> — a 15-minute bucket of <code>dt.billing.*.usage</code> holds GiB-hours (Full-Stack) or host-hours (Infrastructure); <code>× 4</code> converts that back to GiB or hosts. <code>900</code> is the included data points per GiB of memory per 15-minute interval for Full-Stack; <code>1500</code> is the included data points per host per 15-minute interval for Infrastructure. These constants are part of the platform billing model and should not be tuned per-customer.</li>
+<li><strong><code>kind: leftOuter</code></strong> — <code>other</code>-source data has no matching included quota; <code>leftOuter</code> keeps those rows with <code>null</code> included_usage; the next two <code>fieldsAdd</code> lines handle that case.</li>
+<li><strong>The 4-hour lag</strong> — Metrics-Ingest's <code>usage.start</code> is approximately 4 hours behind <code>timestamp</code>. Query timeframes shorter than 4 hours will show incomplete data. Always query at least the last 4 hours.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> Pattern lifted from the <a href="https://docs.dynatrace.com/docs/shortlink/dynatrace-platform-subscription">DPS Usage Details DEMO dashboard</a> Metrics tile — verbatim including the <code>4 * 900</code> / <code>4 * 1500</code> constants. <a href="https://docs.dynatrace.com/docs/license/capabilities/telemetry/dps-metrics">Metrics consumption (DPS) (DT docs)</a>. <a href="https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/full-stack-monitoring">Full-Stack Monitoring (DT docs)</a> — <em>&quot;Every contributing GiB of host or application memory adds 900 custom metric data points in each 15-minute interval.&quot;</em> <a href="https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/infrastructure-monitoring">Infrastructure Monitoring (DT docs)</a> — <em>&quot;For each host, 1,500 custom metric data points are included in each 15-minute interval.&quot;</em> Re-executed 10/05/2026 (7 days, no notifications): <code>fullstack</code> billed 0, <code>other</code> billed 43,195,590 data points. The 4-hour lag caveat is verbatim from the demo dashboard's documentation tile. <strong>Softened:</strong> the <code>900</code> / <code>1500</code> constants are platform-billing-model values that may change in future DPS rate-card revisions — verify against current docs before relying on them in production reporting.</sub></p>
+</blockquote>
+<p><a id="query-side"></a></p>
+<h2>9. Query-Side Billing — Chargeback by App and User</h2>
+<p>Three Grail capabilities bill on <strong>query execution</strong> in addition to ingest and retention: Log Management, Events, and Traces. The query-side records carry rich attribution — which app made the query, which user, even which finer-grained source.</p>
+<p>They are not the only query-side event type. The billing usage event model also defines <code>Digital Experience Monitoring - Query</code> — <em>&quot;a billing usage event of a Digital Experience Monitoring query execution&quot;</em> — with the same <code>query_id</code> / <code>billed_bytes</code> / <code>usage.bucket</code> shape, although the DPS capability list does not name it as a rate-card line. On a validation tenant (10/14/2026) it carried 29 records in 30 days, all reads of the synthetic-event and synthetic-user-session buckets. When you audit query-side consumption, filter on <code>contains(event.type, &quot;Query&quot;)</code> rather than on the three names, so this type is not missed.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/dt-system-events">System event models (DT docs)</a> — <em>&quot;Model describing a billing usage event of a Digital Experience Monitoring query execution.&quot;</em> <a href="https://docs.dynatrace.com/docs/license/capabilities">Capabilities (DT docs)</a> — lists Log Management &amp; Analytics, Traces, Events and Metrics - Query, and no Digital Experience Monitoring - Query line.</sub></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>query_start</code></td>
+<td>When the query ran (use this for time-bucketing, not <code>timestamp</code>)</td>
+</tr>
+<tr>
+<td><code>client.source</code></td>
+<td>What issued the query — a dashboard URL, an anomaly detector, an automation workflow, or a platform service</td>
+</tr>
+<tr>
+<td><code>client.application_context</code></td>
+<td>Which app made the query — may be empty on billing records (see below)</td>
+</tr>
+<tr>
+<td><code>query_id</code></td>
+<td>The query; an Events - Query record is one query × one bucket, so count distinct <code>query_id</code>, not records</td>
+</tr>
+<tr>
+<td><code>user.email</code></td>
+<td>Who ran the query</td>
+</tr>
+<tr>
+<td><code>billed_bytes</code></td>
+<td>Bytes scanned by the query</td>
+</tr>
+</tbody>
+</table>
+<p>This is the foundation for chargeback by team — a Notebook that scans 50 GiB hourly is a different financial conversation than the same DQL pasted into a one-time investigation.</p>
+<p><strong>Worked example — top query-side consumers by source and user (Logs and Events):</strong></p>
+<pre><code class="language-dql">// Top query-side consumers — bytes scanned by source and user (Logs and Events)
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+| filter in(event.type, {&quot;Log Management &amp; Analytics - Query&quot;, &quot;Events - Query&quot;})
+| dedup event.id
+| summarize {
+    gib_scanned = sum(toDouble(billed_bytes)) / 1073741824,
+    query_count = countDistinctExact(query_id)
+  }, by:{ event.type, client.source, user.email }
+| sort gib_scanned desc
+| limit 20
+</code></pre>
+<p><strong>Worked example — query-cost trend over time (use <code>query_start</code>, not <code>timestamp</code>):</strong></p>
+<pre><code class="language-dql">// Hourly log-query bytes scanned — bucketed by query_start (NOT timestamp)
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+| filter event.type == &quot;Log Management &amp; Analytics - Query&quot;
+| dedup event.id
+| summarize { data_read_bytes = sum(billed_bytes) }, by:{ startHour = bin(query_start, 1h) }
+| sort startHour asc
+</code></pre>
+<p>The query above already covers Events; add Traces with <code>event.type == &quot;Traces - Query&quot;</code>. Two schema differences matter when you read the result. An <strong>Events - Query</strong> record is one query × one bucket — on the validation tenant one service user had 408 records for 204 queries over 30 days — so count <code>countDistinctExact(query_id)</code>, not records. <strong>Log Management &amp; Analytics - Query</strong> records carry no bucket at all.</p>
+<p><strong><code>client.source</code> vs <code>client.application_context</code>.</strong> <code>client.application_context</code> is documented on the billing event model but may be empty: on the validation tenant (10/05/2026) it was null on every one of 19,156 Log, Events and Digital Experience Monitoring query billing records in 30 days, and populated only on <code>QUERY_EXECUTION_EVENT</code> records (in reverse-DNS form such as <code>dynatrace.dashboards</code>). <code>client.source</code> carried the attribution on 10,277 of 10,280 Log Query and 8,460 of 8,871 Events Query records — there, one static-threshold anomaly detector accounted for 534 GiB of the 535 GiB of log-query scan. Dynatrace's own spike tutorial groups query billing by <code>client.source</code> for the same reason. A <strong>null</strong> <code>client.source</code> is not an error: it marks a query with no source context, typically platform-service traffic.</p>
+<p>This is also how you settle the question <em>&quot;does the Distributed Tracing or Services app consume Query DPS?&quot;</em> for your own estate — swap the filter to <code>Traces - Query</code> and group by <code>client.source</code>. Two cautions before you read the result as an answer: query-side records are written <strong>only when the capability is actually read</strong>, so an empty result means nobody queried traces in the window, not that the app is free; and a tenant with little trace-query traffic can return nothing at all over 30 days. Widen the timeframe and confirm the capability is in use before drawing a conclusion either way.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike">Trace a cost spike to its root cause (DT docs)</a> — <em>&quot;For query billing events, client.source identifies who is scanning data.&quot;</em> Field coverage and the query above executed on a SaaS tenant 10/05/2026 (30 days; top row: Log Query, static-threshold detector, 534.3 GiB over 10,258 queries). <a href="https://docs.dynatrace.com/docs/shortlink/dps-log-management">DPS Log Management (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/dps-events">DPS Events (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/shortlink/dps-traces">DPS Traces (DT docs)</a>. Query-side billing fires only when the capability is in active use — on validation tenants with light read traffic, these queries may return zero rows. Verify in your tenant before relying on them for chargeback reporting.</sub></p>
+</blockquote>
+<p><a id="attribution"></a></p>
+<h2>10. Per-Bucket and Per-Cost-Center Attribution</h2>
+<blockquote>
+<p><strong>Davis AI events in custom buckets are now usage-tracked (SaaS 1.345, 08/11/2026 — staged rollout).</strong> Reported as: Davis AI events are usage-tracked when routed to a bucket other than <code>default_davis_events</code>. <strong>Flagged 09/02/2026 — could not be re-verified.</strong> The wording was recorded here as a verbatim quote from the SaaS 1.345 release note, but it is not on that page today (checked two ways: text extraction and a rendered fetch), nor on 1.344, 1.346, or the DPS log-management page. The behaviour is plausible and the operational guidance below stands on its own, but <strong>treat the sourcing as open</strong> — confirm against your own consumption data before relying on the version gate. If you route Davis events to a custom bucket — a common move for retention or access-scoping — that traffic previously escaped ingest usage tracking and now appears in it. <strong>Expect reported usage to rise without ingest volume changing</strong>; the events were always being ingested, they just were not being counted. Budget alerts and month-over-month comparisons calibrated before the rollout will read as a step change, so re-baseline rather than investigating a phantom spike. A transient accounting artifact was also recorded here — one 15-minute timeframe showing less usage and the next showing more, with the total unchanged. <strong>Same sourcing caveat as above:</strong> this was recorded as a verbatim quote from the same release note and could not be re-verified there on 09/02/2026. Davis events left in <code>default_davis_events</code> are unaffected.</p>
+<p><sub>Source: <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-345">What's new in Dynatrace SaaS 1.345 (DT docs)</a></sub></p>
+</blockquote>
+<p>Three attribution surfaces exist, in increasing order of attribution power:</p>
+<ol>
+<li><strong><code>usage.bucket</code> / <code>usage.event_bucket</code></strong> — most byte-based capabilities include the bucket name; Log Query and Files records do not on the validation tenant (10/31/2026). Effective only if your bucket-naming convention encodes team / product / environment (covered in ORGNZ).</li>
+<li><strong><code>dt.cost.costcenter[]</code> / <code>dt.cost.product[]</code> arrays</strong> — present on Metrics, Logs - Retain, and a few other capabilities. Each record carries an array of <code>{key, billed_bytes}</code> (or <code>{key, data_points}</code>) tuples — one per cost center or product the usage is allocated to.</li>
+<li><strong>Pre-aggregated <code>dt.billing.*_by_costcenter</code> / <code>_by_product</code> metric series</strong> — Dynatrace pre-computes the cost-center / product attribution for <strong>Logs - Ingest</strong> and <strong>Traces - Ingest</strong> and exposes them as standard metric series. Fastest to query.</li>
+</ol>
+<p><strong>Worked example — hourly log ingest by cost center using the pre-aggregated metric:</strong></p>
+<pre><code class="language-dql">// Pre-aggregated log ingest by cost center — fast chargeback view
+timeseries logs_by_cc = sum(dt.billing.logs.ingest.usage_by_costcenter),
+  from:-7d, interval:1h, by:{ dt.cost.costcenter }
+</code></pre>
+<p><strong>Worked example — manual cost-center attribution via <code>expand</code>:</strong></p>
+<p>When the pre-aggregated metric isn't available (Events, Logs - Retain, etc.), expand the per-record array manually:</p>
+<pre><code class="language-dql">// Manual cost-center attribution — Log Retain via expand
+// Retain records are hourly snapshots of a cumulative size: sum across buckets within an hour, then average the hours
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;BILLING_USAGE_EVENT&quot;
+| filter event.type == &quot;Log Management &amp; Analytics - Retain&quot;
+| dedup event.id
+| expand dt.cost.costcenter
+| fieldsAdd costcenter = dt.cost.costcenter[`key`],
+            cc_bytes = toDouble(dt.cost.costcenter[`billed_bytes`]),
+            hour = bin(timestamp, 1h)
+| summarize { hourly_bytes = sum(cc_bytes) }, by:{ costcenter, hour }
+| summarize { avg_retained_gib = avg(hourly_bytes) / 1073741824 }, by:{ costcenter }
+| sort avg_retained_gib desc
+</code></pre>
+<p>Retain is the case where pitfall #6 bites after an <code>expand</code>: each record is an hourly snapshot of the bucket's retained size, so summing a day of records multiplies the stored volume by 24. On a validation tenant (10/05/2026) this query returned two cost centers: <code>unassigned</code> (~16 TiB retained on average over the day) and <code>not-allowlisted</code> (~0.4 TiB); a plain <code>sum()</code> over the same day read 383,119 GiB — 24× too high. The <code>unassigned</code> bucket is universal — every tenant has it, and reducing its share by populating proper cost-center labels at ingest time is the upstream lever.</p>
+<p><strong>Defining cost-center / product labels:</strong> The values come from data ingested with <code>dt.cost.costcenter</code> and <code>dt.cost.product</code> attributes — typically applied via OneAgent host properties (covered in the FAQ series entry on tagging sources, standards, and strategy) or via OpenPipeline enrichment rules at ingest. Where host-group granularity is enough, Dynatrace names a preferred route: <em>&quot;If cost attribution at the host group level is sufficient, the preferred approach is to map deployment-level primary Grail fields such as dt.host_group.id or host.name to dt.cost.costcenter and dt.cost.product via the Cost Allocation stage in OpenPipeline.&quot;</em> Use host tags or <code>DT_TAGS</code> when you need finer granularity than the host group. Reducing the <code>unassigned</code> share is part of the FINOPS-03 optimization framework.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/tags-cost-allocation">Configure cost allocation (DT docs)</a> — the host-group route quoted above. <a href="https://docs.dynatrace.com/docs/manage-your-costs/allocate/plan-and-set-up">Allocate your DPS costs (DT docs)</a> — tags <em>&quot;flow through Grail as dt.cost.costcenter and dt.cost.product attributes&quot;</em>. No docs page found documents the <code>dt.billing.logs.ingest.usage_by_costcenter</code> and <code>dt.billing.traces.ingest.usage_by_costcenter</code> metric series; both keys were observed in the tenant metric catalog (<code>metrics | filter startsWith(metric.key, &quot;dt.billing&quot;)</code>), read 10/14/2026. Both queries verified live on a SaaS tenant (2026-05-19); the manual-expand query re-executed 10/05/2026 (no notifications) with the results above.</sub></p>
+</blockquote>
+<p><a id="pitfalls"></a></p>
+<h2>11. Common Pitfalls</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Pitfall</th>
+<th>What goes wrong</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Missing <code>dedup event.id</code></td>
+<td>The same consumption period counted more than once when metering records are refreshed — 10–30% high</td>
+<td>Add <code>dedup event.id</code> immediately after <code>filter event.kind == &quot;BILLING_USAGE_EVENT&quot;</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Assuming <code>billed_bytes</code> is universal</td>
+<td>Trace Ingest returns NULL — query silently shows zero</td>
+<td>Trace Ingest uses <code>ingested_bytes</code>; check the unit for each capability in § 2</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Summing across capabilities</td>
+<td>Combining <code>billed_bytes + billed_gibibyte_hours</code> produces dimensional nonsense</td>
+<td>Aggregate within one <code>event.type</code>, convert to currency at the reporting boundary</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Filtering on <code>dt.security_context</code> for attribution</td>
+<td>The field is literally <code>&quot;BILLING_USAGE_EVENT&quot;</code> on every record</td>
+<td>Use <code>usage.bucket</code>, <code>dt.entity.host</code> (moving to <code>dt.smartscape.host</code> with SaaS 1.347), or <code>dt.cost.costcenter[]</code> for attribution</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Short timeframes on Metrics-Ingest</td>
+<td>Last 4 hours are incomplete — under-reports consumption</td>
+<td>Always query Metrics-Ingest with at least 4 hours of timeframe</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Using <code>sum()</code> on retention bytes</td>
+<td>Each hourly record carries the cumulative bucket size; summing inflates by 24× per day</td>
+<td>Use <code>max(billed_bytes)</code> for Retain event types; <code>sum()</code> is correct for Ingest</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Forgetting the included-quota subtraction for Metrics-Ingest</td>
+<td>Over-reports billable metric consumption by the included allowance</td>
+<td>Use the canonical query in §8; the included-quota math is non-trivial</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Bucketing query-side billing on <code>timestamp</code></td>
+<td>Misaligns with actual query execution time</td>
+<td>Bucket on <code>query_start</code> for query-side billing events</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Grouping Events Retain / Query by <code>usage.event_bucket</code></td>
+<td>A single null row — current records do not carry <code>usage.event_bucket</code></td>
+<td>Group by <code>usage.bucket</code>; <code>coalesce(usage.bucket, usage.event_bucket)</code> for cross-capability work</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Strict <code>billing_type == &quot;BILLABLE&quot;</code> on AppEngine</td>
+<td>The field is often null, so the filter drops every record and reports zero usage</td>
+<td><code>billing_type == &quot;BILLABLE&quot; or isNull(billing_type)</code> — Dynatrace's own AppEngine queries keep nulls</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike">Trace a cost spike to its root cause (DT docs)</a> — lists <em>&quot;Missing dedup event.id&quot;</em> as a common investigation mistake (pitfall #1). Pitfalls #2–#8 come from live tenant validation against the DPS Usage Details DEMO dashboard's queries (2026-05-19); #9 and #10 were re-read on a SaaS tenant 10/05/2026, and #10's fix is the filter in <a href="https://docs.dynatrace.com/docs/license/capabilities/appengine-functions/standard-function-calls">Standard Function Calls consumption (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="validating"></a></p>
+<h2>12. Validating Numbers Against Account Management</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+SW4tVGVuYW50IERRTCB2cyBBY2NvdW50IE1hbmFnZW1lbnQgUG9ydGFsPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlR3byBzdXJmYWNlcywgdHdvIHB1cnBvc2VzIOKAlCB1c2UgYm90aCBkZWxpYmVyYXRlbHk8L3RleHQ+CgogIDwhLS0gTGVmdDogSW4tdGVuYW50IERRTCAtLT4KICA8cmVjdCB4PSI0MCIgeT0iODAiIHdpZHRoPSI0MjAiIGhlaWdodD0iMzg1IiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5Jbi10ZW5hbnQgRFFMPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMTI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5kdC5zeXN0ZW0uZXZlbnRzIMK3IGR0LmJpbGxpbmcuKiDCtyBOb3RlYm9va3MgwrcgRGFzaGJvYXJkczwvdGV4dD4KCiAgPCEtLSBMZWZ0OiBXaGF0IHlvdSBnZXQgLS0+CiAgPHRleHQgeD0iNjAiIHk9IjE1NSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+V2hhdCBpdCBnaXZlcyB5b3U8L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjE2NSIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjODZFRkFDIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNzAiIHk9IjE4MCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSI+4pyTIFJhdyBjb25zdW1wdGlvbiB1bml0cyAoR2lCLCBob3N0LWhvdXJzLCBzZXNzaW9ucywgZXRjLik8L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjE5MCIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjODZFRkFDIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNzAiIHk9IjIwNSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSI+4pyTIFBlci1yZWNvcmQgYXR0cmlidXRpb24gKGhvc3QsIGJ1Y2tldCwgd29ya2Zsb3csIHVzZXIpPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIyMTUiIHdpZHRoPSIzODAiIGhlaWdodD0iMjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzg2RUZBQyIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjcwIiB5PSIyMzAiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiPuKckyBSZWFsLXRpbWUgLyBuZWFyLXJlYWwtdGltZSAoMTUtbWluIHdpbmRvd3MpPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIyNDAiIHdpZHRoPSIzODAiIGhlaWdodD0iMjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzg2RUZBQyIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjcwIiB5PSIyNTUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiPuKckyBJbnB1dHMgdG8gQ29zdCBNb25pdG9ycywgV29ya2Zsb3cgYWxlcnRzLCBmb3JlY2FzdHM8L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjI2NSIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjODZFRkFDIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNzAiIHk9IjI4MCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSI+4pyTIERyaWxsLWRvd24gdG8gZW50aXR5IC8gYnVja2V0IGxldmVsIGZvciBjaGFyZ2ViYWNrPC90ZXh0PgoKICA8IS0tIExlZnQ6IFdoYXQgeW91IGRvbid0IGdldCAtLT4KICA8dGV4dCB4PSI2MCIgeT0iMzEyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5XaGF0IGl0IGRvZXMgTk9UIGdpdmUgeW91PC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIzMjIiIHdpZHRoPSIzODAiIGhlaWdodD0iMjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZDQTVBNSIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjcwIiB5PSIzMzciIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPuKclyBTdWJzY3JpcHRpb24tY3VycmVuY3kgY29udmVyc2lvbiAocmF0ZS1jYXJkIG1hdGgpPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIzNDciIHdpZHRoPSIzODAiIGhlaWdodD0iMjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZDQTVBNSIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjcwIiB5PSIzNjIiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPuKclyBSZWNvbmNpbGlhdGlvbiAoY29tbWl0IGRpc2NvdW50cywgaW5jbHVkZWQgcXVvdGFzKTwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzcyIiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGQ0E1QTUiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI3MCIgeT0iMzg3IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj7inJcgQ3Jvc3MtZW52aXJvbm1lbnQgcG9vbGluZyAoRFBTIGZvciBIeWJyaWQpPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIzOTciIHdpZHRoPSIzODAiIGhlaWdodD0iMjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZDQTVBNSIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjcwIiB5PSI0MTIiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPuKclyBCaWxsaW5nLXBlcmlvZCBib3VuZGFyaWVzIChjYWxlbmRhci1hbGlnbmVkIHRvdGFscyk8L3RleHQ+CgogIDx0ZXh0IHg9IjI1MCIgeT0iNDQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5CZXN0IGZvcjogb3BlcmF0aW9uYWwgdmlzaWJpbGl0eSwgdHJlbmRzLCBjaGFyZ2ViYWNrPC90ZXh0PgoKICA8IS0tIFJpZ2h0OiBBY2NvdW50IE1hbmFnZW1lbnQgcG9ydGFsIC0tPgogIDxyZWN0IHg9IjQ3MCIgeT0iODAiIHdpZHRoPSI0MjAiIGhlaWdodD0iMzg1IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjY4MCIgeT0iMTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5BY2NvdW50IE1hbmFnZW1lbnQgcG9ydGFsPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iMTI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Db3N0IE92ZXJ2aWV3IMK3IEJ1ZGdldCBBbGVydHMgwrcgQ29zdCBNb25pdG9yczwvdGV4dD4KCiAgPCEtLSBSaWdodDogV2hhdCB5b3UgZ2V0IC0tPgogIDx0ZXh0IHg9IjQ5MCIgeT0iMTU1IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5XaGF0IGl0IGdpdmVzIHlvdTwvdGV4dD4KICA8cmVjdCB4PSI0OTAiIHk9IjE2NSIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjODZFRkFDIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNTAwIiB5PSIxODAiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiPuKckyBTdWJzY3JpcHRpb24tY3VycmVuY3kgdG90YWxzIChpbnZvaWNlYWJsZSk8L3RleHQ+CiAgPHJlY3QgeD0iNDkwIiB5PSIxOTAiIHdpZHRoPSIzODAiIGhlaWdodD0iMjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzg2RUZBQyIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjUwMCIgeT0iMjA1IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIj7inJMgUmVjb25jaWxlZCB2aWV3IOKAlCBjb21taXQgZGlzY291bnRzLCBpbmNsdWRlZCBxdW90YXM8L3RleHQ+CiAgPHJlY3QgeD0iNDkwIiB5PSIyMTUiIHdpZHRoPSIzODAiIGhlaWdodD0iMjIiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzg2RUZBQyIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNCIvPgogIDx0ZXh0IHg9IjUwMCIgeT0iMjMwIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIj7inJMgQmlsbGluZy1wZXJpb2QgYWxpZ25lZCAoY2FsZW5kYXIgbW9udGhzKTwvdGV4dD4KICA8cmVjdCB4PSI0OTAiIHk9IjI0MCIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjODZFRkFDIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNTAwIiB5PSIyNTUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiPuKckyBCdWRnZXQgQWxlcnRzIG9uIGNvbW1pdCBvdmVyc2hvb3QgdHJhamVjdG9yaWVzPC90ZXh0PgogIDxyZWN0IHg9IjQ5MCIgeT0iMjY1IiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM4NkVGQUMiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI1MDAiIHk9IjI4MCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSI+4pyTIERQUy1mb3ItSHlicmlkIGNyb3NzLWVudmlyb25tZW50IHBvb2xpbmcgdmlzaWJsZTwvdGV4dD4KCiAgPCEtLSBSaWdodDogV2hhdCB5b3UgZG9uJ3QgZ2V0IC0tPgogIDx0ZXh0IHg9IjQ5MCIgeT0iMzEyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5XaGF0IGl0IGRvZXMgTk9UIGdpdmUgeW91PC90ZXh0PgogIDxyZWN0IHg9IjQ5MCIgeT0iMzIyIiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGQ0E1QTUiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI1MDAiIHk9IjMzNyIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+4pyXIFBlci1idWNrZXQgLyBwZXItaG9zdCBhdHRyaWJ1dGlvbiBhdCBmaW5lIGdyYWluPC90ZXh0PgogIDxyZWN0IHg9IjQ5MCIgeT0iMzQ3IiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGQ0E1QTUiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI1MDAiIHk9IjM2MiIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+4pyXIFJlYWwtdGltZSB2aXNpYmlsaXR5IChkYWlseSBhZ2dyZWdhdGlvbiBsYXRlbmN5KTwvdGV4dD4KICA8cmVjdCB4PSI0OTAiIHk9IjM3MiIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIyMiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkNBNUE1IiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNTAwIiB5PSIzODciIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiPuKclyBEUUwgY29tcG9zYWJpbGl0eSAobm8gY3VzdG9tIHF1ZXJpZXMgb24gcG9ydGFsIGRhdGEpPC90ZXh0PgogIDxyZWN0IHg9IjQ5MCIgeT0iMzk3IiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjIyIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGQ0E1QTUiIHN0cm9rZS13aWR0aD0iMSIgcng9IjQiLz4KICA8dGV4dCB4PSI1MDAiIHk9IjQxMiIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSI+4pyXIFdvcmtmbG93IC8gbm90ZWJvb2sgYXV0b21hdGlvbiBpbnRlZ3JhdGlvbjwvdGV4dD4KCiAgPHRleHQgeD0iNjgwIiB5PSI0NDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkJlc3QgZm9yOiBzdHJhdGVnaWMgLyBiaWxsYWJsZSB0b3RhbHMsIGNvbW1pdCB0cmFja2luZzwvdGV4dD4KCiAgPCEtLSBGb290ZXIgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSI0ODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPkRRTCB0b3RhbHMgd2lsbCBub3QgZXhhY3RseSBtYXRjaCB0aGUgcG9ydGFsIOKAlCBzZWUgwqcxMiBmb3IgcmVjb25jaWxpYXRpb24gZ3VpZGFuY2U8L3RleHQ+Cjwvc3ZnPgo=" alt="In-Tenant DQL vs Account Management Portal" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Surface | Best for | Gives | Doesn't give |
+|---------|----------|-------|---------------|
+| In-tenant DQL | Operational visibility, trends, chargeback | Raw units, per-record attribution, real-time, drill-down | Subscription currency, reconciliation, billing-period totals |
+| Account portal | Strategic billable totals, commit tracking | Subscription currency, reconciled view, billing-period aligned, budget tracking | Fine-grained attribution, real-time, DQL composability |
+DQL totals will not exactly match the portal — see this section for reconciliation guidance.
+-->
+<p>DQL totals will not exactly match the Subscription portal's Cost Overview. This is not a bug — they measure overlapping but distinct things. Three reconciliation factors:</p>
+<h3>Factor 1 — Subscription-currency conversion</h3>
+<p>DQL returns <strong>raw units</strong> (GiB, host-hours, sessions, invocations). The portal applies <strong>rate-card conversion</strong> to express usage in subscription currency. The conversion factors are not exposed in DQL by design — they belong to the agreement, not the tenant.</p>
+<p>Host capabilities are metered in 15-minute intervals, and an interval with less than 15 minutes of monitoring is rounded up to 15 minutes. The rounding is per 15-minute interval — the same interval the in-tenant host records cover — so it is reflected in <code>billed_gibibyte_hours</code> rather than applied later in the portal, and it is not a source of DQL-vs-portal drift.</p>
+<p><strong>Practical implication:</strong> If you need a subscription-currency total, the portal's Cost Overview is the authoritative source. DQL is for <em>operational visibility</em> (what's consuming what, where is the trend going), not <em>invoiceable totals</em>.</p>
+<h3>Factor 2 — Reconciliation lag</h3>
+<p>The portal applies post-hoc reconciliation: included quotas, cross-environment commits (DPS for Hybrid), and certain capability-specific true-ups. These adjustments land in the portal but do not modify the per-record <code>dt.system.events</code> data.</p>
+<p><strong>Practical implication:</strong> Daily DQL totals will usually be <em>higher</em> than the portal's recognized billable totals — DQL counts everything; the portal subtracts included quotas and may apply commitment discounts.</p>
+<h3>Factor 3 — Time-window alignment</h3>
+<p>The portal aligns to billing-period boundaries (typically calendar months in the customer's contract time zone). DQL aligns to whatever time range you query. For monthly reconciliation, query <code>from:</code> and <code>to:</code> exactly matched to the billing-period start/end in the contract time zone.</p>
+<p>Additionally, <strong>Metrics-Ingest has a ~4-hour data lag</strong> — the portal incorporates a corrected view once the lag closes, but a same-day DQL total will under-report metrics specifically.</p>
+<h3>When the gap is large</h3>
+<p>If your DQL total deviates from the portal by more than ~15% for the same period after accounting for the three factors above, investigate:</p>
+<ul>
+<li>Are you missing capabilities? List the <code>event.type</code> values your tenant actually emits — <code>fetch dt.system.events, from:-30d | filter event.kind == &quot;BILLING_USAGE_EVENT&quot; | summarize n = count(), by:{event.type}</code> — and check that each one is covered by a query.</li>
+<li>Is <code>dedup event.id</code> present? Missing dedup inflates totals — Dynatrace's tutorials put it at 10–30%.</li>
+<li>Are retention queries using <code>sum()</code> where they should use <code>max()</code>? (Pitfall #6.)</li>
+<li>For Metrics-Ingest, did you subtract included quotas? (Section 8.)</li>
+<li>For Traces - Ingest, are you reading <code>ingested_bytes</code>? Reading <code>billed_bytes</code> returns nothing.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/shortlink/account-management">Account Management portal (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage-your-costs/predict/project-run-rate">Forecast costs with run-rate projections (DT docs)</a> — the 10–30% dedup figure. <a href="https://docs.dynatrace.com/docs/license/capabilities/app-infra-observability/full-stack-monitoring">Full-Stack Monitoring (DT docs)</a> — <em>&quot;When a host or container is monitored for fewer than 15 minutes in an interval, GiB-hour consumption is rounded up to 15 minutes before consumption is calculated.&quot;</em> <strong>Derived:</strong> Full-Stack billing records span 900 s, and on a SaaS tenant (10/05/2026) their 24-hour sum (4,026 GiB-h) matched <code>dt.billing.full_stack_monitoring.usage</code> (3,984 GiB-h) within about 1%, so the rounding is in the records DQL reads. <strong>Softened:</strong> the specific reconciliation factors the portal applies (commitment discounts, true-ups, DPS-for-Hybrid pooling) evolve per-contract — the three factors above are the generally observable categories, not an exhaustive list of every portal-side adjustment.</sub></p>
+</blockquote>
+<p><a id="bootstrap"></a></p>
+<h2>13. Bootstrap from the Ready-Made Usage Dashboards</h2>
+<p>Dynatrace ships ready-made <strong>usage dashboards</strong> built on the same billing events this notebook queries: <strong>Usage - Overview</strong> (every rate-card capability, trend, and cost-center breakdown) plus drill-downs — <strong>Usage - Traces</strong>, <strong>Usage - Logs</strong>, <strong>Usage - Metrics</strong>, and <strong>Usage - Full-Stack</strong>. They are the fastest way to get started:</p>
+<ol>
+<li>In Dynatrace, go to <strong>Dashboards → Ready-made</strong> and search for <strong>Usage - Overview</strong>. Viewing them needs <code>storage:system:read</code>.</li>
+<li>Ready-made dashboards are read-only — save a copy to get an editable version in your tenant.</li>
+<li>Customize the cost-center / product groupings to match your bucket-naming or <code>dt.cost.*</code> labels.</li>
+<li>Set the timeframe to align with your billing period (see §12).</li>
+<li>Use the dashboards as the operational view; use this notebook as the query reference when you need to extend or debug.</li>
+</ol>
+<p>The queries in §§5–9 were originally adapted from the tiles of the <strong>DPS Usage Details DEMO dashboard</strong>, which earlier revisions of this entry described as linked from the License overview. That page (re-read 09/28/2026) no longer links it, so treat the ready-made Usage dashboards above as the maintained starting point and cross-check the §§5–9 patterns against their tiles when they change.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage-your-costs/view/usage-dashboards">Ready-made usage dashboards (DT docs)</a> — the data <em>&quot;includes billing usage events and query execution events&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/ready-made-documents/ready-made-dashboards">Ready-made dashboards (DT docs)</a> — <em>&quot;Save a copy and customize your copy&quot;</em>.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>14. Recommended Approach</h2>
+<p>A workable plan for putting in-tenant consumption visibility in place:</p>
+<ol>
+<li><strong>Start with the ready-made Usage dashboards</strong> (§13). Save a copy, customize it, and make it your team's standing consumption view — the one you open most days. Set its refresh cadence to match how often the numbers are actually acted on (daily review does not need a 1-minute refresh); FINOPS-03 §4 covers why dashboard refresh rate is itself a consumption lever on Logs, Events, and Traces.</li>
+<li><strong>Adopt the three mandatory patterns</strong> (§4) — <code>dedup event.id</code>, <code>event.kind</code> filter, and on AppEngine <code>billing_type == &quot;BILLABLE&quot; or isNull(billing_type)</code>. Audit any consumption query in your tenant against these before trusting its numbers.</li>
+<li><strong>Use the right surface for the question</strong>: <code>dt.billing.*</code> for trends and Davis analyzer inputs; <code>dt.system.events</code> for attribution and chargeback.</li>
+<li><strong>Pre-aggregated chargeback first.</strong> For Logs and Traces ingest, use <code>dt.billing.*_by_costcenter</code> / <code>_by_product</code> before reaching for <code>expand dt.cost.costcenter</code>. It's faster and cleaner.</li>
+<li><strong>Set realistic reconciliation expectations.</strong> DQL totals are not invoiceable. The portal is authoritative for billing-period totals; DQL is authoritative for operational visibility.</li>
+<li><strong>Reduce the <code>unassigned</code> cost-center share</strong> at ingest time, not at query time. The OpenPipeline / OneAgent enrichment patterns covered in ORGNZ and FAQ-02 are the upstream lever.</li>
+<li><strong>Pair with FINOPS-02 for forecasting</strong> (when will we hit commit?) and <strong>FINOPS-03 for optimization</strong> (what should we cut, tune, or filter?). FINOPS-01 is the <em>what is being used</em> foundation; the next two entries are <em>what will be used</em> and <em>what should change</em>.</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>Summary</h2>
+<p>DPS consumption lives in two places — per-record in <code>dt.system.events</code> and pre-aggregated in <code>dt.billing.*</code>. The schema is per-capability, and the three non-negotiable patterns (<code>dedup event.id</code>, <code>event.kind</code> filter, and the null-tolerant <code>billing_type</code> filter on AppEngine) appear in every well-formed query. The ready-made Usage dashboards are the bootstrap; the queries in §§5–9 are the building blocks. DQL totals will not exactly match the Subscription portal, and that is by design — the portal does subscription-currency conversion and reconciliation that DQL does not. Use both surfaces deliberately.</p>
+<h2>Next Steps</h2>
+<ul>
+<li>Read <strong>FINOPS-02</strong> for forecasting and anomaly detection on top of the queries in this entry — including Cost Monitors, Davis Predictive AI on <code>dt.billing.*</code> metrics, and Workflow-based burn-rate alerting.</li>
+<li>Read <strong>FINOPS-03</strong> for the Cut / Tune / Filter optimization decision framework — once you know what's being consumed (FINOPS-01), the next question is what to do about it.</li>
+<li>Read the <strong>ORGNZ</strong> topic series for bucket strategy and retention policy design — the upstream lever for byte-based capability attribution.</li>
+<li>Read <strong>OPLOGS</strong> for OpenPipeline sampling and filter patterns — the upstream lever for log ingest reduction.</li>
+<li>Open the <a href="https://docs.dynatrace.com/docs/shortlink/account-management">Account Management portal</a> and run the Cost Overview alongside your DQL totals for one billing period to develop intuition for the reconciliation factors in §12.</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

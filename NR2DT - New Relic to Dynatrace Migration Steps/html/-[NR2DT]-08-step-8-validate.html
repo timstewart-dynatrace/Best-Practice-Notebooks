@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NR2DT-08: Step 8 — Validate</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">NR2DT — New Relic to Dynatrace Migration Steps</a><span class="sep">/</span><span aria-current="page">NR2DT-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>NR2DT-08: Step 8 — Validate</h1>
+<blockquote>
+<p><strong>Series:</strong> NR2DT — New Relic to Dynatrace Migration Steps | <strong>Notebook:</strong> 8 of 10 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/05/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Goal of this step:</strong> run the three-tier validation across every migrated artifact. Syntax, tenant, and behavioral checks must all pass before cutover.</p>
+<p>Procedural — see <strong>NRLC-08</strong> (Validation, Diff &amp; Rollback) for the validation theory and tooling depth.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#tiers">Three-Tier Validation Pass</a></li>
+<li><a href="#diff">Diff Against Live Config</a></li>
+<li><a href="#report">Generate the Quality Report</a></li>
+<li><a href="#gate">Step Exit Criteria</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Audience</strong></td>
+<td>Migration lead + assigned engineer for this step</td>
+</tr>
+<tr>
+<td><strong>Completed</strong></td>
+<td>NR2DT-07 — Migrate Logs, Tags &amp; Drops</td>
+</tr>
+<tr>
+<td><strong>Format</strong></td>
+<td>Procedural step — use as a runbook; defer to NRLC for depth</td>
+</tr>
+<tr>
+<td><strong>NRLC deep dives</strong></td>
+<td>NRLC-08 (Validation deep dive)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="tiers"></a></p>
+<h2>1. Three-Tier Validation Pass</h2>
+<p>There is no single <code>validate</code> subcommand, and only part of this pass is automated by <code>migrate.py</code>. Each tier below says what the tool does and what you check yourself.</p>
+<h3>Tier 1 — Syntax</h3>
+<p>Every final DQL query parses against the target tenant. <code>compile --file</code> does not live-validate and has no auto-fixer (NR2DT-04 §5), so run the final DQL from <code>translated-queries.csv</code> in the tenant — in a notebook, or with <code>dtctl verify query</code> — and check single queries with:</p>
+<pre><code class="language-bash">python3 migrate.py compile --validate &quot;&lt;NRQL&gt;&quot;
+</code></pre>
+<h3>Tier 2 — Tenant</h3>
+<p>Confirm referenced metrics, entities, buckets, and OpenPipeline enrichment attributes exist in the target tenant. <strong>No <code>migrate.py</code> subcommand checks this.</strong> <code>preflight</code> checks something narrower — that the Settings 2.0, Document API and Automation API are reachable with the token's scopes:</p>
+<pre><code class="language-bash">python3 migrate.py preflight
+</code></pre>
+<p>Check references by running the migrated queries in the tenant — a reference that does not exist usually returns zero rows rather than an error, so prove each data object with a known-good query first — and look fields and entity types up in the semantic dictionary (<code>fetch dt.semantic_dictionary.fields</code>, <code>fetch dt.semantic_dictionary.models</code>). NR2DT-00 §5 has the bucket, host and <code>dt.security_context</code> checks.</p>
+<p>Common Tier 2 failures:</p>
+<ul>
+<li>Migrated alert references a metric the tenant doesn't ingest</li>
+<li>DQL filter on <code>environment</code> attribute that no enrichment rule produces</li>
+<li>Synthetic location <code>AWS_US_EAST_1</code> not enabled in this tenant</li>
+</ul>
+<h3>Tier 3 — Output Parity (Behavioral)</h3>
+<p>Compare NR vs. DT outputs across the dual-run window. <strong>The tool provides no NR-vs-DT output comparison.</strong> For each artifact, capture the NR value with NRQL and the DT value with DQL over the same window, and compare them against the tolerances below. (<code>migrate.py audit --baseline</code> is a different check — post-import configuration drift — and belongs in §2.)</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py">migrate.py @ 78cbfce (tool repo, GitHub)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p>Tolerance per artifact:</p>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Tolerance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dashboards</td>
+<td>±5%</td>
+</tr>
+<tr>
+<td>Alerts (dual-run volume)</td>
+<td>±10%</td>
+</tr>
+<tr>
+<td>SLOs</td>
+<td>±0.5%</td>
+</tr>
+<tr>
+<td>Synthetics</td>
+<td>±0.5%</td>
+</tr>
+<tr>
+<td>Log volumes</td>
+<td>±5%</td>
+</tr>
+</tbody>
+</table>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5WYWxpZGF0aW9uIEdhdGUgRGVjaXNpb24gRmxvdyAoU3RlcCA4KTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5UaHJlZSB0aWVycyDCtyBhbGwgbXVzdCBwYXNzIMK3IGZhaWx1cmUgcm91dGVzIGJhY2sgdG8gdGhlIHJlc3BvbnNpYmxlIHN0ZXA8L3RleHQ+CgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0idmctYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzczQkUyOCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJ2Zy1mYWlsIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iI0RFMzUwQiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIFN0YXJ0IC0tPgogIDxlbGxpcHNlIGN4PSIxMDAiIGN5PSIyNTAiIHJ4PSI1NSIgcnk9IjMwIiBmaWxsPSIjMzM0MTU1IiBzdHJva2U9IiM2NDc0OEIiLz4KICA8dGV4dCB4PSIxMDAiIHk9IjI0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+TWlncmF0ZWQ8L3RleHQ+CiAgPHRleHQgeD0iMTAwIiB5PSIyNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPmFydGlmYWN0PC90ZXh0PgoKICA8IS0tIFRpZXIgMSAtLT4KICA8cmVjdCB4PSIyMDAiIHk9IjIwMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMxNDk2RkYiIG9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iNiIvPgogIDx0ZXh0IHg9IjI4MCIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5UaWVyIDE6IFN5bnRheDwvdGV4dD4KICA8dGV4dCB4PSIyODAiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+RFFMIHBhcnNlcz88L3RleHQ+CiAgPHRleHQgeD0iMjgwIiB5PSIyNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEQkVBRkUiIGZvbnQtc2l6ZT0iMTAiPlJ1biBpbiB0YXJnZXQgdGVuYW50PC90ZXh0PgogIDx0ZXh0IHg9IjI4MCIgeT0iMjg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5+bWlsbGlzZWNvbmRzPC90ZXh0PgoKICA8IS0tIFRpZXIgMiAtLT4KICA8cmVjdCB4PSI0MDAiIHk9IjIwMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ4MCIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5UaWVyIDI6IFRlbmFudDwvdGV4dD4KICA8dGV4dCB4PSI0ODAiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+UmVmcyBleGlzdD88L3RleHQ+CiAgPHRleHQgeD0iNDgwIiB5PSIyNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNFREU5RkUiIGZvbnQtc2l6ZT0iMTAiPk1ldHJpY3MgwrcgZW50aXRpZXMgwrc8L3RleHQ+CiAgPHRleHQgeD0iNDgwIiB5PSIyNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNFREU5RkUiIGZvbnQtc2l6ZT0iMTAiPmJ1Y2tldHMgwrcgYXR0cmlidXRlczwvdGV4dD4KCiAgPCEtLSBUaWVyIDMgLS0+CiAgPHJlY3QgeD0iNjAwIiB5PSIyMDAiIHdpZHRoPSIxNjAiIGhlaWdodD0iMTAwIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjE1IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMiIgcng9IjYiLz4KICA8dGV4dCB4PSI2ODAiIHk9IjIyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Q5Rjk5RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+VGllciAzOiBCZWhhdmlvcmFsPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5OUiB2cyBEVCBkaWZmPzwvdGV4dD4KICA8dGV4dCB4PSI2ODAiIHk9IjI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0VDRkNDQiIgZm9udC1zaXplPSIxMCI+U2FtZSBkYXRhIHNoYXBlPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iMjc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRUNGQ0NCIiBmb250LXNpemU9IjEwIj53aXRoaW4gdG9sZXJhbmNlPC90ZXh0PgoKICA8IS0tIFBhc3MgdGVybWludXMgLS0+CiAgPGVsbGlwc2UgY3g9Ijg1MCIgY3k9IjI1MCIgcng9IjYwIiByeT0iMzAiIGZpbGw9IiM3M0JFMjgiIHN0cm9rZT0iIzg2RUZBQyIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iODUwIiB5PSIyNDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwRjE3MkEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkN1dG92ZXI8L3RleHQ+CiAgPHRleHQgeD0iODUwIiB5PSIyNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwRjE3MkEiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPnJlYWR5PC90ZXh0PgoKICA8IS0tIFBhc3MgYXJyb3dzIC0tPgogIDxnIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyLjUiIGZpbGw9Im5vbmUiPgogICAgPGxpbmUgeDE9IjE1NSIgeTE9IjI1MCIgeDI9IjIwMCIgeTI9IjI1MCIgbWFya2VyLWVuZD0idXJsKCN2Zy1hcnIpIi8+CiAgICA8bGluZSB4MT0iMzYwIiB5MT0iMjUwIiB4Mj0iNDAwIiB5Mj0iMjUwIiBtYXJrZXItZW5kPSJ1cmwoI3ZnLWFycikiLz4KICAgIDxsaW5lIHgxPSI1NjAiIHkxPSIyNTAiIHgyPSI2MDAiIHkyPSIyNTAiIG1hcmtlci1lbmQ9InVybCgjdmctYXJyKSIvPgogICAgPGxpbmUgeDE9Ijc2MCIgeTE9IjI1MCIgeDI9Ijc5MCIgeTI9IjI1MCIgbWFya2VyLWVuZD0idXJsKCN2Zy1hcnIpIi8+CiAgPC9nPgoKICA8IS0tIEZhaWx1cmUgcm91dGluZyAtLT4KICA8ZyBmb250LXNpemU9IjEwIj4KICAgIDwhLS0gVDEgZmFpbCDihpIgU3RlcCA0IC0tPgogICAgPHJlY3QgeD0iMjAwIiB5PSIzNTAiIHdpZHRoPSIxNjAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjI4MCIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXdlaWdodD0iNjAwIj5GQUlMIOKGkiByZXR1cm4gdG88L3RleHQ+CiAgICA8dGV4dCB4PSIyODAiIHk9IjM4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZFQ0FDQSI+TlIyRFQtMDQgVHJhbnNsYXRlPC90ZXh0PgogICAgPHRleHQgeD0iMjgwIiB5PSI0MDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+cmUtdHJhbnNsYXRlIHdpdGggbWFudWFsIHJldmlldzwvdGV4dD4KCiAgICA8IS0tIFQyIGZhaWwg4oaSIFN0ZXAgMyBvciA1IC0tPgogICAgPHJlY3QgeD0iNDAwIiB5PSIzNTAiIHdpZHRoPSIxNjAiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgcng9IjUiLz4KICAgIDx0ZXh0IHg9IjQ4MCIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXdlaWdodD0iNjAwIj5GQUlMIOKGkiByZXR1cm4gdG88L3RleHQ+CiAgICA8dGV4dCB4PSI0ODAiIHk9IjM4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZFQ0FDQSI+TlIyRFQtMDMgRGVzaWduIG9yIDA1PC90ZXh0PgogICAgPHRleHQgeD0iNDgwIiB5PSI0MDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+cHJlcmVxdWlzaXRlcyBtaXNzaW5nPC90ZXh0PgoKICAgIDwhLS0gVDMgZmFpbCDihpIgU3RlcCA1LzYvNyAtLT4KICAgIDxyZWN0IHg9IjYwMCIgeT0iMzUwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNERTM1MEIiIHJ4PSI1Ii8+CiAgICA8dGV4dCB4PSI2ODAiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDQTVBNSIgZm9udC13ZWlnaHQ9IjYwMCI+RkFJTCDihpIgcmV0dXJuIHRvPC90ZXh0PgogICAgPHRleHQgeD0iNjgwIiB5PSIzODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRUNBQ0EiPmNvbXBvbmVudCBtaWdyYXRpb24gc3RlcDwvdGV4dD4KICAgIDx0ZXh0IHg9IjY4MCIgeT0iNDAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPnR1bmUgdHJhbnNsYXRpb24gLyByZWZvcm11bGF0ZTwvdGV4dD4KICA8L2c+CgogIDwhLS0gRmFpbHVyZSBhcnJvd3MgZG93biAtLT4KICA8ZyBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS44IiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI0LDIiPgogICAgPGxpbmUgeDE9IjI4MCIgeTE9IjMwMCIgeDI9IjI4MCIgeTI9IjM1MCIgbWFya2VyLWVuZD0idXJsKCN2Zy1mYWlsKSIvPgogICAgPGxpbmUgeDE9IjQ4MCIgeTE9IjMwMCIgeDI9IjQ4MCIgeTI9IjM1MCIgbWFya2VyLWVuZD0idXJsKCN2Zy1mYWlsKSIvPgogICAgPGxpbmUgeDE9IjY4MCIgeTE9IjMwMCIgeDI9IjY4MCIgeTI9IjM1MCIgbWFya2VyLWVuZD0idXJsKCN2Zy1mYWlsKSIvPgogIDwvZz4KCiAgPCEtLSBUb2xlcmFuY2UgcmVtaW5kZXIgLS0+CiAgPHRleHQgeD0iNDY1IiB5PSI0NTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlRpZXIgMyB0b2xlcmFuY2U6IGRhc2hib2FyZHMgwrE1JSDCtyBhbGVydHMgwrExMCUgKGR1YWwtcnVuKSDCtyBTTE9zIMKxMC41JSDCtyBzeW50aGV0aWNzIMKxMC41JSDCtyBsb2dzIMKxNSU8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtc3R5bGU9Iml0YWxpYyI+U2tpcHBpbmcgVGllciAzIGlzIHRoZSBtb3N0IGNvbW1vbiBlcnJvciDigJQgc3ludGFjdGljYWxseSB2YWxpZCBEUUwgY2FuIHN0aWxsIHByb2R1Y2Ugd3JvbmcgbnVtYmVycy48L3RleHQ+Cjwvc3ZnPgo=" alt="Validation Gate Decision Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Tier | Pass / Fail Action |
+|------|--------------------|
+| 1 Syntax | Fail → return to NR2DT-04 (re-translate) |
+| 2 Tenant | Fail → return to NR2DT-03 (design) or 05+ (prerequisites) |
+| 3 Behavioral | Fail → return to component migration step (tune translation) |
+For environments where SVG doesn't render
+-->
+<p><a id="diff"></a></p>
+<h2>2. Diff Against Live Config</h2>
+<p>Confirm no drift since import — once per run directory:</p>
+<pre><code class="language-bash">python3 migrate.py audit --baseline ./run-dashboards/transformed/dynatrace_config.json --output ./drift-dashboards.json
+</code></pre>
+<p><code>audit</code> is read-only. It compares the transformed baseline with the live tenant, reports <code>RENAMED</code> / <code>DELETED</code> / <code>MODIFIED</code> / <code>EXTRA</code> drift, and exits 1 when it finds any. Do not use <code>migrate --diff --components all</code> for this: <code>all</code> is not a component name, and <code>migrate</code> without <code>--dry-run</code> imports before it diffs.</p>
+<p>Investigate each drift entry — someone manually changed a migrated artifact in DT. Decide whether the change should be incorporated into the migration source-of-truth (Terraform), reverted, or accepted.</p>
+<p><a id="report"></a></p>
+<h2>3. Generate the Quality Report</h2>
+<pre><code class="language-bash">python3 migrate.py migrate --dry-run --report --output ./validation-run
+</code></pre>
+<p><code>--dry-run</code> keeps this from importing everything a second time. <code>--output</code> is a directory; the report is written to <code>./validation-run/reports/conversion-report.json</code> and <code>.html</code>. It is an NRQL→DQL conversion report — a confidence summary and per-query detail — not a migration quality report. Assemble the rest of the cutover pack yourself:</p>
+<ul>
+<li>Per-component pass/fail from the three tiers in §1</li>
+<li>Failed translations (with reasons) from NR2DT-04</li>
+<li>Manual-review queue (APM conditions, scripted browsers, deferred queries)</li>
+<li>The <code>rollback-manifest.json</code> from each run directory (NR2DT-09)</li>
+<li>Recommended next actions</li>
+</ul>
+<p>Attach the pack to the cutover change-management ticket.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities/blob/78cbfcec7cab6564103fbd6c23b915b46599dc56/migrate.py">migrate.py @ 78cbfce (tool repo, GitHub)</a>, read 10/05/2026.</sub></p>
+</blockquote>
+<p><a id="gate"></a></p>
+<h2>4. Step Exit Criteria</h2>
+<p><strong>S8 — Cutover Ready</strong></p>
+<ul>
+<li>[ ] Tier 1 (syntax) — all components pass</li>
+<li>[ ] Tier 2 (tenant) — all references resolve</li>
+<li>[ ] Tier 3 (behavioral / output parity) — all artifacts within tolerance</li>
+<li>[ ] Diff report shows no unexpected drift</li>
+<li>[ ] Quality report attached to cutover ticket</li>
+<li>[ ] Stakeholders briefed on remaining manual-review items</li>
+</ul>
+<p><strong>Next step:</strong> <strong>NR2DT-09 — Cutover, Rollback &amp; Decommission</strong>.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources, including the open-source <a href="https://github.com/timstewart-dynatrace/NewRelic-to-Dynatrace-Migration-Utilities">NewRelic-to-Dynatrace-Migration-Utilities</a>, <a href="https://github.com/timstewart-dynatrace/nrql-engine">nrql-engine</a>, and <a href="https://github.com/timstewart-dynatrace/nrql-translator">nrql-translator</a> projects. This notebook series is not officially supported by Dynatrace or New Relic. Always verify information against the official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> and <a href="https://docs.newrelic.com">New Relic documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

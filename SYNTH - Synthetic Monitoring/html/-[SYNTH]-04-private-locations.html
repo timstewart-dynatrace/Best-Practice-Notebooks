@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SYNTH-04: Private Synthetic Locations</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SYNTH — Synthetic Monitoring</a><span class="sep">/</span><span aria-current="page">SYNTH-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SYNTH-04: Private Synthetic Locations</h1>
+<blockquote>
+<p><strong>Series:</strong> SYNTH — Synthetic Monitoring | <strong>Notebook:</strong> 4 of 6 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/15/2026</p>
+</blockquote>
+<h2>Monitoring Internal Applications from Your Infrastructure</h2>
+<p>This notebook covers deploying and managing private synthetic locations (ActiveGates) for monitoring internal applications, APIs, and services not accessible from the public internet.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-private-locations">Why Private Locations?</a></li>
+<li><a href="#architecture">Architecture</a></li>
+<li><a href="#synthetic-enabled-activegate">Synthetic-Enabled ActiveGate</a></li>
+<li><a href="#deployment-options">Deployment Options</a></li>
+<li><a href="#configuration">Configuration</a></li>
+<li><a href="#monitoring-private-location-health">Monitoring Private Location Health</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with Synthetic Monitoring</li>
+<li>✅ Completed SYNTH-01 through SYNTH-03</li>
+<li>✅ Infrastructure access to deploy ActiveGate (for setup)</li>
+</ul>
+<p><a id="why-private-locations"></a></p>
+<h2>1. Why Private Locations?</h2>
+<h3>Public vs Private Locations</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Public Locations</th>
+<th>Private Locations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hosting</td>
+<td>Dynatrace cloud</td>
+<td>Your infrastructure</td>
+</tr>
+<tr>
+<td>Access</td>
+<td>Public internet only</td>
+<td>Internal networks</td>
+</tr>
+<tr>
+<td>Maintenance</td>
+<td>Managed by Dynatrace</td>
+<td>Managed by you</td>
+</tr>
+<tr>
+<td>Security</td>
+<td>External perspective</td>
+<td>Behind firewall</td>
+</tr>
+<tr>
+<td>Latency</td>
+<td>Varies by region</td>
+<td>Local network</td>
+</tr>
+</tbody>
+</table>
+<h3>Use Cases for Private Locations</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Internal APIs</strong></td>
+<td>Services not exposed to internet</td>
+</tr>
+<tr>
+<td><strong>VPN-only apps</strong></td>
+<td>Applications requiring VPN access</td>
+</tr>
+<tr>
+<td><strong>Pre-production</strong></td>
+<td>Staging/dev environments</td>
+</tr>
+<tr>
+<td><strong>Security compliance</strong></td>
+<td>Data must not leave network</td>
+</tr>
+<tr>
+<td><strong>Low latency testing</strong></td>
+<td>Local performance baselines</td>
+</tr>
+<tr>
+<td><strong>Isolated networks</strong></td>
+<td>Air-gapped or restricted networks</td>
+</tr>
+</tbody>
+</table>
+<p><a id="architecture"></a></p>
+<h2>2. Architecture</h2>
+<p>Private synthetic locations use ActiveGates deployed within your infrastructure to execute monitors against internal applications:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaW5mcmFHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VmNDQ0NDtzdG9wLW9wYWNpdHk6MC4xIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYzI2MjY7c3RvcC1vcGFjaXR5OjAuMSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNsb3VkR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7c3RvcC1vcGFjaXR5OjAuMSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eTowLjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJhZ0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojOGI1Y2Y2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM3YzNhZWQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJkdENsdXN0ZXJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYXBwR3JhZFByaXYiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0icHJpdlNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0icHJpdkFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iaHR0cHNBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjMTBiOTgxIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjM0MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJpdmF0ZSBTeW50aGV0aWMgTG9jYXRpb24gQXJjaGl0ZWN0dXJlPC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TW9uaXRvciBpbnRlcm5hbCBhcHBsaWNhdGlvbnMgd2l0aG91dCBleHBvc2luZyB0aGVtIHRvIHRoZSBpbnRlcm5ldDwvdGV4dD4KCiAgPCEtLSBZb3VyIEluZnJhc3RydWN0dXJlIEJveCAtLT4KICA8cmVjdCB4PSIzMCIgeT0iNjUiIHdpZHRoPSIzODAiIGhlaWdodD0iMjMwIiByeD0iMTAiIGZpbGw9InVybCgjaW5mcmFHcmFkKSIgc3Ryb2tlPSIjZWY0NDQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIyMjAiIHk9IjkwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZGMyNjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ZT1VSIElORlJBU1RSVUNUVVJFPC90ZXh0PgoKICA8IS0tIEFjdGl2ZUdhdGUgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjEwNSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI5MCIgcng9IjgiIGZpbGw9InVybCgjYWdHcmFkKSIgZmlsdGVyPSJ1cmwoI3ByaXZTaGFkb3cpIi8+CiAgPHRleHQgeD0iMTQwIiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TeW50aGV0aWMtRW5hYmxlZDwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjE0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFjdGl2ZUdhdGU8L3RleHQ+CiAgPHRleHQgeD0iMTQwIiB5PSIxNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TeW50aGV0aWMgRW5naW5lPC90ZXh0PgogIDx0ZXh0IHg9IjE0MCIgeT0iMTg4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KyBFeGVjdXRpb24gUnVudGltZTwvdGV4dD4KCiAgPCEtLSBJbnRlcm5hbCBBcHBzIC0tPgogIDxyZWN0IHg9IjUwIiB5PSIyMTAiIHdpZHRoPSIzNDAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjIyMCIgeT0iMjM1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JbnRlcm5hbCBBcHBsaWNhdGlvbnM8L3RleHQ+CgogIDxyZWN0IHg9IjcwIiB5PSIyNTAiIHdpZHRoPSI3MCIgaGVpZ2h0PSIyMiIgcng9IjQiIGZpbGw9InVybCgjYXBwR3JhZFByaXYpIi8+CiAgPHRleHQgeD0iMTA1IiB5PSIyNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFQSXM8L3RleHQ+CgogIDxyZWN0IHg9IjE1MCIgeT0iMjUwIiB3aWR0aD0iNzAiIGhlaWdodD0iMjIiIHJ4PSI0IiBmaWxsPSJ1cmwoI2FwcEdyYWRQcml2KSIvPgogIDx0ZXh0IHg9IjE4NSIgeT0iMjY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TdGFnaW5nPC90ZXh0PgoKICA8cmVjdCB4PSIyMzAiIHk9IjI1MCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjIyIiByeD0iNCIgZmlsbD0idXJsKCNhcHBHcmFkUHJpdikiLz4KICA8dGV4dCB4PSIyNjUiIHk9IjI2NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWRtaW48L3RleHQ+CgogIDxyZWN0IHg9IjMxMCIgeT0iMjUwIiB3aWR0aD0iNzAiIGhlaWdodD0iMjIiIHJ4PSI0IiBmaWxsPSJ1cmwoI2FwcEdyYWRQcml2KSIvPgogIDx0ZXh0IHg9IjM0NSIgeT0iMjY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EYXRhYmFzZTwvdGV4dD4KCiAgPCEtLSBBcnJvdyBmcm9tIEFHIHRvIEFwcHMgLS0+CiAgPHBhdGggZD0iTTE0MCwxOTUgTDE0MCwyMDUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI3ByaXZBcnJvdykiLz4KICA8dGV4dCB4PSIxODUiIHk9IjIwNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5Nb25pdG9yczwvdGV4dD4KCiAgPCEtLSBIVFRQUyBDb25uZWN0aW9uIC0tPgogIDxwYXRoIGQ9Ik00MTUsMTUwIEw0NzUsMTUwIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNodHRwc0Fycm93KSIvPgogIDx0ZXh0IHg9IjQ0NSIgeT0iMTQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMTBiOTgxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5IVFRQUzwvdGV4dD4KICA8dGV4dCB4PSI0NDUiIHk9IjE2NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PdXRib3VuZDwvdGV4dD4KCiAgPCEtLSBEeW5hdHJhY2UgQ2xvdWQgQm94IC0tPgogIDxyZWN0IHg9IjQ4NSIgeT0iNjUiIHdpZHRoPSIyODUiIGhlaWdodD0iMjMwIiByeD0iMTAiIGZpbGw9InVybCgjY2xvdWRHcmFkKSIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI2MjciIHk9IjkwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjU2M2ViIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EWU5BVFJBQ0UgQ0xVU1RFUjwvdGV4dD4KCiAgPCEtLSBDbHVzdGVyIENvbXBvbmVudHMgLS0+CiAgPHJlY3QgeD0iNTA1IiB5PSIxMTAiIHdpZHRoPSIxMTAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSJ1cmwoI2R0Q2x1c3RlckdyYWQpIiBmaWx0ZXI9InVybCgjcHJpdlNoYWRvdykiLz4KICA8dGV4dCB4PSI1NjAiIHk9IjEzMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNjaGVkdWxpbmc8L3RleHQ+CiAgPHRleHQgeD0iNTYwIiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5UZXN0IHRyaWdnZXJzPC90ZXh0PgoKICA8cmVjdCB4PSI2NDAiIHk9IjExMCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9InVybCgjZHRDbHVzdGVyR3JhZCkiIGZpbHRlcj0idXJsKCNwcml2U2hhZG93KSIvPgogIDx0ZXh0IHg9IjY5NSIgeT0iMTMzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmVzdWx0czwvdGV4dD4KICA8dGV4dCB4PSI2OTUiIHk9IjE1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0b3JhZ2U8L3RleHQ+CgogIDxyZWN0IHg9IjUwNSIgeT0iMTc1IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0idXJsKCNkdENsdXN0ZXJHcmFkKSIgZmlsdGVyPSJ1cmwoI3ByaXZTaGFkb3cpIi8+CiAgPHRleHQgeD0iNTYwIiB5PSIxOTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BbGVydGluZzwvdGV4dD4KICA8dGV4dCB4PSI1NjAiIHk9IjIxNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkR5bmF0cmFjZSBJbnRlbGxpZ2VuY2U8L3RleHQ+CgogIDxyZWN0IHg9IjY0MCIgeT0iMTc1IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0idXJsKCNkdENsdXN0ZXJHcmFkKSIgZmlsdGVyPSJ1cmwoI3ByaXZTaGFkb3cpIi8+CiAgPHRleHQgeD0iNjk1IiB5PSIxOTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BbmFseXRpY3M8L3RleHQ+CiAgPHRleHQgeD0iNjk1IiB5PSIyMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EYXNoYm9hcmRzPC90ZXh0PgoKICA8IS0tIEtleSBCZW5lZml0cyAtLT4KICA8cmVjdCB4PSI1MDUiIHk9IjI0MCIgd2lkdGg9IjI0NSIgaGVpZ2h0PSI0NSIgcng9IjYiIGZpbGw9IiNkMWZhZTUiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjI3IiB5PSIyNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vIGluYm91bmQgZmlyZXdhbGwgcnVsZXMgbmVlZGVkPC90ZXh0PgogIDx0ZXh0IHg9IjYyNyIgeT0iMjc1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwNjRlM2IiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9ubHkgSFRUUFMgb3V0Ym91bmQgdG8gRHluYXRyYWNlPC90ZXh0PgoKICA8IS0tIEJvdHRvbSBub3RlIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIzMDUiIHdpZHRoPSI3NDAiIGhlaWdodD0iMjUiIHJ4PSI0IiBmaWxsPSIjZmVmM2M3Ii8+CiAgPHRleHQgeD0iNDAwIiB5PSIzMjIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGVwbG95IFN5bnRoZXRpYy1FbmFibGVkIEFjdGl2ZUdhdGUgaW4geW91ciBETVogb3IgaW50ZXJuYWwgbmV0d29yayB0byBtb25pdG9yIHByaXZhdGUgcmVzb3VyY2VzPC90ZXh0Pgo8L3N2Zz4K" alt="Private Location Architecture" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Component | Location | Function |
+|-----------|----------|----------|
+| Synthetic-Enabled ActiveGate | Your Infrastructure | Executes monitors locally |
+| Synthetic Engine | Inside ActiveGate | Runs browser/HTTP tests |
+| Internal Apps | Your Network | Targets being monitored |
+| Dynatrace Cluster | Cloud | Scheduling, results, alerting |
+-->
+<h3>Key Points</h3>
+<ul>
+<li><strong>Outbound only</strong>: ActiveGate initiates all connections</li>
+<li><strong>No inbound ports</strong>: No firewall changes for external access</li>
+<li><strong>Local execution</strong>: Tests run inside your network</li>
+<li><strong>Results upload</strong>: Only metrics/results sent to Dynatrace</li>
+</ul>
+<p><a id="synthetic-enabled-activegate"></a></p>
+<h2>3. Synthetic-Enabled ActiveGate</h2>
+<h3>ActiveGate Capabilities</h3>
+<p>ActiveGate can serve multiple purposes — but not on one host with Synthetic: <em>&quot;Synthetic-enabled ActiveGate is used exclusively to run synthetic monitors. A clean ActiveGate installation for the purpose of synthetic monitoring disables all other ActiveGate features, including communication with OneAgents.&quot;</em> Plan separate ActiveGates for the other capabilities:</p>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Synthetic</strong></td>
+<td>Private synthetic location</td>
+</tr>
+<tr>
+<td><strong>Metrics</strong></td>
+<td>Metric ingestion endpoint</td>
+</tr>
+<tr>
+<td><strong>Logs</strong></td>
+<td>Log ingestion endpoint</td>
+</tr>
+<tr>
+<td><strong>API</strong></td>
+<td>Cluster API proxy</td>
+</tr>
+<tr>
+<td><strong>Extensions</strong></td>
+<td>Extension execution</td>
+</tr>
+</tbody>
+</table>
+<h3>Synthetic Engine Requirements</h3>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Minimum (XS node with browser support)</th>
+<th>Guidance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CPU</strong></td>
+<td>2 vCPU</td>
+<td>4 vCPU for an S node — pick the node size from the sizing guide's executions-per-hour limits</td>
+</tr>
+<tr>
+<td><strong>RAM</strong></td>
+<td>4 GB</td>
+<td>At least 8 GB</td>
+</tr>
+<tr>
+<td><strong>Disk</strong></td>
+<td>20 GB free</td>
+<td>At least 25 GB free</td>
+</tr>
+<tr>
+<td><strong>Network</strong></td>
+<td>HTTPS outbound</td>
+<td>Low latency to targets</td>
+</tr>
+<tr>
+<td><strong>Operating system</strong></td>
+<td>A Linux or Windows Server release currently supported for a synthetic-enabled ActiveGate</td>
+<td>Track the ActiveGate OS support matrix — supported releases are versioned with the <strong>ActiveGate</strong>, not with the tenant</td>
+</tr>
+</tbody>
+</table>
+<p>The 8 GB / 25 GB guidance is the requirements page's own: <em>&quot;we recommend having at least 8 GB of RAM and 25 GB of free disk space.&quot;</em> Size is also sticky — <em>&quot;To change the size of a Synthetic-enabled ActiveGate, for example, after upgrading from size S to meet size M requirements, you must uninstall and reinstall it.&quot;</em></p>
+<p><strong>Windows Server 2025</strong> is supported for private synthetic locations. The OS option first appeared for synthetic-capable ActiveGates with <strong>ActiveGate 1.341</strong>; <strong>SaaS 1.344</strong> (release notes published 07/27/2026) states it in the private-location context directly: <em>&quot;You can now install on Windows Server 2025 hosts for private synthetic locations.&quot;</em> The documentation statement is firm — published docs are live regardless of which sprint your tenant is on — but the capability ships in the <strong>ActiveGate installer</strong>, so confirm the ActiveGate build you are about to deploy carries it before committing a Windows Server 2025 rollout plan.</p>
+<p>ActiveGate <strong>1.343</strong> (published 07/15/2026, rollout from 07/28/2026) additionally adds OS support for <strong>Oracle Linux 9.8 and 10.2</strong> and <strong>Rocky Linux 9.8 and 10.2</strong>, and flags a support-discontinuation wave. The <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349">ActiveGate 1.349 notes</a> give the dates. Red Hat Enterprise Linux 9.4 and Ubuntu 16.04 are <em>&quot;no longer supported since 01 November 2026&quot;</em>. Still ahead: Red Hat Enterprise Linux 9.7 / 10.1, Oracle Linux 9.7 / 10.1 and Rocky Linux 9.7 / 10.1 from 01 December 2026; Amazon Linux 2 from 01 January 2027; and Oracle Linux 9.8 / 10.2 and Rocky Linux 9.8 / 10.2 — the releases 1.343 added — <em>&quot;The following operating systems will no longer be supported starting 01 June 2027&quot;</em>. Audit your private-location fleet against those notes now: a synthetic ActiveGate still on Red Hat Enterprise Linux 9.4 or Ubuntu 16.04 is already on an unsupported OS, and the next date is 01 December 2026.</p>
+<h3>Browser Monitor Requirements</h3>
+<p>For browser monitors, additional requirements:</p>
+<ul>
+<li>A Chromium-family browser, provided through the ActiveGate rather than installed by you — on <strong>Windows</strong> the installer package includes Chrome for Testing; on <strong>Linux</strong> the installer downloads the browser and its dependencies. Its version tracks your <strong>ActiveGate fleet</strong> (and, on Linux, the location's browser auto-update switch — see below), <strong>not your tenant version</strong></li>
+<li>Write access to <code>/tmp</code> — the browser's dependencies, including <code>xvfb</code>, are installed with it and use <code>/tmp</code> (no separate display server to install)</li>
+<li>Additional RAM for browser instances</li>
+</ul>
+<p><strong>Browser baseline by ActiveGate version:</strong></p>
+<table>
+<thead>
+<tr>
+<th>ActiveGate</th>
+<th>RHEL 9.7, Rocky Linux 9.8</th>
+<th>Ubuntu 20.04 / 22.04 / 24.04, Amazon Linux 2023, Oracle Linux 9.7</th>
+<th>Windows (bundled in the installer)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1.343</strong> (published 07/15/2026, rollout from 07/28/2026)</td>
+<td>Chromium 150</td>
+<td>Chrome for Testing 150</td>
+<td>Chrome for Testing 150</td>
+</tr>
+<tr>
+<td><strong>1.345</strong> (rollout from 08/25/2026)</td>
+<td>Chromium 151</td>
+<td>Chrome for Testing 151</td>
+<td>Chrome for Testing 151</td>
+</tr>
+<tr>
+<td><strong>1.347</strong> (published 10/01/2026, rollout from 09/30/2026)</td>
+<td>Chromium 152</td>
+<td>Chrome for Testing 152</td>
+<td>Chrome for Testing 152</td>
+</tr>
+<tr>
+<td><strong>1.349</strong> (<a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349">notes</a> published 11/05/2026, rollout from 11/09/2026)</td>
+<td>Chromium 153 (RHEL 9.8, Rocky Linux 9.8)</td>
+<td>Chrome for Testing 153 (also RHEL 10.2, Rocky Linux 10.2)</td>
+<td>Chrome for Testing 153</td>
+</tr>
+</tbody>
+</table>
+<p>Fleets move to each row as their ActiveGates update — check the ActiveGate version (query below) before assuming Chromium 153.</p>
+<blockquote>
+<p><strong>ActiveGate 1.347+ for browser monitors in Group 3 environments — SaaS 1.349 (staged tenant rollout from 10/27/2026):</strong> <em>&quot;For environments belonging to Group 3 (Enhanced), Dynatrace requires ActiveGate version 1.347+ for scheduling and executing Browser monitors.&quot;</em> <em>&quot;Environments in Groups 1 and 2 (Standard and New environment baseline, respectively) are not affected.&quot;</em> Verify the release has reached your tenant, then check every ActiveGate that runs browser monitors with the query below.</p>
+</blockquote>
+<p><strong>How the browser is updated.</strong> The browser moves with ActiveGate and Synthetic engine updates, not on a schedule of its own: <em>&quot;The browser autoupdate takes place during manual as well as automatic ActiveGate and Synthetic engine updates.&quot;</em> On <strong>Linux</strong> this is controlled per private location by the <strong>Enable Chrome(-ium) auto-update</strong> switch, which is on by default (<em>&quot;the browser autoupdate is turned on by default for locations with Linux-based ActiveGates&quot;</em>). Turn it off only to hold a specific browser version or for offline environments — and then update the browser manually on every ActiveGate in the location. On <strong>Windows</strong> there is no switch: <em>&quot;on Windows-based ActiveGates, the browser is always updated during Synthetic engine updates.&quot;</em> So the lever for holding a browser version is that per-location switch, <strong>not</strong> ActiveGate auto-update. Two support rules bound how far a location can drift: Dynatrace <em>&quot;supports browser versions that are no more than two versions behind the latest Dynatrace-supported version for a specific ActiveGate release&quot;</em>, and <em>&quot;We strongly recommend updating all ActiveGates per location to the same version.&quot;</em></p>
+<p>Because the browser can change whenever an ActiveGate or engine update lands, re-check browser monitors after an update before treating new failures as application regressions.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-343">ActiveGate 1.343 (DT docs)</a> — <em>&quot;Chrome for Testing 150 is bundled with the Windows ActiveGate installer.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-345">ActiveGate 1.345 (DT docs)</a> — <em>&quot;Chrome for Testing 151 is bundled with the Windows ActiveGate installer.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-347">ActiveGate 1.347 (DT docs)</a> — <em>&quot;Chromium 152 is the latest supported version for Synthetic-enabled ActiveGate&quot;</em> and <em>&quot;Chrome for Testing 152 is bundled with the Windows ActiveGate installer.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/activegate/sprint-349">ActiveGate 1.349 (DT docs)</a> — <em>&quot;Chromium 153 is the latest supported version for Synthetic-enabled ActiveGate&quot;</em> and <em>&quot;Chrome for Testing 153 is bundled with the Windows ActiveGate installer.&quot;</em>; <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-349">SaaS 1.349 (DT docs)</a> — <em>&quot;Dynatrace requires ActiveGate version 1.347+ for scheduling and executing Browser monitors.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/requirements-for-private-synthetic">Requirements for private Synthetic locations (DT docs)</a> — <em>&quot;Its dependencies, including xvfb, utilize /tmp&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/private-synthetic-locations/manage-private-synthetic-locations">Manage private Synthetic locations (DT docs)</a> — the auto-update, Windows, two-versions-behind and same-version quotes above.</sub></p>
+</blockquote>
+<p>Two things follow from the browser being tied to the ActiveGate. First, an ActiveGate that has not been updated — or a Linux location with browser auto-update turned off — is still executing clickpaths in the older browser however current the tenant is — so when the <em>same</em> clickpath behaves differently at two private locations, compare <strong>ActiveGate versions before</strong> suspecting the application:</p>
+<pre><code class="language-dql">smartscapeNodes &quot;ACTIVEGATE&quot;
+| fields name, dt.active_gate.version, dt.active_gate.group.name, os.type, os.version
+| sort dt.active_gate.version asc, name asc
+</code></pre>
+<p>Second, the <strong>1.331 floor stated below is a minimum, not a target.</strong> It is the version that lets users whose access is scoped by security context see private-location results; the ActiveGate build (and, on Linux, the location's browser auto-update switch) determines which browser your clickpaths actually run in. Both matter, for different reasons. (For the ActiveGate update-management model on SaaS — auto-update windows, version pinning, staged fleet upgrades — see FAQ-05; the browser itself is governed by the per-location switch above.)</p>
+<blockquote>
+<p><strong>Security context and ActiveGate 1.331 (SaaS 1.343, July 2026 — staged tenant rollout from mid-July).</strong> SaaS 1.343 migrates the management zones of each synthetic <strong>monitor</strong> to security-context values: <em>&quot;Dynatrace performs a one-time migration of the management zone each synthetic monitor belongs to, mapping them to security context values with the same name on that monitor.&quot;</em> It runs once — <em>&quot;Updating or creating management zones and monitors won't be synchronized.&quot;</em> On private locations, ActiveGate <strong>1.331+</strong> is what makes those results scopable: <em>&quot;Earlier versions do not enrich the metrics and events produced by Synthetic monitor executions with the monitor's security context value. Without this enrichment, IAM policies scoped to security contexts cannot grant access to execution data.&quot;</em> An older ActiveGate keeps executing monitors; users whose access is scoped by security context just cannot see its results. Upgrade any synthetic AG below 1.331 before you move users to security-context-scoped policies, and review monitor access once the migration reaches your tenant — the security-context model replaces MZ-based scoping (the MZ2POL series covers the broader management-zone migration). SaaS 1.343 also adds IAM-based access control for Synthetic Monitoring and API support for assigning security context to synthetic monitors.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-343">SaaS 1.343 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control">Access control for Synthetic (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="deployment-options"></a></p>
+<h2>4. Deployment Options</h2>
+<h3>Option 1: Linux/Windows Installer</h3>
+<p>Install from the <strong>Install ActiveGate</strong> wizard in <strong>Discovery &amp; Coverage</strong> — in <strong>Purpose</strong>, choose <strong>Synthetic</strong> — run the installer with the command the wizard displays, then check the service:</p>
+<pre><code class="language-bash">sudo /bin/sh Dynatrace-ActiveGate-Linux-x86-*.sh \
+  --enable-synthetic
+
+sudo systemctl status dynatracegateway
+</code></pre>
+<h3>Option 2: Kubernetes / OpenShift (containerized locations)</h3>
+<p>Containerized private locations are documented for <strong>Kubernetes and OpenShift</strong> only; there is no documented Docker / Docker Compose deployment for a synthetic-enabled ActiveGate.</p>
+<p>Containerized private locations are deployed from <strong>templates the Synthetic app generates</strong>, not from a DynaKube custom resource — there is no <code>synthetic-monitoring</code> ActiveGate capability to add to a DynaKube. In <strong>Synthetic → Private locations</strong>, create a containerized location and select <strong>Download synthetic.yaml</strong> (<em>&quot;This is the location template file.&quot;</em>), then deploy the metric adapter from its own downloaded template (<em>&quot;This is the template file for the Synthetic metric adapter.&quot;</em>). Apply both with the <code>kubectl</code> commands the UI generates.</p>
+<blockquote>
+<p><strong>⚠️ Latest Dynatrace — metric adapter (Sprint 1.339):</strong> the variable belongs on the <strong>Synthetic metric adapter</strong> deployment, not on the location pod: <em>&quot;Modify the adapter deployment. Set the environment variable METRIC_3RD_GEN_ENABLED to &quot;true&quot;.&quot;</em> The same migration requires you to <em>&quot;Set the environment variable BASE_URL to match the Latest Dynatrace URL.&quot;</em> and to <em>&quot;Modify synthetic location deployments—change the target metric in the Horizontal Pod Autoscaler definition.&quot;</em> Re-download the templates from <strong>Synthetic → Private locations</strong>, or patch existing manifests per those steps, and schedule the change through change management.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/containerized-locations-synth-app">Containerized private Synthetic locations on Kubernetes (DT docs)</a>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// List all synthetic locations, public and private
+// PREFERRED -- Smartscape. The SYNTHETIC_LOCATION node exposes location_type DIRECTLY,
+// which makes the old &quot;identify private locations by naming convention&quot; workaround
+// obsolete. `stage` is the lifecycle marker (GA / BETA / DEPRECATED / COMING_SOON) --
+// worth scanning for locations Dynatrace is retiring under you.
+smartscapeNodes &quot;SYNTHETIC_LOCATION&quot;, from: now() - 7d  // default 2 h window can hide private locations
+| fields name, location_type, stage, cloud.provider, geo.country.name, geo.city.name, id_classic
+| sort location_type asc, name asc
+| limit 50
+
+// To list only private locations, add:
+// | filter location_type == &quot;PRIVATE&quot;
+//
+// The literals observed on the validation tenant (10/02/2026) were &quot;PUBLIC&quot; and &quot;PRIVATE&quot;;
+// private locations carry no stage. Run the summarize query in the next cell against YOUR
+// tenant before hard-coding a literal -- a wrong literal returns zero rows, not an error.
+
+// FALLBACK (classic surface -- deprecated in DQL, supported for as long as Dynatrace
+// Classic is supported, and genuinely lacks these fields.
+// This is why the previous revision of this notebook said type/status/city/countryCode
+// &quot;are not available&quot;: on the classic entity that was true, and remains true.)
+// fetch dt.entity.synthetic_location
+// | fields id, entity.name
+// | sort entity.name asc
+// | limit 50
+</code></pre>
+<pre><code class="language-dql">// Count synthetic locations by type and lifecycle stage
+// Run THIS FIRST -- it tells you the exact location_type literals your tenant returns,
+// which is what the previous cell's filter depends on.
+smartscapeNodes &quot;SYNTHETIC_LOCATION&quot;, from: now() - 7d
+| summarize locations = count(), by:{location_type, stage}
+| sort location_type asc, locations desc
+
+// FALLBACK (classic surface, deprecated in DQL) -- can only produce a grand total, because the classic
+// entity has no type field at all. That limitation is exactly what the old
+// naming-convention workaround was compensating for.
+// fetch dt.entity.synthetic_location
+// | summarize {count = count()}
+// | fields count
+</code></pre>
+<p><a id="configuration"></a></p>
+<h2>5. Configuration</h2>
+<h3>Creating a Private Location</h3>
+<ol>
+<li><strong>Deploy ActiveGate</strong> with synthetic capability</li>
+<li><strong>Navigate to</strong>: <strong>Synthetic → Private locations</strong> (or, in Settings Classic, <strong>Settings → Web and mobile monitoring → Private Synthetic locations</strong>)</li>
+<li><strong>Create location</strong>: Name, description, geographic info</li>
+<li><strong>Assign ActiveGates</strong>: Select which ActiveGates serve this location</li>
+</ol>
+<h3>Location Settings</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Name</strong></td>
+<td>Descriptive location name</td>
+</tr>
+<tr>
+<td><strong>Latitude/Longitude</strong></td>
+<td>Geographic coordinates</td>
+</tr>
+<tr>
+<td><strong>City/Region</strong></td>
+<td>Location metadata</td>
+</tr>
+<tr>
+<td><strong>ActiveGate nodes</strong></td>
+<td>Assigned ActiveGates — one ActiveGate cannot serve more than one location</td>
+</tr>
+<tr>
+<td><strong>Enable Chrome(-ium) auto-update</strong></td>
+<td>Linux-based locations; on by default. Updates the browser during ActiveGate and Synthetic engine updates (see § 3). API property: <code>autoUpdateChromium</code></td>
+</tr>
+</tbody>
+</table>
+<h3>High Availability</h3>
+<p>For production workloads:</p>
+<ul>
+<li>Deploy 2+ ActiveGates per location</li>
+<li>Keep every ActiveGate in a location on the same version</li>
+<li>Distribute across availability zones</li>
+<li>Executions are distributed across the location's ActiveGates</li>
+</ul>
+<h3>Declarative Creation via the API</h3>
+<p>The UI flow above is the interactive path. For repeatable, reviewable, source-controlled private-location definitions, use the Environment API v2 endpoint:</p>
+<pre><code>POST /api/v2/synthetic/locations
+</code></pre>
+<blockquote>
+<p><strong>Platform alternative (early adopter).</strong> <code>POST /platform/synthetic/v1/locations</code> creates a private location with a platform or OAuth token holding <code>synthetic:locations:write</code> — Dynatrace recommends migrating to it, and documents all of its endpoints as Early Adopter — they <em>&quot;can change in non-compatible ways&quot;</em>. The Environment API v2 endpoint above keeps working.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-synthetic-v1/locations-post">POST locations — platform API (DT docs)</a> — <em>&quot;You use the locations endpoint to create a new private synthetic location.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control">Access control — Synthetic (DT docs)</a> — <em>&quot;Dynatrace recommends migrating to the Synthetic platform permissions and the Synthetic Platform API&quot;</em>; <em>&quot;All Synthetic Platform API endpoints are currently in Early Adopter maturity.&quot;</em>; <em>&quot;can change in non-compatible ways&quot;</em></sub></p>
+</blockquote>
+<p><strong>API 1.344</strong> (published 07/15/2026, <strong>staged rollout from 07/29/2026</strong>) adds three properties to the <code>PrivateSyntheticLocation</code> request schema of <code>POST /synthetic/locations</code> — <code>minActiveGateCount</code>, <code>maxActiveGateCount</code>, and <code>nodeSize</code>. All three are <strong>containerized-location</strong> properties: the POST reference describes each as a <em>&quot;Containerized location property&quot;</em> that is <em>&quot;required for a Kubernetes location&quot;</em>. They are the API counterparts of the fields the UI asks for when you create a Kubernetes or OpenShift location — the minimum and maximum number of ActiveGates the horizontal pod autoscaler works between, and the ActiveGate node size. They do not size a standard Linux/Windows location, whose ActiveGate size is set by the host it is installed on (see § 3).</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>minActiveGateCount</code></td>
+<td>Minimum number of ActiveGates — the autoscaler's lower bound. The docs recommend <em>&quot;a minimum of two ActiveGates per location&quot;</em></td>
+</tr>
+<tr>
+<td><code>maxActiveGateCount</code></td>
+<td>Maximum number of ActiveGates — caps scale-out</td>
+</tr>
+<tr>
+<td><code>nodeSize</code></td>
+<td>ActiveGate node size: <code>XS</code>, <code>S</code> or <code>M</code> (<em>&quot;The node size L is not supported in containerized locations.&quot;</em>). Choose deliberately — <em>&quot;Once specified, ActiveGate size for a location can't be changed because persistent storage can't be resized.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>Because the rollout is staged, confirm the tenant you are automating accepts the three properties before relying on them; until it does, creating the containerized location in the UI remains the working path.</p>
+<p><strong>API 1.348</strong> (rollout start 10/12/2026, staged tenant rollout) changes the same request schema again. For <code>POST /synthetic/locations</code> it lists <em>&quot;Removed required property nodes&quot;</em>: <code>nodes</code> — <em>&quot;A list of synthetic nodes belonging to the location.&quot;</em> — is no longer required, and the POST reference now marks it <em>Optional</em>. Verify the release has reached your tenant before omitting it; until then, send <code>nodes</code> as before.</p>
+<blockquote>
+<p><strong>Authentication boundary:</strong> the Environment API v2 endpoint above, and the Terraform provider path (AUTOM-04 § Authentication Boundary), use an <strong>API token</strong>. For new automation on Latest Dynatrace, <em>&quot;Dynatrace recommends migrating to the Synthetic platform permissions and the Synthetic Platform API to manage Synthetic in Latest Dynatrace&quot;</em>, which takes a bearer platform token. Check that the Synthetic Platform API covers the location operations you need before switching.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-344">Dynatrace API release notes 1.344 (DT docs)</a> — <code>POST /synthetic/locations</code>: changed <code>PrivateSyntheticLocation</code> schema, added <code>maxActiveGateCount</code>, <code>minActiveGateCount</code>, <code>nodeSize</code></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-348">Dynatrace API release notes 1.348 (DT docs)</a> — <code>POST /synthetic/locations</code>: changed <code>PrivateSyntheticLocation</code> schema, <em>&quot;Removed required property nodes&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic/synthetic-locations">Synthetic locations API (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/synthetic/synthetic-locations/post-a-location">POST a location (DT docs)</a> — <em>&quot;Containerized location property. The minimum number of ActiveGates deployed for the location (required for a Kubernetes location).&quot;</em>; <em>&quot;A list of synthetic nodes belonging to the location.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/containerized-locations-synth-app">Containerized private Synthetic locations on Kubernetes (DT docs)</a> — <em>&quot;We recommend the S ActiveGate size and a minimum of two ActiveGates per location.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations">Private locations in Synthetic (DT docs)</a> — <em>&quot;We recommend using at least two ActiveGates for a location. You can't use one ActiveGate for multiple locations.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control">Access control (DT docs)</a> — <em>&quot;Dynatrace recommends migrating to the Synthetic platform permissions and the Synthetic Platform API to manage Synthetic in Latest Dynatrace.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/private-synthetic-locations/manage-private-synthetic-locations">Manage private Synthetic locations (DT docs)</a> — <em>&quot;We strongly recommend updating all ActiveGates per location to the same version.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<pre><code class="language-dql">// Monitor executions by location
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+// Private locations typically have custom names (not city names like &quot;N. Virginia&quot;)
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| summarize {
+    executions = count(),
+    availability_pct = round(countIf(result.state == &quot;SUCCESS&quot;) * 100.0 / count(), decimals: 2)
+  }, by: {monitor.name, dt.synthetic.monitor.id, dt.smartscape.synthetic_location}
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
+| sort executions desc
+| limit 30
+</code></pre>
+<p><a id="monitoring-private-location-health"></a></p>
+<h2>6. Monitoring Private Location Health</h2>
+<h3>ActiveGate Health Indicators</h3>
+<p>The CPU and memory limits come from the ActiveGate hardware requirements: <em>&quot;It is recommended that the machine on which ActiveGate is running should not exceed 50% CPU and 80% memory.&quot;</em> (<a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/installation/linux/linux-activegate-hardware-and-system-requirements">ActiveGate hardware and system requirements (DT docs)</a>). Dynatrace gives no disk percentage, only minimum free disk space, so the disk row is a starting point from community practice.</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Description</th>
+<th>Alert Threshold</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Connectivity</strong></td>
+<td>Connection to cluster</td>
+<td>Any disconnect</td>
+</tr>
+<tr>
+<td><strong>CPU Usage</strong></td>
+<td>Processing load</td>
+<td>&gt; 50% sustained</td>
+</tr>
+<tr>
+<td><strong>Memory</strong></td>
+<td>RAM utilization</td>
+<td>&gt; 80%</td>
+</tr>
+<tr>
+<td><strong>Disk</strong></td>
+<td>Storage usage</td>
+<td>&gt; 80% (community practice)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Synthetic location health status (1 = healthy)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+// Surfaces location/ActiveGate availability independent of monitor results
+timeseries health = avg(dt.synthetic.location.health_status),
+    from: now() - 24h, interval: 1h, by: {dt.smartscape.synthetic_location}
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
+</code></pre>
+<pre><code class="language-dql">// Location availability over time (last 7 days)
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+fetch dt.synthetic.events, from: now() - 7d
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| makeTimeseries {
+    success_count = countIf(result.state == &quot;SUCCESS&quot;),
+    total_count = count()
+  }, interval: 1h, by: {dt.smartscape.synthetic_location}
+| fieldsAdd availability_pct = success_count[] * 100.0 / total_count[]
+</code></pre>
+<pre><code class="language-dql">// Execution count by location
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| summarize {
+    total_executions = count(),
+    failed_executions = countIf(result.state == &quot;FAIL&quot;),
+    unique_monitors = countDistinct(dt.synthetic.monitor.id)
+  }, by: {dt.smartscape.synthetic_location}
+| fieldsAdd failure_rate = round((failed_executions * 100.0) / total_executions, decimals: 2)
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
+| sort total_executions desc
+</code></pre>
+<p><a id="troubleshooting"></a></p>
+<h2>7. Troubleshooting</h2>
+<h3>Common Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Symptoms</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>No connectivity</strong></td>
+<td>Location offline</td>
+<td>Check ActiveGate logs, network</td>
+</tr>
+<tr>
+<td><strong>SSL errors</strong></td>
+<td>Certificate failures</td>
+<td>Install CA certs on ActiveGate</td>
+</tr>
+<tr>
+<td><strong>Timeouts</strong></td>
+<td>All tests fail</td>
+<td>Check network routes, DNS</td>
+</tr>
+<tr>
+<td><strong>Resource exhaustion</strong></td>
+<td>Slow/failed tests</td>
+<td>Scale ActiveGate resources</td>
+</tr>
+<tr>
+<td><strong>Browser issues</strong></td>
+<td>Clickpath failures</td>
+<td>Check Chrome/display config</td>
+</tr>
+</tbody>
+</table>
+<h3>ActiveGate Logs</h3>
+<p>Linux default directories:</p>
+<pre><code class="language-text">/var/log/dynatrace/gateway       ActiveGate logs
+/var/log/dynatrace/synthetic     Private Synthetic logs
+/var/tmp/dynatrace/synthetic     Private Synthetic temporary files (including screenshots)
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate/configuration/where-can-i-find-activegate-files">ActiveGate directories (DT docs)</a> — <em>&quot;Private synthetic logs /var/log/dynatrace/synthetic&quot;</em>.</sub></p>
+</blockquote>
+<h3>Network Verification</h3>
+<pre><code class="language-bash"># Test connectivity to target
+curl -v https://internal-api.company.com/health
+
+# DNS resolution
+nslookup internal-api.company.com
+
+# Test Dynatrace connectivity
+curl -v https://&lt;tenant&gt;.live.dynatrace.com/api/v1/time
+</code></pre>
+<pre><code class="language-dql">// Identify failing monitors by location
+// Smartscape fields: dt.entity.synthetic_location / dt.entity.synthetic_test on synthetic data are
+// deprecated (&quot;will be removed in the future&quot;) in favor of dt.smartscape.* — Synthetic events model, 09/21/2026.
+// To filter for one location, add: | filter dt.smartscape.synthetic_location == toSmartscapeId(&quot;SYNTHETIC_LOCATION-...&quot;)
+// (without toSmartscapeId() the comparison matches nothing — Grail only warns SMARTSCAPEID_TO_STRING_COMPARISON)
+fetch dt.synthetic.events, from: now() - 24h
+| filter endsWith(event.type, &quot;_monitor_execution&quot;)
+| filter not(coalesce(execution.retry_on_error, false) and result.state == &quot;FAIL&quot;)  // one result per scheduled run
+| filter result.state == &quot;FAIL&quot;
+| summarize {
+    failure_count = count(),
+    last_failure = max(timestamp)
+  }, by: {monitor.name, dt.synthetic.monitor.id, dt.smartscape.synthetic_location}
+| fieldsAdd location = getNodeName(dt.smartscape.synthetic_location)
+| sort failure_count desc
+| limit 20
+</code></pre>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>Why private locations</strong> - Internal apps, security, compliance<br />
+✅ <strong>Architecture</strong> - ActiveGate with synthetic engine<br />
+✅ <strong>Deployment options</strong> - Installer and Kubernetes/OpenShift templates (+ adapter <code>METRIC_3RD_GEN_ENABLED</code> for Latest tenants)<br />
+✅ <strong>Configuration</strong> - Creating and managing locations<br />
+✅ <strong>Health monitoring</strong> - <code>dt.synthetic.location.health_status</code> metric + execution results by location<br />
+✅ <strong>Troubleshooting</strong> - Common issues and resolution</p>
+<hr />
+<h2>Next Steps</h2>
+<p>Continue to <strong>SYNTH-05: Network Monitoring</strong> to learn about synthetic network availability monitoring.</p>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/synthetic-monitoring-classic/private-synthetic-locations">Private synthetic locations (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/architecture-communication-latest">Synthetic architecture and communication (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-activegate">ActiveGate (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/containerized-locations-synth-app">Containerized private Synthetic locations on Kubernetes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-app/private-locations/requirements-for-private-synthetic">Requirements for private Synthetic locations (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/synthetic/synthetic-access-control">Access control for Synthetic (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SLO-04: SLO Alerting</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">SLO — Service Level Objectives</a><span class="sep">/</span><span aria-current="page">SLO-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>SLO-04: SLO Alerting</h1>
+<blockquote>
+<p><strong>Series:</strong> SLO — Service Level Objectives | <strong>Notebook:</strong> 4 of 7 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 11/19/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>The highest-value alert a platform can send is &quot;you are about to breach an SLO.&quot; This notebook covers <strong>burn-rate alerting</strong> — why it beats thresholding the raw SLI, how fast-burn and slow-burn multiwindow alerts work, how Dynatrace surfaces SLO alerts, and how to route them through Workflows without drowning the team in noise.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why">Why Burn-Rate, Not Threshold-on-SLI</a></li>
+<li><a href="#multiwindow">Fast-Burn and Slow-Burn</a></li>
+<li><a href="#configuring">Configuring SLO Alerts in Dynatrace</a></li>
+<li><a href="#routing">Routing SLO Breaches</a></li>
+<li><a href="#fatigue">Avoiding Alert Fatigue</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS Gen3 with the SLO app and AutomationEngine (Workflows)</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>settings:objects:read/write</code>, workflow authoring permissions</td>
+</tr>
+<tr>
+<td><strong>Prior reading</strong></td>
+<td>SLO-03 (error budgets and burn rate)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="why"></a></p>
+<h2>1. Why Burn-Rate, Not Threshold-on-SLI</h2>
+<p>The naive approach — alert when the SLI drops below the target — is a bad signal:</p>
+<ul>
+<li><strong>It fires late on slow leaks.</strong> A rolling-30-day SLI barely moves when a service degrades for an hour, so the alert comes long after the damage.</li>
+<li><strong>It flaps on momentary dips.</strong> A single bad interval can cross the line and recover, paging someone for nothing.</li>
+</ul>
+<p><strong>Burn rate fixes both.</strong> Because it measures the <em>rate</em> of budget consumption over a short window, a sharp degradation produces a high burn rate immediately, while a brief blip does not sustain. You alert on &quot;the budget is draining too fast,&quot; which is what you actually care about.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5FcnJvciBidWRnZXQgYW5kIGJ1cm4gcmF0ZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5CdXJuIHJhdGUgPSBob3cgbWFueSB0aW1lcyBmYXN0ZXIgdGhhbiBzdXN0YWluYWJsZSB5b3UgYXJlIHNwZW5kaW5nIHRoZSBidWRnZXQ8L3RleHQ+CgogIDwhLS0gY2hhcnQgYXJlYSAtLT4KICA8cmVjdCB4PSI3MCIgeT0iOTAiIHdpZHRoPSI2MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMUUyOTNCIiBvcGFjaXR5PSIwLjQiIHN0cm9rZT0iIzMzNDE1NSIgcng9IjgiLz4KICA8dGV4dCB4PSI2MCIgeT0iMTEwIiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4xMDAlPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIzODAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjAlPC90ZXh0PgogIDx0ZXh0IHg9IjM3MCIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5yb2xsaW5nIDMwLWRheSB3aW5kb3cg4oaSPC90ZXh0PgoKICA8IS0tIGJ1ZGdldCBsaW5lIChzdXN0YWluYWJsZSBidXJuKSAtLT4KICA8bGluZSB4MT0iNzAiIHkxPSIxMTAiIHgyPSI2NzAiIHkyPSIzNjAiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2LDQiLz4KICA8dGV4dCB4PSI1NDAiIHk9IjMyMCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+c3VzdGFpbmFibGUgYnVybiAoMcOXKTwvdGV4dD4KCiAgPCEtLSBmYXN0IGJ1cm4gbGluZSAtLT4KICA8bGluZSB4MT0iNzAiIHkxPSIxMTAiIHgyPSIzMjAiIHkyPSIzNjAiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8dGV4dCB4PSIyNTAiIHk9IjIwMCIgZmlsbD0iI0ZDQTVBNSIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+ZmFzdCBidXJuICjiiYgxNMOXKTwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjIxNiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YnVkZ2V0IGdvbmUgaW4gfjIgZGF5czwvdGV4dD4KCiAgPCEtLSBzbG93IGJ1cm4gLS0+CiAgPGxpbmUgeDE9IjcwIiB5MT0iMTEwIiB4Mj0iNjcwIiB5Mj0iMjUwIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjU0MCIgeT0iMjMyIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5zbG93IGJ1cm4gKCZndDsxw5cpPC90ZXh0PgoKICA8IS0tIGJ1ZGdldCByZW1haW5pbmcgbWFya2VyIC0tPgogIDxjaXJjbGUgY3g9IjMyMCIgY3k9IjM2MCIgcj0iNSIgZmlsbD0iI0RFMzUwQiIvPgogIDx0ZXh0IHg9IjMyMCIgeT0iMzc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIj5idWRnZXQgZXhoYXVzdGVkPC90ZXh0PgoKICA8IS0tIHJpZ2h0IGxlZ2VuZCAtLT4KICA8cmVjdCB4PSI3MDAiIHk9IjkwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1IiByeD0iOCIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iMTE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5NdWx0aXdpbmRvdyBhbGVydGluZzwvdGV4dD4KICA8cmVjdCB4PSI3MTgiIHk9IjEzMiIgd2lkdGg9IjE2NCIgaGVpZ2h0PSI3NiIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iMTU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5GYXN0IGJ1cm4g4oaSIHBhZ2U8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSIxNzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPjE0w5cgb3ZlciAxaCBBTkQgNW08L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSIxOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmFjdXRlIG91dGFnZTwvdGV4dD4KICA8cmVjdCB4PSI3MTgiIHk9IjIxOCIgd2lkdGg9IjE2NCIgaGVpZ2h0PSI3NiIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjRkZCODAwIiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5TbG93IGJ1cm4g4oaSIHRpY2tldDwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+McOXIG92ZXIgM2QgQU5EIDZoPC90ZXh0PgogIDx0ZXh0IHg9IjgwMCIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5zdGVhZHkgZXJvc2lvbjwvdGV4dD4KICA8cmVjdCB4PSI3MTgiIHk9IjMwNCIgd2lkdGg9IjE2NCIgaGVpZ2h0PSI3MiIgZmlsbD0iIzBGMTcyQSIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iMzI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Ud28gd2luZG93czwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjM0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+bG9uZyA9IHNlbnNpdGl2aXR5PC90ZXh0PgogIDx0ZXh0IHg9IjgwMCIgeT0iMzY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5zaG9ydCA9IHJlc2V0IHNwZWVkPC90ZXh0PgoKICA8bGluZSB4MT0iNDAiIHkxPSI0MzAiIHgyPSI4OTAiIHkyPSI0MzAiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDY1IiB5PSI0NTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiPkFsZXJ0IG9uIGJ1cm4gcmF0ZSwgbm90IG9uIHRoZSByYXcgU0xJIHZhbHVlIOKAlCBpdCBjYXRjaGVzIGJvdGggdGhlIGFjdXRlIG91dGFnZSBhbmQgdGhlIHNsb3cgbGVhazwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+UmVxdWlyZSBib3RoIGEgbG9uZyBhbmQgYSBzaG9ydCB3aW5kb3cgdG8gY29uZmlybSwgc28gYSBicmllZiBibGlwIGRvZXMgbm90IHBhZ2UgYW55b25lPC90ZXh0Pgo8L3N2Zz4K" alt="Error budget and burn rate" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Signal | Catches acute outage | Catches slow leak | Flaps on blips |
+|--------|----------------------|-------------------|----------------|
+| Threshold on raw SLI | late | very late | yes |
+| Burn rate (multiwindow) | fast | yes | no |
+For environments where SVG doesn't render
+-->
+<p><a id="multiwindow"></a></p>
+<h2>2. Fast-Burn and Slow-Burn</h2>
+<p>The Google SRE Workbook's multiwindow, multi-burn-rate pattern requires <strong>two windows</strong> to agree before an alert fires. Its recommended parameters for a 99.9% SLO, reduced to the two tiers this notebook routes (page and ticket):</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Burn rate</th>
+<th>Windows (long AND short)</th>
+<th>Budget consumed in the long window</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fast burn</strong></td>
+<td>14.4×</td>
+<td>1 hour AND 5 minutes</td>
+<td>2%</td>
+<td>Page — acute, budget gone in ~2 days</td>
+</tr>
+<tr>
+<td><strong>Slow burn</strong></td>
+<td>1×</td>
+<td>3 days AND 6 hours</td>
+<td>10%</td>
+<td>Ticket — steady erosion</td>
+</tr>
+</tbody>
+</table>
+<p>The Workbook's table also carries a middle <strong>page</strong> tier — 6× over 6 hours AND 30 minutes (5% consumed) — for incidents too slow for the 1-hour window but too costly to leave to a ticket. Add it if your fast-burn tier alone misses those.</p>
+<p>The <strong>long window</strong> gives sensitivity (it confirms the burn is real); the <strong>short window</strong> gives fast reset (it stops alerting quickly once the burn stops). Requiring both prevents a momentary spike from paging anyone. The query below evaluates a fast-burn condition; wire it into a detector (Section 3):</p>
+<pre><code class="language-dql">// Fast-burn check: is the 1h burn rate &gt;= 14x against a 99.5% target?
+// Validated 10/14/2026: burn_rate 5.09, fast_burn 0. Averaging the 5-minute
+// ratios (arrayAvg) read 5.64 on the same hour: a quiet bucket counts like a busy one
+timeseries {
+  total = sum(dt.service.request.count),
+  failures = sum(dt.service.request.failure_count)
+}, from:-1h, interval:5m
+| fieldsAdd observed_bad = arraySum(failures) / arraySum(total)
+| fieldsAdd burn_rate = observed_bad / (1.0 - 0.995)
+| fieldsAdd fast_burn = if(burn_rate &gt;= 14, 1, else: 0)
+| fields burn_rate, fast_burn
+</code></pre>
+<p><a id="configuring"></a></p>
+<h2>3. Configuring SLO Alerts in Dynatrace</h2>
+<blockquote>
+<p><strong>Announced, then withdrawn (SaaS 1.347).</strong> An early version of the SaaS 1.347 release notes announced native multi-window burn-rate alerts for SLOs — the AND-across-two-windows condition §2 teaches you to build. Dynatrace took the item out of the notes on 09/08/2026, the day the rollout began: the changelog embedded in the release-notes page lists &quot;Burn rate alerting for SLOs&quot; among its removals, and as of 09/18/2026 the notes no longer mention burn-rate alerting at all.</p>
+<p><strong>Build the manual path.</strong> The SLO documentation still describes only the manual route — a <code>burnRate</code> field added to the SLI plus Anomaly Detection with a -1h look-back — which is what §2 and the rest of §3 build. If native multi-window alerting ships in a later release, it will appear in that release's notes, and this section will change then. Until it does, do not plan around it.</p>
+</blockquote>
+<p>Dynatrace surfaces SLO health as events you can alert on. The SLO documentation (re-read 09/28/2026) describes one route:</p>
+<ul>
+<li><strong>Anomaly Detection on the burn-rate query</strong> — when you want the full multiwindow fast/slow-burn logic, evaluate a burn-rate query in the Anomaly Detection app and let it raise a Davis event. See AIOPS-02 §4 for the detector build flow and event template.</li>
+</ul>
+<p>It does not describe an alert raised by the SLO object itself, so build on the Anomaly Detection route. The resulting event carries the SLO context you set in its event properties — which is what a workflow routes on.</p>
+<blockquote>
+<p><strong>Where the burn-rate custom alert is created (SaaS 1.344).</strong> <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings. Because Anomaly Detection is deprecated, we highly recommend that you use Settings to access your existing configurations and create new ones.&quot;</em> SaaS 1.344 rolls out to tenants in stages — check your tenant's version before following either path. On earlier versions the <strong>Anomaly Detection</strong> app is where custom alerts are created, and the Anomaly Detection route above is built there.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app">Anomaly Detection (DT docs)</a> — <em>&quot;Starting with Dynatrace version 1.344, custom alerts have moved to Settings.&quot;</em></sub></p>
+</blockquote>
+<p><strong>The documented recipe for the burn-rate query</strong> is to append two lines to the SLI definition, then feed that into Anomaly Detection:</p>
+<pre><code class="language-dql">| fieldsAdd sli = &quot;YOUR SLI&quot;
+| fieldsAdd target = &quot;YOUR SLO-target&quot; // in percentage
+| fieldsAdd burnRate = ((100 - sli[]) / (100 - target))
+| fieldsRemove sli
+</code></pre>
+<p>If you want one aggregated burn-rate value across every contributing entity rather than a per-entity series (at the cost of losing which entity is driving it), add a <code>summarize sloBurnRate = avg(burnRate[]), timeframe = takeFirst(timeframe), interval = takeFirst(interval)</code> step. Segments are <strong>not currently supported</strong> inside Anomaly Detection, so a segment-scoped SLO's burn-rate alert needs the segment expressed as a query filter instead.</p>
+<p><strong>Fast-burn tuning, per Dynatrace's own recommendation:</strong> Anomaly Detection's <strong>-1h look-back window</strong> is called out as well-suited for fast-burn alerting, with <strong>10–14</strong> as &quot;a good starting point&quot; for the static burn-rate threshold at that window — adjust up or down based on the SLO's criticality and evaluation period. Dynatrace also recommends four event properties on the custom alert so the resulting event carries enough context to route and correlate automatically: <strong><code>dt.source</code> entity</strong> (attaches the affected service entities), <strong><code>event.type</code></strong> (<code>ERROR_EVENT</code> / <code>AVAILABILITY_EVENT</code> / <code>PERFORMANCE_EVENT</code> — matches the event into Dynatrace Intelligence RCA), <strong><code>slo.name</code></strong> (ties the event back to the SLO, which is unique per environment), and <strong><code>dt.owner</code></strong> (drives automatic routing to the right team).</p>
+<blockquote>
+<p>The <strong>slow-burn tier</strong> in §2 (longer look-back, lower threshold, ticket-not-page routing) comes from the Google SRE Workbook, not from Dynatrace. As of 09/28/2026 the Dynatrace SLO documentation — the Service-Level Objectives page and its subpages — gives a numeric recommendation only for fast burn (the -1h look-back, 10–14); no slow-burn window or threshold appears there. Treat the Workbook values as a starting point to tune against your own traffic and SLO criticality rather than a vendor-specified default, and confirm your detector can evaluate the longer slow-burn windows before relying on them.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in Dynatrace SaaS 1.347 (DT docs)</a> — checked 09/18/2026: no burn-rate alerting item remains; see the page's changelog entry for 09/08/2026. <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-Level Objectives (DT docs)</a> — read 09/18/2026, still documenting only the manual <code>burnRate</code> + Anomaly Detection route.</sub></p>
+</blockquote>
+<p><a id="routing"></a></p>
+<h2>4. Routing SLO Breaches</h2>
+<p>A burn-rate custom alert raises a Davis event, which Dynatrace Intelligence considers when it detects problems. Route it with a workflow on that event, or on the problem it joins. Routing is the WFLOW series' job, not a separate mechanism:</p>
+<ol>
+<li><strong>Workflow trigger</strong> filters for the burn-rate event, or the problem it joins, on the event properties you set on the custom alert: <code>slo.name</code> and <code>dt.owner</code>.</li>
+<li><strong>Route to the owning team's channel</strong> — Slack, Teams, PagerDuty, or an ITSM incident.</li>
+<li><strong>Differentiate by tier</strong> — fast-burn → page (PagerDuty / on-call); slow-burn → ticket (Jira / ServiceNow).</li>
+</ol>
+<p>This is exactly the routing covered in WFLOW-04. The key dependency is upstream: the burn-rate detector's <strong>event template must carry the team/service metadata</strong> (AIOPS-02 §4) or the workflow has nothing to filter on.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-Level Objectives (DT docs)</a> — <em>&quot;an event with the set event properties is raised&quot;</em>; <code>dt.owner</code> is <em>&quot;a team identifier that allows automatic routing and ticketing&quot;</em>. Read 10/12/2026.</sub></p>
+</blockquote>
+<p><a id="fatigue"></a></p>
+<h2>5. Avoiding Alert Fatigue</h2>
+<ul>
+<li><strong>Only page on fast burn.</strong> Slow burn is a ticket, not a 3 a.m. call.</li>
+<li><strong>Require both windows.</strong> The short window is what stops the alert from re-firing as conditions recover.</li>
+<li><strong>Set recovery/dealerting deliberately.</strong> Use the detector's <code>dealertingSamples</code> (AIOPS-02 §4) so an alert closes cleanly rather than flapping.</li>
+<li><strong>One SLO breach, one notification.</strong> Let the problem group related signals; do not also alert on the underlying raw metrics or you double-notify.</li>
+<li><strong>Review what fired.</strong> If an SLO pages and no one acts, the target or the burn thresholds are wrong — tune them.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/service-level-objectives">Service-Level Objectives (DT docs)</a> — burn-rate DQL append pattern, -1h/10–14 fast-burn recommendation, and the four recommended event properties are cited verbatim from the &quot;Monitor error-budget burn rates&quot; section (fetched 07/01/2026, re-read 09/28/2026); <a href="https://sre.google/workbook/alerting-on-slos/">Site Reliability Engineering — Alerting on SLOs (Google SRE Workbook)</a> — the §2 window pairs are from its <em>&quot;Recommended parameters for a 99.9% SLO alerting configuration&quot;</em> table. Fast-burn query re-executed against a live tenant 08/28/2026 (burn_rate 9.05, fast_burn 0 — below the 14x trigger, which is the expected shape for a healthy window); switched to window totals and re-executed 10/14/2026 (burn_rate 5.09, fast_burn 0). The fast-burn-only scope of the Dynatrace recommendation is a dated reading (09/28/2026) of the Service-Level Objectives page and its seven subpages, none of which gives a slow-burn window or threshold.</sub></p>
+</blockquote>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

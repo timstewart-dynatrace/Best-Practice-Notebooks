@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORGNZ-02: Understanding Grail Buckets</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ORGNZ — Organize Data: Buckets, Segments, Security</a><span class="sep">/</span><span aria-current="page">ORGNZ-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ORGNZ-02: Understanding Grail Buckets</h1>
+<blockquote>
+<p><strong>Series:</strong> ORGNZ — Organize Data: Buckets, Segments, Security | <strong>Notebook:</strong> 2 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Buckets</strong> are logical storage containers in Dynatrace Grail where records are stored. Think of a bucket as a folder in a filesystem. Use buckets to group telemetry data that naturally belongs together, such as data from the same region, environment, or with the same sensitivity classification.</p>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS environment with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:buckets:read</code>, <code>storage:logs:read</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completed ORGNZ-01 (Introduction)</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 1 hour of log data across default buckets</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-are-buckets">What Are Buckets?</a></li>
+<li><a href="#built-in-grail-buckets">Built-in Grail Buckets</a></li>
+<li><a href="#supported-data-types-tables">Supported Data Types (Tables)</a></li>
+<li><a href="#system-tables">System Tables</a></li>
+<li><a href="#bucket-limits">Bucket Limits</a></li>
+<li><a href="#query-constraints">Query Constraints</a></li>
+<li><a href="#default-buckets">Default Buckets</a></li>
+<li><a href="#querying-bucket-information">Querying Bucket Information</a></li>
+<li><a href="#querying-data-from-buckets">Querying Data from Buckets</a></li>
+<li><a href="#bucket-characteristics">Bucket Characteristics</a></li>
+<li><a href="#bucket-naming-rules">Bucket Naming Rules</a></li>
+<li><a href="#when-to-create-custom-buckets">When to Create Custom Buckets</a></li>
+</ol>
+<hr />
+<h3>Bucket Administration Permissions</h3>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:bucket-definitions:read</code></td>
+<td>View bucket configurations</td>
+</tr>
+<tr>
+<td><code>storage:bucket-definitions:write</code></td>
+<td>Create and modify buckets</td>
+</tr>
+<tr>
+<td><code>storage:bucket-definitions:delete</code></td>
+<td>Remove buckets</td>
+</tr>
+<tr>
+<td><code>storage:bucket-definitions:truncate</code></td>
+<td>Truncate bucket data</td>
+</tr>
+</tbody>
+</table>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Understand bucket fundamentals and supported data types</li>
+<li>Know bucket limits and query constraints</li>
+<li>Query bucket information using DQL</li>
+<li>Recognize when custom buckets are needed</li>
+</ul>
+<p><a id="what-are-buckets"></a></p>
+<h2>What Are Buckets?</h2>
+<p>Buckets organize data to meet performance, compliance, and retention requirements:</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Data Grouping</strong></td>
+<td>Organize large datasets into meaningful segments</td>
+</tr>
+<tr>
+<td><strong>Streamlined Organization</strong></td>
+<td>Records that should be handled together are stored together</td>
+</tr>
+<tr>
+<td><strong>Query Performance</strong></td>
+<td>Reduced queried dataset improves query speed</td>
+</tr>
+<tr>
+<td><strong>Retention Management</strong></td>
+<td>Each bucket has its own retention policy</td>
+</tr>
+<tr>
+<td><strong>Access Control</strong></td>
+<td>Bucket-level IAM policies for team isolation</td>
+</tr>
+<tr>
+<td><strong>Retention Cost</strong></td>
+<td>Storage cost follows each bucket's retention; attribute cost to teams with <code>dt.cost.*</code> fields (ORGNZ-03)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="built-in-grail-buckets"></a></p>
+<h2>Built-in Grail Buckets</h2>
+<p>Dynatrace provides a set of predefined built-in buckets that cannot be modified. Use this DQL to discover them all:</p>
+<pre><code class="language-dql">fetch dt.system.buckets
+| filter startsWith(name, &quot;default_&quot;) or startsWith(name, &quot;dt_&quot;)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Bucket Name</th>
+<th>Table</th>
+<th>Default Retention</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>default_logs</code></td>
+<td>logs</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_metrics</code></td>
+<td>metrics</td>
+<td>15 months</td>
+</tr>
+<tr>
+<td><code>default_spans</code></td>
+<td>spans</td>
+<td>10 days</td>
+</tr>
+<tr>
+<td><code>default_events</code></td>
+<td>events</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_davis_events</code></td>
+<td>events</td>
+<td>462 days (~15 months) — Davis events and problems</td>
+</tr>
+<tr>
+<td><code>default_bizevents</code></td>
+<td>bizevents</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_securityevents</code></td>
+<td>security.events</td>
+<td>1 year</td>
+</tr>
+<tr>
+<td><code>default_securityevents_builtin</code></td>
+<td>security.events</td>
+<td>3 years</td>
+</tr>
+<tr>
+<td><code>default_user_events</code></td>
+<td>user.events</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_user_sessions</code></td>
+<td>user.sessions</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_mobile_user_replays</code></td>
+<td>user.replays</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_web_user_replays</code></td>
+<td>user.replays</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_synthetic_events</code></td>
+<td>events</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_synthetic_user_events</code></td>
+<td>user.events</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_synthetic_user_sessions</code></td>
+<td>user.sessions</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_synthetic_detailed_events</code></td>
+<td>events</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_database_monitoring</code></td>
+<td>logs</td>
+<td>35 days — logs from Dynatrace database extensions</td>
+</tr>
+<tr>
+<td><code>default_application_snapshots</code></td>
+<td>application.snapshots</td>
+<td>10 days</td>
+</tr>
+<tr>
+<td><code>dt_system_events</code></td>
+<td>dt.system.events</td>
+<td>~13 months (400 days on the validation tenant)</td>
+</tr>
+</tbody>
+</table>
+<p>The built-in set varies by tenant and grows as Dynatrace adds capabilities — the query above is authoritative for your environment. (Checked 09/24/2026: the validation tenant also carries <code>default_security_events</code>, <code>default_security</code> and several other <code>default_*</code> event buckets not listed here.)</p>
+<blockquote>
+<p><strong>Note:</strong> The <code>default_securityevents</code> table was recently migrated to a new Grail security events schema. If you use security events, follow the <a href="https://docs.dynatrace.com/docs/secure/threat-observability/concepts">Grail security table migration guide</a> to complete any required actions.</p>
+</blockquote>
+<blockquote>
+<p><strong>Forthcoming — SaaS 1.353 (planned December 2026), announced in the SaaS 1.350 release notes:</strong> <em>&quot;With Dynatrace SaaS version 1.353, planned for December 2026, security events become fully configurable in OpenPipeline, and security event storage consolidates into a single Grail bucket with a new default retention period.&quot;</em> <em>&quot;All events will flow into the new default_security bucket automatically.&quot;</em> Act before it reaches your tenant if you query security events by bucket name — <em>&quot;Notebooks, dashboards, and workflows filtering on default_securityevents or default_securityevents_builtin need updating.&quot;</em> — or if <em>&quot;You rely on retention beyond 35 days.&quot;</em> Until SaaS 1.353 reaches your tenant, the security-event buckets and retention listed above remain current.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-350">What's new in Dynatrace SaaS 1.350 (DT docs)</a> — <em>&quot;Rollout start on Nov 4, 2026&quot;</em>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Extended retention:</strong> You can extend bucket retention beyond the defaults by joining the Dynatrace preview program. See <a href="https://docs.dynatrace.com/docs/whats-new/preview-releases#extended-retention-for-rum-and-synthetic">Preview releases</a> for details.</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgMzcwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnMDJtIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBmMTcyYSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTI5M2IiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgoKICA8cmVjdCB3aWR0aD0iOTMwIiBoZWlnaHQ9IjM3MCIgZmlsbD0idXJsKCNiZzAybSkiLz4KCiAgPCEtLSBMZWZ0IGJhbmQgc2VwYXJhdG9yIC0tPgogIDxsaW5lIHgxPSI2OCIgeTE9IjAiIHgyPSI2OCIgeTI9IjM3MCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KCiAgPCEtLSBSb3cgbGFiZWxzIC0tPgogIDx0ZXh0IHg9IjM0IiB5PSIxNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkRlZmF1bHQ8L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjE2MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+QnVja2V0czwvdGV4dD4KICA8dGV4dCB4PSIzNCIgeT0iMjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5DdXN0b208L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjI5NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+QnVja2V0czwvdGV4dD4KCiAgPCEtLSBEZWZhdWx0L0N1c3RvbSBzZXBhcmF0b3IgLS0+CiAgPGxpbmUgeDE9IjY4IiB5MT0iMjEwIiB4Mj0iOTMwIiB5Mj0iMjEwIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtZGFzaGFycmF5PSI2LDQiLz4KCiAgPCEtLSBDb2x1bW4gZGl2aWRlcnMgLS0+CiAgPGxpbmUgeDE9IjMyOCIgeTE9IjEwIiB4Mj0iMzI4IiB5Mj0iMzYwIiBzdHJva2U9IiMxZTI5M2IiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjYwMiIgeTE9IjEwIiB4Mj0iNjAyIiB5Mj0iMzYwIiBzdHJva2U9IiMxZTI5M2IiIHN0cm9rZS13aWR0aD0iMS41Ii8+CgogIDwhLS0gQ29sdW1uIGNlbnRlcnM6IGxvZ3M9MTkwLCBldmVudHM9NDY1LCBzcGFucz03NDAgLS0+CgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQIC0tPgogIDwhLS0gTE9HUyBDT0xVTU4gKGN4PTE5MCkgICAgICAgICAgICAgICAgICAgICAgICAgICAtLT4KICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KCiAgPCEtLSBEQiBpY29uIC0tPgogIDxyZWN0IHg9IjE2NiIgeT0iMjgiIHdpZHRoPSI0OCIgaGVpZ2h0PSIzNiIgZmlsbD0iIzE3MjU1NCIvPgogIDxsaW5lIHgxPSIxNjYiIHkxPSIyOCIgeDI9IjE2NiIgeTI9IjY0IiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPGxpbmUgeDE9IjIxNCIgeTE9IjI4IiB4Mj0iMjE0IiB5Mj0iNjQiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8ZWxsaXBzZSBjeD0iMTkwIiBjeT0iMjgiIHJ4PSIyNCIgcnk9IjgiIGZpbGw9IiMxZTQwYWYiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8ZWxsaXBzZSBjeD0iMTkwIiBjeT0iNDYiIHJ4PSIyNCIgcnk9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8ZWxsaXBzZSBjeD0iMTkwIiBjeT0iNjQiIHJ4PSIyNCIgcnk9IjgiIGZpbGw9IiMxNzI1NTQiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8dGV4dCB4PSIxOTAiIHk9Ijg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTNjNWZkIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5sb2dzPC90ZXh0PgoKICA8IS0tIFNwaW5lIC0tPgogIDxsaW5lIHgxPSIxOTAiIHkxPSI4OCIgeDI9IjE5MCIgeTI9IjI1OCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgoKICA8IS0tIGRlZmF1bHRfbG9ncyAodG9wX3k9MTAwKSAtLT4KICA8ZWxsaXBzZSBjeD0iMTkwIiBjeT0iMTAwIiByeD0iMjQiIHJ5PSI3IiBmaWxsPSIjMWU0MGFmIiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik0xNjYgMTAwIFExOTAgMTA3IDIxNCAxMDAgTDIxMCAxMzggUTE5MCAxNDUgMTcwIDEzOCBaIiBmaWxsPSIjMTcyNTU0Ii8+CiAgPGxpbmUgeDE9IjE2NiIgeTE9IjEwMCIgeDI9IjE3MCIgeTI9IjEzOCIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMjE0IiB5MT0iMTAwIiB4Mj0iMjEwIiB5Mj0iMTM4IiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSIxOTAiIGN5PSIxMzgiIHJ4PSIyMCIgcnk9IjYiIGZpbGw9IiMxNzI1NTQiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjE5MCIgY3k9IjEwMCIgcng9IjI0IiByeT0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxOTAiIHk9IjE1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2JmZGJmZSIgZm9udC1zaXplPSIxMSI+ZGVmYXVsdF9sb2dzPC90ZXh0PgoKICA8IS0tIEJyYW5jaCBiYXIgKHk9MjU4KSAtLT4KICA8bGluZSB4MT0iMTAwIiB5MT0iMjU4IiB4Mj0iMjgwIiB5Mj0iMjU4IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjEwMCIgeTE9IjI1OCIgeDI9IjEwMCIgeTI9IjI3MiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSIxOTAiIHkxPSIyNTgiIHgyPSIxOTAiIHkyPSIyNzIiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iMjgwIiB5MT0iMjU4IiB4Mj0iMjgwIiB5Mj0iMjcyIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CgogIDwhLS0gbG9nc19zaGFyZWQgKGN4PTEwMCwgdG9wX3k9MjcyKSAtLT4KICA8ZWxsaXBzZSBjeD0iMTAwIiBjeT0iMjcyIiByeD0iMjIiIHJ5PSI3IiBmaWxsPSIjMTY0ZTYzIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPHBhdGggZD0iTTc4IDI3MiBRMTAwIDI3OSAxMjIgMjcyIEwxMTggMzA4IFExMDAgMzE1IDgyIDMwOCBaIiBmaWxsPSIjMGMyZDNhIi8+CiAgPGxpbmUgeDE9Ijc4IiB5MT0iMjcyIiB4Mj0iODIiIHkyPSIzMDgiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8bGluZSB4MT0iMTIyIiB5MT0iMjcyIiB4Mj0iMTE4IiB5Mj0iMzA4IiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGVsbGlwc2UgY3g9IjEwMCIgY3k9IjMwOCIgcng9IjE4IiByeT0iNSIgZmlsbD0iIzBjMmQzYSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxlbGxpcHNlIGN4PSIxMDAiIGN5PSIyNzIiIHJ4PSIyMiIgcnk9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8dGV4dCB4PSIxMDAiIHk9IjMyNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E1ZjNmYyIgZm9udC1zaXplPSIxMCI+bG9nc19zaGFyZWQ8L3RleHQ+CgogIDwhLS0gbG9nc19kZWxpdmVyeSAoY3g9MTkwLCB0b3BfeT0yNzIpIC0tPgogIDxlbGxpcHNlIGN4PSIxOTAiIGN5PSIyNzIiIHJ4PSIyMiIgcnk9IjciIGZpbGw9IiMxNjRlNjMiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8cGF0aCBkPSJNMTY4IDI3MiBRMTkwIDI3OSAyMTIgMjcyIEwyMDggMzA4IFExOTAgMzE1IDE3MiAzMDggWiIgZmlsbD0iIzBjMmQzYSIvPgogIDxsaW5lIHgxPSIxNjgiIHkxPSIyNzIiIHgyPSIxNzIiIHkyPSIzMDgiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8bGluZSB4MT0iMjEyIiB5MT0iMjcyIiB4Mj0iMjA4IiB5Mj0iMzA4IiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGVsbGlwc2UgY3g9IjE5MCIgY3k9IjMwOCIgcng9IjE4IiByeT0iNSIgZmlsbD0iIzBjMmQzYSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxlbGxpcHNlIGN4PSIxOTAiIGN5PSIyNzIiIHJ4PSIyMiIgcnk9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8dGV4dCB4PSIxOTAiIHk9IjMyNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E1ZjNmYyIgZm9udC1zaXplPSIxMCI+bG9nc19kZWxpdmVyeTwvdGV4dD4KCiAgPCEtLSBsb2dzX2luZnJhIChjeD0yODAsIHRvcF95PTI3MikgLS0+CiAgPGVsbGlwc2UgY3g9IjI4MCIgY3k9IjI3MiIgcng9IjIyIiByeT0iNyIgZmlsbD0iIzMzNDE1NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxwYXRoIGQ9Ik0yNTggMjcyIFEyODAgMjc5IDMwMiAyNzIgTDI5OCAzMDggUTI4MCAzMTUgMjYyIDMwOCBaIiBmaWxsPSIjMWUyOTNiIi8+CiAgPGxpbmUgeDE9IjI1OCIgeTE9IjI3MiIgeDI9IjI2MiIgeTI9IjMwOCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxsaW5lIHgxPSIzMDIiIHkxPSIyNzIiIHgyPSIyOTgiIHkyPSIzMDgiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8ZWxsaXBzZSBjeD0iMjgwIiBjeT0iMzA4IiByeD0iMTgiIHJ5PSI1IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGVsbGlwc2UgY3g9IjI4MCIgY3k9IjI3MiIgcng9IjIyIiByeT0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDx0ZXh0IHg9IjI4MCIgeT0iMzI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LXNpemU9IjEwIj5sb2dzX2luZnJhPC90ZXh0PgoKICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KICA8IS0tIEVWRU5UUyBDT0xVTU4gKGN4PTQ2NSkgICAgICAgICAgICAgICAgICAgICAgICAgLS0+CiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CgogIDwhLS0gREIgaWNvbiAtLT4KICA8cmVjdCB4PSI0NDEiIHk9IjI4IiB3aWR0aD0iNDgiIGhlaWdodD0iMzYiIGZpbGw9IiMxNzI1NTQiLz4KICA8bGluZSB4MT0iNDQxIiB5MT0iMjgiIHgyPSI0NDEiIHkyPSI2NCIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjIuNSIvPgogIDxsaW5lIHgxPSI0ODkiIHkxPSIyOCIgeDI9IjQ4OSIgeTI9IjY0IiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPGVsbGlwc2UgY3g9IjQ2NSIgY3k9IjI4IiByeD0iMjQiIHJ5PSI4IiBmaWxsPSIjMWU0MGFmIiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPGVsbGlwc2UgY3g9IjQ2NSIgY3k9IjQ2IiByeD0iMjQiIHJ5PSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGVsbGlwc2UgY3g9IjQ2NSIgY3k9IjY0IiByeD0iMjQiIHJ5PSI4IiBmaWxsPSIjMTcyNTU0IiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSI4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzkzYzVmZCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+ZXZlbnRzPC90ZXh0PgoKICA8IS0tIFNwaW5lIC0tPgogIDxsaW5lIHgxPSI0NjUiIHkxPSI4OCIgeDI9IjQ2NSIgeTI9IjI1OCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgoKICA8IS0tIGRlZmF1bHRfZXZlbnRzICh0b3BfeT0xMDApIC0tPgogIDxlbGxpcHNlIGN4PSI0NjUiIGN5PSIxMDAiIHJ4PSIyNCIgcnk9IjciIGZpbGw9IiMxZTQwYWYiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBhdGggZD0iTTQ0MSAxMDAgUTQ2NSAxMDcgNDg5IDEwMCBMNDg1IDEzOCBRNDY1IDE0NSA0NDUgMTM4IFoiIGZpbGw9IiMxNzI1NTQiLz4KICA8bGluZSB4MT0iNDQxIiB5MT0iMTAwIiB4Mj0iNDQ1IiB5Mj0iMTM4IiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI0ODkiIHkxPSIxMDAiIHgyPSI0ODUiIHkyPSIxMzgiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjQ2NSIgY3k9IjEzOCIgcng9IjIwIiByeT0iNiIgZmlsbD0iIzE3MjU1NCIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8ZWxsaXBzZSBjeD0iNDY1IiBjeT0iMTAwIiByeD0iMjQiIHJ5PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYmZkYmZlIiBmb250LXNpemU9IjExIj5kZWZhdWx0X2V2ZW50czwvdGV4dD4KCiAgPCEtLSBCcmFuY2ggYmFyICh5PTI1OCkgLS0+CiAgPGxpbmUgeDE9IjM3NSIgeTE9IjI1OCIgeDI9IjU1NSIgeTI9IjI1OCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSIzNzUiIHkxPSIyNTgiIHgyPSIzNzUiIHkyPSIyNzIiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iNDY1IiB5MT0iMjU4IiB4Mj0iNDY1IiB5Mj0iMjcyIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjU1NSIgeTE9IjI1OCIgeDI9IjU1NSIgeTI9IjI3MiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgoKICA8IS0tIGV2ZW50c19zaGFyZWQgKGN4PTM3NSwgdG9wX3k9MjcyKSAtLT4KICA8ZWxsaXBzZSBjeD0iMzc1IiBjeT0iMjcyIiByeD0iMjIiIHJ5PSI3IiBmaWxsPSIjMTY0ZTYzIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPHBhdGggZD0iTTM1MyAyNzIgUTM3NSAyNzkgMzk3IDI3MiBMMzkzIDMwOCBRMzc1IDMxNSAzNTcgMzA4IFoiIGZpbGw9IiMwYzJkM2EiLz4KICA8bGluZSB4MT0iMzUzIiB5MT0iMjcyIiB4Mj0iMzU3IiB5Mj0iMzA4IiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGxpbmUgeDE9IjM5NyIgeTE9IjI3MiIgeDI9IjM5MyIgeTI9IjMwOCIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxlbGxpcHNlIGN4PSIzNzUiIGN5PSIzMDgiIHJ4PSIxOCIgcnk9IjUiIGZpbGw9IiMwYzJkM2EiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8ZWxsaXBzZSBjeD0iMzc1IiBjeT0iMjcyIiByeD0iMjIiIHJ5PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPHRleHQgeD0iMzc1IiB5PSIzMjciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhNWYzZmMiIGZvbnQtc2l6ZT0iMTAiPmV2ZW50c19zaGFyZWQ8L3RleHQ+CgogIDwhLS0gZXZlbnRzX2RlbGl2ZXJ5IChjeD00NjUsIHRvcF95PTI3MikgLS0+CiAgPGVsbGlwc2UgY3g9IjQ2NSIgY3k9IjI3MiIgcng9IjIyIiByeT0iNyIgZmlsbD0iIzE2NGU2MyIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxwYXRoIGQ9Ik00NDMgMjcyIFE0NjUgMjc5IDQ4NyAyNzIgTDQ4MyAzMDggUTQ2NSAzMTUgNDQ3IDMwOCBaIiBmaWxsPSIjMGMyZDNhIi8+CiAgPGxpbmUgeDE9IjQ0MyIgeTE9IjI3MiIgeDI9IjQ0NyIgeTI9IjMwOCIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxsaW5lIHgxPSI0ODciIHkxPSIyNzIiIHgyPSI0ODMiIHkyPSIzMDgiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8ZWxsaXBzZSBjeD0iNDY1IiBjeT0iMzA4IiByeD0iMTgiIHJ5PSI1IiBmaWxsPSIjMGMyZDNhIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGVsbGlwc2UgY3g9IjQ2NSIgY3k9IjI3MiIgcng9IjIyIiByeT0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTVmM2ZjIiBmb250LXNpemU9IjEwIj5ldmVudHNfZGVsaXZlcnk8L3RleHQ+CgogIDwhLS0gZXZlbnRzX2luZnJhIChjeD01NTUsIHRvcF95PTI3MikgLS0+CiAgPGVsbGlwc2UgY3g9IjU1NSIgY3k9IjI3MiIgcng9IjIyIiByeT0iNyIgZmlsbD0iIzMzNDE1NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxwYXRoIGQ9Ik01MzMgMjcyIFE1NTUgMjc5IDU3NyAyNzIgTDU3MyAzMDggUTU1NSAzMTUgNTM3IDMwOCBaIiBmaWxsPSIjMWUyOTNiIi8+CiAgPGxpbmUgeDE9IjUzMyIgeTE9IjI3MiIgeDI9IjUzNyIgeTI9IjMwOCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxsaW5lIHgxPSI1NzciIHkxPSIyNzIiIHgyPSI1NzMiIHkyPSIzMDgiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8ZWxsaXBzZSBjeD0iNTU1IiBjeT0iMzA4IiByeD0iMTgiIHJ5PSI1IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGVsbGlwc2UgY3g9IjU1NSIgY3k9IjI3MiIgcng9IjIyIiByeT0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDx0ZXh0IHg9IjU1NSIgeT0iMzI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LXNpemU9IjEwIj5ldmVudHNfaW5mcmE8L3RleHQ+CgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQIC0tPgogIDwhLS0gU1BBTlMgQ09MVU1OIChjeD03NDApICAgICAgICAgICAgICAgICAgICAgICAgICAtLT4KICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KCiAgPCEtLSBEQiBpY29uIC0tPgogIDxyZWN0IHg9IjcxNiIgeT0iMjgiIHdpZHRoPSI0OCIgaGVpZ2h0PSIzNiIgZmlsbD0iIzE3MjU1NCIvPgogIDxsaW5lIHgxPSI3MTYiIHkxPSIyOCIgeDI9IjcxNiIgeTI9IjY0IiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPGxpbmUgeDE9Ijc2NCIgeTE9IjI4IiB4Mj0iNzY0IiB5Mj0iNjQiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8ZWxsaXBzZSBjeD0iNzQwIiBjeT0iMjgiIHJ4PSIyNCIgcnk9IjgiIGZpbGw9IiMxZTQwYWYiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8ZWxsaXBzZSBjeD0iNzQwIiBjeT0iNDYiIHJ4PSIyNCIgcnk9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8ZWxsaXBzZSBjeD0iNzQwIiBjeT0iNjQiIHJ4PSIyNCIgcnk9IjgiIGZpbGw9IiMxNzI1NTQiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8dGV4dCB4PSI3NDAiIHk9Ijg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTNjNWZkIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5zcGFuczwvdGV4dD4KCiAgPCEtLSBTcGluZSAtLT4KICA8bGluZSB4MT0iNzQwIiB5MT0iODgiIHgyPSI3NDAiIHkyPSIyNTgiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KCiAgPCEtLSBkZWZhdWx0X3NwYW5zICh0b3BfeT0xMDApIC0tPgogIDxlbGxpcHNlIGN4PSI3NDAiIGN5PSIxMDAiIHJ4PSIyNCIgcnk9IjciIGZpbGw9IiMxZTQwYWYiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBhdGggZD0iTTcxNiAxMDAgUTc0MCAxMDcgNzY0IDEwMCBMNzYwIDEzOCBRNzQwIDE0NSA3MjAgMTM4IFoiIGZpbGw9IiMxNzI1NTQiLz4KICA8bGluZSB4MT0iNzE2IiB5MT0iMTAwIiB4Mj0iNzIwIiB5Mj0iMTM4IiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI3NjQiIHkxPSIxMDAiIHgyPSI3NjAiIHkyPSIxMzgiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9Ijc0MCIgY3k9IjEzOCIgcng9IjIwIiByeT0iNiIgZmlsbD0iIzE3MjU1NCIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8ZWxsaXBzZSBjeD0iNzQwIiBjeT0iMTAwIiByeD0iMjQiIHJ5PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9Ijc0MCIgeT0iMTU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYmZkYmZlIiBmb250LXNpemU9IjExIj5kZWZhdWx0X3NwYW5zPC90ZXh0PgoKICA8IS0tIEJyYW5jaCBiYXIgKHk9MjU4KSAtLT4KICA8bGluZSB4MT0iNjUwIiB5MT0iMjU4IiB4Mj0iODMwIiB5Mj0iMjU4IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjY1MCIgeTE9IjI1OCIgeDI9IjY1MCIgeTI9IjI3MiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSI3NDAiIHkxPSIyNTgiIHgyPSI3NDAiIHkyPSIyNzIiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iODMwIiB5MT0iMjU4IiB4Mj0iODMwIiB5Mj0iMjcyIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CgogIDwhLS0gc3BhbnNfc2hhcmVkIChjeD02NTAsIHRvcF95PTI3MikgLS0+CiAgPGVsbGlwc2UgY3g9IjY1MCIgY3k9IjI3MiIgcng9IjIyIiByeT0iNyIgZmlsbD0iIzE2NGU2MyIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxwYXRoIGQ9Ik02MjggMjcyIFE2NTAgMjc5IDY3MiAyNzIgTDY2OCAzMDggUTY1MCAzMTUgNjMyIDMwOCBaIiBmaWxsPSIjMGMyZDNhIi8+CiAgPGxpbmUgeDE9IjYyOCIgeTE9IjI3MiIgeDI9IjYzMiIgeTI9IjMwOCIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxsaW5lIHgxPSI2NzIiIHkxPSIyNzIiIHgyPSI2NjgiIHkyPSIzMDgiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8ZWxsaXBzZSBjeD0iNjUwIiBjeT0iMzA4IiByeD0iMTgiIHJ5PSI1IiBmaWxsPSIjMGMyZDNhIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGVsbGlwc2UgY3g9IjY1MCIgY3k9IjI3MiIgcng9IjIyIiByeT0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDx0ZXh0IHg9IjY1MCIgeT0iMzI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTVmM2ZjIiBmb250LXNpemU9IjEwIj5zcGFuc19zaGFyZWQ8L3RleHQ+CgogIDwhLS0gc3BhbnNfZGVsaXZlcnkgKGN4PTc0MCwgdG9wX3k9MjcyKSAtLT4KICA8ZWxsaXBzZSBjeD0iNzQwIiBjeT0iMjcyIiByeD0iMjIiIHJ5PSI3IiBmaWxsPSIjMTY0ZTYzIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPHBhdGggZD0iTTcxOCAyNzIgUTc0MCAyNzkgNzYyIDI3MiBMNzU4IDMwOCBRNzQwIDMxNSA3MjIgMzA4IFoiIGZpbGw9IiMwYzJkM2EiLz4KICA8bGluZSB4MT0iNzE4IiB5MT0iMjcyIiB4Mj0iNzIyIiB5Mj0iMzA4IiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGxpbmUgeDE9Ijc2MiIgeTE9IjI3MiIgeDI9Ijc1OCIgeTI9IjMwOCIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxlbGxpcHNlIGN4PSI3NDAiIGN5PSIzMDgiIHJ4PSIxOCIgcnk9IjUiIGZpbGw9IiMwYzJkM2EiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8ZWxsaXBzZSBjeD0iNzQwIiBjeT0iMjcyIiByeD0iMjIiIHJ5PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPHRleHQgeD0iNzQwIiB5PSIzMjciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhNWYzZmMiIGZvbnQtc2l6ZT0iMTAiPnNwYW5zX2RlbGl2ZXJ5PC90ZXh0PgoKICA8IS0tIHNwYW5zX2luZnJhIChjeD04MzAsIHRvcF95PTI3MikgLS0+CiAgPGVsbGlwc2UgY3g9IjgzMCIgY3k9IjI3MiIgcng9IjIyIiByeT0iNyIgZmlsbD0iIzMzNDE1NSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxwYXRoIGQ9Ik04MDggMjcyIFE4MzAgMjc5IDg1MiAyNzIgTDg0OCAzMDggUTgzMCAzMTUgODEyIDMwOCBaIiBmaWxsPSIjMWUyOTNiIi8+CiAgPGxpbmUgeDE9IjgwOCIgeTE9IjI3MiIgeDI9IjgxMiIgeTI9IjMwOCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxsaW5lIHgxPSI4NTIiIHkxPSIyNzIiIHgyPSI4NDgiIHkyPSIzMDgiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8ZWxsaXBzZSBjeD0iODMwIiBjeT0iMzA4IiByeD0iMTgiIHJ5PSI1IiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGVsbGlwc2UgY3g9IjgzMCIgY3k9IjI3MiIgcng9IjIyIiByeT0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDx0ZXh0IHg9IjgzMCIgeT0iMzI3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LXNpemU9IjEwIj5zcGFuc19pbmZyYTwvdGV4dD4KCjwvc3ZnPgo=" alt="Bucket Hierarchy — Logs, Events, and Spans" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Column | Tier | Buckets |
+|--------|------|---------|
+| logs | Default | default_logs |
+| logs | Custom | logs_shared, logs_delivery, logs_accounting, logs_infra |
+| events | Default | default_events |
+| events | Custom | events_shared, events_delivery, events_accounting, events_infra |
+| spans | Default | default_spans |
+| spans | Custom | spans_shared, spans_delivery, spans_accounting, spans_infra |
+-->
+<p><a id="supported-data-types-tables"></a></p>
+<h2>Supported Data Types (Tables)</h2>
+<p>Each bucket is associated with exactly <strong>one data type</strong>. You cannot mix data types in the same bucket.</p>
+<p><strong>Custom buckets can be created for:</strong> logs, events, security events, bizevents, spans, user events and user sessions — and, from SaaS 1.349, metrics (see below).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Use Grail buckets to partition data (DT docs)</a> — <em>&quot;Buckets are always associated with a specific record type, such as logs, events, spans, user events, or user sessions&quot;</em>.</sub></p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4ODAgNDIwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnMDJsIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzBmMTcyYSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxZTI5M2IiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgoKICA8cmVjdCB3aWR0aD0iODgwIiBoZWlnaHQ9IjQyMCIgZmlsbD0idXJsKCNiZzAybCkiLz4KCiAgPCEtLSBMZWZ0IGJhbmQgc2VwYXJhdG9yIC0tPgogIDxsaW5lIHgxPSI2OCIgeTE9IjAiIHgyPSI2OCIgeTI9IjQyMCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KCiAgPCEtLSBSb3cgbGFiZWxzIC0tPgogIDx0ZXh0IHg9IjM0IiB5PSIxNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkRlZmF1bHQ8L3RleHQ+CiAgPHRleHQgeD0iMzQiIHk9IjE2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+QnVja2V0PC90ZXh0PgogIDx0ZXh0IHg9IjM0IiB5PSIyOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NGEzYjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI2MDAiPkN1c3RvbTwvdGV4dD4KICA8dGV4dCB4PSIzNCIgeT0iMzA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNjAwIj5CdWNrZXRzPC90ZXh0PgoKICA8IS0tIERlZmF1bHQvQ3VzdG9tIHNlcGFyYXRvciAtLT4KICA8bGluZSB4MT0iNjgiIHkxPSIyMTMiIHgyPSI4NjAiIHkyPSIyMTMiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYsNCIvPgoKICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KICA8IS0tIGxvZ3MgREIgaWNvbiAoY3g9NDQwKSAgICAgICAgIC0tPgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQIC0tPgogIDxyZWN0IHg9IjQxNiIgeT0iMzgiIHdpZHRoPSI0OCIgaGVpZ2h0PSIzNiIgZmlsbD0iIzE3MjU1NCIvPgogIDxsaW5lIHgxPSI0MTYiIHkxPSIzOCIgeDI9IjQxNiIgeTI9Ijc0IiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPGxpbmUgeDE9IjQ2NCIgeTE9IjM4IiB4Mj0iNDY0IiB5Mj0iNzQiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8ZWxsaXBzZSBjeD0iNDQwIiBjeT0iMzgiIHJ4PSIyNCIgcnk9IjgiIGZpbGw9IiMxZTQwYWYiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8ZWxsaXBzZSBjeD0iNDQwIiBjeT0iNTYiIHJ4PSIyNCIgcnk9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8ZWxsaXBzZSBjeD0iNDQwIiBjeT0iNzQiIHJ4PSIyNCIgcnk9IjgiIGZpbGw9IiMxNzI1NTQiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8dGV4dCB4PSI0NDAiIHk9Ijk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTNjNWZkIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5sb2dzPC90ZXh0PgoKICA8IS0tIFZlcnRpY2FsIHNwaW5lIC0tPgogIDxsaW5lIHgxPSI0NDAiIHkxPSI5OSIgeDI9IjQ0MCIgeTI9IjIyNCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgoKICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KICA8IS0tIGRlZmF1bHRfbG9ncyAoY3g9NDQwLCB0b3BfeT0xMTApIC0tPgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQIC0tPgogIDxlbGxpcHNlIGN4PSI0NDAiIGN5PSIxMTAiIHJ4PSIyNiIgcnk9IjgiIGZpbGw9IiMxZTQwYWYiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBhdGggZD0iTTQxNCAxMTAgUTQ0MCAxMTggNDY2IDExMCBMNDYyIDE0OCBRNDQwIDE1NiA0MTggMTQ4IFoiIGZpbGw9IiMxNzI1NTQiLz4KICA8bGluZSB4MT0iNDE0IiB5MT0iMTEwIiB4Mj0iNDE4IiB5Mj0iMTQ4IiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI0NjYiIHkxPSIxMTAiIHgyPSI0NjIiIHkyPSIxNDgiIHN0cm9rZT0iIzYwYTVmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjQ0MCIgY3k9IjE0OCIgcng9IjIyIiByeT0iNyIgZmlsbD0iIzE3MjU1NCIgc3Ryb2tlPSIjNjBhNWZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8ZWxsaXBzZSBjeD0iNDQwIiBjeT0iMTEwIiByeD0iMjYiIHJ5PSI4IiBmaWxsPSJub25lIiBzdHJva2U9IiM2MGE1ZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQ0MCIgeT0iMTY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYmZkYmZlIiBmb250LXNpemU9IjExIj5kZWZhdWx0X2xvZ3M8L3RleHQ+CgogIDwhLS0gSG9yaXpvbnRhbCBicmFuY2ggYmFyICh5PTIyNCkgLS0+CiAgPGxpbmUgeDE9IjE4MCIgeTE9IjIyNCIgeDI9IjcyMCIgeTI9IjIyNCIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSIxODAiIHkxPSIyMjQiIHgyPSIxODAiIHkyPSIyMzYiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iMzYwIiB5MT0iMjI0IiB4Mj0iMzYwIiB5Mj0iMjM2IiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPGxpbmUgeDE9IjU0MCIgeTE9IjIyNCIgeDI9IjU0MCIgeTI9IjIzNiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSI3MjAiIHkxPSIyMjQiIHgyPSI3MjAiIHkyPSIyMzYiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KCiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CiAgPCEtLSBsb2dzX3NoYXJlZCAoY3g9MTgwLCB0b3BfeT0yMzYsIHRlYWwpIC0tPgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQIC0tPgogIDxlbGxpcHNlIGN4PSIxODAiIGN5PSIyMzYiIHJ4PSIyNCIgcnk9IjciIGZpbGw9IiMxNjRlNjMiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBhdGggZD0iTTE1NiAyMzYgUTE4MCAyNDMgMjA0IDIzNiBMMjAwIDI3NCBRMTgwIDI4MSAxNjAgMjc0IFoiIGZpbGw9IiMwYzJkM2EiLz4KICA8bGluZSB4MT0iMTU2IiB5MT0iMjM2IiB4Mj0iMTYwIiB5Mj0iMjc0IiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIyMDQiIHkxPSIyMzYiIHgyPSIyMDAiIHkyPSIyNzQiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGVsbGlwc2UgY3g9IjE4MCIgY3k9IjI3NCIgcng9IjIwIiByeT0iNiIgZmlsbD0iIzBjMmQzYSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8ZWxsaXBzZSBjeD0iMTgwIiBjeT0iMjM2IiByeD0iMjQiIHJ5PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMjkxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTVmM2ZjIiBmb250LXNpemU9IjExIj5sb2dzX3NoYXJlZDwvdGV4dD4KCiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CiAgPCEtLSBsb2dzX2RlbGl2ZXJ5IChjeD0zNjAsIHRvcF95PTIzNiwgdGVhbCkgLS0+CiAgPCEtLSDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZDilZAgLS0+CiAgPGVsbGlwc2UgY3g9IjM2MCIgY3k9IjIzNiIgcng9IjI0IiByeT0iNyIgZmlsbD0iIzE2NGU2MyIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cGF0aCBkPSJNMzM2IDIzNiBRMzYwIDI0MyAzODQgMjM2IEwzODAgMjc0IFEzNjAgMjgxIDM0MCAyNzQgWiIgZmlsbD0iIzBjMmQzYSIvPgogIDxsaW5lIHgxPSIzMzYiIHkxPSIyMzYiIHgyPSIzNDAiIHkyPSIyNzQiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjM4NCIgeTE9IjIzNiIgeDI9IjM4MCIgeTI9IjI3NCIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8ZWxsaXBzZSBjeD0iMzYwIiBjeT0iMjc0IiByeD0iMjAiIHJ5PSI2IiBmaWxsPSIjMGMyZDNhIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSIzNjAiIGN5PSIyMzYiIHJ4PSIyNCIgcnk9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMzYwIiB5PSIyOTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhNWYzZmMiIGZvbnQtc2l6ZT0iMTEiPmxvZ3NfZGVsaXZlcnk8L3RleHQ+CgogIDwhLS0gU3RhY2tlZCBjb25uZWN0b3IgLS0+CiAgPGxpbmUgeDE9IjM2MCIgeTE9IjI5OSIgeDI9IjM2MCIgeTI9IjMxMSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEuNSIvPgoKICA8IS0tIGxvZ3NfZGVsaXZlcnlfOTBkIChjeD0zNjAsIHRvcF95PTMxMSwgdGVhbCkgLS0+CiAgPGVsbGlwc2UgY3g9IjM2MCIgY3k9IjMxMSIgcng9IjI0IiByeT0iNyIgZmlsbD0iIzE2NGU2MyIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cGF0aCBkPSJNMzM2IDMxMSBRMzYwIDMxOCAzODQgMzExIEwzODAgMzQ5IFEzNjAgMzU2IDM0MCAzNDkgWiIgZmlsbD0iIzBjMmQzYSIvPgogIDxsaW5lIHgxPSIzMzYiIHkxPSIzMTEiIHgyPSIzNDAiIHkyPSIzNDkiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjM4NCIgeTE9IjMxMSIgeDI9IjM4MCIgeTI9IjM0OSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8ZWxsaXBzZSBjeD0iMzYwIiBjeT0iMzQ5IiByeD0iMjAiIHJ5PSI2IiBmaWxsPSIjMGMyZDNhIiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxlbGxpcHNlIGN4PSIzNjAiIGN5PSIzMTEiIHJ4PSIyNCIgcnk9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMzYwIiB5PSIzNjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNhNWYzZmMiIGZvbnQtc2l6ZT0iMTEiPmxvZ3NfZGVsaXZlcnlfOTBkPC90ZXh0PgoKICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KICA8IS0tIGxvZ3NfYWNjb3VudGluZyAoY3g9NTQwLCB0b3BfeT0yMzYsIGdyZXkpIC0tPgogIDwhLS0g4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQ4pWQIC0tPgogIDxlbGxpcHNlIGN4PSI1NDAiIGN5PSIyMzYiIHJ4PSIyNCIgcnk9IjciIGZpbGw9IiMzMzQxNTUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8cGF0aCBkPSJNNTE2IDIzNiBRNTQwIDI0MyA1NjQgMjM2IEw1NjAgMjc0IFE1NDAgMjgxIDUyMCAyNzQgWiIgZmlsbD0iIzFlMjkzYiIvPgogIDxsaW5lIHgxPSI1MTYiIHkxPSIyMzYiIHgyPSI1MjAiIHkyPSIyNzQiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8bGluZSB4MT0iNTY0IiB5MT0iMjM2IiB4Mj0iNTYwIiB5Mj0iMjc0IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGVsbGlwc2UgY3g9IjU0MCIgY3k9IjI3NCIgcng9IjIwIiByeT0iNiIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxlbGxpcHNlIGN4PSI1NDAiIGN5PSIyMzYiIHJ4PSIyNCIgcnk9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8dGV4dCB4PSI1NDAiIHk9IjI5MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1zaXplPSIxMSI+bG9nc19hY2NvdW50aW5nPC90ZXh0PgoKICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KICA8IS0tIGxvZ3NfaW5mcmEgKGN4PTcyMCwgdG9wX3k9MjM2LCBncmV5KSAtLT4KICA8IS0tIOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkOKVkCAtLT4KICA8ZWxsaXBzZSBjeD0iNzIwIiBjeT0iMjM2IiByeD0iMjQiIHJ5PSI3IiBmaWxsPSIjMzM0MTU1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPHBhdGggZD0iTTY5NiAyMzYgUTcyMCAyNDMgNzQ0IDIzNiBMNzQwIDI3NCBRNzIwIDI4MSA3MDAgMjc0IFoiIGZpbGw9IiMxZTI5M2IiLz4KICA8bGluZSB4MT0iNjk2IiB5MT0iMjM2IiB4Mj0iNzAwIiB5Mj0iMjc0IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPGxpbmUgeDE9Ijc0NCIgeTE9IjIzNiIgeDI9Ijc0MCIgeTI9IjI3NCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjEuOCIvPgogIDxlbGxpcHNlIGN4PSI3MjAiIGN5PSIyNzQiIHJ4PSIyMCIgcnk9IjYiIGZpbGw9IiMxZTI5M2IiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICA8ZWxsaXBzZSBjeD0iNzIwIiBjeT0iMjM2IiByeD0iMjQiIHJ5PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMS44Ii8+CiAgPHRleHQgeD0iNzIwIiB5PSIyOTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OGIiIGZvbnQtc2l6ZT0iMTEiPmxvZ3NfaW5mcmE8L3RleHQ+Cgo8L3N2Zz4K" alt="Logs Bucket Hierarchy — Default and Custom" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Tier | Bucket | Notes |
+|------|--------|-------|
+| Default | default_logs | Predefined, 35-day retention |
+| Custom | logs_shared | Shared platform logs |
+| Custom | logs_delivery, logs_delivery_90d | Short-term delivery diagnostics |
+| Custom | logs_accounting, logs_infra | Team- or retention-specific logs and infra signals |
+-->
+<blockquote>
+<p><strong>Metrics and custom buckets (SaaS 1.349+).</strong> <em>&quot;Metrics now supports custom buckets.&quot;</em> Metrics still land in <code>default_metrics</code> by default; <em>&quot;You can optionally route subsets of metrics into custom buckets using configuration rules&quot;</em>, each bucket with its own retention (<a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-349">What's new in Dynatrace SaaS 1.349 (DT docs)</a>). SaaS 1.349 began its tenant rollout on 10/27/2026; on a tenant that has not reached it, all metric data routes to <code>default_metrics</code>.</p>
+</blockquote>
+<p><a id="system-tables"></a></p>
+<h2>System Tables</h2>
+<p>In addition to regular data tables, Grail exposes <strong>system tables</strong> — virtual tables representing Grail metadata, not stored in any bucket:</p>
+<table>
+<thead>
+<tr>
+<th>System Table</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.system.buckets</code></td>
+<td>Bucket inventory (name, retention, size, table type)</td>
+</tr>
+<tr>
+<td><code>dt.system.data_objects</code></td>
+<td>Schema and data object metadata</td>
+</tr>
+<tr>
+<td><code>dt.system.files</code></td>
+<td>Lookup files uploaded for DQL enrichment</td>
+</tr>
+<tr>
+<td><code>dt.system.events</code></td>
+<td>Audit events (bucket changes, platform actions)</td>
+</tr>
+</tbody>
+</table>
+<p>System tables are queried with <code>fetch dt.system.*</code> — they never need a <code>bucket:</code> parameter.</p>
+<p><a id="bucket-limits"></a></p>
+<h2>Bucket Limits</h2>
+<h3>Environment Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Maximum custom buckets per environment</td>
+<td>250 (SaaS 1.346+); 80 before</td>
+<td>Increase on request: +1 per 10 GB daily ingest; above 1,000 reviewed by Dynatrace support</td>
+</tr>
+<tr>
+<td>Typical capacity</td>
+<td>Up to ~2.5 TB/day per tenant with the 250 default</td>
+<td><em>&quot;This typically satisfies raw ingestion volumes up to 2.5TB a day per tenant&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Docs differ (read 10/14/2026).</strong> The 250 default follows <em>How to organize your data stored in Grail</em> (updated 09/22/2026) — <em>&quot;The default limit per environment is 250 custom buckets.&quot;</em> — and the SaaS 1.346 release note. <em>Use Grail buckets to partition data</em> now agrees — <em>&quot;you can configure up to 250 custom buckets by default&quot;</em> (re-read 10/25/2026; its date still reads 06/17/2026). The upgrade <em>Best practices for a logs bucket strategy</em> page still refers to <em>&quot;the 80-bucket limit per environment&quot;</em>, and <em>Best practices for data partitioning</em> (both published 08/24/2026) still says <em>&quot;The default bucket limit per environment is 80 buckets, which is typically sufficient for up to 5 TB/day per table.&quot;</em> The two capacity figures are not reconciled; size from your own ingest volume.</p>
+</blockquote>
+<h3>Bucket Size Guidelines</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Target ingest per log bucket</td>
+<td>1–3 TB/day</td>
+<td><em>&quot;Design your bucket strategy so that each bucket receives between 1 TB and 3 TB of log data per day.&quot;</em> At the default 500 GB scan this is ~4–12 hours of logs per query</td>
+</tr>
+<tr>
+<td>Dedicated bucket per application</td>
+<td>Above 250 GB/day</td>
+<td><em>&quot;Create a dedicated bucket for any application ingesting more than 250 GB/day.&quot;</em> Applications below that can share a bucket</td>
+</tr>
+<tr>
+<td>Split point, other tables</td>
+<td>Above 2 TB/day</td>
+<td><em>&quot;We recommend splitting up buckets that receive more than 2 TB of daily ingest.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Docs differ (read 10/14/2026).</strong> <em>Use Grail buckets to partition data</em> (updated 06/17/2026) gives the 2 TB split point for all buckets. <em>Best practices for a logs bucket strategy</em> (published 08/24/2026) is newer and specific to logs and gives 1–3 TB/day, so this table follows it for logs; for other tables the 2 TB figure is the only one stated.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy">Best practices for a logs bucket strategy (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning">Best practices for data partitioning (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Use Grail buckets to partition data (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">How to organize your data stored in Grail (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Retention Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Minimum retention</td>
+<td><strong>1 day</strong> for logs, events, and bizevents; <strong>10 days for spans</strong></td>
+</tr>
+<tr>
+<td>Maximum retention</td>
+<td>3,657 days (~10 years + 1 week)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="query-constraints"></a></p>
+<h2>Query Constraints</h2>
+<p>Understanding query limits is critical for bucket planning:</p>
+<h3>Query Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Default <code>fetch</code> scan limit</td>
+<td>500 GB</td>
+<td>Default value of the <code>scanLimitGBytes</code> parameter — <strong>not</strong> a platform cap. Override per query; <code>scanLimitGBytes:-1</code> scans the whole time range</td>
+</tr>
+<tr>
+<td>Default records returned</td>
+<td>1,000</td>
+<td>A default, not a cap: raise <code>maxResultRecords</code> on a Query API request, or aggregate for larger datasets</td>
+</tr>
+<tr>
+<td>Default result payload</td>
+<td>1 MB</td>
+<td>A default (<code>maxResultBytes</code>); larger results stop at about this size unless it is raised</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy">Best practices for a logs bucket strategy (DT docs)</a> — lists <em>&quot;500 GB scanned per query&quot;</em>, <em>&quot;1,000 records returned per result&quot;</em> and <em>&quot;1 MB result payload&quot;</em> as <em>&quot;default query limits&quot;</em>, <a href="https://developer.dynatrace.com/develop/sdks/client-query/">Grail storage query SDK (Dynatrace Developer)</a> — <code>maxResultRecords</code>: <em>&quot;The maximum number of query result records to be returned. If this limit is exceeded, a warning notification will be included in the response.&quot;</em></sub></p>
+</blockquote>
+<h3>Queryable Window by Ingest Volume</h3>
+<p>With the default 500 GB <code>fetch</code> scan limit, a single unmodified query reaches back roughly:</p>
+<table>
+<thead>
+<tr>
+<th>Daily Ingest</th>
+<th>Queryable Window</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>500 GB/day</td>
+<td>~24 hours</td>
+</tr>
+<tr>
+<td>1 TB/day</td>
+<td>~12 hours</td>
+</tr>
+<tr>
+<td>3 TB/day</td>
+<td>~4 hours</td>
+</tr>
+<tr>
+<td>10 TB/day</td>
+<td>~1 hour</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Implication</strong>: High-volume buckets may only allow querying recent data. Use aggregations, time filters, and strategic bucket partitioning to work within these limits.</p>
+</blockquote>
+<p><a id="default-buckets"></a></p>
+<h2>Default Buckets</h2>
+<p>Dynatrace provides default buckets with varying retention:</p>
+<table>
+<thead>
+<tr>
+<th>Default Bucket</th>
+<th>Data Type</th>
+<th>Default Retention</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>default_logs</code></td>
+<td>logs</td>
+<td>35 days</td>
+<td>Standard log retention</td>
+</tr>
+<tr>
+<td><code>default_metrics</code></td>
+<td>metrics</td>
+<td>15 months</td>
+<td>Extended for trend analysis</td>
+</tr>
+<tr>
+<td><code>default_spans</code></td>
+<td>spans</td>
+<td>10 days</td>
+<td>Short-term APM data</td>
+</tr>
+<tr>
+<td><code>default_events</code></td>
+<td>events</td>
+<td>35 days</td>
+<td>Platform events</td>
+</tr>
+<tr>
+<td><code>default_bizevents</code></td>
+<td>bizevents</td>
+<td>35 days</td>
+<td>Business events</td>
+</tr>
+<tr>
+<td><code>default_securityevents</code></td>
+<td>security.events</td>
+<td>1 year</td>
+<td>Security events</td>
+</tr>
+<tr>
+<td><code>default_securityevents_builtin</code></td>
+<td>security.events</td>
+<td>3 years</td>
+<td>Built-in security events</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note</strong>: Query your environment's <code>dt.system.buckets</code> to verify current retention settings.</p>
+</blockquote>
+<p><a id="querying-bucket-information"></a></p>
+<h2>Querying Bucket Information</h2>
+<h3>DQL: Built-in Bucket Discovery</h3>
+<p>Discover all built-in Grail buckets in your environment:</p>
+<pre><code class="language-dql">// List all built-in Grail buckets — inventory check
+fetch dt.system.buckets
+| filter startsWith(name, &quot;default_&quot;) or startsWith(name, &quot;dt_&quot;)
+| fields name, display_name, dt.system.table, retention_days
+| sort dt.system.table asc, name asc
+</code></pre>
+<h3>DQL: Bucket Audit Events</h3>
+<p>Track who created, updated, truncated, or deleted a bucket:</p>
+<pre><code class="language-dql">// Audit bucket management actions — returns create, update, truncate, delete events
+// Bucket changes are rare: widen to from:-365d for a full year of history
+fetch dt.system.events, from:-90d
+| filter event.kind == &quot;AUDIT_EVENT&quot; and event.category == &quot;BUCKET_MANAGEMENT&quot;
+| fields timestamp, event.type, resource, user.id, event.outcome
+| sort timestamp desc
+</code></pre>
+<p><a id="querying-data-from-buckets"></a></p>
+<h2>Querying Data from Buckets</h2>
+<h3>DQL: Querying Data from Buckets</h3>
+<p>Use the <code>bucket:</code> parameter to target specific storage:</p>
+<pre><code class="language-dql">// Query logs from a specific bucket — use the bucket: parameter to target storage
+fetch logs, from:-1h, bucket:{&quot;default_logs&quot;}
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Query from multiple buckets simultaneously — controls scan scope
+// Bucket names that don't exist are skipped with no warning — a misspelled name looks like an empty bucket.
+// Check names first: fetch dt.system.buckets | filter dt.system.table == &quot;logs&quot; | fields name
+fetch logs, from:-1h, bucket:{&quot;default_logs&quot;, &quot;audit_logs&quot;, &quot;security_logs&quot;}
+| limit 100
+</code></pre>
+<p><a id="bucket-characteristics"></a></p>
+<h2>Bucket Characteristics</h2>
+<h3>Immutability Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Characteristic</th>
+<th>Mutable?</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bucket name</td>
+<td>No</td>
+<td>Cannot be changed after creation</td>
+</tr>
+<tr>
+<td>Display name</td>
+<td>Yes</td>
+<td>Can be updated anytime</td>
+</tr>
+<tr>
+<td>Retention period</td>
+<td>Yes</td>
+<td><strong>Caution</strong>: Lowering deletes data</td>
+</tr>
+<tr>
+<td>Data table type</td>
+<td>No</td>
+<td>Fixed at creation</td>
+</tr>
+<tr>
+<td>Bucket class (live / historic)</td>
+<td>No</td>
+<td>Read-only after creation</td>
+</tr>
+</tbody>
+</table>
+<h3>Data Handling</h3>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Supported?</th>
+<th>Alternative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Move data between buckets</td>
+<td>No</td>
+<td>Route new data via OpenPipeline</td>
+</tr>
+<tr>
+<td>Delete selected records</td>
+<td>Yes — record deletion API</td>
+<td>Hard delete of the records a DQL filter matches, at most 24 hours of data per request; needs <code>storage:records:delete</code> (no default policy grants it)</td>
+</tr>
+<tr>
+<td>Bucket deletion</td>
+<td>Yes</td>
+<td>Deletes ALL data permanently</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/record-deletion-in-grail">Record deletion in Grail via API (DT docs)</a> — <em>&quot;You can delete records from Grail using the API by leveraging DQL&quot;</em>; <em>&quot;The maximum timeframe for a record deletion request is 24 hours.&quot;</em>; <em>&quot;There's no pre-defined policy that grants these permissions&quot;</em>; <em>&quot;Record deletion is final and can't be undone.&quot;</em></sub></p>
+</blockquote>
+<p><a id="bucket-naming-rules"></a></p>
+<h2>Bucket Naming Rules</h2>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name length</td>
+<td>3–100 characters</td>
+</tr>
+<tr>
+<td>First character</td>
+<td>Must be a letter</td>
+</tr>
+<tr>
+<td>Allowed characters</td>
+<td>Lowercase alphanumeric, underscores, hyphens</td>
+</tr>
+<tr>
+<td>Case</td>
+<td>Lowercase only</td>
+</tr>
+<tr>
+<td>Reserved names</td>
+<td>Cannot start with <code>default_</code> or <code>dt_</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.dynatrace.com/develop/sdks/client-bucket-management/">Bucket management SDK (Dynatrace Developer)</a> — <em>&quot;Bucket name can not start with&quot;</em> <code>default_</code> or <code>dt_</code>.</sub></p>
+</blockquote>
+<h3>Valid Examples</h3>
+<pre><code>team_logs_30d
+finance-audit-logs
+prod_events_90d
+app123_spans
+</code></pre>
+<h3>Invalid Examples</h3>
+<pre><code>123_logs          # Starts with number
+Team_Logs         # Contains uppercase
+default_custom    # Uses reserved prefix
+dt_team_logs      # Uses reserved prefix
+my logs           # Contains space
+</code></pre>
+<p><a id="when-to-create-custom-buckets"></a></p>
+<h2>When to Create Custom Buckets</h2>
+<table>
+<thead>
+<tr>
+<th>Need</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Different retention periods</td>
+<td>Create bucket with specific retention</td>
+</tr>
+<tr>
+<td>Cost attribution by team/LOB</td>
+<td>Not a reason on its own — use <code>dt.cost.costcenter</code> / <code>dt.cost.product</code>; add a bucket only where that cost center also needs its own retention or access</td>
+</tr>
+<tr>
+<td>Simple team isolation</td>
+<td>Bucket-level IAM policies</td>
+</tr>
+<tr>
+<td>Regulatory compliance</td>
+<td>Dedicated buckets for compliance data</td>
+</tr>
+<tr>
+<td>Query performance</td>
+<td>Isolate high-volume data sources</td>
+</tr>
+<tr>
+<td>Debug/verbose logs</td>
+<td>Short-retention bucket to reduce costs</td>
+</tr>
+</tbody>
+</table>
+<h2>Next Steps</h2>
+<p>Continue with the ORGNZ series:</p>
+<ul>
+<li><strong>ORGNZ-03</strong>: Bucket Strategy and Design</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Use Grail buckets to partition data (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">How to organize your data stored in Grail (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy">Best practices for a logs bucket strategy (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/data-partitioning">Best practices for data partitioning (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security/data-privacy/data-retention-periods">Data Retention</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Reference</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

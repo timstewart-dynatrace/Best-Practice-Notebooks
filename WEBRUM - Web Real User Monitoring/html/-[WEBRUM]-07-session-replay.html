@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WEBRUM-07: Session Replay</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WEBRUM — Web Real User Monitoring</a><span class="sep">/</span><span aria-current="page">WEBRUM-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WEBRUM-07: Session Replay</h1>
+<blockquote>
+<p><strong>Series:</strong> WEBRUM — Web Real User Monitoring | <strong>Notebook:</strong> 7 of 10 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/31/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Session Replay allows you to visually replay a user's interaction with your web application — seeing exactly what the user saw, where they clicked, how they scrolled, and when errors occurred. Unlike traditional analytics that show numbers, session replay provides qualitative context for quantitative data.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#how-it-works">How Session Replay Works</a></li>
+<li><a href="#data-privacy">Data Privacy and Masking</a></li>
+<li><a href="#configuration">Session Replay Configuration</a></li>
+<li><a href="#finding-replays">Finding Replay-Eligible Sessions</a>
+<ul>
+<li><a href="#no-replay">When a Session Has No Replay</a></li>
+</ul>
+</li>
+<li><a href="#correlating-data">Correlating Replay with Performance</a></li>
+<li><a href="#ux-issues">Identifying UX Issues via Replay</a></li>
+<li><a href="#third-party">Third-Party Replay Integration</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Session Replay license</td>
+</tr>
+<tr>
+<td><strong>Session Replay Enabled</strong></td>
+<td>Configured for at least one web application</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:user.events:read</code>, <code>storage:user.sessions:read</code>, Session Replay viewer permission</td>
+</tr>
+<tr>
+<td><strong>Previous Notebooks</strong></td>
+<td>WEBRUM-01: RUM Fundamentals, WEBRUM-04: Session Analysis</td>
+</tr>
+</tbody>
+</table>
+<p><a id="how-it-works"></a></p>
+<h2>1. How Session Replay Works</h2>
+<p>Dynatrace Session Replay captures the visual state of the web page as the user interacts with it. It does <strong>not</strong> record video — instead, it records DOM mutations:</p>
+<h3>Recording Mechanism</h3>
+<ol>
+<li><strong>Initial Snapshot</strong> — When a page loads, the RUM agent captures the full DOM structure and inline styles</li>
+<li><strong>Mutation Recording</strong> — As the user interacts, DOM mutations (element changes, attribute modifications, text updates) are recorded incrementally</li>
+<li><strong>User Events</strong> — Mouse movements, clicks, scrolls, and keyboard inputs are captured with timestamps</li>
+<li><strong>Beacon Delivery</strong> — Recorded data is sent to Dynatrace in compressed beacons</li>
+<li><strong>Server-Side Reconstruction</strong> — Dynatrace reconstructs the visual experience from the DOM mutations and events</li>
+</ol>
+<h3>Recording Modes</h3>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Description</th>
+<th>Data Volume</th>
+<th>Privacy Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Visual replay</strong></td>
+<td>Full DOM + CSS reconstruction</td>
+<td>High</td>
+<td>Highest — captures visible content</td>
+</tr>
+<tr>
+<td><strong>Resource capture</strong></td>
+<td>Stylesheets are captured and stored; images and fonts are retrieved from the original location at playback</td>
+<td>Very high</td>
+<td>Captures stylesheets</td>
+</tr>
+<tr>
+<td><strong>Minimal mode</strong></td>
+<td>DOM structure only, no external resources</td>
+<td>Low</td>
+<td>Lower — placeholder images</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Session Replay data is stored separately from RUM metrics. In the classic model, the default retention for captured resources is 35 days. Replay storage counts against your session replay quota.</p>
+</blockquote>
+<blockquote>
+<p><strong>Update (SaaS 1.343, July 2026 — staged tenant rollout) — Session Replay reaches general availability on Grail.</strong> Replay data is stored natively in the Grail data lakehouse (<code>fetch user.replays</code>), with the video player, timeline, and multi-platform support built on that storage. On Grail-based tenants, replay retention follows the Grail bucket configuration rather than the classic quota model above. The classic model remains current for tenants that have not yet received 1.343 or still store replay in the classic surface — verify which model your tenant uses before planning retention.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/configure-session-replay-web">Configure Session Replay Classic for web applications (DT docs)</a> — <em>&quot;Images and fonts aren't captured.&quot;</em>; <em>&quot;The default retention time for captured resources is 35 days.&quot;</em></sub></p>
+</blockquote>
+<p><a id="data-privacy"></a></p>
+<h2>2. Data Privacy and Masking</h2>
+<p>Session Replay captures real user interactions, which may include sensitive data. Proper masking is essential for compliance with GDPR, CCPA, HIPAA, and other privacy regulations.</p>
+<h3>Masking Options</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>What is masked</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mask all</strong></td>
+<td>All texts, user input, attribute values, and images</td>
+<td>Testing Session Replay, or confirming that confidential data is not collected</td>
+</tr>
+<tr>
+<td><strong>Mask user input</strong></td>
+<td>All user input, including options in list boxes. Default since Dynatrace 1.262</td>
+<td>Confidential information comes only from user input</td>
+</tr>
+<tr>
+<td><strong>Allow list</strong></td>
+<td>Everything in <em>Mask all</em>, except the elements you specify</td>
+<td>The documented recommendation for most applications</td>
+</tr>
+<tr>
+<td><strong>Block list</strong></td>
+<td>Only the elements you specify</td>
+<td>You want to clear rules from the <em>Mask all</em> set, or add your own</td>
+</tr>
+</tbody>
+</table>
+<p><em>Mask all</em>, <em>Mask user input</em> and <em>Allow list</em> do not hide user interactions with elements. With <em>Block list</em>, you can choose to hide interactions with masked elements.</p>
+<h3>HTML Attributes for Granular Control</h3>
+<p>Apply masking directly in your HTML:</p>
+<pre><code class="language-html">&lt;!-- Mask this node and its descendants. RUM JavaScript 1.345+ also accepts data-dt-mask --&gt;
+&lt;div data-dtrum-mask&gt;
+  &lt;p&gt;Sensitive content here&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;!-- Unmask this element. Needs the allow-list entry described below --&gt;
+&lt;span data-dtrum-allow&gt;Public content&lt;/span&gt;
+</code></pre>
+<p><code>data-dtrum-allow</code> takes effect through the <em>Allow list</em> option: add one recording allow-list entry whose target element is the CSS selector <code>[data-dtrum-allow]</code>.</p>
+<h3>CSS Selector Masking Rules</h3>
+<p>From the application settings, go to <strong>General settings &gt; Data privacy &gt; Session Replay &gt; Content masking preferences</strong>, select <em>Allow list</em> or <em>Block list</em>, and add the rules. Elements are defined by CSS selector. With <em>Block list</em>, selectors like these name what gets masked:</p>
+<table>
+<thead>
+<tr>
+<th>Selector</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.credit-card-form input</code></td>
+<td>Mask all inputs in credit card forms</td>
+</tr>
+<tr>
+<td><code>[data-sensitive]</code></td>
+<td>Mask elements with custom attribute</td>
+</tr>
+<tr>
+<td><code>.pii-container</code></td>
+<td>Mask PII containers</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Warning:</strong> Always err on the side of over-masking. It is better to mask non-sensitive content than to accidentally capture PII. Conduct a privacy review before enabling Session Replay in production.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/configure-session-replay-web">Configure Session Replay Classic for web applications (DT docs)</a> — <em>&quot;Mask user input is the default masking option starting with Dynatrace version 1.262&quot;</em>; <em>&quot;you can use data-dt-mask instead of data-dtrum-mask&quot;</em>; <em>&quot;General settings &gt; Data privacy &gt; Session Replay&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience/session-replay-latest/configure-session-replay-web/session-replay-strong-privacy-req-web">Session Replay for strong privacy requirements (DT docs)</a> — <em>&quot;Each HTML element that contains only allowed content can be marked with the attribute data-dtrum-allow&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="configuration"></a></p>
+<h2>3. Session Replay Configuration</h2>
+<h3>Sampling Rate</h3>
+<p>Not every session needs to be recorded. Configure sampling to balance insight with cost:</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommended Sample Rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>High-traffic production site</td>
+<td>1-5%</td>
+</tr>
+<tr>
+<td>Internal application</td>
+<td>10-25%</td>
+</tr>
+<tr>
+<td>Pre-production testing</td>
+<td>50-100%</td>
+</tr>
+<tr>
+<td>Investigating specific issue</td>
+<td>100% (temporarily)</td>
+</tr>
+</tbody>
+</table>
+<h3>Conditional Capture</h3>
+<p>Use capture rules to record specific session types:</p>
+<ul>
+<li><strong>Error-triggered replay</strong> — Automatically capture replay when JavaScript errors occur</li>
+<li><strong>Conversion-path replay</strong> — Capture sessions that reach checkout pages</li>
+<li><strong>Frustration-triggered replay</strong> — Capture sessions with rage clicks or exit intent</li>
+</ul>
+<h3>Storage Considerations</h3>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>Impact on Storage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Page complexity (DOM size)</td>
+<td>More complex pages = larger snapshots</td>
+</tr>
+<tr>
+<td>Session duration</td>
+<td>Longer sessions = more mutation data</td>
+</tr>
+<tr>
+<td>SPA vs. traditional</td>
+<td>SPAs generate more mutations from in-page updates</td>
+</tr>
+<tr>
+<td>Resource capture enabled</td>
+<td>Significantly increases storage (stylesheets)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="finding-replays"></a></p>
+<h2>4. Finding Replay-Eligible Sessions</h2>
+<p>Use DQL to identify sessions that have replay data available, then navigate to them in the Dynatrace UI.</p>
+<pre><code class="language-dql">// Session/performance field vocabulary corrected 08/12/2026 (New RUM). Classic camelCase RUM
+// names are null on New RUM data and fail silently. Verified against 3,261 user.sessions:
+//   userType -&gt; dt.rum.user_type      userActionCount -&gt; user_action_count
+//   totalErrorCount -&gt; error.count    sessionId -&gt; dt.rum.session.id
+//   hasSessionReplay -&gt; characteristics.has_replay
+//   browserFamily -&gt; browser.name     osFamily -&gt; os.name
+//   application -&gt; frontend.name (stable; an array on user.sessions, so expand it before grouping)
+//                  primary_tags.application exists only if your OpenPipeline adds it (corrected 10/14/2026)
+//   country/city/continent -&gt; geo.country.name / geo.city.name / geo.continent.name
+//   screen.width|height -&gt; browser.window.width|height
+//   dom.interactive.time -&gt; performance.dom_interactive
+//   load.event.time -&gt; performance.load_event_end
+//   server.time -&gt; ttfb.value (page summaries; web_vitals.time_to_first_byte where populated) —
+//                  NOT ttfb.waiting_duration, which is the pre-request wait/redirect phase
+// TWO TENANT CAVEATS on the validation tenant, both of which leave a CORRECT query empty:
+//   * every session is dt.rum.user_type == &quot;synthetic&quot;, so a real-user filter matches nothing —
+//     the documented values are &quot;real_user&quot; / &quot;robot&quot; / &quot;synthetic&quot; (lowercase);
+//   * geo.* is 0-populated, because synthetic traffic carries no geolocation.
+// Sessions with replay data available in the last 24 hours
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
+| summarize {replay_sessions = count(),
+    avg_actions = avg(user_action_count),
+    avg_errors = avg(error.count)},
+    by:{frontend.name}
+| sort replay_sessions desc
+</code></pre>
+<pre><code class="language-dql">// Find replay sessions with errors — prioritize these for review
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
+| filter error.count &gt; 0
+| fieldsKeep dt.rum.session.id, frontend.name, duration, user_action_count, error.count, geo.country.name, browser.name
+| sort error.count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Replay coverage — what percentage of sessions have replay?
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| expand frontend.name   // array on sessions: a multi-frontend session counts once per frontend
+| summarize {total_sessions = count(),
+    replay_sessions = countIf(isNotNull(characteristics.has_replay) and characteristics.has_replay == true)},
+    by:{frontend.name}
+| fieldsAdd replay_coverage_pct = round(toDouble(replay_sessions) / toDouble(total_sessions) * 100.0, decimals: 1)
+| sort total_sessions desc
+</code></pre>
+<p><a id="no-replay"></a></p>
+<h3>When a Session Has No Replay</h3>
+<p>The queries above filter for <code>characteristics.has_replay == true</code>. A <code>false</code> — or a null — is neither an error nor necessarily a misconfiguration. Replay is <em>conditional</em> by design, and several independent gates can each suppress it.</p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>What actually happened</th>
+<th>Where to check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Outside the sampling rate</strong></td>
+<td>In community practice, the most frequent cause. The effective recording rate is the RUM cost and traffic control <strong>multiplied by</strong> the Session Replay one — at 50% × 20%, 90% of sessions correctly have no replay</td>
+<td>Both cost and traffic control settings for the application (§3)</td>
+</tr>
+<tr>
+<td><strong>Replay disabled for the application</strong></td>
+<td>Session Replay is configured per application, not globally — a tenant with replay enabled can still have applications without it</td>
+<td>Settings → Session Replay, per application</td>
+</tr>
+<tr>
+<td><strong>Unsupported browser</strong></td>
+<td>Session Replay publishes its own list of browser versions supported for recording, separate from RUM's; sessions from browsers outside it are not recorded</td>
+<td><code>browser.name</code> / <code>browser.version</code> on the session</td>
+</tr>
+<tr>
+<td><strong>A page blocked capture</strong></td>
+<td>URL exclusion rules stop recording on matching pages, sometimes on exactly the pages you care about. Masking rules hide matched content in the replay (§2)</td>
+<td>Session Replay URL exclusion and data-privacy configuration</td>
+</tr>
+<tr>
+<td><strong>Quota exhausted</strong></td>
+<td>In community practice, where a consumption limit caps replay volume, eligible sessions stop being recorded once it is reached — confirm how your licensing applies before assuming this</td>
+<td>Session Replay consumption</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Forthcoming — SaaS 1.344 (released 07/27/2026, staged tenant rollout from 07/29/2026): Session Replay reports the reason itself.</strong> Users &amp; Sessions gains specific information about why session recordings become unavailable, which collapses the elimination exercise below into a single read in the UI. Verify 1.344 has reached your tenant before relying on it; until then — and for any tenant still on an earlier sprint — the manual order below is the working path.</p>
+<p><strong>Eliminate in this order.</strong> In community practice the sequence that pays off is cheapest and most likely first, so you rarely reach the bottom.</p>
+<ol>
+<li><strong>Sampling rate.</strong> Compute actual replay coverage (the third query in this section) and compare it against the effective rate — RUM cost and traffic control × Session Replay cost and traffic control. If coverage ≈ that effective rate, <strong>nothing is broken</strong> — you are looking at sampling, and the fix is to raise the rate, not to debug.</li>
+<li><strong>Application enablement.</strong> If coverage is ~0% for one application while others are healthy, replay is off for that application. The coverage query already groups by application, so this shows up without extra work.</li>
+<li><strong>Browser.</strong> Compare <code>browser.name</code> and <code>browser.version</code> between sessions that do and do not have replay. A cause concentrated in one browser family is a support gap, not a configuration error — and not something you can configure away.</li>
+<li><strong>Quota.</strong> Check replay consumption last, and only after confirming a limit applies to you. A quota that ran out mid-period has a distinctive signature: replay present in earlier sessions, absent in later ones, configuration unchanged throughout.</li>
+</ol>
+<p>That order also sorts by what you can act on — 1 and 2 are configuration you control, 3 is a platform constraint, 4 is a budget decision.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-344">Dynatrace SaaS release notes 1.344 (DT docs)</a> — Session Replay unavailability details in Users &amp; Sessions</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/configure-session-replay-web">Configure Session Replay Classic for web applications (DT docs)</a> — <em>&quot;Actual percentage of sessions recorded with SR = cost and traffic control for RUM × cost and traffic control for Session Replay&quot;</em>; <em>&quot;If Session Replay is enabled and no URL exclusion rules are defined, all pages are recorded with Session Replay by default.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-restrictions-web">Technical restrictions for Session Replay Classic for web applications (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="correlating-data"></a></p>
+<h2>5. Correlating Replay with Performance</h2>
+<p>Session Replay is most powerful when correlated with performance data. Use DQL to find sessions that experienced specific performance issues, then review the replay to understand the visual impact.</p>
+<pre><code class="language-dql">// Long sessions with replay (session duration, not load time)
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
+| fieldsAdd duration_sec = duration / 1s
+| filter duration_sec &gt; 120
+| fieldsKeep dt.rum.session.id, frontend.name, duration_sec, user_action_count, error.count, geo.country.name
+| sort duration_sec desc
+| limit 10
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> Copy the <code>dt.rum.session.id</code> value from query results and paste it into the Dynatrace Session Replay search to jump directly to the replay.</p>
+</blockquote>
+<p><a id="ux-issues"></a></p>
+<h2>6. Identifying UX Issues via Replay</h2>
+<p>Session Replay helps identify qualitative UX issues that metrics alone cannot reveal:</p>
+<table>
+<thead>
+<tr>
+<th>UX Issue</th>
+<th>What to Look For in Replay</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Confusing navigation</strong></td>
+<td>Users going back and forth, visiting the same pages repeatedly</td>
+</tr>
+<tr>
+<td><strong>Broken forms</strong></td>
+<td>Users attempting to submit forms multiple times</td>
+</tr>
+<tr>
+<td><strong>Invisible errors</strong></td>
+<td>JS errors that silently break functionality</td>
+</tr>
+<tr>
+<td><strong>Misleading UI elements</strong></td>
+<td>Users clicking on non-interactive elements</td>
+</tr>
+<tr>
+<td><strong>Layout shifts</strong></td>
+<td>Content jumping around during page load</td>
+</tr>
+<tr>
+<td><strong>Slow feedback</strong></td>
+<td>Long pauses after clicks before visual response</td>
+</tr>
+</tbody>
+</table>
+<h3>Replay Investigation Workflow</h3>
+<ol>
+<li><strong>Identify problematic sessions</strong> via DQL (errors, slow sessions, abandonment)</li>
+<li><strong>Watch the replay</strong> in Dynatrace UI</li>
+<li><strong>Correlate with waterfall</strong> — Performance tab shows timing alongside replay</li>
+<li><strong>Note the pattern</strong> — Is this a one-off or a systematic issue?</li>
+<li><strong>Quantify with DQL</strong> — How many sessions are affected by this pattern?</li>
+</ol>
+<pre><code class="language-dql">// Abandoned sessions with replay — users who started but did not finish
+fetch user.sessions, from:-24h
+| filter dt.rum.user_type == &quot;real_user&quot;
+| filter isNotNull(characteristics.has_replay) and characteristics.has_replay == true
+| filter user_action_count &gt;= 3 and user_action_count &lt;= 5
+| filter error.count &gt; 0
+| fieldsKeep dt.rum.session.id, frontend.name, user_action_count, error.count, duration, geo.country.name
+| sort error.count desc
+| limit 15
+</code></pre>
+<p><a id="third-party"></a></p>
+<h2>7. Third-Party Replay Integration</h2>
+<p>Some organizations use dedicated session replay tools alongside Dynatrace. Common integration patterns:</p>
+<h3>Integration Approaches</h3>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Integration Method</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Session Replay</strong></td>
+<td>Built-in — no integration needed</td>
+<td>Full-stack correlation (backend + frontend)</td>
+</tr>
+<tr>
+<td><strong>LogRocket</strong></td>
+<td>Session ID correlation via session property</td>
+<td>Product analytics focus</td>
+</tr>
+<tr>
+<td><strong>FullStory</strong></td>
+<td>Session URL in custom session property</td>
+<td>UX research focus</td>
+</tr>
+<tr>
+<td><strong>Hotjar</strong></td>
+<td>Heatmaps + recordings complement RUM data</td>
+<td>Heatmap analysis</td>
+</tr>
+</tbody>
+</table>
+<h3>Correlation Pattern</h3>
+<p>To link Dynatrace sessions with a third-party replay tool:</p>
+<ol>
+<li>Capture the third-party session ID via the RUM JavaScript API:</li>
+</ol>
+<pre><code class="language-javascript">// Example: send LogRocket session URL to Dynatrace
+LogRocket.getSessionURL(function(sessionURL) {
+  dtrum.sendSessionProperties(
+    null, null, 
+    { &quot;logrocket_url&quot;: sessionURL }
+  );
+});
+</code></pre>
+<ol start="2">
+<li>Configure a custom string session property in Dynatrace for <code>logrocket_url</code></li>
+<li>Query sessions with the third-party URL for cross-referencing</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> Dynatrace's native Session Replay has the advantage of being fully integrated with the performance waterfall, backend traces, and Dynatrace Intelligence — third-party tools typically lack this correlation.</p>
+</blockquote>
+<p><a id="summary"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook, we covered:</p>
+<ul>
+<li><strong>How Session Replay works</strong> — DOM mutation recording, not video</li>
+<li><strong>Data privacy</strong> — Masking levels, HTML attributes, CSS selector rules</li>
+<li><strong>Configuration</strong> — Sampling rates, conditional capture, storage considerations</li>
+<li><strong>Finding replays</strong> — DQL queries to locate replay-eligible sessions</li>
+<li><strong>When a session has no replay</strong> — the five ineligibility causes, and the sampling → enablement → browser → quota elimination order (SaaS 1.344 surfaces the reason directly)</li>
+<li><strong>Performance correlation</strong> — Linking slow/error sessions to replay</li>
+<li><strong>UX issue identification</strong> — Patterns to look for in replay analysis</li>
+<li><strong>Third-party integration</strong> — Connecting Dynatrace with external replay tools</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>WEBRUM-08: Dashboards and Alerting</strong> — Build RUM dashboards with Apdex and set up performance alerts</li>
+</ul>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic">Session Replay (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience/session-replay-latest/configure-session-replay-web/session-replay-strong-privacy-req-web">Session Replay with strong privacy requirements (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/configure-session-replay-web">Configure Session Replay for web applications (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/session-replay-classic/session-replay-restrictions-web">Technical restrictions for Session Replay Classic for web applications (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

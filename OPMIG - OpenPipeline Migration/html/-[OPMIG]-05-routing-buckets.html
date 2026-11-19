@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPMIG-05: Dynamic Routing &amp; Bucket Management</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPMIG — OpenPipeline Migration</a><span class="sep">/</span><span aria-current="page">OPMIG-05</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPMIG-05: Dynamic Routing &amp; Bucket Management</h1>
+<blockquote>
+<p><strong>Series:</strong> OPMIG — OpenPipeline Migration | <strong>Notebook:</strong> 5 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/30/2026</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#understanding-dynamic-routing">Understanding Dynamic Routing</a></li>
+<li><a href="#routing-strategies">Routing Strategies</a></li>
+<li><a href="#grail-buckets-explained">Grail Buckets Explained</a></li>
+<li><a href="#bucket-routing-configuration">Bucket Routing Configuration</a></li>
+<li><a href="#cost-optimization-patterns">Cost Optimization Patterns</a></li>
+<li><a href="#cost-optimization-roi-calculator-new">Cost Optimization ROI Calculator ⭐ NEW</a></li>
+<li><a href="#analyzing-your-bucket-usage">Analyzing Your Bucket Usage</a></li>
+<li><a href="#multi-tier-bucket-strategies-new">Multi-Tier Bucket Strategies ⭐ NEW</a></li>
+<li><a href="#multi-pipeline-processing">Multi-Pipeline Processing</a></li>
+<li><a href="#bucket-governance-access-control-new">Bucket Governance &amp; Access Control ⭐ NEW</a></li>
+<li><a href="#best-practices">Best Practices</a></li>
+<li><a href="#routing-configuration-examples">Routing Configuration Examples</a></li>
+</ol>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By completing this notebook, you will:</p>
+<ol>
+<li>Master dynamic routing strategies for different migration scenarios</li>
+<li>Design multi-tier bucket architectures for cost optimization</li>
+<li>⭐ <strong>NEW:</strong> Calculate ROI and TCO for bucket optimization strategies</li>
+<li>⭐ <strong>NEW:</strong> Implement 3-tier and 5-tier bucket governance models</li>
+<li>⭐ <strong>NEW:</strong> Apply compliance-driven retention strategies</li>
+<li>Configure multi-pipeline processing patterns</li>
+<li>Analyze bucket usage and identify optimization opportunities</li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail and OpenPipeline access — Managed is not covered by this series</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>settings:read</code>, <code>settings:write</code> (OpenPipeline configuration), <code>storage:buckets:read</code></td>
+</tr>
+<tr>
+<td><strong>API Access</strong></td>
+<td><code>logs.read</code> token scope</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OPMIG-01 through OPMIG-04; understanding of pipeline configuration</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="understanding-dynamic-routing"></a></p>
+<h2>Understanding Dynamic Routing</h2>
+<p>Dynamic routing is the mechanism that directs incoming data to specific pipelines based on matching conditions.</p>
+<h3>How Routing Works</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZGF0YUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJyb3V0ZUFHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyYzU1ZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icm91dGVCR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJvdXRlQ0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWM0ODk5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkYjI3Nzc7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJkZWZhdWx0R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2NDc0OGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzQ3NTU2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJkclNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iZHJBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImdyZWVuQXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzE2YTM0YSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIzNDAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkR5bmFtaWMgUm91dGluZyBGbG93PC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RWFjaCByZWNvcmQgdGFrZXMgdGhlIEZJUlNUIG1hdGNoaW5nIHJvdXRlOyBubyBtYXRjaCDihpIgZGVmYXVsdCByb3V0ZTwvdGV4dD4KCiAgPCEtLSBJbmNvbWluZyBEYXRhIC0tPgogIDxyZWN0IHg9IjMwIiB5PSI4MCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI1MCIgcng9IjgiIGZpbGw9InVybCgjZGF0YUdyYWQpIiBmaWx0ZXI9InVybCgjZHJTaGFkb3cpIi8+CiAgPHRleHQgeD0iODAiIHk9IjExMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkluY29taW5nPC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSIxMjQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SZWNvcmQ8L3RleHQ+CgogIDwhLS0gQXJyb3cgdG8gZXZhbHVhdGlvbiAtLT4KICA8cGF0aCBkPSJNMTMwLDEwNSBMMTYwLDEwNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjZHJBcnJvdykiLz4KCiAgPCEtLSBSb3V0ZSBFdmFsdWF0aW9uIEJveCAtLT4KICA8cmVjdCB4PSIxNzAiIHk9IjYwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIyMCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMzcwIiB5PSI4NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Uk9VVEUgRVZBTFVBVElPTjwvdGV4dD4KCiAgPCEtLSBSb3V0ZSAxIC0tPgogIDxyZWN0IHg9IjE5MCIgeT0iMTAwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0iI2QxZmFlNSIgc3Ryb2tlPSIjMjJjNTVlIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjExNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzA0Nzg1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Um91dGUgMTogazhzLm5hbWVzcGFjZTwvdGV4dD4KICA8dGV4dCB4PSIyNzAiIHk9IjEyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj49PSAicHJvZHVjdGlvbiI8L3RleHQ+CgogIDx0ZXh0IHg9IjM2NSIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiMxNmEzNGEiPlllcyDihpI8L3RleHQ+CgogIDxyZWN0IHg9IjQwMCIgeT0iMTAwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0idXJsKCNyb3V0ZUFHcmFkKSIgZmlsdGVyPSJ1cmwoI2RyU2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMTIyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cHJvZC1sb2dzIHBpcGVsaW5lPC90ZXh0PgoKICA8IS0tIFJvdXRlIDIgLS0+CiAgPHJlY3QgeD0iMTkwIiB5PSIxNDUiIHdpZHRoPSIxNjAiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSIjZmVmM2M3IiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjI3MCIgeT0iMTYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Sb3V0ZSAyOiBsb2cuc291cmNlPC90ZXh0PgogIDx0ZXh0IHg9IjI3MCIgeT0iMTczIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPj09ICJuZ2lueCI8L3RleHQ+CgogIDx0ZXh0IHg9IjM2NSIgeT0iMTY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNkOTc3MDYiPlllcyDihpI8L3RleHQ+CgogIDxyZWN0IHg9IjQwMCIgeT0iMTQ1IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0idXJsKCNyb3V0ZUJHcmFkKSIgZmlsdGVyPSJ1cmwoI2RyU2hhZG93KSIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMTY3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bmdpbngtbG9ncyBwaXBlbGluZTwvdGV4dD4KCiAgPCEtLSBSb3V0ZSAzIC0tPgogIDxyZWN0IHg9IjE5MCIgeT0iMTkwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0iI2ZjZTdmMyIgc3Ryb2tlPSIjZWM0ODk5IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjIwNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzlkMTc0ZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Um91dGUgMzogbWF0Y2hlc1BocmFzZTwvdGV4dD4KICA8dGV4dCB4PSIyNzAiIHk9IjIxOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOWQxNzRkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oY29udGVudCwgInBheW1lbnQiKTwvdGV4dD4KCiAgPHRleHQgeD0iMzY1IiB5PSIyMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iI2RiMjc3NyI+WWVzIOKGkjwvdGV4dD4KCiAgPHJlY3QgeD0iNDAwIiB5PSIxOTAiIHdpZHRoPSIxNTAiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSJ1cmwoI3JvdXRlQ0dyYWQpIiBmaWx0ZXI9InVybCgjZHJTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDc1IiB5PSIyMTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wYXltZW50LWxvZ3MgcGlwZWxpbmU8L3RleHQ+CgogIDwhLS0gRGVmYXVsdCAtLT4KICA8cmVjdCB4PSIxOTAiIHk9IjIzNSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9IiNmMWY1ZjkiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMjcwIiB5PSIyNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KG5vIG1hdGNoKTwvdGV4dD4KCiAgPHRleHQgeD0iMzY1IiB5PSIyNTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzY0NzQ4YiI+4oaSPC90ZXh0PgoKICA8cmVjdCB4PSI0MDAiIHk9IjIzNSIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9InVybCgjZGVmYXVsdEdyYWQpIiBmaWx0ZXI9InVybCgjZHJTaGFkb3cpIi8+CiAgPHRleHQgeD0iNDc1IiB5PSIyNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kZWZhdWx0IHJvdXRlPC90ZXh0PgoKICA8IS0tIEtleSBQb2ludHMgLS0+CiAgPHJlY3QgeD0iNTkwIiB5PSI4MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyMDAiIHJ4PSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjY4MCIgeT0iMTA1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5LZXkgQ29uY2VwdHM8L3RleHQ+CgogIDx0ZXh0IHg9IjYxMCIgeT0iMTMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPuKAoiBPcmRlciBtYXR0ZXJzPC90ZXh0PgogIDx0ZXh0IHg9IjYxMCIgeT0iMTQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPuKAoiBGaXJzdCBtYXRjaCB3aW5zPC90ZXh0PgogIDx0ZXh0IHg9IjYxMCIgeT0iMTY2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPuKAoiBPbmUgcm91dGUgcGVyIHJlY29yZDwvdGV4dD4KICA8dGV4dCB4PSI2MTAiIHk9IjE4NCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj7igKIgRGVmYXVsdCByb3V0ZTogdGhlIHJlc3Q8L3RleHQ+CgogIDxyZWN0IHg9IjYxMCIgeT0iMjAwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjYwIiByeD0iNCIgZmlsbD0iI2UwZjJmZSIvPgogIDx0ZXh0IHg9IjY4MCIgeT0iMjIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMDM2OWExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Qcm8gVGlwPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iMjM4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwMzY5YTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBsYWNlIHNwZWNpZmljIHJvdXRlczwvdGV4dD4KICA8dGV4dCB4PSI2ODAiIHk9IjI1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDM2OWExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5iZWZvcmUgZ2VuZXJhbCBvbmVzPC90ZXh0PgoKICA8IS0tIFJlc3VsdCBOb3RlIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIyOTUiIHdpZHRoPSI3NDAiIGhlaWdodD0iMzAiIHJ4PSI0IiBmaWxsPSIjZmVmM2M3Ii8+CiAgPHRleHQgeD0iNDAwIiB5PSIzMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Tm90ZTogdG8gcnVuIG9uZSByZWNvcmQgdGhyb3VnaCBzZXZlcmFsIHBpcGVsaW5lcywgcm91dGUgaXQgdG8gYSBtZW1iZXIgcGlwZWxpbmUgb2YgYSBwaXBlbGluZSBncm91cCAoYmFzZSArIG1lbWJlcik8L3RleHQ+Cjwvc3ZnPgo=" alt="Dynamic Routing Flow" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Route | Condition | Target Pipeline |
+|-------|-----------|-----------------|
+| Route 1 | k8s.namespace.name == "production" | prod-logs |
+| Route 2 | log.source == "nginx" | nginx-logs |
+| Route 3 | matchesPhrase(content, "payment") | payment-logs |
+| Default route | (no match) | classic pipeline (logs, business events) / default pipeline |
+-->
+<h3>Key Routing Concepts</h3>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Matching Condition</strong></td>
+<td>DQL expression that evaluates to true/false</td>
+</tr>
+<tr>
+<td><strong>Route Priority</strong></td>
+<td>Routes are evaluated in order (top to bottom) — the <strong>first matching route wins</strong></td>
+</tr>
+<tr>
+<td><strong>One route per record</strong></td>
+<td>A record that matches several routes still goes to only the first one</td>
+</tr>
+<tr>
+<td><strong>Default route</strong></td>
+<td>Catches all records not matching any route — for logs and business events, the classic pipeline</td>
+</tr>
+<tr>
+<td><strong>More than one pipeline</strong></td>
+<td>Route to a member pipeline of a <strong>pipeline group</strong>; the group's base pipelines run with it</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/data-flow">Data flow in OpenPipeline (DT docs)</a> — <em>&quot;The route order is relevant—the position in the list establishes the order of execution.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/pipeline-groups-multicloud">Pipeline groups — multi-cloud ingest governance (DT docs)</a> — <em>&quot;Each record is routed to and processed by only one member pipeline, according to the first matching route.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="routing-strategies"></a></p>
+<h2>Routing Strategies</h2>
+<h3>Strategy 1: Source-Based Routing</h3>
+<p>Route based on data source or ingestion method:</p>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Target Pipeline</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>log.source == &quot;nginx&quot;</code></td>
+<td>nginx-logs</td>
+<td>Web server logs</td>
+</tr>
+<tr>
+<td><code>log.source == &quot;application&quot;</code></td>
+<td>app-logs</td>
+<td>Application logs</td>
+</tr>
+<tr>
+<td><code>dt.openpipeline.source == &quot;/api/v2/otlp/v1/logs&quot;</code></td>
+<td>otel-logs</td>
+<td>OpenTelemetry (OTLP logs)</td>
+</tr>
+<tr>
+<td><code>dt.openpipeline.source == &quot;/api/v2/logs/ingest&quot;</code></td>
+<td>api-logs</td>
+<td>API ingestion</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>For built-in API sources, <code>dt.openpipeline.source</code> holds the endpoint <strong>path</strong> (<code>oneagent</code> for OneAgent). Run OPMIG-02's <em>View data sources</em> query to see the values in your tenant before routing on this field.</p>
+</blockquote>
+<h3>Strategy 2: Environment-Based Routing</h3>
+<p>Route based on environment or namespace:</p>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Target Pipeline</th>
+<th>Bucket</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>k8s.namespace.name == &quot;production&quot;</code></td>
+<td>prod-logs</td>
+<td>default_logs (35d)</td>
+</tr>
+<tr>
+<td><code>k8s.namespace.name == &quot;staging&quot;</code></td>
+<td>staging-logs</td>
+<td>dev_logs (7d)</td>
+</tr>
+<tr>
+<td><code>k8s.namespace.name == &quot;development&quot;</code></td>
+<td>dev-logs</td>
+<td>dev_logs (7d)</td>
+</tr>
+</tbody>
+</table>
+<h3>Strategy 3: Content-Based Routing</h3>
+<p>Route based on log content patterns:</p>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Target Pipeline</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matchesPhrase(content, &quot;payment&quot;)</code></td>
+<td>payment-logs</td>
+<td>Financial logs</td>
+</tr>
+<tr>
+<td><code>matchesPhrase(content, &quot;security&quot;)</code></td>
+<td>security-logs</td>
+<td>Security events</td>
+</tr>
+<tr>
+<td><code>matchesPhrase(content, &quot;audit&quot;)</code></td>
+<td>audit-logs</td>
+<td>Compliance logs</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Routing matchers accept <code>matchesPhrase</code> (whole tokens or phrases) and <code>matchesValue</code> with <code>*</code> wildcards (any substring); <code>contains()</code> is not enabled in matchers.</p>
+</blockquote>
+<h3>Strategy 4: Severity-Based Routing</h3>
+<p>Route based on log level for tiered retention:</p>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Target Pipeline</th>
+<th>Bucket</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>status == &quot;ERROR&quot;</code></td>
+<td>error-logs</td>
+<td>error_logs (90d)</td>
+</tr>
+<tr>
+<td><code>status == &quot;WARN&quot;</code></td>
+<td>warning-logs</td>
+<td>default_logs (35d)</td>
+</tr>
+<tr>
+<td><code>loglevel == &quot;DEBUG&quot;</code></td>
+<td>debug-logs</td>
+<td>short_retention (3d)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Use <code>status</code> for error- and warning-class tiers. <code>status</code> groups the levels — <code>SEVERE</code>, <code>ERROR</code>, <code>CRITICAL</code>, <code>ALERT</code>, <code>FATAL</code> and <code>EMERGENCY</code> all become <code>ERROR</code> — so <code>loglevel == &quot;ERROR&quot;</code> alone misses Java <code>SEVERE</code> and the rest (on a validation tenant, 63,216 <code>loglevel == &quot;ERROR&quot;</code> records against 118,023 <code>status == &quot;ERROR&quot;</code> in one hour, 10/14/2026). <code>status</code> folds <code>DEBUG</code> and <code>TRACE</code> into <code>INFO</code>, so keep <code>loglevel</code> for the debug tier.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-log-ingestion/lma-log-ingestion-via-api/lma-log-data-transformation">Automatic log enrichment (DT docs)</a> — <em>&quot;Additionally, for each log event, a status attribute is created with a value that is a sum of loglevel values based on the following grouping&quot;</em>.</sub></p>
+</blockquote>
+<h3>Strategy 5: Hybrid Routing</h3>
+<p>Combine multiple criteria for precise routing:</p>
+<pre><code>k8s.namespace.name == &quot;production&quot; AND log.source == &quot;payment-service&quot;
+</code></pre>
+<hr />
+<p><a id="grail-buckets-explained"></a></p>
+<h2>Grail Buckets Explained</h2>
+<p>Grail buckets are storage containers with configurable retention and access policies.</p>
+<h3>Default Buckets</h3>
+<table>
+<thead>
+<tr>
+<th>Bucket</th>
+<th>Data Type</th>
+<th>Default Retention</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>default_logs</code></td>
+<td>Log records</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_spans</code></td>
+<td>Span/trace data</td>
+<td>10 days</td>
+</tr>
+<tr>
+<td><code>default_bizevents</code></td>
+<td>Business events</td>
+<td>35 days</td>
+</tr>
+<tr>
+<td><code>default_events</code></td>
+<td>Platform events</td>
+<td>35 days</td>
+</tr>
+</tbody>
+</table>
+<p>Run <code>fetch dt.system.buckets | filter startsWith(name, &quot;default_&quot;)</code> to see the built-in buckets and retention in your own tenant.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">Organize data (DT docs)</a> — built-in bucket table: <code>default_logs</code> 35 days, <code>default_spans</code> 10 days, <code>default_bizevents</code> 35 days, <code>default_events</code> 35 days.</sub></p>
+</blockquote>
+<h3>Custom Bucket Use Cases</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Bucket Strategy</th>
+<th>Retention</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Compliance/Audit</strong></td>
+<td><code>audit_logs</code></td>
+<td>365+ days</td>
+</tr>
+<tr>
+<td><strong>Financial Data</strong></td>
+<td><code>financial_logs</code></td>
+<td>90 days</td>
+</tr>
+<tr>
+<td><strong>Security Events</strong></td>
+<td><code>security_logs</code></td>
+<td>180 days</td>
+</tr>
+<tr>
+<td><strong>Development Logs</strong></td>
+<td><code>dev_logs</code></td>
+<td>7 days</td>
+</tr>
+<tr>
+<td><strong>Debug/Trace</strong></td>
+<td><code>debug_logs</code></td>
+<td>3 days</td>
+</tr>
+<tr>
+<td><strong>High-Volume Noise</strong></td>
+<td><code>ephemeral_logs</code></td>
+<td>1 day</td>
+</tr>
+</tbody>
+</table>
+<h3>Bucket Benefits</h3>
+<ol>
+<li><strong>Cost Optimization</strong>: Shorter retention = lower storage costs</li>
+<li><strong>Compliance</strong>: Longer retention for audit requirements</li>
+<li><strong>Performance</strong>: Smaller buckets = faster queries</li>
+<li><strong>Access Control</strong>: Bucket-level permissions</li>
+<li><strong>Data Isolation</strong>: Separate buckets for different teams/purposes</li>
+</ol>
+<hr />
+<p><a id="bucket-routing-configuration"></a></p>
+<h2>Bucket Routing Configuration</h2>
+<h3>Configuring Bucket Routing in Pipeline</h3>
+<p>Each pipeline can route data to a specific bucket:</p>
+<ol>
+<li>Open your pipeline in OpenPipeline settings</li>
+<li>Go to the <strong>Bucket assignment</strong> stage and add a <strong>Bucket assignment</strong> processor</li>
+<li>Give it a matching condition and choose the bucket from the <strong>Storage</strong> list</li>
+<li>Save pipeline</li>
+</ol>
+<h3>Bucket Routing Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>First match only</strong></td>
+<td>The first Bucket assignment processor whose condition matches decides the bucket</td>
+</tr>
+<tr>
+<td><strong>No storage assignment</strong></td>
+<td>The record runs through every later stage (metric, Davis, data extraction) and is then not stored</td>
+</tr>
+<tr>
+<td><strong>No processor matched</strong></td>
+<td>In community practice the record lands in the scope's default bucket (<code>default_logs</code>) — confirm with the bucket queries below</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>Important:</strong> A record is stored at most <strong>once</strong>, in one bucket. Bucket assignment is first-match-only, so order the processors from most specific to least specific.</p>
+</blockquote>
+<h3>Creating Custom Buckets</h3>
+<p>Custom buckets are created via Grail settings:</p>
+<pre><code>Settings → Storage management → Bucket storage management → Bucket
+</code></pre>
+<p>Configure:</p>
+<ul>
+<li><strong>Name</strong>: Descriptive bucket name</li>
+<li><strong>Table</strong>: Data type (logs, spans, etc.)</li>
+<li><strong>Retention</strong>: Days to retain data</li>
+<li><strong>Description</strong>: Purpose of bucket</li>
+</ul>
+<hr />
+<p><a id="cost-optimization-patterns"></a></p>
+<h2>Cost Optimization Patterns</h2>
+<h3>Pattern 1: Tiered Retention by Severity</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGllcjFHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlZjQ0NDQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2RjMjYyNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InRpZXIyR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjU5ZTBiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0aWVyM0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGllcjRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmM1NWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE2YTM0YTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImRyb3BHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2NDc0OGI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzQ3NTU2OTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJidFNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYnRBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjM0MCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iNDAwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VGllcmVkIEJ1Y2tldCBSZXRlbnRpb24gU3RyYXRlZ3k8L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PcHRpbWl6ZSBjb3N0cyB3aXRoIHJldGVudGlvbiBiYXNlZCBvbiBkYXRhIHZhbHVlPC90ZXh0PgoKICA8IS0tIEluY29taW5nIExvZ3MgLS0+CiAgPHJlY3QgeD0iMzAiIHk9Ijc1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjIwMCIgcng9IjgiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iOTAiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW5jb21pbmcgTG9nczwvdGV4dD4KICA8dGV4dCB4PSI5MCIgeT0iMTIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjEwMCUgVm9sdW1lPC90ZXh0PgoKICA8cmVjdCB4PSI0NSIgeT0iMTM1IiB3aWR0aD0iOTAiIGhlaWdodD0iMjAiIHJ4PSIzIiBmaWxsPSIjZmVjYWNhIi8+CiAgPHRleHQgeD0iOTAiIHk9IjE0OSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZGMyNjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FUlJPUiAofjUlKTwvdGV4dD4KCiAgPHJlY3QgeD0iNDUiIHk9IjE2MCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjIwIiByeD0iMyIgZmlsbD0iI2ZlZjNjNyIvPgogIDx0ZXh0IHg9IjkwIiB5PSIxNzQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2Q5NzcwNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+V0FSTiAofjEwJSk8L3RleHQ+CgogIDxyZWN0IHg9IjQ1IiB5PSIxODUiIHdpZHRoPSI5MCIgaGVpZ2h0PSIyMCIgcng9IjMiIGZpbGw9IiNkYmVhZmUiLz4KICA8dGV4dCB4PSI5MCIgeT0iMTk5IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMyNTYzZWIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPklORk8gKH41MCUpPC90ZXh0PgoKICA8cmVjdCB4PSI0NSIgeT0iMjEwIiB3aWR0aD0iOTAiIGhlaWdodD0iMjAiIHJ4PSIzIiBmaWxsPSIjZDFmYWU1Ii8+CiAgPHRleHQgeD0iOTAiIHk9IjIyNCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTZhMzRhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ERUJVRyAofjM1JSk8L3RleHQ+CgogIDwhLS0gQXJyb3dzIHRvIHRpZXJzIC0tPgogIDxwYXRoIGQ9Ik0xNTAsMTQ1IEwyMDAsOTUiIHN0cm9rZT0iI2RjMjYyNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2J0QXJyb3cpIi8+CiAgPHBhdGggZD0iTTE1MCwxNzAgTDIwMCwxNTUiIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2J0QXJyb3cpIi8+CiAgPHBhdGggZD0iTTE1MCwxOTUgTDIwMCwyMTUiIHN0cm9rZT0iIzI1NjNlYiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2J0QXJyb3cpIi8+CiAgPHBhdGggZD0iTTE1MCwyMjAgTDIwMCwyNzAiIHN0cm9rZT0iIzE2YTM0YSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2J0QXJyb3cpIi8+CgogIDwhLS0gVGllciAxOiBDcml0aWNhbCAtLT4KICA8cmVjdCB4PSIyMTAiIHk9IjcwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjUwIiByeD0iOCIgZmlsbD0idXJsKCN0aWVyMUdyYWQpIiBmaWx0ZXI9InVybCgjYnRTaGFkb3cpIi8+CiAgPHRleHQgeD0iMzYwIiB5PSI5MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRpZXIgMTogZXJyb3JfbG9ncyAoOTAgZGF5cyk8L3RleHQ+CiAgPHRleHQgeD0iMzYwIiB5PSIxMDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db21wbGlhbmNlICsgUm9vdCBDYXVzZSBBbmFseXNpczwvdGV4dD4KCiAgPCEtLSBUaWVyIDI6IFN0YW5kYXJkIC0tPgogIDxyZWN0IHg9IjIxMCIgeT0iMTMwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjUwIiByeD0iOCIgZmlsbD0idXJsKCN0aWVyMkdyYWQpIiBmaWx0ZXI9InVybCgjYnRTaGFkb3cpIi8+CiAgPHRleHQgeD0iMzYwIiB5PSIxNTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5UaWVyIDI6IGRlZmF1bHRfbG9ncyAoMzUgZGF5cyk8L3RleHQ+CiAgPHRleHQgeD0iMzYwIiB5PSIxNjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TdGFuZGFyZCBPcGVyYXRpb25zPC90ZXh0PgoKICA8IS0tIFRpZXIgMzogRGV2IC0tPgogIDxyZWN0IHg9IjIxMCIgeT0iMTkwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjUwIiByeD0iOCIgZmlsbD0idXJsKCN0aWVyM0dyYWQpIiBmaWx0ZXI9InVybCgjYnRTaGFkb3cpIi8+CiAgPHRleHQgeD0iMzYwIiB5PSIyMTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5UaWVyIDM6IGRldl9sb2dzICg3IGRheXMpPC90ZXh0PgogIDx0ZXh0IHg9IjM2MCIgeT0iMjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGV2ZWxvcG1lbnQgKyBTdGFnaW5nPC90ZXh0PgoKICA8IS0tIFRpZXIgNDogRHJvcCAtLT4KICA8cmVjdCB4PSIyMTAiIHk9IjI1MCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI1MCIgcng9IjgiIGZpbGw9InVybCgjZHJvcEdyYWQpIiBmaWx0ZXI9InVybCgjYnRTaGFkb3cpIi8+CiAgPHRleHQgeD0iMzYwIiB5PSIyNzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EUk9QICgwIGRheXMpPC90ZXh0PgogIDx0ZXh0IHg9IjM2MCIgeT0iMjg4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+REVCVUcsIFRSQUNFLCBIZWFsdGggQ2hlY2tzPC90ZXh0PgoKICA8IS0tIENvc3QgSW1wYWN0IC0tPgogIDxyZWN0IHg9IjU0MCIgeT0iNzAiIHdpZHRoPSIyMzAiIGhlaWdodD0iMjMwIiByeD0iOCIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI2NTUiIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Db3N0IEltcGFjdDwvdGV4dD4KCiAgPHJlY3QgeD0iNTU1IiB5PSIxMTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjZmVjYWNhIi8+CiAgPHRleHQgeD0iNjU1IiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkYzI2MjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjUlIHZvbHVtZSDDlyA5MCBkYXlzPC90ZXh0PgogIDx0ZXh0IHg9IjY1NSIgeT0iMTQzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNkYzI2MjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhpZ2hlciBjb3N0IGJ1dCBjcml0aWNhbCBkYXRhPC90ZXh0PgoKICA8cmVjdCB4PSI1NTUiIHk9IjE1NSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiNmZWYzYzciLz4KICA8dGV4dCB4PSI2NTUiIHk9IjE3NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzkyNDAwZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NjAlIHZvbHVtZSDDlyAzNSBkYXlzPC90ZXh0PgogIDx0ZXh0IHg9IjY1NSIgeT0iMTg4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlN0YW5kYXJkIHJldGVudGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNTU1IiB5PSIyMDAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSIjZDFmYWU1Ii8+CiAgPHRleHQgeD0iNjU1IiB5PSIyMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPjM1JSB2b2x1bWUgw5cgMCBkYXlzPC90ZXh0PgogIDx0ZXh0IHg9IjY1NSIgeT0iMjMzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwNDc4NTciIHRleHQtYW5jaG9yPSJtaWRkbGUiPlpFUk8gc3RvcmFnZSBjb3N0ITwvdGV4dD4KCiAgPCEtLSBSZXN1bHQgLS0+CiAgPHJlY3QgeD0iNTU1IiB5PSIyNTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMzgiIHJ4PSI0IiBmaWxsPSIjZWRlOWZlIi8+CiAgPHRleHQgeD0iNjU1IiB5PSIyNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM2ZDI4ZDkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKJiDI3JSBzdG9yYWdlIHVuaXRzIG9uIHRoaXMgbWl4PC90ZXh0PgogIDx0ZXh0IHg9IjY1NSIgeT0iMjgzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2ZDI4ZDkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnZzLiBhbGwtaW4gZGVmYXVsdCDigJQgbWVhc3VyZSB5b3VyczwvdGV4dD4KPC9zdmc+Cg==" alt="Tiered Bucket Retention Strategy" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Tier | Bucket | Retention | Volume | Impact |
+|------|--------|-----------|--------|--------|
+| Critical | error_logs | 90 days | ~5% | Higher cost, critical data |
+| Standard | default_logs | 35 days | ~60% | Standard retention |
+| Development | dev_logs | 7 days | — | Short retention |
+| Drop | none | 0 days | dropped | Zero cost |
+-->
+<h3>Pattern 2: Environment-Based Retention</h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Bucket</th>
+<th>Retention</th>
+<th>Cost Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Production</td>
+<td><code>prod_logs</code></td>
+<td>35 days</td>
+<td>Standard</td>
+</tr>
+<tr>
+<td>Staging</td>
+<td><code>staging_logs</code></td>
+<td>14 days</td>
+<td>-60%</td>
+</tr>
+<tr>
+<td>Development</td>
+<td><code>dev_logs</code></td>
+<td>7 days</td>
+<td>-80%</td>
+</tr>
+<tr>
+<td>Ephemeral/Test</td>
+<td><code>temp_logs</code></td>
+<td>3 days</td>
+<td>-90%</td>
+</tr>
+</tbody>
+</table>
+<h3>Pattern 3: Drop + Sample</h3>
+<p>For extremely high-volume, low-value logs:</p>
+<ol>
+<li>Drop 90% of health checks</li>
+<li>Sample 10% to a short-retention bucket</li>
+<li>Keep statistical visibility without full storage cost</li>
+</ol>
+<h3>Pattern 4: Metric Extraction + No Storage</h3>
+<p>For logs needed only for metrics:</p>
+<ol>
+<li>Extract metrics (with dimensions) from logs in the <strong>Metric extraction</strong> stage</li>
+<li>Assign the raw logs <strong>No storage assignment</strong> (Bucket assignment stage) so each record still runs through Metric extraction but is not stored</li>
+<li>The metrics are kept for the metrics bucket's retention (<code>default_metrics</code>: 15 months); the raw logs are never written to a bucket</li>
+</ol>
+<p>Do not use a <strong>Drop record</strong> processor for this — it runs in the Processing stage, before Metric extraction, so nothing would be extracted.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a> — Drop record: <em>&quot;Drops a record. The record isn't processed further and isn't stored.&quot;</em>; No storage assignment: <em>&quot;The record continues through all configured pipeline stages and isn't stored only at the end of the pipeline.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<p><a id="cost-optimization-roi-calculator-new"></a></p>
+<h2>Cost Optimization ROI Calculator ⭐ NEW</h2>
+<p>Understanding the financial impact of bucket strategies is critical for migration planning. This section shows how to estimate the effect of a bucket strategy — the <strong>arithmetic</strong>, not a price list.</p>
+<blockquote>
+<p>⚠️ <strong>Placeholder rates — not Dynatrace prices.</strong> Every rate below (the per-MB DDU rates and the $0.08 per DDU) is an illustrative input chosen to show the arithmetic. No Dynatrace page publishes these figures. Replace each one with the rates from your own contract before using any result. On a <strong>Dynatrace Platform Subscription (DPS)</strong>, log costs are billed per capability (Ingest &amp; Process, Retain, Query) — see FINOPS-01 and your rate card. The relative result — storage cost scales with volume × retention days — holds whatever the rates are; the query below (<em>Estimate storage reduction from tiered retention</em>) computes it from your own data.</p>
+</blockquote>
+<h3>Pricing Model (placeholder inputs)</h3>
+<blockquote>
+<p><strong>Note:</strong> DPS is the <strong>Dynatrace Platform Subscription</strong>. DDUs (<strong>Davis data units</strong>) are the classic-licensing unit for custom metrics, Log Monitoring and custom events. Check your license model to determine which applies.</p>
+</blockquote>
+<p>Placeholder inputs used in the scenarios below:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Placeholder rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Log Ingestion</strong></td>
+<td>0.001 DDU per MB ingested</td>
+</tr>
+<tr>
+<td><strong>Storage (per day)</strong></td>
+<td>0.0001 DDU per MB per day retained</td>
+</tr>
+<tr>
+<td><strong>DQL Query</strong></td>
+<td>0.001 DDU per MB scanned</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Placeholder DDU price:</strong> $0.08 per DDU</p>
+<h3>Cost Formula</h3>
+<pre><code class="language-text">Monthly Cost = (Ingestion Cost) + (Storage Cost) + (Query Cost)
+
+Where:
+  Ingestion Cost = Volume (MB/day) × 30 days × Ingest rate × Price/DDU
+  Storage Cost   = Volume (MB/day) × Retention (days) × Storage rate (per MB per day) × 30 days × Price/DDU
+                   (steady state: Volume × Retention MB are held at any time, charged every day)
+  Query Cost     = Query Volume (MB/month) × Query rate × Price/DDU
+</code></pre>
+<h3>Scenario 1: E-Commerce Platform - Tiered Retention</h3>
+<p><strong>Current State (No Optimization):</strong></p>
+<pre><code class="language-text">Volume:          100 GB/day (100,000 MB/day)
+Breakdown:       - ERROR:  5% (5,000 MB/day)
+                 - WARN:  10% (10,000 MB/day)
+                 - INFO:  50% (50,000 MB/day)
+                 - DEBUG: 35% (35,000 MB/day)
+Retention:       35 days (default_logs)
+DDU Price:       $0.08 per DDU (placeholder)
+</code></pre>
+<p><strong>Current Monthly Cost:</strong></p>
+<pre><code class="language-text">Ingestion:  100,000 MB/day × 30 days × 0.001 × $0.08 = $240/month
+Storage:    100,000 MB/day × 35 days × 0.0001 × 30 days × $0.08 = $840/month
+Query:      Estimate ~20% of monthly volume queried
+            (100,000 × 30 × 0.2) × 0.001 × $0.08 = $48/month
+
+TOTAL:      $1,128/month
+</code></pre>
+<p><strong>Optimized State (3-Tier + Drop):</strong></p>
+<pre><code class="language-text">Tier 1 (ERROR):     5,000 MB/day → error_logs (90 days)
+Tier 2 (WARN/INFO): 60,000 MB/day → default_logs (35 days)
+Tier 3 (DEBUG):     35,000 MB/day → DROPPED (0 days)
+</code></pre>
+<p><strong>Optimized Monthly Cost:</strong></p>
+<pre><code class="language-text">Ingestion (only non-dropped — assumes dropped records carry no ingest charge; check your rate card):
+  65,000 MB/day × 30 days × 0.001 × $0.08 = $156/month
+
+Storage:
+  Tier 1: 5,000 × 90 × 0.0001 × 30 × $0.08 = $108/month
+  Tier 2: 60,000 × 35 × 0.0001 × 30 × $0.08 = $504/month
+  Total storage = $612/month
+
+Query (20% of monthly volume):
+  (5,000 × 30 × 0.2 + 60,000 × 30 × 0.2) × 0.001 × $0.08 = $31.20/month
+
+TOTAL:      $799.20/month
+</code></pre>
+<p><strong>ROI Analysis:</strong></p>
+<pre><code class="language-text">Monthly Savings:     $1,128 - $799.20 = $328.80/month
+Annual Savings:      $328.80 × 12 = $3,945.60/year
+Savings Percentage:  29.1%
+Implementation Time: 4-8 hours
+Payback Period:      Immediate (operational change only)
+</code></pre>
+<h3>Scenario 2: SaaS Platform - Multi-Environment</h3>
+<p>Storage cost only, same placeholder rates:</p>
+<p><strong>Current State:</strong></p>
+<pre><code class="language-text">Production:   50 GB/day × 35 days = $420/month
+Staging:      30 GB/day × 35 days = $252/month
+Development:  20 GB/day × 35 days = $168/month
+TOTAL:        $840/month
+</code></pre>
+<p><strong>Optimized State:</strong></p>
+<pre><code class="language-text">Production:   50 GB/day × 35 days = $420/month (no change)
+Staging:      30 GB/day × 14 days = $100.80/month (60% reduction)
+Development:  20 GB/day × 7 days  = $33.60/month (80% reduction)
+TOTAL:        $554.40/month
+</code></pre>
+<p><strong>ROI Analysis:</strong></p>
+<pre><code class="language-text">Monthly Savings:     $285.60/month
+Annual Savings:      $3,427.20/year
+Savings Percentage:  34%
+</code></pre>
+<h3>Scenario 3: Global Retailer - Compliance + Cost</h3>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>Payment logs: PCI DSS Requirement 10.5.1 — at least 12 months of audit log history, the most recent three months immediately available</li>
+<li>Audit logs: 365 days — SOC 2 sets no fixed period; a year matching the audit window is common practice</li>
+<li>Application logs: 35 days standard</li>
+<li>Debug logs: Drop immediately</li>
+</ul>
+<p><strong>Volume Breakdown:</strong></p>
+<pre><code class="language-text">Payment logs:  10 GB/day (10% of total)
+Audit logs:    5 GB/day  (5% of total)
+App logs:      60 GB/day (60% of total)
+Debug logs:    25 GB/day (25% of total)
+TOTAL:         100 GB/day
+</code></pre>
+<p><strong>Cost Calculation:</strong></p>
+<pre><code class="language-text">Payment (365d): 10,000 × 365 × 0.0001 × 30 × $0.08 = $876/month
+Audit (365d):   5,000 × 365 × 0.0001 × 30 × $0.08 = $438/month
+App (35d):      60,000 × 35 × 0.0001 × 30 × $0.08 = $504/month
+Debug (drop):   $0/month
+Ingestion:      75,000 × 30 × 0.001 × $0.08 = $180/month
+
+TOTAL:          $1,998/month
+</code></pre>
+<p><strong>vs. No Optimization (all 35 days):</strong></p>
+<pre><code class="language-text">Storage:   100,000 × 35 × 0.0001 × 30 × $0.08 = $840/month
+Ingestion: 100,000 × 30 × 0.001 × $0.08       = $240/month
+TOTAL:     $1,080/month (but non-compliant!)
+</code></pre>
+<p><strong>Key Insight:</strong> Sometimes optimization increases cost but ensures compliance. The cost of non-compliance (fines, audits) far exceeds storage costs.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/record-deletion-in-grail">Record deletion in Grail via API (DT docs)</a> — DPS expansion, <em>&quot;This must be enabled as a capability in your Dynatrace Platform Subscription (DPS).&quot;</em>; <a href="https://docs.dynatrace.com/docs/license/classic-licensing/davis-data-units">Davis data units (DT docs)</a> — <em>&quot;Davis data units (DDU) provide a simple means of licensing certain capabilities (custom metrics, log monitoring, and custom events) on the Dynatrace platform.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<hr />
+<p><a id="analyzing-your-bucket-usage"></a></p>
+<h2>Analyzing Your Bucket Usage</h2>
+<p>Use these queries to understand your current bucket utilization and plan optimization.</p>
+<pre><code class="language-dql">// Current bucket distribution for logs
+// Shows where your logs are being stored
+fetch logs, from: now() - 7d
+| summarize {record_count = count()}, by: {dt.system.bucket}
+| fieldsAdd daily_avg = round(record_count / 7, decimals: 0)
+| sort record_count desc
+</code></pre>
+<pre><code class="language-dql">// Bucket usage by log source
+// Identify which sources are consuming bucket capacity
+fetch logs, from: now() - 7d
+| summarize {record_count = count()}, by: {dt.system.bucket, log.source}
+| sort record_count desc
+| limit 30
+</code></pre>
+<pre><code class="language-dql">// Bucket usage by pipeline
+// Shows which pipelines are routing to which buckets
+fetch logs, from: now() - 7d
+| filter isNotNull(dt.openpipeline.pipelines)
+| summarize {record_count = count()}, by: {dt.openpipeline.pipelines, dt.system.bucket}
+| sort record_count desc
+</code></pre>
+<pre><code class="language-dql">// Bucket usage trend over time
+fetch logs, from: now() - 7d
+| makeTimeseries {record_count = count()}, by: {dt.system.bucket}, interval: 24h
+</code></pre>
+<pre><code class="language-dql">// Identify logs that could move to shorter retention buckets
+// Debug and trace logs are prime candidates
+fetch logs, from: now() - 7d
+| filter dt.system.bucket == &quot;default_logs&quot;
+| summarize {
+    total = count(),
+    debug = countIf(loglevel == &quot;DEBUG&quot;),
+    trace = countIf(loglevel == &quot;TRACE&quot;),
+    info = countIf(loglevel == &quot;INFO&quot;)
+  }
+| fieldsAdd debug_pct = round((toDouble(debug) / toDouble(total)) * 100, decimals: 2)
+| fieldsAdd trace_pct = round((toDouble(trace) / toDouble(total)) * 100, decimals: 2)
+| fieldsAdd optimization_potential = round((toDouble(debug + trace) / toDouble(total)) * 100, decimals: 2)
+</code></pre>
+<pre><code class="language-dql">// Check span bucket distribution
+// Spans also use buckets
+fetch spans, from: now() - 7d
+| summarize {span_count = count()}, by: {dt.system.bucket}
+| sort span_count desc
+</code></pre>
+<pre><code class="language-dql">// Estimate storage reduction from tiered retention
+// Shows potential savings from routing to different buckets
+// Error/warn tier uses status, which also counts SEVERE, CRITICAL, FATAL and the rest
+fetch logs, from: now() - 7d
+| summarize {
+    total = count(),
+    error_warn = countIf(status == &quot;ERROR&quot; OR status == &quot;WARN&quot;),
+    info = countIf(loglevel == &quot;INFO&quot;),
+    debug_trace = countIf(loglevel == &quot;DEBUG&quot; OR loglevel == &quot;TRACE&quot;)
+  }
+| fieldsAdd tier1_90day = error_warn
+| fieldsAdd tier2_35day = info
+| fieldsAdd tier3_drop = debug_trace
+| fieldsAdd current_cost_units = total * 35
+| fieldsAdd optimized_cost_units = (tier1_90day * 90) + (tier2_35day * 35) + (tier3_drop * 0)
+| fieldsAdd savings_pct = round((1.0 - (toDouble(optimized_cost_units) / toDouble(current_cost_units))) * 100, decimals: 1)
+</code></pre>
+<hr />
+<p><a id="multi-tier-bucket-strategies-new"></a></p>
+<h2>Multi-Tier Bucket Strategies ⭐ NEW</h2>
+<p>Different organizations need different bucket architectures based on their scale, compliance requirements, and cost targets.</p>
+<h3>3-Tier Strategy (Small to Medium Organizations)</h3>
+<p><strong>Recommended for:</strong> 10-500 GB/day, single or few environments</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Bucket Name</th>
+<th>Retention</th>
+<th>Use Case</th>
+<th>Volume %</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Critical</strong></td>
+<td><code>critical_logs</code></td>
+<td>90 days</td>
+<td>Errors, security, audit</td>
+<td>10-15%</td>
+</tr>
+<tr>
+<td><strong>Standard</strong></td>
+<td><code>default_logs</code></td>
+<td>35 days</td>
+<td>WARN, INFO, app logs</td>
+<td>60-70%</td>
+</tr>
+<tr>
+<td><strong>Ephemeral</strong></td>
+<td><code>ephemeral_logs</code></td>
+<td>7 days</td>
+<td>DEBUG, health checks</td>
+<td>20-30%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Routing Configuration:</strong></p>
+<pre><code>Route 1 (Critical):
+  Condition: status == &quot;ERROR&quot; OR 
+             matchesValue(log.source, &quot;*security*&quot;) OR 
+             matchesValue(log.source, &quot;*audit*&quot;) OR
+             matchesPhrase(content, &quot;payment&quot;)
+  Pipeline:  critical-logs
+  Bucket:    critical_logs (90 days)
+
+Route 2 (Ephemeral):
+  Condition: loglevel == &quot;DEBUG&quot; OR 
+             loglevel == &quot;TRACE&quot; OR
+             matchesValue(content, &quot;*/health*&quot;)
+  Pipeline:  ephemeral-logs
+  Bucket:    ephemeral_logs (7 days)
+
+Route 3 (Standard, catch-all — last in the list):
+  Condition: true
+  Pipeline:  standard-logs
+  Bucket:    default_logs (35 days)
+</code></pre>
+<p><strong>Expected savings:</strong> depends on your level mix — run <em>Estimate storage reduction from tiered retention</em> above on your own data before committing to a number.</p>
+<h3>5-Tier Strategy (Enterprise Organizations)</h3>
+<p><strong>Recommended for:</strong> 500+ GB/day, multiple environments, strict compliance</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Bucket Name</th>
+<th>Retention</th>
+<th>Use Case</th>
+<th>Volume %</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Compliance</strong></td>
+<td><code>compliance_logs</code></td>
+<td>365 days</td>
+<td>SOC 2, GDPR, HIPAA audit trails</td>
+<td>3-5%</td>
+</tr>
+<tr>
+<td><strong>Security</strong></td>
+<td><code>security_logs</code></td>
+<td>180 days</td>
+<td>Security events, attacks, vulns</td>
+<td>2-5%</td>
+</tr>
+<tr>
+<td><strong>Production</strong></td>
+<td><code>prod_logs</code></td>
+<td>90 days</td>
+<td>Production errors, warnings</td>
+<td>10-15%</td>
+</tr>
+<tr>
+<td><strong>Standard</strong></td>
+<td><code>default_logs</code></td>
+<td>35 days</td>
+<td>INFO logs, standard operations</td>
+<td>40-50%</td>
+</tr>
+<tr>
+<td><strong>Development</strong></td>
+<td><code>dev_logs</code></td>
+<td>7 days</td>
+<td>Dev/staging, DEBUG, testing</td>
+<td>30-40%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Expected savings:</strong> measure, as above — the volume percentages in the table are illustrative.</p>
+<h3>Hybrid Strategy (Compliance + Cost)</h3>
+<p><strong>Best for:</strong> Organizations with compliance requirements AND cost constraints</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY29tcGxpYW5jZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2RjMjYyNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWY0NDQ0O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZW52R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzZXZHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJoYlNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iaGJBcnJvdyIgbWFya2VyV2lkdGg9IjEwIiBtYXJrZXJIZWlnaHQ9IjciIHJlZlg9IjkiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIwIDAsIDEwIDMuNSwgMCA3IiBmaWxsPSIjNjQ3NDhiIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iNzAwIiBoZWlnaHQ9IjQyMCIgZmlsbD0iI2Y4ZjlmYSIgcng9IjEwIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIyOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlMjkzYiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SHlicmlkIFN0cmF0ZWd5OiBDb21wbGlhbmNlICsgQ29zdCBPcHRpbWl6YXRpb248L3RleHQ+CgogIDwhLS0gSW5jb21pbmcgbG9ncyBub2RlIC0tPgogIDxyZWN0IHg9IjI4MCIgeT0iNTAiIHdpZHRoPSIxNDAiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSIjMzM0MTU1IiBmaWx0ZXI9InVybCgjaGJTaGFkb3cpIi8+CiAgPHRleHQgeD0iMzUwIiB5PSI3MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9ImJvbGQiPkluY29taW5nIExvZ3M8L3RleHQ+CgogIDwhLS0gQXJyb3cgZG93biAtLT4KICA8bGluZSB4MT0iMzUwIiB5MT0iODUiIHgyPSIzNTAiIHkyPSIxMDUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2hiQXJyb3cpIi8+CgogIDwhLS0gRGVjaXNpb24gZmxvdyBzcGxpdHMgaW50byAzIGJyYW5jaGVzIC0tPgogIDwhLS0gQnJhbmNoIGNvbm5lY3RvciAtLT4KICA8bGluZSB4MT0iMzUwIiB5MT0iMTEwIiB4Mj0iMzUwIiB5Mj0iMTI1IiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIxMjAiIHkxPSIxMjUiIHgyPSI1ODAiIHkyPSIxMjUiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjEyMCIgeTE9IjEyNSIgeDI9IjEyMCIgeTI9IjE0MCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMzUwIiB5MT0iMTI1IiB4Mj0iMzUwIiB5Mj0iMTQwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI1ODAiIHkxPSIxMjUiIHgyPSI1ODAiIHkyPSIxNDAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIi8+CgogIDwhLS0gQnJhbmNoIDE6IENvbXBsaWFuY2UgQ2hlY2sgKExlZnQpIC0tPgogIDxyZWN0IHg9IjMwIiB5PSIxNDUiIHdpZHRoPSIxODAiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSJ1cmwoI2NvbXBsaWFuY2VHcmFkKSIgZmlsdGVyPSJ1cmwoI2hiU2hhZG93KSIvPgogIDx0ZXh0IHg9IjEyMCIgeT0iMTY4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iYm9sZCI+MS4gQ29tcGxpYW5jZSBDaGVjazwvdGV4dD4KCiAgPCEtLSBDb21wbGlhbmNlIGRlc3RpbmF0aW9ucyAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMCwgMTkwKSI+CiAgICA8cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9Ijc1IiByeD0iNCIgZmlsbD0iI2ZlZjJmMiIgc3Ryb2tlPSIjZmVjYWNhIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjE1IiB5PSIyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTkxYjFiIj5QYXltZW50IGxvZ3Mg4oaSPC90ZXh0PgogICAgPHRleHQgeD0iMTEwIiB5PSIyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZGMyNjI2IiBmb250LXdlaWdodD0iYm9sZCI+cGF5bWVudF9sb2dzICgxIHlyKTwvdGV4dD4KICAgIDx0ZXh0IHg9IjE0NSIgeT0iMzMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+UENJLURTUzwvdGV4dD4KCiAgICA8dGV4dCB4PSIxNSIgeT0iNDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk5MWIxYiI+QXVkaXQgbG9ncyDihpI8L3RleHQ+CiAgICA8dGV4dCB4PSIxMTAiIHk9IjQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNkYzI2MjYiIGZvbnQtd2VpZ2h0PSJib2xkIj5hdWRpdF9sb2dzICgzNjVkKTwvdGV4dD4KICAgIDx0ZXh0IHg9IjE1MCIgeT0iNjEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+U09DIDI8L3RleHQ+CgogICAgPHRleHQgeD0iMTUiIHk9IjczIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTFiMWIiPkhlYWx0aGNhcmUg4oaSPC90ZXh0PgogICAgPHRleHQgeD0iMTEwIiB5PSI3MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZGMyNjI2IiBmb250LXdlaWdodD0iYm9sZCI+cGhpX2xvZ3MgKDcgeXJzKTwvdGV4dD4KICA8L2c+CgogIDwhLS0gQnJhbmNoIDI6IEVudmlyb25tZW50IENoZWNrIChDZW50ZXIpIC0tPgogIDxyZWN0IHg9IjI2MCIgeT0iMTQ1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0idXJsKCNlbnZHcmFkKSIgZmlsdGVyPSJ1cmwoI2hiU2hhZG93KSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMTY4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iYm9sZCI+Mi4gRW52aXJvbm1lbnQgQ2hlY2s8L3RleHQ+CgogIDwhLS0gRW52aXJvbm1lbnQgZGVzdGluYXRpb25zIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI2MCwgMTkwKSI+CiAgICA8cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9Ijc1IiByeD0iNCIgZmlsbD0iI2VmZjZmZiIgc3Ryb2tlPSIjYmZkYmZlIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjE1IiB5PSIyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMWU0MGFmIj5Qcm9kdWN0aW9uIOKGkjwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwNSIgeT0iMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzI1NjNlYiIgZm9udC13ZWlnaHQ9ImJvbGQiPnByb2RfbG9ncyAoMzVkKTwvdGV4dD4KCiAgICA8dGV4dCB4PSIxNSIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzFlNDBhZiI+U3RhZ2luZyDihpI8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDUiIHk9IjQ1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMyNTYzZWIiIGZvbnQtd2VpZ2h0PSJib2xkIj5zdGFnaW5nX2xvZ3MgKDE0ZCk8L3RleHQ+CgogICAgPHRleHQgeD0iMTUiIHk9IjcwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZTQwYWYiPkRldmVsb3BtZW50IOKGkjwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwNSIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzI1NjNlYiIgZm9udC13ZWlnaHQ9ImJvbGQiPmRldl9sb2dzICg3ZCk8L3RleHQ+CiAgPC9nPgoKICA8IS0tIEJyYW5jaCAzOiBTZXZlcml0eSBDaGVjayAoUmlnaHQpIC0tPgogIDxyZWN0IHg9IjQ5MCIgeT0iMTQ1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjM1IiByeD0iNiIgZmlsbD0idXJsKCNzZXZHcmFkKSIgZmlsdGVyPSJ1cmwoI2hiU2hhZG93KSIvPgogIDx0ZXh0IHg9IjU4MCIgeT0iMTY4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iYm9sZCI+My4gU2V2ZXJpdHkgQ2hlY2s8L3RleHQ+CgogIDwhLS0gU2V2ZXJpdHkgZGVzdGluYXRpb25zIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDQ5MCwgMTkwKSI+CiAgICA8cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9Ijc1IiByeD0iNCIgZmlsbD0iI2YwZmRmNCIgc3Ryb2tlPSIjYmJmN2QwIiBzdHJva2Utd2lkdGg9IjEiLz4KICAgIDx0ZXh0IHg9IjE1IiB5PSIyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTY2NTM0Ij5FUlJPUi9GQVRBTCDihpI8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDUiIHk9IjIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwNTk2NjkiIGZvbnQtd2VpZ2h0PSJib2xkIj5LZWVwIGluIGJ1Y2tldDwvdGV4dD4KCiAgICA8dGV4dCB4PSIxNSIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzE2NjUzNCI+V0FSTi9JTkZPIOKGkjwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwNSIgeT0iNDUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA1OTY2OSIgZm9udC13ZWlnaHQ9ImJvbGQiPktlZXAgaW4gYnVja2V0PC90ZXh0PgoKICAgIDx0ZXh0IHg9IjE1IiB5PSI3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTY2NTM0Ij5ERUJVRy9UUkFDRSDihpI8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDUiIHk9IjcwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNmNTllMGIiIGZvbnQtd2VpZ2h0PSJib2xkIj5EUk9QIC8gMy1kYXk8L3RleHQ+CiAgPC9nPgoKICA8IS0tIFByaW9yaXR5IG5vdGUgYXQgYm90dG9tIC0tPgogIDxyZWN0IHg9IjEyMCIgeT0iMzAwIiB3aWR0aD0iNDYwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iI2ZlZjNjNyIgc3Ryb2tlPSIjZmNkMzRkIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjMxOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjOTI0MDBlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iYm9sZCI+UHJpb3JpdHkgT3JkZXI6PC90ZXh0PgogIDx0ZXh0IHg9IjM1MCIgeT0iMzMzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ODM1MGYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkNvbXBsaWFuY2UgKDFzdCkg4oaSIEVudmlyb25tZW50ICgybmQpIOKGkiBTZXZlcml0eSAoM3JkKTwvdGV4dD4KCiAgPCEtLSBLZXkgaW5zaWdodCAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMjAsIDM1NSkiPgogICAgPHJlY3Qgd2lkdGg9IjQ2MCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9IndoaXRlIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHRleHQgeD0iMjMwIiB5PSIyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5KhIEtleSBJbnNpZ2h0OiBDb21wbGlhbmNlIHJvdXRlcyBtdXN0IGJlIGV2YWx1YXRlZCBGSVJTVDwvdGV4dD4KICAgIDx0ZXh0IHg9IjIzMCIgeT0iMzgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dG8gZW5zdXJlIHJlZ3VsYXRvcnkgZGF0YSBpcyBuZXZlciBkcm9wcGVkIG9yIHVuZGVyLXJldGFpbmVkPC90ZXh0PgogIDwvZz4KPC9zdmc+Cg==" alt="Hybrid Bucket Strategy" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Priority | Check | Destinations |
+|----------|-------|--------------|
+| 1st | Compliance | Payment → payment_logs (1 yr, PCI-DSS), Audit → audit_logs (365d, SOC 2), Healthcare → phi_logs (7 yrs, HIPAA) |
+| 2nd | Environment | Production → prod_logs (35d), Staging → staging_logs (14d), Development → dev_logs (7d) |
+| 3rd | Severity | ERROR/FATAL → Keep, WARN/INFO → Keep, DEBUG/TRACE → DROP or 3-day bucket |
+-->
+<p><strong>Key Principle:</strong> Compliance routes must be FIRST to ensure regulatory data isn't accidentally dropped or under-retained.</p>
+<hr />
+<hr />
+<p><a id="multi-pipeline-processing"></a></p>
+<h2>Multi-Pipeline Processing</h2>
+<p>Routing sends each record to <strong>one</strong> route — the first that matches. To run a record through more than one pipeline, use a <strong>pipeline group</strong>: a route targets a <em>member</em> pipeline, and the group's <em>base</em> pipelines (shared processing such as masking, cost and permission assignment) run with it.</p>
+<h3>Use Case: Shared Base + Team Member Pipeline</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgMzAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibXBJbnB1dEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzMzNDE1NTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNDc1NTY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibXBQaXBlMUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojYTg1NWY3O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibXBQaXBlMkdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjBhNWZhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9Im1wU2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgICA8bWFya2VyIGlkPSJtcEFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI2MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzMDAiIHk9IjI1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWUyOTNiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QaXBlbGluZSBHcm91cDogU2hhcmVkIEJhc2UgKyBNZW1iZXIgUGlwZWxpbmU8L3RleHQ+CgogIDwhLS0gSW5jb21pbmcgTG9nIC0tPgogIDxyZWN0IHg9IjIwIiB5PSIxMTUiIHdpZHRoPSIxMDAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSJ1cmwoI21wSW5wdXRHcmFkKSIgZmlsdGVyPSJ1cmwoI21wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjcwIiB5PSIxMzciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSJib2xkIj5JbmNvbWluZyBMb2c8L3RleHQ+CiAgPHRleHQgeD0iNzAiIHk9IjE1MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjY2JkNWUxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wYXltZW50IHJlcXVlc3Q8L3RleHQ+CgogIDwhLS0gUm91dGUgYXJyb3cgLS0+CiAgPGxpbmUgeDE9IjEyMCIgeTE9IjE0MCIgeDI9IjE1MCIgeTI9IjE0MCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjbXBBcnJvdykiLz4KICA8dGV4dCB4PSIxMzciIHk9IjEzMiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgiIGZpbGw9IiM0NzU1NjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJvdXRlPC90ZXh0PgoKICA8IS0tIEdyb3VwIGZyYW1lIC0tPgogIDxyZWN0IHg9IjE1NSIgeT0iNDUiIHdpZHRoPSIyNTAiIGhlaWdodD0iMjE1IiByeD0iOCIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNSwzIi8+CiAgPHRleHQgeD0iMjgwIiB5PSI2MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzNDE1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UElQRUxJTkUgR1JPVVAgKGZpcnN0IG1hdGNoaW5nIHJvdXRlKTwvdGV4dD4KCiAgPCEtLSBCYXNlIHBpcGVsaW5lIC0tPgogIDxyZWN0IHg9IjE3MCIgeT0iNzIiIHdpZHRoPSIyMjAiIGhlaWdodD0iMzAiIHJ4PSI2IiBmaWxsPSJ1cmwoI21wUGlwZTFHcmFkKSIgZmlsdGVyPSJ1cmwoI21wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjI4MCIgeT0iOTEiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSJib2xkIj5CYXNlIHBpcGVsaW5lIChzaGFyZWQgYnkgZXZlcnkgdGVhbSk8L3RleHQ+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTcwLCAxMDUpIj4KICAgIDxyZWN0IHdpZHRoPSIyMjAiIGhlaWdodD0iMzgiIHJ4PSI0IiBmaWxsPSIjZWRlOWZlIiBzdHJva2U9IiNjNGI1ZmQiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHRleHQgeD0iMTAiIHk9IjE2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2ZDI4ZDkiPuKAoiBNYXNrIFBJSTwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwIiB5PSIzMSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNmQyOGQ5Ij7igKIgU2V0IGNvc3QgY2VudGVyPC90ZXh0PgogIDwvZz4KCiAgPHRleHQgeD0iMjgwIiB5PSIxNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KyBydW5zIHdpdGg8L3RleHQ+CgogIDwhLS0gTWVtYmVyIHBpcGVsaW5lIC0tPgogIDxyZWN0IHg9IjE3MCIgeT0iMTY4IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjMwIiByeD0iNiIgZmlsbD0idXJsKCNtcFBpcGUyR3JhZCkiIGZpbHRlcj0idXJsKCNtcFNoYWRvdykiLz4KICA8dGV4dCB4PSIyODAiIHk9IjE4NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9ImJvbGQiPk1lbWJlciBwaXBlbGluZSAocGF5bWVudHMgdGVhbSk8L3RleHQ+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTcwLCAyMDEpIj4KICAgIDxyZWN0IHdpZHRoPSIyMjAiIGhlaWdodD0iNTIiIHJ4PSI0IiBmaWxsPSIjZGJlYWZlIiBzdHJva2U9IiM5M2M1ZmQiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPHRleHQgeD0iMTAiIHk9IjE2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZDRlZDgiPuKAoiBQYXJzZSByZXNwb25zZV90aW1lPC90ZXh0PgogICAgPHRleHQgeD0iMTAiIHk9IjMxIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZDRlZDgiPuKAoiBNZXRyaWMgZXh0cmFjdGlvbjogcmVxdWVzdF9kdXJhdGlvbjwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwIiB5PSI0NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMWQ0ZWQ4Ij7igKIgQnVja2V0IGFzc2lnbm1lbnQ6IHBheW1lbnRfbG9nczwvdGV4dD4KICA8L2c+CgogIDwhLS0gT3V0cHV0IGFycm93cyAtLT4KICA8bGluZSB4MT0iNDA1IiB5MT0iMTIwIiB4Mj0iNDQwIiB5Mj0iMTIwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNtcEFycm93KSIvPgogIDxsaW5lIHgxPSI0MDUiIHkxPSIyMDAiIHgyPSI0NDAiIHkyPSIyMDAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI21wQXJyb3cpIi8+CgogIDwhLS0gTWV0cmljIE91dHB1dCAtLT4KICA8cmVjdCB4PSI0NTAiIHk9Ijk4IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjQ1IiByeD0iNiIgZmlsbD0iIzEwYjk4MSIgZmlsdGVyPSJ1cmwoI21wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjUxNSIgeT0iMTE2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iYm9sZCI+8J+TiiBNRVRSSUM8L3RleHQ+CiAgPHRleHQgeD0iNTE1IiB5PSIxMzMiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjk1KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cmVxdWVzdF9kdXJhdGlvbjwvdGV4dD4KCiAgPCEtLSBMb2cgT3V0cHV0IC0tPgogIDxyZWN0IHg9IjQ1MCIgeT0iMTc4IiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjQ1IiByeD0iNiIgZmlsbD0iIzNiODJmNiIgZmlsdGVyPSJ1cmwoI21wU2hhZG93KSIvPgogIDx0ZXh0IHg9IjUxNSIgeT0iMTk2IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iYm9sZCI+8J+TiyBMT0cgKHN0b3JlZCBvbmNlKTwvdGV4dD4KICA8dGV4dCB4PSI1MTUiIHk9IjIxMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOTUpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wYXltZW50X2xvZ3M8L3RleHQ+CgogIDwhLS0gRm9vdGVyIC0tPgogIDx0ZXh0IHg9IjMwMCIgeT0iMjgyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iIzQ3NTU2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T25lIHJvdXRlIHBlciByZWNvcmQuIEEgc2luZ2xlIHBpcGVsaW5lIGNhbiBhbHNvIGV4dHJhY3QgYSBtZXRyaWMgQU5EIHN0b3JlIHRoZSBsb2cg4oCUIGEgZ3JvdXAgaXMgZm9yIHNoYXJpbmcgcHJvY2Vzc2luZyBhY3Jvc3MgdGVhbXMuPC90ZXh0Pgo8L3N2Zz4K" alt="Multi-Pipeline Processing" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Pipeline | Purpose | Output |
+|----------|---------|--------|
+| Base pipeline (shared by every team) | Mask PII, set cost center | Runs with the member pipeline |
+| Member pipeline (payments team) | Parse response_time, metric extraction, bucket assignment | 📊 Metric: request_duration; 📋 Log: payment_logs (stored once) |
+| **Result** | One route per record | A single pipeline can also extract a metric and store the log; a group is for sharing processing across teams |
+-->
+<p>You do <strong>not</strong> need two pipelines to extract a metric and store the log — one pipeline does both (Metric extraction and Bucket assignment are stages of the same pipeline). Use a group when several teams need the same baseline processing and their own additions on top.</p>
+<h3>Configuring a Pipeline Group</h3>
+<ol>
+<li>Create the shared processing as a <strong>base pipeline</strong> and the team-specific processing as a <strong>member pipeline</strong>, both in one pipeline group</li>
+<li>Route the data to the <strong>member pipeline</strong> with a dynamic route</li>
+<li>The record is processed by the base pipelines and that member pipeline — overlapping <em>routes</em> do not do this; the second route never sees a record the first one matched</li>
+</ol>
+<p>Base pipelines are not routable — <em>&quot;base pipelines are typically not routable&quot;</em> — so every route targets a member. Only administrators assign members to a group: <em>&quot;Only administrators can manage member pipeline assignment to a group.&quot;</em> For ownership, stage allocation, execution order and gating, see <strong>OPIPE-07: Pipeline Group Governance Patterns</strong>.</p>
+<blockquote>
+<p>⚠️ <strong>Limit:</strong> Data extraction happens in at most 5 pipelines for one record (<code>dt.openpipeline.pipelines</code>). Beyond that, extraction stops; the record is still processed and persisted.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/pipeline-groups">OpenPipeline pipeline groups (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/pipeline-groups-multicloud">Pipeline groups — multi-cloud ingest governance (DT docs)</a> — <em>&quot;A record is processed by base pipelines and a member pipeline, according to the first matching route.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline limits (DT docs)</a> — <em>&quot;You can extract data on a single record in a maximum of five different pipelines&quot;</em>.</sub></p>
+</blockquote>
+<pre><code class="language-dql">// Identify records processed by multiple pipelines
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.openpipeline.pipelines)
+| filter arraySize(dt.openpipeline.pipelines) &gt; 1
+| summarize {multi_pipeline_count = count()}, by: {dt.openpipeline.pipelines}
+| sort multi_pipeline_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Count of logs by number of pipelines processing them
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.openpipeline.pipelines)
+| fieldsAdd pipeline_count = arraySize(dt.openpipeline.pipelines)
+| summarize {record_count = count()}, by: {pipeline_count}
+| sort pipeline_count asc
+</code></pre>
+<hr />
+<p><a id="bucket-governance-access-control-new"></a></p>
+<h2>Bucket Governance &amp; Access Control ⭐ NEW</h2>
+<p>Proper bucket governance ensures compliance, security, and operational efficiency.</p>
+<h3>Access Control Patterns</h3>
+<h4>Pattern 1: Role-Based Bucket Access</h4>
+<p>People read log buckets; only the pipeline writes to them. Bucket access is therefore a <strong>read</strong> grant through an IAM policy, and the pattern is about <em>who can read which bucket</em>.</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Bucket Access</th>
+<th>Permissions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Developers</strong></td>
+<td><code>dev_logs</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td></td>
+<td><code>staging_logs</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td></td>
+<td><code>prod_logs</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td><strong>SRE/Platform</strong></td>
+<td>All buckets</td>
+<td>Read</td>
+</tr>
+<tr>
+<td><strong>Security Team</strong></td>
+<td><code>security_logs</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td></td>
+<td><code>audit_logs</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td></td>
+<td><code>compliance_logs</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td><strong>Auditors</strong></td>
+<td><code>audit_logs</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td></td>
+<td><code>compliance_logs</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td><strong>Finance</strong></td>
+<td><code>payment_logs</code></td>
+<td>Read</td>
+</tr>
+</tbody>
+</table>
+<h4>Pattern 2: Least Privilege by Environment</h4>
+<pre><code>Development Team:
+  - READ access to dev_logs
+  - READ access to staging_logs
+  - NO access to prod_logs
+
+QA Team:
+  - READ access to staging_logs
+  - READ access to dev_logs
+  - READ access to prod_logs (for troubleshooting only)
+
+Production SRE:
+  - READ access to prod_logs, error_logs, security_logs
+  - READ access to all other buckets
+</code></pre>
+<h3>What a bucket can and cannot enforce</h3>
+<p>A Grail bucket is created <em>&quot;with a specified name, table type (for example, logs, events, bizevents, or spans), and retention period&quot;</em> — <strong>one</strong> retention period, 1 day to 10 years plus a week. Access is granted with IAM policies on the bucket. None of those is a minimum/maximum retention range, a write-once or immutability switch, or an encryption choice, so do not plan a compliance control around one. Requirements beyond retention and access (immutability, an access audit trail, encryption standards) are met at the platform or account level, or outside Dynatrace — confirm them with your Dynatrace account team and your compliance owner, not with a bucket setting.</p>
+<table>
+<thead>
+<tr>
+<th>Bucket</th>
+<th>Retention</th>
+<th>Driven by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dev_logs</code></td>
+<td>7–14 days</td>
+<td>Cost</td>
+</tr>
+<tr>
+<td><code>staging_logs</code></td>
+<td>14–30 days</td>
+<td>Cost</td>
+</tr>
+<tr>
+<td><code>default_logs</code></td>
+<td>35 days</td>
+<td>Built-in default</td>
+</tr>
+<tr>
+<td><code>prod_logs</code></td>
+<td>90 days</td>
+<td>Operations</td>
+</tr>
+<tr>
+<td><code>audit_logs</code></td>
+<td>365+ days</td>
+<td>Your audit window</td>
+</tr>
+<tr>
+<td><code>payment_logs</code></td>
+<td>365+ days</td>
+<td>PCI DSS 10.5.1</td>
+</tr>
+<tr>
+<td><code>phi_logs</code></td>
+<td>2,190–2,555 days</td>
+<td>HIPAA documentation retention</td>
+</tr>
+</tbody>
+</table>
+<p>Shortening a bucket's retention <strong>deletes</strong> the data older than the new period — <em>&quot;Shortening the retention period on update requests will delete the data that is over the new period.&quot;</em></p>
+<h3>Compliance retention — what the standards say</h3>
+<h4>SOC 2</h4>
+<p>SOC 2 does not prescribe a log-retention period. In community practice, audit logs are kept for at least the 12-month window a Type 2 report covers. Typical content:</p>
+<ul>
+<li>Authentication events (login, logout, MFA)</li>
+<li>Authorization changes (role assignments, permission changes)</li>
+<li>Data access (who accessed what, when)</li>
+<li>Configuration changes (pipeline edits, bucket changes)</li>
+<li>Security events (failed auth, suspicious activity)</li>
+</ul>
+<pre><code class="language-text">Bucket:     soc2_audit_logs
+Retention:  365 days or longer (match your audit window)
+Access:     IAM policy — security team + auditors only
+</code></pre>
+<h4>PCI DSS</h4>
+<p>PCI DSS Requirement 10.5.1 requires <strong>at least 12 months</strong> of audit log history, with at least the most recent three months immediately available for analysis. A 90-day bucket does not meet it.</p>
+<ul>
+<li>Payment transaction logs (card numbers masked at ingest — OPMIG-08)</li>
+<li>Access to cardholder data environments</li>
+<li>Authentication to payment systems</li>
+<li>Database queries touching payment data</li>
+</ul>
+<pre><code class="language-text">Bucket:     pci_payment_logs
+Retention:  365 days or longer
+Processing: Mask card numbers and CVV in the Processing stage (OPMIG-08)
+Access:     IAM policy — payment team + security + auditors
+</code></pre>
+<h4>HIPAA</h4>
+<p>HIPAA requires covered entities to retain required documentation for six years (45 CFR §164.316(b)(2)); in community practice that period is applied to PHI access logs too, often rounded up to seven years.</p>
+<ul>
+<li>PHI access logs (who viewed which patient records)</li>
+<li>Authentication to healthcare systems</li>
+<li>Prescription and medical record changes</li>
+<li>Breach detection events</li>
+</ul>
+<pre><code class="language-text">Bucket:     hipaa_phi_logs
+Retention:  2,190–2,555 days (6–7 years)
+Processing: Mask patient IDs, SSNs, dates of birth; hash record numbers (OPMIG-08)
+Access:     IAM policy — healthcare IT + compliance officers only
+</code></pre>
+<h4>GDPR</h4>
+<p><strong>Special Considerations:</strong></p>
+<ul>
+<li><strong>Right to Erasure:</strong> Logs with EU citizen PII must be deletable on request — Grail supports record deletion via API, which must be enabled as a capability in your DPS</li>
+<li><strong>Data Minimization:</strong> Only collect necessary personal data</li>
+<li><strong>Retention Limits:</strong> Cannot retain personal data longer than necessary</li>
+</ul>
+<pre><code class="language-text">Bucket:     eu_customer_logs
+Retention:  90 days (balancing security and data minimization)
+Processing: Mask email addresses, IP addresses; add customer_id_hash (for erasure lookup)
+Erasure:    Record deletion API, driven by your erasure-request process
+Residency:  Set by the tenant's hosting region — a bucket cannot change where data is stored
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">Organize data (DT docs)</a> — <em>&quot;Creates a new user-defined bucket with a specified name, table type (for example, logs, events, bizevents, or spans), and retention period.&quot;</em>, <em>&quot;For custom buckets, the possible retention periods range from 1 day to 10 years, with an additional week.&quot;</em>, <em>&quot;Shortening the retention period on update requests will delete the data that is over the new period.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/record-deletion-in-grail">Record deletion in Grail via API (DT docs)</a> — <em>&quot;This must be enabled as a capability in your Dynatrace Platform Subscription (DPS).&quot;</em> PCI DSS v4.0.1 Requirement 10.5.1 and 45 CFR §164.316(b)(2) are cited from the standards themselves.</sub></p>
+</blockquote>
+<h3>Bucket Naming Conventions</h3>
+<p><strong>Recommended Pattern:</strong> <code>&lt;environment&gt;_&lt;purpose&gt;_logs</code></p>
+<p>Examples:</p>
+<pre><code>prod_app_logs
+prod_error_logs
+prod_security_logs
+staging_app_logs
+dev_debug_logs
+compliance_audit_logs
+compliance_soc2_logs
+compliance_pci_logs
+compliance_hipaa_logs
+ephemeral_healthcheck_logs
+</code></pre>
+<p><strong>Benefits:</strong></p>
+<ul>
+<li>Clear ownership and purpose</li>
+<li>Easy to identify in DQL queries</li>
+<li>Simplifies access control rules</li>
+<li>Supports automated governance checks</li>
+</ul>
+<h3>Bucket Lifecycle Management</h3>
+<p><strong>Quarterly Review Checklist:</strong></p>
+<ul>
+<li>[ ] Review bucket usage and growth trends</li>
+<li>[ ] Validate retention periods still match requirements</li>
+<li>[ ] Check for unused or abandoned buckets</li>
+<li>[ ] Audit access control list changes</li>
+<li>[ ] Verify compliance bucket configurations</li>
+<li>[ ] Analyze query patterns for optimization opportunities</li>
+<li>[ ] Review storage costs vs. budget</li>
+</ul>
+<p><strong>Annual Compliance Audit:</strong></p>
+<ul>
+<li>[ ] Verify all compliance buckets meet regulatory retention</li>
+<li>[ ] Confirm masking/redaction rules are working</li>
+<li>[ ] Test data erasure procedures (GDPR)</li>
+<li>[ ] Review audit trail completeness</li>
+<li>[ ] Validate encryption standards</li>
+<li>[ ] Document bucket governance changes</li>
+</ul>
+<hr />
+<hr />
+<p><a id="best-practices"></a></p>
+<h2>Best Practices</h2>
+<h3>Routing Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Specific first</strong></td>
+<td>Place specific routes before general ones</td>
+</tr>
+<tr>
+<td><strong>Test conditions</strong></td>
+<td>Validate matching conditions with sample data</td>
+</tr>
+<tr>
+<td><strong>Avoid overlap</strong></td>
+<td>A record matching two routes takes only the first</td>
+</tr>
+<tr>
+<td><strong>Document routes</strong></td>
+<td>Keep a map of route → pipeline → bucket</td>
+</tr>
+<tr>
+<td><strong>Monitor the default route</strong></td>
+<td>High default-route volume = missing routes</td>
+</tr>
+</tbody>
+</table>
+<h3>Bucket Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Meaningful names</strong></td>
+<td>Use descriptive bucket names</td>
+</tr>
+<tr>
+<td><strong>Match retention to value</strong></td>
+<td>Critical data = longer retention</td>
+</tr>
+<tr>
+<td><strong>Consider query patterns</strong></td>
+<td>Frequently queried data in main bucket</td>
+</tr>
+<tr>
+<td><strong>Plan for compliance</strong></td>
+<td>Audit logs may need 365+ days</td>
+</tr>
+<tr>
+<td><strong>Review regularly</strong></td>
+<td>Re-evaluate bucket strategy quarterly</td>
+</tr>
+</tbody>
+</table>
+<h3>Cost Optimization Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Drop DEBUG/TRACE</td>
+<td>Volume reduction equal to your DEBUG/TRACE share — measure it with the queries above</td>
+</tr>
+<tr>
+<td>Drop health checks</td>
+<td>Varies widely by workload — measure before you plan to it</td>
+</tr>
+<tr>
+<td>Short retention for dev</td>
+<td>Storage for that data falls in proportion to retention (7 of 35 days ≈ 80% less)</td>
+</tr>
+<tr>
+<td>Extract metrics, don't store logs</td>
+<td>Metrics persist; assign the raw logs <strong>No storage assignment</strong> (a Drop record processor would run before extraction)</td>
+</tr>
+<tr>
+<td>Sample high-volume noise</td>
+<td>Keep visibility, reduce storage</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="routing-configuration-examples"></a></p>
+<h2>Routing Configuration Examples</h2>
+<h3>Example 1: Environment-Based Routing</h3>
+<p><strong>Route 1: Production Logs</strong></p>
+<pre><code>Condition: k8s.namespace.name == &quot;production&quot; OR k8s.namespace.name == &quot;prod&quot;
+Pipeline: production-logs
+Bucket: production_logs (35 days)
+</code></pre>
+<p><strong>Route 2: Development Logs</strong></p>
+<pre><code>Condition: k8s.namespace.name == &quot;development&quot; OR k8s.namespace.name == &quot;dev&quot;
+Pipeline: development-logs
+Bucket: dev_logs (7 days)
+</code></pre>
+<h3>Example 2: Severity-Based Routing</h3>
+<p><strong>Route 1: Error Logs (high value)</strong></p>
+<pre><code>Condition: status == &quot;ERROR&quot;
+Pipeline: error-logs
+Bucket: error_logs (90 days)
+Processing: Parse stack traces, enrich with service info
+</code></pre>
+<p><strong>Route 2: Debug Logs (low value)</strong></p>
+<pre><code>Condition: loglevel == &quot;DEBUG&quot; OR loglevel == &quot;TRACE&quot;
+Pipeline: debug-logs
+Processing: DROP all (or route to 3-day bucket)
+</code></pre>
+<h3>Example 3: Compliance Routing</h3>
+<p><strong>Route 1: Audit Logs</strong></p>
+<pre><code>Condition: matchesValue(log.source, &quot;*audit*&quot;) OR matchesPhrase(content, &quot;authentication&quot;)
+Pipeline: audit-logs
+Bucket: audit_logs (365 days)
+Processing: Mask PII, add compliance tags
+</code></pre>
+<hr />
+<h2>Next Steps</h2>
+<p>Now that you understand routing and buckets, continue with:</p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Focus Area</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OPMIG-06</strong></td>
+<td>Processing, Parsing &amp; Transformation</td>
+</tr>
+<tr>
+<td><strong>OPMIG-07</strong></td>
+<td>Metric &amp; Event Extraction</td>
+</tr>
+<tr>
+<td><strong>OPMIG-08</strong></td>
+<td>Security, Masking &amp; Compliance</td>
+</tr>
+<tr>
+<td><strong>OPMIG-09</strong></td>
+<td>Troubleshooting &amp; Validation</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/data-flow">OpenPipeline Data Flow</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">organize-data (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/reference/limits">OpenPipeline Limits</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

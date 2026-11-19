@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOBL-03: Android SDK Setup (Kotlin &amp; Jetpack Compose)</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MOBL — Mobile Monitoring</a><span class="sep">/</span><span aria-current="page">MOBL-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MOBL-03: Android SDK Setup (Kotlin &amp; Jetpack Compose)</h1>
+<blockquote>
+<p><strong>Series:</strong> MOBL — Mobile Monitoring | <strong>Notebook:</strong> 3 of 12 | <strong>Created:</strong> February 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook walks through setting up Dynatrace Mobile RUM (Real User Monitoring) for Android applications using the Gradle plugin. It covers both traditional View-based architectures and modern Jetpack Compose UIs, including auto-instrumentation, manual action tracking, and data verification via DQL.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#creating-mobile-app">Creating a Mobile App in Dynatrace</a></li>
+<li><a href="#gradle-plugin">Gradle Plugin Setup</a></li>
+<li><a href="#build-gradle-config">build.gradle Configuration</a></li>
+<li><a href="#auto-instrumentation">Auto-Instrumentation (Activities &amp; Fragments)</a></li>
+<li><a href="#jetpack-compose">Jetpack Compose Integration</a></li>
+<li><a href="#proguard-r8">ProGuard &amp; R8 Configuration</a></li>
+<li><a href="#verifying-data">Verifying Data in Dynatrace</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail, with a mobile frontend created in Experience Vitals (RUM Classic frontends: RUM turned on for the frontend; Section 1)</td>
+</tr>
+<tr>
+<td><strong>Minimum versions</strong></td>
+<td>Android API level 23, Gradle 8.0, Android Gradle Plugin 8.1.1, Java 17, Kotlin 2.1.0 (an Android Studio release that supports AGP 8.1.1+); Kotlin Gradle plugin 2.2 from OneAgent for Mobile 8.351 (note below)</td>
+</tr>
+<tr>
+<td><strong>Jetpack Compose</strong></td>
+<td>1.4 – 1.10; OneAgent for Mobile 8.351 adds 1.12 (note below)</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Dynatrace admin access to create mobile applications; <code>storage:user.events:read</code> and <code>storage:smartscape:read</code> for the verification queries</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>MOBL-01 and MOBL-02 recommended</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>OneAgent for Mobile 8.351 (published 10/27/2026, staged rollout from 11/18/2026 — check which agent version your build pulls in).</strong> Breaking change: <em>&quot;OneAgent for Android requires the Kotlin Gradle plugin minimum version 2.2. Projects using older Kotlin compiler versions must update their Kotlin Gradle plugin to 2.2 or higher.&quot;</em> The same release adds that the Dynatrace Android Gradle plugin <em>&quot;now supports auto-instrumentation for Jetpack Compose version 1.12&quot;</em>. The support page still lists Kotlin 2.1.0 and Compose 1.4 – 1.10 (read 11/11/2026); until you move to 8.351, those remain the minimums for the agent version you build with.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-02-support-and-limitations">Support and limitations — Android (DT docs)</a> — <em>&quot;Android API level 23 Gradle 8.0 Android Gradle Plugin 8.1.1 Java 17 Kotlin 2.1.0 Jetpack Compose 1.4 - 1.10&quot;</em> (minimum versions, read 11/11/2026); <a href="https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-351">What's new in OneAgent for Mobile 8.351 (DT docs)</a> — <em>&quot;OneAgent for Android requires the Kotlin Gradle plugin minimum version 2.2.&quot;</em>, <em>&quot;The Dynatrace Android Gradle plugin now supports auto-instrumentation for Jetpack Compose version 1.12.&quot;</em>, read 11/11/2026.</sub></p>
+</blockquote>
+<p><a id="creating-mobile-app"></a></p>
+<h2>1. Creating a Mobile App in Dynatrace</h2>
+<p>Before instrumenting your Android project, you need to register the application in Dynatrace to obtain the <strong>Application ID</strong> and <strong>Beacon URL</strong>.</p>
+<h3>Steps</h3>
+<ol>
+<li><strong>Create the frontend:</strong> open <strong>Experience Vitals</strong>, select <strong>Frontend</strong> in the upper-right corner, select the <strong>Mobile</strong> type, and follow the Frontend creation wizard with <strong>Android</strong> as the platform and a meaningful name (e.g., <code>My Android App - Production</code>).</li>
+<li>From the instrumentation wizard, note:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Application ID</strong></td>
+<td>Unique identifier for your mobile app in Dynatrace</td>
+<td><code>abcd1234-5678-efgh-ijkl-mnopqrstuvwx</code></td>
+</tr>
+<tr>
+<td><strong>Beacon URL</strong></td>
+<td>Endpoint where the agent sends monitoring data</td>
+<td><code>https://{your-env-id}.bf.dynatrace.com/mbeacon</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Keep the Application ID and Beacon URL in a secure location. You will paste them into your <code>build.gradle.kts</code> in a later step.</p>
+</blockquote>
+<h3>Optional Configuration</h3>
+<p>While in the Dynatrace UI, review these settings:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Crash reporting</strong></td>
+<td>Enable (captures unhandled exceptions)</td>
+</tr>
+<tr>
+<td><strong>User action naming</strong></td>
+<td>Configure meaningful rules for key screens</td>
+</tr>
+<tr>
+<td><strong>Session replay</strong></td>
+<td>Enable if you need visual session data (increases data volume)</td>
+</tr>
+<tr>
+<td><strong>Data privacy</strong></td>
+<td>Configure according to your organization's requirements</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Upgrading a RUM Classic Android frontend?</strong> Turn RUM on for it: <strong>Experience Vitals &gt; Overview &gt; Mobile</strong> → select the frontend → <strong>Settings</strong> → under <strong>Enablement and cost control</strong>, turn on <strong>RUM</strong>. For all mobile frontends at once: <strong>Settings &gt; Collect and capture &gt; Real User Monitoring &gt; Enablement and cost control &gt; Mobile</strong> → <strong>RUM</strong>. The <code>user.events</code> / <code>user.sessions</code> queries in this series read the data RUM sends to Grail.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-01-initial-setup">Initial setup for Android frontends (DT docs)</a> — <em>&quot;Select Frontend in the upper-right corner. Select the Mobile type of frontend.&quot;</em>; <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-01-initial-setup/enable-rum-for-android-frontends">Enable RUM for Android frontends (DT docs)</a> — <em>&quot;If you already monitor your Android frontends with RUM Classic, upgrading to RUM requires only a configuration change.&quot;</em>, <em>&quot;Under Enablement and cost control , turn on RUM .&quot;</em></sub></p>
+</blockquote>
+<p><a id="gradle-plugin"></a></p>
+<h2>2. Gradle Plugin Setup</h2>
+<p>The Dynatrace Android Gradle plugin handles bytecode instrumentation at build time. It automatically instruments Activity and Fragment lifecycle events, network requests, and UI interactions without requiring code changes.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNDAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYVB1cnBsZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNjM2NmYxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM0ZjQ2ZTU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJhQmx1ZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTQ5NmZmO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwYTY0YmM7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJhR3JlZW5HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyYzU1ZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTZhMzRhO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYU9yYW5nZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjk3MzE2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYTU4MGM7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0iYVNoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0iYUFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BbmRyb2lkIEdyYWRsZSBQbHVnaW4gSW50ZWdyYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSI0NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CdWlsZC10aW1lIGJ5dGVjb2RlIGluc3RydW1lbnRhdGlvbiBmb3IgemVyby1jb2RlIEFuZHJvaWQgbW9uaXRvcmluZzwvdGV4dD4KCiAgPCEtLSBDb2x1bW4gMTogQW5kcm9pZCBBcHAgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjY1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjI1MCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2MzY2ZjEiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2FTaGFkb3cpIi8+CiAgPHJlY3QgeD0iMzAiIHk9IjY1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjMyIiByeD0iMTAiIGZpbGw9InVybCgjYVB1cnBsZUdyYWQpIi8+CiAgPHJlY3QgeD0iMzAiIHk9Ijg5IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjgiIGZpbGw9InVybCgjYVB1cnBsZUdyYWQpIi8+CiAgPHRleHQgeD0iMTE1IiB5PSI4NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFuZHJvaWQgQXBwPC90ZXh0PgoKICA8IS0tIEFuZHJvaWQgQXBwIHN1Yi1pdGVtcyAtLT4KICA8cmVjdCB4PSI0OCIgeT0iMTEwIiB3aWR0aD0iMTM0IiBoZWlnaHQ9IjU1IiByeD0iNiIgZmlsbD0iI2VkZTlmZSIgc3Ryb2tlPSIjOGI1Y2Y2IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxMTUiIHk9IjEzMyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzViMjFiNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+YnVpbGQuZ3JhZGxlLmt0czwvdGV4dD4KICA8dGV4dCB4PSIxMTUiIHk9IjE1MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjN2MzYWVkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QbHVnaW4gZGVjbGFyYXRpb248L3RleHQ+CgogIDxyZWN0IHg9IjQ4IiB5PSIxNzUiIHdpZHRoPSIxMzQiIGhlaWdodD0iNDUiIHJ4PSI2IiBmaWxsPSIjZjVmM2ZmIiBzdHJva2U9IiNjNGI1ZmQiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjExNSIgeT0iMTk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3YzNhZWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFjdGl2aXRpZXMgJmFtcDs8L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSIyMDkiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzdjM2FlZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RnJhZ21lbnRzPC90ZXh0PgoKICA8cmVjdCB4PSI0OCIgeT0iMjMwIiB3aWR0aD0iMTM0IiBoZWlnaHQ9IjQ1IiByeD0iNiIgZmlsbD0iI2Y1ZjNmZiIgc3Ryb2tlPSIjYzRiNWZkIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxMTUiIHk9IjI1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjN2MzYWVkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Pa0h0dHAgJmFtcDs8L3RleHQ+CiAgPHRleHQgeD0iMTE1IiB5PSIyNjQiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzdjM2FlZCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmV0cm9maXQgQ2FsbHM8L3RleHQ+CgogIDwhLS0gQ29sdW1uIDI6IER5bmF0cmFjZSBHcmFkbGUgUGx1Z2luIChsYXJnZSBjZW50ZXIpIC0tPgogIDxyZWN0IHg9IjI1NSIgeT0iNjUiIHdpZHRoPSIyOTAiIGhlaWdodD0iMjUwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzE0OTZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjYVNoYWRvdykiLz4KICA8cmVjdCB4PSIyNTUiIHk9IjY1IiB3aWR0aD0iMjkwIiBoZWlnaHQ9IjMyIiByeD0iMTAiIGZpbGw9InVybCgjYUJsdWVHcmFkKSIvPgogIDxyZWN0IHg9IjI1NSIgeT0iODkiIHdpZHRoPSIyOTAiIGhlaWdodD0iOCIgZmlsbD0idXJsKCNhQmx1ZUdyYWQpIi8+CiAgPHRleHQgeD0iNDAwIiB5PSI4NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkR5bmF0cmFjZSBHcmFkbGUgUGx1Z2luPC90ZXh0PgoKICA8IS0tIFBsdWdpbiBmZWF0dXJlIGJveGVzICgyeDIgZ3JpZCkgLS0+CiAgPHJlY3QgeD0iMjc1IiB5PSIxMTAiIHdpZHRoPSIxMjAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSIjZWZmNmZmIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjMzNSIgeT0iMTMyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWU0MGFmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CeXRlY29kZTwvdGV4dD4KICA8dGV4dCB4PSIzMzUiIHk9IjE0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlNDBhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW5zdHJ1bWVudGF0aW9uPC90ZXh0PgoKICA8cmVjdCB4PSI0MDUiIHk9IjExMCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9IiNlZmY2ZmYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIxMzIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTQwYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkF1dG8tZGV0ZWN0PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMWU0MGFmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BY3Rpdml0aWVzPC90ZXh0PgoKICA8cmVjdCB4PSIyNzUiIHk9IjE3MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9IiNlZmY2ZmYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzM1IiB5PSIxOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTQwYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9rSHR0cDwvdGV4dD4KICA8dGV4dCB4PSIzMzUiIHk9IjIwOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlNDBhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW50ZXJjZXB0b3I8L3RleHQ+CgogIDxyZWN0IHg9IjQwNSIgeT0iMTcwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0iI2VmZjZmZiIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjE5MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlNDBhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJvR3VhcmQgLyBSODwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjIwOCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzFlNDBhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3VwcG9ydDwvdGV4dD4KCiAgPCEtLSBCdWlsZCBwaXBlbGluZSBpbmRpY2F0b3IgLS0+CiAgPHJlY3QgeD0iMjc1IiB5PSIyMzIiIHdpZHRoPSIyNTAiIGhlaWdodD0iMzUiIHJ4PSI2IiBmaWxsPSIjZmZmN2VkIiBzdHJva2U9IiNmZGJhNzQiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiNjMjQxMGMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJ1aWxkIFBoYXNlOiBjb21waWxlICZndDsgdHJhbnNmb3JtICZndDsgcGFja2FnZTwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjI2MSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjYzI0MTBjIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CeXRlY29kZSBtb2RpZmllZCBhdCB0cmFuc2Zvcm0gc3RlcDwvdGV4dD4KCiAgPCEtLSBDb2x1bW4gMzogRHluYXRyYWNlIFBsYXRmb3JtIC0tPgogIDxyZWN0IHg9IjYwMCIgeT0iNjUiIHdpZHRoPSIxNzAiIGhlaWdodD0iMjUwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzIyYzU1ZSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWx0ZXI9InVybCgjYVNoYWRvdykiLz4KICA8cmVjdCB4PSI2MDAiIHk9IjY1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjMyIiByeD0iMTAiIGZpbGw9InVybCgjYUdyZWVuR3JhZCkiLz4KICA8cmVjdCB4PSI2MDAiIHk9Ijg5IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjgiIGZpbGw9InVybCgjYUdyZWVuR3JhZCkiLz4KICA8dGV4dCB4PSI2ODUiIHk9Ijg3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RHluYXRyYWNlIFBsYXRmb3JtPC90ZXh0PgoKICA8IS0tIFBsYXRmb3JtIHN1Yi1pdGVtcyAtLT4KICA8cmVjdCB4PSI2MTgiIHk9IjExMCIgd2lkdGg9IjEzNCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiNkY2ZjZTciIHN0cm9rZT0iIzRhZGU4MCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjg1IiB5PSIxMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxNjY1MzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkdyYWlsPC90ZXh0PgoKICA8cmVjdCB4PSI2MTgiIHk9IjE2MCIgd2lkdGg9IjEzNCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiNkY2ZjZTciIHN0cm9rZT0iIzRhZGU4MCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNjg1IiB5PSIxODUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxNjY1MzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkRhc2hib2FyZHM8L3RleHQ+CgogIDxyZWN0IHg9IjYxOCIgeT0iMjEwIiB3aWR0aD0iMTM0IiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iI2RjZmNlNyIgc3Ryb2tlPSIjNGFkZTgwIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2ODUiIHk9IjIzNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzE2NjUzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWxlcnRpbmc8L3RleHQ+CgogIDxyZWN0IHg9IjYxOCIgeT0iMjYwIiB3aWR0aD0iMTM0IiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iI2YwZmRmNCIgc3Ryb2tlPSIjODZlZmFjIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI2ODUiIHk9IjI4MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTY2NTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DcmFzaCBBbmFseXNpczwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjI5NCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMTY2NTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4mYW1wOyBTeW1ib2xpY2F0aW9uPC90ZXh0PgoKICA8IS0tIEFycm93czogTGVmdCB0byBDZW50ZXIgLS0+CiAgPHBhdGggZD0iTTIwMCwxODAgTDI1MCwxODAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYUFycm93KSIvPgogIDx0ZXh0IHg9IjIyNSIgeT0iMTY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBsdWdpbiBhcHBsaWVkPC90ZXh0PgogIDx0ZXh0IHg9IjIyNSIgeT0iMjAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmF0IGJ1aWxkIHRpbWU8L3RleHQ+CgogIDwhLS0gQXJyb3dzOiBDZW50ZXIgdG8gUmlnaHQgLS0+CiAgPHBhdGggZD0iTTU0NSwxODAgTDU5NSwxODAiIHN0cm9rZT0iIzY0NzQ4YiIgc3Ryb2tlLXdpZHRoPSIyLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYUFycm93KSIvPgogIDx0ZXh0IHg9IjU3MCIgeT0iMTY1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlJ1bnRpbWU8L3RleHQ+CiAgPHRleHQgeD0iNTcwIiB5PSIyMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+YmVhY29uczwvdGV4dD4KCiAgPCEtLSBMZWdlbmQgYmFyIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIzMzUiIHdpZHRoPSI3MjAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlMmU4ZjAiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMzU1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM1NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRoZSBHcmFkbGUgcGx1Z2luIGluc3RydW1lbnRzIEFuZHJvaWQgYnl0ZWNvZGUgYXQgYnVpbGQgdGltZSBmb3IgemVyby1jb2RlIG1vbml0b3JpbmcuPC90ZXh0PgogIDxjaXJjbGUgY3g9IjEwMCIgY3k9IjM3MyIgcj0iNiIgZmlsbD0iIzYzNjZmMSIvPgogIDx0ZXh0IHg9IjExMyIgeT0iMzc3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMzMzMiPkFwcCBzb3VyY2U8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMjEwIiBjeT0iMzczIiByPSI2IiBmaWxsPSIjMTQ5NmZmIi8+CiAgPHRleHQgeD0iMjIzIiB5PSIzNzciIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzMzMyI+UGx1Z2luIGNhcGFiaWxpdGllczwvdGV4dD4KICA8Y2lyY2xlIGN4PSIzNTgiIGN5PSIzNzMiIHI9IjYiIGZpbGw9IiNmOTczMTYiLz4KICA8dGV4dCB4PSIzNzEiIHk9IjM3NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5CdWlsZCBwaXBlbGluZTwvdGV4dD4KICA8Y2lyY2xlIGN4PSI0ODgiIGN5PSIzNzMiIHI9IjYiIGZpbGw9IiMyMmM1NWUiLz4KICA8dGV4dCB4PSI1MDEiIHk9IjM3NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMzMzIj5QbGF0Zm9ybTwvdGV4dD4KPC9zdmc+Cg==" alt="Android Gradle Plugin" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+**Dynatrace Android Gradle Plugin Build Flow:**
+| Step | Component | Description |
+|------|-----------|-------------|
+| 1 | App Source Code | Your Kotlin/Java source files |
+| 2 | Gradle Build | Compilation and resource processing |
+| 3 | Dynatrace Plugin | Bytecode instrumentation at build time |
+| 4 | Instrumented APK/AAB | Final build artifact with monitoring |
+| 5 | Runtime Agent | Sends beacons to Dynatrace cluster |
+For environments where SVG doesn't render
+-->
+<h3>Plugin Management (settings.gradle.kts)</h3>
+<p>Add the Dynatrace plugin repository to your <code>settings.gradle.kts</code>:</p>
+<pre><code class="language-kotlin">// settings.gradle.kts (Plugin Management)
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+</code></pre>
+<h3>Top-Level build.gradle.kts</h3>
+<p>Apply the Dynatrace plugin in the <strong>top-level</strong> build file (the one in the root project directory), not in the app module. From there the plugin configures the Android subprojects:</p>
+<pre><code class="language-kotlin">// build.gradle.kts (top-level, root project directory)
+plugins {
+    id(&quot;com.android.application&quot;) version &quot;8.5.0&quot; apply false
+    id(&quot;com.dynatrace.instrumentation&quot;) version &quot;8.+&quot; apply true
+}
+
+dynatrace {
+    configurations {
+        create(&quot;sampleConfig&quot;) {
+            autoStart {
+                applicationId(&quot;&lt;YourApplicationID&gt;&quot;)
+                beaconUrl(&quot;&lt;ProvidedBeaconURL&gt;&quot;)
+            }
+        }
+    }
+}
+</code></pre>
+<blockquote>
+<p><strong>Important:</strong> Copy the <code>applicationId</code> and <code>beaconUrl</code> values from the instrumentation wizard of your mobile app in Dynatrace. The docs recommend <code>8.+</code> so Gradle picks up new minor versions automatically; upgrade across a major version by hand, because a new major can contain breaking changes. If your build needs reproducible versions, pin an exact <code>8.x.y</code> instead and bump it deliberately.</p>
+</blockquote>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions applied the plugin in the app-level build file and configured it with a <code>defaultConfig { applicationId(...) }</code> block plus <code>variants { register(...) }</code> overrides. That DSL does not exist. The documented shape is the top-level <code>dynatrace { configurations { ... } }</code> block shown here, with the IDs inside <code>autoStart { }</code>.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin">Instrumentation via Dynatrace Android Gradle plugin (DT docs)</a> — <em>&quot;You should apply the Dynatrace Android Gradle to the top-level build file&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/configure-multi-module-projects">Configure multi-module projects (DT docs)</a>.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Gradle 9.7 is supported (OneAgent for Mobile 8.345, released 08/03/2026).</strong> The Dynatrace Android Gradle plugin adds <em>&quot;Support for Gradle version 9.7&quot;</em>. If your project is pinned below that in <code>gradle-wrapper.properties</code>, this removes the plugin as a reason not to move; if you are already on 9.7, use the 8.345 plugin or later. Build 8.345.1 also resolves two ANRs in <strong>Jetpack Compose</strong> instrumentation — one in Compose with Session Replay, one in Compose user-interaction monitoring — worth knowing if Compose instrumentation was deferred on those grounds.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-345">What's new in OneAgent for Mobile 8.345 (DT docs)</a> — Gradle 9.7 support and the Android 8.345.1 fixes, read 08/28/2026.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Breaking (OneAgent for Mobile 8.349, published 10/15/2026, rollout start 10/06/2026).</strong> <em>&quot;The debug-only certificate validation option that disabled SSL certificate checks has been removed from the Dynatrace Android Gradle plugin (the certificateValidation property) and the OneAgent for Android SDK ( ConfigurationBuilder#withCertificateValidation ).&quot;</em> <em>&quot;Builds that still reference it will fail to compile.&quot;</em> Remove <code>certificateValidation</code> / <code>withCertificateValidation</code> before you upgrade; for trust rules and certificate handling the release note points to Android's Network Security Configuration.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-349">What's new in OneAgent for Mobile 8.349 (DT docs)</a> — <em>&quot;Remove all references to this option from your Gradle plugin configuration and OneAgent initialization code before upgrading&quot;</em>, read 10/29/2026.</sub></p>
+</blockquote>
+<p><a id="build-gradle-config"></a></p>
+<h2>3. build.gradle Configuration</h2>
+<p>The plugin is configured through <strong>named, variant-specific configurations</strong>. Each configuration is matched to Android build variants by the regex in <code>variantFilter</code>, and the plugin cancels the build if a variant has no matching configuration (switch that protection off with <code>strictMode</code>).</p>
+<p>A typical setup sends debug builds and release builds to two separate mobile apps in Dynatrace:</p>
+<pre><code class="language-kotlin">// build.gradle.kts (top-level)
+configure&lt;com.dynatrace.tools.android.dsl.DynatraceExtension&gt; {
+    configurations {
+        create(&quot;debug&quot;) {
+            variantFilter(&quot;[dD]ebug&quot;)
+            autoStart {
+                applicationId(&quot;&lt;DebugApplicationID&gt;&quot;)
+                beaconUrl(&quot;&lt;ProvidedBeaconURL&gt;&quot;)
+            }
+        }
+        create(&quot;prod&quot;) {
+            variantFilter(&quot;[rR]elease&quot;)
+            autoStart {
+                applicationId(&quot;&lt;ProductionApplicationID&gt;&quot;)
+                beaconUrl(&quot;&lt;ProvidedBeaconURL&gt;&quot;)
+            }
+        }
+    }
+}
+</code></pre>
+<p>To stop monitoring debug builds entirely, set <code>enabled(false)</code> on the debug configuration instead of giving it IDs.</p>
+<h3>Configuration Properties</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Where</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>variantFilter</code></td>
+<td>configuration</td>
+<td>Regex matched (case-sensitive) against the build-variant name; the first matching configuration wins</td>
+</tr>
+<tr>
+<td><code>autoStart { applicationId, beaconUrl }</code></td>
+<td>configuration</td>
+<td>IDs from the instrumentation wizard; OneAgent starts automatically with them</td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>configuration</td>
+<td><code>false</code> disables monitoring for the variants the configuration matches</td>
+</tr>
+<tr>
+<td><code>userOptIn</code></td>
+<td>configuration</td>
+<td><code>true</code> starts OneAgent in user opt-in mode (see MOBL-09 §3)</td>
+</tr>
+<tr>
+<td><code>crashReporting</code></td>
+<td>configuration</td>
+<td>Crash reporting is <strong>on by default</strong>; <code>crashReporting(false)</code> turns it off</td>
+</tr>
+<tr>
+<td><code>hybridWebView { enabled }</code></td>
+<td>configuration</td>
+<td>Hybrid (WebView) monitoring properties live in the <code>hybridWebView</code> block</td>
+</tr>
+<tr>
+<td><code>strictMode</code></td>
+<td>extension</td>
+<td>Controls whether an unmatched variant fails the build</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-kotlin">// Opt-in mode, crash reporting off, hybrid WebView monitoring on -- each is a documented sample
+configure&lt;com.dynatrace.tools.android.dsl.DynatraceExtension&gt; {
+    configurations {
+        create(&quot;sampleConfig&quot;) {
+            userOptIn(true)
+            crashReporting(false)
+            hybridWebView {
+                enabled(true)
+                domains(&quot;.&lt;domain1&gt;&quot;, &quot;.&lt;domain2&gt;&quot;)
+            }
+        }
+    }
+}
+</code></pre>
+<blockquote>
+<p><strong>Warning:</strong> Never commit real Application IDs or Beacon URLs to public repositories. Use environment variables or a <code>local.properties</code> file excluded from version control.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/configure-plugin-for-instrumentation">Configure plugin for instrumentation processes (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/adjust-oneagent-configuration">Adjust OneAgent configuration (DT docs)</a> — <em>&quot;All properties related to hybrid application monitoring are part of HybridWebView DSL, so configure them via the hybridWebView block.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/monitoring-capabilities">Configure monitoring capabilities (DT docs)</a> — <em>&quot;You can deactivate crash reporting with the crashReporting property.&quot;</em></sub></p>
+</blockquote>
+<p><a id="auto-instrumentation"></a></p>
+<h2>4. Auto-Instrumentation (Activities &amp; Fragments)</h2>
+<p>The Dynatrace Gradle plugin automatically instruments the following interactions at build time -- no code changes required:</p>
+<h3>Automatically Detected</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>What Is Captured</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Activity lifecycle</strong></td>
+<td><code>onCreate</code>, <code>onResume</code>, <code>onPause</code>, <code>onDestroy</code></td>
+<td>Load actions generated per Activity</td>
+</tr>
+<tr>
+<td><strong>Fragment lifecycle</strong></td>
+<td>Fragment attach, detach, view creation</td>
+<td>Visible as child actions</td>
+</tr>
+<tr>
+<td><strong>Button clicks</strong></td>
+<td><code>View.OnClickListener</code> events</td>
+<td>Captured with view ID and text</td>
+</tr>
+<tr>
+<td><strong>Jetpack Compose</strong></td>
+<td><code>Modifier.clickable</code>, <code>combinedClickable</code>, <code>toggleable</code>, <code>swipeable</code>, <code>pullRefresh</code>, <code>Slider</code>/<code>RangeSlider</code>, <code>HorizontalPager</code></td>
+<td>Enabled by default from plugin 8.271</td>
+</tr>
+<tr>
+<td><strong>RecyclerView taps</strong></td>
+<td>Item click events in lists</td>
+<td>Requires standard click listeners</td>
+</tr>
+<tr>
+<td><strong>OkHttp requests</strong></td>
+<td>HTTP/HTTPS calls via OkHttp 3, 4 and 5</td>
+<td>Headers injected for distributed tracing</td>
+</tr>
+<tr>
+<td><strong>HttpURLConnection</strong></td>
+<td>Standard Java HTTP calls</td>
+<td>Auto-correlated to user actions</td>
+</tr>
+<tr>
+<td><strong>WebView actions</strong></td>
+<td>Page loads and JS interactions</td>
+<td>Requires <code>hybridWebView { enabled(true) }</code></td>
+</tr>
+</tbody>
+</table>
+<h3>How It Works</h3>
+<ol>
+<li><strong>Build time:</strong> The Gradle plugin applies bytecode instrumentation to compiled classes.</li>
+<li><strong>Runtime:</strong> The Dynatrace agent initializes automatically on <code>Application.onCreate()</code>.</li>
+<li><strong>User actions:</strong> Each Activity load or tap generates a user action with child events (network calls, errors).</li>
+<li><strong>Beacons:</strong> Collected data is sent to the Dynatrace cluster via the beacon URL.</li>
+</ol>
+<blockquote>
+<p><strong>Note:</strong> Auto-instrumentation covers both <code>View</code>-based layouts (XML + Activities/Fragments) and Jetpack Compose. Jetpack Compose auto-instrumentation is enabled by default from Dynatrace Android Gradle plugin 8.271. See the next section for when manual actions still help.</p>
+</blockquote>
+<p><a id="jetpack-compose"></a></p>
+<h2>5. Jetpack Compose Integration</h2>
+<p><strong>Jetpack Compose is auto-instrumented.</strong> From Dynatrace Android Gradle plugin 8.271, the plugin instruments Compose interactions by default -- <code>Modifier.clickable</code>, <code>Modifier.combinedClickable</code>, <code>Modifier.toggleable</code>, <code>Modifier.swipeable</code>, <code>Modifier.pullRefresh</code>, <code>Slider</code> / <code>RangeSlider</code> and <code>HorizontalPager</code> -- so ordinary taps, toggles and swipes are captured without code. Compose auto-instrumentation for Session Replay is on by default from plugin 8.325.</p>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions said Compose taps and navigation could not be detected automatically and told readers to wrap every <code>onClick</code> in <code>enterAction</code> / <code>leaveAction</code>. On plugin 8.271+ that duplicates the automatically captured actions. Use manual actions only for the business-level pattern below.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app">Instrument Android apps (DT docs)</a> — <em>&quot;Jetpack Compose auto-instrumentation is enabled by default starting with Dynatrace Android Gradle plugin version 8.271.&quot;</em>, <a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/monitoring-capabilities">Configure monitoring capabilities (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Business-Level Actions Spanning Several Interactions</h3>
+<p>Manual actions are still the right tool when one <strong>business step</strong> spans several interactions or asynchronous work -- a checkout, a search that fans out, a multi-screen form. Use <code>Dynatrace.enterAction()</code> and <code>action.leaveAction()</code> around the whole step:</p>
+<pre><code class="language-kotlin">import com.dynatrace.android.agent.Dynatrace
+
+@Composable
+fun ProductListScreen() {
+    LazyColumn {
+        items(products) { product -&gt;
+            ProductCard(
+                product = product,
+                onClick = {
+                    // Manual action for Compose interactions
+                    val action = Dynatrace.enterAction(&quot;Tap on ${product.name}&quot;)
+                    navigateToDetail(product.id)
+                    action.leaveAction()
+                }
+            )
+        }
+    }
+}
+</code></pre>
+<h3>When a Manual Action Adds Value</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Example</th>
+<th>Why manual</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Multi-step flow</strong></td>
+<td><code>enterAction(&quot;Checkout flow&quot;)</code></td>
+<td>One action for a flow that spans screens</td>
+</tr>
+<tr>
+<td><strong>Async business step</strong></td>
+<td><code>enterAction(&quot;Search: $query&quot;)</code></td>
+<td>Duration should include the coroutine, not just the tap</td>
+</tr>
+<tr>
+<td><strong>Named business outcome</strong></td>
+<td><code>enterAction(&quot;Submit Order&quot;)</code></td>
+<td>A stable business name for dashboards, independent of UI labels</td>
+</tr>
+</tbody>
+</table>
+<h3>Nested Actions with Network Calls</h3>
+<p>If an action triggers a network request, the Dynatrace agent automatically correlates the HTTP call as a child of the open action:</p>
+<pre><code class="language-kotlin">@Composable
+fun CheckoutButton(cartId: String) {
+    Button(onClick = {
+        val action = Dynatrace.enterAction(&quot;Tap Checkout&quot;)
+        viewModel.submitOrder(cartId) // OkHttp call auto-linked
+        action.leaveAction()
+    }) {
+        Text(&quot;Checkout&quot;)
+    }
+}
+</code></pre>
+<h3>Coroutine-Safe Pattern</h3>
+<p>When using Kotlin coroutines, ensure <code>leaveAction()</code> is called after the async work completes:</p>
+<pre><code class="language-kotlin">fun onSearchClicked(query: String) {
+    val action = Dynatrace.enterAction(&quot;Search: $query&quot;)
+    viewModelScope.launch {
+        try {
+            val results = repository.search(query)
+            _state.value = SearchState.Success(results)
+        } catch (e: Exception) {
+            action.reportError(&quot;Search failed&quot;, e)
+            _state.value = SearchState.Error(e.message)
+        } finally {
+            action.leaveAction()
+        }
+    }
+}
+</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> Always call <code>leaveAction()</code> in a <code>finally</code> block to avoid orphaned actions that can skew session data.</p>
+</blockquote>
+<p><a id="proguard-r8"></a></p>
+<h2>6. ProGuard &amp; R8 Configuration</h2>
+<p><strong>With R8 (the default), you add nothing.</strong> OneAgent for Android and its transitive dependencies ship their own keep rules for R8, and R8 applies them. Two cases need attention:</p>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A <strong>third-party obfuscator</strong> instead of R8</td>
+<td>Configure it to honor OneAgent's keep rules — otherwise you can get runtime errors from incorrectly obfuscated classes</td>
+</tr>
+<tr>
+<td>AGP features that <strong>filter dependency keep rules</strong> (for example <code>ignoreFrom</code>)</td>
+<td>Make sure OneAgent's rules are not filtered out</td>
+</tr>
+</tbody>
+</table>
+<p>A blanket <code>-keep class com.dynatrace.** { *; }</code> is not required with R8; add it only if a third-party tool cannot read the shipped rules.</p>
+<blockquote>
+<p><strong>R8 full mode needs OneAgent for Mobile 8.349.2 or later.</strong> Build 8.349.2 <em>&quot;Resolved an issue with the Room library (androidx.room:room-runtime) that prevents OneAgent for Android from recording events when apps are built with R8 full mode (android.enableR8.fullMode=true). R8 full mode is enabled automatically with Android Gradle Plugin 9.0 or higher.&quot;</em> An app moved to AGP 9 on an older agent can therefore build cleanly and send nothing. Check the agent version before you upgrade AGP; on AGP 8 with full mode off, earlier agents are unaffected.</p>
+</blockquote>
+<h3>Mapping Files for Crash Deobfuscation</h3>
+<p>Readable Android stack traces need the build's <code>mapping.txt</code> in Dynatrace. Upload it for <strong>every released version</strong> — through the UI, or from CI with the Mobile Symbolication API:</p>
+<pre><code class="language-bash"># token scope: DssFileManagement
+curl -X PUT &quot;https://{your-environment-id}.live.dynatrace.com/api/config/v1/symfiles/{applicationId}/{packageName}/ANDROID/{versionCode}/{versionName}&quot; \
+  -H &quot;Authorization: Api-Token {token}&quot; \
+  -H &quot;Content-Type: text/plain&quot; \
+  --data-binary @app/build/outputs/mapping/release/mapping.txt
+</code></pre>
+<p><strong>On the latest Dynatrace RUM, use the Deobfuscation API instead.</strong> The Mobile Symbolication API page now says <em>&quot;To manage symbol and mapping files for the new RUM experience, see the Deobfuscation API.&quot;</em> That platform API takes a platform token or OAuth token with <code>deobfuscation:symbol-files:write</code>, and puts the platform first in the path:</p>
+<pre><code class="language-bash"># platform token scope: deobfuscation:symbol-files:write
+curl -X PUT &quot;https://{your-environment-id}.apps.dynatrace.com/platform/rum/deobfuscation/v1/symbol-files/mobile/ANDROID/{dtRumAppId}/{packageName}/{versionCode}/{versionName}&quot; \
+  -H &quot;Authorization: Bearer {platform-token}&quot; \
+  -H &quot;Content-Type: text/plain&quot; \
+  --data-binary @app/build/outputs/mapping/release/mapping.txt
+</code></pre>
+<p>The same API lists, pins and deletes symbol files, reports the storage quota, and returns the deobfuscated stack trace of a stored event. The classic call above still serves RUM Classic frontends.</p>
+<p>The classic upload limit is 100 MiB per file (500 MiB uncompressed). A crash from a version with no mapping file stays obfuscated, so make the upload part of the release pipeline rather than a manual step. MOBL-06 covers crash analysis.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/digital-experience/rum/mobile-frontends/android/id-02-support-and-limitations">Support and limitations — Android (DT docs)</a> — <em>&quot;OneAgent for Android and its transitive dependencies provide ProGuard rules designed for R8. If you use third-party obfuscation tools instead of R8, you are responsible for configuring them to honor the required keep rules.&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/mobile-symbolication-api/put-files-app-version">Mobile Symbolication API — PUT upload file (DT docs)</a> — <em>&quot;Uploads a symbol file (Android mapping file and iOS/tvOS symbol extract file) for the specified version of a mobile app.&quot;</em>, <em>&quot;you need an access token with DssFileManagement scope&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/configuration-api/mobile-symbolication-api">Mobile Symbolication API (DT docs)</a> — the pointer quoted above; <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-rum-deobfuscation-v1/symbol-files-mobile-platform-dt-rum-app-id-package-name-version-5acf4e-put">Upload a mobile symbol file — Deobfuscation API (DT docs)</a> — <em>&quot;you need a platform token or OAuth access token with deobfuscation:symbol-files:write scope&quot;</em>, <em>&quot;For Android, this is a ProGuard/R8 mapping.txt or a zip archive containing it.&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/platform-api/platform-rum-deobfuscation-v1">Deobfuscation API (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/whats-new/oneagent-mobile/sprint-349">What's new in OneAgent for Mobile 8.349 (DT docs)</a> — the R8 full mode fix quoted above; all re-read 11/11/2026.</sub></p>
+</blockquote>
+<p><a id="verifying-data"></a></p>
+<h2>7. Verifying Data in Dynatrace</h2>
+<p>After building and running your instrumented Android app, use the following DQL queries to verify that monitoring data is arriving in Dynatrace.</p>
+<pre><code class="language-dql">// Find Android mobile applications
+// PREFERRED -- Smartscape. FRONTEND carries both mobile and web apps, so the
+// frontend.type filter is what narrows this to mobile.
+smartscapeNodes &quot;FRONTEND&quot;
+| filter frontend.type == &quot;mobile&quot;
+| filter contains(name, &quot;Android&quot;, caseSensitive: false)
+    or contains(toString(tags), &quot;Android&quot;, caseSensitive: false)
+| fields name, id, id_classic, tags
+| sort name asc
+
+// CORRECTION (07/30/2026): a previous revision claimed dt.entity.mobile_application had no
+// Grail Smartscape equivalent. It does -- FRONTEND filtered on frontend.type == &quot;mobile&quot;
+// (dt.smartscape.frontend). SaaS 1.344 (07/27/2026, staged tenant rollout from 07/29/2026)
+// makes Smartscape the primary surface for the Digital Experience apps; verify it has
+// reached your tenant. The classic table below still works and remains a real fallback.
+// FALLBACK (classic surface -- still functional):
+// fetch dt.entity.mobile_application
+// | filter contains(toString(entity.name), &quot;Android&quot;) or contains(toString(tags), &quot;Android&quot;)
+// | fields entity.name, id, tags
+// | sort entity.name asc
+</code></pre>
+<p>The query above searches for mobile application entities with &quot;Android&quot; in their name or tags. If your app appears in the results, the Dynatrace environment is aware of it.</p>
+<p>Next, check whether the app is sending user action data:</p>
+<pre><code class="language-dql">// Recent Android user actions (last hour)
+fetch user.events, from:-1h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and os.name == &quot;Android&quot;
+| filter characteristics.has_user_action
+| summarize action_count = count(), by:{frontend.name, ui_element.detected_name, interaction.type}
+| sort action_count desc
+| limit 20
+</code></pre>
+<p>This query shows the most frequent user actions reported from Android devices in the last hour. Look for:</p>
+<ul>
+<li><strong>Load actions</strong> from Activity/Fragment lifecycle (auto-instrumented)</li>
+<li><strong>Tap actions</strong> from button clicks or Compose <code>enterAction()</code> calls</li>
+<li><strong>Custom actions</strong> from your manual instrumentation</li>
+</ul>
+<p>Finally, verify the full range of event types being captured:</p>
+<pre><code class="language-dql">// Android app event-type inventory -- one count per event characteristic.
+// Select event types with the stable characteristics.has_* flags, not characteristics.classifier
+// (corrected 11/11/2026): the dictionary calls classifier &quot;not intended for query usage&quot; and
+// Semantic Dictionary 1.349 removes it from the user-event models. The flags can overlap
+// (a failed request is both a request and an error), so the columns need not add up to total_events.
+fetch user.events, from:-1h
+| filter in(dt.rum.agent.type, {&quot;android&quot;, &quot;ios&quot;}) and os.name == &quot;Android&quot;
+| summarize {total_events = count(),
+    user_actions = countIf(characteristics.has_user_action == true),
+    requests = countIf(characteristics.has_request == true),
+    errors = countIf(characteristics.has_error == true),
+    crashes = countIf(characteristics.has_crash == true),
+    anrs = countIf(characteristics.has_anr == true),
+    app_starts = countIf(characteristics.has_app_start == true)}
+</code></pre>
+<h3>What the Data Looks Like</h3>
+<p>Mobile RUM data is stored in the Grail <code>user.events</code> and <code>user.sessions</code> stores, not in <code>bizevents</code>. Each <code>user.events</code> record carries <code>characteristics.*</code> flags that name its event type -- for example <code>characteristics.has_user_action</code>, <code>has_request</code>, <code>has_crash</code>, <code>has_anr</code>, <code>has_app_start</code>, and <code>has_error</code> (with <code>characteristics.is_api_reported</code> for errors reported through the SDK). The inventory query above counts each flag. The flags can overlap -- a failed request carries both <code>has_request</code> and <code>has_error</code> -- so the counts need not add up to the total.</p>
+<blockquote>
+<p><strong>Correction (11/11/2026).</strong> Earlier revisions grouped by <code>characteristics.classifier</code>. The User events dictionary page describes it as <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em>, and <strong>Semantic Dictionary 1.349</strong> removes it from the user-event models. A tenant that has not reached the change still returns the field (on the validation tenant on 11/11/2026 it was populated on every user event), so a classifier query keeps working there and then silently matches nothing once the change arrives. Semantic Dictionary 1.350 re-lists it under the Basic user-event model; the User events page still calls it not intended for query usage, so select with the <code>has_*</code> flags.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/rum/user-events">User events (DT docs)</a> — <em>&quot;Used for internal optimization when storing the data and not intended for query usage.&quot;</em>; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-349">Semantic Dictionary changelog 1.349 (DT docs)</a>; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-350">Semantic Dictionary changelog 1.350 (DT docs)</a>. <strong>Dictionary:</strong> <code>characteristics.classifier</code> (<code>experimental</code>), <code>characteristics.has_user_action</code>, <code>has_request</code>, <code>has_error</code>, <code>has_crash</code>, <code>has_anr</code>, <code>has_app_start</code> (<code>stable</code>), read 11/11/2026.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Correction (09/28/2026).</strong> Earlier revisions listed <code>com.dynatrace.mobile.*</code> event types. Those do not exist; mobile events are typed by the <code>characteristics.*</code> flags above (semantic dictionary models <code>rum_mobile_user_action</code>, <code>rum_request</code>, <code>rum_crash</code>, <code>rum_anr</code>, <code>rum_app_start</code>, <code>rum_api_reported_error</code>, read 09/28/2026).</p>
+</blockquote>
+<h3>Troubleshooting Checklist</h3>
+<p>If no data appears:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RUM on the frontend</strong></td>
+<td>Frontend created in Experience Vitals; a RUM Classic frontend needs RUM turned on (Section 1) — with it off, <code>user.events</code> stays empty for this app</td>
+</tr>
+<tr>
+<td><strong>Application ID</strong></td>
+<td>Verify it matches the Dynatrace mobile app configuration</td>
+</tr>
+<tr>
+<td><strong>Beacon URL</strong></td>
+<td>Confirm the URL is reachable from the device/emulator</td>
+</tr>
+<tr>
+<td><strong>Network access</strong></td>
+<td>Ensure the device has internet connectivity</td>
+</tr>
+<tr>
+<td><strong>Plugin applied</strong></td>
+<td>Verify <code>com.dynatrace.instrumentation</code> appears in Gradle sync output</td>
+</tr>
+<tr>
+<td><strong>Build variant</strong></td>
+<td>Confirm the correct variant config (debug vs. release) is active</td>
+</tr>
+<tr>
+<td><strong>userOptIn</strong></td>
+<td>If set to <code>true</code>, OneAgent collects nothing until the app calls <code>Dynatrace.applyUserPrivacyOptions(UserPrivacyOptions.builder().withDataCollectionLevel(DataCollectionLevel.USER_BEHAVIOR)...build())</code> after the user consents (MOBL-09 §3)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>How to create and configure a mobile application in the Dynatrace UI</li>
+<li>How to apply the Dynatrace Android Gradle plugin in the top-level <code>build.gradle.kts</code> and configure variant-specific configurations</li>
+<li>The full range of auto-instrumented interactions (Activities, Fragments, clicks, HTTP requests)</li>
+<li>That Jetpack Compose is auto-instrumented from plugin 8.271, and when a manual business-level action still helps</li>
+<li>That R8 keep rules ship with the agent, and that mapping files must be uploaded for every release</li>
+<li>How to verify Android monitoring data using DQL queries</li>
+</ul>
+<hr />
+<h2>Next Steps</h2>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MOBL-04</strong></td>
+<td>Cross-Platform Frameworks</td>
+</tr>
+<tr>
+<td><strong>MOBL-05</strong></td>
+<td>User Action Tracking</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app">Instrument Android apps (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications">Dynatrace Mobile RUM Overview</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin">Instrumentation via Dynatrace Android Gradle plugin (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-plugin/configure-plugin-for-instrumentation">Configure plugin for instrumentation processes (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/oneagent-sdk-for-android">OneAgent SDK for Android (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/mobile-applications/instrument-android-app/instrumentation-via-oneagent-sdk/manual-instrumentation">Manual instrumentation with OneAgent SDK for Android (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

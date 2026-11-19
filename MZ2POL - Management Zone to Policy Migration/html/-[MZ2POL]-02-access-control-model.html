@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-02: Understanding the New Access Control Model</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-02</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-02: Understanding the New Access Control Model</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 3 of 17 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/15/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook provides a deep dive into the <strong>ABAC (Attribute-Based Access Control)</strong> framework that replaces Management Zones for access control. You'll learn how Policies, Boundaries, and Segments work together to provide flexible, scalable access management.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#abac-framework-architecture">ABAC Framework Architecture</a></li>
+<li><a href="#policies-deep-dive">Policies Deep Dive</a></li>
+<li><a href="#boundaries-deep-dive">Boundaries Deep Dive</a></li>
+<li><a href="#buckets-data-partitioning">Buckets: Data Partitioning, Not the Access Mechanism</a></li>
+<li><a href="#segments-deep-dive">Segments Deep Dive</a></li>
+<li><a href="#querying-current-access-configuration">Querying Current Access Configuration</a></li>
+<li><a href="#mapping-mz-concepts-to-new-model">Mapping MZ Concepts to New Model</a></li>
+<li><a href="#access-control-decision-flow">Access Control Decision Flow</a></li>
+<li><a href="#best-practices-for-the-new-model">Best Practices for the New Model</a></li>
+<li><a href="#additional-resources">Additional Resources</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>Completed MZ2POL-01: Introduction</li>
+<li>Access to Dynatrace Account Management</li>
+<li>Understanding of current Management Zone configuration</li>
+</ul>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ol>
+<li>Understand the ABAC framework architecture</li>
+<li>Know the relationship between Policies, Boundaries, and Segments</li>
+<li>Understand how permissions flow through the system</li>
+<li>Be able to map MZ concepts to the new model</li>
+</ol>
+<hr />
+<p><a id="abac-framework-architecture"></a></p>
+<h2>1. ABAC Framework Architecture</h2>
+<h3>The Permission Flow</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+VGhlIFBlcm1pc3Npb24gRmxvdzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyLjUiPlVzZXIg4oaSIGdyb3VwIOKGkiBiaW5kaW5nIChwb2xpY3kgKyBib3VuZGFyaWVzKSDihpIgcGVybWlzc2lvbjsgc2VnbWVudHMgZmlsdGVyIGluc2lkZSB3aGF0IGlzIHBlcm1pdHRlZDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iOTIiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzAiIHk9IjExMSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Vc2VyPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIxMjgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5TQU1MIC8gU0NJTTwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+aWRlbnRpdHk8L3RleHQ+CiAgPHJlY3QgeD0iMjAwIiB5PSI5MiIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI5MiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyMTAiIHk9IjExMSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Hcm91cDwvdGV4dD4KICA8dGV4dCB4PSIyMTAiIHk9IjEyOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnRlYW0gw5cgcm9sZTwvdGV4dD4KICA8dGV4dCB4PSIyMTAiIHk9IjE0NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmZyb20gdGhlIElkUDwvdGV4dD4KICA8cmVjdCB4PSIzODAiIHk9IjkyIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjkyIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM5MCIgeT0iMTExIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkJpbmRpbmc8L3RleHQ+CiAgPHRleHQgeD0iMzkwIiB5PSIxMjgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5wb2xpY3kgKyAwLi5uPC90ZXh0PgogIDx0ZXh0IHg9IjM5MCIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+Ym91bmRhcmllczwvdGV4dD4KICA8cmVjdCB4PSI1NjAiIHk9IjkyIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjkyIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjU3MCIgeT0iMTExIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlBlcm1pc3Npb248L3RleHQ+CiAgPHRleHQgeD0iNTcwIiB5PSIxMjgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5HcmFpbDogYnVja2V0LCB0YWJsZSw8L3RleHQ+CiAgPHRleHQgeD0iNTcwIiB5PSIxNDYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5yZWNvcmQsIGZpZWxkPC90ZXh0PgogIDxsaW5lIHgxPSIxODAiIHkxPSIxMzgiIHgyPSIxOTgiIHkyPSIxMzgiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPGxpbmUgeDE9IjM2MCIgeTE9IjEzOCIgeDI9IjM3OCIgeTI9IjEzOCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8bGluZSB4MT0iNTQwIiB5MT0iMTM4IiB4Mj0iNTU4IiB5Mj0iMTM4IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxsaW5lIHgxPSI3MjAiIHkxPSIxMzgiIHgyPSI3NTgiIHkyPSIxMzgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZWVuKSIvPgogIDxyZWN0IHg9Ijc2MCIgeT0iOTIiIHdpZHRoPSIxNTAiIGhlaWdodD0iOTIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNzcwIiB5PSIxMTEiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+UXVlcnkgcmVzdWx0PC90ZXh0PgogIDx0ZXh0IHg9Ijc3MCIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+cmVjb3JkcyB0aGUgdXNlcjwvdGV4dD4KICA8dGV4dCB4PSI3NzAiIHk9IjE0NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPm1heSByZWFkPC90ZXh0PgogIDxyZWN0IHg9IjM4MCIgeT0iMjEwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjkyIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjM5MCIgeT0iMjI5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkJvdW5kYXJ5PC90ZXh0PgogIDx0ZXh0IHg9IjM5MCIgeT0iMjQ2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+YmFyZSBjb25kaXRpb24sIG5vIFdIRVJFOjwvdGV4dD4KICA8dGV4dCB4PSIzOTAiIHk9IjI2MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnN0b3JhZ2U6ZHQuc2VjdXJpdHlfPC90ZXh0PgogIDx0ZXh0IHg9IjM5MCIgeT0iMjc4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+Y29udGV4dCBNQVRDSCAoImEiKTs8L3RleHQ+CiAgPGxpbmUgeDE9IjQ2MCIgeTE9IjE4NCIgeDI9IjQ2MCIgeTI9IjIxMCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNiIgc3Ryb2tlLWRhc2hhcnJheT0iNCAzIi8+CiAgPHJlY3QgeD0iNTYwIiB5PSIyMTAiIHdpZHRoPSIxNjAiIGhlaWdodD0iOTIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTcwIiB5PSIyMjkiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U2VnbWVudDwvdGV4dD4KICA8dGV4dCB4PSI1NzAiIHk9IjI0NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnZpZXcgZmlsdGVyOzwvdGV4dD4KICA8dGV4dCB4PSI1NzAiIHk9IjI2NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPm5ldmVyIHdpZGVucyBhY2Nlc3M8L3RleHQ+CiAgPGxpbmUgeDE9IjcyMCIgeTE9IjI1NiIgeDI9IjgwMCIgeTI9IjE4NiIgc3Ryb2tlPSIjMjJEM0VFIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItY3lhbikiLz4KICA8cmVjdCB4PSIyMCIgeT0iMzMwIiB3aWR0aD0iODkwIiBoZWlnaHQ9IjE0OCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNiIgeT0iMzU0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPldoYXQgYSBwb2xpY3kgc3RhdGVtZW50IGxvb2tzIGxpa2U8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjM4MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPkFMTE9XIHN0b3JhZ2U6YnVja2V0czpyZWFkIFdIRVJFIHN0b3JhZ2U6dGFibGUtbmFtZSA9ICJsb2dzIjsgICAgICAgLy8gYnVja2V0IGxheWVyPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0MDIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5BTExPVyBzdG9yYWdlOmxvZ3M6cmVhZCBXSEVSRSBzdG9yYWdlOmR0LnNlY3VyaXR5X2NvbnRleHQgTUFUQ0ggKCJwYXltZW50cyIpOyAgIC8vIHRhYmxlICsgcmVjb3JkIGxheWVyPC90ZXh0PgogIDx0ZXh0IHg9IjM2IiB5PSI0MjQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5BTExPVyBlbnZpcm9ubWVudDpyb2xlczp2aWV3ZXIgV0hFUkUgZW52aXJvbm1lbnQ6bWFuYWdlbWVudC16b25lIElOICgiUGF5bWVudHMiKTsgICAvLyBjbGFzc2ljLCB0cmFuc2l0aW9uYWw8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjQ0NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPlNlcnZpY2UgcHJlZml4ZXMgYXJlIHJlcXVpcmVkOiBzdG9yYWdlOmxvZ3M6cmVhZCwgbm90IGxvZ3M6cmVhZC4gSW1wbGljaXQgZGVueTogYW55dGhpbmcgbm90IGFsbG93ZWQgaXMgZGVuaWVkLjwvdGV4dD4KPC9zdmc+Cg==" alt="The permission flow" /></p>
+<!--MARKDOWN_TABLE_ALTERNATIVE
+| Component | Purpose | Configured In |
+|-----------|---------|---------------|
+| Users | Individual identities | Account Management |
+| Groups | Collections of users | Identity & Access Management |
+| Policies | Permission definitions | Policy Management |
+| Boundaries | Scope restrictions | Policy Boundaries |
+| Segments | Data filtering | Segments app |
+| Example boundary condition | storage:dt.security_context MATCH ("a"); — a bare condition, no WHERE | — |
+| Example statement | ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ("payments"); — service prefixes are required | — |
+-->
+<h3>Key Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+<th>Configured In</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Users</strong></td>
+<td>Individual identities</td>
+<td>Account Management</td>
+</tr>
+<tr>
+<td><strong>Groups</strong></td>
+<td>Collections of users</td>
+<td>Identity &amp; Access Management</td>
+</tr>
+<tr>
+<td><strong>Policies</strong></td>
+<td>Permission definitions</td>
+<td>Policy Management</td>
+</tr>
+<tr>
+<td><strong>Boundaries</strong></td>
+<td>Scope restrictions</td>
+<td>Policy Boundaries</td>
+</tr>
+<tr>
+<td><strong>Segments</strong></td>
+<td>Data filtering</td>
+<td>Segments app</td>
+</tr>
+</tbody>
+</table>
+<h3>How It Works Together</h3>
+<ol>
+<li><strong>Users</strong> are assigned to <strong>Groups</strong></li>
+<li><strong>Groups</strong> are bound to <strong>Policies</strong></li>
+<li><strong>Boundaries</strong> can optionally restrict the <strong>Policy</strong> scope</li>
+<li><strong>Segments</strong> filter what data users see (independent of permissions)</li>
+</ol>
+<hr />
+<p><a id="policies-deep-dive"></a></p>
+<h2>2. Policies Deep Dive</h2>
+<h3>What Are Policies?</h3>
+<p>Policies are the core of ABAC - they define <strong>WHAT</strong> users can do.</p>
+<h3>Policy Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Editable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Default Policies</strong></td>
+<td>Pre-defined by Dynatrace</td>
+<td>No (read-only)</td>
+</tr>
+<tr>
+<td><strong>Custom Policies</strong></td>
+<td>Created by administrators</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h3>Default Policies Categories</h3>
+<blockquote>
+<p>The current built-in IAM policy names are below. The classic Gen2 roles &quot;Dynatrace Viewer / Professional User&quot; and &quot;Data Viewer / Editor&quot; are no longer the IAM policy names.</p>
+</blockquote>
+<p><strong>Platform access policies</strong> (feature-level):</p>
+<ul>
+<li><code>Standard User</code> - Access the environment and run Dynatrace Apps</li>
+<li><code>Pro User</code> - Build, deploy, and run apps + automated workflows</li>
+<li><code>Admin User</code> - Administrative access across all Platform Services</li>
+</ul>
+<p><strong>Data access policies</strong> (monitored data):</p>
+<ul>
+<li><code>All Grail data read access</code> - Unrestricted Grail read</li>
+<li><code>Read Logs</code> / <code>Read Spans</code> / <code>Read Metrics</code> / <code>Read Events</code> / <code>Read Entities</code> / <code>Read BizEvents</code> / <code>Read System Events</code> - Granular per-table read</li>
+</ul>
+<blockquote>
+<p><strong><code>Settings Reader</code> / <code>Settings Writer</code> are legacy.</strong> The default-policies reference lists them, with <em>Storage Default Monitoring Read</em> and <em>Storage All System Data Read</em>, under <strong>Legacy default policies</strong>: <em>&quot;They are not accessible for new policy assignments, but existing assignments of these policies remain until removed.&quot;</em> For settings access, write a custom policy with <code>settings:objects:read</code> or <code>settings:objects:write</code> (plus <code>settings:schemas:read</code>), scoped by <code>settings:schemaId</code>, <code>settings:schemaGroup</code> or <code>settings:dt.security_context</code>.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Dynatrace default policies reference (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — <code>settings:objects:write</code>: <em>&quot;Enables writing of settings objects belonging to the schema&quot;</em>.</sub></p>
+</blockquote>
+<h3>Policy Statement Structure</h3>
+<pre><code>ALLOW &lt;service&gt;:&lt;resource&gt;:&lt;action&gt; [WHERE &lt;condition&gt;]
+</code></pre>
+<p><strong>Examples:</strong></p>
+<pre><code>ALLOW storage:buckets:read
+ALLOW settings:objects:read WHERE settings:schemaId = &quot;builtin:alerting.profile&quot;
+ALLOW storage:logs:read WHERE storage:dt.security_context = &quot;team-a&quot;
+</code></pre>
+<hr />
+<p><a id="boundaries-deep-dive"></a></p>
+<h2>3. Boundaries Deep Dive</h2>
+<h3>What Are Boundaries?</h3>
+<p>Boundaries restrict <strong>WHERE</strong> policies apply - they limit the scope of permissions.</p>
+<h3>Key Characteristics</h3>
+<ul>
+<li><strong>Optional</strong> but powerful for fine-grained access control</li>
+<li>Work <strong>together</strong> with policies (not standalone)</li>
+<li><strong>Further restrict</strong> existing policy permissions</li>
+<li>Enable <strong>reusability</strong> across multiple policy assignments</li>
+</ul>
+<h3>Boundary Query Syntax</h3>
+<p>A boundary query is a <strong>bare condition expression</strong> — no <code>WHERE</code> keyword (that belongs to policy statements), one condition per line:</p>
+<pre><code>&lt;field&gt; &lt;operator&gt; &quot;&lt;value&gt;&quot;
+</code></pre>
+<p><strong>Supported Operators</strong> — they vary by attribute (<em>&quot;Not every operator applies to every service attribute.&quot;</em>):</p>
+<ul>
+<li>Grail record fields (<code>storage:dt.security_context</code>, <code>storage:dt.host_group.id</code>, <code>storage:k8s.namespace.name</code> …): <code>=</code>, <code>IN</code>, <code>startsWith</code>, <code>MATCH</code> — <strong>no negation</strong></li>
+<li><code>storage:bucket-name</code>: all of the above plus <code>!=</code>, <code>NOT IN</code>, <code>NOT startsWith</code></li>
+<li><code>environment:management-zone</code>: <code>=</code>, <code>!=</code>, <code>IN</code>, <code>startsWith</code>, <code>NOT startsWith</code>, <code>MATCH</code></li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policystatement-syntax">IAM policy statement syntax and examples (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — per-attribute operator lists.</sub></p>
+</blockquote>
+<p><strong>Common Fields:</strong></p>
+<ul>
+<li><code>environment</code> - Environment restrictions</li>
+<li><code>environment:management-zone</code> - MZ-based restrictions (Classic)</li>
+<li><code>storage:dt.security_context</code> - Security context filtering</li>
+<li><code>storage:bucket-name</code> - Bucket-based restrictions</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> <code>MATCH</code> provides wildcard pattern matching on Grail record fields (and on <code>environment:management-zone</code>) — <code>storage:dt.security_context MATCH(&quot;team-*&quot;)</code> — and supports <code>*</code> at any position (unlike <code>startsWith</code>). It is also the operator to use whenever a record field can hold an <strong>array</strong>: <em>&quot;Using =, STARTSWITH or IN when the field holds an array will always return false.&quot;</em> Events carry <code>dt.security_context</code> as an array (MZ2POL-00 §5), so write <code>MATCH</code> for it in every policy and boundary (<a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a>). For boundary design using structured multi-dimensional context values (<code>comp/bu/app</code> for transversal team access), see <strong>MZ2POL-04: Policies and Boundaries</strong> and <strong>IAM-05: Boundary Design</strong>.</p>
+</blockquote>
+<h3>Boundary Examples</h3>
+<p><strong>Restrict to specific Management Zone (transitional):</strong></p>
+<pre><code>environment:management-zone = &quot;Production-NA&quot;
+</code></pre>
+<p><strong>Restrict by Management Zone prefix:</strong></p>
+<pre><code>environment:management-zone startsWith &quot;mgmt_na&quot;
+</code></pre>
+<p><strong>Restrict by Security Context:</strong></p>
+<pre><code>storage:dt.security_context MATCH (&quot;team-frontend&quot;)
+</code></pre>
+<p><strong>Restrict by Bucket (compliance case only — §4):</strong></p>
+<pre><code>storage:bucket-name IN (&quot;pci_logs&quot;, &quot;pci_spans&quot;)
+</code></pre>
+<h3>Boundary Limitations</h3>
+<table>
+<thead>
+<tr>
+<th>Limitation</th>
+<th>Workaround</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Max 10 conditions per boundary</td>
+<td>Create multiple boundaries</td>
+</tr>
+<tr>
+<td>No logical operators — one line per condition</td>
+<td>Repeated lines on the <strong>same</strong> condition multiply the statement (OR); lines on different conditions each scope their own permissions. Several boundaries on one binding are evaluated separately (MZ2POL-12 §4)</td>
+</tr>
+<tr>
+<td>Bare conditions (no <code>WHERE</code>)</td>
+<td><code>WHERE</code> belongs to policy statements, not boundaries</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="buckets-data-partitioning"></a></p>
+<h2>4. Buckets: Data Partitioning, Not the Access Mechanism</h2>
+<h3>What Are Buckets?</h3>
+<p><strong>Buckets</strong> are Grail storage containers that partition your data. A management zone that restricted access does <strong>not</strong> translate into a bucket by default: Dynatrace states that buckets are <em>&quot;not intended as the primary mechanism for securing or segmenting data access.&quot;</em> Access is a record-level boundary on <code>dt.security_context</code> (<strong>MZ2POL-12: IAM Reference Architecture</strong>; <strong>ORGNZ-06: Security Context</strong>).</p>
+<h3>What Buckets Are For</h3>
+<table>
+<thead>
+<tr>
+<th>Use</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Retention control</strong></td>
+<td>Different retention periods need different buckets</td>
+</tr>
+<tr>
+<td><strong>Cost allocation</strong></td>
+<td>Storage and query consumption attributable per bucket</td>
+</tr>
+<tr>
+<td><strong>Query optimization</strong></td>
+<td>A query scoped to a smaller bucket scans less data</td>
+</tr>
+<tr>
+<td><strong>Specific compliance cases</strong></td>
+<td>A hard exclusion — for example a <code>DENY</code> on one bucket — that record-level conditions cannot express</td>
+</tr>
+</tbody>
+</table>
+<p>The partition-data page says buckets are <em>&quot;best used for organizing data by retention time, cost allocation, or query optimization&quot;</em>, and recommends starting from IAM policies, with buckets <em>&quot;to play a supporting role for very high-level separation.&quot;</em> The one access job only a bucket can do is a <code>DENY</code>: <em>&quot;Such access control is only possible with buckets.&quot;</em> <strong>ORGNZ-05: Bucket-Level Access Control</strong> covers when that scenario fits.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Partition data (DT docs)</a> — <em>&quot;not intended as the primary mechanism for securing or segmenting data access.&quot;</em></sub></p>
+</blockquote>
+<h3>Buckets vs Boundaries vs Segments</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Buckets</th>
+<th>Boundaries</th>
+<th>Segments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Isolation</strong></td>
+<td>Physical separation</td>
+<td>Query-time filtering</td>
+<td>Query-time filtering</td>
+</tr>
+<tr>
+<td><strong>Reversible</strong></td>
+<td>❌ No (data can't move)</td>
+<td>✅ Yes</td>
+<td>✅ Yes</td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Best (smaller data sets)</td>
+<td>Good</td>
+<td>Good</td>
+</tr>
+<tr>
+<td><strong>Flexibility</strong></td>
+<td>Low (plan carefully)</td>
+<td>High</td>
+<td>High</td>
+</tr>
+<tr>
+<td><strong>Use case</strong></td>
+<td>Retention, cost, query scope; specific compliance exclusions</td>
+<td>Permission scoping (team access)</td>
+<td>Data filtering</td>
+</tr>
+</tbody>
+</table>
+<h3>Bucket Limitations</h3>
+<blockquote>
+<p><strong>⚠️ Critical:</strong> Plan buckets carefully - these constraints cannot be changed later.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Limitation</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>One data type per bucket</strong></td>
+<td>Logs, metrics, events, OR spans - not mixed</td>
+</tr>
+<tr>
+<td><strong>Names are immutable</strong></td>
+<td>Bucket names CANNOT be changed after creation</td>
+</tr>
+<tr>
+<td><strong>No data migration</strong></td>
+<td>Data CANNOT be moved between buckets</td>
+</tr>
+<tr>
+<td><strong>Naming rules</strong></td>
+<td>3-100 chars, lowercase alphanumeric, underscores, hyphens only; must start with a letter</td>
+</tr>
+<tr>
+<td><strong>Maximum buckets</strong></td>
+<td>250 custom buckets per environment by default from SaaS 1.346 (staged tenant rollout from 08/25/2026); 80 before it</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">How to organize your data stored in Grail (DT docs)</a> — <em>&quot;It has to be between 3-100 characters long and has to start with a letter.&quot;</em></sub>
+| <strong>Target ingest (logs)</strong> | 1–3 TB/day per log bucket — <em>&quot;Design your bucket strategy so that each bucket receives between 1 TB and 3 TB of log data per day.&quot;</em> |
+| <strong>Split point (other tables)</strong> | Above 2 TB/day — <em>&quot;We recommend splitting up buckets that receive more than 2 TB of daily ingest.&quot;</em> |
+| <strong>Maximum ingest</strong> | No hard per-bucket cap is documented — Dynatrace describes ingesting <em>&quot;well over 15 TB per day into a single bucket&quot;</em> when queries stay within narrow timeframes. A larger bucket costs queryable window per scan, and Dynatrace pages give different split points (<a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Partition data (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy">Logs bucket strategy (DT docs)</a>) |</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data">How to organize your data stored in Grail (DT docs)</a> — <em>&quot;The default limit per environment is 250 custom buckets.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-05-partition-data/logs-bucket-strategy">Logs bucket strategy best practices (DT docs)</a> — <em>&quot;Design your bucket strategy so that each bucket receives between 1 TB and 3 TB of log data per day.&quot;</em>; <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/partition-data">Partition data (DT docs)</a> — <em>&quot;We recommend splitting up buckets that receive more than 2 TB of daily ingest.&quot;</em> The upgrade guide's logs-bucket and data-partitioning pages still state an 80-bucket default (read 10/25/2026).</sub></p>
+</blockquote>
+<h3>Default Query Setting That Affects Bucket Sizing</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>scanLimitGBytes</code></strong> on <code>fetch</code></td>
+<td>500 GB of uncompressed data (<code>-1</code> reads everything in the timeframe)</td>
+<td>A larger bucket covers a shorter time window per default scan</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language/commands/data-source-commands">Data source commands (DT docs)</a> — <em>&quot;The default value is 500GB unless specified otherwise.&quot;</em></sub></p>
+</blockquote>
+<h3>Using Buckets in Policies</h3>
+<p>Only where one of the scenarios above applies — for example, a compliance bucket that only one group may read. A bucket permission is needed on top of the table permission: <code>storage:buckets:read</code> is <em>&quot;Required additionally to a table permission.&quot;</em></p>
+<pre><code>// Policy: a compliance case — access to dedicated buckets
+ALLOW storage:buckets:read WHERE storage:bucket-name IN (&quot;pci_logs&quot;, &quot;pci_spans&quot;);
+ALLOW storage:logs:read WHERE storage:bucket-name = &quot;pci_logs&quot;;
+ALLOW storage:spans:read WHERE storage:bucket-name = &quot;pci_spans&quot;;
+</code></pre>
+<h3>Team Access Uses a Boundary, Not a Bucket</h3>
+<p>The team boundary scopes records by security context, not by bucket. A boundary is <strong>bare condition lines, each ending in <code>;</code></strong> — no <code>ALLOW</code>, no <code>WHERE</code>. <strong>One boundary can cover every domain the bound policies grant</strong> — Grail lines and, while classic pages are used, the zone line (MZ2POL-04 §6, MZ2POL-12 §6):</p>
+<pre><code>// Boundary &quot;team-frontend&quot;, bound with Standard User + Read Logs / Read Spans / Read Metrics / Read Events
+storage:dt.security_context MATCH (&quot;frontend&quot;, &quot;shared&quot;);
+environment:management-zone IN (&quot;Frontend-Team&quot;);
+</code></pre>
+<p>The second line is transitional: it scopes the classic <code>environment:roles:viewer</code> permission inside Standard User while classic pages are still in use. Add a <code>storage:bucket-name</code> line only in a compliance case from the table above.</p>
+<blockquote>
+<p><strong><code>MATCH</code> is not Gen3-only</strong> — the IAM policy reference lists it for <code>environment:management-zone</code> too. <code>storage:entities:read</code> is a Grail permission that accepts only <code>storage:dt.security_context</code> and <code>storage:entity.type</code>; <code>MATCH(&quot;*&quot;)</code> on any attribute matches everything.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — <code>environment:roles:viewer</code>: <em>&quot;Grants user the Access environment permission.&quot;</em>; <code>storage:buckets:read</code>: <em>&quot;Required additionally to a table permission.&quot;</em></sub></p>
+</blockquote>
+<h3>When to Use Buckets vs Other Options</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Recommended Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Team data access (the usual access-control zone)</td>
+<td><strong>Boundary</strong> on <code>dt.security_context</code> (MZ2POL-12)</td>
+</tr>
+<tr>
+<td>Different retention periods or cost attribution</td>
+<td><strong>Buckets</strong></td>
+</tr>
+<tr>
+<td>Compliance case that needs a hard exclusion (<code>DENY</code> on a bucket)</td>
+<td><strong>Bucket</strong> + bucket condition, on top of the security-context boundary (ORGNZ-05)</td>
+</tr>
+<tr>
+<td>Ad-hoc data filtering</td>
+<td><strong>Segments</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>MZ to Bucket Mapping</h3>
+<table>
+<thead>
+<tr>
+<th>MZ Pattern</th>
+<th>Bucket Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Team MZs</td>
+<td>No bucket by default — a security-context value per team</td>
+</tr>
+<tr>
+<td>Environment MZs</td>
+<td>A bucket only if the environments need different retention</td>
+</tr>
+<tr>
+<td>Regional MZs</td>
+<td>Usually none — a segment, or a security-context value if access differs</td>
+</tr>
+<tr>
+<td>Compliance MZs</td>
+<td>A compliance bucket where retention or a hard exclusion requires it</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>For comprehensive bucket guidance</strong>, see <strong>ORGNZ-03: Bucket Strategy and Design</strong>; for record-level access, <strong>ORGNZ-06: Security Context</strong> and <strong>MZ2POL-12</strong>.</p>
+</blockquote>
+<hr />
+<p><a id="segments-deep-dive"></a></p>
+<h2>5. Segments Deep Dive</h2>
+<h3>What Are Segments?</h3>
+<p>Segments are <strong>DQL-based filter conditions</strong> that control what data users see - they're the replacement for MZ data filtering.</p>
+<h3>Key Characteristics</h3>
+<ul>
+<li><strong>Query-time evaluation</strong> — conditions are injected into the query</li>
+<li><strong>Layerable</strong> - several segments can be applied together</li>
+<li><strong>DQL-powered</strong> - full query language flexibility</li>
+<li>Support <strong>variables</strong> for dynamic filtering</li>
+<li><strong>Independent of permissions</strong> - filtering only</li>
+</ul>
+<h3>How Segments Work in DQL</h3>
+<p>When a segment is applied, Grail:</p>
+<ol>
+<li>Evaluates segment conditions relevant to the query</li>
+<li>Applies filters based on the targeted data object</li>
+<li>Multiple conditions for same data object = OR combined</li>
+</ol>
+<h3>Segment vs. Management Zone Filtering</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Management Zone</th>
+<th>Segment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Evaluation</td>
+<td>Rules assign entities to the zone; dimension rules match logs and metrics</td>
+<td>Conditions injected into each query</td>
+</tr>
+<tr>
+<td>Grail data</td>
+<td>Not evaluated</td>
+<td>Native</td>
+</tr>
+<tr>
+<td>Flexibility</td>
+<td>Rule conditions</td>
+<td>DQL filter conditions</td>
+</tr>
+<tr>
+<td>Variables</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Combining dimensions</td>
+<td>Within one zone's rules</td>
+<td>Layer several segments</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="querying-current-access-configuration"></a></p>
+<h2>6. Querying Current Access Configuration</h2>
+<h3>View Services with Security Context</h3>
+<p>Security Context is key for access control in the new model:</p>
+<pre><code class="language-dql">// List services and their security context
+// Security context is used for fine-grained access control
+fetch dt.entity.service
+| fields entity.name, 
+         dt.security_context,
+         managementZones
+| filter isNotNull(dt.security_context)
+| sort entity.name asc
+| limit 50
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - dt.security_context is an ARRAY on Smartscape nodes (empty [] when unset, not null),
+//     so isNull / isNotNull(dt.security_context) does not carry over — a Smartscape rewrite
+//     would miscount coverage.
+</code></pre>
+<h3>Analyze Entity Types and Their Attributes</h3>
+<p>Understanding entity attributes helps design effective segments:</p>
+<pre><code class="language-dql">// Analyze host entity attributes for segment planning
+// Tags and metadata are useful for segment conditions
+fetch dt.entity.host
+| fields entity.name,
+         tags,
+         managementZones
+| limit 20
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - entity tags are not a flat &quot;tags&quot; field on Smartscape (resolve via getNodeField).
+</code></pre>
+<h3>Check Kubernetes Cluster Distribution</h3>
+<p>K8s clusters often map to organizational boundaries:</p>
+<pre><code class="language-dql">// List Kubernetes clusters with their attributes
+// Clusters often align with team or environment boundaries
+fetch dt.entity.kubernetes_cluster
+| fields entity.name,
+         tags,
+         managementZones
+| sort entity.name asc
+
+// Note: dt.entity.* is deprecated, but this is a migration-ASSESSMENT query — it inspects
+// the classic constructs this migration replaces, so keep the classic query above:
+//   - management zones have NO Smartscape node equivalent; they are what this migration
+//     replaces with segments and policies.
+//   - entity tags are not a flat &quot;tags&quot; field on Smartscape (resolve via getNodeField).
+</code></pre>
+<hr />
+<p><a id="mapping-mz-concepts-to-new-model"></a></p>
+<h2>7. Mapping MZ Concepts to New Model</h2>
+<h3>Common MZ Patterns and Their Replacements</h3>
+<table>
+<thead>
+<tr>
+<th>MZ Pattern</th>
+<th>New Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Team-based MZs</strong></td>
+<td>Security Context + Policies</td>
+</tr>
+<tr>
+<td><strong>Environment MZs</strong> (Dev/Prod)</td>
+<td>Boundaries on a record field that carries the environment — a <code>dt.security_context</code> value such as <code>prod/payments</code>, or a built-in field</td>
+</tr>
+<tr>
+<td><strong>Region MZs</strong></td>
+<td>Segments with cloud region filters</td>
+</tr>
+<tr>
+<td><strong>Application MZs</strong></td>
+<td>Segments with service/app filters</td>
+</tr>
+<tr>
+<td><strong>Multi-tenant MZs</strong></td>
+<td>Boundaries + Security Context</td>
+</tr>
+</tbody>
+</table>
+<h3>Example: Team-Based Access Control</h3>
+<p><strong>Old (Management Zone):</strong></p>
+<ul>
+<li>MZ: &quot;Team-Frontend&quot; with rules for frontend services</li>
+<li>Users assigned to MZ get filtered view</li>
+</ul>
+<p><strong>New (Policies + Boundaries + Segments)</strong> — the MZ2POL-12 §6 shape:</p>
+<ol>
+<li><strong>Policies</strong>: <code>Standard User</code> + <code>Read Logs</code> / <code>Read Spans</code> / <code>Read Metrics</code> / <code>Read Events</code>. Standard User alone grants no table read — its Grail lines cover bucket and fieldset definitions and segments, not <code>storage:logs:read</code>.</li>
+<li><strong>Boundary</strong> <code>team-frontend</code>, the only boundary on the binding:<pre><code>storage:dt.security_context MATCH (&quot;frontend&quot;, &quot;shared&quot;);
+environment:management-zone IN (&quot;Team-Frontend&quot;);
+</code></pre>
+The zone line is transitional. Standard User also grants the classic <code>environment:roles:viewer</code>, and without that line the classic permission would be unscoped.</li>
+<li><strong>Segment</strong>: <code>primary_tags.team = &quot;frontend&quot;</code> as a convenience filter — it changes the view, not the permission.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Dynatrace default policies reference (DT docs)</a> — Standard User: <em>&quot;ALLOW environment:roles:viewer, environment:roles:view-security-problems;&quot;</em></sub></p>
+</blockquote>
+<h3>Example: Environment Separation</h3>
+<p><strong>Old (Management Zone):</strong></p>
+<ul>
+<li>MZ: &quot;Production&quot; with host/service rules</li>
+<li>MZ: &quot;Development&quot; with different rules</li>
+</ul>
+<p><strong>New (Policies + Boundaries + Segments):</strong></p>
+<ol>
+<li><strong>Policy</strong>: Same policy for both groups</li>
+<li><strong>Boundary (Prod)</strong>: Environment-specific restrictions</li>
+<li><strong>Boundary (Dev)</strong>: Environment-specific restrictions</li>
+<li><strong>Segments</strong>: Environment-based data filters</li>
+</ol>
+<hr />
+<p><a id="access-control-decision-flow"></a></p>
+<h2>8. Access Control Decision Flow</h2>
+<h3>Permission and Filter Are Separate Paths</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+UGVybWlzc2lvbiBQYXRoIGFuZCBGaWx0ZXIgUGF0aDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyLjUiPkEgbWFuYWdlbWVudCB6b25lIGRpZCBib3RoIGpvYnMgYXQgb25jZS4gSW4gTGF0ZXN0IER5bmF0cmFjZSB0aGV5IGFyZSBzZXBhcmF0ZSwgYW5kIG9ubHkgb25lIGlzIHNlY3VyaXR5PC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSI3MiIgd2lkdGg9IjQzMCIgaGVpZ2h0PSIzMzAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtZGFzaGFycmF5PSI1IDQiLz4KICA8dGV4dCB4PSIyMzUiIHk9Ijk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5QRVJNSVNTSU9OIOKAlCB3aGF0IHlvdSBNQVkgcmVhZDwvdGV4dD4KICA8cmVjdCB4PSI0MCIgeT0iMTA4IiB3aWR0aD0iMzkwIiBoZWlnaHQ9IjUyIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjU0IiB5PSIxMzAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+VXNlciDihpIgZ3JvdXBzPC90ZXh0PgogIDx0ZXh0IHg9IjU0IiB5PSIxNDgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5mcm9tIFNBTUwgLyBTQ0lNPC90ZXh0PgogIDxsaW5lIHgxPSIyMzUiIHkxPSIxNjAiIHgyPSIyMzUiIHkyPSIxNzYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPHJlY3QgeD0iNDAiIHk9IjE3OCIgd2lkdGg9IjM5MCIgaGVpZ2h0PSI1MiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1NCIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkJpbmRpbmdzOiBwb2xpY3kgKyBib3VuZGFyaWVzPC90ZXh0PgogIDx0ZXh0IHg9IjU0IiB5PSIyMTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij51bmlvbiBvZiBldmVyeSBncm91cCdzIGJpbmRpbmdzPC90ZXh0PgogIDxsaW5lIHgxPSIyMzUiIHkxPSIyMzAiIHgyPSIyMzUiIHkyPSIyNDYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPHJlY3QgeD0iNDAiIHk9IjI0OCIgd2lkdGg9IjM5MCIgaGVpZ2h0PSI1MiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1NCIgeT0iMjcwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0YXRlbWVudHMgZXhwYW5kZWQ8L3RleHQ+CiAgPHRleHQgeD0iNTQiIHk9IjI4OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmNvbmRpdGlvbnMgcGVyIHNlcnZpY2U7IERFTlkgd2luczwvdGV4dD4KICA8bGluZSB4MT0iMjM1IiB5MT0iMzAwIiB4Mj0iMjM1IiB5Mj0iMzE2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxyZWN0IHg9IjQwIiB5PSIzMTgiIHdpZHRoPSIzOTAiIGhlaWdodD0iNTIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTQiIHk9IjM0MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5HcmFpbCBjaGVja3M8L3RleHQ+CiAgPHRleHQgeD0iNTQiIHk9IjM1OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmJ1Y2tldCDCtyB0YWJsZSDCtyByZWNvcmQgwrcgZmllbGQ8L3RleHQ+CiAgPHRleHQgeD0iMjM1IiB5PSIzOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPlJlc3VsdDogdGhlIHNldCBvZiByZWNvcmRzIHlvdSBhcmUgYWxsb3dlZCB0byBxdWVyeTwvdGV4dD4KICA8cmVjdCB4PSI0ODAiIHk9IjcyIiB3aWR0aD0iNDMwIiBoZWlnaHQ9IjMzMCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIvPgogIDx0ZXh0IHg9IjY5NSIgeT0iOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkZJTFRFUiDigJQgd2hhdCB5b3UgTE9PSyBBVDwvdGV4dD4KICA8cmVjdCB4PSI1MDAiIHk9IjEwOCIgd2lkdGg9IjM5MCIgaGVpZ2h0PSI1MiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1MTQiIHk9IjEzMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Vc2VyIHBpY2tzIGEgc2VnbWVudDwvdGV4dD4KICA8dGV4dCB4PSI1MTQiIHk9IjE0OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPm9yIGEgZGFzaGJvYXJkIC8gbm90ZWJvb2sgYXBwbGllcyBvbmU8L3RleHQ+CiAgPGxpbmUgeDE9IjY5NSIgeTE9IjE2MCIgeDI9IjY5NSIgeTI9IjE3NiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8cmVjdCB4PSI1MDAiIHk9IjE3OCIgd2lkdGg9IjM5MCIgaGVpZ2h0PSI1MiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1MTQiIHk9IjIwMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5TZWdtZW50IGNvbmRpdGlvbnMgaW5qZWN0ZWQ8L3RleHQ+CiAgPHRleHQgeD0iNTE0IiB5PSIyMTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5pbnRvIHRoZSBxdWVyeSBhcyBmaWx0ZXJzPC90ZXh0PgogIDxsaW5lIHgxPSI2OTUiIHkxPSIyMzAiIHgyPSI2OTUiIHkyPSIyNDYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPHJlY3QgeD0iNTAwIiB5PSIyNDgiIHdpZHRoPSIzOTAiIGhlaWdodD0iNTIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMyMkQzRUUiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTE0IiB5PSIyNzAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0E1RjNGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+R3JhaWwgcnVucyB0aGUgZmlsdGVyZWQgcXVlcnk8L3RleHQ+CiAgPHRleHQgeD0iNTE0IiB5PSIyODgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5vbmx5IGluc2lkZSB3aGF0IHRoZSBwZXJtaXNzaW9uIGFsbG93czwvdGV4dD4KICA8bGluZSB4MT0iNjk1IiB5MT0iMzAwIiB4Mj0iNjk1IiB5Mj0iMzE2IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxyZWN0IHg9IjUwMCIgeT0iMzE4IiB3aWR0aD0iMzkwIiBoZWlnaHQ9IjUyIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjUxNCIgeT0iMzQwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPk5hcnJvd2VyIHJlc3VsdDwvdGV4dD4KICA8dGV4dCB4PSI1MTQiIHk9IjM1OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPm5ldmVyIHdpZGVyIHRoYW4gdGhlIHBlcm1pc3Npb248L3RleHQ+CiAgPHRleHQgeD0iNjk1IiB5PSIzOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNBNUYzRkMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkFueW9uZSB3aXRoIHN0b3JhZ2U6ZmlsdGVyLXNlZ21lbnRzOnJlYWQgY2FuIGFwcGx5IGFueSBzZWdtZW50PC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSI0MTgiIHdpZHRoPSI4OTAiIGhlaWdodD0iNjAiIHJ4PSI3IiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjAiIHk9IjQxOCIgd2lkdGg9Ijg5MCIgaGVpZ2h0PSI2MCIgcng9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzNiIgeT0iNDQyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEuNSIgZm9udC13ZWlnaHQ9IjcwMCI+TWlncmF0aW9uIHRlc3Q6IGlmIHJlbW92aW5nIHRoZSB6b25lIHdvdWxkIGxldCBzb21lb25lIHNlZSBkYXRhIHRoZXkgbXVzdCBub3Qg4oCUIHBlcm1pc3Npb24gcGF0aCAoTVoyUE9MLTA0LCAtMTIpLjwvdGV4dD4KICA8dGV4dCB4PSIzNiIgeT0iNDYyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+SWYgaXQgd291bGQgb25seSBtYWtlIHRoZWlyIGRhc2hib2FyZHMgbm9pc3kg4oCUIGZpbHRlciBwYXRoIChNWjJQT0wtMDUpLiBJZiBpdCBkZWNpZGVzIHdobyBpcyBwYWdlZCDigJQgTVoyUE9MLTA5LjwvdGV4dD4KPC9zdmc+Cg==" alt="Permission path and filter path" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Permission path — what you MAY read | Filter path — what you LOOK AT |
+|---|---|
+| User → groups (SAML / SCIM) | User picks a segment, or a dashboard / notebook applies one |
+| Bindings: policy + boundaries — the union of every group's bindings | Segment conditions injected into the query as filters |
+| Statements expanded — conditions per service; DENY wins | Grail runs the filtered query, only inside what the permission allows |
+| Grail checks bucket, table, record and field | Narrower result — never wider than the permission |
+| Result: the set of records you are allowed to query | Anyone with storage:filter-segments:read can apply any segment |
+Migration test: if removing the zone would let someone see data they must not, it is the permission path (MZ2POL-04, MZ2POL-12); if it would only make dashboards noisy, the filter path (MZ2POL-05); if it decides who is paged, MZ2POL-09.
+For environments where SVG doesn't render
+-->
+<p>The permission path follows a handful of documented rules — implicit deny, a union across every binding, boundaries applied separately and only to their own service, <code>DENY</code> overriding. They matter more in a migration than any syntax detail, because each one can make a translated zone wider than the original. <strong>MZ2POL-12 §3</strong> walks through them with Dynatrace's wording.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries">Policy boundaries (DT docs)</a> — <em>&quot;Only conditions added to service configuration will be applied to relative permissions.&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-visibility">Visibility of segments (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>Key Differences from MZ</h3>
+<table>
+<thead>
+<tr>
+<th>MZ Behavior</th>
+<th>New Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Single construct for access + filtering</td>
+<td>Separate concerns (Policies vs Segments)</td>
+</tr>
+<tr>
+<td>Zone membership assigned to entities by rules</td>
+<td>Conditions evaluated on each record at query time</td>
+</tr>
+<tr>
+<td>Entity rules, plus dimension rules for logs and metrics</td>
+<td>Any field on the record</td>
+</tr>
+<tr>
+<td>Flat structure</td>
+<td>Hierarchical (groups → policies → boundaries)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="best-practices-for-the-new-model"></a></p>
+<h2>9. Best Practices for the New Model</h2>
+<h3>Policy Design</h3>
+<ol>
+<li><strong>Start with default policies</strong> - customize only when needed</li>
+<li><strong>Use least privilege</strong> - grant minimum required permissions</li>
+<li><strong>Group similar permissions</strong> - avoid policy sprawl</li>
+<li><strong>Document policy purpose</strong> - maintain clarity</li>
+</ol>
+<h3>Boundary Design</h3>
+<ol>
+<li><strong>Create reusable boundaries</strong> - one boundary, many uses</li>
+<li><strong>Use meaningful names</strong> - indicate scope clearly</li>
+<li><strong>Keep conditions simple</strong> - easier to audit</li>
+<li><strong>Leverage security context</strong> - for entity-level control</li>
+</ol>
+<h3>Segment Design</h3>
+<ol>
+<li><strong>Align with business structure</strong> - teams, regions, products</li>
+<li><strong>Use variables</strong> - for dynamic, flexible filters</li>
+<li><strong>Test thoroughly</strong> - verify filtering works as expected</li>
+<li><strong>Layer segments</strong> - combine for precise filtering</li>
+</ol>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ol>
+<li><strong>ABAC Framework</strong>: How Users → Groups → Policies → Permissions flow</li>
+<li><strong>Policies</strong>: Define WHAT users can do (permissions)</li>
+<li><strong>Boundaries</strong>: Restrict WHERE policies apply (scope)</li>
+<li><strong>Segments</strong>: Filter WHAT data users see (DQL-based)</li>
+<li><strong>Mapping</strong>: How MZ patterns translate to the new model</li>
+</ol>
+<h2>Next Steps</h2>
+<p>Continue to <strong>MZ2POL-03: Assessment and Migration Planning</strong> to:</p>
+<ul>
+<li>Audit your current MZ configuration in detail</li>
+<li>Create a migration mapping document</li>
+<li>Plan the phased migration approach</li>
+</ul>
+<p><a id="additional-resources"></a></p>
+<h2>Additional Resources</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies">Working with Policies</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM Policy Reference</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/default-policies">Default Policies Reference</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/use-cases/access-security-context">Grant Access to Entities with Security Context</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

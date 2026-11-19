@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">BIZEV — Business Events &amp; Funnel Analysis</a><span class="sep">/</span><span aria-current="page">BIZEV-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move</h1>
+<blockquote>
+<p><strong>Series:</strong> BIZEV — Business Events &amp; Funnel Analysis | <strong>Notebook:</strong> 7 of 7 | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 10/25/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>The rest of this series assumes a Dynatrace SaaS tenant with Grail — the Gen3 platform. Many organizations aren't there yet: they run Dynatrace Managed, or they run a SaaS tenant that <em>has</em> Grail but is still operated day-to-day through the classic (Gen2) experience — classic dashboards, Data Explorer, management zones. This notebook answers the question those teams ask first: <strong>what business-event capability can we get today, without the full move — and what does a <em>minimal</em> move (new Dashboards only, for business-event reporting) unlock?</strong></p>
+<p>Three situations, three answers:</p>
+<ol>
+<li><strong>Dynatrace Managed</strong> — business events are not available at all; a classic toolchain (request attributes, session properties + USQL, log metrics, custom metric ingest) approximates the outcomes.</li>
+<li><strong>SaaS, classic-operated, Grail available</strong> — business events work <em>today</em> with a deliberately small Gen3 footprint, and a documented metric-extraction bridge feeds business KPIs back into your existing classic dashboards.</li>
+<li><strong>SaaS on the latest Dynatrace experience</strong> — the rest of this series (BIZEV-01 through BIZEV-06) applies as written.</li>
+</ol>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#terminology-gen2-gen3-and-the-hybrid-state">Terminology: Gen2, Gen3, and the Hybrid State</a></li>
+<li><a href="#the-hard-requirement-business-events-need-grail">The Hard Requirement: Business Events Need Grail</a></li>
+<li><a href="#path-a-minimal-gen3-footprint">Path A — Grail Available: Adopt Business Events with a Minimal Gen3 Footprint</a></li>
+<li><a href="#the-bridge-back-business-event-metrics-in-classic-surfaces">The Bridge Back: Business-Event Metrics in Classic Surfaces</a></li>
+<li><a href="#path-b-the-classic-business-analytics-toolchain">Path B — No Grail: The Classic Business-Analytics Toolchain</a></li>
+<li><a href="#capability-matrix">Capability Matrix: Classic vs Hybrid vs Full Gen3</a></li>
+<li><a href="#licensing-classic-ddus-vs-dps">Licensing: Classic DDUs vs DPS</a></li>
+<li><a href="#what-carries-forward-at-migration-time">What Carries Forward at Migration Time</a></li>
+<li><a href="#recommended-approach">Recommended Approach</a></li>
+<li><a href="#common-gotchas">Common Gotchas</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Any deployment — Dynatrace Managed, classic-operated SaaS, or SaaS on the latest experience. This notebook maps what works on each.</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>For Path A validation queries: <code>storage:bizevents:read</code>. For classic mechanisms: settings-write access to server-side service monitoring, web application settings, and log monitoring settings.</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>BIZEV-01 fundamentals (for the Grail-side concepts); familiarity with your organization's Dynatrace deployment model and license type (DPS vs classic/DDU)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<p><strong>Business events are a Grail feature and Grail is SaaS-only</strong> — there is no way to ingest, store, or query the <code>bizevents</code> table on Dynatrace Managed or on any tenant without Grail. But that single hard requirement does not mean &quot;all or nothing&quot;:</p>
+<table>
+<thead>
+<tr>
+<th>Your situation</th>
+<th>Can you use business events?</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Managed</strong></td>
+<td>No — not in any form</td>
+<td>Use the classic business-analytics toolchain (Section 6) with migration-friendly naming, and put the SaaS migration on the roadmap (see the M2S — Managed to SaaS Migration series)</td>
+</tr>
+<tr>
+<td><strong>SaaS tenant, Grail available, operated classic</strong></td>
+<td><strong>Yes — today</strong></td>
+<td>Adopt business events with a minimal Gen3 footprint: capture via settings, report in the new Dashboards/Notebooks apps only, keep everything else classic (Section 4); add <strong>OpenPipeline</strong> only if you need custom buckets or new <code>bizevents.*</code> metrics (mandatory for accounts created from September 2026). Bridge KPIs back into classic dashboards via metric extraction (Section 5)</td>
+</tr>
+<tr>
+<td><strong>SaaS on latest Dynatrace</strong></td>
+<td>Yes — fully</td>
+<td>This notebook is background reading; BIZEV-01 through BIZEV-06 apply as written</td>
+</tr>
+</tbody>
+</table>
+<p>The most under-communicated fact for delaying customers: <strong>a &quot;move to new dashboards only for business-event reporting&quot; is a real, supported adoption shape.</strong> Classic and new dashboards run side by side on the same tenant, capture configuration lives in Settings (not in a Gen3 app), and extracted <code>bizevents.*</code> metrics are readable from Data Explorer and classic dashboards — so even the executive KPI tiles can stay where they are.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5CdXNpbmVzcyBFdmVudHM6IEFkb3B0aW9uIFBhdGhzIGJ5IFBsYXRmb3JtIEdlbmVyYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+V2hhdCB3b3JrcyBvbiBHZW4yIHRvZGF5LCB3aGF0IG5lZWRzIEdyYWlsLCBhbmQgdGhlIGh5YnJpZCBtaWRkbGUgcGF0aDwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBDb2x1bW4gMTogTWFuYWdlZCAtLT4KICA8cmVjdCB4PSIzMCIgeT0iNzYiIHdpZHRoPSIyODAiIGhlaWdodD0iMzAwIiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjE3MCIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5EeW5hdHJhY2UgTWFuYWdlZDwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjExOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Tm8gR3JhaWwg4oCUIGJ1c2luZXNzIGV2ZW50cyBOT1QgYXZhaWxhYmxlPC90ZXh0PgoKICA8cmVjdCB4PSI0NiIgeT0iMTMyIiB3aWR0aD0iMjQ4IiBoZWlnaHQ9IjE5NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjREUzNTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjE3MCIgeT0iMTU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj5QQVRIIEIg4oCUIENsYXNzaWMgVG9vbGNoYWluPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMTc3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SZXF1ZXN0IGF0dHJpYnV0ZXMgKzwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjE5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Y2FsY3VsYXRlZCBzZXJ2aWNlIG1ldHJpY3M8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIyMTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNlc3Npb24vYWN0aW9uIHByb3BlcnRpZXMgKzwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjIyOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+VVNRTCBGVU5ORUwgKyBjb252ZXJzaW9uIGdvYWxzPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMjQ5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Mb2cgbWV0cmljcyAobG9nLiogcHJlZml4KTwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjI2OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Q3VzdG9tIG1ldHJpYyBpbmdlc3Q8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIyODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPihBUEkgdjIgLyA6MTQ0OTkgLyBTdGF0c0QpPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMzExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5NZXRyaWNzICsgc2Vzc2lvbnMsIG5vdCByYXcgZXZlbnRzPC90ZXh0PgoKICA8dGV4dCB4PSIxNzAiIHk9IjM1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UmVhbCBidXNpbmVzcyBldmVudHMgcmVxdWlyZSB0aGU8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIzNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNhYVMgbWlncmF0aW9uIOKAlCBwbGFuIGl0IChNMlMgc2VyaWVzKTwvdGV4dD4KCiAgPCEtLSBDb2x1bW4gMjogU2FhUyBjbGFzc2ljLW9wZXJhdGVkIC0tPgogIDxyZWN0IHg9IjMyNSIgeT0iNzYiIHdpZHRoPSIyODAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5TYWFTIOKAlCBDbGFzc2ljLU9wZXJhdGVkPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5HcmFpbCBhdmFpbGFibGUsIGRheS10by1kYXkgc3RpbGwgR2VuMiBVSTwvdGV4dD4KCiAgPHJlY3QgeD0iMzQxIiB5PSIxMzIiIHdpZHRoPSIyNDgiIGhlaWdodD0iMTk2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDY1IiB5PSIxNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPlBBVEggQSDigJQgSHlicmlkIEFkb3B0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTc3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5DYXB0dXJlIGJ1c2luZXNzIGV2ZW50cyBOT1c6PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTkzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5PbmVBZ2VudCBydWxlcyAvIFJVTSBBUEkgLyBpbmdlc3QgQVBJPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjEzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5SZXBvcnQgaW4gbmV3IERhc2hib2FyZHMgKzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjIyOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Tm90ZWJvb2tzIG9ubHkgKERRTCk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIyNDkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkV2ZXJ5dGhpbmcgZWxzZSBzdGF5cyBjbGFzc2ljOjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+TVpzLCBjbGFzc2ljIGRhc2hib2FyZHMsIGFsZXJ0aW5nPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5DbGFzc2ljICsgbmV3IGRhc2hib2FyZHMgY29leGlzdDwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjMxMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gZnVsbCBHZW4zIG1pZ3JhdGlvbiByZXF1aXJlZDwvdGV4dD4KCiAgPHRleHQgeD0iNDY1IiB5PSIzNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNtYWxsZXN0IHBvc3NpYmxlIEdlbjMgZm9vdHByaW50OjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjM2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+dHdvIGFwcHMgKyBvbmUgSUFNIHBlcm1pc3Npb248L3RleHQ+CgogIDwhLS0gQ29sdW1uIDM6IExhdGVzdCBEeW5hdHJhY2UgLS0+CiAgPHJlY3QgeD0iNjIwIiB5PSI3NiIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNzYwIiB5PSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTUiIGZvbnQtd2VpZ2h0PSI3MDAiPlNhYVMg4oCUIExhdGVzdCBEeW5hdHJhY2U8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIxMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPkZ1bGwgR2VuMyBleHBlcmllbmNlPC90ZXh0PgoKICA8cmVjdCB4PSI2MzYiIHk9IjEzMiIgd2lkdGg9IjI0OCIgaGVpZ2h0PSIxOTYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICA8dGV4dCB4PSI3NjAiIHk9IjE1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+RlVMTCBTRVJJRVMgQVBQTElFUzwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9IjE3NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+RFFMIGZ1bm5lbHMgKyBzZWdtZW50YXRpb248L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIxOTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPihCSVpFVi0wMyk8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIyMTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlJldmVudWUgaW1wYWN0ICsgcHJvYmxlbXMgam9pbjwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9IjIyOSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+KEJJWkVWLTA0KTwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9IjI0OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T3BlblBpcGVsaW5lIHByb2Nlc3NpbmcgKyBtZXRyaWNzPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMjY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4oQklaRVYtMDUpLCBXb3JrZmxvd3MgKEJJWkVWLTA2KTwvdGV4dD4KICA8dGV4dCB4PSI3NjAiIHk9IjI4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+QnVzaW5lc3MgRmxvdyBhcHAsIGN1c3RvbSBidWNrZXRzPC90ZXh0PgogIDx0ZXh0IHg9Ijc2MCIgeT0iMzExIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5SYXcgZXZlbnRzLCAxIGQg4oCTIDEwIHkgcmV0ZW50aW9uPC90ZXh0PgoKICA8dGV4dCB4PSI3NjAiIHk9IjM1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+U3RhcnQgYXQgQklaRVYtMDEgYW5kIHdvcms8L3RleHQ+CiAgPHRleHQgeD0iNzYwIiB5PSIzNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRocm91Z2ggdGhlIHNlcmllcyBpbiBvcmRlcjwvdGV4dD4KCiAgPCEtLSBCcmlkZ2Ugc3RyaXAgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjM5MiIgd2lkdGg9Ijg3MCIgaGVpZ2h0PSI1MiIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQxMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+VEhFIEJSSURHRSBCQUNLOiBidXNpbmVzcy1ldmVudCBtZXRyaWMgZXh0cmFjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Yml6ZXZlbnRzLiogbWV0cmljcyBmcm9tIGNhcHR1cmVkIGV2ZW50cyBhcmUgcmVhZGFibGUgaW4gRGF0YSBFeHBsb3JlciwgY2xhc3NpYyBkYXNoYm9hcmRzLCBhbmQgY2xhc3NpYyBtZXRyaWMtZXZlbnQgYWxlcnRpbmcg4oCUIGV4ZWMgS1BJIHRpbGVzIGNhbiBzdGF5IGNsYXNzaWM8L3RleHQ+CgogIDwhLS0gTGljZW5zaW5nIGZvb3RlciAtLT4KICA8bGluZSB4MT0iMzAiIHkxPSI0NjAiIHgyPSI5MDAiIHkyPSI0NjAiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDY1IiB5PSI0ODIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiPkxpY2Vuc2luZzogY2xhc3NpYyBERFUgbGljZW5zaW5nIGNvdmVycyBidXNpbmVzcyBldmVudHMgKDEwMCBERFVzL0dCIGluZ2VzdCkg4oCUIG5vIERQUyBjb250cmFjdCByZXF1aXJlZDsgdW5kZXIgRFBTIHRoZXkgYmlsbCB2aWEgRXZlbnRzIHBvd2VyZWQgYnkgR3JhaWw8L3RleHQ+Cjwvc3ZnPgo=" alt="Business Events: Adoption Paths by Platform Generation" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Path | Tenant situation | Business events? | Approach |
+|------|------------------|------------------|----------|
+| B | Dynatrace Managed (no Grail) | Not available | Classic toolchain: request attributes + calculated service metrics, session/action properties + USQL FUNNEL + conversion goals, log metrics, custom metric ingest. Metrics and sessions, not raw events. Plan SaaS migration (M2S series). |
+| A | SaaS classic-operated, Grail available | Yes, today | Hybrid adoption: capture via OneAgent rules / RUM API / ingest API; report in new Dashboards + Notebooks only; everything else stays classic. Smallest Gen3 footprint: two apps + one IAM permission, plus OpenPipeline only if you need custom buckets or new bizevents.* metrics (the classic pipeline is not available to accounts created from September 2026). |
+| Full | SaaS on latest Dynatrace | Yes, fully | Full series applies: DQL funnels (BIZEV-03), revenue impact (BIZEV-04), OpenPipeline metrics (BIZEV-05), Workflows (BIZEV-06), Business Flow app. |
+| Bridge | Paths A and Full | — | Business-event metric extraction produces bizevents.* metrics readable in Data Explorer, classic dashboards, and classic metric-event alerting. |
+| Licensing | All | — | Classic DDU licensing covers business events (100 DDUs/GB ingest) — no DPS contract required; under DPS they bill via Events powered by Grail. |
+-->
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/business-observability">Business Observability (DT docs)</a> — &quot;You need to migrate to Grail before using business events.&quot;, <a href="https://www.dynatrace.com/hub/detail/business-events/">Business events (Dynatrace Hub)</a> — &quot;Business events are supported on Dynatrace SaaS. … Grail is a prerequisite for business events.&quot;, <a href="https://docs.dynatrace.com/docs/platform/upgrade/get-apps-and-surfaces-working/upgrade-guide-dashboards">Upgrade Dashboards Classic (DT docs)</a> — &quot;You can use Dashboards Classic and the Dashboards app side by side.&quot;, <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-bucket-assignment">Bucket assignment via classic pipeline (DT docs)</a> — &quot;For new accounts created from September 2026, classic pipeline is not available.&quot;</sub></p>
+</blockquote>
+<p><a id="terminology-gen2-gen3-and-the-hybrid-state"></a></p>
+<h2>2. Terminology: Gen2, Gen3, and the Hybrid State</h2>
+<p>These labels get used loosely in the field, so this notebook pins them down:</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Gen2 / classic experience</strong></td>
+<td>The pre-Grail Dynatrace surface: classic dashboards, Data Explorer, USQL, management zones, metric selectors, Settings-driven analytics. Exists on Dynatrace Managed <em>and</em> on SaaS tenants.</td>
+</tr>
+<tr>
+<td><strong>Gen3 / latest Dynatrace</strong></td>
+<td>The Grail-backed platform: DQL over Grail tables (<code>logs</code>, <code>spans</code>, <code>bizevents</code>, …), the new Dashboards / Notebooks / Workflows apps, OpenPipeline, AppEngine. SaaS only.</td>
+</tr>
+<tr>
+<td><strong>Hybrid state</strong></td>
+<td>One SaaS tenant, both surfaces live at once. Grail is provisioned and ingesting, but teams still operate through classic dashboards and Data Explorer day to day. Most &quot;Gen2 customers delaying the move&quot; on SaaS are actually in this state — the Gen3 capability is already on the tenant, unused.</td>
+</tr>
+</tbody>
+</table>
+<p>Two implications of the hybrid state matter for business events:</p>
+<ol>
+<li><strong>&quot;Moving&quot; is per-feature, not per-tenant.</strong> Dynatrace documents feature-by-feature upgrade paths (dashboards, segments, metric alerting, alert notifications) that can be adopted independently. Adopting the new Dashboards app for one use case does not force management-zone retirement, classic-dashboard migration, or any other change.</li>
+<li><strong>Managed is categorically different.</strong> A Managed cluster has no Grail and no path to enabling it in place — the platform capabilities built on Grail (business events, OpenPipeline, Workflows, the new apps) are exclusive to SaaS. For Managed, the question is not &quot;which features do we adopt first&quot; but &quot;what do we run until the SaaS migration.&quot;</li>
+</ol>
+<blockquote>
+<p><strong>Which state are you in?</strong> On SaaS, open the user menu / app launcher: if the Notebooks and Dashboards <em>apps</em> are available, Grail is there and Path A applies. On Managed, Path B is the ceiling until migration.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/upgrade">Upgrade guides landing page (DT docs)</a>, <a href="https://www.dynatrace.com/news/blog/partners-drive-customer-success-with-dynatrace-managed-to-saas-migration/">Managed-to-SaaS migration (Dynatrace News)</a> — &quot;the latest innovations on the Dynatrace platform, including Grail, Davis CoPilot, OpenPipeline, and Workflows, are exclusively available to SaaS customers.&quot; <strong>Derived:</strong> the per-feature adoption framing combines the documented independent upgrade guides with the side-by-side dashboards statement in Section 1.</sub></p>
+</blockquote>
+<p><a id="the-hard-requirement-business-events-need-grail"></a></p>
+<h2>3. The Hard Requirement: Business Events Need Grail</h2>
+<p>Every business-event capability in this series depends on the <code>bizevents</code> Grail table, and Dynatrace states the gate plainly: <em>&quot;You need to migrate to Grail before using business events.&quot;</em> The Dynatrace Hub tile is equally direct: <em>&quot;Business events are supported on Dynatrace SaaS&quot;</em> and <em>&quot;Grail is a prerequisite for business events.&quot;</em> The RUM JavaScript API reference repeats it at the API level: <em>&quot;Business events are only supported on Dynatrace SaaS deployments currently.&quot;</em></p>
+<p>What this rules out on Managed (and on any non-Grail tenant):</p>
+<table>
+<thead>
+<tr>
+<th>Not available without Grail</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fetch bizevents</code> and everything built on it (BIZEV-03 funnels, BIZEV-04 revenue impact, BIZEV-05 KPIs)</td>
+<td>The table lives in Grail</td>
+</tr>
+<tr>
+<td>OneAgent business-event capture rules</td>
+<td>Capture writes to Grail</td>
+</tr>
+<tr>
+<td><code>dynatrace.sendBizEvent()</code> from RUM, mobile SDK bizevents</td>
+<td>Same</td>
+</tr>
+<tr>
+<td>Business Events ingest API (<code>/api/v2/bizevents/ingest</code>)</td>
+<td>Same</td>
+</tr>
+<tr>
+<td>OpenPipeline (including log/span-to-bizevent extraction and metric extraction)</td>
+<td>OpenPipeline is a Grail-platform component</td>
+</tr>
+<tr>
+<td>Business Flow app, Workflows-based business alerting (BIZEV-06 §4)</td>
+<td>AppEngine apps are SaaS/Gen3</td>
+</tr>
+</tbody>
+</table>
+<p>There is no partial or preview form of any of these on Managed. Anything marketed as &quot;business analytics on Managed&quot; resolves to the classic toolchain in Section 6 — capable, but a different data model (metrics and user sessions, not retained raw business events).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/business-observability">Business Observability (DT docs)</a>, <a href="https://www.dynatrace.com/hub/detail/business-events/">Business events (Dynatrace Hub)</a>, <a href="https://docs.dynatrace.com/javascriptapi/doc/types/dynatrace.html">RUM JavaScript API — sendBizEvent (DT docs)</a> — &quot;Business events are only supported on Dynatrace SaaS deployments currently.&quot;</sub></p>
+</blockquote>
+<p><a id="path-a-minimal-gen3-footprint"></a></p>
+<h2>4. Path A — Grail Available: Adopt Business Events with a Minimal Gen3 Footprint</h2>
+<p>If your SaaS tenant has Grail, you can run business events <strong>without migrating anything else</strong>. The footprint is deliberately small — here is the complete list of what has to touch Gen3, and what does not:</p>
+<h3>What you must touch</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Where</th>
+<th>Gen3 surface?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Capture</td>
+<td><strong>OneAgent capture rules</strong> — Settings &gt; Collect and Capture &gt; Business events (Incoming / Outgoing). Requires Full-Stack Monitoring mode on the capturing hosts; incoming HTTP capture from OneAgent 1.253+ for web servers, .NET and Java servlet containers (Node.js 1.259+, Go 1.263+; Tomcat 10 needs 1.263+, Netty 1.323+); outgoing capture is Java-only (1.297+). No application redeploy.</td>
+<td>No — classic Settings UI</td>
+</tr>
+<tr>
+<td>2. Capture (alternatives)</td>
+<td>RUM JavaScript <code>dynatrace.sendBizEvent()</code> (monitored sessions only — see Section 11); mobile SDKs; the Business Events ingest API — classic endpoint <code>POST /api/v2/bizevents/ingest</code> with an access token holding the <em>Ingest bizevents</em> scope</td>
+<td>No — code + API token</td>
+</tr>
+<tr>
+<td>3. Storage</td>
+<td>Events land in the <code>default_bizevents</code> bucket, 35-day default retention. Optional custom buckets (1 day to 10 years) are assigned in <strong>OpenPipeline</strong> (Business events pipeline → <strong>Storage</strong> → <em>Bucket Assignment</em> processor). The classic <em>Settings &gt; Business Observability &gt; Ingest pipeline &gt; Bucket assignment</em> screen is not available to accounts created from September 2026 and will be deactivated in a future release.</td>
+<td>Default bucket: nothing to do. Custom buckets: <strong>Yes — OpenPipeline</strong></td>
+</tr>
+<tr>
+<td>4. Read access</td>
+<td>Grant report consumers <code>storage:bizevents:read</code> (plus <code>storage:buckets:read</code> for custom buckets) via IAM policy</td>
+<td>IAM (account console)</td>
+</tr>
+<tr>
+<td>5. Reporting</td>
+<td><strong>Notebooks and the new Dashboards app</strong> — the only place raw business events can be queried (DQL). This is the one genuinely Gen3 surface in the path.</td>
+<td><strong>Yes</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>What does NOT have to change</h3>
+<ul>
+<li><strong>Classic dashboards keep working</strong> — the two dashboard systems are documented to run side by side, and adopting the new app for business events does not migrate, alter, or retire any classic dashboard.</li>
+<li><strong>Management zones, classic alerting, Data Explorer, USQL, agent rollout practices</strong> — all untouched. Business events do not interact with the management-zone model (Grail access is IAM-policy-scoped instead, which is why step 4 exists).</li>
+<li><strong>Your license model</strong> — classic (DDU) licensing covers business events; you do not need a DPS conversion first (Section 8).</li>
+</ul>
+<h3>Scoping read access to business events only</h3>
+<p>The IAM grant in step 4 is also the control point for <em>who sees what</em>. Because Grail access is policy-conditioned rather than management-zone-scoped, you can admit business users to the two Gen3 apps while limiting them to the business-events bucket — and nothing else in Grail:</p>
+<pre><code>ALLOW storage:bizevents:read WHERE storage:bucket-name = &quot;default_bizevents&quot;;
+ALLOW storage:buckets:read WHERE storage:bucket-name = &quot;default_bizevents&quot;;
+</code></pre>
+<p>A user bound to this policy can query business events in Notebooks and the new Dashboards app but cannot read logs, spans, metrics, or any other Grail table — the right shape for the hybrid state, where you are often granting Gen3-app access to business analysts who have no other reason to be in Grail. Pair it with the bucket-assignment rules from step 3: route a sensitive stream (for example, finance events) to its own custom bucket, then bind a policy naming only that bucket to the team that owns it. <code>DENY</code> statements also exist and overrule <code>ALLOW</code> where an explicit carve-out is needed. See the IAM series for policy authoring and the ORGNZ series for bucket and security-context design.</p>
+<p>Validate that capture is flowing with the two queries below — run them in a Notebook (this is the moment your Gen3 footprint begins):</p>
+<pre><code class="language-dql">// Smoke test: is business-event capture flowing, and from which providers?
+fetch bizevents, from:-24h
+| summarize event_count = count(), by:{event.provider, event.type}
+| sort event_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Where are the events being stored? (default_bizevents = 35-day default retention)
+fetch bizevents, from:-7d
+| summarize event_count = count(), by:{dt.system.bucket}
+| sort event_count desc
+</code></pre>
+<blockquote>
+<p><strong>Tip — treat Path A as the default for SaaS.</strong> If Grail is on the tenant, building <em>new</em> classic business analytics (request attributes + calculated service metrics for business KPIs) is building on a surface Dynatrace has already documented a successor for. New investment belongs on business events; the classic toolchain remains the right answer only where Grail genuinely isn't available.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-oneagent">Capture with OneAgent (DT docs)</a> — version gates and mandatory Full-Stack mode, <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-external-sources">Capture from external sources (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/web-and-mobile-rum">Capture with web and mobile RUM (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-bucket-assignment">Bucket assignment via classic pipeline (DT docs)</a> — &quot;default retention period for a built-in business events bucket (default_bizevents) is 35 days&quot;, &quot;For new accounts created from September 2026, classic pipeline is not available.&quot;, &quot;Processing with the classic pipeline will be deactivated in a future release.&quot;, <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-bucket-assignment-openpipeline">Bucket assignment via OpenPipeline (DT docs)</a> — &quot;Business events bucket assignment is done with OpenPipeline&quot;, <a href="https://docs.dynatrace.com/docs/platform/upgrade/get-apps-and-surfaces-working/upgrade-guide-dashboards">Upgrade Dashboards Classic (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a> — policy grammar and <code>storage:bucket-name</code> condition key. <strong>Derived:</strong> the five-step minimal-footprint framing assembles the documented per-step requirements; Dynatrace does not publish a named &quot;minimal adoption&quot; pattern.</sub></p>
+</blockquote>
+<p><a id="the-bridge-back-business-event-metrics-in-classic-surfaces"></a></p>
+<h2>5. The Bridge Back: Business-Event Metrics in Classic Surfaces</h2>
+<p>Raw business-event <em>records</em> can only be queried with DQL in Gen3 apps. But Dynatrace documents a <strong>metric-extraction bridge</strong> that makes business-event-derived numbers first-class citizens of the classic experience:</p>
+<ul>
+<li><strong>Business event metric extraction (classic pipeline)</strong> — configured at Settings &gt; Business Observability &gt; Metric extraction. Each rule matches events and emits a metric keyed with the <strong><code>bizevents.</code> prefix</strong> (for example <code>bizevents.easytrade.TradingVolume</code>), either counting matching events or aggregating a numeric attribute value, with up to 50 dimensions.</li>
+<li>The resulting metrics are usable <strong>in Data Explorer, classic dashboards, Notebooks (<code>timeseries</code>), and metric events for anomaly detection/alerting</strong> — i.e., your existing classic executive dashboard can chart business-event KPIs without itself being migrated.</li>
+<li><strong>The classic pipeline is closing to new environments</strong> (docs updated 09/15/2026): <em>&quot;For new accounts created from September 2026, classic pipeline is not available. Use OpenPipeline to process your data.&quot;</em> Environments created before September 2026 keep it for now, but the stated end state is removal, not just deprecation: <em>&quot;Processing with the classic pipeline will be deactivated in a future release.&quot;</em> (no date published, checked 09/24/2026). So build <strong>new</strong> <code>bizevents.*</code> extraction in OpenPipeline (BIZEV-05 §5) — either way the output is a plain metric that classic dashboards can chart — and plan to migrate existing classic rules rather than extend them, since they stop processing once deactivation reaches your environment.</li>
+</ul>
+<p>This is what makes the &quot;new dashboards only&quot; move even softer than it sounds: deep analysis (funnels, segmentation, revenue joins) happens in Notebooks/Dashboards on raw events, while steady-state KPI tiles — the things executives actually look at — can keep living on classic dashboards fed by <code>bizevents.*</code> metrics.</p>
+<pre><code class="language-dql">// Extracted business-event metrics are ordinary metrics — chartable in Data Explorer,
+// classic dashboards, and DQL alike (replace the key with your extraction rule's key)
+timeseries order_count = sum(bizevents.myapp.OrderCount, default: 0), from:-7d
+</code></pre>
+<blockquote>
+<p><strong>Caveat — extraction is forward-only.</strong> A metric-extraction rule produces data from the moment it is created; it does not backfill from historical events. Create the extraction rules early, even if the classic tiles come later. Events carrying timestamps outside the accepted range are counted under a separate metric key suffixed <code>.failed</code>.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-metric-extraction">Business event metric extraction via classic pipeline (DT docs)</a> — <code>bizevents.</code> key prefix, 50-dimension limit, Data Explorer/dashboards/metric-events usability, <code>.failed</code> suffix, <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-processing-classic-pipeline">Business event processing — classic pipeline (DT docs)</a> — OpenPipeline-recommended quote.</sub></p>
+</blockquote>
+<p><a id="path-b-the-classic-business-analytics-toolchain"></a></p>
+<h2>6. Path B — No Grail: The Classic Business-Analytics Toolchain</h2>
+<p>On Dynatrace Managed (or a SaaS tenant that truly has no Grail), business outcomes are approximated with four classic mechanisms. All four are alive and documented — none has an announced end-of-life except Log Monitoring Classic on SaaS (see the table) — but they produce <strong>metrics and session data, not retained raw business events</strong>.</p>
+<h3>6.1 The four mechanisms</h3>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Captures</th>
+<th>Reported in</th>
+<th>Alerting</th>
+<th>Key limits</th>
+<th>Billing (classic)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Request attributes → calculated service metrics</strong></td>
+<td>Business data from server-side requests: payload/header values, Java/.NET/PHP method arguments, OneAgent SDK. Calculated metrics turn them into revenue-per-request, counts split by attribute, etc.</td>
+<td>Data Explorer, classic dashboards, Multidimensional analysis</td>
+<td>Metric events</td>
+<td>100 request attributes/request; 500 enabled calculated metrics per environment, 100 per service; classic calculated metrics keep at most 100 dimension values (top-X + <code>remainder</code>); <strong>no retroactive data</strong></td>
+<td>DDUs (custom metrics, 0.001 DDU/data point; not covered by the included-host-unit allowance)</td>
+</tr>
+<tr>
+<td><strong>RUM session/action properties → USQL + conversion goals</strong></td>
+<td>Business values on user actions/sessions: CSS selector, JS API, meta tag, cookie, query string, or <strong>promoted server-side request attributes</strong>. USQL queries them, including <code>FUNNEL</code>; conversion goals track milestones.</td>
+<td>Query User Sessions UI; classic-dashboard <strong>User Sessions Query</strong> and <strong>Conversion goal</strong> tiles; USQL custom metrics in Data Explorer</td>
+<td>Metric events on USQL custom metrics</td>
+<td>200 properties/app (20 action properties); 20 conversion goals/app; USQL: closed sessions only, no joins, FUNNEL max 10 conditions; USQL custom metrics 500 session + 100 action per environment</td>
+<td>First 20 properties/app included, more consume DEM units; USQL custom metrics billed as DDU metrics since Dynatrace 1.232</td>
+</tr>
+<tr>
+<td><strong>Log metrics (Log Monitoring Classic)</strong></td>
+<td>Business counts/values parsed from log lines — occurrence counts or numeric attribute aggregations, <code>log.</code>-prefixed metric keys</td>
+<td>Data Explorer, classic dashboards</td>
+<td>Metric events</td>
+<td>Forward-only; log-attribute dimensions</td>
+<td>DDUs</td>
+</tr>
+<tr>
+<td><strong>Custom metric ingest</strong></td>
+<td>Anything your code can compute — Metrics API v2 line protocol, OneAgent local API (<code>:14499</code>), StatsD, Telegraf, <code>dynatrace_ingest</code></td>
+<td>Data Explorer, classic dashboards</td>
+<td>Metric events</td>
+<td>≤50 dimensions/line; 1M dimension tuples per metric/month</td>
+<td>0.001 DDU/data point; OneAgent-reported custom metrics draw on the included metrics-per-host-unit allowance first (requires the <code>dt.entity.host</code> dimension)</td>
+</tr>
+</tbody>
+</table>
+<p>Two currency warnings baked into that table:</p>
+<ul>
+<li><strong>Calculated service metrics are soft-superseded.</strong> The docs state <em>&quot;OpenPipeline metric extraction now replaces calculated service metrics&quot;</em> — existing customers continue — <em>&quot;If you're an existing customer, you can still use them until we deprecate them&quot;</em> — but <strong>new customers cannot create them</strong>. No deprecation date is published (checked 09/18/2026). On Managed — where the OpenPipeline successor doesn't exist — they remain the working path; treat the supersession as a signal about where new SaaS-side investment should go, and verify what your environment allows before designing around them.</li>
+<li><strong>Log Monitoring Classic has a dated SaaS end-of-life:</strong> <em>&quot;Starting with January 2027, Log Monitoring Classic will reach end of life. All Dynatrace SaaS environments with Log Monitoring Classic will be automatically upgraded to Log Management and Analytics powered by Grail&quot;</em> — announced in the <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-328">SaaS 1.328 release notes (DT docs)</a>, which also scopes the earlier wave: <em>&quot;Starting with April 2026, Log Monitoring Classic will be automatically upgraded ... in environments that have not ingested logs in the prior 90 days. Environments actively ingesting data to Log Monitoring Classic are not impacted at this time.&quot;</em> (Re-verified at source 08/24/2026.) The announcement scopes itself to SaaS environments; on Managed, Log Monitoring Classic remains the log stack.</li>
+</ul>
+<h3>6.2 A classic funnel, for comparison</h3>
+<p>Where BIZEV-03 builds funnels in DQL over raw events, the classic equivalent is a USQL <code>FUNNEL</code> over completed user sessions:</p>
+<pre><code class="language-sql">SELECT FUNNEL(
+  useraction.name = &quot;loading of page /products&quot;,
+  useraction.name = &quot;click on \&quot;Add to cart\&quot;&quot;,
+  useraction.name = &quot;click on \&quot;Checkout\&quot;&quot;,
+  useraction.name = &quot;click on \&quot;Place order\&quot;&quot;
+) FROM usersession
+</code></pre>
+<p>It approximates the same headline question with real constraints: <em>&quot;FUNNEL does not support ordering. There's no guarantee that useraction1 happened before useraction2&quot;</em> — each step counts sessions that contain the action, not sessions that reached it in order; only <em>closed</em> sessions; only user-action grain (no server-side or API-only business steps); and no arbitrary event payloads to segment by beyond the properties you configured.</p>
+<h3>6.3 What Path B cannot give you</h3>
+<table>
+<thead>
+<tr>
+<th>Business-events capability</th>
+<th>Classic approximation</th>
+<th>Gap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Raw, retained business event records with arbitrary payloads</td>
+<td>Metrics + session properties</td>
+<td>No record-level drill-down beyond session grain; metric dimensions are bounded (100-value top-X on classic calculated metrics)</td>
+</tr>
+<tr>
+<td>Ad-hoc questions over historical data</td>
+<td>Pre-configured metrics only</td>
+<td>Metrics answer only the questions you configured <em>before</em> the data arrived; no retroactive analysis</td>
+</tr>
+<tr>
+<td>Cross-channel funnels (web + API + batch + mobile in one funnel)</td>
+<td>USQL funnels (RUM sessions only)</td>
+<td>Server-side/API-only steps invisible to USQL</td>
+</tr>
+<tr>
+<td>Revenue joined to problems at event grain (BIZEV-04)</td>
+<td>Metric charts side by side</td>
+<td>No record-level join</td>
+</tr>
+<tr>
+<td>Business Flow app, OpenPipeline processing/enrichment</td>
+<td>—</td>
+<td>No equivalent</td>
+</tr>
+<tr>
+<td>1-day-to-10-year selectable retention on raw events</td>
+<td>Metric retention</td>
+<td>Different data model entirely</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/application-observability/services/request-attributes">Request attributes (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/application-observability/services/calculated-service-metric">Calculated service metrics (DT docs)</a> — &quot;OpenPipeline metric extraction now replaces calculated service metrics&quot;; new customers cannot create them</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/preserve-metrics-and-service-visibility/metrics/calculated-service-metrics-upgrade">Calculated service metrics upgrade (DT docs)</a> — &quot;Currently, no deprecation date is set.&quot;</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/additional-configuration/define-user-action-and-session-properties">Session and action properties (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/session-segmentation/custom-queries-segmentation-and-aggregation-of-session-data">USQL (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/additional-configuration/custom-metrics-from-user-sessions">Custom metrics from user sessions (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/observe/digital-experience-classic/rum-classic/web-applications/analyze-and-use/define-conversion-goals">Conversion goals (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/log-monitoring/analyze-log-data/log-metrics-classic">Log metrics (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/log-monitoring">Log Monitoring landing page (DT docs)</a> — <em>&quot;Log Monitoring Classic (SaaS) will reach end-of-life by 2027.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics">Metric ingestion (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/license/classic-licensing/davis-data-units/metric-cost-calculation">Metric cost calculation (DT docs)</a></sub></li>
+<li><sub><strong>Derived:</strong> the §6.3 gap table contrasts the cited classic limits with the bizevents capabilities documented across BIZEV-01…06; Dynatrace publishes no side-by-side comparison.</sub></li>
+</ul>
+</blockquote>
+<p><a id="capability-matrix"></a></p>
+<h2>7. Capability Matrix: Classic vs Hybrid vs Full Gen3</h2>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Path B — Classic only (Managed / no Grail)</th>
+<th>Path A — Hybrid (Grail + classic operation)</th>
+<th>Full Gen3 (latest Dynatrace)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Raw business event records</td>
+<td>✗</td>
+<td>✓ (35 d default, custom buckets 1 d–10 y)</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Ad-hoc DQL analysis / retroactive questions</td>
+<td>✗</td>
+<td>✓ (Notebooks / new Dashboards)</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Funnels</td>
+<td>USQL <code>FUNNEL</code> (RUM sessions only, closed sessions, ≤10 steps)</td>
+<td>DQL funnels over any event source (BIZEV-03)</td>
+<td>DQL funnels + Business Flow app</td>
+</tr>
+<tr>
+<td>Server-side / API-only business steps</td>
+<td>Request attributes → metrics only</td>
+<td>✓ (OneAgent capture, ingest API)</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Business KPIs on classic dashboards</td>
+<td>✓ (calculated / USQL / log / custom metrics)</td>
+<td>✓ (<code>bizevents.*</code> extracted metrics — Section 5)</td>
+<td>✓ (both dashboard systems)</td>
+</tr>
+<tr>
+<td>Business KPI alerting</td>
+<td>Metric events</td>
+<td>Metric events on extracted metrics; Davis anomaly detection on metrics</td>
+<td>+ Workflows, Business Flow KPI alerting (BIZEV-06)</td>
+</tr>
+<tr>
+<td>Revenue ↔ problem correlation at record grain (BIZEV-04)</td>
+<td>✗ (charts side by side only)</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>OpenPipeline processing / enrichment / routing</td>
+<td>✗</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Configuration surface</td>
+<td>Classic Settings only</td>
+<td>Classic Settings + IAM policy + two Gen3 apps (+ OpenPipeline for custom buckets or new <code>bizevents.*</code> metrics)</td>
+<td>Full Gen3</td>
+</tr>
+<tr>
+<td>License model</td>
+<td>Classic DDU (or DPS)</td>
+<td>Classic DDU <strong>or</strong> DPS — both cover business events</td>
+<td>Either</td>
+</tr>
+</tbody>
+</table>
+<p>The middle column is the point of this notebook: <strong>the hybrid column is almost the full-Gen3 column</strong>, at the cost of using two new apps for one workload — plus OpenPipeline if that workload needs custom buckets or new <code>bizevents.*</code> metrics.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> consolidated from the per-section sources in Sections 3–6. <strong>Derived:</strong> the three-column rollup itself is this notebook's synthesis.</sub></p>
+</blockquote>
+<p><a id="licensing-classic-ddus-vs-dps"></a></p>
+<h2>8. Licensing: Classic DDUs vs DPS</h2>
+<p>A common blocker-that-isn't: <em>&quot;we can't use business events because we haven't moved to DPS.&quot;</em> Business events are billable under <strong>both</strong> license models on a Grail SaaS tenant:</p>
+<h3>Classic (DDU) licensing</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Weight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ingest &amp; Process</td>
+<td><strong>100.00 DDUs per GB</strong></td>
+</tr>
+<tr>
+<td>Retain</td>
+<td><strong>0.30 DDUs per GB retained per day</strong></td>
+</tr>
+<tr>
+<td>Query</td>
+<td><strong>1.70 DDUs per GB read</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Notes from the DDU page: each environment includes a free tier of <strong>200,000 DDUs per year</strong> usable across these dimensions; there are <strong>no host-included DDUs</strong> for business events; retention under the DDU model is selectable at 35 days (default), 1 year, or 3 years.</p>
+<h3>DPS licensing</h3>
+<p>Business events bill through the <strong>Events powered by Grail</strong> capability — Ingest &amp; Process per GiB, Retain per GiB-day, Query per GiB scanned — the same three-dimension shape as logs. (Davis-generated events are included; <em>business</em> events are among the billable event types.)</p>
+<h3>Path B costs (for comparison)</h3>
+<p>The classic toolchain is not free either: calculated service metrics, USQL custom metrics, and log metrics are all DDU-billed custom metrics at 0.001 DDU per data point (one metric reported per minute ≈ 525.6 DDUs/year), calculated/DEM/log metrics are <strong>ineligible</strong> for the included-host-unit metric allowance, and session/action properties beyond the first 20 per application consume DEM units. When sizing a business-events adoption, compare against what the classic approximation already costs — it is rarely zero.</p>
+<blockquote>
+<p><strong>Verify against your rate card.</strong> Weights and inclusions above are the documented list-model values; enterprise contracts vary. Confirm with your account team before committing to a volume plan.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/license/classic-licensing/davis-data-units/ddus-for-business-events">DDUs for business events (DT docs)</a> — weights, free tier, no-host-included note, retention options, <a href="https://docs.dynatrace.com/docs/license/capabilities/events">Events powered by Grail (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/license/classic-licensing/davis-data-units/metric-cost-calculation">Metric cost calculation (DT docs)</a> — 0.001 DDU/data point and included-allowance ineligibility.</sub></p>
+</blockquote>
+<p><a id="what-carries-forward-at-migration-time"></a></p>
+<h2>9. What Carries Forward at Migration Time</h2>
+<p>If you are on Path B today, build it so the eventual move is a translation, not a rewrite:</p>
+<table>
+<thead>
+<tr>
+<th>Classic investment (Path B)</th>
+<th>Gen3 destination</th>
+<th>Carry-forward mechanics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Request attributes</strong></td>
+<td>Business events via OpenPipeline</td>
+<td>Span-level request attributes are available in OpenPipeline's span processing and <em>&quot;can be mapped as data fields&quot;</em> on extracted business events — the capture points you defined remain the capture points</td>
+</tr>
+<tr>
+<td><strong><code>dtrum</code> custom business code</strong></td>
+<td><code>dynatrace.sendBizEvent()</code></td>
+<td>Usually a one-line change at each call site; the values you chose to capture are the event attributes</td>
+</tr>
+<tr>
+<td><strong>Business data parsed from logs (log metrics)</strong></td>
+<td>OpenPipeline logs → bizevents + metric extraction</td>
+<td>The parse patterns translate to OpenPipeline processors; BIZEV-01 §4 Method 3</td>
+</tr>
+<tr>
+<td><strong>Calculated service metrics</strong></td>
+<td>OpenPipeline metric extraction</td>
+<td>Documented as the successor (Section 6); the dimension/split design carries over</td>
+</tr>
+<tr>
+<td><strong>USQL funnels + conversion goals</strong></td>
+<td>DQL funnels (BIZEV-03), Business Flow</td>
+<td>Step definitions map to <code>event.type</code> sequences — which is why naming discipline matters <em>now</em></td>
+</tr>
+<tr>
+<td><strong>Metric-event alerting on business KPIs</strong></td>
+<td>Same, on <code>bizevents.*</code> extracted metrics; later Workflows</td>
+<td>Thresholds and ownership carry over unchanged</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>What carries forward is the <em>design</em>, not the objects.</strong> Every row's left column is a construct that stops working when the tenant upgrades to the latest Dynatrace — the classic bizevent processing schemas (<code>builtin:bizevents-processing-pipelines.rule</code> and its <code>-buckets</code> / <code>-metrics</code> / <code>-dql-processing</code> / <code>-security-context</code> siblings), <code>builtin:settings.calculated-service-metrics</code>, and <code>builtin:anomaly-detection.metric-events</code> are all flagged blocked by the ready-made <em>Check your upgrade readiness</em> dashboard. Metric-event alerting on <code>bizevents.*</code> metrics is the one to watch: the metrics carry forward, but the alerting mechanism does not, so those thresholds move to Davis anomaly detectors rather than transferring unchanged.</p>
+<p>That is not an argument against Path B or against the bridge back in Section 5 — a Gen2-resident reporting audience is a real constraint, and these are the right constructs to use while it lasts. It is an argument for treating each one as <strong>rented</strong>: capture points, parse patterns, naming, and thresholds are the durable assets; the configuration objects holding them are not. Section 5's classic-pipeline extraction also depends on Data Explorer and classic dashboards, which are themselves on the removal list — so the bridge and the audience it serves expire together.</p>
+</blockquote>
+<p><strong>The one thing to standardize before you have Grail: naming.</strong> Adopt the reverse-domain event-type convention from BIZEV-02 §5 (<code>com.&lt;company&gt;.&lt;domain&gt;.&lt;action&gt;</code>) in your request-attribute names, session-property keys, and log-metric keys today. Migration then becomes a mapping table instead of a redesign.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-logs-and-spans">Capture from logs and spans (DT docs)</a> — &quot;Span-level request attributes are available and can be mapped as data fields&quot;, <a href="https://docs.dynatrace.com/docs/observe/application-observability/services/calculated-service-metric">Calculated service metrics (DT docs)</a>. <strong>Derived:</strong> the carry-forward table maps each cited classic mechanism to its documented Gen3 counterpart; Dynatrace publishes no consolidated migration mapping for business analytics.</sub></p>
+</blockquote>
+<p><a id="recommended-approach"></a></p>
+<h2>10. Recommended Approach</h2>
+<ol>
+<li><strong>Classify the tenant, not the customer.</strong> Managed → Path B. SaaS with Grail → Path A, regardless of how classic the day-to-day operation is. Check for the Notebooks/Dashboards apps if unsure.</li>
+<li><strong>On SaaS with Grail, stop building new classic business analytics.</strong> Every new request-attribute-based KPI or USQL funnel built today is migration debt; new customers can no longer even create calculated service metrics. Point new business-analytics asks at business events.</li>
+<li><strong>Start capture with OneAgent rules on one or two KPIs</strong> (an order-completion endpoint, a payment endpoint). It's a Settings change — no redeploy, no Gen3 UI involved — and gives you real data to evaluate with.</li>
+<li><strong>Report where the audience already looks.</strong> Deep analysis in Notebooks; recurring views in the new Dashboards app; executive KPI tiles that must stay on classic dashboards get <code>bizevents.*</code> extracted metrics (Section 5). Build new extraction rules in OpenPipeline — the classic pipeline is not available to accounts created from September 2026 — and create them early: they are forward-only.</li>
+<li><strong>Grant read access deliberately.</strong> <code>storage:bizevents:read</code> is IAM-policy-scoped, not management-zone-scoped — for many teams this is their first contact with Grail IAM; keep the first policy simple (see the IAM series for the policy model).</li>
+<li><strong>Watch consumption for the first month.</strong> DDU shops: business events draw on the 200k free tier first, then billable; check ingest volume against expectation. DPS shops: Events powered by Grail line items.</li>
+<li><strong>On Managed, run Path B with migration-friendly naming</strong> (Section 9) and treat the business-analytics gap as one of the concrete drivers in the SaaS migration case (M2S — Managed to SaaS Migration series).</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> synthesis of Sections 3–9; per-claim sources in those sections. <strong>Derived:</strong> the ordering and &quot;stop building new classic analytics&quot; stance are this notebook's recommendation, grounded in the cited supersession notices.</sub></p>
+</blockquote>
+<p><a id="common-gotchas"></a></p>
+<h2>11. Common Gotchas</h2>
+<table>
+<thead>
+<tr>
+<th>Gotcha</th>
+<th>Detail</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RUM cost controls silently drop bizevents</strong></td>
+<td><em>&quot;Business events are only captured for monitored sessions&quot;</em> — if the RUM JavaScript is disabled for a session (cost and traffic control, opt-out), <code>sendBizEvent</code> calls from that session are not reported</td>
+<td>For must-not-miss events (orders, payments), capture server-side via OneAgent rules or the ingest API instead of (or in addition to) RUM</td>
+</tr>
+<tr>
+<td><strong>Full-Stack mode is mandatory for OneAgent capture</strong></td>
+<td>Hosts in Infrastructure-only mode cannot capture business events from HTTP traffic</td>
+<td>Check monitoring mode on the hosts serving the business endpoints before designing capture rules</td>
+</tr>
+<tr>
+<td><strong>Outgoing HTTP capture is Java-only</strong></td>
+<td>Apache HTTP Client 4.x / OkHttp 3.4+, OneAgent 1.297+ — no .NET/Node.js/Go outgoing capture</td>
+<td>Capture on the incoming side of the callee, or use the ingest API</td>
+</tr>
+<tr>
+<td><strong>Capture-rule budget</strong></td>
+<td>Roughly 100 OneAgent capture rules per environment</td>
+<td>Design rules around endpoints, not per-team sprawl; centralize governance</td>
+</tr>
+<tr>
+<td><strong>Metric extraction is forward-only</strong></td>
+<td>No backfill; late-timestamped events land in a <code>.failed</code>-suffixed metric</td>
+<td>Create extraction rules at capture time, not at reporting time</td>
+</tr>
+<tr>
+<td><strong>Bizevents don't appear in Data Explorer</strong></td>
+<td>Expected — raw events are DQL-only; teams conclude &quot;it doesn't work&quot;</td>
+<td>The record data is in Notebooks/new Dashboards; Data Explorer sees only extracted <code>bizevents.*</code> metrics</td>
+</tr>
+<tr>
+<td><strong>&quot;We need DPS first&quot;</strong></td>
+<td>False blocker — classic DDU licensing covers business events (Section 8)</td>
+<td>Size against the DDU weights and the 200k/year free tier</td>
+</tr>
+<tr>
+<td><strong>Grail IAM ≠ management zones</strong></td>
+<td>A user's MZ scoping does not carry over to <code>bizevents</code> reads; conversely, <code>storage:bizevents:read</code> grants tenant-wide event reads unless the policy is conditioned</td>
+<td>Plan the IAM policy alongside the capture rollout — the bucket-scoped policy in Section 4 grants business-events access and nothing else</td>
+</tr>
+<tr>
+<td><strong>Payload limits on the ingest API</strong></td>
+<td>Documented request-size limits differ between sections of the API page</td>
+<td>Batch conservatively and verify the current limit on the external-sources capture page for your tenant</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/web-and-mobile-rum">Capture with web and mobile RUM (DT docs)</a> — monitored-sessions quote, <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-oneagent">Capture with OneAgent (DT docs)</a> — Full-Stack requirement, Java-only outgoing capture, capture-rule limit, <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-event-processing/bo-metric-extraction">Business event metric extraction via classic pipeline (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing/bo-events-capturing-external-sources">Capture from external sources (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>12. Summary and Next Steps</h2>
+<p><strong>The one-sentence version:</strong> business events are hard-gated on Grail (SaaS-only, never Managed) — but a SaaS tenant that has Grail can adopt them <em>today</em> with a footprint of two new apps and one IAM permission (plus OpenPipeline only if it needs custom buckets or new <code>bizevents.*</code> metrics), bridge the resulting KPIs back onto classic dashboards via <code>bizevents.*</code> metric extraction, and leave every other part of the classic operation untouched; only Managed customers must approximate with the classic toolchain until they migrate.</p>
+<p>Key takeaways:</p>
+<ul>
+<li><strong>Gen2 vs Gen3 is per-feature on SaaS, per-platform on Managed.</strong> The hybrid state is supported and documented (side-by-side dashboards), not a temporary accident.</li>
+<li><strong>Path A (hybrid)</strong> delivers nearly the full business-events capability set; the &quot;move&quot; it requires is using Notebooks and the new Dashboards app for this one workload.</li>
+<li><strong>Path B (classic toolchain)</strong> is metrics and sessions, not events — capable for KPIs and RUM funnels, structurally unable to answer ad-hoc or record-grain questions.</li>
+<li><strong>Licensing is not the blocker</strong> — classic DDU licensing covers business events at documented weights.</li>
+<li><strong>Name things properly now</strong> (reverse-domain event types) and the eventual migration is a mapping exercise.</li>
+</ul>
+<h3>Where to go next</h3>
+<ul>
+<li><strong>BIZEV-01: Business Events Fundamentals</strong> — the data model and ingestion methods referenced throughout this notebook</li>
+<li><strong>BIZEV-02: Instrumentation</strong> — capture-path details and the naming conventions to adopt early</li>
+<li><strong>BIZEV-05: KPIs and Metrics</strong> — the OpenPipeline variant of metric extraction</li>
+<li><strong>BIZEV-06: Executive Reporting</strong> — what the full Gen3 reporting layer looks like once you're there</li>
+<li><strong>M2S — Managed to SaaS Migration series</strong> — for Managed customers, the migration this notebook keeps pointing at</li>
+<li><strong>DTM — Dynatrace Managed series</strong> — running the Managed cluster itself until then: design, configuration, ActiveGates, OneAgents and health checks</li>
+<li><strong>IAM series</strong> — the policy model behind <code>storage:bizevents:read</code></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

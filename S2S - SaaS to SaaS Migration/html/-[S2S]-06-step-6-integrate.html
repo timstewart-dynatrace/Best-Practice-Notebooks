@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2S-06: Step 6 — Integrate: Cloud, Dashboards, and Workflows</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2S — SaaS to SaaS Migration</a><span class="sep">/</span><span aria-current="page">S2S-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2S-06: Step 6 — Integrate: Cloud, Dashboards, and Workflows</h1>
+<blockquote>
+<p><strong>Series:</strong> S2S — SaaS to SaaS Migration | <strong>Notebook:</strong> 6 of 9 | <strong>Phase:</strong> Upgrade | <strong>Step:</strong> Integrate | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/27/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>With agents reporting to the target tenant and core configuration imported (Step 5), this step reconnects everything that depends on external systems: cloud integrations, dashboards, workflows, notification channels, synthetic monitors, and extensions. These integrations were deliberately deferred until agents were providing entity context — without entities, cloud metrics have no topology to attach to, dashboards show no data, and workflows have no triggers.</p>
+<p>This step completes the Upgrade phase. After this step, the target tenant is fully operational and the migration enters the Run phase (Steps 7–9).</p>
+<h3>S2S Migration Framework</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Steps</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plan</td>
+<td>1. Discover → 2. Strategize → 3. Design</td>
+<td>Understand what exists, choose approach, design target</td>
+</tr>
+<tr>
+<td><strong>Upgrade</strong></td>
+<td>4. Prepare → 5. Execute → <strong>6. Integrate</strong></td>
+<td>Build target, move config, connect integrations</td>
+</tr>
+<tr>
+<td>Run</td>
+<td>7. Expand → 8. Enable → 9. Optimize</td>
+<td>Roll out agents, enable teams, tune and decommission</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>You are here: Step 6 — Integrate.</strong> Agents are reporting to the target tenant and core configuration is deployed (Step 5). Now you reconnect cloud integrations, migrate dashboards and workflows, and restore all external connections.</p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#cloud-integration-migration">Cloud Integration Migration</a></li>
+<li><a href="#cloud-transformation-scenarios">Cloud Transformation Scenarios</a></li>
+<li><a href="#dashboard-migration">Dashboard Migration</a></li>
+<li><a href="#workflow-migration">Workflow Migration</a></li>
+<li><a href="#notification-integration-migration">Notification Integration Migration</a></li>
+<li><a href="#synthetic-monitor-migration">Synthetic Monitor Migration</a></li>
+<li><a href="#extension-migration">Extension Migration</a></li>
+<li><a href="#step-completion-checklist">Step Completion Checklist</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Step 5 Complete</strong></td>
+<td>All agents reporting to target tenant, configuration imported, validation queries passing</td>
+</tr>
+<tr>
+<td><strong>Cloud Provider Access</strong></td>
+<td>AWS: rights to deploy CloudFormation stacks in each monitored account. Azure: rights to create a service principal and assign it on each monitored subscription (Microsoft Entra ID). GCP: IAM admin</td>
+</tr>
+<tr>
+<td><strong>Target Tenant Access</strong></td>
+<td>API token with <code>WriteConfig</code>, <code>settings.write</code>, <code>credentialVault.write</code> scopes</td>
+</tr>
+<tr>
+<td><strong>Notification Channel Access</strong></td>
+<td>Admin access to Slack, PagerDuty, ServiceNow, Teams, or email systems</td>
+</tr>
+<tr>
+<td><strong>Synthetic Private Locations</strong></td>
+<td>Network access from private location hosts to target tenant</td>
+</tr>
+<tr>
+<td><strong>Extension Host</strong></td>
+<td>ActiveGate group for remote extensions; SQL extensions may alternatively run in Kubernetes via Dynatrace Operator — verify per extension</td>
+</tr>
+</tbody>
+</table>
+<h3>Order of Operations</h3>
+<p>This notebook covers <strong>operations 7–8</strong> of the Upgrade phase:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Operation</th>
+<th>Section</th>
+<th>Dependency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Provision target tenant and configure SSO/IAM</td>
+<td>Step 4</td>
+<td>Step 3 design deliverables</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Export configuration from source tenant</td>
+<td>Step 4</td>
+<td>Source tenant access</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Deploy ActiveGates and prepare K8s operators</td>
+<td>Step 4</td>
+<td>Target tenant provisioned</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Import configuration to target tenant</td>
+<td>Step 5</td>
+<td>Operations 1–3 complete</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Redirect agents to target tenant</td>
+<td>Step 5</td>
+<td>Configuration imported</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Validate data flow in target tenant</td>
+<td>Step 5</td>
+<td>Agents redirected</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td><strong>Reconnect cloud integrations</strong></td>
+<td>Sections 1–2</td>
+<td>Agents reporting</td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td><strong>Migrate dashboards, workflows, and extensions</strong></td>
+<td>Sections 3–7</td>
+<td>Integrations connected</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Bold</strong> operations are covered in this notebook. Operations 1–6 were completed in Steps 4 and 5.</p>
+</blockquote>
+<p><a id="cloud-integration-migration"></a></p>
+<h2>1. Cloud Integration Migration</h2>
+<p>Cloud connections are tenant-specific. Credentials, trust relationships and monitoring scopes are recreated in the target — Monaco can deploy cloud integration <strong>configurations</strong> but <strong>cannot export credentials</strong>.</p>
+<p>Two generations of cloud monitoring exist, and this section is written <strong>Latest first</strong>:</p>
+<ul>
+<li><strong>Latest Dynatrace — Cloud Platform Monitoring</strong> (AWS and Azure connections, viewed in the Clouds app). Polling runs inside Dynatrace SaaS: <em>&quot;no need to deploy ActiveGate compute resources for metric polling&quot;</em>.</li>
+<li><strong>Dynatrace Classic integrations</strong> — the fallback, marked as such below, for a target that cannot use the Latest connection yet.</li>
+</ul>
+<h3>Azure — Azure Cloud Platform Monitoring (Latest)</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Target action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Azure connection</strong></td>
+<td>Create a new connection <strong>from the target</strong>, with a <strong>new, dedicated</strong> service principal — never the source environment's principal</td>
+</tr>
+<tr>
+<td><strong>Metrics and topology</strong></td>
+<td>Polled by Dynatrace SaaS; no ActiveGate is deployed for polling</td>
+</tr>
+<tr>
+<td><strong>Logs</strong></td>
+<td>SaaS-based ingest via Azure Event Hubs — activity logs, resource logs, Entra ID audit logs, Defender for Cloud alerts. Microsoft 365 workload audit is collected separately — see the note below</td>
+</tr>
+<tr>
+<td><strong>Events</strong></td>
+<td>Event Grid system topics forwarding resource lifecycle events</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>A Microsoft 365 audit collector moves on its own.</strong> If the source collects Exchange, SharePoint or Teams audit through the Office 365 Management Activity API (FAQ-27), that collector is not part of the Azure connection and is not recreated with it. Point its ingest URL and token at the target, and keep its checkpoint: FAQ-27's collectors restart at the last 24 hours without one. Move the bucket, pipeline and masking rules it relies on with the rest of the log configuration.</p>
+</blockquote>
+<blockquote>
+<p><strong>Do not monitor a subscription twice.</strong> The Azure connection docs: <em>&quot;Do not onboard Azure subscriptions already monitored by the classic Azure integration, and avoid monitoring the same subscription across multiple Azure connections—both increase the risk of API throttling and service interruptions.&quot;</em> In a tenant move, that rules out a long overlap in which both the source and the target poll the same subscription. Switch <strong>per subscription</strong>: create the target's connection for a subscription, confirm its resources appear in the target, then remove that subscription from the source's integration (classic or Latest) in the same change window.</p>
+</blockquote>
+<h3>AWS — AWS Cloud Platform Monitoring (Latest)</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Target action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AWS connection</strong></td>
+<td>Create a new connection <strong>from the target</strong>; it is deployed through CloudFormation into each monitored account</td>
+</tr>
+<tr>
+<td><strong>Metrics and topology</strong></td>
+<td>Polled by Dynatrace SaaS; no ActiveGate is deployed for polling</td>
+</tr>
+<tr>
+<td><strong>Logs</strong></td>
+<td>Subscribe CloudWatch log groups to the Firehose streams the target's connection generates</td>
+</tr>
+</tbody>
+</table>
+<p>The AWS onboarding page read for this update carries no equivalent of the Azure double-monitoring warning. Treat a period in which both environments poll the same AWS account as something to keep short and to confirm with your Dynatrace account team (cost and API quota), not as a documented limit either way.</p>
+<blockquote>
+<p><strong>Retiring AWS for Azure?</strong> The target needs its <strong>own</strong> AWS connection for the transition — AWS workloads keep running until their wave moves, and they must be visible in the target before the source environment can go. That AWS connection is itself decommissioned last. <strong>S2S-94</strong> is the ordered runbook.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/azure-onboarding">Azure Cloud Platform Monitoring (DT docs)</a> — <em>&quot;The new Azure Cloud Platform Monitoring is fully managed by Dynatrace SaaS—no need to deploy ActiveGate compute resources for metric polling within your Azure environment.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services/create-an-azure-connection">Create your first Azure connection (DT docs)</a> — <em>&quot;Use a dedicated service principal exclusively for Dynatrace. Do not share it across Dynatrace environments or use it for other non-Dynatrace workloads.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services/aws-onboarding">AWS Cloud Platform Monitoring (DT docs)</a> — <em>&quot;All AWS connection creation methods are powered by CloudFormation as Infrastructure-as-Code (IaC) engine.&quot;</em>; <em>&quot;Subscribe CloudWatch log groups to auto-generated Firehose streams for immediate ingestion and analysis.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<h3>Classic Fallback — Dynatrace Classic Integrations</h3>
+<p>Use these only where the target cannot use the Latest connections yet.</p>
+<p><strong>AWS (classic):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Source</th>
+<th>Target Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>IAM Role</strong></td>
+<td><code>arn:aws:iam::role/DynatraceMonitoring</code></td>
+<td>Create new role with target tenant external ID in trust policy</td>
+</tr>
+<tr>
+<td><strong>CloudWatch metrics</strong></td>
+<td>Configured per region</td>
+<td>Recreate with same region scope</td>
+</tr>
+<tr>
+<td><strong>Log Forwarder</strong></td>
+<td>Lambda function forwarding CloudWatch Logs</td>
+<td>Deploy new Lambda stack with target tenant ingest URL</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Principal&quot;: {
+        &quot;AWS&quot;: &quot;arn:aws:iam::&lt;dynatrace-aws-account-id-from-connection-wizard&gt;:root&quot;
+      },
+      &quot;Action&quot;: &quot;sts:AssumeRole&quot;,
+      &quot;Condition&quot;: {
+        &quot;StringEquals&quot;: {
+          &quot;sts:ExternalId&quot;: &quot;&lt;target-tenant-external-id&gt;&quot;
+        }
+      }
+    }
+  ]
+}
+</code></pre>
+<blockquote>
+<p><strong>Copy the principal and external ID from the target tenant's AWS connection setup</strong> — an IAM principal ARN needs the 12-digit account ID (<code>arn:aws:iam::&lt;account-id&gt;:root</code>), and AWS rejects a policy without it. See <strong>CLOUD-02</strong> for the connection model. The external ID changes per tenant; remove the source tenant's external ID after validation.</p>
+</blockquote>
+<p><strong>Azure (classic):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Source</th>
+<th>Target Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Service principal</strong></td>
+<td>App registration used by the classic integration</td>
+<td>Create a new one for the target</td>
+</tr>
+<tr>
+<td><strong>Azure Monitor</strong></td>
+<td>Subscription-scoped metrics</td>
+<td>Configure the same subscriptions in the target — then remove them from the source (no double monitoring)</td>
+</tr>
+<tr>
+<td><strong>Log forwarder</strong></td>
+<td>Classic Azure log forwarder</td>
+<td>Redeploy pointing at the target. It ingests directly through the Cluster API by default; an ActiveGate is needed only if you choose not to use direct ingest</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Classic log-forwarder cut-over timing.</strong> <em>&quot;Logs older than 24 hours are rejected (considered too old by the Dynatrace log ingest endpoint).&quot;</em> A forwarder repointed more than a day after its logs were produced cannot backfill them — switch it inside the change window, not after an outage.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-integrations/set-up-log-forwarder-azure">Set up the Azure log forwarder (DT docs, Dynatrace Classic)</a> — <em>&quot;Azure log forwarding is performed directly through Cluster API. If you don't want to use direct ingest through the Cluster API, you have to use an existing ActiveGate for log ingestion.&quot;</em></sub></p>
+</blockquote>
+<h3>GCP Integration</h3>
+<p>Not re-verified in this update — see the CLOUD series for the current connection model.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Source</th>
+<th>Target Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Service Account</strong></td>
+<td>JSON key for Cloud Monitoring</td>
+<td>Generate new key for same service account, or create new SA</td>
+</tr>
+<tr>
+<td><strong>Pub/Sub</strong></td>
+<td>Log forwarding via Pub/Sub subscription</td>
+<td>Create new subscription for target tenant</td>
+</tr>
+<tr>
+<td><strong>Cloud Monitoring</strong></td>
+<td>Project-scoped metrics</td>
+<td>Configure same projects in target tenant</td>
+</tr>
+</tbody>
+</table>
+<h3>Validate Cloud Integration Data</h3>
+<p>After configuring cloud integrations in the target tenant, verify data is flowing:</p>
+<pre><code class="language-dql">// Target tenant: check for detected problems indicating integration issues
+//
+// Corrected 08/12/2026: the cell sorted by `timestamp` AFTER a `fields` projection that dropped it,
+// so it failed with FIELD_DOES_NOT_EXIST. dt.davis.problems does carry `timestamp` — `fields` had
+// simply removed it. Keep the sort key in the projection.
+fetch dt.davis.problems, from:-2h
+| filter contains(event.name, &quot;cloud&quot;) or contains(event.name, &quot;integration&quot;) or contains(event.name, &quot;AWS&quot;) or contains(event.name, &quot;Azure&quot;) or contains(event.name, &quot;GCP&quot;)
+| fields timestamp, display_id, event.name, event.status, event.category
+| sort timestamp desc
+| limit 10
+</code></pre>
+<pre><code class="language-dql">// Target tenant: verify deployment events are being captured
+fetch events, from:-24h
+| filter event.kind == &quot;DAVIS_EVENT&quot; and event.type == &quot;CUSTOM_DEPLOYMENT&quot;
+| summarize deployment_count = count()
+| fieldsAdd status = if(deployment_count &gt; 0, then: &quot;Deployment events flowing&quot;, else: &quot;No deployment events — check CI/CD integration&quot;)
+</code></pre>
+<p><a id="cloud-transformation-scenarios"></a></p>
+<h2>2. Cloud Transformation Scenarios</h2>
+<p>Two different changes hide under &quot;cloud transformation&quot; (<strong>S2S-01</strong> §1): the Dynatrace environment moving to a cluster on another cloud (a tenant move — this whole series), and the <strong>monitored workloads</strong> moving to another cloud. When the workloads move, not only the credentials change — the monitoring stack and the data it produces change too.</p>
+<h3>AWS → Azure Workloads (Latest Dynatrace)</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>AWS (leaving)</th>
+<th>Azure (arriving)</th>
+<th>Migration notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Connection</strong></td>
+<td>AWS connection (CloudFormation)</td>
+<td>Azure connection (dedicated service principal)</td>
+<td>Both exist on the target during the dual-cloud window</td>
+</tr>
+<tr>
+<td><strong>Cloud metrics</strong></td>
+<td><code>cloud.aws.*</code> — e.g. <code>cloud.aws.ec2.CPUUtilization.By.InstanceId</code></td>
+<td><code>cloud.azure.*</code> — e.g. <code>cloud.azure.microsoft_compute.virtualmachines.PercentageCPU</code></td>
+<td>Different keys and dimensions: cloud-metric tiles and detectors are <strong>rewritten</strong>, not remapped</td>
+</tr>
+<tr>
+<td><strong>Logs</strong></td>
+<td>Firehose</td>
+<td>Event Hubs</td>
+<td>New ingest path; OpenPipeline rules and bucket routing that match on the AWS source need an Azure equivalent</td>
+</tr>
+<tr>
+<td><strong>Container platform</strong></td>
+<td>EKS</td>
+<td>AKS</td>
+<td>A new DynaKube per AKS cluster; the Operator model is the same</td>
+</tr>
+<tr>
+<td><strong>Hosts (OneAgent)</strong></td>
+<td><code>cloud.provider == &quot;aws&quot;</code></td>
+<td><code>cloud.provider == &quot;azure&quot;</code></td>
+<td>Host-level queries and OneAgent metrics (<code>dt.host.*</code>) are unchanged across clouds</td>
+</tr>
+<tr>
+<td><strong>Serverless</strong></td>
+<td>Lambda</td>
+<td>Azure Functions</td>
+<td>Different resource types and metrics — plan per function</td>
+</tr>
+</tbody>
+</table>
+<p>The metric keys above were read with the <code>metrics</code> command on the validation tenant (09/28/2026).</p>
+<blockquote>
+<p><strong>Dashboard impact:</strong> plan to <strong>recreate</strong> cloud-specific dashboard tiles, not migrate them. Dashboards built on OneAgent data (<code>dt.host.*</code>, services, spans, logs) carry across clouds; dashboards built on <code>cloud.aws.*</code> metrics do not have an Azure equivalent key to remap to.</p>
+</blockquote>
+<h3>The Reverse Direction</h3>
+<p>Azure → AWS is the mirror image: create the AWS connection through CloudFormation, move log ingest from Event Hubs to Firehose, and rewrite <code>cloud.azure.*</code> tiles against <code>cloud.aws.*</code>.</p>
+<h3>Validate Dual-Cloud Coverage</h3>
+<p>During the window, the target should see both clouds — through the connections (cloud resources) and through OneAgent (hosts):</p>
+<pre><code class="language-dql">// Target tenant: cloud resources per provider (connections) — run during the dual-cloud window
+smartscapeNodes &quot;*&quot;, from:-2h
+| filter startsWith(type, &quot;AWS_&quot;) or startsWith(type, &quot;AZURE_&quot;)
+| fieldsAdd provider = if(startsWith(type, &quot;AWS_&quot;), then: &quot;aws&quot;, else: &quot;azure&quot;)
+| summarize {resources = count(), resource_types = countDistinct(type)}, by:{provider}
+
+// A provider with zero resources means its connection is missing or not yet polling.
+// Pair it with the host query in S2S-94 (hosts by cloud.provider and region) to see OneAgent
+// coverage next to connection coverage.
+</code></pre>
+<p><a id="dashboard-migration"></a></p>
+<h2>3. Dashboard Migration</h2>
+<p>Dashboards were imported in Step 5 as part of the Monaco deploy. This section covers the post-import remediation required to make dashboards functional.</p>
+<h3>Dashboard Types and Migration Path</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Monaco Type</th>
+<th>Migration Path</th>
+<th>Post-Import Work</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Classic dashboards</strong></td>
+<td><code>api</code> (dashboard)</td>
+<td>Monaco deploy</td>
+<td>Entity ID remapping, ownership reset</td>
+</tr>
+<tr>
+<td><strong>Gen3 dashboards</strong></td>
+<td><code>document</code></td>
+<td>Monaco deploy</td>
+<td>Search the exported <code>document</code> JSON for <code>HOST-</code>/<code>SERVICE-</code>/<code>PROCESS_GROUP-</code> literals (S2S-05 §4 grep) — DQL tiles that filter on entity IDs render empty after migration</td>
+</tr>
+<tr>
+<td><strong>Gen3 notebooks</strong></td>
+<td><code>document</code></td>
+<td>Monaco deploy</td>
+<td>Same entity-ID search as dashboards — a DQL cell filtering on an entity ID returns nothing, without an error</td>
+</tr>
+</tbody>
+</table>
+<h3>Entity ID Remediation</h3>
+<p>Classic dashboards frequently contain hardcoded entity IDs in tile filters. These must be updated to reference entities in the target tenant:</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Source</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tile entity filter</td>
+<td><code>entityId(&quot;HOST-1A2B3C4D&quot;)</code></td>
+<td><code>tag(&quot;env:production&quot;)</code></td>
+</tr>
+<tr>
+<td>SLO reference</td>
+<td><code>sloId(&quot;slo-abc-123&quot;)</code></td>
+<td>New SLO ID from target tenant</td>
+</tr>
+<tr>
+<td>Management zone filter</td>
+<td><code>mzId(12345)</code></td>
+<td>New MZ ID from target tenant</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Gen3 advantage — when the DQL is written for it:</strong> DQL that filters on names or tags survives migration; DQL that filters on entity IDs (<code>dt.entity.host == &quot;HOST-…&quot;</code>) does not, and fails silently. If you rebuild classic dashboards as Gen3 documents, filter on names or tags rather than remapping entity IDs.</p>
+</blockquote>
+<h3>Ownership Reset</h3>
+<p>Dashboards imported via Monaco are owned by the API token user. Reassign ownership to the appropriate teams:</p>
+<table>
+<thead>
+<tr>
+<th>Dashboard Category</th>
+<th>New Owner</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Platform overview</td>
+<td>Platform team</td>
+<td>Manual reassignment in UI</td>
+</tr>
+<tr>
+<td>Application dashboards</td>
+<td>App team leads</td>
+<td>Manual reassignment in UI</td>
+</tr>
+<tr>
+<td>Executive dashboards</td>
+<td>Dashboard admin group</td>
+<td>Manual reassignment in UI</td>
+</tr>
+<tr>
+<td>Shared dashboards</td>
+<td>Set to &quot;shared&quot; visibility</td>
+<td>Bulk update via API</td>
+</tr>
+</tbody>
+</table>
+<p><a id="workflow-migration"></a></p>
+<h2>4. Workflow Migration</h2>
+<p>Workflows (Dynatrace Workflows, formerly AutomationEngine) require special handling because they contain actor permissions, triggers, and external integrations that are tenant-specific.</p>
+<h3>Workflow Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Portable?</th>
+<th>Migration Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Workflow definition</strong></td>
+<td>Yes</td>
+<td>Export via Monaco (<code>automation</code>) or Terraform</td>
+</tr>
+<tr>
+<td><strong>Trigger configuration</strong></td>
+<td>Partial</td>
+<td>Dynatrace Intelligence triggers reference entity IDs — update selectors</td>
+</tr>
+<tr>
+<td><strong>Actor permissions</strong></td>
+<td>No</td>
+<td>Reassign actor (the identity that executes the workflow) in target tenant</td>
+</tr>
+<tr>
+<td><strong>External connections</strong></td>
+<td>No</td>
+<td>Webhook URLs, API keys, OAuth tokens must be recreated</td>
+</tr>
+<tr>
+<td><strong>JavaScript/Python actions</strong></td>
+<td>Yes</td>
+<td>Code is portable; external URLs may need updating</td>
+</tr>
+</tbody>
+</table>
+<h3>Terraform Export/Import</h3>
+<pre><code class="language-bash"># Export workflows from the source tenant (source-tenant credentials in the environment).
+# The workflow resource is excluded from a default export, so name it explicitly.
+terraform-provider-dynatrace -export dynatrace_automation_workflow
+
+# Edit the generated configuration for the target tenant:
+# - Change trigger entity selectors
+# - Update webhook URLs and connection references
+# - Reassign actor
+
+# Apply with target-tenant credentials
+terraform init &amp;&amp; terraform apply
+</code></pre>
+<p><code>terraform import</code> is not an export: it binds an existing object into Terraform state and writes no configuration, so importing from the source and applying to the target copies nothing. The provider's <code>-export</code> mode writes the configuration.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/automation_workflow.md">dynatrace_automation_workflow (Dynatrace GitHub)</a> — <em>&quot;This resource is excluded by default in the export utility, please explicitly specify the resource to retrieve existing configuration.&quot;</em></sub></p>
+</blockquote>
+<h3>Trigger Reconfiguration</h3>
+<table>
+<thead>
+<tr>
+<th>Trigger Type</th>
+<th>Migration Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>detected problem</strong></td>
+<td>Update entity selectors (replace hardcoded IDs with tags)</td>
+</tr>
+<tr>
+<td><strong>Event</strong></td>
+<td>Update event type filters if namespace/service names changed</td>
+</tr>
+<tr>
+<td><strong>Schedule (cron)</strong></td>
+<td>Port as-is — cron expressions are tenant-independent</td>
+</tr>
+<tr>
+<td><strong>Manual</strong></td>
+<td>Port as-is</td>
+</tr>
+</tbody>
+</table>
+<h3>Actor Permissions</h3>
+<p>Every workflow has an <strong>actor</strong> — the identity (user or service account) under which the workflow executes. The actor is authorized by IAM policies in the target tenant, not by token scopes:</p>
+<pre><code>Source actor: user@company.com (admin in source tenant)
+Target actor: Same user, or dedicated service account
+Required access: IAM permissions for each action the workflow runs (see the IAM series)
+</code></pre>
+<blockquote>
+<p><strong>Best practice:</strong> Use a dedicated <strong>service account</strong> as the workflow actor instead of a personal user account. Service accounts survive employee turnover and can be scoped precisely.</p>
+</blockquote>
+<p><a id="notification-integration-migration"></a></p>
+<h2>5. Notification Integration Migration</h2>
+<p>Notification integrations connect Dynatrace alerting to external systems. Each integration type has different migration requirements.</p>
+<h3>Integration Type Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Integration</th>
+<th>Configuration Migrated via Monaco?</th>
+<th>Credential Update Required?</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Email</strong></td>
+<td>Yes</td>
+<td>No</td>
+<td>Recipient addresses are portable</td>
+</tr>
+<tr>
+<td><strong>Slack</strong></td>
+<td>Yes (structure)</td>
+<td>Yes</td>
+<td>Webhook URL must be updated to new channel/workspace</td>
+</tr>
+<tr>
+<td><strong>Microsoft Teams</strong></td>
+<td>Yes (structure)</td>
+<td>Yes</td>
+<td>Incoming webhook URL must be recreated</td>
+</tr>
+<tr>
+<td><strong>PagerDuty</strong></td>
+<td>Yes (structure)</td>
+<td>Yes</td>
+<td>Integration key must be updated</td>
+</tr>
+<tr>
+<td><strong>ServiceNow</strong></td>
+<td>Yes (structure)</td>
+<td>Yes</td>
+<td>Instance URL, credentials must be updated</td>
+</tr>
+<tr>
+<td><strong>Webhook (generic)</strong></td>
+<td>Yes (structure)</td>
+<td>Yes</td>
+<td>URL and auth headers must be verified</td>
+</tr>
+<tr>
+<td><strong>Jira</strong></td>
+<td>Yes (structure)</td>
+<td>Yes</td>
+<td>Project keys and credentials must be updated</td>
+</tr>
+<tr>
+<td><strong>OpsGenie</strong></td>
+<td>Yes (structure)</td>
+<td>Yes</td>
+<td>API key must be updated</td>
+</tr>
+</tbody>
+</table>
+<h3>Update Checklist</h3>
+<p>For each notification integration:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Verify integration was imported by Monaco</td>
+<td>Integration visible in target tenant UI</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Update credentials/API keys</td>
+<td>Store in credential vault</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Update webhook URLs if environment-specific</td>
+<td>Test URL is reachable</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Send test notification</td>
+<td>Verify delivery in target system</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Validate alerting profile linkage</td>
+<td>Profile references correct notification</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Test every notification channel.</strong> Send a test alert from the target tenant to each notification integration. Do not assume that a successful import means the notification will work — credentials, URLs, and permissions may have changed.</p>
+</blockquote>
+<p><a id="synthetic-monitor-migration"></a></p>
+<h2>6. Synthetic Monitor Migration</h2>
+<p>Synthetic monitors are imported via Monaco but require post-import validation for location assignments and credential references.</p>
+<h3>Monitor Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Monaco Migration</th>
+<th>Post-Import Work</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HTTP monitors</strong></td>
+<td>Full export/import</td>
+<td>Update credential vault references</td>
+</tr>
+<tr>
+<td><strong>Browser monitors</strong></td>
+<td>Full export/import</td>
+<td>Verify script actions still work</td>
+</tr>
+<tr>
+<td><strong>Browser click-path</strong></td>
+<td>Full export/import</td>
+<td>Re-record if target application URL changed</td>
+</tr>
+</tbody>
+</table>
+<h3>Location Assignment</h3>
+<table>
+<thead>
+<tr>
+<th>Location Type</th>
+<th>Migration Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Public locations</strong></td>
+<td>Global — same location IDs across tenants. Port as-is.</td>
+</tr>
+<tr>
+<td><strong>Private locations</strong></td>
+<td>Tenant-specific. Deploy new private location AG in target tenant.</td>
+</tr>
+</tbody>
+</table>
+<h3>Private Location Migration</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Create private synthetic location in target tenant UI</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Deploy ActiveGate with synthetic capability at that location</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Update monitor location assignments to use new location ID</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Verify monitors execute from the new location</td>
+</tr>
+</tbody>
+</table>
+<h3>Validate Synthetic Monitors</h3>
+<p>After migration, verify synthetic monitors are executing in the target tenant:</p>
+<pre><code class="language-dql">// Target tenant: count active synthetic monitors, by monitor type
+smartscapeNodes &quot;BROWSER_MONITOR&quot;
+| summarize monitor_count = count()
+| fieldsAdd monitor_type = &quot;browser&quot;
+| append [smartscapeNodes &quot;HTTP_MONITOR&quot; | summarize monitor_count = count() | fieldsAdd monitor_type = &quot;http&quot;]
+| append [smartscapeNodes &quot;NETWORK_AVAILABILITY_MONITOR&quot; | summarize monitor_count = count() | fieldsAdd monitor_type = &quot;network availability&quot;]
+| fieldsAdd validation = &quot;Compare each type against the source tenant count&quot;
+
+// Smartscape (preferred, verified 07/2026): dt.entity.synthetic_test maps to the BROWSER_MONITOR
+// node (individual steps are a separate BROWSER_MONITOR_STEP node). HTTP monitors are HTTP_MONITOR,
+// multi-protocol monitors NETWORK_AVAILABILITY_MONITOR, private locations SYNTHETIC_LOCATION. This
+// corrects an earlier note here that claimed no Smartscape equivalent existed. Unlike ActiveGate,
+// `fetch dt.entity.synthetic_test` does still work and remains a genuine fallback — it reads the
+// classic entity store, which can retain entities Smartscape (live topology) no longer lists.
+// Classic fallback: fetch dt.entity.synthetic_test | summarize monitor_count = count()
+// Count all three monitor types: a browser-only count passes a parity check even if no HTTP
+// or network availability monitor migrated.
+</code></pre>
+<p><a id="extension-migration"></a></p>
+<h2>7. Extension Migration</h2>
+<p>Extensions 2.0 provide monitoring for technologies not covered by OneAgent (databases, network devices, cloud APIs). Remote extensions run on an ActiveGate group; SQL monitoring extensions can alternatively run in Kubernetes through Dynatrace Operator.</p>
+<h3>Extension Migration Steps</h3>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Action</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Inventory extensions from source tenant</td>
+<td>List all active extensions and their versions</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Verify extension availability in target tenant</td>
+<td>Extensions are published to the Dynatrace Hub — verify same version exists</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Install extensions in target tenant</td>
+<td>Via Hub, API, or Terraform (<code>dynatrace_hub_extension_active_version</code>)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Configure monitoring settings</td>
+<td>Recreate endpoint configurations</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Assign to the ActiveGate group (or Kubernetes runtime) the extension supports</td>
+<td>Verify per extension</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Validate data collection</td>
+<td>Check for new metrics from extension</td>
+</tr>
+</tbody>
+</table>
+<h3>Extension Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Migration Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hub extensions</strong></td>
+<td>Install from Hub in target tenant — configuration is portable via Monaco</td>
+</tr>
+<tr>
+<td><strong>Custom extensions</strong></td>
+<td>Upload <code>.zip</code> to target tenant, recreate configuration</td>
+</tr>
+<tr>
+<td><strong>JMX extensions</strong></td>
+<td>Port JMX configuration file, update endpoint references</td>
+</tr>
+<tr>
+<td><strong>SNMP extensions</strong></td>
+<td>Port SNMP configuration, update device IP addresses if changed</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Plan the extension runtime per extension.</strong> Remote extensions run on an ActiveGate group; SQL monitoring extensions can alternatively run in Kubernetes through Dynatrace Operator (see the K8S series). Make sure the runtime each extension needs exists in the target tenant (as prepared in Step 4, Section 4). Monaco does not export extension installations; Terraform can install and activate them (<code>dynatrace_hub_extension_active_version</code>) and configure them (<code>dynatrace_hub_extension_v2_config</code>).</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/extensions">Extensions (DT docs)</a> — <em>&quot;Run SQL monitoring extensions on Kubernetes using Dynatrace Operator.&quot;</em>, <a href="https://github.com/dynatrace-oss/terraform-provider-dynatrace/blob/main/docs/resources/hub_extension_active_version.md">dynatrace_hub_extension_active_version (Dynatrace GitHub)</a> — <em>&quot;In case the extension has not yet gotten installed for the specified version the installation happens automatically.&quot;</em></sub></p>
+</blockquote>
+<p><a id="step-completion-checklist"></a></p>
+<h2>8. Step Completion Checklist</h2>
+<p>Before proceeding to Step 7 (Expand), verify all integration tasks are complete:</p>
+<table>
+<thead>
+<tr>
+<th>Deliverable</th>
+<th>Status</th>
+<th>Owner</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AWS connection created from the target</strong></td>
+<td>☐</td>
+<td>Cloud / Platform</td>
+<td>CloudFormation stack deployed per account (classic fallback: IAM role trust policy updated)</td>
+</tr>
+<tr>
+<td><strong>Azure connection created from the target</strong></td>
+<td>☐</td>
+<td>Cloud / Platform</td>
+<td>Dedicated service principal; each subscription removed from the source in the same window (no double monitoring)</td>
+</tr>
+<tr>
+<td><strong>GCP integration configured</strong></td>
+<td>☐</td>
+<td>Cloud / Platform</td>
+<td>Service account key generated, Cloud Monitoring connected</td>
+</tr>
+<tr>
+<td><strong>Log ingest active</strong></td>
+<td>☐</td>
+<td>Cloud / Platform</td>
+<td>Firehose (AWS) / Event Hubs (Azure) / Pub/Sub (GCP) sending to the target; classic forwarders switched inside the 24-hour window</td>
+</tr>
+<tr>
+<td><strong>Classic dashboards remediated</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Entity IDs remapped, ownership reassigned</td>
+</tr>
+<tr>
+<td><strong>Gen3 dashboards validated</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>DQL queries returning data</td>
+</tr>
+<tr>
+<td><strong>Workflows migrated</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Actors assigned, triggers reconfigured</td>
+</tr>
+<tr>
+<td><strong>Notification integrations tested</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Test alert sent to each channel</td>
+</tr>
+<tr>
+<td><strong>Synthetic monitors executing</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>All monitors running from correct locations</td>
+</tr>
+<tr>
+<td><strong>Extensions installed and collecting</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>Extension metrics visible in target tenant</td>
+</tr>
+<tr>
+<td><strong>No critical detected problems</strong></td>
+<td>☐</td>
+<td>Platform</td>
+<td>All migration-related problems resolved or documented</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Phase transition:</strong> Completing this checklist ends the <strong>Upgrade</strong> phase. The target tenant is now fully operational. The <strong>Run</strong> phase (Steps 7–9) focuses on expanding agent coverage, enabling teams, and optimizing the target tenant.</p>
+</blockquote>
+<hr />
+<h2>Next Step</h2>
+<p>Continue to <strong>S2S-07: Step 7 — Expand: Agent Rollout and Coverage</strong> to expand agent coverage to remaining hosts, enable team access, and begin the Run phase.</p>
+<table>
+<thead>
+<tr>
+<th>Completed</th>
+<th>Next</th>
+<th>Remaining</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><s>1. Discover</s> → <s>2. Strategize</s> → <s>3. Design</s> → <s>4. Prepare</s> → <s>5. Execute</s> → <s>6. Integrate</s></td>
+<td><strong>7. Expand</strong></td>
+<td>8. Enable → 9. Optimize</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIZEV-01: Business Events Fundamentals</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">BIZEV — Business Events &amp; Funnel Analysis</a><span class="sep">/</span><span aria-current="page">BIZEV-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>BIZEV-01: Business Events Fundamentals</h1>
+<blockquote>
+<p><strong>Series:</strong> BIZEV — Business Events &amp; Funnel Analysis | <strong>Notebook:</strong> 1 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/25/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Business events are purpose-built telemetry that captures meaningful business transactions — purchases, logins, form submissions, API calls — as first-class observability data in Dynatrace Grail. Unlike generic events or logs that focus on infrastructure health, business events (<code>bizevents</code>) tie technical signals directly to business outcomes. This notebook introduces the business events data model, explains how they differ from generic events, and demonstrates the core DQL patterns for exploring business event data.</p>
+<h3>Primary Fields on Business Events (OneAgent 1.333+)</h3>
+<p>OneAgent can stamp <strong>primary Grail fields and primary tags</strong> onto the telemetry it sends — metrics, spans, logs, events and entities — and Dynatrace's own example queries business events by them (<code>fetch bizevents | filter dt.cost.costcenter == &quot;payments&quot;</code>). For BIZEV authors this means:</p>
+<ul>
+<li><strong><code>dt.security_context</code></strong> rides on business events from OneAgent-instrumented sources — useful when business events carry data subject to regulatory boundaries (PCI, GDPR, SOX). Record-level permissions can be conditioned on this field directly without OpenPipeline parsing.</li>
+<li><strong><code>dt.cost.costcenter</code> / <code>dt.cost.product</code></strong> and customer-defined <code>primary_tags.*</code> ride along too — funnel and conversion dashboards can segment by cost center or product line without per-event tagging in application code.</li>
+<li>For business events sent through the HTTP API or the RUM/mobile APIs (not OneAgent-captured), add equivalent fields at ingest with a processor in the OpenPipeline Processing stage.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent (DT docs)</a> — <em>&quot;OneAgent can enrich telemetry data at the source with custom metadata before sending metrics, spans, logs, events, and entities.&quot;</em></sub></p>
+</blockquote>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#what-are-business-events">What Are Business Events?</a></li>
+<li><a href="#business-events-vs-generic-events">Business Events vs Generic Events</a></li>
+<li><a href="#the-bizevents-data-model">The Bizevents Data Model</a></li>
+<li><a href="#ingestion-methods">Ingestion Methods</a></li>
+<li><a href="#exploring-business-events-with-dql">Exploring Business Events with DQL</a></li>
+<li><a href="#event-providers-and-categories">Event Providers and Categories</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:events:read</code>, <code>storage:bizevents:read</code></td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>Business events being ingested (OneAgent auto-capture or API)</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Basic DQL query skills</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Running Dynatrace Managed, or a SaaS tenant still operated through the classic (Gen2) experience?</strong> Business events require Grail and are SaaS-only — but a Grail-enabled SaaS tenant can adopt them today with a minimal Gen3 footprint (new Dashboards/Notebooks for this one workload, everything else stays classic), and Managed environments have documented classic approximations. See <strong>BIZEV-07: Gen2 vs Gen3 — Business Events Without (or Before) the Full Move</strong> before deciding this series doesn't apply to you.</p>
+</blockquote>
+<p><a id="what-are-business-events"></a></p>
+<h2>1. What Are Business Events?</h2>
+<p>A <strong>business event</strong> represents a discrete business transaction or user action that has direct business meaning. Examples include:</p>
+<ul>
+<li>A customer completing a purchase</li>
+<li>A user logging into a portal</li>
+<li>A payment being processed</li>
+<li>An order being shipped</li>
+<li>A search query being executed</li>
+</ul>
+<p>Business events are stored in the <code>bizevents</code> data object in Dynatrace Grail. They carry a structured schema that includes:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event.type</code></td>
+<td>The business event type identifier</td>
+<td><code>com.myapp.purchase.completed</code></td>
+</tr>
+<tr>
+<td><code>event.provider</code></td>
+<td>The source system or application</td>
+<td><code>www.easytravel.com</code></td>
+</tr>
+<tr>
+<td><code>event.category</code></td>
+<td>Optional significance category (ITIL event management)</td>
+<td><code>Availability</code></td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td>When the event occurred</td>
+<td><code>2026-03-12T10:30:00Z</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Business events can also carry arbitrary custom attributes as part of their payload — product IDs, order amounts, user segments, geographic data, and more.</p>
+</blockquote>
+<p>Let's start by fetching recent business events to see what data is available in your environment.</p>
+<pre><code class="language-dql">// Fetch the most recent business events to explore available data
+fetch bizevents, from:-24h
+| sort timestamp desc
+| limit 20
+</code></pre>
+<p><a id="business-events-vs-generic-events"></a></p>
+<h2>2. Business Events vs Generic Events</h2>
+<p>Dynatrace has two distinct event data objects. Understanding the difference is critical for choosing the right approach.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Business Events (<code>bizevents</code>)</th>
+<th>Generic Events (<code>events</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Purpose</strong></td>
+<td>Business transactions and user actions</td>
+<td>Infrastructure and operational signals</td>
+</tr>
+<tr>
+<td><strong>Schema</strong></td>
+<td><code>event.type</code>, <code>event.provider</code>, custom payload</td>
+<td><code>event.kind</code>, <code>event.type</code>, DT-enriched</td>
+</tr>
+<tr>
+<td><strong>Sources</strong></td>
+<td>OneAgent auto-capture, API, OpenPipeline</td>
+<td>OneAgent, Extensions, Dynatrace Intelligence</td>
+</tr>
+<tr>
+<td><strong>Typical use</strong></td>
+<td>Funnel analysis, revenue tracking, KPIs</td>
+<td>Alerting, incident management</td>
+</tr>
+<tr>
+<td><strong>Retention</strong></td>
+<td>Configurable via Grail buckets</td>
+<td>Configurable via Grail buckets</td>
+</tr>
+<tr>
+<td><strong>DQL table</strong></td>
+<td><code>fetch bizevents</code></td>
+<td><code>fetch events</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> Do not confuse <code>bizevents</code> with <code>events</code>. They are separate data objects with different schemas and use cases. Business events are designed for business analytics; generic events are designed for operational monitoring.</p>
+</blockquote>
+<pre><code class="language-dql">// Compare the volume of business events vs generic events
+fetch bizevents, from:-24h
+| summarize bizevent_count = count()
+| append [
+    fetch events, from:-24h
+    | summarize generic_event_count = count()
+  ]
+</code></pre>
+<p><a id="the-bizevents-data-model"></a></p>
+<h2>3. The Bizevents Data Model</h2>
+<p>Every business event in Grail follows a standard schema with required and optional fields.</p>
+<h3>Required Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event.type</code></td>
+<td>string</td>
+<td>Unique identifier for the event type</td>
+</tr>
+<tr>
+<td><code>event.provider</code></td>
+<td>string</td>
+<td>Source application or system</td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td>timestamp</td>
+<td>When the event occurred</td>
+</tr>
+</tbody>
+</table>
+<h3>Common Optional Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event.category</code></td>
+<td>string</td>
+<td>Significance of the event per the ITIL event management standard (e.g., <code>Availability</code>)</td>
+</tr>
+<tr>
+<td><code>event.group</code></td>
+<td>string</td>
+<td>Sub-grouping within a category</td>
+</tr>
+<tr>
+<td><code>dt.entity.service</code></td>
+<td>entity ID</td>
+<td>Associated service entity — <code>deprecated</code>; use <code>dt.smartscape.service</code></td>
+</tr>
+<tr>
+<td><code>dt.source_entity</code></td>
+<td>entity ID</td>
+<td>Entity that generated the event — <code>deprecated</code>; use <code>dt.smartscape_source.id</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>dt.entity.service</code> (<code>deprecated</code>), <code>dt.smartscape.service</code> (<code>stable</code>), <code>dt.source_entity</code> (<code>deprecated</code>), <code>dt.smartscape_source.id</code> (<code>stable</code>), <code>event.category</code> (<code>stable</code>), read 10/25/2026.</sub></p>
+</blockquote>
+<h3>Custom Payload Fields</h3>
+<p>Business events can carry any number of custom attributes. These are typically defined during instrumentation:</p>
+<pre><code class="language-yaml"># Example custom payload fields
+order_id: &quot;ORD-12345&quot;
+total_amount: 149.99
+currency: &quot;USD&quot;
+customer_segment: &quot;premium&quot;
+payment_method: &quot;credit_card&quot;
+</code></pre>
+<pre><code class="language-dql">// Explore the schema of business events — see all available fields
+fetch bizevents, from:-24h
+| limit 5
+| fieldsKeep event.type, event.provider, event.category, timestamp
+</code></pre>
+<pre><code class="language-dql">// Count distinct event types and providers to understand data diversity
+fetch bizevents, from:-24h
+| summarize {event_types = countDistinct(event.type),
+           providers = countDistinct(event.provider),
+           total_events = count()}
+</code></pre>
+<p><a id="ingestion-methods"></a></p>
+<h2>4. Ingestion Methods</h2>
+<p>Business events reach Dynatrace Grail through several ingestion pathways.</p>
+<h3>Method 1: OneAgent Auto-Capture</h3>
+<p>OneAgent can automatically capture business events from web requests when configured via <strong>business event capture rules</strong> in Settings. This requires:</p>
+<ul>
+<li>OneAgent deployed on the application host</li>
+<li>Capture rules defined in <strong>Settings &gt; Collect and Capture &gt; Business events</strong></li>
+<li>Request attributes or session properties mapped to event fields</li>
+</ul>
+<h3>Method 2: Business Events API</h3>
+<p>Send events directly via the Dynatrace API:</p>
+<pre><code class="language-bash">curl -X POST &quot;https://{your-environment}.live.dynatrace.com/api/v2/bizevents/ingest&quot; \
+  -H &quot;Authorization: Api-Token dt0c01.xxxxx&quot; \
+  -H &quot;Content-Type: application/cloudevents+json&quot; \
+  -d '{
+    &quot;specversion&quot;: &quot;1.0&quot;,
+    &quot;id&quot;: &quot;unique-event-id&quot;,
+    &quot;type&quot;: &quot;com.myapp.order.completed&quot;,
+    &quot;source&quot;: &quot;myapp-backend&quot;,
+    &quot;data&quot;: {
+      &quot;order_id&quot;: &quot;ORD-12345&quot;,
+      &quot;amount&quot;: 149.99
+    }
+  }'
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> The API expects <a href="https://cloudevents.io/">CloudEvents</a> format. The <code>type</code> field maps to <code>event.type</code> and <code>source</code> maps to <code>event.provider</code> in DQL.</p>
+</blockquote>
+<h3>Method 3: OpenPipeline Extraction from Logs and Spans</h3>
+<p>OpenPipeline can create business events from other telemetry: a <strong>Business event</strong> processor in the <strong>Data extraction</strong> stage of a logs or spans pipeline emits a new bizevent for each matching record. This is useful when business signals are embedded in existing telemetry.</p>
+<h3>Method 4: RUM and Mobile <code>sendBizEvent</code></h3>
+<p>Browser code sends business events through the RUM JavaScript API; the mobile agents and OpenKit offer equivalent methods:</p>
+<pre><code class="language-javascript">// Browser (RUM JavaScript API)
+dynatrace.sendBizEvent('com.myapp.checkout.completed', {
+  order_id: 'ORD-12345',
+  total: 149.99,
+  items: 3
+});
+</code></pre>
+<p>There is no OneAgent SDK method for business events; backend code without a capture rule uses the API (Method 2). Workflows can also emit business events with the <strong>Ingest business event</strong> action.</p>
+<pre><code class="language-dql">// Identify ingestion sources — which providers are sending business events?
+fetch bizevents, from:-24h
+| summarize event_count = count(), by:{event.provider}
+| sort event_count desc
+| limit 10
+</code></pre>
+<p><a id="exploring-business-events-with-dql"></a></p>
+<h2>5. Exploring Business Events with DQL</h2>
+<p>Now that we understand the data model, let's explore business events using core DQL patterns.</p>
+<h3>Count Events by Type</h3>
+<p>The most fundamental query — how many events of each type are being captured?</p>
+<pre><code class="language-dql">// Count business events by type over the last 24 hours
+fetch bizevents, from:-24h
+| summarize event_count = count(), by:{event.type}
+| sort event_count desc
+| limit 20
+</code></pre>
+<h3>Event Volume Over Time</h3>
+<p>Visualize how business event volume changes throughout the day. This helps identify peak business hours and detect anomalies.</p>
+<pre><code class="language-dql">// Business event volume over time, grouped by event type
+fetch bizevents, from:-24h
+| makeTimeseries event_count = count(), by:{event.type}, interval:1h
+</code></pre>
+<pre><code class="language-dql">// Total business event volume per hour (all types combined)
+fetch bizevents, from:-24h
+| makeTimeseries total_events = count(), interval:1h
+</code></pre>
+<p><a id="event-providers-and-categories"></a></p>
+<h2>6. Event Providers and Categories</h2>
+<p>Understanding which providers are sending events and how they are categorized helps organize your business analytics.</p>
+<pre><code class="language-dql">// Breakdown by provider and category
+fetch bizevents, from:-24h
+| summarize event_count = count(), by:{event.provider, event.category}
+| sort event_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Business events over time, grouped by provider
+fetch bizevents, from:-24h
+| makeTimeseries event_count = count(), by:{event.provider}, interval:1h
+</code></pre>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>7. Summary and Next Steps</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li><strong>What business events are</strong> and how they differ from generic events</li>
+<li><strong>The bizevents data model</strong> — required fields (<code>event.type</code>, <code>event.provider</code>) and custom payload</li>
+<li><strong>Four ingestion methods</strong> — OneAgent capture rules, API, OpenPipeline extraction, and the RUM/mobile APIs</li>
+<li><strong>Core DQL patterns</strong> for exploring business events: counting, grouping, and time-series visualization</li>
+</ul>
+<h3>Next Steps</h3>
+<ul>
+<li><strong>BIZEV-02: Instrumentation</strong> — Learn how to instrument your application to capture meaningful business events</li>
+<li><strong>BIZEV-03: Funnel Analysis</strong> — Build conversion funnels from business events</li>
+</ul>
+<h3>References</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/observe/business-observability">Dynatrace Business Analytics</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api">Environment API (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/business-observability/bo-events-capturing">Business event capture (DT docs)</a> — <em>&quot;Obtain RUM business events by leveraging a dedicated method of the RUM JavaScript API, OneAgent for Mobile, or OpenKit.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/javascriptapi/doc/types/dynatrace.html">RUM JavaScript API — dynatrace (DT docs)</a></li>
+<li><a href="https://cloudevents.io/">CloudEvents Specification</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

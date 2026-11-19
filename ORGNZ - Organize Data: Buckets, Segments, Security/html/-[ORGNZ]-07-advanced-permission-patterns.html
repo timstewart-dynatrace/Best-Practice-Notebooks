@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORGNZ-07: Advanced Permission Patterns</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ORGNZ — Organize Data: Buckets, Segments, Security</a><span class="sep">/</span><span aria-current="page">ORGNZ-07</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ORGNZ-07: Advanced Permission Patterns</h1>
+<blockquote>
+<p><strong>Series:</strong> ORGNZ — Organize Data: Buckets, Segments, Security | <strong>Notebook:</strong> 7 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/14/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook covers advanced permission patterns including record-level permissions, field-based access, and combining multiple access control mechanisms for enterprise-scale data governance.</p>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS environment with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td>Account admin or IAM policy management access</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Completed ORGNZ-06 (Security Context)</td>
+</tr>
+<tr>
+<td><strong>Data</strong></td>
+<td>At least 1 hour of log data</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#record-level-permissions">Record-Level Permissions</a></li>
+<li><a href="#record-level-policy-examples">Record-Level Policy Examples</a></li>
+<li><a href="#field-level-access">Field-Level Access</a></li>
+<li><a href="#combined-permission-patterns">Combined Permission Patterns</a></li>
+<li><a href="#policy-boundaries">Policy Boundaries</a></li>
+<li><a href="#enterprise-architecture-patterns">Enterprise Architecture Patterns</a></li>
+<li><a href="#testing-permissions">Testing Permissions</a></li>
+<li><a href="#best-practices">Best Practices</a></li>
+</ol>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Implement record-level permissions using various attributes</li>
+<li>Understand field-level access restrictions</li>
+<li>Use policy boundaries for reusable condition management</li>
+<li>Combine bucket, record, and field-level policies</li>
+<li>Design enterprise-scale permission architectures</li>
+</ul>
+<p><a id="record-level-permissions"></a></p>
+<h2>Record-Level Permissions</h2>
+<p>Record-level permissions filter data at query time based on record attributes:</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNDAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmdHcmFkNiIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJxdWVyeUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzNiODJmNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImV2YWxHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJmaWx0ZXJHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNmNTllMGIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJyZXN1bHRHcmFkNiIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzA1OTY2OSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InNoYWRvdzYiIHg9Ii0yMCUiIHk9Ii0yMCUiIHdpZHRoPSIxNDAlIiBoZWlnaHQ9IjE0MCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIyIiBkeT0iMiIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1vcGFjaXR5PSIwLjMiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjYmdHcmFkNikiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIzMDAiIHk9IjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjhmYWZjIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iNjAwIj5SZWNvcmQtTGV2ZWwgUGVybWlzc2lvbiBGbG93PC90ZXh0PgoKICA8IS0tIFVzZXIgUXVlcnkgLS0+CiAgPHJlY3QgeD0iMTc1IiB5PSI1MCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI1MCIgcng9IjgiIGZpbGw9InVybCgjcXVlcnlHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzYpIi8+CiAgPHRleHQgeD0iMzAwIiB5PSI3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPlVzZXIgUXVlcnk8L3RleHQ+CiAgPHRleHQgeD0iMzAwIiB5PSI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2JmZGJmZSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCI+ZmV0Y2ggbG9ncyB8IGxpbWl0IDEwMDwvdGV4dD4KCiAgPGxpbmUgeDE9IjMwMCIgeTE9IjEwMCIgeDI9IjMwMCIgeTI9IjEyNSIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cG9seWdvbiBwb2ludHM9IjMwMCwxMzUgMjkzLDEyNSAzMDcsMTI1IiBmaWxsPSIjNDc1NTY5Ii8+CgogIDwhLS0gSUFNIEV2YWx1YXRpb24gLS0+CiAgPHJlY3QgeD0iMTc1IiB5PSIxNDAiIHdpZHRoPSIyNTAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSJ1cmwoI2V2YWxHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzYpIi8+CiAgPHRleHQgeD0iMzAwIiB5PSIxNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNjAwIj5JQU0gUG9saWN5IEV2YWx1YXRpb248L3RleHQ+CgogIDxsaW5lIHgxPSIzMDAiIHkxPSIxODAiIHgyPSIzMDAiIHkyPSIyMDUiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBvbHlnb24gcG9pbnRzPSIzMDAsMjE1IDI5MywyMDUgMzA3LDIwNSIgZmlsbD0iIzQ3NTU2OSIvPgoKICA8IS0tIFJlY29yZCBGaWx0ZXIgQm94IC0tPgogIDxyZWN0IHg9IjEwMCIgeT0iMjIwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjEwMCIgcng9IjgiIGZpbGw9InVybCgjZmlsdGVyR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3c2KSIvPgogIDx0ZXh0IHg9IjMwMCIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjYwMCI+UmVjb3JkIEZpbHRlciBBcHBsaWVkPC90ZXh0PgoKICA8IS0tIEZpbHRlciBjb25kaXRpb25zIC0tPgogIDxyZWN0IHg9IjEyMCIgeT0iMjU1IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjI1IiByeD0iNCIgZmlsbD0iIzc4MzUwZiIvPgogIDx0ZXh0IHg9IjE3NSIgeT0iMjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmNkMzRkIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj7inJMgbmFtZXNwYWNlPC90ZXh0PgoKICA8cmVjdCB4PSIyNDUiIHk9IjI1NSIgd2lkdGg9IjExMCIgaGVpZ2h0PSIyNSIgcng9IjQiIGZpbGw9IiM3ODM1MGYiLz4KICA8dGV4dCB4PSIzMDAiIHk9IjI3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZjZDM0ZCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+4pyTIGhvc3QgZ3JvdXA8L3RleHQ+CgogIDxyZWN0IHg9IjM3MCIgeT0iMjU1IiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjI1IiByeD0iNCIgZmlsbD0iIzc4MzUwZiIvPgogIDx0ZXh0IHg9IjQyNyIgeT0iMjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmNkMzRkIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIj7inJMgc2VjdXJpdHkgY29udGV4dDwvdGV4dD4KCiAgPHRleHQgeD0iMzAwIiB5PSIzMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZWYzYzciIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPk9ubHkgbWF0Y2hpbmcgcmVjb3JkcyBwYXNzIHRocm91Z2g8L3RleHQ+CgogIDxsaW5lIHgxPSIzMDAiIHkxPSIzMjAiIHgyPSIzMDAiIHkyPSIzNDUiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBvbHlnb24gcG9pbnRzPSIzMDAsMzU1IDI5MywzNDUgMzA3LDM0NSIgZmlsbD0iIzQ3NTU2OSIvPgoKICA8IS0tIFJlc3VsdCAtLT4KICA8cmVjdCB4PSIxNTAiIHk9IjM2MCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzNSIgcng9IjgiIGZpbGw9InVybCgjcmVzdWx0R3JhZDYpIiBmaWx0ZXI9InVybCgjc2hhZG93NikiLz4KICA8dGV4dCB4PSIzMDAiIHk9IjM4MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI2MDAiPk9ubHkgYXV0aG9yaXplZCByZWNvcmRzIHJldHVybmVkPC90ZXh0Pgo8L3N2Zz4K" alt="Record-Level Permissions Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Action |
+|------|--------|
+| 1 | User Query: fetch logs |
+| 2 | IAM Policy Evaluation |
+| 3 | Record Filter (namespace, host group, security context) |
+| 4 | Only authorized records returned |
+For environments where SVG doesn't render
+-->
+<h3>Supported Record-Level Conditions</h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Description</th>
+<th>Example</th>
+<th>Tables it applies to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>storage:k8s.namespace.name</code></td>
+<td>Kubernetes namespace</td>
+<td><code>= 'production'</code></td>
+<td>events, security.events, bizevents, logs, metrics, spans, smartscape</td>
+</tr>
+<tr>
+<td><code>storage:k8s.cluster.name</code></td>
+<td>Kubernetes cluster</td>
+<td><code>= 'main-cluster'</code></td>
+<td>events, security.events, bizevents, logs, metrics, spans, smartscape</td>
+</tr>
+<tr>
+<td><code>storage:host.name</code></td>
+<td>Host name</td>
+<td><code>= 'web-server-01'</code></td>
+<td>events, security.events, bizevents, logs, metrics, spans, smartscape</td>
+</tr>
+<tr>
+<td><code>storage:dt.host_group.id</code></td>
+<td>Host group</td>
+<td><code>STARTSWITH 'prod-'</code></td>
+<td>events, security.events, bizevents, logs, metrics, spans, smartscape</td>
+</tr>
+<tr>
+<td><code>storage:aws.account.id</code></td>
+<td>AWS account</td>
+<td><code>= '123456789012'</code></td>
+<td>events, security.events, bizevents, logs, metrics, spans, smartscape</td>
+</tr>
+<tr>
+<td><code>storage:gcp.project.id</code></td>
+<td>GCP project</td>
+<td><code>= 'my-project'</code></td>
+<td>events, security.events, bizevents, logs, metrics, spans, smartscape</td>
+</tr>
+<tr>
+<td><code>storage:azure.subscription</code></td>
+<td>Azure subscription</td>
+<td><code>= 'sub-id'</code></td>
+<td>events, security.events, bizevents, logs, metrics, spans, smartscape</td>
+</tr>
+<tr>
+<td><code>storage:azure.resource.group</code></td>
+<td>Azure resource group</td>
+<td><code>= 'my-rg'</code></td>
+<td>events, security.events, bizevents, logs, metrics, spans, smartscape</td>
+</tr>
+<tr>
+<td><code>storage:dt.security_context</code></td>
+<td>Custom context</td>
+<td><code>MATCH ('team-*')</code></td>
+<td>events, security.events, bizevents, system, logs, metrics, spans, entities, smartscape, user.events, user.sessions</td>
+</tr>
+<tr>
+<td><code>storage:log.source</code></td>
+<td>Log source</td>
+<td><code>= '/var/log/audit/audit.log'</code></td>
+<td>logs</td>
+</tr>
+<tr>
+<td><code>storage:metric.key</code></td>
+<td>Metric key</td>
+<td><code>STARTSWITH 'dt.host.'</code></td>
+<td>metrics</td>
+</tr>
+<tr>
+<td><code>storage:event.kind</code></td>
+<td>Event kind</td>
+<td><code>= 'DAVIS_PROBLEM'</code></td>
+<td>events, security.events, bizevents, system</td>
+</tr>
+<tr>
+<td><code>storage:event.type</code></td>
+<td>Event type</td>
+<td><code>= 'CUSTOM_INFO'</code></td>
+<td>events, security.events, bizevents, system</td>
+</tr>
+<tr>
+<td><code>storage:event.provider</code></td>
+<td>Event provider</td>
+<td><code>= 'my-app'</code></td>
+<td>events, security.events, bizevents, system</td>
+</tr>
+<tr>
+<td><code>storage:frontend.name</code></td>
+<td>Frontend (RUM application) name</td>
+<td><code>= 'www.example.com'</code></td>
+<td>user.events, user.sessions, metrics, smartscape</td>
+</tr>
+</tbody>
+</table>
+<p>A condition only restricts the tables listed for it. <code>storage:log.source</code> is the natural condition for audit-log access — it scopes <code>storage:logs:read</code> to named log sources without a dedicated bucket.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a> — supported record-level fields and the tables each applies to, read 09/24/2026.</sub></p>
+</blockquote>
+<p><a id="record-level-policy-examples"></a></p>
+<h2>Record-Level Policy Examples</h2>
+<h3>Kubernetes Namespace Isolation</h3>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;production-namespace-access&quot;,
+  &quot;description&quot;: &quot;Access only to production namespace data&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH 'default_'; ALLOW storage:logs:read WHERE storage:k8s.namespace.name = 'production';&quot;
+}
+</code></pre>
+<h3>Host Group Based Access</h3>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;web-tier-access&quot;,
+  &quot;description&quot;: &quot;Access to web tier hosts only&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH 'default_'; ALLOW storage:logs:read, storage:metrics:read WHERE storage:dt.host_group.id STARTSWITH 'web-';&quot;
+}
+</code></pre>
+<h3>Combined Namespace and Host Group</h3>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;prod-web-tier-access&quot;,
+  &quot;description&quot;: &quot;Production web tier only&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH 'default_'; ALLOW storage:logs:read WHERE storage:k8s.namespace.name = 'production' AND storage:dt.host_group.id STARTSWITH 'web-';&quot;
+}
+</code></pre>
+<h3>Cloud Account Isolation</h3>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;aws-team-account-access&quot;,
+  &quot;description&quot;: &quot;Access to specific AWS account&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH 'default_'; ALLOW storage:logs:read, storage:metrics:read, storage:spans:read WHERE storage:aws.account.id = '123456789012';&quot;
+}
+</code></pre>
+<p><a id="field-level-access"></a></p>
+<h2>Field-Level Access</h2>
+<p>Field-level access in Grail uses <strong>fieldsets</strong>, not per-field permissions. A fieldset is a named group of sensitive fields, and reading those fields requires <code>storage:fieldsets:read</code> on that fieldset. A user without it does not get masked values — the fields are left out: <em>&quot;If you don't have sufficient permissions, sensitive fields won't be shown in the result.&quot;</em></p>
+<blockquote>
+<p><strong>Corrected 09/24/2026.</strong> Earlier versions of this notebook showed <code>DENY storage:logs:read:user.email</code> statements. There is no per-field permission suffix, and a policy written that way will not validate.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Fieldset</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>builtin-sensitive-spans</code></td>
+<td>Span fields considered sensitive</td>
+</tr>
+<tr>
+<td><code>builtin-request-attributes-spans</code></td>
+<td>Span fields holding request-attribute data marked sensitive</td>
+</tr>
+<tr>
+<td><code>builtin-sensitive-user-events-and-sessions</code></td>
+<td>Sensitive fields in <code>user.events</code> and <code>user.sessions</code></td>
+</tr>
+<tr>
+<td>Custom fieldset</td>
+<td>Fields you name, scoped to buckets or tables</td>
+</tr>
+</tbody>
+</table>
+<p><em>&quot;The predefined fieldsets apply to spans, user.events and user.sessions only. They don't apply to logs or events.&quot;</em> For log fields such as <code>user.email</code>, define a custom fieldset: <em>&quot;You can define your custom fieldsets, and to which scope they apply (either buckets, or tables, otherwise all buckets and tables).&quot;</em></p>
+<h3>Fieldset Policy Example</h3>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;sensitive-span-fields&quot;,
+  &quot;description&quot;: &quot;Allow reading the built-in sensitive span fields&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:fieldsets:read WHERE storage:fieldset-name = \&quot;builtin-sensitive-spans\&quot;;&quot;
+}
+</code></pre>
+<p>Grant this only to groups that need the fields; everyone else keeps <code>storage:spans:read</code> and does not see them. To mask PII <em>values</em> rather than hide whole fields, mask at capture or ingest (OneAgent or OpenPipeline masking) — see <strong>OPLOGS-08</strong>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/assign-permissions-in-grail">Permissions in Grail (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="combined-permission-patterns"></a></p>
+<h2>Combined Permission Patterns</h2>
+<h3>Pattern 1: Layered Access Control</h3>
+<p>Combine bucket and record-level permissions:</p>
+<pre><code>Layer 1: Bucket access
+  ALLOW storage:buckets:read WHERE bucket-name IN ('team_logs', 'shared_logs')
+
+Layer 2: Record filtering
+  ALLOW storage:logs:read WHERE k8s.namespace.name = 'team-namespace'
+
+Layer 3: Sensitive fields (optional, only for groups that need them)
+  ALLOW storage:fieldsets:read WHERE storage:fieldset-name = &quot;&lt;fieldset-name&gt;&quot;
+</code></pre>
+<h3>Pattern 2: Multi-Team Shared Bucket</h3>
+<p>Multiple teams share a bucket with security context isolation:</p>
+<pre><code class="language-json">// Team A policy
+{
+  &quot;name&quot;: &quot;team-a-shared-bucket&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name = 'shared_logs'; ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ('team-a*');&quot;
+}
+
+// Team B policy
+{
+  &quot;name&quot;: &quot;team-b-shared-bucket&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name = 'shared_logs'; ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ('team-b*');&quot;
+}
+</code></pre>
+<h3>Pattern 3: Environment-Based Tiering</h3>
+<pre><code class="language-json">// Production access (restricted)
+{
+  &quot;name&quot;: &quot;production-access&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH 'prod_'; ALLOW storage:logs:read WHERE storage:dt.security_context = 'env:production';&quot;
+}
+
+// Non-production access (broader)
+{
+  &quot;name&quot;: &quot;non-production-access&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH 'default_'; ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ('env:dev*', 'env:staging*', 'env:qa*');&quot;
+}
+</code></pre>
+<h3>Pattern 4: Multi-Dimensional MATCH() for Transversal Teams</h3>
+<p>When teams need access by component type (database, networking, OS) across multiple applications, encode multiple dimensions into the security context and use MATCH() to slice across application boundaries:</p>
+<pre><code class="language-json">// Database team: all DB-layer components across all applications (Grail)
+{
+  &quot;name&quot;: &quot;db-team-grail-access&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH 'default_'; ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ('comp:db*');&quot;
+}
+
+// Application team: all component layers for one application (Grail)
+{
+  &quot;name&quot;: &quot;easytrade-team-access&quot;,
+  &quot;statementQuery&quot;: &quot;ALLOW storage:buckets:read WHERE storage:bucket-name STARTSWITH 'default_'; ALLOW storage:logs:read WHERE storage:dt.security_context MATCH ('*/app:easytrade');&quot;
+}
+</code></pre>
+<blockquote>
+<p>MATCH() supports <code>*</code> wildcards at any position and is <strong>storage domain only</strong>. For Classic entity access (hosts, services), use <code>startsWith</code> per component type. The context format is <code>comp:&lt;component&gt;/bu:&lt;business-unit&gt;/app:&lt;application&gt;</code> — place the transversal dimension first so <code>startsWith</code> cuts correctly. See <strong>IAM-05: Boundary Design</strong> for the full two-domain pattern.</p>
+</blockquote>
+<p><a id="policy-boundaries"></a></p>
+<h2>Policy Boundaries</h2>
+<p><strong>Policy boundaries</strong> decouple the &quot;what&quot; (policy) from the &quot;where&quot; (conditions), enabling reusable condition sets that can be applied across multiple policies.</p>
+<h3>What Are Boundaries?</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Purpose</strong></td>
+<td>Bundle conditions for reuse across multiple policies</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>Record-level and resource-level restrictions</td>
+</tr>
+<tr>
+<td><strong>Relationship</strong></td>
+<td>Always used together with a policy — boundaries alone don't restrict anything</td>
+</tr>
+<tr>
+<td><strong>Limit</strong></td>
+<td>Maximum 10 restrictions per boundary</td>
+</tr>
+</tbody>
+</table>
+<h3>How Boundaries Work</h3>
+<p>While <strong>policies</strong> define <em>which features and data</em> users can access, <strong>boundaries</strong> define <em>where</em> users can access them:</p>
+<pre><code>Policy: ALLOW storage:logs:read, storage:metrics:read, storage:spans:read
+Boundary: storage:k8s.namespace.name = &quot;production&quot;
+           storage:dt.host_group.id STARTSWITH &quot;prod-&quot;
+</code></pre>
+<p>When assigned together, the boundary's conditions are added to the permissions they apply to. The Policy boundaries page does not state how two different lines in one boundary combine — it documents that <em>&quot;Only conditions added to service configuration will be applied to relative permissions&quot;</em> and that <em>&quot;When a boundary contains repeated condition names, then each policy statement is multiplied by such conditions.&quot;</em> Check the effective access on a test group before relying on a multi-line boundary. For a guaranteed AND of two conditions, write one policy statement with <code>AND</code>, or use policy templating.</p>
+<h3>Boundary Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No AND operator</td>
+<td><em>&quot;Boundaries don't support the AND operator, every line of a boundary can only consist of one condition.&quot;</em></td>
+</tr>
+<tr>
+<td>No logical operators</td>
+<td><em>&quot;One line per condition, no logical operators allowed.&quot;</em> For complex logic, use policy templating</td>
+</tr>
+<tr>
+<td>Reusable</td>
+<td>Same boundary can be applied to multiple policies</td>
+</tr>
+<tr>
+<td>Max 10 restrictions</td>
+<td>Create additional boundaries if more are needed</td>
+</tr>
+</tbody>
+</table>
+<h3>Creating Boundaries</h3>
+<ol>
+<li>Go to <strong>Account Management</strong> &gt; <strong>Identity &amp; access management</strong> &gt; <strong>Policy management</strong></li>
+<li>Select the <strong>Boundaries</strong> tab</li>
+<li>Select <strong>Create boundary</strong></li>
+<li>Enter boundary name and conditions (one per line)</li>
+<li>Save and assign to group policies</li>
+</ol>
+<h3>Example: Regional Boundary</h3>
+<pre><code># EU Region Boundary
+storage:bucket-name STARTSWITH &quot;eu_&quot;
+storage:azure.subscription = &quot;eu-subscription-id&quot;
+</code></pre>
+<p>This boundary can then be applied alongside any policy (logs access, metrics access, etc.). Each line restricts only the permissions it applies to, so confirm the effective access on a test group.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries">Policy boundaries (DT docs)</a> — all quotes in this section, read 10/14/2026.</sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Tip:</strong> Use boundaries when you have the same set of conditions (e.g., &quot;production only&quot; or &quot;EU region only&quot;) that need to apply to multiple policies. This avoids duplicating conditions across every policy definition.</p>
+</blockquote>
+<p><a id="enterprise-architecture-patterns"></a></p>
+<h2>Enterprise Architecture Patterns</h2>
+<h3>Tiered Access Model</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmdHcmFkNyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0aWVyMUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2RjMjYyNiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNiOTFjMWMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InRpZXIyR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjU5ZTBiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Q5NzcwNiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0idGllcjNHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMjU2M2ViIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0aWVyNEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzZiNzI4MCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM0YjU1NjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzaGFkb3c3IiB4PSItMjAlIiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMiIgZHk9IjIiIHN0ZERldmlhdGlvbj0iMyIgZmxvb2Qtb3BhY2l0eT0iMC4zIi8+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+CgogIDwhLS0gQmFja2dyb3VuZCAtLT4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2JnR3JhZDcpIi8+CgogIDwhLS0gVGl0bGUgLS0+CiAgPHRleHQgeD0iMzUwIiB5PSIzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9IjYwMCI+VGllcmVkIEFjY2VzcyBNb2RlbDwvdGV4dD4KCiAgPCEtLSBUaWVyIDE6IFBsYXRmb3JtIEFkbWlucyAtLT4KICA8cmVjdCB4PSI1MCIgeT0iNTUiIHdpZHRoPSI2MDAiIGhlaWdodD0iODAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3RpZXIxR3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3c3KSIvPgogIDx0ZXh0IHg9IjgwIiB5PSI4NSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIj5UaWVyIDE6IFBsYXRmb3JtIEFkbWluczwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iMTA1IiBmaWxsPSIjZmVjYWNhIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj7igKIgQWxsIGJ1Y2tldHMg4oCiIEFsbCBkYXRhIHR5cGVzIOKAoiBBbGwgcmVjb3JkczwvdGV4dD4KICA8cmVjdCB4PSI0NTAiIHk9IjcwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI1IiByeD0iNCIgZmlsbD0iIzdmMWQxZCIvPgogIDx0ZXh0IHg9IjU0MCIgeT0iODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmY2E1YTUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiPkFMTE9XIHN0b3JhZ2U6KjpyZWFkPC90ZXh0PgogIDx0ZXh0IHg9IjU0MCIgeT0iMTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmVmMmYyIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPkZ1bGwgYWNjZXNzPC90ZXh0PgoKICA8IS0tIFRpZXIgMjogVGVhbSBMZWFkcyAtLT4KICA8cmVjdCB4PSIxMDAiIHk9IjE0NSIgd2lkdGg9IjUwMCIgaGVpZ2h0PSI4MCIgcng9IjgiIGZpbGw9InVybCgjdGllcjJHcmFkKSIgZmlsdGVyPSJ1cmwoI3NoYWRvdzcpIi8+CiAgPHRleHQgeD0iMTMwIiB5PSIxNzUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iYm9sZCI+VGllciAyOiBUZWFtIExlYWRzPC90ZXh0PgogIDx0ZXh0IHg9IjEzMCIgeT0iMTk1IiBmaWxsPSIjZmVmM2M3IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj7igKIgRGVmYXVsdCArIHRlYW0gYnVja2V0cyDigKIgQWxsIGRhdGEgdHlwZXMg4oCiIFRlYW0gY29udGV4dDwvdGV4dD4KICA8cmVjdCB4PSI0MDAiIHk9IjE2MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIyNSIgcng9IjQiIGZpbGw9IiM3ODM1MGYiLz4KICA8dGV4dCB4PSI0OTAiIHk9IjE3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZjZDM0ZCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5Ij5jb250ZXh0IE1BVENIICgndGVhbS0qJyk8L3RleHQ+CiAgPHRleHQgeD0iNDkwIiB5PSIyMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmZiZWIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtc3R5bGU9Iml0YWxpYyI+VGVhbSBkYXRhIG9ubHk8L3RleHQ+CgogIDwhLS0gVGllciAzOiBEZXZlbG9wZXJzIC0tPgogIDxyZWN0IHg9IjE1MCIgeT0iMjM1IiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0idXJsKCN0aWVyM0dyYWQpIiBmaWx0ZXI9InVybCgjc2hhZG93NykiLz4KICA8dGV4dCB4PSIxODAiIHk9IjI2NSIgZmlsbD0id2hpdGUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIj5UaWVyIDM6IERldmVsb3BlcnM8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIyODUiIGZpbGw9IiNiZmRiZmUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPuKAoiBEZWZhdWx0IGJ1Y2tldHMg4oCiIExvZ3MgYW5kIHNwYW5zIOKAoiBPd24gbmFtZXNwYWNlPC90ZXh0PgogIDxyZWN0IHg9IjM1MCIgeT0iMjUwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjI1IiByeD0iNCIgZmlsbD0iIzFlM2E4YSIvPgogIDx0ZXh0IHg9IjQ0MCIgeT0iMjY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTNjNWZkIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjkiPm5hbWVzcGFjZSA9ICcke3VzZXIubnN9JzwvdGV4dD4KICA8dGV4dCB4PSI0NDAiIHk9IjMwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2VmZjZmZiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC1zdHlsZT0iaXRhbGljIj5OYW1lc3BhY2Ugc2NvcGVkPC90ZXh0PgoKICA8IS0tIFRpZXIgNDogUmVhZC1Pbmx5IFZpZXdlcnMgLS0+CiAgPHJlY3QgeD0iMjAwIiB5PSIzMjUiIHdpZHRoPSIzMDAiIGhlaWdodD0iODAiIHJ4PSI4IiBmaWxsPSJ1cmwoI3RpZXI0R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3c3KSIvPgogIDx0ZXh0IHg9IjIzMCIgeT0iMzU1IiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPlRpZXIgNDogUmVhZC1Pbmx5IFZpZXdlcnM8L3RleHQ+CiAgPHRleHQgeD0iMjMwIiB5PSIzNzUiIGZpbGw9IiNkMWQ1ZGIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPuKAoiBEZWZhdWx0IGJ1Y2tldHMg4oCiIExvZ3Mgb25seSDigKIgUHVibGljIGNvbnRleHQ8L3RleHQ+CiAgPHJlY3QgeD0iMzUwIiB5PSIzNDAiIHdpZHRoPSIxMzAiIGhlaWdodD0iMjUiIHJ4PSI0IiBmaWxsPSIjMzc0MTUxIi8+CiAgPHRleHQgeD0iNDE1IiB5PSIzNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5Y2EzYWYiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOSI+Y29udGV4dCA9ICdwdWJsaWMnPC90ZXh0PgogIDx0ZXh0IHg9IjQxNSIgeT0iMzk1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjNmNGY2IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXN0eWxlPSJpdGFsaWMiPlB1YmxpYyBvbmx5PC90ZXh0PgoKICA8IS0tIEFjY2VzcyBpbmRpY2F0b3IgYXJyb3dzIC0tPgogIDx0ZXh0IHg9IjMwIiB5PSI5NSIgZmlsbD0iI2ZjYTVhNSIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+4peAPC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iMzY1IiBmaWxsPSIjNmI3MjgwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij7ilrY8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjQxNSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+TW9yZSBBY2Nlc3M8L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSI0MTUiIGZpbGw9IiM2NDc0OGIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkxlc3MgQWNjZXNzPC90ZXh0Pgo8L3N2Zz4K" alt="Tiered Access Model" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Tier | Role | Access |
+|------|------|--------|
+| 1 | Platform Admins | All buckets, all data types, all records |
+| 2 | Team Leads | Default + team buckets, team context |
+| 3 | Developers | Default buckets, own namespace only |
+| 4 | Read-Only Viewers | Default buckets, public context only |
+For environments where SVG doesn't render
+-->
+<h3>Geographic/Regulatory Model</h3>
+<table>
+<thead>
+<tr>
+<th>Region</th>
+<th>Buckets</th>
+<th>Context</th>
+<th>Policy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EU</td>
+<td>eu_*</td>
+<td>region:eu</td>
+<td>bucket-name STARTSWITH 'eu_' AND security_context MATCH ('region:eu*')</td>
+</tr>
+<tr>
+<td>US</td>
+<td>us_*</td>
+<td>region:us</td>
+<td>bucket-name STARTSWITH 'us_' AND security_context MATCH ('region:us*')</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Tip:</strong> Use policy boundaries to define regional restrictions once, then apply the same boundary to all team policies within that region.</p>
+</blockquote>
+<p><a id="testing-permissions"></a></p>
+<h2>Testing Permissions</h2>
+<h3>DQL: Access Distribution Audit</h3>
+<p>Measure coverage of key access control fields across your log data:</p>
+<pre><code class="language-dql">// Verify accessible data distribution across all key access control dimensions
+fetch logs, from:-1h
+| summarize
+    total = count(),
+    withSecurityContext = countIf(isNotNull(dt.security_context)),
+    withNamespace = countIf(isNotNull(k8s.namespace.name)),
+    withHostGroup = countIf(isNotNull(dt.host_group.id))
+</code></pre>
+<p><a id="best-practices"></a></p>
+<h2>Best Practices</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Start with least privilege</td>
+<td>Grant minimum required access</td>
+</tr>
+<tr>
+<td>Use groups, not individuals</td>
+<td>Easier management, consistent access</td>
+</tr>
+<tr>
+<td>Use policy boundaries for reuse</td>
+<td>Avoid duplicating conditions across policies</td>
+</tr>
+<tr>
+<td>Document all policies</td>
+<td>Audit trail and governance</td>
+</tr>
+<tr>
+<td>Test policies before deployment</td>
+<td>Prevent access issues</td>
+</tr>
+<tr>
+<td>Regular access reviews</td>
+<td>Remove unnecessary permissions</td>
+</tr>
+<tr>
+<td>Use MATCH for array fields</td>
+<td>Required for correct evaluation</td>
+</tr>
+<tr>
+<td>Combine bucket + record level</td>
+<td>Defense in depth</td>
+</tr>
+</tbody>
+</table>
+<h2>Next Steps</h2>
+<p>Continue with the ORGNZ series:</p>
+<ul>
+<li><strong>ORGNZ-08</strong>: Grail Segments</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/organize-data/advanced-permission-setup">Configure advanced permissions with security context</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/iam-policy-boundaries">Policy boundaries</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference</a></li>
+<li><a href="https://www.dynatrace.com/news/blog/enhance-data-management-with-grail-ultimate-guide-to-custom-buckets-and-security-policies/">Enhance data management with Grail</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from Dynatrace documentation and enterprise best practices. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

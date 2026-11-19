@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTOM-03: Monaco Configuration-as-Code</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">AUTOM — Dynatrace Automation</a><span class="sep">/</span><span aria-current="page">AUTOM-03</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>AUTOM-03: Monaco Configuration-as-Code</h1>
+<blockquote>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 3 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/29/2026</p>
+</blockquote>
+<p>Monaco (Monitoring as Code) is Dynatrace's official CLI tool for configuration management. It uses YAML files to define configurations and supports version control, CI/CD integration, and multi-environment deployments.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#getting-started">Getting Started</a></li>
+<li><a href="#project-structure">Project Structure</a></li>
+<li><a href="#configuration-files">Configuration Files</a></li>
+<li><a href="#common-operations">Common Operations</a></li>
+<li><a href="#advanced-features">Advanced Features</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<p>Before starting this notebook, ensure you have:</p>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Monaco CLI</td>
+<td>Installed from the GitHub releases binary (Dynatrace publishes no Homebrew formula)</td>
+</tr>
+<tr>
+<td>Platform token or OAuth client</td>
+<td>Always <code>app-engine:apps:run</code>, <code>settings:objects:read</code>, <code>settings:objects:write</code> and <code>settings:schemas:read</code> — once a platform credential is configured, Monaco sends Settings 2.0 through it. Add the scopes for each platform type you manage: SLOs need <code>slo:slos:read</code>, <code>slo:slos:write</code> and <code>slo:objective-templates:read</code>; workflows, documents, segments and buckets are listed on the access-handling page</td>
+</tr>
+<tr>
+<td>API Token</td>
+<td><code>DataExport</code> (always), <code>settings.read</code> / <code>settings.write</code> (used for Settings 2.0 only when no platform credential is configured), plus <code>ReadConfig</code> / <code>WriteConfig</code> for classic Configuration APIs</td>
+</tr>
+<tr>
+<td>Tenant URL</td>
+<td>The <strong>platform</strong> URL, <code>https://&lt;env-id&gt;.apps.dynatrace.com</code>, whenever a platform token or OAuth client is used</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources">Monaco manifest and resources (DT docs)</a> — <code>app-engine:apps:run</code>: <em>&quot;This permission is required to access Dynatrace Platform metadata endpoints.&quot;</em>; <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/monaco-api-support-and-access-handling">Monaco API support and access handling (DT docs)</a> — per-type scopes; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/client/clientset.go">client set (Dynatrace GitHub)</a>. <strong>Derived:</strong> Settings 2.0 through the platform credential is read from that file at v2.30.0, which builds the classic settings client only when no platform credential is configured.</sub></p>
+</blockquote>
+<hr />
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will:</p>
+<ul>
+<li>Understand Monaco's configuration-as-code model</li>
+<li>Know how to download existing configurations</li>
+<li>Be able to create and deploy configurations via YAML</li>
+<li>Handle multi-environment deployments</li>
+</ul>
+<hr />
+<p><a id="introduction"></a></p>
+<h2>1. Introduction</h2>
+<h3>Why Monaco?</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Version Control</strong></td>
+<td>Track all changes in Git</td>
+</tr>
+<tr>
+<td><strong>Repeatability</strong></td>
+<td>Deploy same config to multiple environments</td>
+</tr>
+<tr>
+<td><strong>Review Process</strong></td>
+<td>Use pull requests for config changes</td>
+</tr>
+<tr>
+<td><strong>Disaster Recovery</strong></td>
+<td>Quickly restore configurations</td>
+</tr>
+<tr>
+<td><strong>Documentation</strong></td>
+<td>YAML files serve as living documentation</td>
+</tr>
+</tbody>
+</table>
+<h3>Monaco vs Direct API</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Monaco</th>
+<th>Settings API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Format</td>
+<td>YAML files</td>
+<td>JSON payloads</td>
+</tr>
+<tr>
+<td>State management</td>
+<td>Implicit — the config coordinate (<code>project</code>/<code>type</code>/<code>id</code>); classic APIs match by name</td>
+<td>Manual tracking</td>
+</tr>
+<tr>
+<td>Multi-tenant</td>
+<td>Built-in support</td>
+<td>Custom scripting</td>
+</tr>
+<tr>
+<td>Dry run</td>
+<td><code>--dry-run</code> — structure and references only, no API calls</td>
+<td><code>validateOnly=true</code> — server-side validation of the payload, nothing saved</td>
+</tr>
+<tr>
+<td>Delete</td>
+<td>The entries listed in a <code>delete.yaml</code> file (<code>delete</code> command)</td>
+<td>Manual</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas">Monaco configuration YAML reference (DT docs)</a> — <em>&quot;The name property isn't used to identify Dynatrace objects. Instead, the configuration's coordinate, a combination of project, type, and configuration ID, or originObjectId, if present, is used.&quot;</em>; <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/objects/post-object">Settings API — POST an object (DT docs)</a> — <em>&quot;the request runs only validation of the submitted settings objects, without saving them.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Already a Terraform shop?</strong> See <strong>AUTOM-01 §5: When a Terraform Shop Should Add Monaco</strong> for the four patterns where Monaco still earns its place — most commonly bulk download from an existing tenant, multi-tenant identical-config deployment, and app-team self-service without state management.</p>
+</blockquote>
+<hr />
+<p><a id="getting-started"></a></p>
+<h2>2. Getting Started</h2>
+<h3>Installation</h3>
+<p>Monaco ships as a single binary on GitHub releases; there is no Homebrew formula. Pick the asset for your OS and architecture (the install guide also lists <code>monaco-darwin-amd64</code>, <code>monaco-linux-arm64</code>, <code>monaco-linux-386</code> and a SHA-256 file for each):</p>
+<p><strong>macOS (Apple silicon):</strong></p>
+<pre><code class="language-bash">curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-darwin-arm64 -o monaco
+chmod +x monaco
+</code></pre>
+<p><strong>Linux (x86-64):</strong></p>
+<pre><code class="language-bash">curl -L https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/latest/download/monaco-linux-amd64 -o monaco
+chmod +x monaco
+</code></pre>
+<p><strong>Windows:</strong> download the <code>.exe</code> asset from the same releases page.</p>
+<p><strong>Verify installation:</strong></p>
+<pre><code class="language-bash">monaco version
+</code></pre>
+<h3>Environment Setup</h3>
+<p>Create environment variables for authentication:</p>
+<pre><code class="language-bash">export DT_TENANT_URL=&quot;https://&lt;env-id&gt;.apps.dynatrace.com&quot;   # platform URL, not .live.
+export DT_API_TOKEN=&quot;&lt;your-api-token&gt;&quot;
+export DT_PLATFORM_TOKEN=&quot;&lt;your-platform-token&gt;&quot;   # SLOs, workflows, documents, segments, buckets
+</code></pre>
+<p>With a platform token or OAuth client in play, the URL must be the <strong>platform</strong> (<code>.apps.</code>) URL: Monaco first asks it for the environment's classic URL (that lookup is what needs <code>app-engine:apps:run</code>) and sends access-token calls there itself. A <code>.live.</code> URL fails with <em>&quot;make sure you are using a Dynatrace Platform URL and not a Dynatrace Classic URL when authenticating with an OAuth client or platform token&quot;</em>. Only a run with an access token alone takes the classic URL directly.</p>
+<p>Monaco never takes a secret on the command line. Both the manifest and the <code>--token</code> download flag take the <strong>name</strong> of the environment variable that holds the token (<code>DT_API_TOKEN</code>), not its value.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/client/metadata/metadata.go">metadata client (Dynatrace GitHub)</a> — the error quoted above; <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources">Monaco manifest and resources (DT docs)</a> — every manifest example uses <code>.apps.dynatrace.com</code>.</sub></p>
+</blockquote>
+<hr />
+<h3>Your First Download</h3>
+<p>Download all configurations from your tenant:</p>
+<pre><code class="language-bash">monaco download \
+  --url &quot;$DT_TENANT_URL&quot; \
+  --token DT_API_TOKEN \
+  --platform-token DT_PLATFORM_TOKEN \
+  --output-folder ./downloaded-config
+</code></pre>
+<p><code>--token</code> and <code>--platform-token</code> name environment variables (no <code>$</code>). The access token covers the classic Configuration APIs; the platform token — or the <code>--oauth-client-id</code> / <code>--oauth-client-secret</code> pair — covers platform configurations (SLOs, workflows, documents, buckets, segments) and, once given, Settings 2.0 too. Access tokens and platform tokens are not interchangeable. Dropping the platform token limits the download to Settings 2.0 and classic configurations, and <code>--url</code> must then be the classic <code>.live.</code> URL.</p>
+<p>Download only the platform configuration types — SLOs, segments, workflows and documents. The <code>--only-*</code> flags can be combined (Monaco 2.23.1+):</p>
+<pre><code class="language-bash">monaco download \
+  --url &quot;$DT_TENANT_URL&quot; \
+  --token DT_API_TOKEN \
+  --platform-token DT_PLATFORM_TOKEN \
+  --output-folder ./downloaded-config \
+  --only-slo-v2 --only-segments --only-automation --only-documents
+</code></pre>
+<p>The full set of <code>--only-*</code> flags is <code>--only-settings</code>, <code>--only-apis</code>, <code>--only-slo-v2</code>, <code>--only-segments</code>, <code>--only-automation</code>, <code>--only-documents</code>, <code>--only-buckets</code> and <code>--only-openpipeline</code> (read from the download command's source, <code>cmd/monaco/download/download_command.go</code>, at v2.30.0). Monaco 2.31.0 (10/23/2026) removed the deprecated <code>openpipeline</code> type — the <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.31.0">release notes (Dynatrace GitHub)</a>: <em>&quot;Removed support for deprecated OpenPipeline configurations (type <code>openpipeline</code>)&quot;</em> — and its download command no longer has <code>--only-openpipeline</code>. OpenPipeline configuration is Settings 2.0 objects, so download it with <code>--only-settings</code> or <code>--settings-schema</code> with each <code>builtin:openpipeline.*</code> schema in use, plus <code>--admin-access</code> for pipelines other users own.</p>
+<p><strong>Settings owned by other users (Monaco CLI 2.30.0+).</strong> A download returns the settings objects the credential's user can see. For OpenPipeline, <code>--admin-access</code> also returns pipelines other users own — the release note: <em>&quot;enabling this flag will also download configurations of different owners (other than the user that is assigned to the platform token or OAuth client). Requires <code>settings:objects:admin</code>.&quot;</em> — in addition to the <code>settings:objects:read</code> scope every download needs. The flag applies to owner-based OpenPipeline schemas only (<code>builtin:openpipeline.*</code>); on older CLI versions there is no equivalent. See <a href="#using-a-download-as-a-backup">Using a Download as a Backup</a> for what else a download leaves out.</p>
+<pre><code class="language-bash">monaco download \
+  --url &quot;$DT_TENANT_URL&quot; \
+  --token DT_API_TOKEN \
+  --platform-token DT_PLATFORM_TOKEN \
+  --output-folder ./downloaded-config \
+  --only-settings --admin-access
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.30.0">Monaco v2.30.0 release notes (Dynatrace GitHub)</a> — <em>&quot;If settings-based OpenPipeline configurations (<code>builtin:openpipeline.*</code>) are downloaded, enabling this flag will also download configurations of different owners&quot;</em>; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/client/dtclient/settings_client.go">settings client (Dynatrace GitHub)</a> — <em>&quot;supportsAdminAccess returns true if the schema is an owner-based OpenPipeline schema.&quot;</em></sub></p>
+</blockquote>
+<p><strong>Classic — inventorying what you still have before the upgrade.</strong> Download specific Settings 2.0 schemas with <code>--settings-schema</code> (<code>--api</code> is for <strong>classic</strong> Configuration APIs only):</p>
+<pre><code class="language-bash">monaco download \
+  --url &quot;$DT_TENANT_URL&quot; \
+  --token DT_API_TOKEN \
+  --platform-token DT_PLATFORM_TOKEN \
+  --output-folder ./downloaded-config \
+  --settings-schema builtin:management-zones,builtin:tags.auto-tagging
+</code></pre>
+<blockquote>
+<p><strong>Downloading classic schemas is the point here, not an oversight.</strong> Both schemas above are marked <strong>Blocked at upgrade</strong> in AUTOM-02's Settings 2.0 catalog — they work today and stop answering once your tenant moves to the latest Dynatrace. That makes <code>monaco download</code> the fastest way to <em>inventory</em> what you still have before migrating it: every object, in version control, in one command. Keep the export as your migration worksheet; retarget the deployment. What it should not become is a template for new configuration.</p>
+</blockquote>
+<hr />
+<p><a id="project-structure"></a></p>
+<h2>3. Project Structure</h2>
+<h3>Recommended Layout</h3>
+<pre><code>dynatrace-config/
+├── manifest.yaml              # Projects and target environments (environmentGroups)
+└── projects/
+    └── my-project/
+        ├── slo-v2/                # service-level objectives (modern SLO app)
+        │   └── config.yaml
+        ├── segments/
+        │   └── config.yaml
+        ├── workflows/             # problem routing and other automations
+        │   └── config.yaml
+        └── anomaly-detectors/     # builtin:davis.anomaly-detectors (Settings 2.0)
+            └── config.yaml
+</code></pre>
+<p>Classic estates add <code>management-zones/</code>, <code>auto-tagging/</code> and <code>alerting-profiles/</code> here until the upgrade — see the <em>Classic</em> blocks in §4.</p>
+<h3>Manifest File</h3>
+<p>The <code>manifest.yaml</code> defines your projects <strong>and</strong> your environments — Monaco v2 has no separate environment files:</p>
+<pre><code class="language-yaml">manifestVersion: 1.0
+
+projects:
+  - name: my-project
+    path: projects/my-project
+
+environmentGroups:
+  - name: default
+    environments:
+      - name: development
+        url:
+          type: environment
+          value: DT_DEV_URL
+        auth:
+          token:
+            name: DT_DEV_TOKEN
+          platformToken:
+            name: DT_DEV_PLATFORM_TOKEN
+      - name: production
+        url:
+          type: environment
+          value: DT_PROD_URL
+        auth:
+          token:
+            name: DT_PROD_TOKEN
+          platformToken:
+            name: DT_PROD_PLATFORM_TOKEN
+</code></pre>
+<p><code>url</code> accepts <code>type: environment</code> + <code>value: &lt;VAR_NAME&gt;</code>, but every <code>auth</code> entry takes only <code>name: &lt;VAR_NAME&gt;</code> — Monaco always loads secrets from environment variables. <code>platformToken</code> (Monaco 2.24.0+) — or an <code>oAuth</code> client in its place — is what lets the project manage SLOs, workflows, documents, buckets and segments; drop it only for a project that manages Settings 2.0 and classic configuration alone. With <code>platformToken</code> or <code>oAuth</code> set, each <code>url</code> variable holds the platform (<code>.apps.</code>) URL.</p>
+<hr />
+<p><a id="configuration-files"></a></p>
+<h2>4. Configuration Files</h2>
+<h3>Basic Configuration Structure</h3>
+<p>Every config is an <code>id</code>, a <code>config:</code> block (name, template, parameters) and a <code>type:</code>. For a Settings 2.0 object the type names a schema; for a platform object it names the platform type:</p>
+<pre><code class="language-yaml">configs:
+  - id: checkout-availability
+    config:
+      name: Checkout availability
+      template: slo.json
+    type: slo-v2
+</code></pre>
+<h3>SLO Example (<code>type: slo-v2</code>)</h3>
+<p><strong>slo-v2/config.yaml:</strong></p>
+<pre><code class="language-yaml">configs:
+  - id: checkout-availability
+    config:
+      name: Checkout availability
+      template: checkout-availability.json
+    type: slo-v2
+</code></pre>
+<p><strong>slo-v2/checkout-availability.json:</strong></p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;{{ .name }}&quot;,
+  &quot;description&quot;: &quot;Request success ratio, rolling 30 days&quot;,
+  &quot;tags&quot;: [&quot;app:checkout&quot;, &quot;owner:payments&quot;],
+  &quot;criteria&quot;: [
+    {
+      &quot;target&quot;: 99.5,
+      &quot;warning&quot;: 99.9,
+      &quot;timeframeFrom&quot;: &quot;now-30d&quot;,
+      &quot;timeframeTo&quot;: &quot;now&quot;
+    }
+  ],
+  &quot;customSli&quot;: {
+    &quot;indicator&quot;: &quot;timeseries { total = sum(dt.service.request.count), failures = sum(dt.service.request.failure_count) }\n| fieldsAdd sli = ((total[] - failures[]) / total[]) * 100\n| fieldsRemove total, failures&quot;
+  }
+}
+</code></pre>
+<p>The payload is the SLO Service API's own shape — <code>criteria</code> is a <strong>list</strong>, and the SLI is a DQL <code>indicator</code> producing a timeseries field named <code>sli</code> (SLO-02's availability query, minus <code>from:</code> / <code>interval:</code>, which the criteria supply). It matches Monaco's own <code>slo-v2</code> integration-test template field for field. <code>type: slo-v2</code> needs Monaco <strong>v2.22.0+</strong> and platform auth, and despite the name it is the <strong>modern</strong> SLO app — the classic SLO is a different Monaco type, and the Terraform resource <code>dynatrace_slo_v2</code> is classic too (SLO-05).</p>
+<h3>Other Platform Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type block</th>
+<th>Manages</th>
+<th>Since</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type: slo-v2</code></td>
+<td>SLOs on the modern SLO app</td>
+<td>v2.22.0</td>
+</tr>
+<tr>
+<td><code>type: segment</code></td>
+<td>Segments (the filtering successor to management zones)</td>
+<td>v2.19.0</td>
+</tr>
+<tr>
+<td><code>type: {automation: {resource: workflow}}</code> — also <code>business-calendar</code>, <code>scheduling-rule</code></td>
+<td>Workflows (the routing successor to alerting profiles + problem notifications)</td>
+<td>v2.6.0</td>
+</tr>
+<tr>
+<td><code>type: {document: {kind: dashboard}}</code> — also <code>notebook</code>, <code>launchpad</code>; optional <code>private</code></td>
+<td>Dashboards, notebooks, launchpads</td>
+<td>v2.15.0 (launchpad v2.18.0)</td>
+</tr>
+<tr>
+<td><code>type: bucket</code></td>
+<td>Grail buckets</td>
+<td>v2.9.0</td>
+</tr>
+<tr>
+<td><code>type: {settings: {schema: builtin:davis.anomaly-detectors, scope: environment}}</code></td>
+<td>Davis anomaly detectors (the successor to custom metric events) — a Settings 2.0 schema that carries forward</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Download a workflow or segment before you author one.</strong> A workflow template is the full Automation API payload (trigger, tasks, positions) and a segment template is the segment editor's JSON filter tree — neither is sensible to hand-write. Build one in the app, <code>monaco download --only-automation</code> / <code>--only-segments</code>, and parameterize the result.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields">Monaco YAML configuration — type fields (DT docs)</a> — the type blocks and version gates in the table; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/main/test/commands/testdata/integration-download-configs-platform/project/slo-v2/custom-sli.json"><code>slo-v2</code> test template (Dynatrace GitHub)</a> — payload shape, read 09/28/2026; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.22.0">Monaco v2.22.0 release notes (Dynatrace GitHub)</a> — <em>&quot;Support for service-level objectives leveraging Grail&quot;</em>.</sub></p>
+</blockquote>
+<h3>Classic Configuration — existing estates on unupgraded tenants</h3>
+<blockquote>
+<p><strong>Dynatrace Classic — maintain, don't author.</strong> Management zones, auto-tagging and alerting profiles are the configurations most existing Monaco projects contain, so their shape is kept below. All three are marked <strong>Blocked at upgrade</strong> in AUTOM-02's Settings 2.0 catalog and are on Dynatrace's published <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">Settings 2.0 schemas that are removed in Latest Dynatrace (DT docs)</a> — <em>&quot;None of the schemas on this page are visible in Latest Dynatrace.&quot;</em></p>
+<p>That matters more for Monaco than for the raw API. Monaco resolves a schema before writing objects, so once a schema is removed, <code>monaco deploy</code> fails for every config that references it — and it fails at deploy time, in your pipeline, not at edit time. Successors: management zone → <code>segment</code> (filtering) + IAM policies (access); alerting profile → <code>automation</code> workflow; auto-tagging → primary fields/tags set at ingest (FAQ-02).</p>
+</blockquote>
+<h4>Management Zone Example (classic)</h4>
+<p><strong>config.yaml:</strong></p>
+<pre><code class="language-yaml">configs:
+  - id: production-mz
+    config:
+      name: Production
+      template: production-mz.json
+    type:
+      settings:
+        schema: builtin:management-zones
+        scope: environment
+
+  - id: staging-mz
+    config:
+      name: Staging
+      template: staging-mz.json
+    type:
+      settings:
+        schema: builtin:management-zones
+        scope: environment
+</code></pre>
+<p><strong>production-mz.json:</strong></p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;{{ .name }}&quot;,
+  &quot;rules&quot;: [
+    {
+      &quot;type&quot;: &quot;SERVICE&quot;,
+      &quot;enabled&quot;: true,
+      &quot;conditions&quot;: [
+        {
+          &quot;key&quot;: {
+            &quot;type&quot;: &quot;STATIC&quot;,
+            &quot;attribute&quot;: &quot;SERVICE_TAGS&quot;
+          },
+          &quot;comparisonInfo&quot;: {
+            &quot;type&quot;: &quot;TAG&quot;,
+            &quot;operator&quot;: &quot;EQUALS&quot;,
+            &quot;value&quot;: {
+              &quot;context&quot;: &quot;CONTEXTLESS&quot;,
+              &quot;key&quot;: &quot;environment&quot;,
+              &quot;value&quot;: &quot;production&quot;
+            },
+            &quot;negate&quot;: false
+          }
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<hr />
+<h4>Auto-Tagging Example (classic)</h4>
+<p><strong>config.yaml:</strong></p>
+<pre><code class="language-yaml">configs:
+  - id: application-tag
+    config:
+      name: Application
+      template: application-tag.json
+    type:
+      settings:
+        schema: builtin:tags.auto-tagging
+        scope: environment
+</code></pre>
+<p><strong>application-tag.json:</strong></p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;{{ .name }}&quot;,
+  &quot;rules&quot;: [
+    {
+      &quot;type&quot;: &quot;SERVICE&quot;,
+      &quot;enabled&quot;: true,
+      &quot;valueFormat&quot;: &quot;{Service:DetectedName}&quot;,
+      &quot;propagationTypes&quot;: [&quot;SERVICE_TO_PROCESS_GROUP_LIKE&quot;],
+      &quot;conditions&quot;: []
+    }
+  ]
+}
+</code></pre>
+<h3>Using Variables</h3>
+<p>Monaco v2 reads environment variables through <strong><code>environment</code> parameters</strong>, declared under <code>parameters:</code> with a <code>name</code> (the variable) and an optional <code>default</code>. The template then refers to the parameter by its key — there is no <code>{{ .Env.X }}</code> syntax in v2:</p>
+<p><strong>config.yaml:</strong></p>
+<pre><code class="language-yaml">configs:
+  - id: checkout-availability
+    config:
+      name: Checkout availability
+      template: checkout-availability.json
+      parameters:
+        owner_team:
+          type: environment
+          name: OWNER_TEAM
+        slo_target:
+          type: environment
+          name: SLO_TARGET
+          default: &quot;99.5&quot;
+    type: slo-v2
+</code></pre>
+<p>In <code>checkout-availability.json</code>, use <code>&quot;tags&quot;: [&quot;owner:{{ .owner_team }}&quot;]</code> and <code>&quot;target&quot;: {{ .slo_target }}</code> — unquoted, so the rendered JSON carries a number. Without a <code>default</code>, the deployment fails if the variable is unset.</p>
+<hr />
+<p><a id="common-operations"></a></p>
+<h2>5. Common Operations</h2>
+<h3>Deploy Configurations</h3>
+<p>Deploy to all environments:</p>
+<pre><code class="language-bash">monaco deploy manifest.yaml
+</code></pre>
+<p>Deploy to specific environment:</p>
+<pre><code class="language-bash">monaco deploy manifest.yaml --environment production
+</code></pre>
+<p>Dry run (check file structure without applying):</p>
+<pre><code class="language-bash">monaco deploy manifest.yaml --dry-run
+</code></pre>
+<h3>Validate Configurations</h3>
+<p>Monaco does <strong>not</strong> ship a standalone <code>monaco validate</code> subcommand. Validation runs as part of <code>monaco deploy --dry-run</code>, which loads the manifest, parses every project, checks that templates are valid JSON, and resolves cross-references — <strong>without contacting the tenant</strong>. It cannot validate the JSON payload against the schema, and it does not check reachability or token scopes: a deploy can still fail with HTTP 400 after a clean dry-run.</p>
+<pre><code class="language-bash">monaco deploy manifest.yaml --dry-run
+</code></pre>
+<h3>Delete Configurations</h3>
+<p>Remove the configurations listed in a delete file — <code>delete</code> does not look for orphans; it deletes exactly what the file names. The manifest is passed via <code>--manifest</code>, not as a positional argument, and there is <strong>no <code>--dry-run</code></strong> for <code>delete</code>:</p>
+<pre><code class="language-bash">monaco delete --manifest manifest.yaml --file delete.yaml
+</code></pre>
+<p><strong>delete.yaml:</strong></p>
+<pre><code class="language-yaml">delete:
+  - project: my-project
+    type: slo-v2
+    id: checkout-availability
+  # Classic, until the upgrade — a Settings 2.0 entry takes the schema as its type
+  - project: my-project
+    type: builtin:management-zones
+    id: old-management-zone-id
+</code></pre>
+<p>Every non-classic entry needs <strong><code>project</code> and <code>id</code> together</strong> (the Monaco config coordinate) or an <code>objectId</code> on its own; Monaco's delete-file loader rejects an entry with <code>id</code> and no <code>project</code>. The <code>type</code> is the config type (<code>slo-v2</code>, <code>segment</code>, <code>workflow</code>, <code>document</code>, <code>bucket</code>) or, for Settings 2.0, the schema ID.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco commands reference (DT docs)</a> — <em>&quot;As input, the delete command requires two YAML files: The manifest file that specifies the relevant Dynatrace environments. The deletefile that specifies the relevant configurations.&quot;</em>; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/cmd/monaco/delete/command.go">delete command (Dynatrace GitHub)</a> — flags <code>--manifest</code>, <code>--file</code>, <code>--group</code>, <code>--environment</code> only.</sub></p>
+</blockquote>
+<hr />
+<p><a id="using-a-download-as-a-backup"></a></p>
+<h3>Using a Download as a Backup — What It Does Not Capture</h3>
+<p><code>monaco download</code> is a good <strong>configuration</strong> backup: Settings 2.0 objects, workflows, business calendars and scheduling rules, bucket definitions, dashboards, notebooks, launchpads, segments and <code>slo-v2</code> SLOs all land in version control. It is not a <strong>tenant</strong> backup. Some things are filtered out by design, some are invisible to the credential you run it with, and some have no Monaco type at all. Keep the list below next to the export, so that a restore does not discover the gaps for you.</p>
+<table>
+<thead>
+<tr>
+<th>What is missing</th>
+<th>Why</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Credentials and secrets</strong> — <code>aws-credentials</code>, <code>azure-credentials</code>, <code>kubernetes-credentials</code>, <code>credential-vault</code>, <code>extension</code></td>
+<td>Excluded by default: <em>&quot;Typically, these types contain secrets that must not be exported&quot;</em></td>
+<td>Inventory every credential; recreate by hand on restore. Turning the filter off does not help — the API does not return the secret</td>
+</tr>
+<tr>
+<td><strong>Read-only settings</strong></td>
+<td><em>&quot;Read-only configurations are also excluded.&quot;</em></td>
+<td>Usually platform defaults you would not restore. <code>MONACO_FEAT_DOWNLOAD_FILTER_SETTINGS_UNMODIFIABLE=false</code> downloads them</td>
+</tr>
+<tr>
+<td><strong>Settings Monaco filters by default</strong> — notably <code>builtin:host.monitoring.mode</code>, skipped entirely, plus a handful of built-in defaults (the <code>Default</code> alerting profile, <code>default</code> bucket rules)</td>
+<td>The source skips host monitoring mode because it <em>&quot;is not reliable during download&quot;</em></td>
+<td>If per-host monitoring modes matter to a restore, run a separate download with <code>MONACO_FEAT_DOWNLOAD_FILTER_SETTINGS=false</code>. Dynatrace warns that an unfiltered download needs <em>&quot;some manual post-processing&quot;</em> before it deploys</td>
+</tr>
+<tr>
+<td><strong>OpenPipeline owned by other users</strong></td>
+<td>Without <code>--admin-access</code> (Monaco CLI 2.30.0+), only the credential user's pipelines are returned</td>
+<td>Add <code>--admin-access</code> with <code>settings:objects:admin</code>. Back up OpenPipeline through <code>settings</code> — the owner-based <code>builtin:openpipeline.*</code> schemas, which <code>--admin-access</code> downloads for all owners</td>
+</tr>
+<tr>
+<td><strong>Other settings owned by other users</strong></td>
+<td>Objects created with <code>allUsers: none</code> are visible only to their owner, and <code>--admin-access</code> covers OpenPipeline schemas only</td>
+<td>In community practice, run the download as a dedicated service identity and have owners share objects with it — then compare object counts per schema against the UI before trusting the export</td>
+</tr>
+<tr>
+<td><strong>Documents</strong></td>
+<td><em>&quot;Monaco does not download Ready-made documents.&quot;</em> Documents the credential cannot see are not returned, and a public document the Monaco user does not own may fail to redeploy</td>
+<td>Ready-made documents ship with the platform. For the rest, transfer ownership of shared documents to the backup identity, or accept that private documents stay with their owners</td>
+</tr>
+<tr>
+<td><strong>Account resources</strong></td>
+<td>Users, service users, groups and policies are a separate command; <em>&quot;existing commands like <code>monaco deploy</code> ignore any account configuration&quot;</em></td>
+<td>Run <code>monaco account download</code> alongside the environment download. Boundaries are included from Monaco 2.26.0 (<em>&quot;Account management: deploy, download, and delete boundaries&quot;</em>)</td>
+</tr>
+<tr>
+<td><strong>Things with no Monaco type</strong></td>
+<td>The type-fields page (read 09/29/2026) lists no type for lookup tables, installed Hub or custom apps, access tokens, platform tokens or OAuth clients</td>
+<td>Record them in the runbook; reinstall apps and re-mint tokens and clients on restore</td>
+</tr>
+<tr>
+<td><strong>Anything that is not configuration</strong></td>
+<td>Grail data (a <code>bucket</code> config is the bucket's definition, not its contents), Davis baselines and problem history</td>
+<td>Not recoverable from any configuration export — see FAQ-25 on accumulated state</td>
+</tr>
+</tbody>
+</table>
+<p>A backup run that closes the gaps Monaco can close:</p>
+<pre><code class="language-bash">export MONACO_FEAT_DOWNLOAD_FILTER_SETTINGS_UNMODIFIABLE=false   # optional: include read-only settings
+
+monaco download \
+  --url &quot;$DT_TENANT_URL&quot; \
+  --token DT_API_TOKEN \
+  --platform-token DT_PLATFORM_TOKEN \
+  --output-folder ./backup/environment \
+  --admin-access                          # Monaco CLI 2.30.0+, needs settings:objects:admin
+
+monaco account download \
+  --uuid &quot;$DT_ACCOUNT_UUID&quot; \
+  --oauth-client-id DT_OAUTH_CLIENT_ID \
+  --oauth-client-secret DT_OAUTH_CLIENT_SECRET \
+  --output-folder ./backup/account        # account resources need an OAuth client
+</code></pre>
+<p>Commit both folders together with the gap list above. Checking the export against the tenant — object counts per config-type folder — is what turns &quot;we ran download&quot; into &quot;we have a backup&quot;.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco commands — Filtering of downloaded files (DT docs)</a> — <em>&quot;Typically, these types contain secrets that must not be exported&quot;</em>; <em>&quot;Read-only configurations are also excluded.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas-type-fields">Monaco YAML configuration — type fields (DT docs)</a> — <em>&quot;Monaco does not download Ready-made documents.&quot;</em>; <em>&quot;existing commands like monaco deploy ignore any account configuration&quot;</em>; <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.1/pkg/client/dtclient/settings_client.go">Monaco settings client, v2.30.1 (Dynatrace GitHub)</a> — <em>&quot;AdminAccess requests resources of all owners for owner-based OpenPipeline schemas&quot;</em></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/blob/v2.30.0/pkg/resource/settings/filter.go">Default settings download filters (Dynatrace GitHub)</a> — <em>&quot;builtin:host.monitoring.mode is not reliable during download&quot;</em></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.30.0">Monaco v2.30.0 release notes (Dynatrace GitHub)</a> — <em>&quot;Requires <code>settings:objects:admin</code>.&quot;</em></sub></li>
+<li><sub><a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.26.0">Monaco v2.26.0 release notes (Dynatrace GitHub)</a> — <em>&quot;Account management: deploy, download, and delete boundaries&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> the &quot;no Monaco type&quot; row is the absence of those items from the type-fields page's type list, read 09/29/2026.</sub></li>
+</ul>
+</blockquote>
+<hr />
+<h3>Download vs Deploy Workflow</h3>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Command | Purpose |
+|------|---------|----------|
+| 1 | monaco download | Export current config |
+| 2 | Edit YAML files | Make changes |
+| 3 | monaco deploy --dry-run | Parse YAML + check template JSON locally (no API calls) |
+| 4 | Git commit | Version control |
+| 5 | monaco deploy --dry-run (CI) | Pipeline gate before deploy |
+| 6 | monaco deploy | Apply changes |
+Target environments: dev / staging / prod in one manifest, per-environment values via environmentOverrides.
+Commands: download (pull config), generate (deletefile, graph, schema), deploy (apply), deploy --dry-run (structure check, no API calls), delete (remove listed configs), account (account IAM resources).
+-->
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5Nb25hY28gRG93bmxvYWQg4oaSIERlcGxveSBXb3JrZmxvdzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5TaXgtc3RlcCBjb25maWctYXMtY29kZSBsaWZlY3ljbGUgZm9yIER5bmF0cmFjZTwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJtd2FyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSIxMCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiM2NDc0OEIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBTdGVwIGJveGVzIGFjcm9zcyB0b3AgKDYgYm94ZXMsIGVhY2ggMTMwIHdpZGUgKyAxMCBnYXApIC0tPgogIDxnIGZvbnQtc2l6ZT0iMTEiPgogICAgPHJlY3QgeD0iNDAiIHk9IjEwMCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI4NSIgcng9IjYiIGZpbGw9IiM2MzY2ZjEiLz4KICAgIDx0ZXh0IHg9IjEwNSIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4xLiBEb3dubG9hZDwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwNSIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZTBlN2ZmIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIj5tb25hY28gZG93bmxvYWQ8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDUiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2UwZTdmZiI+UHVsbCBjdXJyZW50IGNvbmZpZzwvdGV4dD4KCiAgICA8cmVjdCB4PSIxOTAiIHk9IjEwMCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI4NSIgcng9IjYiIGZpbGw9IiM4YjVjZjYiLz4KICAgIDx0ZXh0IHg9IjI1NSIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj4yLiBFZGl0IFlBTUw8L3RleHQ+CiAgICA8dGV4dCB4PSIyNTUiIHk9IjE1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2UwZTdmZiI+TW9kaWZ5IG1hbmlmZXN0PC90ZXh0PgogICAgPHRleHQgeD0iMjU1IiB5PSIxNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlMGU3ZmYiPmFuZCBjb25maWcgZmlsZXM8L3RleHQ+CgogICAgPHJlY3QgeD0iMzQwIiB5PSIxMDAiIHdpZHRoPSIxMzAiIGhlaWdodD0iODUiIHJ4PSI2IiBmaWxsPSIjYTc4YmZhIi8+CiAgICA8dGV4dCB4PSI0MDUiIHk9IjEyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+My4gRHJ5IFJ1bjwvdGV4dD4KICAgIDx0ZXh0IHg9IjQwNSIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZTBlN2ZmIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIj5kZXBsb3kgLS1kcnktcnVuPC90ZXh0PgogICAgPHRleHQgeD0iNDA1IiB5PSIxNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlMGU3ZmYiPlBhcnNlICsgSlNPTiBjaGVjazwvdGV4dD4KCiAgICA8cmVjdCB4PSI0OTAiIHk9IjEwMCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI4NSIgcng9IjYiIGZpbGw9IiNmOTczMTYiLz4KICAgIDx0ZXh0IHg9IjU1NSIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj40LiBHaXQgQ29tbWl0PC90ZXh0PgogICAgPHRleHQgeD0iNTU1IiB5PSIxNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmY3ZWQiPlZlcnNpb24gY29udHJvbDwvdGV4dD4KICAgIDx0ZXh0IHg9IjU1NSIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmN2VkIj5QZWVyIHJldmlldzwvdGV4dD4KCiAgICA8cmVjdCB4PSI2NDAiIHk9IjEwMCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI4NSIgcng9IjYiIGZpbGw9IiMxNGI4YTYiLz4KICAgIDx0ZXh0IHg9IjcwNSIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj41LiBDSSBEcnkgUnVuPC90ZXh0PgogICAgPHRleHQgeD0iNzA1IiB5PSIxNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjY2ZiZjEiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiPmRlcGxveSAtLWRyeS1ydW48L3RleHQ+CiAgICA8dGV4dCB4PSI3MDUiIHk9IjE3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2NjZmJmMSI+UGlwZWxpbmUgZ2F0ZTwvdGV4dD4KCiAgICA8cmVjdCB4PSI3OTAiIHk9IjEwMCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI4NSIgcng9IjYiIGZpbGw9IiMyMmM1NWUiLz4KICAgIDx0ZXh0IHg9Ijg1NSIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj42LiBEZXBsb3k8L3RleHQ+CiAgICA8dGV4dCB4PSI4NTUiIHk9IjE1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2RjZmNlNyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCI+bW9uYWNvIGRlcGxveTwvdGV4dD4KICAgIDx0ZXh0IHg9Ijg1NSIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZGNmY2U3Ij5BcHBseSB0byB0ZW5hbnQ8L3RleHQ+CiAgPC9nPgoKICA8IS0tIEFycm93cyBiZXR3ZWVuIHN0ZXBzIC0tPgogIDxnIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIj4KICAgIDxsaW5lIHgxPSIxNzAiIHkxPSIxNDIiIHgyPSIxOTAiIHkyPSIxNDIiIG1hcmtlci1lbmQ9InVybCgjbXdhcnIpIi8+CiAgICA8bGluZSB4MT0iMzIwIiB5MT0iMTQyIiB4Mj0iMzQwIiB5Mj0iMTQyIiBtYXJrZXItZW5kPSJ1cmwoI213YXJyKSIvPgogICAgPGxpbmUgeDE9IjQ3MCIgeTE9IjE0MiIgeDI9IjQ5MCIgeTI9IjE0MiIgbWFya2VyLWVuZD0idXJsKCNtd2FycikiLz4KICAgIDxsaW5lIHgxPSI2MjAiIHkxPSIxNDIiIHgyPSI2NDAiIHkyPSIxNDIiIG1hcmtlci1lbmQ9InVybCgjbXdhcnIpIi8+CiAgICA8bGluZSB4MT0iNzcwIiB5MT0iMTQyIiB4Mj0iNzkwIiB5Mj0iMTQyIiBtYXJrZXItZW5kPSJ1cmwoI213YXJyKSIvPgogIDwvZz4KCiAgPCEtLSBUYXJnZXQgZW52aXJvbm1lbnRzIHBhbmVsIChib3R0b20tbGVmdCkgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjI0MCIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIyMjAiIHJ4PSI4IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMzMzQxNTUiLz4KICA8dGV4dCB4PSIyMzAiIHk9IjI2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+VGFyZ2V0IEVudmlyb25tZW50czwvdGV4dD4KCiAgPGcgZm9udC1zaXplPSIxMiI+CiAgICA8cmVjdCB4PSI3MCIgeT0iMjkwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjUwIiByeD0iNCIgZmlsbD0iIzNiODJmNiIgb3BhY2l0eT0iMC42Ii8+CiAgICA8dGV4dCB4PSIxNDAiIHk9IjMxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiIgZm9udC13ZWlnaHQ9IjYwMCI+RGV2PC90ZXh0PgogICAgPHRleHQgeD0iMTQwIiB5PSIzMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNkYmVhZmUiIGZvbnQtc2l6ZT0iMTAiPmVudmlyb25tZW50OiBkZXY8L3RleHQ+CgogICAgPHJlY3QgeD0iMjQwIiB5PSIyOTAiIHdpZHRoPSIxNDAiIGhlaWdodD0iNTAiIHJ4PSI0IiBmaWxsPSIjOGI1Y2Y2IiBvcGFjaXR5PSIwLjYiLz4KICAgIDx0ZXh0IHg9IjMxMCIgeT0iMzEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmZmZmIiBmb250LXdlaWdodD0iNjAwIj5TdGFnaW5nPC90ZXh0PgogICAgPHRleHQgeD0iMzEwIiB5PSIzMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlZGU5ZmUiIGZvbnQtc2l6ZT0iMTAiPmVudmlyb25tZW50OiBzdGFnaW5nPC90ZXh0PgoKICAgIDxyZWN0IHg9IjE1NSIgeT0iMzYwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjUwIiByeD0iNCIgZmlsbD0iIzIyYzU1ZSIgb3BhY2l0eT0iMC42Ii8+CiAgICA8dGV4dCB4PSIyMjUiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZmZmZiIgZm9udC13ZWlnaHQ9IjYwMCI+UHJvZHVjdGlvbjwvdGV4dD4KICAgIDx0ZXh0IHg9IjIyNSIgeT0iMzk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZGNmY2U3IiBmb250LXNpemU9IjEwIj5lbnZpcm9ubWVudDogcHJvZDwvdGV4dD4KICA8L2c+CiAgPHRleHQgeD0iMjMwIiB5PSI0NDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtc3R5bGU9Iml0YWxpYyI+U2FtZSBtYW5pZmVzdCwgZW52aXJvbm1lbnRPdmVycmlkZXMgcGVyIGVudjwvdGV4dD4KCiAgPCEtLSBDb21tYW5kcyByZWZlcmVuY2UgKGJvdHRvbS1yaWdodCkgLS0+CiAgPHJlY3QgeD0iNDQwIiB5PSIyNDAiIHdpZHRoPSI0NTAiIGhlaWdodD0iMjIwIiByeD0iOCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMzM0MTU1Ii8+CiAgPHRleHQgeD0iNjY1IiB5PSIyNjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPk1vbmFjbyBDb21tYW5kczwvdGV4dD4KCiAgPGcgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMiI+CiAgICA8dGV4dCB4PSI0NjUiIHk9IjI5OCIgZmlsbD0iIzg2ZWZhYyI+bW9uYWNvIGRvd25sb2FkPC90ZXh0PgogICAgPHRleHQgeD0iNjYwIiB5PSIyOTgiIGZpbGw9IiM5NEEzQjgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCBzYW5zLXNlcmlmIj5wdWxsIGNvbmZpZyBmcm9tIHRlbmFudDwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ2NSIgeT0iMzIyIiBmaWxsPSIjODZlZmFjIj5tb25hY28gZ2VuZXJhdGU8L3RleHQ+CiAgICA8dGV4dCB4PSI2NjAiIHk9IjMyMiIgZmlsbD0iIzk0QTNCOCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiPmRlbGV0ZWZpbGUsIGdyYXBoLCBzY2hlbWE8L3RleHQ+CiAgICA8dGV4dCB4PSI0NjUiIHk9IjM0NiIgZmlsbD0iIzg2ZWZhYyI+bW9uYWNvIGRlcGxveTwvdGV4dD4KICAgIDx0ZXh0IHg9IjY2MCIgeT0iMzQ2IiBmaWxsPSIjOTRBM0I4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+YXBwbHkgdG8gZW52aXJvbm1lbnQ8L3RleHQ+CiAgICA8dGV4dCB4PSI0NjUiIHk9IjM3MCIgZmlsbD0iIzg2ZWZhYyI+bW9uYWNvIGRlcGxveSAtLWRyeS1ydW48L3RleHQ+CiAgICA8dGV4dCB4PSI2NjAiIHk9IjM3MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiPnN0cnVjdHVyZSBjaGVjaywgbm8gQVBJIGNhbGxzPC90ZXh0PgogICAgPHRleHQgeD0iNDY1IiB5PSIzOTQiIGZpbGw9IiM4NmVmYWMiPm1vbmFjbyBkZWxldGU8L3RleHQ+CiAgICA8dGV4dCB4PSI2NjAiIHk9IjM5NCIgZmlsbD0iIzk0QTNCOCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiPnJlbW92ZSBsaXN0ZWQgY29uZmlnczwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ2NSIgeT0iNDE4IiBmaWxsPSIjODZlZmFjIj5tb25hY28gYWNjb3VudDwvdGV4dD4KICAgIDx0ZXh0IHg9IjY2MCIgeT0iNDE4IiBmaWxsPSIjOTRBM0I4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+YWNjb3VudCBJQU0gcmVzb3VyY2VzPC90ZXh0PgogIDwvZz4KICA8dGV4dCB4PSI2NjUiIHk9IjQ0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZCQkYyNCIgZm9udC1zaXplPSIxMSIgZm9udC1zdHlsZT0iaXRhbGljIj5Nb25hY28gdjIueCB1c2VzIG1hbmlmZXN0LnlhbWwgKG5vdCBlbnZpcm9ubWVudHMueWFtbCk8L3RleHQ+Cjwvc3ZnPgo=" alt="Monaco Workflow" /></p>
+<hr />
+<p><a id="advanced-features"></a></p>
+<h2>6. Advanced Features</h2>
+<h3>Configuration Dependencies</h3>
+<p>Reference another configuration with a <strong>reference parameter</strong> — <code>[project, configType, configId, property]</code>, or the long form with <code>type: reference</code>. The <code>configType</code> is the config type (<code>segment</code>, <code>slo-v2</code>, <code>workflow</code>, …) or, for Settings 2.0, the schema ID; <code>property: id</code> resolves to the referenced object's real Dynatrace ID at deploy time, and Monaco orders the deployment so the referenced object exists first. Here an SLO is scoped by a segment deployed from the same project:</p>
+<pre><code class="language-yaml">configs:
+  - id: checkout-availability
+    config:
+      name: Checkout availability
+      template: checkout-availability.json
+      parameters:
+        checkout_segment_id:
+          type: reference
+          configType: segment
+          configId: checkout-production
+          property: id
+    type: slo-v2
+</code></pre>
+<p>In the template, scope the SLI with <code>&quot;filterSegments&quot;: [{&quot;id&quot;: &quot;{{ .checkout_segment_id }}&quot;}]</code> inside <code>customSli</code>. Because the segment ID is resolved per environment, the same config deploys to every tenant without a hard-coded ID — the portability problem S2S-07 spends a section on.</p>
+<p><strong>Classic equivalent:</strong> an alerting profile referencing a management zone — <code>management_zone_id: [&quot;my-project&quot;, &quot;builtin:management-zones&quot;, &quot;production-mz&quot;, &quot;id&quot;]</code> on a <code>builtin:alerting.profile</code> config, used in the template as <code>{{ .management_zone_id }}</code>. Same mechanism, blocked schemas.</p>
+<h3>Conditional Configurations</h3>
+<p><code>skip</code> is a boolean on <code>config:</code>. To deploy a config to only some environments, set a default and flip it per environment (or per environment group with <code>groupOverrides</code>):</p>
+<pre><code class="language-yaml">configs:
+  - id: production-only-config
+    config:
+      name: Production Detector
+      template: detector.json
+      skip: true
+    type:
+      settings:
+        schema: builtin:davis.anomaly-detectors
+        scope: environment
+    environmentOverrides:
+      - environment: production
+        override:
+          skip: false
+</code></pre>
+<h3>Environment-Specific Overrides</h3>
+<p><code>environmentOverrides</code> and <code>groupOverrides</code> sit at the config level, as siblings of <code>config:</code> — not inside it:</p>
+<pre><code class="language-yaml">configs:
+  - id: checkout-availability
+    config:
+      name: Checkout availability
+      template: checkout-availability.json
+      parameters:
+        slo_target: 99.0
+    type: slo-v2
+    environmentOverrides:
+      - environment: production
+        override:
+          parameters:
+            slo_target: 99.5
+</code></pre>
+<hr />
+<h3>Grouping Configurations</h3>
+<p>Monaco v2 has no per-config <code>group:</code> key. Two different things are grouped, and neither is a config group:</p>
+<ul>
+<li><strong>Projects</strong> group configurations. Put related configs in one project directory and deploy just that project with <code>--project</code>.</li>
+<li><strong>Environment groups</strong> (<code>environmentGroups</code> in the manifest) group <em>target environments</em>. <code>--group</code> deploys to every environment in the named group; it does not select configs.</li>
+</ul>
+<pre><code class="language-bash"># Assumes a manifest with a &quot;web-application&quot; project and a &quot;production&quot; environment group
+# (the §3 example has neither — there it would be --project my-project --group default)
+monaco deploy manifest.yaml --project web-application --group production
+</code></pre>
+<hr />
+<h3>Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Use meaningful IDs</strong></td>
+<td>IDs should describe the config purpose</td>
+</tr>
+<tr>
+<td><strong>Modular structure</strong></td>
+<td>Separate configs by domain (alerting, monitoring, etc.)</td>
+</tr>
+<tr>
+<td><strong>Environment variables</strong></td>
+<td>Never hardcode tokens or URLs</td>
+</tr>
+<tr>
+<td><strong>Version control</strong></td>
+<td>Commit all changes with meaningful messages</td>
+</tr>
+<tr>
+<td><strong>Dry run first</strong></td>
+<td>Run <code>monaco deploy --dry-run</code> before applying — it catches YAML/JSON structure errors, not payload errors</td>
+</tr>
+<tr>
+<td><strong>Document parameters</strong></td>
+<td>Comment complex configurations</td>
+</tr>
+<tr>
+<td><strong>Treat a download as a partial backup</strong></td>
+<td><code>monaco download</code> omits secrets, filtered and read-only settings, other users' objects and everything that is not configuration — keep the gap list from <a href="#using-a-download-as-a-backup">Using a Download as a Backup</a> beside the export</td>
+</tr>
+<tr>
+<td><strong>Check upgrade status before you invest</strong></td>
+<td>Before building a long-lived project around a schema, confirm it is not marked <strong>Blocked at upgrade</strong> in AUTOM-02's catalog — a blocked schema takes the whole Monaco config type with it</td>
+</tr>
+</tbody>
+</table>
+<h3>Common Issues and Solutions</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&quot;Config already exists&quot;</td>
+<td>Duplicate ID</td>
+<td>Use unique IDs or download first</td>
+</tr>
+<tr>
+<td>&quot;Schema not found&quot;</td>
+<td>Typo in schema ID — <strong>or</strong> the schema was removed when the tenant upgraded to the latest Dynatrace</td>
+<td>Check the exact schema name in the API. If it was correct and worked previously, check the schema's upgrade status in AUTOM-02's catalog before assuming a typo</td>
+</tr>
+<tr>
+<td>&quot;Template not found&quot;</td>
+<td>Wrong path</td>
+<td>Use relative path from config.yaml</td>
+</tr>
+<tr>
+<td>&quot;Validation failed&quot;</td>
+<td>Invalid JSON</td>
+<td>Check JSON syntax in template</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>7. Next Steps</h2>
+<h3>Monaco in a CI/CD Pipeline (the most common next step)</h3>
+<p>Monaco itself is a CLI — to make it part of a GitOps flow, wire it into your CI/CD platform of choice. <strong>AUTOM-07: CI/CD Integration</strong> has the recipe per platform:</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>AUTOM-07 section</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GitHub Actions</td>
+<td>§3 GitHub Actions</td>
+</tr>
+<tr>
+<td>GitLab CI/CD</td>
+<td>§4 GitLab CI/CD</td>
+</tr>
+<tr>
+<td>Bitbucket Pipelines</td>
+<td>§5.1 Bitbucket Pipelines — Monaco Deploy</td>
+</tr>
+<tr>
+<td>Atlassian Bamboo</td>
+<td>§6 Atlassian Bamboo — adapt the Plan Specs YAML to call <code>monaco deploy</code></td>
+</tr>
+<tr>
+<td>Azure DevOps</td>
+<td>§7 Azure DevOps Pipelines — adapt the Pipeline YAML to call <code>monaco deploy</code></td>
+</tr>
+</tbody>
+</table>
+<p>For the <strong>full sequenced path</strong> from zero to a working pipeline, see <strong>AUTOM-01 §6 First-Time Setup Path — Path B (Monaco target)</strong>.</p>
+<h3>When to Consider Adding Terraform</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Why Terraform wins</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cross-system orchestration (cloud + Dynatrace + Git in one apply)</td>
+<td>Monaco is Dynatrace-only</td>
+</tr>
+<tr>
+<td>State management + drift detection on critical resources</td>
+<td>Monaco has no state file and no drift view; a redeploy writes the template over whatever was changed in the UI</td>
+</tr>
+<tr>
+<td>Part of larger IaC stack</td>
+<td>Existing Terraform workflows extend naturally to Dynatrace</td>
+</tr>
+<tr>
+<td>Lifecycle protections (<code>prevent_destroy</code>, <code>ignore_changes</code>)</td>
+<td>Monaco has no per-resource lifecycle policy</td>
+</tr>
+</tbody>
+</table>
+<p>For the framing of when a Terraform shop should <em>also</em> adopt Monaco (the reverse direction), see <strong>AUTOM-01 §5: When a Terraform Shop Should Add Monaco</strong>.</p>
+<h3>Continue the Series</h3>
+<table>
+<thead>
+<tr>
+<th>Next Notebook</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AUTOM-04: Terraform Provider</strong></td>
+<td>Infrastructure-as-code approach to Dynatrace configuration</td>
+</tr>
+<tr>
+<td><strong>AUTOM-07: CI/CD Integration</strong></td>
+<td>GitOps patterns for both Monaco and Terraform</td>
+</tr>
+<tr>
+<td><strong>AUTOM-08: Migration Automation</strong></td>
+<td>Tenant-to-tenant migration including <code>monaco download</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Additional Resources</h3>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/reference/commands-saas">Monaco commands reference (DT docs)</a> — <em>&quot;A dry-run doesn't connect to Dynatrace and can't validate the content of the JSON sent to Dynatrace.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/yaml-configuration-saas">Monaco configuration YAML reference (DT docs)</a> — parameters (<code>environment</code>, <code>reference</code>), <code>skip</code>, <code>environmentOverrides</code> / <code>groupOverrides</code></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/configuration/monaco-manage-resources">Monaco manifest and resources (DT docs)</a> — <em>&quot;the name value is the name of the environment variable that holds the secret, not the secret itself.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/installation/download-monaco">Install Monaco (DT docs)</a></li>
+<li><a href="https://github.com/dynatrace/dynatrace-configuration-as-code">Monaco Documentation</a></li>
+<li><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code">Configuration-as-code samples (Dynatrace GitHub)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas">Configuration Schema Reference</a></li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>How to install and configure Monaco</li>
+<li>Project structure and manifest configuration</li>
+<li>Creating and deploying configurations via YAML</li>
+<li>Advanced features: reference parameters, <code>skip</code>, environment/group overrides, and project-scoped deploys</li>
+</ul>
+<blockquote>
+<p><strong>Key Takeaway:</strong> Monaco is ideal for teams wanting GitOps-style configuration management. It provides the right balance of simplicity and power for most Dynatrace automation needs. For the from-zero-to-pipeline sequence, see <strong>AUTOM-01 §6</strong> Path B.</p>
+</blockquote>
+<hr />
+<p><em>Continue to <strong>AUTOM-04: Terraform Provider</strong> to learn infrastructure-as-code patterns, or jump to <strong>AUTOM-07: CI/CD Integration</strong> to wire Monaco into a pipeline now.</em></p>
+<h2>Community Resources &amp; Examples</h2>
+<p>The following GitHub repositories provide starter templates, real-world examples, and hands-on exercises for Monaco:</p>
+<h3>Official Repositories</h3>
+<table>
+<thead>
+<tr>
+<th>Repository</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/Dynatrace/dynatrace-configuration-as-code">dynatrace-configuration-as-code</a></td>
+<td>Official Monaco CLI (v2.30.0 at time of writing, released 09/23/2026 — check releases for newer) -- Go binary, Apache-2.0</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code">community-examples / configuration-as-code</a></td>
+<td>Current home of the Monaco samples, including the 9 starter templates in <code>basic-templates-monaco</code>. The old <code>dynatrace-configuration-as-code-samples</code> repo is archived: <em>&quot;The Dynatrace Configuration as Code samples are no longer maintained here.&quot;</em></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/easytrade">easytrade</a></td>
+<td>Demo microservices app with a working <code>monaco/</code> directory (manifest.yaml, detection rules, workflows)</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Dynatrace/Dynatrace-Config-Manager">Dynatrace-Config-Manager</a></td>
+<td><strong>Archived</strong> — <em>&quot;This repository has been archived and is no longer maintained.&quot;</em> Historical reference only; use <code>monaco download</code> for tenant-to-tenant migration (AUTOM-08)</td>
+</tr>
+</tbody>
+</table>
+<h3>Starter Templates (in <code>community-examples/configuration-as-code</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Template Directory</th>
+<th>What It Configures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>basic-templates-monaco</code></td>
+<td>Alerting, app detection, synthetic, maintenance window, management zones, ownership, notifications, SLOs — 8 of its 13 configs use schemas on the <a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/removed-schemas">removed in Latest Dynatrace (DT docs)</a> list (management zone, alerting profile, problem notification, maintenance window, classic SLO); use them as Monaco syntax examples, not as templates for a latest-Dynatrace tenant</td>
+</tr>
+<tr>
+<td><code>learn-monaco-auto-tag</code></td>
+<td>Auto-tagging with Monaco</td>
+</tr>
+<tr>
+<td><code>account-monaco-admin-access</code></td>
+<td>Admin access setup for Monaco</td>
+</tr>
+</tbody>
+</table>
+<h3>Pipeline Observability Samples</h3>
+<p>Monaco configurations for ingesting CI/CD pipeline events via OpenPipeline:</p>
+<table>
+<thead>
+<tr>
+<th>Directory</th>
+<th>CI/CD Platform</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>github_pipeline_observability</code></td>
+<td>GitHub Actions</td>
+</tr>
+<tr>
+<td><code>gitlab_pipeline_observability</code></td>
+<td>GitLab CI</td>
+</tr>
+<tr>
+<td><code>azure_devops_observability</code></td>
+<td>Azure DevOps</td>
+</tr>
+<tr>
+<td><code>argocd_observability</code></td>
+<td>ArgoCD</td>
+</tr>
+</tbody>
+</table>
+<h3>Training &amp; Exercises</h3>
+<table>
+<thead>
+<tr>
+<th>Repository</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/dynatrace-ace/monaco-self-paced-exercises">monaco-self-paced-exercises</a></td>
+<td>6 structured exercises: install, auto-tag, download, variables, delete/restore, linking configs</td>
+</tr>
+<tr>
+<td><a href="https://github.com/dt-demos/monaco-demo">monaco-demo</a></td>
+<td>Working GitHub Actions workflow for Monaco deploy with &quot;crawl-walk-run&quot; adoption methodology</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Monaco v1 (<code>dynatrace-oss/dynatrace-monitoring-as-code</code>) is no longer supported. Current Monaco releases have no conversion command: <em>&quot;The last Monaco version to support the convert command is Monaco version 2.19.0.&quot;</em> Either run Monaco 2.19.0's <code>convert</code> per the <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/guides/migrating-to-v2">migrating to v2 guide (DT docs)</a>, or re-run <code>monaco download</code> against the source tenant.</p>
+</blockquote>
+<hr />
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

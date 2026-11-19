@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTEL-08: Troubleshooting OTel Pipelines</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OTEL — OpenTelemetry Integration</a><span class="sep">/</span><span aria-current="page">OTEL-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OTEL-08: Troubleshooting OTel Pipelines</h1>
+<blockquote>
+<p><strong>Series:</strong> OTEL — OpenTelemetry Integration | <strong>Notebook:</strong> 8 of 8 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/28/2026</p>
+</blockquote>
+<h2>Debugging OpenTelemetry Data Flows</h2>
+<p>When telemetry data doesn't arrive as expected, systematic troubleshooting is essential. This notebook covers common issues, diagnostic techniques, and resolution steps for OpenTelemetry pipelines.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#troubleshooting-methodology">Troubleshooting Methodology</a></li>
+<li><a href="#collector-issues">Collector Issues</a></li>
+<li><a href="#sdk-issues">SDK Issues</a></li>
+<li><a href="#connectivity-issues">Connectivity Issues</a></li>
+<li><a href="#data-quality-issues">Data Quality Issues</a></li>
+<li><a href="#performance-issues">Performance Issues</a></li>
+<li><a href="#diagnostic-tools">Diagnostic Tools</a></li>
+<li><a href="#common-fixes">Common Fixes</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>OTEL-01 through OTEL-07</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Collector logs, application logs</td>
+</tr>
+</tbody>
+</table>
+<p><a id="troubleshooting-methodology"></a></p>
+<h2>1. Troubleshooting Methodology</h2>
+<h3>Systematic Approach</h3>
+<pre><code>1. Identify the symptom
+   ↓
+2. Check component by component
+   SDK → Collector → Backend
+   ↓
+3. Verify configuration
+   ↓
+4. Test connectivity
+   ↓
+5. Apply fix
+   ↓
+6. Verify resolution
+</code></pre>
+<h3>Symptom Categories</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely Issue</th>
+<th>Start Here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No data at all</td>
+<td>Connectivity, auth</td>
+<td>Section 4</td>
+</tr>
+<tr>
+<td>Partial data</td>
+<td>Filtering, sampling</td>
+<td>Section 5</td>
+</tr>
+<tr>
+<td>Delayed data</td>
+<td>Performance</td>
+<td>Section 6</td>
+</tr>
+<tr>
+<td>Wrong data</td>
+<td>Configuration</td>
+<td>Section 5</td>
+</tr>
+<tr>
+<td>Collector crashes</td>
+<td>Resources</td>
+<td>Section 6</td>
+</tr>
+</tbody>
+</table>
+<p><a id="collector-issues"></a></p>
+<h2>2. Collector Issues</h2>
+<h3>Collector Won't Start</h3>
+<p><strong>Check configuration syntax:</strong></p>
+<pre><code class="language-bash"># Validate config
+otelcol-contrib validate --config=config.yaml
+</code></pre>
+<p><strong>Common configuration errors:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Error</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>unknown type</code></td>
+<td>Invalid component name</td>
+<td>Check spelling, verify contrib has component</td>
+</tr>
+<tr>
+<td><code>duplicate key</code></td>
+<td>YAML syntax error</td>
+<td>Check indentation</td>
+</tr>
+<tr>
+<td><code>no pipelines defined</code></td>
+<td>Missing service section</td>
+<td>Add service.pipelines</td>
+</tr>
+</tbody>
+</table>
+<h3>Enable Debug Logging</h3>
+<pre><code class="language-yaml">service:
+  telemetry:
+    logs:
+      level: debug
+</code></pre>
+<h3>Collector Dropping Data</h3>
+<p><strong>Check queue status:</strong></p>
+<pre><code class="language-bash"># If using zpages extension
+curl http://localhost:55679/debug/tracez
+</code></pre>
+<p><strong>Common causes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Indicator</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Memory pressure</td>
+<td>OOM, restarts</td>
+<td>Increase memory_limiter limits</td>
+</tr>
+<tr>
+<td>Export failure</td>
+<td>Retry logs</td>
+<td>Check backend connectivity</td>
+</tr>
+<tr>
+<td>Queue full</td>
+<td>Queue overflow logs</td>
+<td>Increase queue size or consumers</td>
+</tr>
+</tbody>
+</table>
+<p><a id="sdk-issues"></a></p>
+<h2>3. SDK Issues</h2>
+<h3>No Spans Generated</h3>
+<p><strong>Python:</strong></p>
+<pre><code class="language-python"># Enable SDK debug logging
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+# Verify tracer provider is set
+from opentelemetry import trace
+print(trace.get_tracer_provider())
+# Should NOT be NoOpTracerProvider
+</code></pre>
+<p><strong>Java:</strong></p>
+<pre><code class="language-bash"># Enable agent debug
+java -javaagent:opentelemetry-javaagent.jar \
+  -Dotel.javaagent.debug=true \
+  -jar app.jar
+</code></pre>
+<h3>Common SDK Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NoOpTracer</td>
+<td>Provider not set</td>
+<td>Call set_tracer_provider()</td>
+</tr>
+<tr>
+<td>No export</td>
+<td>Processor not added</td>
+<td>Add BatchSpanProcessor</td>
+</tr>
+<tr>
+<td>Missing spans</td>
+<td>Not in context</td>
+<td>Use start_as_current_span</td>
+</tr>
+<tr>
+<td>Lost context</td>
+<td>Async not handled</td>
+<td>Use context propagation</td>
+</tr>
+</tbody>
+</table>
+<h3>Async Context in Python</h3>
+<p>OpenTelemetry Python keeps the current span in a <code>ContextVar</code>, and <code>asyncio</code> copies the current context into every task it creates. A span started with <code>start_as_current_span</code> is therefore already current inside coroutines run with <code>await</code>, <code>asyncio.gather</code> or <code>asyncio.create_task</code> — wrapping <code>gather</code> in <code>context.attach(context.get_current())</code> changes nothing. If spans are missing parents in async code, look for work that does not run as a task created under the span.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.python.org/3/library/asyncio-task.html">asyncio — Coroutines and Tasks (Python docs)</a> — <code>create_task</code>: <em>&quot;The current context copy is created when no context is provided.&quot;</em>; <code>gather</code>: <em>&quot;If any awaitable in aws is a coroutine, it is automatically scheduled as a Task.&quot;</em>; <a href="https://github.com/open-telemetry/opentelemetry-python/blob/main/opentelemetry-api/src/opentelemetry/context/contextvars_context.py">contextvars_context.py (OpenTelemetry GitHub)</a> — <em>&quot;An implementation of the RuntimeContext interface which wraps ContextVar under the hood.&quot;</em></sub></p>
+</blockquote>
+<p><a id="connectivity-issues"></a></p>
+<h2>4. Connectivity Issues</h2>
+<h3>Test Collector Connectivity</h3>
+<pre><code class="language-bash"># Test OTLP endpoint
+curl -v http://collector:4318/v1/traces \
+  -X POST \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{}'
+
+# Test gRPC (with grpcurl)
+grpcurl -plaintext collector:4317 list
+</code></pre>
+<h3>Test Dynatrace Connectivity</h3>
+<pre><code class="language-bash"># Test OTLP endpoint (set DT_API_TOKEN env var first).
+# Dynatrace accepts binary protobuf only (&quot;JSON is not supported for Protocol Buffers&quot;),
+# so send an empty protobuf body — a valid, empty export request.
+curl -v https://${DT_ENV_ID}.live.dynatrace.com/api/v2/otlp/v1/traces \
+  -X POST \
+  -H &quot;Authorization: Api-Token ${DT_API_TOKEN}&quot; \
+  -H &quot;Content-Type: application/x-protobuf&quot; \
+  --data-binary ''
+
+# Expected: a 2xx status. 401 = token or auth scheme (Api-Token vs Bearer); 403 = missing scope.
+</code></pre>
+<h3>Common Connectivity Errors</h3>
+<table>
+<thead>
+<tr>
+<th>Error</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>connection refused</code></td>
+<td>Wrong port/host</td>
+<td>Verify endpoint</td>
+</tr>
+<tr>
+<td><code>401 Unauthorized</code></td>
+<td>Invalid token, or wrong scheme (<code>Api-Token</code> for classic tokens, <code>Bearer</code> for platform tokens)</td>
+<td>Check token and scheme</td>
+</tr>
+<tr>
+<td><code>403 Forbidden</code></td>
+<td>Missing scope</td>
+<td>Add required scope to token</td>
+</tr>
+<tr>
+<td><code>certificate error</code></td>
+<td>TLS issue</td>
+<td>Check certs, disable verify for test</td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td>Network/firewall</td>
+<td>Check firewall rules</td>
+</tr>
+</tbody>
+</table>
+<h3>Proxy Issues</h3>
+<pre><code class="language-yaml"># Collector proxy configuration
+exporters:
+  otlphttp:
+    endpoint: https://tenant.live.dynatrace.com/api/v2/otlp
+    proxy_url: http://proxy.example.com:8080
+</code></pre>
+<pre><code class="language-bash"># Or via environment
+export HTTPS_PROXY=http://proxy.example.com:8080
+</code></pre>
+<p><a id="data-quality-issues"></a></p>
+<h2>5. Data Quality Issues</h2>
+<h3>Missing Attributes</h3>
+<p><strong>Debug exporter to see data:</strong></p>
+<pre><code class="language-yaml">exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      exporters: [debug, otlphttp]
+</code></pre>
+<h3>service.name Missing</h3>
+<p>Without <code>service.name</code>, OpenTelemetry SDKs report the service as <code>unknown_service</code> (plus the process name, in some SDKs), so its spans land under a meaningless service. Set it in the SDK or, as a fallback, in the Collector:</p>
+<pre><code class="language-yaml"># Add default service.name in collector
+processors:
+  resource:
+    attributes:
+      - key: service.name
+        value: &quot;unknown-service&quot;
+        action: insert  # Only adds if missing
+</code></pre>
+<h3>Wrong Timestamps in File Logs</h3>
+<p>OTLP timestamps are Unix-epoch nanoseconds and carry no time zone, so the Collector's own <code>TZ</code> does not affect OTLP data. Time-zone errors appear when a receiver <strong>parses</strong> a timestamp written without a zone, for example a <code>file_log</code> time parser reading local times. Set the parser's location there, rather than changing the container's <code>TZ</code>.</p>
+<h3>Data Being Filtered</h3>
+<p>Check filter processor configuration:</p>
+<pre><code class="language-yaml">processors:
+  filter:
+    traces:
+      span:
+        # This filters OUT matching spans
+        - 'attributes[&quot;url.path&quot;] == &quot;/health&quot;'
+</code></pre>
+<p><a id="performance-issues"></a></p>
+<h2>6. Performance Issues</h2>
+<h3>Collector Memory Issues</h3>
+<p><strong>Symptoms:</strong></p>
+<ul>
+<li>OOMKilled restarts</li>
+<li>Slow processing</li>
+<li>Data drops</li>
+</ul>
+<p><strong>Fixes:</strong></p>
+<pre><code class="language-yaml">processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 1500      # Increase limit
+    spike_limit_mib: 500 # Allow spikes
+
+  batch:
+    timeout: 5s           # Faster flush
+    send_batch_size: 500  # Smaller batches
+</code></pre>
+<h3>High Latency</h3>
+<p><strong>Causes and fixes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Indicator</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Large batches</td>
+<td>Delayed export</td>
+<td>Reduce batch size</td>
+</tr>
+<tr>
+<td>Slow export</td>
+<td>Backend latency</td>
+<td>Increase parallelism</td>
+</tr>
+<tr>
+<td>Too many processors</td>
+<td>Processing time</td>
+<td>Remove unnecessary processors</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-yaml">exporters:
+  otlphttp:
+    sending_queue:
+      num_consumers: 10  # More parallel exports
+</code></pre>
+<h3>SDK Overhead</h3>
+<pre><code class="language-python"># Use sampling to reduce volume
+from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
+
+provider = TracerProvider(
+    sampler=TraceIdRatioBased(0.1),  # 10% sampling
+    resource=resource
+)
+</code></pre>
+<p><a id="diagnostic-tools"></a></p>
+<h2>7. Diagnostic Tools</h2>
+<h3>Collector zpages</h3>
+<pre><code class="language-yaml">extensions:
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [zpages]
+</code></pre>
+<p>Access:</p>
+<ul>
+<li><code>http://collector:55679/debug/servicez</code> - Service info</li>
+<li><code>http://collector:55679/debug/pipelinez</code> - Pipeline status</li>
+<li><code>http://collector:55679/debug/extensionz</code> - Extensions</li>
+<li><code>http://collector:55679/debug/tracez</code> - Trace samples</li>
+</ul>
+<h3>Health Check</h3>
+<pre><code class="language-yaml">extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+</code></pre>
+<pre><code class="language-bash">curl http://collector:13133/
+# {&quot;status&quot;:&quot;Server available&quot;}
+</code></pre>
+<h3>pprof Profiling</h3>
+<pre><code class="language-yaml">extensions:
+  pprof:
+    endpoint: 0.0.0.0:1777
+</code></pre>
+<pre><code class="language-bash">go tool pprof http://collector:1777/debug/pprof/heap
+</code></pre>
+<pre><code class="language-dql">// Check OTel data arrival (OTLP-ingested spans, 5-minute buckets)
+fetch spans, from:-1h
+| filter dt.openpipeline.source == &quot;/api/v2/otlp/v1/traces&quot;
+| summarize count = count(), by:{time_bucket = bin(start_time, 5m)}
+| sort time_bucket asc
+</code></pre>
+<pre><code class="language-dql">// Find OTLP-ingested spans with no usable service.name.
+// Restrict to OTLP: OneAgent spans rarely carry service.name (1,739 of 303,492 in an hour on
+// 10/02/2026 — they use dt.service.name), so an unrestricted isNull(service.name) lists
+// nearly every OneAgent span as a false positive.
+fetch spans, from:-1h
+| filter dt.openpipeline.source == &quot;/api/v2/otlp/v1/traces&quot;
+| filter isNull(service.name) or service.name == &quot;&quot; or startsWith(service.name, &quot;unknown_service&quot;)
+| summarize count = count(), by:{otel.scope.name}
+| sort count desc
+</code></pre>
+<p><a id="common-fixes"></a></p>
+<h2>8. Common Fixes</h2>
+<h3>Quick Reference</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No data at all</td>
+<td>Check endpoint, auth token, network</td>
+</tr>
+<tr>
+<td>No service entity</td>
+<td>Add service.name resource attribute</td>
+</tr>
+<tr>
+<td>Collector OOM</td>
+<td>Increase memory_limiter, reduce batch size</td>
+</tr>
+<tr>
+<td>High cardinality</td>
+<td>Remove dynamic attributes</td>
+</tr>
+<tr>
+<td>Context lost</td>
+<td>Use context propagation in async</td>
+</tr>
+<tr>
+<td>Wrong time (file logs)</td>
+<td>Set the location on the file_log time parser, not the container TZ (§ 5)</td>
+</tr>
+<tr>
+<td>SSL errors</td>
+<td>Check certs, add CA</td>
+</tr>
+</tbody>
+</table>
+<h3>Collector Config Template</h3>
+<p>A production-ready template:</p>
+<pre><code class="language-yaml">receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 1500
+    spike_limit_mib: 500
+  batch:
+    timeout: 10s
+    send_batch_size: 1000
+  resource:
+    attributes:
+      - key: service.name
+        value: unknown
+        action: insert
+
+exporters:
+  otlphttp:
+    endpoint: https://${DT_ENV}.live.dynatrace.com/api/v2/otlp
+    headers:
+      Authorization: Api-Token ${DT_TOKEN}
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+
+extensions:
+  health_check:
+  zpages:
+
+service:
+  extensions: [health_check, zpages]
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]
+</code></pre>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Systematic troubleshooting methodology</li>
+<li>Collector debugging and configuration validation</li>
+<li>SDK issue diagnosis and async context handling</li>
+<li>Connectivity testing and common errors</li>
+<li>Data quality issue resolution</li>
+<li>Performance tuning for memory and latency</li>
+<li>Diagnostic tools: zpages, health check, pprof</li>
+<li>Quick fixes for common problems</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://opentelemetry.io/docs/collector/troubleshooting/">Collector Troubleshooting</a></li>
+<li><a href="https://opentelemetry.io/docs/languages/python/">Python instrumentation (opentelemetry.io)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/opentelemetry/troubleshooting">Dynatrace OTel Troubleshooting</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

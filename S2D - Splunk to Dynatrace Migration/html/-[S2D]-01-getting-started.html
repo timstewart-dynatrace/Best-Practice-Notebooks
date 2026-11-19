@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2D-01: Splunk to Dynatrace Migration - Getting Started</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2D — Splunk to Dynatrace Migration</a><span class="sep">/</span><span aria-current="page">S2D-01</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2D-01: Splunk to Dynatrace Migration - Getting Started</h1>
+<blockquote>
+<p><strong>Series:</strong> S2D — Splunk to Dynatrace Migration | <strong>Notebook:</strong> 1 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook series provides comprehensive guidance for migrating monitoring capabilities from Splunk to Dynatrace. Whether you're moving dashboards, alerts, reports, or log queries, these notebooks will help you understand the key differences between platforms and make informed translation decisions.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvd1MyRDEiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iMTAiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0NjUiIHk9IjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5TcGx1bmsgdG8gRHluYXRyYWNlIE1pZ3JhdGlvbiBPdmVydmlldzwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5UaGUgbWlncmF0aW9uIG1vdmVzIGNvbmZpZ3VyYXRpb246IHF1ZXJpZXMsIGFsZXJ0cywgZGFzaGJvYXJkcyBhbmQgcmVwb3J0czwvdGV4dD4KCiAgPCEtLSBDb2x1bW4gaGVhZGVycyAtLT4KICA8dGV4dCB4PSIxNjUiIHk9IjkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5TcGx1bms8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+Q29uZmlndXJhdGlvbiBtaWdyYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNzY1IiB5PSI5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+RHluYXRyYWNlPC90ZXh0PgoKICA8IS0tIFJvdyAxOiBxdWVyaWVzIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIxMDYiIHdpZHRoPSIyNTAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iMTY1IiB5PSIxMzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlNQTCBxdWVyaWVzPC90ZXh0PgogIDxsaW5lIHgxPSIyOTYiIHkxPSIxMjYiIHgyPSI2MzQiIHkyPSIxMjYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dTMkQxKSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMTE5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TMkQtMDM8L3RleHQ+CiAgPHJlY3QgeD0iNjQwIiB5PSIxMDYiIHdpZHRoPSIyNTAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNzY1IiB5PSIxMzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkRRTCBxdWVyaWVzPC90ZXh0PgoKICA8IS0tIFJvd3MgMi0zOiBzY2hlZHVsZWQgYWxlcnRzIGZvcmsgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjE1NCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI4OCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIxNjUiIHk9IjIwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+U2NoZWR1bGVkIGFsZXJ0czwvdGV4dD4KICA8bGluZSB4MT0iMjk2IiB5MT0iMTc0IiB4Mj0iNjM0IiB5Mj0iMTc0IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93UzJEMSkiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjE2NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UzJELTA0IMK3IHRpbWVmcmFtZSDiiaQgNjAgbWluPC90ZXh0PgogIDxyZWN0IHg9IjY0MCIgeT0iMTU0IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9Ijc2NSIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5Bbm9tYWx5IGRldGVjdG9yczwvdGV4dD4KICA8dGV4dCB4PSI3NjUiIHk9IjE4NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Y29udGludW91cywgZXZlcnkgbWludXRlPC90ZXh0PgogIDxsaW5lIHgxPSIyOTYiIHkxPSIyMjIiIHgyPSI2MzQiIHkyPSIyMjIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dTMkQxKSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TMkQtMDUgwrcgdGltZWZyYW1lICZndDsgNjAgbWluLCBvciBmZXcgcnVucyBhIGRheTwvdGV4dD4KICA8cmVjdCB4PSI2NDAiIHk9IjIwMiIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI3NjUiIHk9IjIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+V29ya2Zsb3dzPC90ZXh0PgogIDx0ZXh0IHg9Ijc2NSIgeT0iMjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5zY2hlZHVsZWQgdHJpZ2dlcjwvdGV4dD4KCiAgPCEtLSBSb3cgNDogZGFzaGJvYXJkcyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMjUwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjE2NSIgeT0iMjc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5EYXNoYm9hcmRzPC90ZXh0PgogIDxsaW5lIHgxPSIyOTYiIHkxPSIyNzAiIHgyPSI2MzQiIHkyPSIyNzAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dTMkQxKSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjYzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TMkQtMDg8L3RleHQ+CiAgPHJlY3QgeD0iNjQwIiB5PSIyNTAiIHdpZHRoPSIyNTAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHRleHQgeD0iNzY1IiB5PSIyNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPkRhc2hib2FyZHM8L3RleHQ+CgogIDwhLS0gUm93IDU6IHJlcG9ydHMgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjI5OCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSIxNjUiIHk9IjMyMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+UmVwb3J0czwvdGV4dD4KICA8bGluZSB4MT0iMjk2IiB5MT0iMzE4IiB4Mj0iNjM0IiB5Mj0iMzE4IiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93UzJEMSkiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjMxMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UzJELTA1IMK3IFMyRC0wOTwvdGV4dD4KICA8cmVjdCB4PSI2NDAiIHk9IjI5OCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI3NjUiIHk9IjMyMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+V29ya2Zsb3dzLCBub3RlYm9va3Mgb3IgZGFzaGJvYXJkczwvdGV4dD4KCiAgPCEtLSBEaXZpZGVyOiBkYXRhIGlzIG5vdCBwYXJ0IG9mIHRoZSBjb25maWd1cmF0aW9uIG1pZ3JhdGlvbiAtLT4KICA8bGluZSB4MT0iNDAiIHkxPSIzNTIiIHgyPSI4OTAiIHkyPSIzNTIiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtZGFzaGFycmF5PSI0LDQiLz4KCiAgPCEtLSBSb3cgNjogZGF0YSAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMzYyIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjQ0IiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjE2NSIgeT0iMzgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5JbmRleGVzPC90ZXh0PgogIDx0ZXh0IHg9IjE2NSIgeT0iMzk3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5oaXN0b3J5IHN0YXlzIGluIFNwbHVuayBvciBhbiBhcmNoaXZlPC90ZXh0PgogIDxsaW5lIHgxPSIyOTYiIHkxPSIzODQiIHgyPSI2MzQiIHkyPSIzODQiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1kYXNoYXJyYXk9IjUsNSIvPgogIDxyZWN0IHg9IjQwNSIgeT0iMzczIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjIyIiByeD0iMTEiIGZpbGw9IiMwRjE3MkEiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm90IG1pZ3JhdGVkPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5TMkQtMDIgwrcgdmVyaWZ5IG5ldyBsb2cgZGF0YTwvdGV4dD4KICA8cmVjdCB4PSI2NDAiIHk9IjM2MiIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI0NCIgcng9IjYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8dGV4dCB4PSI3NjUiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QnVja2V0cyAoR3JhaWwpPC90ZXh0PgogIDx0ZXh0IHg9Ijc2NSIgeT0iMzk3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5uZXcgZGF0YSBmcm9tIHRoZSBwb2ludCBpbmdlc3Qgc3RhcnRzPC90ZXh0PgoKICA8dGV4dCB4PSI0NjUiIHk9IjQyNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMiI+SW5kZXhlZCBoaXN0b3J5IGlzIG5vdCBtaWdyYXRlZCDigJQgc2VlIEhpc3RvcmljYWwgU3BsdW5rIERhdGE8L3RleHQ+CgogIDwhLS0gU2VyaWVzIG5vdGVib29rcyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iNDM4IiB3aWR0aD0iODUwIiBoZWlnaHQ9IjUwIiByeD0iNiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+UzJELTAyIExvY2F0aW5nIExvZ3MgwrcgUzJELTAzIFNQTCB0byBEUUwgwrcgUzJELTA0IEFub21hbHkgRGV0ZWN0b3JzIMK3IFMyRC0wNSBXb3JrZmxvdyBBbGVydHM8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0NzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlMyRC0wNiBBcnJheU1vdmluZ1N1bSDCtyBTMkQtMDcgTWV0cmljIENyZWF0aW9uIMK3IFMyRC0wOCBEYXNoYm9hcmQgTWlncmF0aW9uIMK3IFMyRC0wOSBOYW1pbmcgU3RhbmRhcmRzPC90ZXh0Pgo8L3N2Zz4K" alt="Migration Overview" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+Configuration migration — the migration moves configuration: queries, alerts, dashboards and reports.
+| Splunk | Dynatrace | Coverage |
+|--------|-----------|----------|
+| SPL queries | DQL queries | S2D-03 |
+| Scheduled alerts (timeframe ≤ 60 min) | Anomaly detectors — continuous, every minute | S2D-04 |
+| Scheduled alerts (timeframe > 60 min, or few runs a day) | Workflows — scheduled trigger | S2D-05 |
+| Dashboards | Dashboards | S2D-08 |
+| Reports | Workflows, notebooks or dashboards | S2D-05, S2D-09 |
+Data — not migrated:
+| Splunk | Dynatrace | Coverage |
+|--------|-----------|----------|
+| Indexes — history stays in Splunk or an archive | Buckets (Grail) — new data from the point ingest starts | S2D-02 (verify new log data) |
+Indexed history is not migrated — see Historical Splunk Data.
+Series notebooks: S2D-02 Locating Logs · S2D-03 SPL to DQL · S2D-04 Anomaly Detectors · S2D-05 Workflow Alerts · S2D-06 ArrayMovingSum · S2D-07 Metric Creation · S2D-08 Dashboard Migration · S2D-09 Naming Standards
+For environments where SVG doesn't render
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#key-platform-differences">Key Platform Differences</a></li>
+<li><a href="#migration-planning">Migration Planning</a></li>
+<li><a href="#series-roadmap">Series Roadmap</a></li>
+<li><a href="#quick-start-verify-your-first-log-source">Quick Start: Verify Your First Log Source</a></li>
+</ol>
+<hr />
+<h3>Sprint 1.337 (April 2026) Updates Affecting S2D</h3>
+<p>Three 1.337 release items touch the Splunk → Dynatrace migration:</p>
+<ol>
+<li><strong>Primary fields on AWS Lambda logs (OneAgent 1.337)</strong> — <em>&quot;Primary fields set via DT_TAGS are now added to logs and spans in AWS Lambda deployments of OneAgent.&quot;</em> The item covers Lambda deployments only, not hosts in general. Where it applies, you do not need an OpenPipeline processor to add those fields to Lambda logs.</li>
+<li><strong>OpenPipeline field recommendations (SaaS 1.337)</strong> — <em>&quot;Recommendations automatically cover all permission- and cost-relevant fields or dimensions, with support for all Smartscape identifiers and Grail primary tags.&quot;</em> This helps when you convert Splunk field extractions into OpenPipeline processors.</li>
+<li><strong>Configuration API deprecations (SaaS 1.337)</strong> — <em>&quot;Certain Configuration API endpoints are now deprecated&quot;</em>, and <em>&quot;No immediate action is required on your part.&quot;</em> The release note adds <em>&quot;We recommend migrating to the Environment API v2 endpoints for a more robust integration&quot;</em>, so point new migration automation there. If that automation uses platform tokens, they carry the <code>dt0s16</code> prefix: <em>&quot;dt0s16 Platform Token enabling programmatic access to Dynatrace platform services.&quot;</em></li>
+</ol>
+<p>These changes reinforce the Gen3-first migration baseline.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-337">OneAgent 1.337 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-337">SaaS 1.337 (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/dynatrace-api/basics/dynatrace-api-authentication">Tokens and authentication (DT docs)</a>.</sub></p>
+</blockquote>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:buckets:read</code>, <code>settings:objects:read</code></td>
+</tr>
+<tr>
+<td><strong>Splunk Access</strong></td>
+<td>Ability to view existing queries, alerts, dashboards</td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Basic familiarity with both Splunk SPL and Dynatrace DQL</td>
+</tr>
+</tbody>
+</table>
+<h2>Learning Objectives</h2>
+<p>By the end of this series, you will be able to:</p>
+<ol>
+<li>Validate that required log data is available in Dynatrace</li>
+<li>Translate SPL queries to DQL</li>
+<li>Migrate Splunk alerts to Anomaly Detectors or Workflows</li>
+<li>Convert Splunk dashboards to Dynatrace format</li>
+<li>Apply consistent naming standards to migrated assets</li>
+<li>Request metric extraction for performance-critical queries</li>
+</ol>
+<p><a id="key-platform-differences"></a></p>
+<h2>Key Platform Differences</h2>
+<p>Understanding the fundamental differences between Splunk and Dynatrace is critical for a successful migration.</p>
+<h3>Data Model</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Splunk</th>
+<th>Dynatrace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Storage</strong></td>
+<td>Indexes</td>
+<td>Buckets (Grail)</td>
+</tr>
+<tr>
+<td><strong>Query Language</strong></td>
+<td>SPL (Search Processing Language)</td>
+<td>DQL (Dynatrace Query Language)</td>
+</tr>
+<tr>
+<td><strong>Data Types</strong></td>
+<td>Events (logs)</td>
+<td>Logs, Metrics, Traces, Events, Entities</td>
+</tr>
+<tr>
+<td><strong>Schema</strong></td>
+<td>Schema-on-read</td>
+<td>Schema-on-read with semantic model</td>
+</tr>
+<tr>
+<td><strong>Retention</strong></td>
+<td>Index-based</td>
+<td>Bucket-based with tiered storage</td>
+</tr>
+</tbody>
+</table>
+<h3>Alerting Model</h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Splunk</th>
+<th>Dynatrace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Execution</strong></td>
+<td>Scheduled queries</td>
+<td>Continuous monitoring</td>
+</tr>
+<tr>
+<td><strong>Frequency</strong></td>
+<td>User-defined schedule</td>
+<td>Every minute by default (configurable Delay, max 60 min)</td>
+</tr>
+<tr>
+<td><strong>Evaluation</strong></td>
+<td>Single point-in-time</td>
+<td>Sliding window</td>
+</tr>
+<tr>
+<td><strong>Threshold</strong></td>
+<td>Total over period</td>
+<td>Per-minute samples</td>
+</tr>
+<tr>
+<td><strong>Intelligence</strong></td>
+<td>Rule-based</td>
+<td>Dynatrace Intelligence powered</td>
+</tr>
+</tbody>
+</table>
+<p><a id="migration-planning"></a></p>
+<h2>Migration Planning</h2>
+<p>A successful migration follows this general sequence:</p>
+<h3>Phase 1: Discovery</h3>
+<ol>
+<li><strong>Inventory existing assets</strong> - Document all dashboards, alerts, reports, and saved searches</li>
+<li><strong>Identify data sources</strong> - Map log sources to hosts, clusters, or namespaces</li>
+<li><strong>Prioritize by criticality</strong> - Focus on production monitoring first</li>
+</ol>
+<h3>Phase 2: Data Validation</h3>
+<ol>
+<li><strong>Verify log ingestion</strong> - Confirm logs are flowing into Dynatrace</li>
+<li><strong>Check field mappings</strong> - Ensure required fields are available</li>
+<li><strong>Configure ingest rules</strong> - Add any missing log sources</li>
+</ol>
+<h3>Phase 3: Query Translation</h3>
+<ol>
+<li><strong>Convert SPL to DQL</strong> - Translate query syntax</li>
+<li><strong>Validate results</strong> - Compare output with Splunk</li>
+<li><strong>Optimize performance</strong> - Apply DQL best practices</li>
+</ol>
+<h3>Phase 4: Alert Migration</h3>
+<ol>
+<li><strong>Choose alert type</strong> - Anomaly Detector or Workflow</li>
+<li><strong>Translate thresholds</strong> - Apply conversion formula</li>
+<li><strong>Configure notifications</strong> - Route problems through problem-triggered workflows</li>
+</ol>
+<h3>Phase 5: Dashboard Migration</h3>
+<ol>
+<li><strong>Recreate visualizations</strong> - Build equivalent charts</li>
+<li><strong>Apply filters</strong> - Configure time and segment filters</li>
+<li><strong>Validate accuracy</strong> - Compare with Splunk dashboards</li>
+</ol>
+<h3>Historical Splunk Data</h3>
+<p>Data already stored in Splunk indexes is <strong>not migrated</strong> into Dynatrace log storage. The migration moves configuration — queries, alerts, dashboards — and Dynatrace holds log data only from the point ingest starts. Replaying a bulk export of Splunk history through log ingest does not work either: <em>&quot;The event is dropped if it contains a timestamp older than the configured log age limit.&quot;</em></p>
+<p>That limit depends on when the environment was created: <em>&quot;For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours.&quot;</em> Older environments default to 24 hours, which Dynatrace Support can raise to 72 hours on request. Either way the window covers days, not the months or years a Splunk index holds. If you replay recent days to close a gap and cannot confirm your environment's limit, plan for 24 hours.</p>
+<p>Plan for history instead:</p>
+<ol>
+<li><strong>Keep historical data readable outside Dynatrace</strong> - Keep Splunk searchable, or move the data to an archive, for as long as your audit, compliance or investigation requirements say it must be kept.</li>
+<li><strong>Size the parallel run to the look-back you need</strong> - In community practice, teams run both platforms until Dynatrace has accumulated the history its dashboards, alert baselines and the data-driven threshold strategy in S2D-04 depend on — verify the window against your own longest look-back before cutover.</li>
+</ol>
+<p>The <code>splunksearchapireceiver</code> Collector component, which ships in the Dynatrace Bindplane OTel Collector distribution, exports Splunk search results with each event's original <code>_time</code> as the record timestamp, so it is bound by the same age limit and cannot backfill history either.</p>
+<p><strong>If your archive is text files in Amazon S3, a Preview can query it in place.</strong> SaaS 1.348 (staged tenant rollout from 10/12/2026) introduces <em>Query external cloud data with DQL (Preview)</em>. Grail reads files you reference through an External Data Store and parses them at read time with DPL, while the files stay in your bucket. Access is by request. The preview covers Amazon S3 only and text formats only (JSON, NDJSON, CSV, XML and plain text), so check your archive's format against that list before counting on it. A second preview phase, with no start date yet, is described as importing archived S3 logs into Grail with their original timestamps preserved. Until either phase is available to you, the plan above stands: keep history readable where it is.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log Management and Analytics default limits (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">SaaS 1.348 (DT docs)</a> — <em>&quot;Rollout start on Oct 12, 2026&quot;</em>; <em>&quot;You can now read and analyze data stored in the cloud directly with DQL, providing access to historical data and archives in common formats such as JSON, NDJSON, CSV, XML, or plain text.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/whats-new/preview-releases">Preview program (DT docs)</a> — <em>&quot;The computation runs in Grail while the data stays in your S3 bucket, so archived data stays queryable without a rehydration step.&quot;</em>; <em>&quot;The preview is limited to Amazon S3 only, with text-based data formats.&quot;</em>; <em>&quot;Preview phase 2 (start date to be communicated): Import and process archived logs from S3 into Grail, with their original timestamps preserved&quot;</em></sub></li>
+<li><sub><a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/tree/v1.2.0/receiver/splunksearchapireceiver">splunksearchapireceiver at v1.2.0 (Dynatrace GitHub)</a>. <strong>Code read (10/29/2026):</strong> <code>model.go</code> maps the search result's <code>_time</code> to <code>Time</code>; <code>receiver.go</code> parses it and passes it to <code>log.SetTimestamp</code>; <code>metadata.yaml</code> lists <code>distributions: [Dynatrace-Bindplane]</code>.</sub></li>
+</ul>
+</blockquote>
+<p><a id="series-roadmap"></a></p>
+<h2>Series Roadmap</h2>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Topic</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>S2D-01</strong></td>
+<td>Getting Started</td>
+<td>This notebook - overview and planning</td>
+</tr>
+<tr>
+<td><strong>S2D-02</strong></td>
+<td>Locating Logs</td>
+<td>Validating log data availability</td>
+</tr>
+<tr>
+<td><strong>S2D-03</strong></td>
+<td>SPL to DQL</td>
+<td>Query translation fundamentals</td>
+</tr>
+<tr>
+<td><strong>S2D-04</strong></td>
+<td>Anomaly Detectors</td>
+<td>Translating alerts to continuous monitoring</td>
+</tr>
+<tr>
+<td><strong>S2D-05</strong></td>
+<td>Workflow Alerts</td>
+<td>When and how to use workflow-based alerting</td>
+</tr>
+<tr>
+<td><strong>S2D-06</strong></td>
+<td>ArrayMovingSum</td>
+<td>Handling extended timeframes (&gt;1 hour)</td>
+</tr>
+<tr>
+<td><strong>S2D-07</strong></td>
+<td>Metric Creation</td>
+<td>Creating log metrics via OpenPipeline</td>
+</tr>
+<tr>
+<td><strong>S2D-08</strong></td>
+<td>Dashboard Migration</td>
+<td>Converting Splunk dashboards</td>
+</tr>
+<tr>
+<td><strong>S2D-09</strong></td>
+<td>Naming Standards</td>
+<td>Organization and naming conventions</td>
+</tr>
+</tbody>
+</table>
+<p><a id="quick-start-verify-your-first-log-source"></a></p>
+<h2>Quick Start: Verify Your First Log Source</h2>
+<p>Before diving deeper, let's verify that logs are available in Dynatrace. This query shows log sources and their record counts.</p>
+<pre><code class="language-dql">// View available log sources and counts
+fetch logs, from:-1h
+| summarize count = count(), by:{log.source}
+| sort count desc
+| limit 20
+</code></pre>
+<p>Check logs by host name to match Splunk source mapping.</p>
+<pre><code class="language-dql">// View log counts by host
+fetch logs, from:-1h
+| summarize count = count(), by:{host.name}
+| sort count desc
+| limit 20
+</code></pre>
+<p>For Kubernetes workloads, check by cluster and namespace.</p>
+<pre><code class="language-dql">// View log counts by Kubernetes attributes
+fetch logs, from:-1h
+| filter isNotNull(k8s.cluster.name)
+| summarize count = count(), by:{k8s.cluster.name, k8s.namespace.name}
+| sort count desc
+| limit 20
+</code></pre>
+<h2>Next Steps</h2>
+<p>Continue to <strong>S2D-02: Locating Logs in Dynatrace</strong> to learn the complete process for validating log data availability before beginning your migration.</p>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/dql-reference">Dynatrace DQL Reference</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection">anomaly-detection (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/workflows">Dynatrace Workflows</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs">Logs (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

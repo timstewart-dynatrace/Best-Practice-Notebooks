@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPLOGS-08: Security &amp; Data Protection</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">OPLOGS — OpenPipeline Logs</a><span class="sep">/</span><span aria-current="page">OPLOGS-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>OPLOGS-08: Security &amp; Data Protection</h1>
+<blockquote>
+<p><strong>Series:</strong> OPLOGS — OpenPipeline Logs | <strong>Notebook:</strong> 8 of 8 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 10/14/2026</p>
+</blockquote>
+<h2>Sensitive Data Discovery, Masking, and Compliance</h2>
+<p>This notebook covers sensitive data discovery, OpenPipeline masking configuration, security event monitoring, and compliance reporting.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#sensitive-data-discovery">Sensitive Data Discovery</a></li>
+<li><a href="#openpipeline-masking-configuration">OpenPipeline Masking Configuration</a></li>
+<li><a href="#ip-address-analysis">IP Address Analysis</a></li>
+<li><a href="#security-event-monitoring">Security Event Monitoring</a></li>
+<li><a href="#audit-log-queries">Audit Log Queries</a></li>
+<li><a href="#compliance-reporting">Compliance Reporting</a></li>
+<li><a href="#masking-best-practices">Masking Best Practices</a></li>
+<li><a href="#summary">📝 Summary</a></li>
+<li><a href="#next-steps">➡️ Next Steps</a></li>
+<li><a href="#references">📚 References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>✅ Access to a Dynatrace environment with log data</li>
+<li>✅ Completed OPLOGS-01 through OPLOGS-07</li>
+<li>✅ Understanding of data privacy requirements</li>
+</ul>
+<p><a id="sensitive-data-discovery"></a></p>
+<h2>1. Sensitive Data Discovery</h2>
+<p>Before implementing masking, discover what sensitive data exists in your logs.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY3JpdGljYWxHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2VmNDQ0NDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZGMyNjI2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaGlnaEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjk3MzE2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlYTU4MGM7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJtZWRpdW1HcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6I2Y1OWUwYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZDk3NzA2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibG93R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMzYjgyZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzI1NjNlYjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8ZmlsdGVyIGlkPSJzZW5zU2hhZG93Ij4KICAgICAgPGZlRHJvcFNoYWRvdyBkeD0iMSIgZHk9IjEiIHN0ZERldmlhdGlvbj0iMiIgZmxvb2Qtb3BhY2l0eT0iMC4xNSIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIzNDAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjQwMCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNlbnNpdGl2ZSBEYXRhIENsYXNzaWZpY2F0aW9uIE1hdHJpeDwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjQ4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiM2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlBJSS9QSEkvUENJIGRhdGEgdHlwZXMgcmVxdWlyaW5nIG1hc2tpbmcgaW4gT3BlblBpcGVsaW5lPC90ZXh0PgoKICA8IS0tIENyaXRpY2FsIFJpc2sgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjcwIiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjI1MCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNlZjQ0NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjMwIiB5PSI3MCIgd2lkdGg9IjE3NSIgaGVpZ2h0PSIzNSIgcng9IjEwIiBmaWxsPSJ1cmwoI2NyaXRpY2FsR3JhZCkiLz4KICA8dGV4dCB4PSIxMTciIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q1JJVElDQUw8L3RleHQ+CgogIDx0ZXh0IHg9IjUwIiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkYzI2MjYiPkNyZWRpdCBDYXJkPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPjQxMTEtMTExMS0xMTExLTExMTE8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjE2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjN2YxZDFkIj7ihpIgQ1JFRElUQ0FSRCBtYXRjaGVyPC90ZXh0PgoKICA8dGV4dCB4PSI1MCIgeT0iMTg1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZGMyNjI2Ij5TU048L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjIwMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+MTIzLTQ1LTY3ODk8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjIxNSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjN2YxZDFkIj7ihpIgTk5OLU5OLU5OTk48L3RleHQ+CgogIDx0ZXh0IHg9IjUwIiB5PSIyNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkYzI2MjYiPkJhbmsgQWNjb3VudDwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMjU1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj4wMjEwMDAwMjEvMTIzNDU2Nzg8L3RleHQ+CgogIDx0ZXh0IHg9IjUwIiB5PSIyODAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkYzI2MjYiPlBISSBNZWRpY2FsPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIyOTUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPk1STiwgZGlhZ25vc2VzPC90ZXh0PgoKICA8IS0tIEhpZ2ggUmlzayAtLT4KICA8cmVjdCB4PSIyMjAiIHk9IjcwIiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjI1MCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNmOTczMTYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjIyMCIgeT0iNzAiIHdpZHRoPSIxNzUiIGhlaWdodD0iMzUiIHJ4PSIxMCIgZmlsbD0idXJsKCNoaWdoR3JhZCkiLz4KICA8dGV4dCB4PSIzMDciIHk9Ijk1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SElHSDwvdGV4dD4KCiAgPHRleHQgeD0iMjQwIiB5PSIxMzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNlYTU4MGMiPkVtYWlsIEFkZHJlc3M8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIxNDUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPnVzZXJAZXhhbXBsZS5jb208L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIxNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzlhMzQxMiI+4oaSIGNoYXItY2xhc3MgcGF0dGVybjwvdGV4dD4KCiAgPHRleHQgeD0iMjQwIiB5PSIxODUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNlYTU4MGMiPlBob25lIE51bWJlcjwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjIwMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+KzEtNTU1LTEyMy00NTY3PC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iMjE1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5YTM0MTIiPuKGkiBjdXN0b20gRFBMIHBhdHRlcm48L3RleHQ+CgogIDx0ZXh0IHg9IjI0MCIgeT0iMjQwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZWE1ODBjIj5BUEkgS2V5czwvdGV4dD4KICA8dGV4dCB4PSIyNDAiIHk9IjI1NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+c2tfbGl2ZV9hYmMxMjMuLi48L3RleHQ+CgogIDx0ZXh0IHg9IjI0MCIgeT0iMjgwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZWE1ODBjIj5QYXNzd29yZHM8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSIyOTUiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPnBhc3N3b3JkPXNlY3JldDwvdGV4dD4KCiAgPCEtLSBNZWRpdW0gUmlzayAtLT4KICA8cmVjdCB4PSI0MTAiIHk9IjcwIiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjI1MCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjQxMCIgeT0iNzAiIHdpZHRoPSIxNzUiIGhlaWdodD0iMzUiIHJ4PSIxMCIgZmlsbD0idXJsKCNtZWRpdW1HcmFkKSIvPgogIDx0ZXh0IHg9IjQ5NyIgeT0iOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NRURJVU08L3RleHQ+CgogIDx0ZXh0IHg9IjQzMCIgeT0iMTMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZDk3NzA2Ij5JUCBBZGRyZXNzPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMTQ1IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj4xOTIuMTY4LjEuMTAwPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMTYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5MjQwMGUiPuKGkiBJUEFERFIgbWF0Y2hlcjwvdGV4dD4KCiAgPHRleHQgeD0iNDMwIiB5PSIxODUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkOTc3MDYiPlVzZXIgSUQ8L3RleHQ+CiAgPHRleHQgeD0iNDMwIiB5PSIyMDAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPnVzZXJfaWQ9MTIzNDU8L3RleHQ+CgogIDx0ZXh0IHg9IjQzMCIgeT0iMjI1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZDk3NzA2Ij5TZXNzaW9uIElEPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMjQwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5zZXNzPWFiYzEyM2RlZjwvdGV4dD4KCiAgPHRleHQgeD0iNDMwIiB5PSIyNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNkOTc3MDYiPkFjY291bnQgTnVtYmVyPC90ZXh0PgogIDx0ZXh0IHg9IjQzMCIgeT0iMjgwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5hY2N0PTAwMDEyMzQ1NjwvdGV4dD4KCiAgPCEtLSBMb3cgUmlzayAtLT4KICA8cmVjdCB4PSI2MDAiIHk9IjcwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjI1MCIgcng9IjEwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjYwMCIgeT0iNzAiIHdpZHRoPSIxNzAiIGhlaWdodD0iMzUiIHJ4PSIxMCIgZmlsbD0idXJsKCNsb3dHcmFkKSIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5MT1c8L3RleHQ+CgogIDx0ZXh0IHg9IjYyMCIgeT0iMTMwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjU2M2ViIj5Vc2VybmFtZTwvdGV4dD4KICA8dGV4dCB4PSI2MjAiIHk9IjE0NSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+anNtaXRoPC90ZXh0PgogIDx0ZXh0IHg9IjYyMCIgeT0iMTYwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMxZTNhOGEiPkNvbnRleHQtZGVwZW5kZW50PC90ZXh0PgoKICA8dGV4dCB4PSI2MjAiIHk9IjE4NSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzI1NjNlYiI+VHJhbnNhY3Rpb24gSUQ8L3RleHQ+CiAgPHRleHQgeD0iNjIwIiB5PSIyMDAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPnR4bl9hYmMxMjM8L3RleHQ+CgogIDx0ZXh0IHg9IjYyMCIgeT0iMjI1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjU2M2ViIj5SZXF1ZXN0IElEPC90ZXh0PgogIDx0ZXh0IHg9IjYyMCIgeT0iMjQwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5yZXEtdXVpZC12YWx1ZTwvdGV4dD4KCiAgPHRleHQgeD0iNjIwIiB5PSIyNjUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMyNTYzZWIiPkhvc3RuYW1lczwvdGV4dD4KICA8dGV4dCB4PSI2MjAiIHk9IjI4MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+c2VydmVyMDEuaW50PC90ZXh0PgoKICA8IS0tIExlZ2VuZCAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMzI1IiB3aWR0aD0iNzQwIiBoZWlnaHQ9IjEwIiByeD0iMiIgZmlsbD0iI2UyZThmMCIvPgogIDxyZWN0IHg9IjMwIiB5PSIzMjUiIHdpZHRoPSIxODUiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSJ1cmwoI2NyaXRpY2FsR3JhZCkiLz4KICA8cmVjdCB4PSIyMTUiIHk9IjMyNSIgd2lkdGg9IjE4NSIgaGVpZ2h0PSIxMCIgcng9IjIiIGZpbGw9InVybCgjaGlnaEdyYWQpIi8+CiAgPHJlY3QgeD0iNDAwIiB5PSIzMjUiIHdpZHRoPSIxODUiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSJ1cmwoI21lZGl1bUdyYWQpIi8+CiAgPHJlY3QgeD0iNTg1IiB5PSIzMjUiIHdpZHRoPSIxODUiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSJ1cmwoI2xvd0dyYWQpIi8+Cjwvc3ZnPgo=" alt="Sensitive Data Classification" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+Sensitive Data Classification:
+
+Critical Risk (Immediate Action Required):
+- Credit cards: 4111-1111-1111-1111
+- Social Security: 123-45-6789
+- API keys: sk_live_abc123...
+
+High Risk (Masking Required):
+- JWT tokens: eyJhbG...
+- Passwords: Any password field
+
+Medium Risk (Consider Masking):
+- Email addresses: user@domain.com
+- Phone numbers: +1-555-123-4567
+
+Low-Medium Risk (Context Dependent):
+- IP addresses: 192.168.1.100
+
+All sensitive data should be masked at ingestion using OpenPipeline.
+-->
+<h3>Common Sensitive Data Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Data Type</th>
+<th>Pattern Example</th>
+<th>Risk Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Email addresses</td>
+<td><code>user@domain.com</code></td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Credit cards</td>
+<td><code>4111-1111-1111-1111</code></td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>Social Security</td>
+<td><code>123-45-6789</code></td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>API keys</td>
+<td><code>sk_live_abc123...</code></td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>IP addresses</td>
+<td><code>192.168.1.100</code></td>
+<td>Low-Medium</td>
+</tr>
+<tr>
+<td>Phone numbers</td>
+<td><code>+1-555-123-4567</code></td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>JWT tokens</td>
+<td><code>eyJhbG...</code></td>
+<td>High</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Search for potential email addresses in logs
+fetch logs, from: now() - 1h
+| filter contains(content, &quot;@&quot;)
+| filter NOT contains(content, &quot;@dynatrace&quot;)
+| filter NOT contains(content, &quot;@example&quot;)
+| fieldsAdd content_preview = substring(content, from: 0, to: 150)
+| summarize {count = count()}, by: {content_preview, k8s.namespace.name}
+| sort count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Search for potential API keys or tokens
+fetch logs, from: now() - 1h
+| filter contains(content, &quot;key=&quot;) 
+        OR contains(content, &quot;token=&quot;)
+        OR contains(content, &quot;api_key&quot;)
+        OR contains(content, &quot;apikey&quot;)
+        OR contains(content, &quot;secret&quot;)
+| fieldsAdd content_preview = substring(content, from: 0, to: 120)
+| summarize {count = count()}, by: {content_preview, k8s.namespace.name}
+| sort count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Search for potential JWT tokens
+fetch logs, from: now() - 1h
+| filter contains(content, &quot;eyJ&quot;)  // JWT typically starts with eyJ
+| fieldsAdd content_preview = substring(content, from: 0, to: 100)
+| summarize {count = count()}, by: {content_preview, k8s.namespace.name}
+| sort count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Lines carrying a Luhn-valid card number (CREDITCARD), bounded so digit runs inside UUIDs do not count
+// Grouped by source, not by content, so the card numbers are not echoed into the result table
+fetch logs, from: now() - 1h
+| filter replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, &quot;&quot;) != content
+| summarize {count = count()}, by: {k8s.namespace.name, log.source}
+| sort count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Search for password-related entries (should never be logged!)
+fetch logs, from: now() - 1h
+| filter contains(content, &quot;password&quot;)
+        OR contains(content, &quot;passwd&quot;)
+        OR contains(content, &quot;pwd=&quot;)
+| fieldsAdd content_preview = substring(content, from: 0, to: 100)
+| summarize {count = count()}, by: {content_preview, k8s.namespace.name}
+| sort count desc
+| limit 20
+</code></pre>
+<p><a id="openpipeline-masking-configuration"></a></p>
+<h2>2. OpenPipeline Masking Configuration</h2>
+<p>OpenPipeline masks sensitive data at ingestion time with a <strong>DQL processor</strong> in the <strong>Processing</strong> stage — there is no dedicated masking processor.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgMjgwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icmF3TG9nR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNlZjQ0NDQ7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2RjMjYyNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im1hc2tpbmdHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzhiNWNmNjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojN2MzYWVkO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic2FmZUxvZ0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTBiOTgxO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwNTk2Njk7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ibWFza1NoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0ibWFza0Fycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iOSIgcmVmWT0iMy41IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiM2NDc0OGIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iMjgwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSI0MDAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EYXRhIE1hc2tpbmcgUGlwZWxpbmU8L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QbGFjZSBtYXNraW5nIHByb2Nlc3NvcnMgZmlyc3QsIHNvIHNlbnNpdGl2ZSBkYXRhIGlzIHJlZGFjdGVkIGJlZm9yZSBwYXJzaW5nLCBleHRyYWN0aW9uIGFuZCBzdG9yYWdlPC90ZXh0PgoKICA8IS0tIFJhdyBJbnB1dCAtLT4KICA8cmVjdCB4PSIzMCIgeT0iNzAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTMwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2VmNDQ0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iMzAiIHk9IjcwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwIiByeD0iMTAiIGZpbGw9InVybCgjcmF3TG9nR3JhZCkiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjkyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmF3IExvZyBJbnB1dDwvdGV4dD4KCiAgPHRleHQgeD0iNTAiIHk9IjEyMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzdmMWQxZCI+ZW1haWw6IHVzZXJAdGVzdC5jb208L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjEzOCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzdmMWQxZCI+Y2FyZDogNDExMTExMTExMTExMTExMTwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMTU2IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjN2YxZDFkIj5zc246IDEyMy00NS02Nzg5PC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIxNzQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM3ZjFkMWQiPmlwOiAxOTIuMTY4LjEuMTAwPC90ZXh0PgogIDx0ZXh0IHg9IjUwIiB5PSIxOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2RjMjYyNiIgZm9udC13ZWlnaHQ9ImJvbGQiPkNvbnRhaW5zIFBJSSE8L3RleHQ+CgogIDwhLS0gQXJyb3cgMSAtLT4KICA8cGF0aCBkPSJNMjMwLDEzNSBMMjYwLDEzNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjbWFza0Fycm93KSIvPgoKICA8IS0tIE1hc2tpbmcgUHJvY2Vzc29yIC0tPgogIDxyZWN0IHg9IjI3MCIgeT0iNzAiIHdpZHRoPSIyNjAiIGhlaWdodD0iMTMwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzhiNWNmNiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iMjcwIiB5PSI3MCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSIzMCIgcng9IjEwIiBmaWxsPSJ1cmwoI21hc2tpbmdHcmFkKSIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NYXNraW5nIHByb2Nlc3NvcnMgKGZpcnN0IGluIFByb2Nlc3NpbmcpPC90ZXh0PgoKICA8dGV4dCB4PSIyOTAiIHk9IjEyMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzZkMjhkOSI+UGF0dGVybiBNYXRjaGluZzo8L3RleHQ+CiAgPHRleHQgeD0iMjkwIiB5PSIxMzgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiPmVtYWlsIHBhdHRlcm4g4oaSIFtFTUFJTC1NQVNLRURdPC90ZXh0PgogIDx0ZXh0IHg9IjI5MCIgeT0iMTU2IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIj5DUkVESVRDQVJEIOKGkiBbQ0MtTUFTS0VEXTwvdGV4dD4KICA8dGV4dCB4PSIyOTAiIHk9IjE3NCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+U1NOIHBhdHRlcm4g4oaSIFtTU04tTUFTS0VEXTwvdGV4dD4KICA8dGV4dCB4PSIyOTAiIHk9IjE5MiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiI+SVBBRERSIOKGkiB4eHgueHh4Lnh4eC54eHg8L3RleHQ+CgogIDwhLS0gQXJyb3cgMiAtLT4KICA8cGF0aCBkPSJNNTMwLDEzNSBMNTYwLDEzNSIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjbWFza0Fycm93KSIvPgoKICA8IS0tIFNhZmUgT3V0cHV0IC0tPgogIDxyZWN0IHg9IjU3MCIgeT0iNzAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTMwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iNTcwIiB5PSI3MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIzMCIgcng9IjEwIiBmaWxsPSJ1cmwoI3NhZmVMb2dHcmFkKSIvPgogIDx0ZXh0IHg9IjY3MCIgeT0iOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TYWZlIGZvciBTdG9yYWdlPC90ZXh0PgoKICA8dGV4dCB4PSI1OTAiIHk9IjEyMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA0Nzg1NyI+ZW1haWw6IFtFTUFJTC1NQVNLRURdPC90ZXh0PgogIDx0ZXh0IHg9IjU5MCIgeT0iMTM4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDQ3ODU3Ij5jYXJkOiBbQ0MtTUFTS0VEXTwvdGV4dD4KICA8dGV4dCB4PSI1OTAiIHk9IjE1NiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA0Nzg1NyI+c3NuOiBbU1NOLU1BU0tFRF08L3RleHQ+CiAgPHRleHQgeD0iNTkwIiB5PSIxNzQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiMwNDc4NTciPmlwOiB4eHgueHh4Lnh4eC54eHg8L3RleHQ+CiAgPHRleHQgeD0iNTkwIiB5PSIxOTIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzA1OTY2OSIgZm9udC13ZWlnaHQ9ImJvbGQiPlBJSSBQcm90ZWN0ZWQ8L3RleHQ+CgogIDwhLS0gQmVuZWZpdHMgU2VjdGlvbiAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMjE1IiB3aWR0aD0iNzQwIiBoZWlnaHQ9IjUwIiByeD0iMTAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2UyZThmMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNDAwIiB5PSIyNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPktleSBCZW5lZml0czwvdGV4dD4KCiAgPHJlY3QgeD0iNTAiIHk9IjI0NyIgd2lkdGg9IjE0NSIgaGVpZ2h0PSIxMiIgcng9IjIiIGZpbGw9IiNkMWZhZTUiLz4KICA8dGV4dCB4PSIxMjIiIHk9IjI1NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NYXNrZWQgYXQgaW5nZXN0PC90ZXh0PgoKICA8cmVjdCB4PSIyMTAiIHk9IjI0NyIgd2lkdGg9IjE0NSIgaGVpZ2h0PSIxMiIgcng9IjIiIGZpbGw9IiNkYmVhZmUiLz4KICA8dGV4dCB4PSIyODIiIHk9IjI1NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMWU0MGFmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CZWZvcmUgYW55IGNvcHk8L3RleHQ+CgogIDxyZWN0IHg9IjM3MCIgeT0iMjQ3IiB3aWR0aD0iMTQ1IiBoZWlnaHQ9IjEyIiByeD0iMiIgZmlsbD0iI2ZlZjNjNyIvPgogIDx0ZXh0IHg9IjQ0MiIgeT0iMjU3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5MjQwMGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJlZm9yZSBzdG9yYWdlPC90ZXh0PgoKICA8cmVjdCB4PSI1MzAiIHk9IjI0NyIgd2lkdGg9IjIyMCIgaGVpZ2h0PSIxMiIgcng9IjIiIGZpbGw9IiNlZGU5ZmUiLz4KICA8dGV4dCB4PSI2NDAiIHk9IjI1NyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNmQyOGQ5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5OZXZlciBTdG9yZWQgVW5tYXNrZWQ8L3RleHQ+Cjwvc3ZnPgo=" alt="Masking Pipeline Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+OpenPipeline Masking Flow:
+
+Step 1: Identify Sensitive Data
+- Discover PII, credentials, tokens in logs
+- Define patterns and risk levels
+
+Place masking processors first, so sensitive data is redacted before parsing, extraction and storage.
+
+| Raw log input (contains PII) | Masking processors (first in Processing) | Safe for storage |
+|---|---|---|
+| email: user@test.com | email pattern → [EMAIL-MASKED] | email: [EMAIL-MASKED] |
+| card: 4111111111111111 | CREDITCARD → [CC-MASKED] | card: [CC-MASKED] |
+| ssn: 123-45-6789 | SSN pattern → [SSN-MASKED] | ssn: [SSN-MASKED] |
+| ip: 192.168.1.100 | IPADDR → xxx.xxx.xxx.xxx | ip: xxx.xxx.xxx.xxx |
+
+Key benefits: masked at ingest · before any copy · before storage · never stored unmasked.
+-->
+<h3>Masking Options</h3>
+<table>
+<thead>
+<tr>
+<th>Processor</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DQL processor</strong> — <code>replacePattern</code> / <code>replaceString</code> / <code>ipMask</code></td>
+<td>Replace a value or part of it (e.g. <code>[EMAIL-MASKED]</code>, last octet → 0)</td>
+</tr>
+<tr>
+<td><strong>DQL processor</strong> — <code>hashSha256()</code></td>
+<td>One-way hash when you need to correlate on a value without exposing it</td>
+</tr>
+<tr>
+<td><strong>Remove fields</strong></td>
+<td>Drop a whole field</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Partial masking.</strong> <code>replacePattern</code> has no back-references, but a <code>&gt;&gt;</code> lookahead keeps the trailing digits without one: <code>replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] [0-9]{3} '-' [0-9]{2} '-' &gt;&gt;([0-9]{4} !&gt;&gt;[0-9A-Za-z-])&quot;, &quot;***-**-&quot;)</code> turns <code>ssn 123-45-6789 rest</code> into <code>ssn ***-**-6789 rest</code>, and <code>&quot;!&lt;&lt;[0-9A-Za-z-] [0-9]{12} &gt;&gt;([0-9]{4} !&gt;&gt;[0-9A-Za-z-])&quot;</code> with <code>&quot;XXXXXXXXXXXX&quot;</code> turns <code>4111111111111234</code> into <code>XXXXXXXXXXXX1234</code>. The <code>!&lt;&lt;[0-9A-Za-z-]</code> / <code>!&gt;&gt;[0-9A-Za-z-]</code> bounds stop the pattern firing inside a longer number or an alphanumeric ID (digit-only bounds still masked inside <code>3f2b9c1e4111111111111111aa</code>) — without them, <code>order 99999999999999999999</code> becomes <code>order XXXXXXXXXXXX99999999</code> (verified with <code>data record</code>, 10/12/2026).</p>
+<h3>Configuration Path</h3>
+<ol>
+<li>Settings → Process and contextualize → OpenPipeline</li>
+<li>Select or create pipeline</li>
+<li>Add a <strong>DQL</strong> processor to the <strong>Processing</strong> stage (masking has no dedicated processor)</li>
+<li>Configure field and pattern</li>
+</ol>
+<h3>DPL masking statements (DQL processor, Processing stage)</h3>
+<pre><code class="language-text">fieldsAdd content = replacePattern(content, &quot;[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+&quot;, &quot;[EMAIL-MASKED]&quot;)
+fieldsAdd content = replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, &quot;[CC-MASKED]&quot;)
+fieldsAdd content = replacePattern(content, &quot;[0-9]{3} '-' [0-9]{2} '-' [0-9]{4}&quot;, &quot;[SSN-MASKED]&quot;)
+fieldsAdd content = replacePattern(content, &quot;&lt;&lt;(('api_key' | 'API_KEY' | 'apikey' | 'APIKEY' | 'key' | 'KEY' | 'token' | 'TOKEN') '=') [A-Za-z0-9_-]{20,}&quot;, &quot;[KEY-MASKED]&quot;)
+fieldsAdd content = replacePattern(content, &quot;&lt;&lt;('\&quot;' ('api_key' | 'API_KEY' | 'apikey' | 'APIKEY' | 'key' | 'KEY' | 'token' | 'TOKEN') '\&quot;' ' '* ':' ' '* '\&quot;') [A-Za-z0-9_-]{20,}&quot;, &quot;[KEY-MASKED]&quot;)
+fieldsAdd content = replacePattern(content, &quot;IPADDR&quot;, &quot;xxx.xxx.xxx.xxx&quot;)
+</code></pre>
+<blockquote>
+<p>DPL, not regex — see FAQ-15 §3. <code>CREDITCARD</code> validates the Luhn checksum. There is no <code>EMAIL</code> matcher; the character-class pattern above is the working form. Regex syntax (<code>\b</code>, <code>\d</code>, <code>(?:…)</code>, <code>$1</code>) is rejected when you save the processor. Test every statement with <code>data record(content=&quot;…&quot;) | fieldsAdd x = replacePattern(…)</code> before deploying — including against your real key formats. The key class includes <code>_</code> and <code>-</code>: with <code>[A-Za-z0-9]{20,}</code>, a key like <code>sk_live_51Hx…</code> (underscores) or a dash-separated key matched nothing and was <strong>stored in clear</strong> (verified 10/02/2026). Keys shorter than 20 characters are not matched by design; lower the bound if yours are shorter. DPL literals are case-sensitive and there is no case-insensitive flag — list each casing your applications emit (<code>Token=</code> is not covered above), and keep the separate statement for JSON-quoted keys (<code>&quot;api_key&quot;: &quot;…&quot;</code>). Bound <code>CREDITCARD</code> with negative lookarounds: unbounded, it matches Luhn-valid digit runs inside UUIDs (<code>9cbcb510-8833-4981-87ab-…</code> → <code>9cbcb[CC-MASKED]ab-…</code>) and corrupts the IDs at ingest — on the validation tenant 1,525 lines in 15 minutes matched unbounded and 169 bounded (10/12/2026).</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples#op-mask-data">OpenPipeline processing examples (DT docs)</a> — <em>&quot;You can mask parts of an attribute by leveraging replacePattern in combination with other DQL functions.&quot;</em></sub></p>
+</blockquote>
+<pre><code class="language-dql">// Verify masking is working
+// 1) Leak check — unmasked values that the masking patterns would still catch (should be 0)
+fetch logs, from: now() - 1h
+| summarize {
+    total = count(),
+    unmasked_email = countIf(replacePattern(content, &quot;[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+&quot;, &quot;&quot;) != content),
+    unmasked_card = countIf(replacePattern(content, &quot;!&lt;&lt;[0-9A-Za-z-] CREDITCARD !&gt;&gt;[0-9A-Za-z-]&quot;, &quot;&quot;) != content),
+    masked_markers = countIf(contains(content, &quot;MASKED&quot;))
+  }
+</code></pre>
+<pre><code class="language-dql">// Check which pipelines are processing logs
+fetch logs, from: now() - 1h
+| summarize {count = count()}, by: {dt.openpipeline.pipelines}
+| sort count desc
+</code></pre>
+<p><a id="ip-address-analysis"></a></p>
+<h2>3. IP Address Analysis</h2>
+<p>IP addresses may require masking depending on your compliance requirements.</p>
+<pre><code class="language-dql">// Find logs containing IP addresses
+// parseAll finds every IP anywhere in the line; parse would only match one at the very start
+// IPADDR also matches IPv4-shaped version strings (rv:1.9.2.20) and IPv6 fragments (::0000); the next cell bounds it
+fetch logs, from: now() - 1h
+| fieldsAdd ip_found = parseAll(content, &quot;IPADDR:ip&quot;)
+| filter arraySize(ip_found) &gt; 0
+| expand ip_found
+| summarize {count = count()}, by: {ip_found, k8s.namespace.name}
+| sort count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Classify IP addresses (internal vs external)
+// IPv4 only (the ipIn ranges are IPv4). The !&lt;&lt; / !&gt;&gt; bounds skip IPv6 fragments (::0000) and
+// IPv4 shapes glued to letters, digits or dots (v1.9.2.20). Version tokens after &quot;/&quot; or &quot;:&quot; still match
+// (Chrome/133.0.0.0, rv:1.9.7.20), so list the top EXTERNAL values before trusting that count.
+fetch logs, from: now() - 1h
+| fieldsAdd ip_found = parseAll(content, &quot;!&lt;&lt;[A-Za-z0-9.] IPV4ADDR:ip !&gt;&gt;[A-Za-z0-9.]&quot;)
+| filter arraySize(ip_found) &gt; 0
+| expand ip_found
+| fieldsAdd ip_type = if(ipIn(ip_found, {&quot;10.0.0.0/8&quot;, &quot;172.16.0.0/12&quot;, &quot;192.168.0.0/16&quot;}), &quot;RFC1918&quot;,
+                     else: if(ipIn(ip_found, &quot;127.0.0.0/8&quot;), &quot;LOOPBACK&quot;,
+                     else: &quot;EXTERNAL&quot;))
+| summarize {count = count()}, by: {ip_type}
+| sort count desc
+</code></pre>
+<p><a id="security-event-monitoring"></a></p>
+<h2>4. Security Event Monitoring</h2>
+<p>Monitor logs for security-relevant events.</p>
+<pre><code class="language-dql">// Authentication-related logs
+fetch logs, from: now() - 1h
+| filter contains(content, &quot;login&quot;)
+        OR contains(content, &quot;auth&quot;)
+        OR contains(content, &quot;signin&quot;)
+        OR contains(content, &quot;logout&quot;)
+// Group on a normalized signature (UUIDs, then digits collapsed); the raw prefix starts with a timestamp
+| fieldsAdd msg_sig = substring(replacePattern(replacePattern(content, &quot;[0-9a-fA-F]{8} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{12}&quot;, replacement: &quot;&lt;id&gt;&quot;), &quot;[0-9]+&quot;, replacement: &quot;#&quot;), from: 0, to: 100)
+| summarize {count = count(), sample = takeAny(substring(content, from: 0, to: 100))}, by: {msg_sig, k8s.namespace.name}
+| sort count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Failed authentication attempts
+fetch logs, from: now() - 1h
+| filter (contains(content, &quot;failed&quot;) OR contains(content, &quot;denied&quot;) OR contains(content, &quot;unauthorized&quot;))
+        AND (contains(content, &quot;login&quot;) OR contains(content, &quot;auth&quot;) OR contains(content, &quot;access&quot;))
+| fieldsAdd content_preview = substring(content, from: 0, to: 120)
+| summarize {count = count()}, by: {content_preview, k8s.namespace.name}
+| sort count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Security-related errors over time
+// status == &quot;ERROR&quot; covers every error-class level (ERROR, SEVERE, CRITICAL, FATAL, …);
+// loglevel == &quot;ERROR&quot; alone misses SEVERE and the rest
+fetch logs, from: now() - 24h
+| filter status == &quot;ERROR&quot;
+| filter contains(content, &quot;security&quot;)
+        OR contains(content, &quot;unauthorized&quot;)
+        OR contains(content, &quot;forbidden&quot;)
+        OR contains(content, &quot;denied&quot;)
+| makeTimeseries {security_errors = count()}, interval: 30m
+</code></pre>
+<pre><code class="language-dql">// Access pattern anomalies - hourly access distribution
+fetch logs, from: now() - 24h
+| filter contains(content, &quot;access&quot;) OR contains(content, &quot;request&quot;)
+| fieldsAdd hour_bucket = bin(timestamp, 1h)
+| summarize {access_count = count()}, by: {hour_bucket, k8s.namespace.name}
+| sort hour_bucket asc
+</code></pre>
+<p><a id="audit-log-queries"></a></p>
+<h2>5. Audit Log Queries</h2>
+<p>Track administrative and configuration changes.</p>
+<pre><code class="language-dql">// Administrative action logs
+fetch logs, from: now() - 24h
+| filter contains(content, &quot;created&quot;)
+        OR contains(content, &quot;deleted&quot;)
+        OR contains(content, &quot;updated&quot;)
+        OR contains(content, &quot;modified&quot;)
+| filter contains(content, &quot;user&quot;) 
+        OR contains(content, &quot;admin&quot;)
+        OR contains(content, &quot;config&quot;)
+// Group on a normalized signature (UUIDs, then digits collapsed); the raw prefix starts with a timestamp
+| fieldsAdd msg_sig = substring(replacePattern(replacePattern(content, &quot;[0-9a-fA-F]{8} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{12}&quot;, replacement: &quot;&lt;id&gt;&quot;), &quot;[0-9]+&quot;, replacement: &quot;#&quot;), from: 0, to: 100)
+| summarize {
+    count = count(),
+    first_seen = min(timestamp),
+    last_seen = max(timestamp),
+    sample = takeAny(substring(content, from: 0, to: 100))
+  }, by: {msg_sig, k8s.namespace.name}
+| sort count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Configuration change events
+fetch logs, from: now() - 24h
+| filter contains(content, &quot;config&quot;)
+        OR contains(content, &quot;setting&quot;)
+        OR contains(content, &quot;environment&quot;)
+| filter contains(content, &quot;change&quot;)
+        OR contains(content, &quot;update&quot;)
+        OR contains(content, &quot;reload&quot;)
+// Group on a normalized signature (UUIDs, then digits collapsed); the raw prefix starts with a timestamp
+| fieldsAdd msg_sig = substring(replacePattern(replacePattern(content, &quot;[0-9a-fA-F]{8} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{4} '-' [0-9a-fA-F]{12}&quot;, replacement: &quot;&lt;id&gt;&quot;), &quot;[0-9]+&quot;, replacement: &quot;#&quot;), from: 0, to: 120)
+| summarize {count = count(), sample = takeAny(substring(content, from: 0, to: 120))}, by: {msg_sig, k8s.namespace.name}
+| sort count desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Permission-related events
+fetch logs, from: now() - 24h
+| filter contains(content, &quot;permission&quot;)
+        OR contains(content, &quot;role&quot;)
+        OR contains(content, &quot;privilege&quot;)
+        OR contains(content, &quot;rbac&quot;)
+| fieldsAdd content_preview = substring(content, from: 0, to: 100)
+| summarize {count = count()}, by: {content_preview, k8s.namespace.name}
+| sort count desc
+| limit 15
+</code></pre>
+<p><a id="compliance-reporting"></a></p>
+<h2>6. Compliance Reporting</h2>
+<pre><code class="language-dql">// Data access summary
+fetch logs, from: now() - 24h
+| filter contains(content, &quot;access&quot;) OR contains(content, &quot;read&quot;) OR contains(content, &quot;view&quot;)
+| summarize {
+    total_accesses = count(),
+    unique_sources = countDistinct(dt.openpipeline.source)
+  }, by: {k8s.namespace.name}
+| sort total_accesses desc
+| limit 15
+</code></pre>
+<pre><code class="language-dql">// Configured retention per log bucket
+// (min/max timestamp over a query window cannot verify retention — the window bounds the answer)
+fetch dt.system.buckets
+| filter dt.system.table == &quot;logs&quot;
+| fields name, retention_days, included_query_days, records
+| sort name asc
+</code></pre>
+<pre><code class="language-dql">// Sensitive field exposure audit
+fetch logs, from: now() - 1h
+| summarize {
+    total = count(),
+    with_email_pattern = countIf(contains(content, &quot;@&quot;)),
+    with_key_pattern = countIf(contains(content, &quot;key=&quot;) OR contains(content, &quot;token=&quot;)),
+    with_password_ref = countIf(contains(content, &quot;password&quot;) OR contains(content, &quot;passwd&quot;))
+  }
+| fieldsAdd email_exposure_pct = round((with_email_pattern * 100.0) / total, decimals: 2)
+| fieldsAdd key_exposure_pct = round((with_key_pattern * 100.0) / total, decimals: 2)
+| fieldsAdd password_exposure_pct = round((with_password_ref * 100.0) / total, decimals: 2)
+</code></pre>
+<p><a id="masking-best-practices"></a></p>
+<h2>7. Masking Best Practices</h2>
+<h3>Do's ✅</h3>
+<ol>
+<li><strong>Mask at ingestion</strong> - Use OpenPipeline processors to mask before storage</li>
+<li><strong>Use hashing</strong> - For fields that need correlation but not visibility</li>
+<li><strong>Audit regularly</strong> - Run discovery queries to find new sensitive data patterns</li>
+<li><strong>Document patterns</strong> - Keep a registry of masked data types and patterns</li>
+<li><strong>Test in staging</strong> - Verify masking works before production deployment</li>
+</ol>
+<h3>Don'ts ❌</h3>
+<ol>
+<li><strong>Don't log passwords</strong> - Ever, even &quot;for debugging&quot;</li>
+<li><strong>Don't log full credit cards</strong> - Maximum last 4 digits</li>
+<li><strong>Don't rely on application masking alone</strong> - OpenPipeline is your safety net</li>
+<li><strong>Don't skip internal data</strong> - Internal IP/usernames may still be sensitive</li>
+<li><strong>Don't forget API keys</strong> - Rotate if accidentally logged</li>
+</ol>
+<h3>OpenPipeline Masking Configuration Example</h3>
+<p>One <strong>DQL</strong> processor in the <strong>Processing</strong> stage (matcher <code>true</code>, or a narrower one), placed before any processor that copies or parses <code>content</code>:</p>
+<pre><code class="language-text">fieldsAdd content = replacePattern(content, &quot;[A-Za-z0-9._%+-]+ '@' [A-Za-z0-9.-]+&quot;, &quot;[EMAIL-MASKED]&quot;)
+| fieldsAdd content = replacePattern(content, &quot;&lt;&lt;(('api_key' | 'API_KEY' | 'apikey' | 'APIKEY' | 'key' | 'KEY' | 'token' | 'TOKEN') '=') [A-Za-z0-9_-]{20,}&quot;, &quot;[KEY-MASKED]&quot;)
+| fieldsAdd content = replacePattern(content, &quot;&lt;&lt;('\&quot;' ('api_key' | 'API_KEY' | 'apikey' | 'APIKEY' | 'key' | 'KEY' | 'token' | 'TOKEN') '\&quot;' ' '* ':' ' '* '\&quot;') [A-Za-z0-9_-]{20,}&quot;, &quot;[KEY-MASKED]&quot;)
+</code></pre>
+<p>The patterns are DPL, not regex; <code>&lt;&lt;(…)</code> is a lookbehind, so the key name stays and only the value is replaced — no <code>$1</code> back-reference is needed (or supported).</p>
+<pre><code class="language-dql">// Security health summary
+fetch logs, from: now() - 1h
+| summarize {
+    total_logs = count(),
+    security_events = countIf(contains(content, &quot;security&quot;) OR contains(content, &quot;auth&quot;)),
+    failed_events = countIf(contains(content, &quot;failed&quot;) OR contains(content, &quot;denied&quot;)),
+    potential_pii = countIf(contains(content, &quot;@&quot;) OR contains(content, &quot;password&quot;))
+  }
+| fieldsAdd security_event_rate = round((security_events * 100.0) / total_logs, decimals: 2)
+| fieldsAdd failure_rate = round((failed_events * 100.0) / total_logs, decimals: 2)
+| fieldsAdd pii_risk_rate = round((potential_pii * 100.0) / total_logs, decimals: 2)
+</code></pre>
+<hr />
+<p><a id="summary"></a></p>
+<h2>📝 Summary</h2>
+<p>In this notebook, you learned:</p>
+<p>✅ <strong>Sensitive data discovery</strong> - Finding PII, tokens, and credentials<br />
+✅ <strong>OpenPipeline masking</strong> - Configuration and patterns<br />
+✅ <strong>IP address analysis</strong> - Classification and masking needs<br />
+✅ <strong>Security monitoring</strong> - Auth events, failures, anomalies<br />
+✅ <strong>Audit logging</strong> - Admin actions, config changes<br />
+✅ <strong>Compliance reporting</strong> - Data access and exposure audits</p>
+<hr />
+<p><a id="next-steps"></a></p>
+<h2>➡️ Next Steps</h2>
+<p>Continue to <strong>OPLOGS-99: Best Practice Summary</strong> for the consolidated settings.</p>
+<p>🆕 <strong>New Addition (March 2026):</strong> OpenPipeline processes more than logs. To extend these concepts to spans, metrics, and events, continue to <strong>OPIPE-01: OpenPipeline as a Multi-Scope Platform</strong>.</p>
+<hr />
+<p><a id="references"></a></p>
+<h2>📚 References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/use-cases/processing-examples#op-mask-data">OpenPipeline processing examples (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-security-context">Set up Grail permissions for logs (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/data-privacy-and-security">Data privacy and security (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

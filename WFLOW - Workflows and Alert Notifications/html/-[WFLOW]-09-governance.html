@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WFLOW-09: Security, Governance &amp; Monitoring</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">WFLOW — Workflows and Alert Notifications</a><span class="sep">/</span><span aria-current="page">WFLOW-09</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>WFLOW-09: Security, Governance &amp; Monitoring</h1>
+<blockquote>
+<p><strong>Series:</strong> WFLOW — Workflows and Alert Notifications | <strong>Notebook:</strong> 9 of 10 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Production Best Practices</h2>
+<p>This last core notebook covers workflow security, governance, observability, and operational best practices for running workflows in production.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#security-best-practices">Security Best Practices</a></li>
+<li><a href="#secrets-management">Secrets Management</a></li>
+<li><a href="#setting-up-third-party-connections">Setting Up Third-Party Connections</a></li>
+<li><a href="#access-control-rbac">Access Control (RBAC)</a></li>
+<li><a href="#workflow-observability">Workflow Observability</a></li>
+<li><a href="#alerting-on-workflows">Alerting on Workflows</a></li>
+<li><a href="#change-management">Change Management</a></li>
+<li><a href="#operational-runbook">Operational Runbook</a></li>
+<li><a href="#series-summary">Series Summary</a></li>
+<li><a href="#congratulations">Congratulations!</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Platform subscription</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>automation:workflows:admin</code> for governance setup (Workflow admin mode). To run the §5 queries — and for the actor of the §6 monitoring workflow — <code>storage:system:read</code> (WHERE <code>storage:event.provider = &quot;AUTOMATION_ENGINE&quot;</code>) and <code>storage:buckets:read</code> (WHERE <code>storage:table-name = &quot;dt.system.events&quot;</code>)</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td><strong>WFLOW-01</strong> through <strong>WFLOW-08</strong></td>
+</tr>
+</tbody>
+</table>
+<p><a id="security-best-practices"></a></p>
+<h2>1. Security Best Practices</h2>
+<h3>Secure Workflow Design</h3>
+<table>
+<thead>
+<tr>
+<th>Principle</th>
+<th>Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Least privilege</strong></td>
+<td>Connections with minimum required permissions</td>
+</tr>
+<tr>
+<td><strong>No hardcoded secrets</strong></td>
+<td>Use secrets vault, never inline credentials</td>
+</tr>
+<tr>
+<td><strong>Input validation</strong></td>
+<td>Sanitize all dynamic inputs</td>
+</tr>
+<tr>
+<td><strong>Audit logging</strong></td>
+<td>Log all actions for compliance</td>
+</tr>
+<tr>
+<td><strong>Fail secure</strong></td>
+<td>Default to safe state on errors</td>
+</tr>
+</tbody>
+</table>
+<h3>Input Sanitization</h3>
+<pre><code class="language-javascript">import { execution } from '@dynatrace-sdk/automation-utils';
+
+export default async function () {
+  const ev = (await execution()).params.event;
+  // NEVER do this - injection risk
+  // const query = `fetch logs | filter content == &quot;${ev['event.name']}&quot;`;
+  
+  // SAFE: Validate and sanitize inputs
+  const title = ev['event.name'];
+  
+  // Remove potentially dangerous characters
+  const sanitized = title
+    .replace(/[&quot;'\\]/g, '')  // Remove quotes and backslashes
+    .substring(0, 200);        // Limit length
+  
+  // Use parameterized queries when possible
+  return { sanitized_title: sanitized };
+}
+</code></pre>
+<h3>Secure HTTP Requests</h3>
+<pre><code class="language-javascript">import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+export default async function () {
+  const token = (await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' })).token;
+  // NEVER log or expose secrets
+  // console.log(token);  // BAD!
+  
+  // ALWAYS use HTTPS
+  const response = await fetch('https://api.example.com/endpoint', {  // NOT http://
+    headers: {
+      'Authorization': `Bearer ${token}`  // Token from the Credential Vault
+    }
+  });
+  
+  // DON'T return sensitive data
+  return {
+    status: response.status,
+    success: response.ok
+    // NOT: response_body: await response.text()  // May contain secrets
+  };
+}
+</code></pre>
+<p><a id="secrets-management"></a></p>
+<h2>2. Secrets Management</h2>
+<h3>Where Secrets Live</h3>
+<p>The Workflows docs describe no <code>env</code> secrets object and no per-workflow secrets page. An earlier revision of this notebook used <code>{{ env.SECRET_NAME }}</code>; the expression reference lists no <code>env</code>, so those expressions do not resolve. Secrets live in one of two places:</p>
+<table>
+<thead>
+<tr>
+<th>Where</th>
+<th>Used by</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Connections</strong></td>
+<td>Connector actions (Slack, Teams, ServiceNow, Jira, PagerDuty, …)</td>
+<td>Select the connection in the task; the action reads the credential</td>
+</tr>
+<tr>
+<td><strong>Credential Vault</strong></td>
+<td>HTTP Request action; Run JavaScript</td>
+<td>HTTP Request: the task's <strong>Authentication</strong> field (Basic or Token). JavaScript: <code>credentialVaultClient</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Creating a Credential Vault entry for workflows:</strong></p>
+<ol>
+<li>Open <strong>Credential Vault</strong> and add a credential (token, or username and password)</li>
+<li>Set the scope to <strong>AppEngine</strong></li>
+<li>For JavaScript use, turn on <strong>Allow access without app context</strong></li>
+<li>Give the workflow actor access to the credential</li>
+<li>Reference it by its ID (<code>CREDENTIALS_VAULT-…</code>)</li>
+</ol>
+<h3>Secrets in JavaScript</h3>
+<pre><code class="language-javascript">import { credentialVaultClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+export default async function () {
+  const credential = await credentialVaultClient.getCredentialsDetails({ id: 'CREDENTIALS_VAULT-XXXXXXXXXXXX' });
+  const apiToken = credential.token;
+  
+  if (!apiToken) {
+    throw new Error('Credential CREDENTIALS_VAULT-XXXXXXXXXXXX has no token');
+  }
+  
+  // Use apiToken in a request header. Never log it or return it:
+  // execution results are visible to anyone with read access to the workflow.
+  return { configured: true };
+}
+</code></pre>
+<h3>Secrets in HTTP Request Tasks</h3>
+<p>Do not put a secret in a header value. The HTTP Request action docs: <em>&quot;We strictly advise against providing any static Authorization header and therefore, leak a secret. Use the credential vault to store your credentials for Basic or Token authentication, or a Run JavaScript action to implement any other authentication.&quot;</em> Select the credential in the task's <strong>Authentication</strong> field instead:</p>
+<pre><code class="language-yaml">input:
+  url: &quot;https://api.example.com/webhook&quot;
+  method: POST
+  # Authentication: Token -&gt; CREDENTIALS_VAULT-XXXXXXXXXXXX (task's Authentication field)
+  headers:
+    Content-Type: &quot;application/json&quot;
+</code></pre>
+<h3>Secret Rotation</h3>
+<ol>
+<li>Update the credential in the Credential Vault (or the connection)</li>
+<li>Test workflow execution</li>
+<li>Revoke the old token at its source</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/run-javascript-workflow-action">Run JavaScript action (DT docs)</a> — <code>credentialVaultClient</code> and the required credential settings. <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/http-request-workflow-action">HTTP request action (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Jinja expressions for Workflows (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="setting-up-third-party-connections"></a></p>
+<h2>3. Setting Up Third-Party Connections</h2>
+<p>WFLOW-03 introduces the Dynatrace <strong>Connection</strong> abstraction; WFLOW-05 walks through PagerDuty and ServiceNow workflow tasks. This section closes the remaining gap: <strong>how to mint the actual vendor-side credentials</strong> that those Connections wrap, with current vendor scope/auth model details and rotation patterns that don't break running workflows.</p>
+<h3>3.1 Slack — App + OAuth Token</h3>
+<p>The Dynatrace Slack action authenticates as a Slack app (bot token), not as a user. Steps:</p>
+<ol start="0">
+<li><strong>Prepare Dynatrace</strong> — add the Slack domain as a host pattern under <strong>Settings &gt; General &gt; External requests</strong>, and in <strong>Workflows &gt; Settings &gt; Authorization settings</strong> grant the permissions the Slack Connector setup page lists (<code>app-settings:objects:read</code>, <code>app-settings:objects:write</code> and the <code>state:*</code> permissions).</li>
+<li><strong>Create the app</strong> at <code>https://api.slack.com/apps</code> → <strong>From scratch</strong> → name it (e.g. <em>Dynatrace Alerts</em>) and pick the target workspace.</li>
+<li><strong>Add OAuth scopes</strong> under <strong>OAuth &amp; Permissions</strong> → <strong>Bot Token Scopes</strong>. Dynatrace marks two scopes as required for <em>Send message</em>, and publishes a minimal manifest with exactly <code>channels:read</code>, <code>groups:read</code> and <code>chat:write</code>:
+<ul>
+<li><code>chat:write</code> (required) — <em>&quot;Send messages as your Slack app&quot;</em> (replaces legacy <code>chat:write:user</code> / <code>chat:write:bot</code>).</li>
+<li><code>channels:read</code> (required) — the action needs it to look public channels up by name for the channel selection.</li>
+<li><code>groups:read</code> (optional) — the same lookup for private channels.</li>
+<li><code>chat:write.public</code> / <code>channels:join</code> (optional) — post to, or join, a public channel the bot is not a member of. <code>chat:write.public</code> must be requested alongside <code>chat:write</code>.</li>
+</ul>
+</li>
+<li><strong>Install to workspace</strong> — the same page. Slack issues a <strong>Bot User OAuth Token</strong> (the workspace-scoped token a workflow uses). Bot tokens conventionally begin with <code>xoxb-</code>; verify the prefix on issue and store the literal value, not the prefix family.</li>
+<li><strong>Create the Dynatrace Connection</strong> — <strong>Settings → Connections → Slack → Connection</strong>, give it a descriptive name (e.g. <code>slack-prod-alerts</code>) and paste the token into <strong>Bot token</strong>.</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions">Slack Connector actions (DT docs)</a> — <em>&quot;channels:read Looking up public channels by name for the channel selection. Required&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-setup">Set up Slack Connector (DT docs)</a> — <em>&quot;Return to Dynatrace, go to Settings , and select Connections &gt; Slack .&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Slack docs:</strong> <a href="https://docs.slack.dev/reference/scopes/chat.write/">chat.write scope (docs.slack.dev)</a> — <em>&quot;Send messages as your Slack app&quot;</em>; <a href="https://docs.slack.dev/reference/scopes/chat.write.public/">chat.write.public scope (docs.slack.dev)</a> — allows posting to channels the app isn't a member of, requires <code>chat:write</code> too.</sub></p>
+</blockquote>
+<p><strong>Token type:</strong> the Slack connection takes a bot token (OAuth app, the path above); it has no webhook option. An incoming webhook can only be called from an HTTP Request task, and it is pinned to one channel and loses the ability to update / delete / thread messages, react with emoji, or use Block Kit interactivity. WFLOW-03 documents the webhook variant for the minimal case; production Slack integrations should use the OAuth app.</p>
+<h3>3.2 PagerDuty — Events API v2 Integration Key vs REST API Key</h3>
+<p>PagerDuty exposes two distinct credentials for two distinct surfaces. Picking the wrong one is the single most common WFLOW-05 setup mistake.</p>
+<table>
+<thead>
+<tr>
+<th>Credential</th>
+<th>Where minted</th>
+<th>What it does</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Integration Key</strong> (a.k.a. routing key)</td>
+<td>On a single PagerDuty <em>service</em> → <em>Integrations</em> tab → <em>Add an integration</em> → <strong>Events API v2</strong></td>
+<td>Sends <em>events</em> (trigger / acknowledge / resolve) to the one service it belongs to. No account-level read access.</td>
+<td>Routing Dynatrace problems / Davis events into PagerDuty as incidents. The default WFLOW-05 happy path.</td>
+</tr>
+<tr>
+<td><strong>REST API Key</strong></td>
+<td>Account-level → <em>Integrations → API Access Keys</em> (general access) or <em>User → My Profile → User Settings → Create API User Token</em> (personal)</td>
+<td>Account-scoped CRUD across services, schedules, escalation policies, incidents, users.</td>
+<td>Querying on-call schedules, updating incident status from a workflow, listing services — workflow tasks that need <em>more than just &quot;open an incident.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p>PagerDuty's own integration guidance draws the same boundary — Events API v2 is intended for <em>machine-generated monitoring and event data</em>, REST API for <em>human-generated events, tickets or incidents</em> requiring richer CRUD. The Dynatrace <code>dynatrace.pagerduty:*</code> action set covers both; pick the credential type matching the action's verb (trigger/ack/resolve → Integration Key; query/update incident metadata → REST API key).</p>
+<p><strong>dedup_key (Events API v2):</strong> each Events API payload carries an optional <code>dedup_key</code>. PagerDuty correlates subsequent <code>trigger</code>, <code>acknowledge</code>, and <code>resolve</code> events with the same <code>dedup_key</code> against the <strong>same open incident</strong>, so a Davis problem can drive the full lifecycle: trigger on <code>ACTIVE</code>, resolve on <code>CLOSED</code>, all referencing the same key. WFLOW-05 §7 already recommends <code>dynatrace-{problem_id}</code> — keep that pattern: it makes the Dynatrace problem ID the join key on both sides.</p>
+<blockquote>
+<p><sub><strong>PagerDuty docs:</strong> <a href="https://docs.pagerduty.com/incident-management/services/services-and-integrations">Services and integrations (PagerDuty Support)</a> — <em>&quot;Events API v2 is designed to handle machine-generated monitoring and event data&quot;</em> and <em>&quot;For human-generated events, tickets, or incidents, such as those from ServiceNow or JIRA, use the REST API to enable direct, streamlined creation of PagerDuty incidents.&quot;</em>; <a href="https://docs.pagerduty.com/developer/events-api-v2-overview">Events API v2 overview (PagerDuty Developer)</a>.</sub></p>
+</blockquote>
+<h3>3.3 ServiceNow — OAuth Client Credentials vs Basic Auth</h3>
+<p>The Dynatrace ServiceNow connection offers exactly two authentication types: <strong>Basic Authentication</strong> (username and password of an integration user) and <strong>OAuth Client Credentials</strong> (client ID and client secret). Other OAuth grants — resource-owner password, authorization code, JWT bearer — cannot be configured on the connection, whatever the ServiceNow instance itself accepts.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>When to use for Dynatrace Workflows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OAuth Client Credentials</strong></td>
+<td>Preferred where your instance supports it: no integration-user password is stored in Dynatrace, and the secret can be rotated on the ServiceNow side. One client ID / secret pair per environment (prod/staging).</td>
+</tr>
+<tr>
+<td><strong>Basic Authentication</strong></td>
+<td>The path Dynatrace's own setup steps walk through. Use a dedicated integration user, never a person's account.</td>
+</tr>
+</tbody>
+</table>
+<p>In community practice, security teams push toward OAuth by policy — many forbid storing integration-user passwords in third-party systems — rather than because the platform requires it. Mint the OAuth client in your instance's OAuth application registry; the exact menu path and token lifetime defaults depend on your ServiceNow release, so follow your instance's documentation.</p>
+<p><strong>Permissions for the integration user.</strong> Dynatrace documents the permissions as table access rather than a role name. The user needs to:</p>
+<ul>
+<li>search, create and update incidents (table <code>incident</code>);</li>
+<li>read categories and subcategories (table <code>sys_choice</code>, elements <code>category</code> / <code>subcategory</code>);</li>
+<li>read assignment groups (table <code>sys_user_group</code>);</li>
+<li>read resolution codes (table <code>sys_choice</code>, element <code>close_code</code>).</li>
+</ul>
+<p>Grant these through a narrow custom role and <em>avoid <code>admin</code></em> — WFLOW-05 §4 already calls out least privilege.</p>
+<p><strong>Dynatrace side.</strong> Create the connection under <strong>Settings → Connections → ServiceNow</strong> (one per ServiceNow environment), and grant <code>app-settings:objects:read</code> in <strong>Workflows → Settings → Authorization settings</strong>.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/service-now/set-up-servicenow-connector">Set up ServiceNow Connector (DT docs)</a> — <em>&quot;Either use basic authentication or OAuth client credentials. For Basic Authentication , provide your username and password. For OAuth Client Credentials , provide your client id and client secret.&quot;</em> and <em>&quot;Search, create and update incidents (table incident )&quot;</em>.</sub></p>
+</blockquote>
+<h3>3.4 Rotation Patterns Without Breaking In-Flight Workflows</h3>
+<p>The instinct on rotation day is <em>&quot;update the secret value and save.&quot;</em> That works on a quiet system; on one with running workflows, community practice is to avoid it — a task that starts while the old credential is already revoked fails. The safer pattern is <strong>dual-credential overlap</strong>:</p>
+<ol>
+<li><strong>Mint the new credential</strong> at the vendor (new Slack bot token, new PagerDuty Integration Key on the same service, new ServiceNow OAuth client). Both old and new are now active.</li>
+<li><strong>Create a parallel Dynatrace Connection</strong> with a <code>-v2</code> suffix (e.g. <code>slack-prod-alerts-v2</code>). Don't overwrite the existing one yet.</li>
+<li><strong>Migrate workflows one at a time</strong> — update each workflow's task to point at <code>-v2</code>, run an On-Demand execution, verify the result vendor-side, then move to the next workflow.</li>
+<li><strong>Wait one full execution cycle</strong> beyond the slowest scheduled workflow (typically 24–48 hours for daily reports; longer for weekly) to confirm no workflow still references the old connection.</li>
+<li><strong>Revoke the old credential</strong> at the vendor. Only after revocation is the rotation complete — if the old credential still works, the rotation has only added a credential, not retired one.</li>
+<li><strong>Delete the old Dynatrace Connection</strong>.</li>
+</ol>
+<p>This pattern adds one day of dual-credential window, but no workflow ever runs against an invalid token. With the naive &quot;edit the secret value in place&quot; path, any task that calls the vendor between revocation and the update fails with the vendor's authentication error.</p>
+<p><strong>When to rotate:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>Cadence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Routine</td>
+<td>Set by your security policy. In community practice, quarterly for Slack bot tokens and ServiceNow OAuth secrets and annually for PagerDuty Integration Keys is a common baseline — no vendor mandates a cadence. Slack bot tokens do not expire on their own unless token rotation is turned on, which Dynatrace's Slack manifest leaves off.</td>
+</tr>
+<tr>
+<td>Personnel change</td>
+<td>When the engineer who originally minted the credential leaves the team or company</td>
+</tr>
+<tr>
+<td>Suspected exposure</td>
+<td>Immediately. Bypass the overlap pattern; revoke first, accept the workflow outage, restore on the new credential</td>
+</tr>
+<tr>
+<td>Vendor-forced</td>
+<td>When Slack / PagerDuty / ServiceNow issues a security advisory or forces a token regeneration</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.slack.dev/authentication/using-token-rotation/">Using token rotation (docs.slack.dev)</a> — <em>&quot;Without token rotation, the access token never expires. With token rotation, it expires every 12 hours.&quot;</em></sub></p>
+</blockquote>
+<h3>3.5 Detecting Workflows That Use a Connector App</h3>
+<p>Before rotating, find every workflow that might use the connection — both to scope the migration and to be sure step 3 of the rotation pattern is exhaustive. Execution events record which connector <strong>app</strong> and function a task called, <strong>not</strong> which connection or what input it used. So the query below scopes the candidates: every workflow that has called the ServiceNow connector in the last 30 days, whichever connection it used. Then confirm the connection on each candidate's task — the task's <code>connection</code> input, visible in the editor or in the exported workflow. A workflow that has not run in the window does not appear, so also search the Workflows list for the connector's tasks.</p>
+<pre><code class="language-dql">// Inventory: which workflows invoke a given connector — replace the literal below
+//
+// Data object corrected 08/12/2026 along with the rest of this series: workflow executions live in
+// `dt.system.events` with `event.kind == &quot;WORKFLOW_EVENT&quot;`, not in `events` under a non-existent
+// `automation.task.execution` type. `task.input` is not a field either — the connector actually
+// invoked is `dt.automation_engine.action.app` / `.action.function`, which is a better key than
+// scraping an input payload for a connection name. The connection itself is NOT recorded.
+// Each action writes a RUNNING record and a final record — keep the final one, so one row is one call.
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;ACTION_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| filter contains(dt.automation_engine.action.app, &quot;servicenow&quot;)
+| summarize {
+    last_execution  = takeMax(timestamp),
+    execution_count = count()
+  }, by:{dt.automation_engine.workflow.title, dt.automation_engine.task.name, dt.automation_engine.action.function}
+| sort last_execution desc
+| limit 25
+</code></pre>
+<p>If a workflow shows up here, it calls the connector — check which connection its task uses, and migrate it before revoking the old credential. If a workflow you expected to see <em>doesn't</em> show up, it either hasn't executed in 30 days (extend the lookback) or calls the connector only in a code path that hasn't been hit.</p>
+<p><strong>For a wider sweep across all external connections:</strong></p>
+<pre><code class="language-dql">// Inventory: which connector apps workflows actually invoke
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-30d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;ACTION_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| summarize {executions = count(), errors = countIf(dt.automation_engine.state == &quot;ERROR&quot;), workflows = countDistinctExact(dt.automation_engine.workflow.id)}, by:{dt.automation_engine.action.app}
+| fieldsAdd error_pct = round(100.0 * errors / executions, decimals: 1)
+| sort executions desc
+| limit 25
+</code></pre>
+<p><code>error_pct</code> per connector app shows where calls are failing. The reason is in <code>dt.automation_engine.state_info</code> on the <code>ERROR</code> records — an authentication error points at the credential, while <code>Blocked request to '…' (host not in allowlist)</code> means the target host is missing from <strong>Settings &gt; General &gt; External requests</strong>. Alert on a rising error count per app (§6) rather than waiting for a credential to fail outright.</p>
+<h3>3.6 Cross-References</h3>
+<ul>
+<li><strong>WFLOW-03</strong> (§ Setting Up Connections, § Slack Notifications, § Microsoft Teams Notifications) — minimal Connection-creation walkthrough and webhook-vs-OAuth choice for Slack/Teams.</li>
+<li><strong>WFLOW-05</strong> (§ PagerDuty Setup, § ServiceNow Setup) — the workflow-task side: how to consume the credentials this section mints. WFLOW-05 §7 covers <code>dedupKey</code> and <code>correlation_id</code> patterns referenced above.</li>
+<li><strong>WFLOW-06</strong> (§ Slack Block Kit, § Teams Adaptive Cards) — message-template patterns that depend on the OAuth-app credential path (Block Kit interactivity is unavailable through Incoming Webhooks).</li>
+</ul>
+<p><a id="access-control-rbac"></a></p>
+<h2>4. Access Control (RBAC)</h2>
+<h3>Workflow Permissions</h3>
+<p>The IAM reference defines four <code>automation:workflows:*</code> permissions. There is no separate delete permission, and no <code>automation:connections:*</code> permission:</p>
+<table>
+<thead>
+<tr>
+<th>Permission</th>
+<th>Allows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>automation:workflows:read</code></td>
+<td>View workflows</td>
+</tr>
+<tr>
+<td><code>automation:workflows:write</code></td>
+<td>Create, update and delete workflows, including their schedule and event-trigger configuration. One condition: <code>automation:workflow-type</code> (<code>SIMPLE</code> or <code>STANDARD</code>; operators <code>IN</code>, <code>=</code>)</td>
+</tr>
+<tr>
+<td><code>automation:workflows:run</code></td>
+<td>Run workflows manually via the UI or API</td>
+</tr>
+<tr>
+<td><code>automation:workflows:admin</code></td>
+<td>Administer workflows — access all workflows and executions in <strong>Workflow admin mode</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Using Workflows at all also needs <code>app-engine:apps:run</code>; writing and running workflows needs <code>app-engine:functions:run</code>. Reading execution history needs the two <code>storage:*</code> permissions in the Prerequisites.</p>
+<p><strong>Connections are settings objects.</strong> Access to a connector's connections is granted on its settings schema, for example:</p>
+<pre><code>ALLOW settings:objects:read, settings:objects:write, settings:schemas:read
+  WHERE settings:schemaId = &quot;app:dynatrace.pagerduty:connection&quot;;
+</code></pre>
+<h3>IAM Policy Example</h3>
+<p>A broad user base that may build only simple workflows (one trigger, one task — they don't consume workflow hours):</p>
+<pre><code>ALLOW app-engine:apps:run, app-engine:functions:run;
+ALLOW automation:workflows:read, automation:workflows:run;
+ALLOW automation:workflows:write WHERE automation:workflow-type = &quot;SIMPLE&quot;;
+</code></pre>
+<p>The IAM reference lists no condition on a workflow's owner. &quot;Own workflows&quot; is enforced by ownership and visibility (below), not by a policy statement.</p>
+<h3>Team-Based Access Pattern</h3>
+<table>
+<thead>
+<tr>
+<th>Team</th>
+<th>Permissions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Workflow Admins</strong></td>
+<td>All user permissions + <code>automation:workflows:admin</code></td>
+</tr>
+<tr>
+<td><strong>SRE Team</strong></td>
+<td>Read, write, run; works on workflows owned by the SRE group</td>
+</tr>
+<tr>
+<td><strong>App Teams</strong></td>
+<td>Read, write, run on private workflows owned by the team's group</td>
+</tr>
+<tr>
+<td><strong>Viewers</strong></td>
+<td><code>automation:workflows:read</code> on public workflows</td>
+</tr>
+</tbody>
+</table>
+<h3>Actor, Owner and Visibility</h3>
+<ul>
+<li>
+<p><strong>Actor.</strong> A workflow runs with its actor's permissions. Dynatrace highly recommends a <strong>service user</strong> as the actor for production workflows that several people work on. Editing a workflow makes the editor its actor — unless the actor is a service user or the edit is made in Workflow admin mode. Selecting a service user as actor needs <code>iam:service-users:use</code>:</p>
+<pre><code>ALLOW iam:service-users:use WHERE iam:service-user-email IN (&quot;&lt;SERVICE_USER_EMAIL&gt;&quot;);
+</code></pre>
+</li>
+<li>
+<p><strong>Owner and visibility.</strong> A new workflow is <strong>private</strong> — only its owner can view, manage and run it. The owner can make it public (visible to every user with <code>automation:workflows:*</code> permissions) or transfer ownership to another user or to a <strong>group</strong>, so every member of the group can access it, subject to their permissions.</p>
+</li>
+<li>
+<p><strong>Workflow admin mode.</strong> Users with <code>automation:workflows:admin</code> turn it on under <strong>Settings</strong> in the Workflows app to manage workflows whose owner is unavailable, and to import or edit workflows while preserving their actor and owner.</p>
+</li>
+</ul>
+<h3>Workflow Ownership in Exported Workflows</h3>
+<p>Ownership lives in the workflow's own fields. There is no free-form ownership metadata block — an exported workflow's <code>metadata</code> holds only the version and app dependencies. Record team and classification in the <code>description</code> or the naming convention (§7):</p>
+<pre><code class="language-yaml">workflow:
+  title: sre-problem-notifications-prod
+  description: &quot;team=platform; classification=production&quot;
+  owner: &lt;group-uuid&gt;          # the owning group
+  ownerType: GROUP             # USER or GROUP
+  isPrivate: true
+  actor: &lt;service-user-id&gt;     # service user, not a person
+</code></pre>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements (DT docs)</a> — <em>&quot;automation : workflows:write Grants permission to write workflows conditions: automation:workflow-type - A string that identifies a workflow type either SIMPLE or STANDARD operators: IN , =&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/security">Workflow security (DT docs)</a> — <em>&quot;automation:workflows:write Write workflows. It includes creating, updating, and deleting a workflow.&quot;</em>, <em>&quot;We highly recommend using service users as actors for all workflows that are worked on collaboratively and serve a production grade use case.&quot;</em>, <em>&quot;A user who updates a workflow is set as the actor automatically.&quot;</em> and <em>&quot;Right after a workflow is created, only the owner can view, manage, and execute the workflow.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/pagerduty/pagerduty-workflows-setup">PagerDuty Connector setup (DT docs)</a> — <em>&quot;ALLOW settings:objects:read, settings:objects:write, settings:schemas:read WHERE settings:schemaId = &quot;app:dynatrace.pagerduty:connection&quot;&quot;</em>; <a href="https://developer.dynatrace.com/develop/sdks/client-automation/">client-automation SDK reference (Dynatrace Developer)</a> — workflow fields <code>actor</code>, <code>owner</code>, <code>ownerType</code>, <code>isPrivate</code>.</sub></p>
+</blockquote>
+<p><a id="workflow-observability"></a></p>
+<h2>5. Workflow Observability</h2>
+<h3>Key Metrics to Monitor</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Query</th>
+<th>Alert Threshold</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Execution success rate</td>
+<td>See cell below</td>
+<td>&lt; 95%</td>
+</tr>
+<tr>
+<td>Execution duration</td>
+<td>See cell below</td>
+<td>&gt; 5 min avg</td>
+</tr>
+<tr>
+<td>Failed executions</td>
+<td>See cell below</td>
+<td>&gt; 5 per hour</td>
+</tr>
+<tr>
+<td>Throttled workflows</td>
+<td>Workflows overview → throttled filter (1,000 event-triggered executions / hour / workflow)</td>
+<td>Any</td>
+</tr>
+</tbody>
+</table>
+<h3>Execution History Dashboard</h3>
+<p>Build a dashboard with these queries to monitor workflow health.</p>
+<pre><code class="language-dql">// Overall workflow health - last 24 hours
+// Corrected 09/24/2026: there is no `automation.workflow.execution` event type, so the earlier
+// version of this cell returned 0 for every count. Executions are in `dt.system.events`.
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;WORKFLOW_EVENT&quot; and event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| summarize {total = count(), succeeded = countIf(dt.automation_engine.state == &quot;SUCCESS&quot;), failed = countIf(dt.automation_engine.state == &quot;ERROR&quot;)}
+| fieldsAdd success_rate = round(100.0 * succeeded / total, decimals: 2)
+</code></pre>
+<pre><code class="language-dql">// Per-workflow success rates
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| summarize {total = count(), succeeded = countIf(dt.automation_engine.state == &quot;SUCCESS&quot;), failed = countIf(dt.automation_engine.state == &quot;ERROR&quot;)}, by:{dt.automation_engine.workflow.title}
+| fieldsAdd success_pct = round(succeeded * 100.0 / total, decimals: 1)
+| sort failed desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Execution trend over time
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter dt.automation_engine.state.is_final == true
+| makeTimeseries executions = count(), interval:1h, by:{dt.automation_engine.state}
+</code></pre>
+<pre><code class="language-dql">// Recent failures with error details
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter dt.automation_engine.state == &quot;ERROR&quot;
+| fields timestamp, dt.automation_engine.workflow.title, dt.automation_engine.state_info, dt.automation_engine.workflow_execution.id
+| sort timestamp desc
+| limit 25
+</code></pre>
+<pre><code class="language-dql">// Task-level performance
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;TASK_EXECUTION&quot;
+// Durations: SUCCESS and ERROR only. DISCARDED and SKIPPED are final states too, but those tasks
+// never ran and always carry duration 0 (38% of final task records over 24 h on the validation tenant, 10/06/2026).
+| filter in(dt.automation_engine.state, {&quot;SUCCESS&quot;, &quot;ERROR&quot;})
+| summarize {executions = count(), avg_ms = avg(duration) / 1ms}, by:{dt.automation_engine.workflow.title, dt.automation_engine.task.name}
+| sort avg_ms desc
+| limit 25
+</code></pre>
+<h3>5.1 Deeper debugging patterns</h3>
+<p>The queries above give a workflow-level health view. The patterns below drill into <strong>per-task execution detail</strong> — what readers actually need when a workflow execution ends in <code>ERROR</code> and the high-level dashboard doesn't reveal which task in which step broke.</p>
+<p>Workflow executions are recorded in <code>dt.system.events</code> with <code>event.kind == &quot;WORKFLOW_EVENT&quot;</code>, split by <code>event.type</code>:</p>
+<table>
+<thead>
+<tr>
+<th><code>event.type</code></th>
+<th>One per</th>
+<th>Key fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WORKFLOW_EXECUTION</code></td>
+<td>Workflow run</td>
+<td><code>dt.automation_engine.workflow_execution.id</code>, <code>dt.automation_engine.state</code>, <code>dt.automation_engine.state_info</code>, <code>duration</code>, <code>dt.automation_engine.workflow.title</code></td>
+</tr>
+<tr>
+<td><code>TASK_EXECUTION</code></td>
+<td>Task run within a workflow</td>
+<td><code>dt.automation_engine.workflow_execution.id</code> (parent run), <code>dt.automation_engine.task.name</code>, <code>dt.automation_engine.state</code>, <code>dt.automation_engine.state_info</code></td>
+</tr>
+<tr>
+<td><code>ACTION_EXECUTION</code></td>
+<td>Action call within a task</td>
+<td><code>dt.automation_engine.action.app</code>, <code>dt.automation_engine.action.function</code>, <code>dt.automation_engine.state</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>dt.automation_engine.workflow_execution.id</code> is the <strong>correlation key</strong> that joins task and action records to their parent workflow run. (The <code>automation.workflow.execution</code> / <code>automation.task.execution</code> event types named in earlier revisions do not exist.)</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows umbrella (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Workflow reference (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">Dynatrace Query Language reference (DT docs)</a>.</sub></p>
+</blockquote>
+<h3>5.2 Failed executions with task-level detail</h3>
+<p>When a workflow ends in <code>ERROR</code>, the actionable question is <em>which task in the run failed and what was the error?</em> This goes one level below <em>Recent failures with error details</em> in §5 (workflow-level failures) by filtering on <code>TASK_EXECUTION</code> records and surfacing <code>dt.automation_engine.state_info</code>.</p>
+<pre><code class="language-dql">// Failed task executions in the last 24h, with their workflow
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;TASK_EXECUTION&quot;
+| filter dt.automation_engine.state == &quot;ERROR&quot;
+| summarize failures = count(), by:{dt.automation_engine.workflow.title, dt.automation_engine.task.name}
+| sort failures desc
+| limit 25
+</code></pre>
+<h3>5.3 Slowest tasks across all workflows (duration percentiles)</h3>
+<p>The <code>avg</code> in <em>Task-level performance</em> (§5) hides long-tail behavior. A task whose p99 is 4× its p50 is a different problem from one with a uniformly high p50 — the first is a tail-latency / external-dependency issue, the second is a structural bottleneck. Percentile aggregations make the distinction visible.</p>
+<pre><code class="language-dql">// Slowest tasks across all workflows (last 7d) by p95
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-7d
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;TASK_EXECUTION&quot;
+// Durations: SUCCESS and ERROR only. DISCARDED and SKIPPED are final states too, but those tasks
+// never ran and always carry duration 0 (38% of final task records over 24 h on the validation tenant, 10/06/2026).
+| filter in(dt.automation_engine.state, {&quot;SUCCESS&quot;, &quot;ERROR&quot;})
+| summarize {executions = count(), p95_ms = percentile(duration, 95) / 1ms}, by:{dt.automation_engine.workflow.title, dt.automation_engine.task.name}
+| filter executions &gt; 5
+| sort p95_ms desc
+| limit 20
+</code></pre>
+<h3>5.4 Filter by workflow ID, task name, status</h3>
+<p>Targeted lookup for a single workflow + task combination. Adapt the literals to the workflow and task you are debugging — useful when a specific notification keeps failing and you need the error history for just that step.</p>
+<pre><code class="language-dql">// Targeted lookup — replace the literal with a workflow title from your tenant
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-24h
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;TASK_EXECUTION&quot;
+| filter contains(dt.automation_engine.workflow.title, &quot;Alert&quot;)
+| fields timestamp, dt.automation_engine.workflow.title, dt.automation_engine.task.name, dt.automation_engine.state, duration
+| sort timestamp desc
+| limit 25
+</code></pre>
+<h3>5.5 Workflow failures in the last hour</h3>
+<p>A short-window failure list, suitable for a dashboard tile next to Davis problems. To follow a failing run into downstream logs, there is no built-in join key: execution records carry <code>dt.automation_engine.workflow_execution.id</code>, but logs do not carry it. Log the execution ID from your JavaScript task (or pass it to the target service) and filter your logs on it.</p>
+<pre><code class="language-dql">// Workflow failures in the last hour
+// Data object corrected 08/12/2026. Workflow executions are NOT in `events`, and there is no
+// `automation.task.execution` / `automation.workflow.execution` event type in any spelling — those
+// filters matched nothing, silently, in 25 cells. AutomationEngine writes to `dt.system.events` with
+// `event.kind == &quot;WORKFLOW_EVENT&quot;` (5.7M records / 30d here), split by `event.type`:
+//   WORKFLOW_EXECUTION · TASK_EXECUTION · ACTION_EXECUTION · WORKFLOW_CREATED/UPDATED/DELETED
+// Fields are the `dt.automation_engine.*` family:
+//   .workflow.title / .workflow.id      (was workflow.name)
+//   .task.name                          (was task.name)
+//   .action.function / .action.app      (was task.type — e.g. run-javascript, send-email,
+//                                        snow-search-incidents)
+//   .state                              (was task.status / execution.status)
+//                                        values RUNNING · SUCCESS · ERROR · DISCARDED · SKIPPED
+//                                        — note &quot;FAILED&quot; is NOT a value; it is ERROR
+//   .state.is_final                     true only on terminal records — filter on it, otherwise a
+//                                        single execution is counted once as RUNNING and again as
+//                                        SUCCESS/ERROR
+//   .state_info                         (was task.error)  ·  duration (was task.duration)
+// Enumerate with:
+//   fetch dt.system.events, from:-24h | filter event.kind == &quot;WORKFLOW_EVENT&quot; | limit 1
+fetch dt.system.events, from:-1h
+| filter event.kind == &quot;WORKFLOW_EVENT&quot;
+| filter event.type == &quot;WORKFLOW_EXECUTION&quot;
+| filter dt.automation_engine.state == &quot;ERROR&quot;
+| fields timestamp, dt.automation_engine.workflow.title, dt.automation_engine.state_info
+| sort timestamp desc
+| limit 25
+</code></pre>
+<h3>5.6 Promoting these queries to a dashboard</h3>
+<p>These queries are written as ad-hoc investigation patterns — copy into a Notebook section, change the time range, run. To make them part of standing operations, promote them to a dashboard:</p>
+<ul>
+<li><strong>Workflow Health overview</strong> — the §5 overall-health success-rate tile + the §5.3 percentile table + the §5.2 failed-task list.</li>
+<li><strong>Per-workflow drilldown</strong> — parameterize the §5.4 lookup with a <code>dt.automation_engine.workflow.title</code> variable so SREs can pick a workflow from a dropdown.</li>
+<li><strong>Cross-signal correlation</strong> — the §5.5 failure list next to a Davis Problems tile filtered to the same time window, so failures and incidents appear side-by-side.</li>
+</ul>
+<p>Dashboard tile selection, variable binding, and layout patterns live in the <strong>DASH</strong> series — see <em>DASH-02 (tile types)</em>, <em>DASH-04 (variables and parameterization)</em>, and <em>DASH-06 (operational dashboards)</em>. The DQL stays the same; only the surface (Notebook section → dashboard tile) changes.</p>
+<p><a id="alerting-on-workflows"></a></p>
+<h2>6. Alerting on Workflows</h2>
+<h3>Create a Workflow-Monitoring Workflow</h3>
+<p>Use a scheduled workflow to monitor other workflows:</p>
+<pre><code class="language-javascript">import { queryExecutionClient } from '@dynatrace-sdk/client-query';
+
+async function runQuery(query) {
+  // queryExecute returns a requestToken instead of the result when the query outlasts
+  // requestTimeoutMilliseconds - poll until it reaches a final state (see WFLOW-08 §2).
+  const started = await queryExecutionClient.queryExecute({ body: { query, requestTimeoutMilliseconds: 30000 } });
+  let r = started;
+  while (r &amp;&amp; (r.state === 'NOT_STARTED' || r.state === 'RUNNING')) {
+    r = await queryExecutionClient.queryPoll({ requestToken: started.requestToken, requestTimeoutMilliseconds: 30000 });
+  }
+  if (!r || r.state !== 'SUCCEEDED') throw new Error(`DQL query did not succeed: ${r?.state ?? 'no response'}`);
+  return r.result.records;
+}
+
+export default async function () {
+  // Query for failures in the last hour
+  const failingWorkflows = await runQuery(`
+    fetch dt.system.events, from:-1h
+    | filter event.kind == &quot;WORKFLOW_EVENT&quot; and event.type == &quot;WORKFLOW_EXECUTION&quot;
+    | filter dt.automation_engine.state.is_final == true
+    | summarize failures = countIf(dt.automation_engine.state == &quot;ERROR&quot;), by:{dt.automation_engine.workflow.title}
+    | filter failures &gt;= 3
+  `);
+  
+  if (failingWorkflows.length &gt; 0) {
+    return {
+      alert: true,
+      failing_workflows: failingWorkflows,
+      message: `${failingWorkflows.length} workflows with 3+ failures in the last hour`
+    };
+  }
+  
+  return { alert: false };
+}
+</code></pre>
+<h3>Conditional Alert Based on Check</h3>
+<p>In the workflow document, <code>tasks</code> is a map keyed by task name, and each task carries its own <code>conditions</code> (<code>states</code> of predecessors, an optional <code>custom</code> expression, and <code>else</code>). The Slack action needs a connection; the <code>connection()</code> expression resolves a connection's ID from its name:</p>
+<pre><code class="language-yaml">tasks:
+  check_workflows:
+    name: check_workflows
+    action: dynatrace.automations:run-javascript
+    input:
+      script: |
+        // paste the check script above
+  alert_slack:
+    name: alert_slack
+    action: dynatrace.slack:slack-send-message
+    predecessors:
+      - check_workflows
+    conditions:
+      states:
+        check_workflows: OK
+      custom: '{{ result(&quot;check_workflows&quot;).alert }}'
+      else: SKIP
+    input:
+      connection: &quot;{{ connection('app:dynatrace.slack:connection', 'slack-prod-alerts') }}&quot;
+      channel: &quot;#workflow-alerts&quot;
+      message: |
+        :warning: *Workflow Health Alert*
+
+        {{ result(&quot;check_workflows&quot;).message }}
+
+        {% for wf in result(&quot;check_workflows&quot;).failing_workflows %}
+        • {{ wf[&quot;dt.automation_engine.workflow.title&quot;] }}: {{ wf.failures }} failures
+        {% endfor %}
+</code></pre>
+<p>The workflow's actor needs the <code>storage:*</code> permissions from the Prerequisites, or the check query reads nothing.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Jinja expressions for Workflows (DT docs)</a> — <em>&quot;connection() Get a single connection by schema ID and connection name.&quot;</em>; <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions/actions/slack/automation-workflows-slack-actions">Slack Connector actions (DT docs)</a> — <em>&quot;Connection Connection ID. Required&quot;</em>; <a href="https://raw.githubusercontent.com/Dynatrace/Dynatrace-workflow-samples/main/samples/security/threat%20detection/threat-detection-notification-sender.yaml">threat-detection-notification-sender.yaml (Dynatrace GitHub)</a> — task shape with <code>conditions: states / custom / else</code>.</sub></p>
+</blockquote>
+<p><a id="change-management"></a></p>
+<h2>7. Change Management</h2>
+<h3>Version Control</h3>
+<p>Export workflows for version control with the dedicated export endpoint:</p>
+<pre><code class="language-bash"># Export via API
+curl -X GET &quot;https://&lt;env&gt;/platform/automation/v1/workflows/&lt;id&gt;/export&quot; \
+  -H &quot;Authorization: Bearer &lt;platform-token&gt;&quot; \
+  -o workflow-export.json
+</code></pre>
+<p>The platform token needs the <code>automation:workflows:read</code> scope. Platform tokens are sent as <code>Bearer</code>, not <code>Api-Token</code> (<a href="https://docs.dynatrace.com/docs/manage/identity-access-management/access-tokens-and-oauth-clients/platform-tokens">Platform tokens (DT docs)</a>).</p>
+<h3>Workflow Naming Convention</h3>
+<pre><code>&lt;team&gt;-&lt;function&gt;-&lt;environment&gt;
+
+Examples:
+- sre-problem-notifications-prod
+- checkout-auto-remediation-staging
+- platform-daily-report-all
+</code></pre>
+<h3>Testing Changes</h3>
+<ol>
+<li><strong>Clone workflow</strong> to test version</li>
+<li><strong>Modify clone</strong> with changes</li>
+<li><strong>Test with On-Demand trigger</strong></li>
+<li><strong>Review execution results</strong></li>
+<li><strong>Promote to production workflow</strong></li>
+</ol>
+<h3>Rollback Procedure</h3>
+<ol>
+<li>Disable failing workflow (toggle off)</li>
+<li>Restore the previous version from the workflow's history — <code>POST /platform/automation/v1/workflows/&lt;id&gt;/history/&lt;version&gt;/restore</code> (scope <code>automation:workflows:write</code>), which deploys the restored version. Import from your own export only if the history no longer has it.</li>
+<li>Enable restored workflow</li>
+<li>Verify execution</li>
+</ol>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://developer.dynatrace.com/develop/sdks/client-automation/">client-automation SDK reference (Dynatrace Developer)</a> — <code>exportWorkflow</code>, and <code>restoreWorkflowHistoryRecord</code>: <em>&quot;Restores the workflow to the specified history version which is deployed afterward.&quot;</em></sub></p>
+</blockquote>
+<h3>Deleted Workflows Go to the Trash</h3>
+<p>Deleting a workflow moves it to the trash rather than removing it. A trashed workflow does not run — <em>&quot;Its schedule or event trigger does not start it, and you cannot start it through the API.&quot;</em> — a workflow that calls it as a sub-workflow fails, and a standard workflow stops consuming workflow-hours. <em>&quot;Trashed workflows are kept for 30 days.&quot;</em> Until then it can be restored from the <strong>Trash</strong> tab, either live or as a draft only so the trigger can be reviewed before it fires again, or deleted permanently. <em>&quot;To delete or restore a workflow, you need write permission on it.&quot;</em></p>
+<p>The workflow's ID stays reserved while it is in the trash: <em>&quot;If you create a workflow with the same ID as a trashed workflow, Dynatrace rejects it.&quot;</em> Automation that recreates workflows under fixed IDs needs the trashed copy restored or permanently deleted first.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/manage-workflows/workflows-delete">Delete and restore workflows (DT docs)</a> — <em>&quot;Trashed workflows are kept for 30 days.&quot;</em>, <em>&quot;You cannot reuse the ID of a workflow that is in the trash.&quot;</em></sub></p>
+</blockquote>
+<p><a id="operational-runbook"></a></p>
+<h2>8. Operational Runbook</h2>
+<h3>Daily Operations</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Frequency</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Check dashboard</td>
+<td>Daily</td>
+<td>Review execution success rates</td>
+</tr>
+<tr>
+<td>Review failures</td>
+<td>Daily</td>
+<td>Investigate and fix any failures</td>
+</tr>
+<tr>
+<td>Verify connections</td>
+<td>Weekly</td>
+<td>Test all external connections</td>
+</tr>
+<tr>
+<td>Rotate secrets</td>
+<td>Per your policy (§3.4)</td>
+<td>Dual-credential overlap, then revoke the old one</td>
+</tr>
+</tbody>
+</table>
+<h3>Troubleshooting Common Issues</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Task timeout</td>
+<td>External API slow</td>
+<td>Increase timeout, add retry</td>
+</tr>
+<tr>
+<td>Auth failure</td>
+<td>Revoked or rotated credential</td>
+<td>Update the connection (§3.4)</td>
+</tr>
+<tr>
+<td>Throttled (HTTP 429)</td>
+<td>Over 1,000 event-triggered executions / hour</td>
+<td>Narrow the trigger filter</td>
+</tr>
+<tr>
+<td>Blocked request (host not in allowlist)</td>
+<td>Target missing from External requests</td>
+<td>Add a host pattern</td>
+</tr>
+<tr>
+<td>Missing data</td>
+<td>Query returned empty</td>
+<td>Check time range, filters</td>
+</tr>
+</tbody>
+</table>
+<h3>Escalation Path</h3>
+<pre><code>Level 1: Check execution history, review error message
+Level 2: Check connections, verify external services
+Level 3: Review workflow logic, check for regressions
+Level 4: Contact Dynatrace support
+</code></pre>
+<h3>Capacity Planning</h3>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Value</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Task timeout</td>
+<td>60 min default, max 7 days</td>
+<td>Build workflows (DT docs)</td>
+</tr>
+<tr>
+<td>Per-action runtime</td>
+<td>120 s</td>
+<td>Build workflows (DT docs)</td>
+</tr>
+<tr>
+<td>Event-triggered executions</td>
+<td>1,000 / hour / workflow</td>
+<td>Upgrade guide (DT docs)</td>
+</tr>
+<tr>
+<td>Trigger filter expression</td>
+<td>1,000 characters</td>
+<td>Event triggers (DT docs)</td>
+</tr>
+<tr>
+<td>Workflows per environment</td>
+<td>10,000 (100 on trial)</td>
+<td>Upgrade guide (DT docs)</td>
+</tr>
+</tbody>
+</table>
+<p>Concurrency and tasks-per-workflow caps are not published; see WFLOW-01 § 5. An earlier revision listed 100 concurrent executions, 15 minutes and 50 tasks with no source.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build">Build workflows (DT docs)</a> — <em>&quot;The default timeout is 60 minutes, up to seven days.&quot;</em> <a href="https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/upgrade-guide-alert-notification">Upgrade guide — alerting and notifications (DT docs)</a> — <em>&quot;Execution rate: 1,000 event-triggered executions per hour, per workflow.&quot;</em> and <em>&quot;Environment limits are 10,000 workflows per customer environment and 100 per trial environment.&quot;</em> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/build/trigger/event-trigger">Event triggers for workflows (DT docs)</a> — the 1,000-character filter limit.</sub></p>
+</blockquote>
+<p><a id="series-summary"></a></p>
+<h2>9. Series Summary</h2>
+<h3>What You've Learned</h3>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Key Topics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WFLOW-01</strong></td>
+<td>Workflow fundamentals, components, first workflow</td>
+</tr>
+<tr>
+<td><strong>WFLOW-02</strong></td>
+<td>Trigger types: Problem, Davis event, schedule, on-demand, event</td>
+</tr>
+<tr>
+<td><strong>WFLOW-03</strong></td>
+<td>Slack, Teams, email notification basics</td>
+</tr>
+<tr>
+<td><strong>WFLOW-04</strong></td>
+<td>Conditional routing, escalation patterns</td>
+</tr>
+<tr>
+<td><strong>WFLOW-05</strong></td>
+<td>PagerDuty and ServiceNow integration</td>
+</tr>
+<tr>
+<td><strong>WFLOW-06</strong></td>
+<td>Custom templates, Jinja, Block Kit, Adaptive Cards</td>
+</tr>
+<tr>
+<td><strong>WFLOW-07</strong></td>
+<td>Auto-remediation, guardrails, approval workflows</td>
+</tr>
+<tr>
+<td><strong>WFLOW-08</strong></td>
+<td>JavaScript SDK, HTTP requests, custom integrations</td>
+</tr>
+<tr>
+<td><strong>WFLOW-09</strong></td>
+<td>Security, governance, monitoring, operations</td>
+</tr>
+<tr>
+<td><strong>WFLOW-94 LAB</strong></td>
+<td>EdgeConnect static egress IP for IP-allow-listed targets (Snowflake)</td>
+</tr>
+<tr>
+<td><strong>WFLOW-95 LAB</strong></td>
+<td>CMDB-driven host tag enrichment</td>
+</tr>
+<tr>
+<td><strong>WFLOW-99</strong></td>
+<td>Best-practice summary across the series</td>
+</tr>
+</tbody>
+</table>
+<h3>Implementation Checklist</h3>
+<ul>
+<li>[ ] Create connections for notification channels</li>
+<li>[ ] Build problem notification workflow</li>
+<li>[ ] Configure severity-based routing</li>
+<li>[ ] Integrate incident management (PagerDuty/ServiceNow)</li>
+<li>[ ] Design custom notification templates</li>
+<li>[ ] Implement auto-remediation (if applicable)</li>
+<li>[ ] Set up workflow monitoring dashboard</li>
+<li>[ ] Configure workflow health alerts</li>
+<li>[ ] Document operational procedures</li>
+<li>[ ] Train team on workflow management</li>
+</ul>
+<h3>Best Practices Summary</h3>
+<ol>
+<li><strong>Start simple</strong> - Basic notifications before complex automation</li>
+<li><strong>Test thoroughly</strong> - Use On-Demand trigger for testing</li>
+<li><strong>Secure by default</strong> - Never hardcode secrets</li>
+<li><strong>Monitor everything</strong> - Dashboard for workflow health</li>
+<li><strong>Document changes</strong> - Version control and change log</li>
+<li><strong>Plan for failure</strong> - Error handling and rollback</li>
+</ol>
+<hr />
+<p><a id="congratulations"></a></p>
+<h2>Congratulations!</h2>
+<p>You've completed the core WFLOW series — WFLOW-99 consolidates its best practices, and the 94/95 LABs apply them end to end. You now have the knowledge to:</p>
+<ul>
+<li>Build event-driven notification workflows</li>
+<li>Integrate with incident management platforms</li>
+<li>Create custom automation with JavaScript</li>
+<li>Implement auto-remediation safely</li>
+<li>Operate workflows in production</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows">Workflows umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/default-workflow-actions">Workflow actions umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/workflows/reference">Workflow reference / Jinja expressions (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management">Identity and Access Management umbrella (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies">Manage user permissions / boundaries (DT docs)</a></li>
+<li><a href="https://developer.dynatrace.com/develop/">Dynatrace Developer Portal (Dynatrace)</a></li>
+<li><a href="https://docs.slack.dev/reference/scopes/chat.write/">Slack chat.write scope (docs.slack.dev)</a></li>
+<li><a href="https://docs.slack.dev/reference/scopes/chat.write.public/">Slack chat.write.public scope (docs.slack.dev)</a></li>
+<li><a href="https://docs.pagerduty.com/incident-management/services/services-and-integrations">PagerDuty Services and integrations (PagerDuty Support)</a></li>
+<li><a href="https://docs.pagerduty.com/developer/events-api-v2-overview">PagerDuty Events API v2 overview (PagerDuty Developer)</a></li>
+<li><a href="https://www.servicenow.com/docs/r/yokohama/api-reference/rest-api-explorer/c_RESTAPI.html">ServiceNow inbound REST API (ServiceNow Docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

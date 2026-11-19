@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONBRD-06: Organizing Your Environment</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">ONBRD — Dynatrace Onboarding</a><span class="sep">/</span><span aria-current="page">ONBRD-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>ONBRD-06: Organizing Your Environment</h1>
+<blockquote>
+<p><strong>Series:</strong> ONBRD — Dynatrace Onboarding | <strong>Notebook:</strong> 6 of 10 | <strong>Created:</strong> December 2025 | <strong>Last Updated:</strong> 11/16/2026</p>
+</blockquote>
+<h2>Tags, Segments, and Naming Conventions</h2>
+<p>As your Dynatrace environment grows, organization becomes critical. This notebook covers how to structure your environment with tags, segments, and naming conventions for maintainability and access control.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-organization-matters">Why Organization Matters</a></li>
+<li><a href="#modern-organization-building-blocks">Modern Organization Building Blocks</a></li>
+<li><a href="#tagging-with-host-properties-and-cloud-tags">Tagging with Host Properties and Cloud Tags</a></li>
+<li><a href="#segments-for-data-filtering">Segments for Data Filtering</a></li>
+<li><a href="#naming-conventions">Naming Conventions</a></li>
+<li><a href="#querying-by-tags-and-properties">Querying by Tags and Properties</a></li>
+<li><a href="#next-steps">Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<ul>
+<li>Admin or Configurator access to Dynatrace</li>
+<li>Entities discovered (hosts, services)</li>
+<li>Understanding of your organizational structure</li>
+</ul>
+<h3>OneAgent Attribute Enrichment (OneAgent 1.333+)</h3>
+<blockquote>
+<p><strong>Requires:</strong> OneAgent version <strong>1.333</strong> or later</p>
+</blockquote>
+<p>OneAgent can enrich <strong>all telemetry signals</strong> (metrics, spans, logs, events, entities) with custom metadata at the source — before data reaches the Dynatrace platform. This is more efficient than server-side tagging (auto-tags) because enrichment happens on the host and propagates to all Smartscape nodes.</p>
+<p><strong>Primary Fields</strong> (standardized from Semantic Dictionary):</p>
+<ul>
+<li><code>dt.security_context</code> — data governance and access control</li>
+<li><code>dt.cost.costcenter</code> — cost allocation</li>
+<li><code>dt.cost.product</code> — product attribution</li>
+</ul>
+<p><strong>Primary Tags</strong> (custom key-value pairs):</p>
+<ul>
+<li><code>primary_tags.environment</code> — environment identification (production, staging, etc.)</li>
+<li><code>primary_tags.team</code> — team ownership</li>
+<li><code>primary_tags.business_unit</code> — organizational unit</li>
+</ul>
+<p><strong>Configuration:</strong></p>
+<pre><code class="language-bash"># Set during OneAgent installation
+Dynatrace-OneAgent-Linux.sh --set-host-tag=&quot;primary_tags.environment=production&quot; --set-host-tag=&quot;dt.security_context=confidential&quot;
+
+# Set on existing agents via oneagentctl
+oneagentctl --set-host-tag=&quot;primary_tags.environment=production&quot;
+oneagentctl --set-host-tag=&quot;dt.cost.costcenter=12345&quot;
+
+# Per-process via environment variable (overrides host-level)
+DT_TAGS=&quot;primary_tags.team=platform primary_tags.environment=production&quot;
+</code></pre>
+<p><strong>Benefits over auto-tagging:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Auto-Tags (Server-Side)</th>
+<th>Attribute Enrichment (Agent-Side)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>When applied</td>
+<td>After data arrives at platform</td>
+<td>At the source, before transmission</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>Entity tags only</td>
+<td>All signals: metrics, spans, logs, events, entities</td>
+</tr>
+<tr>
+<td>Grail integration</td>
+<td>Limited</td>
+<td>Full — feeds OpenPipeline routing, bucket assignment, permissions</td>
+</tr>
+<tr>
+<td>Cost allocation</td>
+<td>Not supported</td>
+<td><code>dt.cost.costcenter</code>, <code>dt.cost.product</code> fields</td>
+</tr>
+<tr>
+<td>Security context</td>
+<td>Not supported</td>
+<td><code>dt.security_context</code> for data governance</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>See:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">Primary Grail fields and tags enrichment through OneAgent</a></p>
+</blockquote>
+<blockquote>
+<p><strong>Version Support Policy:</strong> OneAgent and ActiveGate versions are supported for <strong>9 months (Standard)</strong> or <strong>12 months (Enterprise)</strong>. See <a href="https://www.dynatrace.com/company/trust-center/support-policy/">Support Policy</a>. For third-party technologies, <em>&quot;Dynatrace typically supports technologies and their versions six months longer than the vendor&quot;</em> (see <a href="https://docs.dynatrace.com/docs/whats-new/technology/end-of-support-news">End of support announcements (DT docs)</a>).</p>
+</blockquote>
+<p><a id="why-organization-matters"></a></p>
+<h2>1. Why Organization Matters</h2>
+<p>Without organization, Dynatrace environments become difficult to manage:</p>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>No structure</strong></td>
+<td>Can't find entities quickly</td>
+</tr>
+<tr>
+<td><strong>No ownership</strong></td>
+<td>Don't know who to contact</td>
+</tr>
+<tr>
+<td><strong>No access control</strong></td>
+<td>Everyone sees everything</td>
+</tr>
+<tr>
+<td><strong>No filtering</strong></td>
+<td>Dashboards show irrelevant data</td>
+</tr>
+<tr>
+<td><strong>No grouping</strong></td>
+<td>Can't compare similar systems</td>
+</tr>
+</tbody>
+</table>
+<h3>Modern Organization Building Blocks</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MDAgMzQwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icG9sR3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM4YjVjZjY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdjM2FlZDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNlZ0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM2I4MmY2O3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzZWI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0YWdHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDU5NjY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibmFtZUdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZjU5ZTBiO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiNkOTc3MDY7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJlbnRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzY0NzQ4YjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNDc1NTY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9Im9yZ1NoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KCiAgPCEtLSBCYWNrZ3JvdW5kIC0tPgogIDxyZWN0IHdpZHRoPSI1MDAiIGhlaWdodD0iMzQwIiBmaWxsPSIjZjhmOWZhIiByeD0iMTAiLz4KCiAgPCEtLSBUaXRsZSAtLT4KICA8dGV4dCB4PSIyNTAiIHk9IjI4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Pcmdhbml6YXRpb24gSGllcmFyY2h5IChNb2Rlcm4gUGxhdGZvcm0pPC90ZXh0PgoKICA8IS0tIExheWVyIDE6IFBvbGljaWVzICYgUGVybWlzc2lvbnMgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjUwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0idXJsKCNwb2xHcmFkKSIgZmlsdGVyPSJ1cmwoI29yZ1NoYWRvdykiLz4KICA8dGV4dCB4PSIyNTAiIHk9IjcyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UG9saWNpZXMgJmFtcDsgUGVybWlzc2lvbnM8L3RleHQ+CiAgPHRleHQgeD0iMjUwIiB5PSI4OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuOSkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPihBY2Nlc3MgY29udHJvbCB2aWEgSUFNKTwvdGV4dD4KCiAgPCEtLSBMYXllciAyOiBTZWdtZW50cyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMTA1IiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0idXJsKCNzZWdHcmFkKSIgZmlsdGVyPSJ1cmwoI29yZ1NoYWRvdykiLz4KICA8dGV4dCB4PSIyNTAiIHk9IjEyNyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNlZ21lbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMTQzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KERRTC1iYXNlZCBkYXRhIGZpbHRlcmluZyk8L3RleHQ+CgogIDwhLS0gTGF5ZXIgMzogVGFncyAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMTYwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0idXJsKCN0YWdHcmFkKSIgZmlsdGVyPSJ1cmwoI29yZ1NoYWRvdykiLz4KICA8dGV4dCB4PSIyNTAiIHk9IjE4MiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlRhZ3MgKEhvc3QgUHJvcGVydGllcyArIENsb3VkIFRhZ3MpPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMTk4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KEZsZXhpYmxlIGdyb3VwaW5nLCBzZXQgYXQgc291cmNlKTwvdGV4dD4KCiAgPCEtLSBMYXllciA0OiBOYW1pbmcgQ29udmVudGlvbnMgLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjIxNSIgd2lkdGg9IjQyMCIgaGVpZ2h0PSI0OCIgcng9IjgiIGZpbGw9InVybCgjbmFtZUdyYWQpIiBmaWx0ZXI9InVybCgjb3JnU2hhZG93KSIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMjM3IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TmFtaW5nIENvbnZlbnRpb25zPC90ZXh0PgogIDx0ZXh0IHg9IjI1MCIgeT0iMjUzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KENvbnNpc3RlbmN5LCBkaXNjb3ZlcmFiaWxpdHkpPC90ZXh0PgoKICA8IS0tIExheWVyIDU6IEVudGl0aWVzIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIyNzAiIHdpZHRoPSI0MjAiIGhlaWdodD0iNDgiIHJ4PSI4IiBmaWxsPSJ1cmwoI2VudEdyYWQpIiBmaWx0ZXI9InVybCgjb3JnU2hhZG93KSIvPgogIDx0ZXh0IHg9IjI1MCIgeT0iMjkyIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RW50aXRpZXM8L3RleHQ+CiAgPHRleHQgeD0iMjUwIiB5PSIzMDgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4oSG9zdHMsIHNlcnZpY2VzLCBwcm9jZXNzZXMpPC90ZXh0PgoKICA8IS0tIEFycm93IGluZGljYXRvciBvbiBsZWZ0IC0tPgogIDx0ZXh0IHg9IjIyIiB5PSIxODIiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzY0NzQ4YiI+4payPC90ZXh0PgogIDx0ZXh0IHg9IjE4IiB5PSIyMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgd3JpdGluZy1tb2RlPSJ0YiI+QWNjZXNzPC90ZXh0Pgo8L3N2Zz4K" alt="Organization Hierarchy" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Layer | Purpose |
+|-------|---------|
+| Policies & Permissions | Access control via IAM |
+| Segments | DQL-based data filtering |
+| Tags | Flexible grouping, set at source |
+| Naming Conventions | Consistency, discoverability |
+| Entities | Hosts, services, processes |
+-->
+<blockquote>
+<p><strong>Note:</strong> The modern Dynatrace platform uses <strong>Segments</strong> for data filtering and <strong>Policies</strong> for access control. This replaces the legacy Management Zones approach.</p>
+</blockquote>
+<p><a id="modern-organization-building-blocks"></a></p>
+<h2>2. Modern Organization Building Blocks</h2>
+<p>The modern Dynatrace platform (Gen3/Grail) uses a &quot;tag at source&quot; approach rather than rule-based auto-tagging:</p>
+<h3>Tag Sources</h3>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>How It Works</th>
+<th>Best For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Primary tags / primary fields</strong></td>
+<td>Set at OneAgent install or with <code>oneagentctl --set-host-tag</code> (OneAgent 1.333+)</td>
+<td>Environment, team, security context, cost allocation — on all signals</td>
+</tr>
+<tr>
+<td><strong>Host Properties</strong></td>
+<td>Set with <code>--set-host-property</code>; stay on the host node unless an ingest enrichment rule promotes them</td>
+<td>Host-level metadata</td>
+</tr>
+<tr>
+<td><strong>Cloud Provider Tags</strong></td>
+<td>Promoted onto signals by ingest enrichment rules (OneAgent / ActiveGate 1.343+)</td>
+<td>Cloud resource organization</td>
+</tr>
+<tr>
+<td><strong>Kubernetes Labels</strong></td>
+<td>Promoted onto signals by ingest enrichment rules (Dynatrace Operator 1.10+ with <code>metadataEnrichment</code>; workload and pod rule types: Operator 1.11+ and ActiveGate 1.347+)</td>
+<td>Container workload organization</td>
+</tr>
+<tr>
+<td><strong>OpenTelemetry Attributes</strong></td>
+<td>Set in instrumentation</td>
+<td>Custom service attributes</td>
+</tr>
+</tbody>
+</table>
+<h3>The &quot;Enrich at Source&quot; Philosophy</h3>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgMjIwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaW5mcmFHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzY0NzQ4YjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNDc1NTY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYWdlbnRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzEwYjk4MTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDU5NjY5O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhaWxHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzE0OTZmZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGE2NGJjO3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InRhZ1NoYWRvdyI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjEiIGR5PSIxIiBzdGREZXZpYXRpb249IjIiIGZsb29kLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvZmlsdGVyPgogICAgPG1hcmtlciBpZD0idGFnQXJyb3ciIG1hcmtlcldpZHRoPSIxMCIgbWFya2VySGVpZ2h0PSI3IiByZWZYPSI5IiByZWZZPSIzLjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMCAwLCAxMCAzLjUsIDAgNyIgZmlsbD0iIzY0NzQ4YiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjcwMCIgaGVpZ2h0PSIyMjAiIGZpbGw9IiNmOGY5ZmEiIHJ4PSIxMCIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1vZGVybiBUYWdnaW5nIEZsb3c8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSI0NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4iRW5yaWNoIGF0IFNvdXJjZSIgUGhpbG9zb3BoeTwvdGV4dD4KCiAgPCEtLSBJbmZyYXN0cnVjdHVyZSBCb3ggLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjcwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjgwIiByeD0iMTAiIGZpbGw9InVybCgjaW5mcmFHcmFkKSIgZmlsdGVyPSJ1cmwoI3RhZ1NoYWRvdykiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjEwMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkluZnJhc3RydWN0dXJlPC90ZXh0PgogIDx0ZXh0IHg9IjEyMCIgeT0iMTE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KENsb3VkL0s4cyk8L3RleHQ+CgogIDwhLS0gQXJyb3cgMSAtLT4KICA8cGF0aCBkPSJNMjA1LDExMCBMMjU1LDExMCIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjdGFnQXJyb3cpIi8+CgogIDwhLS0gT25lQWdlbnQgQm94IC0tPgogIDxyZWN0IHg9IjI2MCIgeT0iNzAiIHdpZHRoPSIxNjAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0idXJsKCNhZ2VudEdyYWQpIiBmaWx0ZXI9InVybCgjdGFnU2hhZG93KSIvPgogIDx0ZXh0IHg9IjM0MCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T25lQWdlbnQ8L3RleHQ+CiAgPHRleHQgeD0iMzQwIiB5PSIxMTgiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjkpIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4rIFByaW1hcnkgVGFnczwvdGV4dD4KCiAgPCEtLSBBcnJvdyAyIC0tPgogIDxwYXRoIGQ9Ik00MjUsMTEwIEw0NzUsMTEwIiBzdHJva2U9IiM2NDc0OGIiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCN0YWdBcnJvdykiLz4KCiAgPCEtLSBEeW5hdHJhY2UvR3JhaWwgQm94IC0tPgogIDxyZWN0IHg9IjQ4MCIgeT0iNzAiIHdpZHRoPSIxNjAiIGhlaWdodD0iODAiIHJ4PSIxMCIgZmlsbD0idXJsKCNncmFpbEdyYWQpIiBmaWx0ZXI9InVybCgjdGFnU2hhZG93KSIvPgogIDx0ZXh0IHg9IjU2MCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RHluYXRyYWNlPC90ZXh0PgogIDx0ZXh0IHg9IjU2MCIgeT0iMTE4IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+KEdyYWlsKTwvdGV4dD4KCiAgPCEtLSBMYWJlbHMgYmVsb3cgYm94ZXMgLS0+CiAgPHRleHQgeD0iMTIwIiB5PSIxNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Q2xvdWQgdGFnczwvdGV4dD4KICA8dGV4dCB4PSIxMjAiIHk9IjE4MyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5LOHMgbGFiZWxzPC90ZXh0PgoKICA8dGV4dCB4PSIzNDAiIHk9IjE3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QcmltYXJ5IHRhZ3MvZmllbGRzPC90ZXh0PgogIDx0ZXh0IHg9IjM0MCIgeT0iMTgzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNldCBhdCBpbnN0YWxsPC90ZXh0PgoKICA8dGV4dCB4PSI1NjAiIHk9IjE3MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjNjQ3NDhiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5FbnJpY2htZW50IHJ1bGVzPC90ZXh0PgogIDx0ZXh0IHg9IjU2MCIgeT0iMTgzIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NDc0OGIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnByb21vdGUgbWV0YWRhdGE8L3RleHQ+CgogIDwhLS0gQmVuZWZpdCBjYWxsb3V0IC0tPgogIDxyZWN0IHg9IjE1MCIgeT0iMTk1IiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0iI2QxZmFlNSIgc3Ryb2tlPSIjMTBiOTgxIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjIwOSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjMDQ3ODU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5QcmltYXJ5IHRhZ3Mgb24gYWxsIHNpZ25hbHMgwrcgaG9zdCBwcm9wZXJ0aWVzIHN0YXkgb24gdGhlIGhvc3Q8L3RleHQ+Cjwvc3ZnPgo=" alt="Modern Tagging Flow" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Description |
+|-------|-------------|
+| Infrastructure | Cloud tags, K8s labels |
+| OneAgent | Primary tags / primary fields set at install |
+| Dynatrace (Grail) | Ingest enrichment rules promote metadata to primary fields and tags |
+| Result | Primary tags on all signals; host properties stay on the host |
+-->
+<h3>Why &quot;Tag at Source&quot;?</h3>
+<table>
+<thead>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Consistent</strong></td>
+<td>Primary tags and fields land on metrics, logs, spans, events, and entities</td>
+</tr>
+<tr>
+<td><strong>Scalable</strong></td>
+<td>No processing overhead to apply rules</td>
+</tr>
+<tr>
+<td><strong>Traceable</strong></td>
+<td>Tags come from the source of truth</td>
+</tr>
+<tr>
+<td><strong>Real-time</strong></td>
+<td>No delay waiting for rule evaluation</td>
+</tr>
+</tbody>
+</table>
+<p><a id="tagging-with-host-properties-and-cloud-tags"></a></p>
+<h2>3. Tagging with Host Properties and Cloud Tags</h2>
+<h3>Host Properties (OneAgent)</h3>
+<p>Set custom properties during OneAgent installation or via configuration:</p>
+<p><strong>During Installation:</strong></p>
+<pre><code class="language-bash"># Linux
+sudo /bin/sh Dynatrace-OneAgent.sh \
+  --set-host-property=env=production \
+  --set-host-property=team=platform \
+  --set-host-property=tier=backend
+
+# Windows
+.\Dynatrace-OneAgent.exe --set-host-property=env=production --set-host-property=team=checkout
+</code></pre>
+<p><strong>After Installation:</strong></p>
+<p>Change properties with <code>oneagentctl</code> (OneAgent 1.189+), or centrally with Remote configuration management:</p>
+<pre><code class="language-bash">./oneagentctl --set-host-property=env=production --set-host-property=team=platform
+</code></pre>
+<p>The <code>hostcustomproperties.conf</code> file applies only to OneAgent 1.187 and earlier.</p>
+<blockquote>
+<p><strong>Where host properties land:</strong> a host property is metadata on the HOST node — on Smartscape it appears in the <code>host.custom.metadata</code> record — not a field on logs, spans, or metrics. To filter signals by a value, set it as a primary tag instead (<code>--set-host-tag=&quot;primary_tags.&lt;key&gt;=&lt;value&gt;&quot;</code>, see Prerequisites above) or promote the property with a Host/Process property <a href="https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment">ingest enrichment rule (DT docs)</a>.</p>
+</blockquote>
+<h3>Recommended Property Categories</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Example Properties</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Environment</strong></td>
+<td><code>env=prod</code>, <code>env=staging</code>, <code>env=dev</code></td>
+<td>Distinguish environments</td>
+</tr>
+<tr>
+<td><strong>Owner</strong></td>
+<td><code>team=platform</code>, <code>team=checkout</code></td>
+<td>Identify responsible team</td>
+</tr>
+<tr>
+<td><strong>Application</strong></td>
+<td><code>app=ecommerce</code>, <code>app=mobile-api</code></td>
+<td>Group by application</td>
+</tr>
+<tr>
+<td><strong>Cost Center</strong></td>
+<td><code>cost-center=marketing</code></td>
+<td>Financial allocation</td>
+</tr>
+<tr>
+<td><strong>Tier</strong></td>
+<td><code>tier=frontend</code>, <code>tier=backend</code></td>
+<td>Architecture layer</td>
+</tr>
+</tbody>
+</table>
+<h3>Cloud Provider Tags</h3>
+<p>Cloud tags reach your telemetry through <strong>ingest enrichment rules</strong>. The rule types are AWS tag, GCP label, GCP tag and Azure tag; the OneAgent route below needs OneAgent 1.343+. Until a rule exists, the raw provider tags are visible on the HOST node (for example a <code>tags:azure</code> record on an Azure VM) but are not fields on logs, spans, or metrics.</p>
+<table>
+<thead>
+<tr>
+<th>Cloud</th>
+<th>Tag Source</th>
+<th>Attribute Written to Telemetry by a Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AWS</strong></td>
+<td>AWS resource tags</td>
+<td><code>aws.tags.&lt;key&gt;</code></td>
+</tr>
+<tr>
+<td><strong>Azure</strong></td>
+<td>Azure resource tags</td>
+<td><code>azure.tags.&lt;key&gt;</code></td>
+</tr>
+<tr>
+<td><strong>GCP</strong></td>
+<td>Google Cloud labels / tags</td>
+<td><code>gcp.labels.&lt;key&gt;</code> / <code>gcp.tags.&lt;key&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Which data a cloud tag rule reaches.</strong> A cloud tag rule such as an AWS tag rule tags only the data that arrives through the cloud connection. That means cloud metrics, cloud logs and the cloud Smartscape nodes. In Dynatrace's words, <em>&quot;OneAgent on a cloud VM doesn't evaluate them.&quot;</em> A VM that runs OneAgent therefore needs a second rule for its OneAgent data:</p>
+<table>
+<thead>
+<tr>
+<th>Data from an EC2 instance</th>
+<th>Rule</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cloud metrics, cloud logs, the <code>AWS_EC2_INSTANCE</code> node</td>
+<td>AWS tag rule at the AWS account scope</td>
+<td>Writes <code>aws.tags.&lt;key&gt;</code>, or a security context or cost field. Primary tag isn't a target yet, so promote <code>aws.tags.&lt;key&gt;</code> with an OpenPipeline primary Grail tag rule (FAQ-26 §5.4)</td>
+</tr>
+<tr>
+<td>Logs, spans and metrics from OneAgent on the instance</td>
+<td>Host/Process property rule at the host-group scope, with source <code>aws.tags.&lt;key&gt;</code></td>
+<td>OneAgent reads instance tags from instance metadata. <em>&quot;Access to instance tags in instance metadata is off by default in AWS, so enable it on the instance first.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p><strong>AWS Tag Example:</strong>
+An EC2 instance is tagged <code>team=checkout</code>. An AWS tag rule for <code>team</code> adds <code>aws.tags.team</code> to the instance's cloud metrics and logs. A Host/Process property rule with source <code>aws.tags.team</code> and target Primary tag <code>team</code> writes <code>primary_tags.team</code> on everything OneAgent sends from that instance. Either rule can instead write the value to a primary field such as Security context or Cost center. Worked end to end in <a href="https://docs.dynatrace.com/docs/manage/tags/tags-example-end-to-end-aws">Apply primary Grail tags across an example AWS estate (DT docs)</a>.</p>
+<blockquote>
+<p><strong>OneAgent 1.349 (rollout from 11/09/2026) — breaking change for the Host/Process property route.</strong> The <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349">OneAgent 1.349 release notes (DT docs)</a> say: <em>&quot;In the Host/process property rules dropdown, the aws.tags and azure.tags based rules will temporarily no longer work as sources or in conditions for injected processes. Full cloud tags support, which brings that functionality back, is planned for a future release.&quot;</em> OneAgent updates roll out over weeks, so check the version your hosts run before relying on this route for data from injected processes; on OneAgent versions before 1.349 the route described above remains the working path.</p>
+</blockquote>
+<h3>Kubernetes Labels</h3>
+<p>Namespace and workload names are set on Kubernetes telemetry. Labels reach signals only through ingest enrichment rules (Dynatrace Operator 1.10+ with <code>metadataEnrichment</code> enabled in the DynaKube). Namespace-label rules need Operator 1.10+ and ActiveGate 1.343+; workload and pod rule types need Operator 1.11+ and ActiveGate 1.347+ and are rolling out.</p>
+<table>
+<thead>
+<tr>
+<th>K8s Metadata</th>
+<th>DQL Field</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Namespace</td>
+<td><code>k8s.namespace.name</code></td>
+</tr>
+<tr>
+<td>Deployment</td>
+<td><code>k8s.deployment.name</code></td>
+</tr>
+<tr>
+<td>Namespace labels</td>
+<td><code>k8s.namespace.label.&lt;key&gt;</code> (enrichment rule)</td>
+</tr>
+<tr>
+<td>Workload labels</td>
+<td><code>k8s.workload.label.&lt;key&gt;</code> (enrichment rule)</td>
+</tr>
+<tr>
+<td>Pod labels</td>
+<td><code>k8s.pod.label.&lt;key&gt;</code> (enrichment rule)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="segments-for-data-filtering"></a></p>
+<h2>4. Segments for Data Filtering</h2>
+<p>Segments provide reusable filters that create focused views of your data.</p>
+<p><strong>Location:</strong> the segment selector in any app → <strong>Manage segments</strong></p>
+<h3>What are Segments?</h3>
+<p>Segments are reusable filters built from per-data-type <strong>includes</strong> that:</p>
+<ul>
+<li>Filter data in Notebooks, Dashboards, and Apps</li>
+<li>Can be applied as default context</li>
+<li>Are shareable across the organization</li>
+</ul>
+<h3>Creating a Segment</h3>
+<ol>
+<li>Open the segment selector in any app → <strong>Manage segments</strong> → <strong>Segment</strong></li>
+<li>Name your segment (e.g., &quot;Production Environment&quot;) and add a description</li>
+<li>Add an <strong>include</strong>: choose a data type — or <strong>All data types</strong> — and a filter condition, for example:<pre><code class="language-text">primary_tags.environment = production
+</code></pre>
+</li>
+<li>Select <strong>Run query</strong> to preview matching data</li>
+<li>Save</li>
+</ol>
+<blockquote>
+<p><strong>Includes decide what a segment returns.</strong> Querying a data type that no include references returns <strong>empty results</strong> while the segment is applied — use <em>All data types</em> when one condition should apply everywhere.</p>
+</blockquote>
+<h3>Segment Use Cases</h3>
+<table>
+<thead>
+<tr>
+<th>Use Case</th>
+<th>Include Condition</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Environment</strong></td>
+<td><code>primary_tags.environment = production</code></td>
+<td>Focus on production</td>
+</tr>
+<tr>
+<td><strong>Team</strong></td>
+<td><code>primary_tags.team = checkout</code></td>
+<td>Team-specific view</td>
+</tr>
+<tr>
+<td><strong>Kubernetes stack</strong></td>
+<td><code>k8s.cluster.name = gke-klu</code></td>
+<td>Cluster-group focus</td>
+</tr>
+<tr>
+<td><strong>Region</strong></td>
+<td><code>aws.region = us-east-1</code></td>
+<td>Geographic filtering</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Conditions need fields that exist on the data.</strong> <code>primary_tags.*</code> matches only data enriched at source (see Prerequisites above). Host properties set with <code>--set-host-property</code> are not fields on signals, so they cannot drive a segment until an enrichment rule promotes them.</p>
+</blockquote>
+<h3>Segments vs Legacy Management Zones</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Segments</th>
+<th>Management Zones (Legacy)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Filter basis</strong></td>
+<td>Per-data-type include conditions</td>
+<td>Rule-based matching</td>
+</tr>
+<tr>
+<td><strong>Data types</strong></td>
+<td>All Grail data</td>
+<td>Entities only</td>
+</tr>
+<tr>
+<td><strong>Flexibility</strong></td>
+<td>Highly flexible</td>
+<td>Limited rule types</td>
+</tr>
+<tr>
+<td><strong>Access control</strong></td>
+<td>Use Policies + <code>dt.security_context</code> instead</td>
+<td>Built-in</td>
+</tr>
+<tr>
+<td><strong>Modern platform</strong></td>
+<td>✅ Recommended</td>
+<td>⚠️ Dynatrace Classic concept — e.g. API 1.337 deprecated the <code>managementZone</code> property on calculated service metrics</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Where to go deeper:</strong> the <strong>ORGNZ series</strong> (11 notebooks) covers segments, buckets, and <code>dt.security_context</code> design in depth. The <strong>IAM series</strong> (especially IAM-04, IAM-05, IAM-11 WORKSHOP) covers how policies use <code>dt.security_context</code> to scope access. <strong>MZ2POL</strong> (19 notebooks) covers Management Zone migration (access → policies, filtering → segments, alerting → workflows) if you have legacy MZs to retire.</p>
+</blockquote>
+<h3>Segment Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Use primary tags / <code>dt.security_context</code></strong></td>
+<td>Consistent filtering; aligns with IAM scoping</td>
+</tr>
+<tr>
+<td><strong>Name clearly</strong></td>
+<td><code>Prod-Checkout-Team</code> not <code>Segment1</code></td>
+</tr>
+<tr>
+<td><strong>Document purpose</strong></td>
+<td>Add description</td>
+</tr>
+<tr>
+<td><strong>Test filters</strong></td>
+<td>Verify expected data</td>
+</tr>
+</tbody>
+</table>
+<p><a id="naming-conventions"></a></p>
+<h2>5. Naming Conventions</h2>
+<p>Consistent naming makes entities discoverable and filtering effective.</p>
+<h3>Host Naming</h3>
+<p>Set meaningful host names that encode key information:</p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Example</th>
+<th>Components</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>{env}-{tier}-{seq}</code></td>
+<td><code>prod-web-01</code></td>
+<td>Environment, tier, sequence</td>
+</tr>
+<tr>
+<td><code>{region}-{app}-{role}</code></td>
+<td><code>us-east-ecom-api</code></td>
+<td>Region, app, role</td>
+</tr>
+<tr>
+<td><code>{team}-{service}-{id}</code></td>
+<td><code>checkout-cart-a1b2</code></td>
+<td>Team, service, unique ID</td>
+</tr>
+</tbody>
+</table>
+<h3>Host Naming via OneAgent</h3>
+<p>You can set a custom display name during installation:</p>
+<pre><code class="language-bash">sudo /bin/sh Dynatrace-OneAgent.sh --set-host-name=&quot;prod-web-01&quot;
+</code></pre>
+<h3>Naming Principles</h3>
+<table>
+<thead>
+<tr>
+<th>Principle</th>
+<th>Good</th>
+<th>Bad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Descriptive</strong></td>
+<td><code>payment-service</code></td>
+<td><code>svc-001</code></td>
+</tr>
+<tr>
+<td><strong>Consistent</strong></td>
+<td><code>prod-web-01</code>, <code>prod-web-02</code></td>
+<td><code>prod-web-01</code>, <code>Web Server 2</code></td>
+</tr>
+<tr>
+<td><strong>Parseable</strong></td>
+<td><code>us-east-prod-checkout</code></td>
+<td><code>USEastProdCheckout</code></td>
+</tr>
+<tr>
+<td><strong>Unique</strong></td>
+<td>Include environment/region</td>
+<td>Generic names</td>
+</tr>
+</tbody>
+</table>
+<h3>Property Naming Standards</h3>
+<p>For host properties, use consistent naming:</p>
+<table>
+<thead>
+<tr>
+<th>Standard</th>
+<th>Example</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Lowercase</strong></td>
+<td><code>env=prod</code> not <code>ENV=PROD</code></td>
+<td>Consistency</td>
+</tr>
+<tr>
+<td><strong>Hyphen separated</strong></td>
+<td><code>cost-center=eng</code></td>
+<td>Readability</td>
+</tr>
+<tr>
+<td><strong>Short keys</strong></td>
+<td><code>env</code> not <code>environment</code></td>
+<td>Query simplicity</td>
+</tr>
+<tr>
+<td><strong>Consistent values</strong></td>
+<td>Always <code>prod</code> not sometimes <code>production</code></td>
+<td>Filtering works</td>
+</tr>
+</tbody>
+</table>
+<p><a id="querying-by-tags-and-properties"></a></p>
+<h2>6. Querying by Tags and Properties</h2>
+<p>Use primary fields, primary tags, and host properties in DQL queries to filter and group data. The first two queries read tag data directly; the rest filter on names and built-in dimensions.</p>
+<pre><code class="language-dql">// Log volume by security context (a primary field set at source)
+fetch logs, from: now() - 1h
+| filter isNotNull(dt.security_context)
+| summarize log_count = count(), by: {dt.security_context}
+| sort log_count desc
+| limit 20
+// Same pattern for a primary tag set at install, e.g.:
+//   | filter primary_tags.environment == &quot;production&quot;
+</code></pre>
+<pre><code class="language-dql">// Host group and host properties on HOST nodes
+// (host properties live in the host.custom.metadata record, not on signals)
+smartscapeNodes &quot;HOST&quot;, from:-7d
+| fields name, dt.host_group.id, host.custom.metadata
+| sort name
+| limit 20
+// Filter on one property, e.g.:  | filter host.custom.metadata[env] == &quot;production&quot;
+</code></pre>
+<pre><code class="language-dql">// Find hosts by name pattern
+fetch dt.entity.host
+| filter contains(entity.name, &quot;prod&quot;)
+| fields entity.name
+| limit 20
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;HOST&quot;
+//   | filter contains(name, &quot;prod&quot;)
+//   | fields name
+//   | limit 20
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: entity.name -&gt; name.
+</code></pre>
+<pre><code class="language-dql">// Count hosts by operating system type
+fetch dt.entity.host
+| summarize host_count = count(), by: {osType}
+| sort host_count desc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;HOST&quot;
+//   | summarize host_count = count(), by: {os.type}
+//   | sort host_count desc
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: osType -&gt; os.type (LINUX -&gt; OS_TYPE_LINUX).
+</code></pre>
+<pre><code class="language-dql">// Find services by name pattern
+fetch dt.entity.service
+| filter contains(entity.name, &quot;checkout&quot;)
+| fields entity.name, serviceType
+| limit 20
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;SERVICE&quot;
+//   | filter contains(name, &quot;checkout&quot;)
+//   | fields name, dt.service.sdv1_type
+//   | limit 20
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: serviceType -&gt; dt.service.sdv1_type (SDv1 services only - null when
+// dt.service_detection.version == 2; group by dt.service_detection.version to see
+// which model applies); entity.name -&gt; name.
+</code></pre>
+<pre><code class="language-dql">// Log volume by Kubernetes namespace
+fetch logs, from: now() - 1h
+| filter isNotNull(k8s.namespace.name)
+| summarize log_count = count(), by: {k8s.namespace.name}
+| sort log_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Query spans by service name pattern
+// dt.service.name is set on every span, whatever the ingest source
+fetch spans, from: now() - 1h
+| filter span.kind == &quot;server&quot;
+| filter contains(dt.service.name, &quot;payment&quot;)
+| summarize request_count = count(), by: {dt.service.name}
+| sort request_count desc
+| limit 20
+</code></pre>
+<pre><code class="language-dql">// Find hosts by name pattern for environment identification
+fetch dt.entity.host
+| filter not(contains(entity.name, &quot;prod&quot;))
+      and not(contains(entity.name, &quot;staging&quot;))
+      and not(contains(entity.name, &quot;dev&quot;))
+| fields entity.name
+| limit 20
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;HOST&quot;
+//   | filter not(contains(name, &quot;prod&quot;))
+//         and not(contains(name, &quot;staging&quot;))
+//         and not(contains(name, &quot;dev&quot;))
+//   | fields name
+//   | limit 20
+// Caveat: Smartscape can report fewer entities than the classic entity store, and
+// both return only entities seen in the query timeframe (default 2 h) - for a
+// discovery inventory add a timeframe such as from:-7d to either query.
+// Field maps: entity.name -&gt; name.
+</code></pre>
+<p><a id="next-steps"></a></p>
+<h2>7. Next Steps</h2>
+<p>With organization in place:</p>
+<ol>
+<li><strong>ONBRD-07: Understanding Your Data</strong> — Explore what Dynatrace discovered</li>
+<li>Define primary tags (and any host properties) for your environment</li>
+<li>Create segments for team-specific views</li>
+<li>Document your naming conventions</li>
+<li>Decide your <code>dt.security_context</code> value space (and bind IAM policies to it)</li>
+</ol>
+<h3>Where to Go Deeper</h3>
+<ul>
+<li><strong>ORGNZ series</strong> (11 notebooks) — Bucket strategy, segments, security context, the full data-organization model</li>
+<li><strong>FAQ-01</strong> — Host group naming strategy</li>
+<li><strong>FAQ-02</strong> — Tagging sources, standards, and strategy (primary tags vs cloud tags vs auto-tags)</li>
+<li><strong>IAM series</strong> (especially IAM-04, IAM-05, IAM-11 WORKSHOP) — Policy design that consumes <code>dt.security_context</code></li>
+<li><strong>MZ2POL series</strong> (19 notebooks) — Management Zone migration (segments, policies, workflows) for legacy MZ retirement</li>
+</ul>
+<h3>Organization Checklist</h3>
+<ul>
+<li>[ ] Host property strategy documented</li>
+<li>[ ] Primary tags / primary fields set at OneAgent install (<code>--set-host-tag=&quot;primary_tags.…&quot;</code>, OneAgent 1.333+, see ONBRD-05)</li>
+<li>[ ] Cloud tags verified (if using cloud providers; see FAQ-02 for cloud-tag normalization)</li>
+<li>[ ] <code>dt.security_context</code> value space decided</li>
+<li>[ ] Segments created for common filters</li>
+<li>[ ] Naming conventions established (FAQ-01 for host groups)</li>
+<li>[ ] Access control configured via Policies (see ONBRD-02 + IAM series)</li>
+</ul>
+<hr />
+<h2>Summary</h2>
+<p>In this notebook, you learned:</p>
+<ul>
+<li>Why organization matters for scalability</li>
+<li>The modern &quot;tag at source&quot; approach (primary fields + primary tags via OneAgent)</li>
+<li>Where host properties, cloud tags, and K8s labels land — and how ingest enrichment rules promote them onto signals</li>
+<li>How to create and use Segments built from per-data-type includes</li>
+<li>Naming convention best practices</li>
+<li>How <code>dt.security_context</code> standardizes the boundary field for Gen3 IAM</li>
+<li>How to query by properties and attributes</li>
+</ul>
+<hr />
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/installation-and-operation/linux/installation/customize-oneagent-installation-on-linux">Host Properties</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments">Segments</a></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability/cloud-platform-monitoring">Cloud platform monitoring (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/setup-on-k8s">Kubernetes Labels</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/grail/dynatrace-query-language">DQL Reference</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">OneAgent Attribute Enrichment</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment">Configure ingest enrichment rules (DT docs)</a> — <em>&quot;Primary tag is not available as a target for cloud rules.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/observe/infrastructure-observability-classic/hosts-classic/configuration/define-tags-and-metadata-for-hosts">Define tags and metadata for hosts (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-configuration-via-command-line-interface">OneAgent configuration via command-line interface (DT docs)</a> — <em>&quot;For versions earlier than 1.189, use a host metadata configuration file.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/concepts/segments-concepts-includes">Include data in segments (DT docs)</a> — <em>&quot;Querying for data not explicitly referenced by any include of the selected segment, will lead to empty results.&quot;</em></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/segments/use-cases/segments-use-cases-kubernetes-clusters">Segments for Kubernetes clusters (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/whats-new/dynatrace-api/sprint-337">Dynatrace API 1.337 (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

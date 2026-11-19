@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZ2POL-10: Tagging at Source — The Foundation Under Every MZ Replacement</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">MZ2POL — Management Zone Migration: Segments, Policies, Workflows</a><span class="sep">/</span><span aria-current="page">MZ2POL-10</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>MZ2POL-10: Tagging at Source — The Foundation Under Every MZ Replacement</h1>
+<blockquote>
+<p><strong>Series:</strong> MZ2POL — Management Zone Migration: Segments, Policies, Workflows | <strong>Notebook:</strong> 11 of 17 | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/15/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Every replacement for a management zone reads a field on the data. A segment filters on it, an IAM boundary matches it, a workflow routes on it, and an OpenPipeline rule picks a bucket with it. None of them can see an auto-tag or a management zone. So the migration has one prerequisite that sits under all three of its jobs: <strong>the organizational context has to be on the records when they arrive.</strong></p>
+<p>That is a different model, not a new syntax. A management zone was worked out <em>after</em> ingest, by rules that ran over the entity graph in the background. A Grail record has no such second pass: Dynatrace's metadata guidance says that on the latest platform <em>&quot;each data point is treated independently and must carry its own metadata.&quot;</em> If the team, application or stage is not set at the source, or by a rule that runs before routing, then no segment, policy or workflow built later can find it.</p>
+<p>This notebook covers that foundation from the migration's point of view: what stops working, which fields replace the zone's logic, where to set them, how propagation changes, and how to prove the tags are ready <strong>before</strong> you build segments (MZ2POL-05), policies and boundaries (MZ2POL-04) or alert routing (MZ2POL-09) on them.</p>
+<blockquote>
+<p><strong>Read this notebook before 04, 05 and 09.</strong> It is numbered 10 because it was added to an existing series, not because it comes late. In reading order it belongs right after MZ2POL-03 (assessment). MZ2POL-11 then takes the zone inventory one rule at a time.</p>
+</blockquote>
+<p>It is the migration-specific layer over two general references, which it routes to rather than repeats: <strong>FAQ-02</strong> (tagging sources, standards and naming) and <strong>FAQ-26</strong> (which metadata to set, by producer).</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#why-tagging-first">Why Tagging Comes First</a></li>
+<li><a href="#what-carries-forward">What Carries Forward and What Does Not</a></li>
+<li><a href="#vocabulary">The Vocabulary: Fields, Tags and Where They Live</a></li>
+<li><a href="#one-value-every-job">One Value, Every Job</a></li>
+<li><a href="#enrichment-ladder">Where to Set It: The Enrichment Ladder</a></li>
+<li><a href="#tag-shapes">Three Tag Shapes You Will Query During the Migration</a></li>
+<li><a href="#propagation">Propagation Without Rules</a></li>
+<li><a href="#timing">Timing and the Silent Limits</a></li>
+<li><a href="#auditing">Auditing Tag Readiness with DQL</a></li>
+<li><a href="#readiness-gate">The Readiness Gate</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS on Latest Dynatrace (Grail, Smartscape on Grail)</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>1.333+ for primary Grail field and tag enrichment (one page says 1.337 for <code>primary_tags.*</code> and <code>dt.security_context</code> — plan on the higher); 1.343+ for central <em>Ingest enrichment configuration</em></td>
+</tr>
+<tr>
+<td><strong>Existing management zones</strong></td>
+<td>The classified inventory from MZ2POL-00 and MZ2POL-03</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:metrics:read</code> and <code>storage:entities:read</code> for the §9 queries; <code>settings:objects:write</code> to create central enrichment or OpenPipeline tag rules</td>
+</tr>
+<tr>
+<td><strong>Background reading</strong></td>
+<td>FAQ-02 (tag naming and sources), FAQ-26 (metadata by producer), K8S-10 (Kubernetes enrichment)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="why-tagging-first"></a></p>
+<h2>1. Why Tagging Comes First</h2>
+<p>A management zone did its work in three steps, and none of them touched the telemetry itself.</p>
+<ol>
+<li><strong>Rules ran later.</strong> Auto-tagging and management-zone rules evaluated entity properties in the background. The settings schema says so directly: <em>&quot;Management zone rules are executed periodically in the background, for a limited timeframe.&quot;</em></li>
+<li><strong>The entity carried the result.</strong> A host, process group or service gained the zone. Propagation flags copied it to related entities.</li>
+<li><strong>Data followed the entity.</strong> Logs and metrics were in scope because their entity was. The classic rules page: <em>&quot;Note that users automatically get access to logs and metrics associated with entities that are included within their assigned management zones.&quot;</em></li>
+</ol>
+<p>The latest platform removes the second and third steps. There is no background pass over the entity graph that adds context to records, and data is not in scope <em>because of</em> an entity. Each record is filtered, routed and authorized on the fields it carries.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+RW50aXR5LUZpcnN0IChDbGFzc2ljKSB2cyBEYXRhLUZpcnN0IChHcmFpbCk8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMi41Ij5BIG1hbmFnZW1lbnQgem9uZSB3YXMgY29tcHV0ZWQgYWZ0ZXIgdGhlIGZhY3QuIEEgR3JhaWwgcmVjb3JkIGhhcyB0byBhcnJpdmUgYWxyZWFkeSBjYXJyeWluZyBpdHMgY29udGV4dDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iNzIiIHdpZHRoPSI0MzUiIGhlaWdodD0iNDAwIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWRhc2hhcnJheT0iNSA0Ii8+CiAgPHRleHQgeD0iMjM3IiB5PSI5NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjcwMCI+Q0xBU1NJQyDigJQgRU5USVRZLUZJUlNUPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSIxMDgiIHdpZHRoPSIzOTUiIGhlaWdodD0iNjIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTAiIHk9IjEyNyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4xIMK3IFRlbGVtZXRyeSBhcnJpdmVzIHdpdGggbm8gb3JnYW5pemF0aW9uYWwgY29udGV4dDwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMTQ0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+aG9zdHMsIHByb2Nlc3Nlcywgc2VydmljZXMgYXJlIGRldGVjdGVkIGFzIGVudGl0aWVzPC90ZXh0PgogIDxsaW5lIHgxPSIyMzciIHkxPSIxNzAiIHgyPSIyMzciIHkyPSIxODYiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPHJlY3QgeD0iNDAiIHk9IjE4OCIgd2lkdGg9IjM5NSIgaGVpZ2h0PSI3NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1MCIgeT0iMjA3IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjIgwrcgUnVsZXMgcnVuIGxhdGVyLCBpbiB0aGUgYmFja2dyb3VuZDwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMjI0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+YXV0by10YWdnaW5nIHJ1bGVzICsgTVogcnVsZXMgZXZhbHVhdGUgZW50aXR5IHByb3BlcnRpZXM8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjIzOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnBlcmlvZGljYWxseSwgb3ZlciBhIGxpbWl0ZWQgdGltZWZyYW1lOyBwcm9wYWdhdGlvbiBmbGFnczwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+Y29weSB0aGUgcmVzdWx0IHRvIHJlbGF0ZWQgaG9zdHMsIHByb2Nlc3MgZ3JvdXBzLCBzZXJ2aWNlczwvdGV4dD4KICA8bGluZSB4MT0iMjM3IiB5MT0iMjY0IiB4Mj0iMjM3IiB5Mj0iMjgwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxyZWN0IHg9IjQwIiB5PSIyODIiIHdpZHRoPSIzOTUiIGhlaWdodD0iNjIiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTAiIHk9IjMwMSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4zIMK3IFRoZSBlbnRpdHkgY2FycmllcyB0aGUgem9uZTwvdGV4dD4KICA8dGV4dCB4PSI1MCIgeT0iMzE4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+bWFuYWdlbWVudFpvbmVzID0gWyJCaWxsaW5nIC0gUHJvZCJdIG9uIHRoZSBlbnRpdHk8L3RleHQ+CiAgPGxpbmUgeDE9IjIzNyIgeTE9IjM0NCIgeDI9IjIzNyIgeTI9IjM2MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8cmVjdCB4PSI0MCIgeT0iMzYyIiB3aWR0aD0iMzk1IiBoZWlnaHQ9IjYyIiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjUwIiB5PSIzODEiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+NCDCtyBVc2VycyBmaW5kIHRoZSBlbnRpdHksIHRoZW4gaXRzIGRhdGE8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjM5OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmRhc2hib2FyZHMsIGFsZXJ0aW5nIHByb2ZpbGVzLCBwZXJtaXNzaW9ucyBzY29wZSBieSB6b25lPC90ZXh0PgogIDx0ZXh0IHg9IjIzNyIgeT0iNDUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPkNvbnRleHQgbGl2ZXMgb24gdGhlIGVudGl0eSwgbmV2ZXIgb24gdGhlIHJlY29yZDwvdGV4dD4KICA8cmVjdCB4PSI0NzUiIHk9IjcyIiB3aWR0aD0iNDM1IiBoZWlnaHQ9IjQwMCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIvPgogIDx0ZXh0IHg9IjY5MiIgeT0iOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPkxBVEVTVCBEWU5BVFJBQ0Ug4oCUIERBVEEtRklSU1Q8L3RleHQ+CiAgPHJlY3QgeD0iNDk1IiB5PSIxMDgiIHdpZHRoPSIzOTUiIGhlaWdodD0iNzYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTA1IiB5PSIxMjciIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MSDCtyBUaGUgcHJvZHVjZXIgc2V0cyB0aGUgbWV0YWRhdGE8L3RleHQ+CiAgPHRleHQgeD0iNTA1IiB5PSIxNDQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5ob3N0IHRhZywgRFRfVEFHUywgSzhzIGFubm90YXRpb24sIE9UZWwgcmVzb3VyY2UgYXR0cmlidXRlLDwvdGV4dD4KICA8dGV4dCB4PSI1MDUiIHk9IjE1OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmNlbnRyYWwgaW5nZXN0IGVucmljaG1lbnQgcnVsZSDigJQgYmVmb3JlIGRhdGEgbGVhdmVzIHRoZSBzb3VyY2U8L3RleHQ+CiAgPGxpbmUgeDE9IjY5MiIgeTE9IjE4NCIgeDI9IjY5MiIgeTI9IjIwMCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8cmVjdCB4PSI0OTUiIHk9IjIwMiIgd2lkdGg9IjM5NSIgaGVpZ2h0PSI3NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1MDUiIHk9IjIyMSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4yIMK3IEV2ZXJ5IHJlY29yZCBjYXJyaWVzIGl0PC90ZXh0PgogIDx0ZXh0IHg9IjUwNSIgeT0iMjM4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+bG9ncywgbWV0cmljcywgc3BhbnMsIGV2ZW50cywgU21hcnRzY2FwZSBub2RlcyDigJQgYW5kIHRoZTwvdGV4dD4KICA8dGV4dCB4PSI1MDUiIHk9IjI1MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmRlcml2ZWQgc2VydmljZSBtZXRyaWNzLCBEYXZpcyBldmVudHMgYW5kIHByb2JsZW1zPC90ZXh0PgogIDxsaW5lIHgxPSI2OTIiIHkxPSIyNzgiIHgyPSI2OTIiIHkyPSIyOTQiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPHJlY3QgeD0iNDk1IiB5PSIyOTYiIHdpZHRoPSIzOTUiIGhlaWdodD0iMTI4IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjUwNSIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjMgwrcgRXZlcnkgY29uc3VtZXIgcmVhZHMgdGhlIHJlY29yZDwvdGV4dD4KICA8dGV4dCB4PSI1MDUiIHk9IjMzMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPk9wZW5QaXBlbGluZSByb3V0aW5nIGFuZCBidWNrZXQgYXNzaWdubWVudDwvdGV4dD4KICA8dGV4dCB4PSI1MDUiIHk9IjM0NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPklBTSBwb2xpY3kgb24gZHQuc2VjdXJpdHlfY29udGV4dDwvdGV4dD4KICA8dGV4dCB4PSI1MDUiIHk9IjM2MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnNlZ21lbnQgZmlsdGVycyBpbiBldmVyeSBHcmFpbCBhcHA8L3RleHQ+CiAgPHRleHQgeD0iNTA1IiB5PSIzNzQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij53b3JrZmxvdyB0cmlnZ2VycyBhbmQgYWxlcnQgcm91dGluZzwvdGV4dD4KICA8dGV4dCB4PSI1MDUiIHk9IjM4OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmNvc3QgYWxsb2NhdGlvbiBvbiBkdC5jb3N0Lio8L3RleHQ+CiAgPHRleHQgeD0iNjkyIiB5PSI0NTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEuNSIgZm9udC13ZWlnaHQ9IjcwMCI+Tm8gcnVsZSBlbmdpbmUsIG5vIHByb3BhZ2F0aW9uIGZsYWdzIOKAlCBubyB0YWcsIG5vIHNjb3BlPC90ZXh0Pgo8L3N2Zz4K" alt="Entity-first (classic) vs data-first (Grail)" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Classic (entity-first) | Latest Dynatrace (data-first) |
+|---|---|---|
+| 1 | Telemetry arrives with no organizational context; entities are detected | The producer sets the metadata (host tag, DT_TAGS, K8s annotation, OTel resource attribute, central enrichment rule) |
+| 2 | Auto-tagging and MZ rules run later, in the background; propagation flags copy results to related entities | Every record carries it: logs, metrics, spans, events, Smartscape nodes, derived service metrics, Davis events, problems |
+| 3 | The entity carries the zone (`managementZones`) | Every consumer reads the record: OpenPipeline routing and buckets, IAM on `dt.security_context`, segments, workflows, cost allocation |
+| 4 | Users find the entity, then its data | — |
+| Result | Context lives on the entity, never on the record | No rule engine, no propagation flags: no tag, no scope |
+For environments where SVG doesn't render
+-->
+<h3>What this means for planning</h3>
+<p>The order of work changes. In the classic model you could create a zone first and let the rules find the members. In the latest model, the members have to be <strong>labeled first</strong>. A segment, boundary or workflow written before the labels are in place is syntactically valid and returns partial data, with no error to warn you (§8).</p>
+<p>That is why Dynatrace's metadata best practice says to <em>&quot;Resolve enrichment gaps before starting IAM or segment configuration&quot;</em>, and why this series now treats tag readiness as a gate (§10) between assessment and build.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones">Management zones settings schema (DT docs)</a> — <em>&quot;Management zone rules are executed periodically in the background, for a limited timeframe.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules">Management-zone rules (DT docs)</a> — <em>&quot;Note that users automatically get access to logs and metrics associated with entities that are included within their assigned management zones.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/metadata-enrichment">Best practices for metadata enrichment (DT docs)</a> — <em>&quot;In Dynatrace Classic, observability signals were tightly coupled to entities through management zones.&quot;</em> and <em>&quot;each data point is treated independently and must carry its own metadata.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic">Differences between classic auto-tagging and primary Grail tags (DT docs)</a> — <em>&quot;You query, route, and filter the data directly, without detours through the topology.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="what-carries-forward"></a></p>
+<h2>2. What Carries Forward and What Does Not</h2>
+<p>Three classic constructs hold most MZ estates together. Dynatrace documents what happens to each.</p>
+<table>
+<thead>
+<tr>
+<th>Classic construct</th>
+<th>In Latest Dynatrace</th>
+<th>Replace with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Auto-tagging rules</strong></td>
+<td><em>&quot;Auto-tagging rules have no effect on Smartscape on Grail and are not used in any Latest Dynatrace app.&quot;</em></td>
+<td>Primary Grail tags set at the source, or a central ingest enrichment rule (§5)</td>
+</tr>
+<tr>
+<td><strong>Management zones</strong></td>
+<td><em>&quot;Management zones are not supported by any platform feature or Dynatrace app.&quot;</em></td>
+<td>Segments for filtering (MZ2POL-05), policies and boundaries on <code>dt.security_context</code> for access (MZ2POL-04), problem-triggered workflows for alerting (MZ2POL-09)</td>
+</tr>
+<tr>
+<td><strong>Service, host and process-group naming rules</strong></td>
+<td><code>builtin:naming.services</code> <em>&quot;will be retired&quot;</em>; existing dashboards, SLOs and alerts keep working during the transition</td>
+<td>Names and organizational context carried in the telemetry itself</td>
+</tr>
+</tbody>
+</table>
+<p>Two more patterns are common in MZ estates. They are not separate constructs, but they change too.</p>
+<ul>
+<li><strong>Host-group name parsing.</strong> Auto-tags that pulled environment or app out of a host-group name like <code>onprem_billing_prod</code>. Dynatrace calls these <em>&quot;brittle rules tied to naming conventions&quot;</em>. The host group itself is now a built-in field, <code>dt.host_group.id</code>, and a central enrichment rule can extract the parts with DPL (§5).</li>
+<li><strong>Auto-tags that only surfaced infrastructure.</strong> Rules that tagged by namespace, cluster or cloud account. These are redundant: the values are built-in primary Grail fields. Dynatrace: <em>&quot;If your Dynatrace Classic setup used auto-tagging rules to surface these values, those rules are no longer needed.&quot;</em></li>
+</ul>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+V2hhdCBDYXJyaWVzIEZvcndhcmQgSW50byBMYXRlc3QgRHluYXRyYWNlPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+VGhlIGNsYXNzaWMgY29uc3RydWN0cyBhbiBNWiBlc3RhdGUgaXMgYnVpbHQgb24sIGFuZCB3aGF0IGVhY2ggYmVjb21lczwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iNzIiIHdpZHRoPSIyMzAiIGhlaWdodD0iMzQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzIiIHk9Ijk0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkNsYXNzaWMgY29uc3RydWN0PC90ZXh0PgogIDxyZWN0IHg9IjI1OCIgeT0iNzIiIHdpZHRoPSIyNTAiIGhlaWdodD0iMzQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMjcwIiB5PSI5NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5TdGF0dXMgaW4gTGF0ZXN0IER5bmF0cmFjZTwvdGV4dD4KICA8cmVjdCB4PSI1MTYiIHk9IjcyIiB3aWR0aD0iMzk0IiBoZWlnaHQ9IjM0IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjUyOCIgeT0iOTQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+V2hhdCByZXBsYWNlcyBpdDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMTE0IiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjY0IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMyIiB5PSIxNDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+QXV0by10YWdnaW5nIHJ1bGVzPC90ZXh0PgogIDx0ZXh0IHg9IjMyIiB5PSIxNTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5lbnRpdHkgY29uZGl0aW9ucyDihpIgdGFnczwvdGV4dD4KICA8cmVjdCB4PSIyNTgiIHk9IjExNCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI2NCIgcng9IjciIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSIyNTgiIHk9IjExNCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI2NCIgcng9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjE0MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vIGVmZmVjdCBvbiBHcmFpbCBkYXRhPC90ZXh0PgogIDx0ZXh0IHg9IjI3MCIgeT0iMTU4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+bm90IHVzZWQgYnkgYW55IExhdGVzdCBhcHA8L3RleHQ+CiAgPHJlY3QgeD0iNTE2IiB5PSIxMTQiIHdpZHRoPSIzOTQiIGhlaWdodD0iNjQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTI4IiB5PSIxNDAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMS41IiBmb250LXdlaWdodD0iNzAwIj5QcmltYXJ5IEdyYWlsIHRhZ3Mgc2V0IGF0IHNvdXJjZSw8L3RleHQ+CiAgPHRleHQgeD0iNTI4IiB5PSIxNTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5vciBhIGNlbnRyYWwgaW5nZXN0IGVucmljaG1lbnQgcnVsZTwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iMTg2IiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjY0IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMyIiB5PSIyMTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+TWFuYWdlbWVudCB6b25lczwvdGV4dD4KICA8dGV4dCB4PSIzMiIgeT0iMjMwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+cnVsZXMgKyBwcm9wYWdhdGlvbiBmbGFnczwvdGV4dD4KICA8cmVjdCB4PSIyNTgiIHk9IjE4NiIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI2NCIgcng9IjciIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSIyNTgiIHk9IjE4NiIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI2NCIgcng9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjIxMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vdCBzdXBwb3J0ZWQgYnkgYW55PC90ZXh0PgogIDx0ZXh0IHg9IjI3MCIgeT0iMjMwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+cGxhdGZvcm0gZmVhdHVyZSBvciBhcHA8L3RleHQ+CiAgPHJlY3QgeD0iNTE2IiB5PSIxODYiIHdpZHRoPSIzOTQiIGhlaWdodD0iNjQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTI4IiB5PSIyMTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMS41IiBmb250LXdlaWdodD0iNzAwIj5TZWdtZW50cyAoZmlsdGVyKSDCtyBwb2xpY2llcyArIGJvdW5kYXJpZXM8L3RleHQ+CiAgPHRleHQgeD0iNTI4IiB5PSIyMzAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5vbiBkdC5zZWN1cml0eV9jb250ZXh0IChhY2Nlc3MpIMK3IHdvcmtmbG93cyAoYWxlcnRpbmcpPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSIyNTgiIHdpZHRoPSIyMzAiIGhlaWdodD0iNjQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzIiIHk9IjI4NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5OYW1pbmcgcnVsZXM8L3RleHQ+CiAgPHRleHQgeD0iMzIiIHk9IjMwMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmJ1aWx0aW46bmFtaW5nLnNlcnZpY2VzPC90ZXh0PgogIDxyZWN0IHg9IjI1OCIgeT0iMjU4IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjY0IiByeD0iNyIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjI1OCIgeT0iMjU4IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjY0IiByeD0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjI3MCIgeT0iMjg0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEuNSIgZm9udC13ZWlnaHQ9IjcwMCI+QmVpbmcgcmV0aXJlZDwvdGV4dD4KICA8dGV4dCB4PSIyNzAiIHk9IjMwMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmRhc2hib2FyZHMvU0xPcyBrZWVwIHdvcmtpbmc8L3RleHQ+CiAgPHJlY3QgeD0iNTE2IiB5PSIyNTgiIHdpZHRoPSIzOTQiIGhlaWdodD0iNjQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTI4IiB5PSIyODQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMS41IiBmb250LXdlaWdodD0iNzAwIj5OYW1lcyBhbmQgY29udGV4dCBjYXJyaWVkIGluIHRoZTwvdGV4dD4KICA8dGV4dCB4PSI1MjgiIHk9IjMwMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnRlbGVtZXRyeSBpdHNlbGY8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjMzMCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSI2NCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzMiIgeT0iMzU2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkhvc3QtZ3JvdXAgbmFtZSBwYXJzaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjMyIiB5PSIzNzQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5hdXRvLXRhZyBleHRyYWN0cyBlbnYvYXBwPC90ZXh0PgogIDxyZWN0IHg9IjI1OCIgeT0iMzMwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjY0IiByeD0iNyIgZmlsbD0iI0ZGQjgwMCIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9IjI1OCIgeT0iMzMwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjY0IiByeD0iNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjI3MCIgeT0iMzU2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEuNSIgZm9udC13ZWlnaHQ9IjcwMCI+QnJpdHRsZTsgc3RpbGwgd29ya3Mgb248L3RleHQ+CiAgPHRleHQgeD0iMjcwIiB5PSIzNzQiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5jbGFzc2ljIHBhZ2VzIG9ubHk8L3RleHQ+CiAgPHJlY3QgeD0iNTE2IiB5PSIzMzAiIHdpZHRoPSIzOTQiIGhlaWdodD0iNjQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTI4IiB5PSIzNTYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMS41IiBmb250LXdlaWdodD0iNzAwIj5kdC5ob3N0X2dyb3VwLmlkIGlzIGEgYnVpbHQtaW4gZmllbGQ7PC90ZXh0PgogIDx0ZXh0IHg9IjUyOCIgeT0iMzc0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+YSBjZW50cmFsIHJ1bGUncyBEUEwgZXh0cmFjdHMgdGhlIHBhcnRzPC90ZXh0PgogIDxyZWN0IHg9IjIwIiB5PSI0MDIiIHdpZHRoPSIyMzAiIGhlaWdodD0iNjQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzIiIHk9IjQyOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5BdXRvLXRhZ3MgdGhhdCBzdXJmYWNlIGluZnJhPC90ZXh0PgogIDx0ZXh0IHg9IjMyIiB5PSI0NDYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5lbnYgZnJvbSBuYW1lc3BhY2UsIGFjY291bnQ8L3RleHQ+CiAgPHJlY3QgeD0iMjU4IiB5PSI0MDIiIHdpZHRoPSIyNTAiIGhlaWdodD0iNjQiIHJ4PSI3IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMjU4IiB5PSI0MDIiIHdpZHRoPSIyNTAiIGhlaWdodD0iNjQiIHJ4PSI3IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMjcwIiB5PSI0MjgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMS41IiBmb250LXdlaWdodD0iNzAwIj5SZWR1bmRhbnQ8L3RleHQ+CiAgPHRleHQgeD0iMjcwIiB5PSI0NDYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5idWlsdC1pbiBwcmltYXJ5IEdyYWlsIGZpZWxkczwvdGV4dD4KICA8cmVjdCB4PSI1MTYiIHk9IjQwMiIgd2lkdGg9IjM5NCIgaGVpZ2h0PSI2NCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1MjgiIHk9IjQyOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjExLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPms4cy5uYW1lc3BhY2UubmFtZSwgazhzLmNsdXN0ZXIubmFtZSw8L3RleHQ+CiAgPHRleHQgeD0iNTI4IiB5PSI0NDYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5hd3MuYWNjb3VudC5pZCwgYXp1cmUuc3Vic2NyaXB0aW9uIOKAlCBubyBydWxlPC90ZXh0Pgo8L3N2Zz4K" alt="What carries forward into Latest Dynatrace" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Classic construct | Status in Latest Dynatrace | What replaces it |
+|---|---|---|
+| Auto-tagging rules (entity conditions → tags) | No effect on Grail data; not used by any Latest app | Primary Grail tags set at source, or a central ingest enrichment rule |
+| Management zones (rules + propagation flags) | Not supported by any platform feature or app | Segments (filter), policies + boundaries on dt.security_context (access), workflows (alerting) |
+| Naming rules (builtin:naming.services) | Being retired; dashboards/SLOs keep working | Names and context carried in the telemetry itself |
+| Host-group name parsing | Brittle; still works on classic pages only | dt.host_group.id is a built-in field; a central rule's DPL extracts the parts |
+| Auto-tags that surface infrastructure | Redundant | k8s.namespace.name, k8s.cluster.name, aws.account.id, azure.subscription |
+For environments where SVG doesn't render
+-->
+<h3>&quot;About 80%&quot; — and what the other 20% is</h3>
+<p>Dynatrace sizes the effect: <em>&quot;The central primary Grail tag configuration for at-source tagging in cloud, Kubernetes, and OneAgent supersedes approximately 80% of classic auto-tagging and management-zone use cases.&quot;</em></p>
+<p>Read that as a statement about <strong>enrichment</strong>, not about the whole migration. The remaining share is the work MZ2POL-11 catalogs: zones built on exclusions, regular expressions, entity relationships or hand-kept lists, which no single field reproduces. It is also the access-control and alerting design in MZ2POL-04 and MZ2POL-09, which tags enable but do not perform.</p>
+<h3>Both models run side by side</h3>
+<p>Classic constructs do not need to be removed first. Dynatrace answers <em>&quot;Can I run classic auto-tagging and primary Grail tags at the same time?&quot;</em> with <em>&quot;Yes. They don't conflict.&quot;</em> — auto-tags keep serving classic pages while primary tags serve Grail. The guide's last step is to <em>&quot;Keep any auto-tagging rules still required for Dynatrace Classic pages.&quot;</em> MZ2POL-06 covers the parallel run.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic">Differences between classic auto-tagging and primary Grail tags (DT docs)</a> — <em>&quot;Management zones are not supported by any platform feature or Dynatrace app.&quot;</em> and <em>&quot;supersedes approximately 80% of classic auto-tagging and management-zone use cases.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/migrate/upgrade-from-oneagent-tagging-classic">Upgrade OneAgent classic auto-tagging to primary Grail tags (DT docs)</a> — <em>&quot;Auto-tagging rules and management zones are not evaluated for Grail data and are not used in any app.&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> &quot;the other 20% is rule logic no single field reproduces&quot; pairs the 80% statement with the rule-operator limits catalogued in MZ2POL-11.</sub></li>
+</ul>
+</blockquote>
+<p><a id="vocabulary"></a></p>
+<h2>3. The Vocabulary: Fields, Tags and Where They Live</h2>
+<p>&quot;Tags&quot; means at least four things on the platform, and a migration goes wrong when they are treated as one. The difference that matters is <strong>where the value lives</strong>, because each MZ replacement reads a specific place.</p>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Example</th>
+<th>Who defines it</th>
+<th>Where it lives</th>
+<th>MZ job it can do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Primary Grail fields</strong></td>
+<td><code>dt.host_group.id</code>, <code>k8s.namespace.name</code>, <code>k8s.cluster.name</code>, <code>aws.account.id</code></td>
+<td>Dynatrace — populated automatically</td>
+<td>Every signal, Smartscape nodes, derived data</td>
+<td>Filter, route, alert — and access where the field is permission-tagged</td>
+</tr>
+<tr>
+<td><strong>Special fields</strong></td>
+<td><code>dt.security_context</code>, <code>dt.cost.costcenter</code>, <code>dt.cost.product</code></td>
+<td>You set the value; the key is fixed</td>
+<td>Same as primary fields</td>
+<td><code>dt.security_context</code> is <strong>the</strong> access field; the <code>dt.cost.*</code> pair allocates cost</td>
+</tr>
+<tr>
+<td><strong>Primary Grail tags</strong></td>
+<td><code>primary_tags.team</code>, <code>primary_tags.app</code>, <code>primary_tags.stage</code></td>
+<td>You — any key under the <code>primary_tags.</code> prefix</td>
+<td>Same as primary fields</td>
+<td>Filter, route, alert — <strong>not</strong> access (§4)</td>
+</tr>
+<tr>
+<td><strong>Standard tags</strong></td>
+<td>Cloud tags, Kubernetes labels and annotations, plain host tags</td>
+<td>The source system</td>
+<td><strong>Smartscape nodes only</strong></td>
+<td>Entity-list filtering only — invisible to logs, spans, metrics and events</td>
+</tr>
+</tbody>
+</table>
+<p>The last row is the one MZ migrations trip over. A Kubernetes label or an AWS tag <em>is</em> on the platform — you can see it on the node — so it looks migrated. Dynatrace's tagging strategy is blunt about the gap: standard tags are <em>&quot;only available on Smartscape nodes. They don't follow data into the telemetry pipeline, so you can't use them to route data, assign Grail buckets, allocate cost, or enforce access control on logs, metrics, spans, or events.&quot;</em> They have to be <strong>promoted</strong> — to a primary tag or a special field — before a segment, boundary or bucket rule can use them on signals.</p>
+<h3>&quot;Grail tags&quot;, precisely</h3>
+<p>In conversation, &quot;Grail tags&quot; usually means primary Grail tags. Two details keep the term honest:</p>
+<ul>
+<li><strong>You own the keys.</strong> <em>&quot;The full tag key (for example, primary_tags.team ) is never defined in the semantic dictionary; only the primary_tags.</em> namespace is reserved.&quot;* There is no fixed list to pick from — which is why §4 makes the key and value vocabulary a design decision.</li>
+<li><strong>The dictionary marks the namespace as <code>experimental</code>.</strong> On the validation tenant (10/13/2026), the only <code>primary_tags</code> entry was <code>primary_tags.__key__</code>, <code>experimental</code>, with no tags. The Dynatrace docs describe primary tags as the current model; the stability label is worth checking on your own tenant before you build automation on assumptions about it.</li>
+</ul>
+<p>FAQ-26 §2 has the full table, including signal-local fields and ownership tags, and FAQ-02 §2 covers taxonomy and naming.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/tags-strategy">Plan your tagging strategy (DT docs)</a> — <em>&quot;They don't follow data into the telemetry pipeline, so you can't use them to route data, assign Grail buckets, allocate cost, or enforce access control on logs, metrics, spans, or events.&quot;</em>, <a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a> — <em>&quot;Primary Grail tags are customer-defined and follow the primary_tags.</em> prefix convention.&quot;* <strong>Dictionary:</strong> <code>primary_tags.__key__</code> (<code>experimental</code>, no tags), <code>dt.security_context</code> (<code>stable</code>, tagged <code>permission</code>), <code>dt.host_group.id</code> (<code>stable</code>, tagged <code>permission</code>, <code>primary-field</code>), read 10/13/2026.</sub></p>
+</blockquote>
+<p><a id="one-value-every-job"></a></p>
+<h2>4. One Value, Every Job</h2>
+<p>A management zone did three jobs from one definition. The replacement can do the same — but only if the value is written once, at the source, into the fields each job reads.</p>
+<p>The design rule for the migration: <strong>when a dimension must also restrict access, write it to <code>primary_tags.&lt;key&gt;</code> and <code>dt.security_context</code> in the same enrichment step, from the same source.</strong> The primary tag does the filtering, routing and alerting. The security context does the access control. Written together, they cannot drift apart.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+T25lIEVucmljaG1lbnQgU3RlcCwgRXZlcnkgSm9iPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+V3JpdGUgdGhlIHRlYW0gdmFsdWUgdG8gYm90aCBmaWVsZHMgYXQgdGhlIHNhbWUgdGltZSwgZnJvbSB0aGUgc2FtZSBzb3VyY2UsIHNvIHRoZXkgbmV2ZXIgZHJpZnQgYXBhcnQ8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjE1MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxNTAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzAiIHk9IjE2OSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5Tb3VyY2Ugb2YgdHJ1dGg8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjE4NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmhvc3QgdGFnIC8gRFRfVEFHUzwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMjAyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+SzhzIG5hbWVzcGFjZSBhbm5vdGF0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjMwIiB5PSIyMTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5PVGVsIHJlc291cmNlIGF0dHJpYnV0ZTwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMjM0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+Y2VudHJhbCBlbnJpY2htZW50IHJ1bGU8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjI1MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPjwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMjY2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+dGVhbSA9IHBheW1lbnRzPC90ZXh0PgogIDxsaW5lIHgxPSIyMjAiIHkxPSIyMDUiIHgyPSIyNjgiIHkyPSIxNzUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZWVuKSIvPgogIDxsaW5lIHgxPSIyMjAiIHkxPSIyNDUiIHgyPSIyNjgiIHkyPSIzMDAiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLXB1cnBsZSkiLz4KICA8cmVjdCB4PSIyNzAiIHk9IjEyMCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIxMDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMjgwIiB5PSIxMzkiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+cHJpbWFyeV90YWdzLnRlYW0gPSBwYXltZW50czwvdGV4dD4KICA8dGV4dCB4PSIyODAiIHk9IjE1NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmZpbHRlcnMsIHJvdXRlcywgYWxsb2NhdGVzPC90ZXh0PgogIDx0ZXh0IHg9IjI4MCIgeT0iMTcxIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+cmVhY2hlcyBldmVyeSBzaWduYWwgYW5kPC90ZXh0PgogIDx0ZXh0IHg9IjI4MCIgeT0iMTg2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+ZGVyaXZlZCBkYXRhPC90ZXh0PgogIDxyZWN0IHg9IjI3MCIgeT0iMjU1IiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjEwMCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIyODAiIHk9IjI3NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5kdC5zZWN1cml0eV9jb250ZXh0ID0gcGF5bWVudHM8L3RleHQ+CiAgPHRleHQgeD0iMjgwIiB5PSIyOTEiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij50aGUgYWNjZXNzLWNvbnRyb2wgZmllbGQ8L3RleHQ+CiAgPHRleHQgeD0iMjgwIiB5PSIzMDYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5wZXJtaXNzaW9uLXRhZ2dlZCBpbiB0aGU8L3RleHQ+CiAgPHRleHQgeD0iMjgwIiB5PSIzMjEiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5zZW1hbnRpYyBkaWN0aW9uYXJ5PC90ZXh0PgogIDxyZWN0IHg9IjYyMCIgeT0iOTAiIHdpZHRoPSIyOTAiIGhlaWdodD0iNDgiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNjM0IiB5PSIxMTAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U2VnbWVudCBmaWx0ZXI8L3RleHQ+CiAgPHRleHQgeD0iNjM0IiB5PSIxMjciIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5ldmVyeSBHcmFpbCBhcHA8L3RleHQ+CiAgPHJlY3QgeD0iNjIwIiB5PSIxNDgiIHdpZHRoPSIyOTAiIGhlaWdodD0iNDgiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNjM0IiB5PSIxNjgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+V29ya2Zsb3cgLyBhbGVydCByb3V0aW5nPC90ZXh0PgogIDx0ZXh0IHg9IjYzNCIgeT0iMTg1IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+ZXZlbnQgdHJpZ2dlciArIERhdmlzIGV2ZW50czwvdGV4dD4KICA8cmVjdCB4PSI2MjAiIHk9IjIwNiIgd2lkdGg9IjI5MCIgaGVpZ2h0PSI0OCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI2MzQiIHk9IjIyNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5PcGVuUGlwZWxpbmUgcm91dGluZzwvdGV4dD4KICA8dGV4dCB4PSI2MzQiIHk9IjI0MyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmJ1Y2tldCBhbmQgcmV0ZW50aW9uIGNob2ljZTwvdGV4dD4KICA8cmVjdCB4PSI2MjAiIHk9IjMwMCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSI0OCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI2MzQiIHk9IjMyMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5JQU0gcG9saWN5IGNvbmRpdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2MzQiIHk9IjMzNyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnN0b3JhZ2U6ZHQuc2VjdXJpdHlfY29udGV4dDwvdGV4dD4KICA8cmVjdCB4PSI2MjAiIHk9IjM1OCIgd2lkdGg9IjI5MCIgaGVpZ2h0PSI0OCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI2MzQiIHk9IjM3OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5SZWNvcmQtbGV2ZWwgYWNjZXNzPC90ZXh0PgogIDx0ZXh0IHg9IjYzNCIgeT0iMzk1IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+bG9ncywgc3BhbnMsIG1ldHJpY3MsIGV2ZW50czwvdGV4dD4KICA8bGluZSB4MT0iNTAwIiB5MT0iMTcwIiB4Mj0iNjE4IiB5Mj0iMTE0IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmVlbikiLz4KICA8bGluZSB4MT0iNTAwIiB5MT0iMTcwIiB4Mj0iNjE4IiB5Mj0iMTcyIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmVlbikiLz4KICA8bGluZSB4MT0iNTAwIiB5MT0iMTcwIiB4Mj0iNjE4IiB5Mj0iMjMwIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmVlbikiLz4KICA8bGluZSB4MT0iNTAwIiB5MT0iMzA1IiB4Mj0iNjE4IiB5Mj0iMzI0IiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1wdXJwbGUpIi8+CiAgPGxpbmUgeDE9IjUwMCIgeTE9IjMwNSIgeDI9IjYxOCIgeTI9IjM4MiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItcHVycGxlKSIvPgogIDxwYXRoIGQ9Ik0gNTAwIDE5MCBDIDU2MCAyNTAsIDU3MCAzMDAsIDYxMiAzMTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIvPgogIDxwYXRoIGQ9Ik01NTMsMjU1IEw1NjcsMjY5IE01NjcsMjU1IEw1NTMsMjY5IiBzdHJva2U9IiNERTM1MEIiIHN0cm9rZS13aWR0aD0iMi40Ii8+CiAgPHRleHQgeD0iNTc1IiB5PSI0NTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEuNSIgZm9udC13ZWlnaHQ9IjcwMCI+QSBwcmltYXJ5IHRhZyBpcyBub3QgYW4gYWNjZXNzIGJvdW5kYXJ5OiBwcmltYXJ5X3RhZ3MuKiBjYXJyaWVzIG5vIHBlcm1pc3Npb24gdGFnPC90ZXh0PgogIDx0ZXh0IHg9IjU3NSIgeT0iNDY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5pbiB0aGUgc2VtYW50aWMgZGljdGlvbmFyeS4gUmVzdHJpY3QgYWNjZXNzIHRocm91Z2ggZHQuc2VjdXJpdHlfY29udGV4dC48L3RleHQ+Cjwvc3ZnPgo=" alt="One enrichment step, every job" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Field written at source | Jobs it serves |
+|---|---|
+| primary_tags.team = payments | Segment filters in every Grail app; workflow and alert routing (event triggers, Davis events); OpenPipeline routing and bucket choice |
+| dt.security_context = payments | IAM policy condition (storage:dt.security_context); record-level access on logs, spans, metrics, events |
+| primary_tags.team → IAM policy | Not usable: primary_tags.* carries no permission tag in the semantic dictionary |
+For environments where SVG doesn't render
+-->
+<h3>Why the primary tag alone is not an access boundary</h3>
+<p>IAM policy conditions use fields that the semantic dictionary marks with the <code>permission</code> tag. On the validation tenant (10/13/2026) that tag is on <code>dt.security_context</code> and on built-in fields such as <code>dt.host_group.id</code>, and <strong>not</strong> on the <code>primary_tags</code> namespace. So <code>primary_tags.team = &quot;payments&quot;</code> filters and routes well but cannot be written as a security boundary.</p>
+<blockquote>
+<p><strong>A page that reads differently.</strong> The OpenPipeline primary-tag-rule page ends with <em>&quot;Use the resulting primary_tags.</em> fields for routing decisions and further processing, such as bucket assignment or access control policies.&quot;* Read &quot;access control&quot; there as <em>through</em> a bucket or a derived <code>dt.security_context</code>. The IAM policy reference lists the record-level conditions for each Grail permission — <code>storage:dt.security_context</code>, <code>storage:dt.host_group.id</code>, <code>storage:k8s.namespace.name</code> and others — and none of them is a <code>primary_tags</code> field. The dictionary carries no <code>permission</code> tag on it either. Until that changes, route access through <code>dt.security_context</code>.</p>
+</blockquote>
+<p>You may not need the security context at all. Dynatrace notes: <em>&quot;If your organization can rely on deployment-level primary Grail fields such as k8s.namespace.name or dt.host_group.id for access control, you may not need dt.security_context at all.&quot;</em> If your MZ estate already maps one team to one host group or namespace, the boundary can use that field directly (MZ2POL-04).</p>
+<h3>Design the values, not just the keys</h3>
+<p>A zone was one value; a tag key is a whole dimension, and every value under it becomes a filter option, a routing target and potentially a boundary. Three rules from Dynatrace's tagging strategy carry over directly:</p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Dynatrace's wording</th>
+<th>What it prevents in a migration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Follow the strategy you already have</strong></td>
+<td><em>&quot;The core principle is to follow the tagging strategy you already have, not create a new one.&quot;</em></td>
+<td>A third vocabulary next to the cloud tags and the CMDB</td>
+</tr>
+<tr>
+<td><strong>Constrain the values that matter</strong></td>
+<td><em>&quot;Environment, region, and security classification benefit from an enforced allowlist&quot;</em></td>
+<td><code>prod</code>, <code>Prod</code> and <code>production</code> as three segments — Grail filters compare values exactly, where an MZ condition could be case-insensitive</td>
+</tr>
+<tr>
+<td><strong>Start lean, automate</strong></td>
+<td><em>&quot;A small set of well-maintained tags is more valuable than a large set of stale ones.&quot;</em> and <em>&quot;Tags that are set up manually drift over time.&quot;</em></td>
+<td>The 20-tag cap (§8) and hand-kept values going stale</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>A cautionary pattern from validation.</strong> On the validation tenant, a key named like a team key carried values such as a process name followed by a workload pattern (<code>&lt;process&gt; &lt;workload&gt;-*</code>) — the output of a DPL extraction pointed at the wrong input field. It populated every record, so any coverage check passed, and it split service metrics into dozens of &quot;teams&quot;. <strong>Check what a key's values <em>are</em>, not only that they are present</strong> — §9 has the query.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/tags-security-context">Configure security context (DT docs)</a> — <em>&quot;If your organization can rely on deployment-level primary Grail fields such as k8s.namespace.name or dt.host_group.id for access control, you may not need dt.security_context at all.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/get-started/primary-grail-tags">Set primary Grail tag rules in OpenPipeline (DT docs)</a> — <em>&quot;Use the resulting primary_tags.</em> fields for routing decisions and further processing, such as bucket assignment or access control policies.&quot;*</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy reference (DT docs)</a> — <code>storage:logs:read</code> conditions include <em>&quot;storage:dt.security_context - Custom field for security context.&quot;</em>; no <code>primary_tags</code> condition is listed.</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/tags-strategy">Plan your tagging strategy (DT docs)</a> — <em>&quot;Environment, region, and security classification benefit from an enforced allowlist&quot;</em></sub></li>
+<li><sub><strong>Dictionary:</strong> <code>dt.security_context</code> (<code>stable</code>, tagged <code>permission</code>), <code>primary_tags.__key__</code> (<code>experimental</code>, no <code>permission</code> tag), read 10/13/2026. <strong>Derived:</strong> &quot;write both in the same step&quot; follows from the permission tagging.</sub></li>
+</ul>
+</blockquote>
+<p><a id="enrichment-ladder"></a></p>
+<h2>5. Where to Set It: The Enrichment Ladder</h2>
+<p>Dynatrace orders the ways to attach a value from cheapest to most effort, and says to <em>&quot;Start at the top and move to the next only if the previous approach doesn't meet your needs.&quot;</em> The ladder below adds the fifth rung that matters for migrations: processors inside a pipeline, which run after routing.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+VGhlIEVucmljaG1lbnQgTGFkZGVyPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTIuNSI+U3RhcnQgYXQgc3RlcCAxIGFuZCBjbGltYiBvbmx5IHdoZW4gdGhlIHN0ZXAgYmVsb3cgY2Fubm90IGNhcnJ5IHRoZSB2YWx1ZTwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iNzIiIHdpZHRoPSI3MDAiIGhlaWdodD0iNzYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMzgiIHk9IjEwMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj4xPC90ZXh0PgogIDx0ZXh0IHg9IjY4IiB5PSI5NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPkJ1aWx0LWluIHByaW1hcnkgR3JhaWwgZmllbGRzPC90ZXh0PgogIDx0ZXh0IHg9IjI5My43IiB5PSI5NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiIGZvbnQtc3R5bGU9Iml0YWxpYyI+bm8gY29uZmlndXJhdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2OCIgeT0iMTEzIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+ZHQuaG9zdF9ncm91cC5pZCwgazhzLmNsdXN0ZXIubmFtZSwgazhzLm5hbWVzcGFjZS5uYW1lLDwvdGV4dD4KICA8dGV4dCB4PSI2OCIgeT0iMTI4IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+YXdzLmFjY291bnQuaWQsIGF6dXJlLnN1YnNjcmlwdGlvbiDigJQgcG9wdWxhdGVkIGF1dG9tYXRpY2FsbHk8L3RleHQ+CiAgPHJlY3QgeD0iNzQwIiB5PSI5OSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIyMiIgcng9IjExIiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iNzQwIiB5PSI5OSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIyMiIgcng9IjExIiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iODI1LjAiIHk9IjExNC4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPmJlZm9yZSByb3V0aW5nPC90ZXh0PgogIDxyZWN0IHg9IjM4IiB5PSIxNTQiIHdpZHRoPSI2ODIiIGhlaWdodD0iNzYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTYiIHk9IjE4NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj4yPC90ZXh0PgogIDx0ZXh0IHg9Ijg2IiB5PSIxNzYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMi41IiBmb250LXdlaWdodD0iNzAwIj5FbnJpY2ggYXQgdGhlIHNvdXJjZTwvdGV4dD4KICA8dGV4dCB4PSIyNDYuMCIgeT0iMTc2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC1zdHlsZT0iaXRhbGljIj5pbnN0YWxsIC8gZGVwbG95IHRpbWU8L3RleHQ+CiAgPHRleHQgeD0iODYiIHk9IjE5NSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPi0tc2V0LWhvc3QtdGFnIC8gb25lYWdlbnRjdGwgKGhvc3QpIMK3IERUX1RBR1MgKHByb2Nlc3MpIMK3IEs4czwvdGV4dD4KICA8dGV4dCB4PSI4NiIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+YW5ub3RhdGlvbnMgwrcgT1RFTF9SRVNPVVJDRV9BVFRSSUJVVEVTIMK3IGV4dGVuc2lvbiBjb25maWc8L3RleHQ+CiAgPHJlY3QgeD0iNzQwIiB5PSIxODEiIHdpZHRoPSIxNzAiIGhlaWdodD0iMjIiIHJ4PSIxMSIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9Ijc0MCIgeT0iMTgxIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjIyIiByeD0iMTEiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI4MjUuMCIgeT0iMTk2LjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9IjcwMCI+YmVmb3JlIHJvdXRpbmc8L3RleHQ+CiAgPHJlY3QgeD0iNTYiIHk9IjIzNiIgd2lkdGg9IjY2NCIgaGVpZ2h0PSI3NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI3NCIgeT0iMjY2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPjM8L3RleHQ+CiAgPHRleHQgeD0iMTA0IiB5PSIyNTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMi41IiBmb250LXdlaWdodD0iNzAwIj5Db25maWd1cmUgY2VudHJhbGx5PC90ZXh0PgogIDx0ZXh0IHg9IjI1Ni43IiB5PSIyNTgiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41IiBmb250LXN0eWxlPSJpdGFsaWMiPk9uZUFnZW50IDEuMzQzKywgbm8gcmVzdGFydDwvdGV4dD4KICA8dGV4dCB4PSIxMDQiIHk9IjI3NyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPkluZ2VzdCBlbnJpY2htZW50IGNvbmZpZ3VyYXRpb246IHByb21vdGUgaG9zdCB0YWdzLCBob3N0PC90ZXh0PgogIDx0ZXh0IHg9IjEwNCIgeT0iMjkyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+Z3JvdXBzIG9yIG5hbWluZyBjb252ZW50aW9ucyAoRFBMKSBwZXIgZW52aXJvbm1lbnQgLyBob3N0IGdyb3VwPC90ZXh0PgogIDxyZWN0IHg9Ijc0MCIgeT0iMjYzIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjIyIiByeD0iMTEiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI3NDAiIHk9IjI2MyIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIyMiIgcng9IjExIiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iODI1LjAiIHk9IjI3OC4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPmJlZm9yZSByb3V0aW5nPC90ZXh0PgogIDxyZWN0IHg9Ijc0IiB5PSIzMTgiIHdpZHRoPSI2NDYiIGhlaWdodD0iNzYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iOTIiIHk9IjM0OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj40PC90ZXh0PgogIDx0ZXh0IHg9IjEyMiIgeT0iMzQwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+T3BlblBpcGVsaW5lIHByaW1hcnkgR3JhaWwgdGFnIHJ1bGU8L3RleHQ+CiAgPHRleHQgeD0iMzkxLjUiIHk9IjM0MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiIGZvbnQtc3R5bGU9Iml0YWxpYyI+ZmFsbGJhY2ssIGFueSByZWNvcmQgdHlwZTwvdGV4dD4KICA8dGV4dCB4PSIxMjIiIHk9IjM1OSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPkRlcml2ZSBwcmltYXJ5X3RhZ3MuKiBmcm9tIGZpZWxkcyBhbHJlYWR5IG9uIHRoZSByZWNvcmQ7PC90ZXh0PgogIDx0ZXh0IHg9IjEyMiIgeT0iMzc0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+b3ZlcndyaXRlcyBleGlzdGluZyB2YWx1ZXMgdW5sZXNzIHRoZSBjb25kaXRpb24gaXMgaXNOdWxsKC4uLik8L3RleHQ+CiAgPHJlY3QgeD0iNzQwIiB5PSIzNDUiIHdpZHRoPSIxNzAiIGhlaWdodD0iMjIiIHJ4PSIxMSIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9Ijc0MCIgeT0iMzQ1IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjIyIiByeD0iMTEiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI4MjUuMCIgeT0iMzYwLjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9IjcwMCI+YmVmb3JlIHJvdXRpbmc8L3RleHQ+CiAgPHJlY3QgeD0iOTIiIHk9IjQwMCIgd2lkdGg9IjYyOCIgaGVpZ2h0PSI3NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIxMTAiIHk9IjQzMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj41PC90ZXh0PgogIDx0ZXh0IHg9IjE0MCIgeT0iNDIyIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+T3BlblBpcGVsaW5lIHByb2Nlc3NvcnM8L3RleHQ+CiAgPHRleHQgeD0iMzIxLjkiIHk9IjQyMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiIGZvbnQtc3R5bGU9Iml0YWxpYyI+bGFzdCByZXNvcnQ8L3RleHQ+CiAgPHRleHQgeD0iMTQwIiB5PSI0NDEiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5TZXQgc2VjdXJpdHkgY29udGV4dCAvIERRTCBwcm9jZXNzb3JzIGluc2lkZSBhIHBpcGVsaW5lIOKAlDwvdGV4dD4KICA8dGV4dCB4PSIxNDAiIHk9IjQ1NiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnJ1biBhZnRlciByb3V0aW5nLCBzbyB0aGV5IGNhbm5vdCBjaG9vc2UgYSBwaXBlbGluZSBvciBidWNrZXQ8L3RleHQ+CiAgPHJlY3QgeD0iNzQwIiB5PSI0MjciIHdpZHRoPSIxNzAiIGhlaWdodD0iMjIiIHJ4PSIxMSIgZmlsbD0iI0RFMzUwQiIgb3BhY2l0eT0iMC4xMCIvPgogIDxyZWN0IHg9Ijc0MCIgeT0iNDI3IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjIyIiByeD0iMTEiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0RFMzUwQiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI4MjUuMCIgeT0iNDQyLjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTAuNSIgZm9udC13ZWlnaHQ9IjcwMCI+YWZ0ZXIgcm91dGluZzwvdGV4dD4KPC9zdmc+Cg==" alt="The enrichment ladder" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | Mechanism | When | Notes |
+|---|---|---|---|
+| 1 | Built-in primary Grail fields | Before routing | dt.host_group.id, k8s.cluster.name, k8s.namespace.name, aws.account.id, azure.subscription — no configuration |
+| 2 | Enrich at the source | Before routing | --set-host-tag / oneagentctl (host), DT_TAGS (process), K8s annotations, OTEL_RESOURCE_ATTRIBUTES, extension configuration |
+| 3 | Central Ingest enrichment configuration | Before routing | OneAgent 1.343+, no restart; promote host tags, host groups or naming conventions (DPL); environment or host-group scope |
+| 4 | OpenPipeline primary Grail tag rule | Before routing | Fallback; any record type; overwrites existing values unless the condition is isNull(...) |
+| 5 | OpenPipeline processors (Set security context, DQL) | After routing | Cannot choose a pipeline or bucket |
+For environments where SVG doesn't render
+-->
+<h3>Step 2 in practice — OneAgent</h3>
+<p>These are Dynatrace's own examples. A host-level value reaches every signal from the host; a process-level value overrides it for one process.</p>
+<p>Host level — at install time (Linux), or later on an existing installation with <code>oneagentctl</code>:</p>
+<pre><code class="language-bash">Dynatrace-OneAgent-Linux.sh --set-host-tag=&quot;primary_tags.environment=production&quot; --set-host-tag=&quot;dt.security_context=confidential&quot;
+
+oneagentctl --set-host-tag=&quot;primary_tags.team=bravo&quot;
+oneagentctl --set-host-tag=&quot;dt.cost.costcenter=12345&quot;
+</code></pre>
+<p>Process level — <code>DT_TAGS</code> on one process, values separated by spaces:</p>
+<pre><code class="language-bash">DT_TAGS=&quot;primary_tags.environment=production primary_tags.team=bravo primary_tags.application=payment-processing&quot; java -jar checkout-service.jar
+</code></pre>
+<p>On serverless code modules (AWS Lambda, Azure Functions) <code>DT_TAGS</code> is the only option. On mainframe, process-level enrichment goes in <code>zremoteagentuserconfig.conf</code> instead.</p>
+<h3>Step 3 in practice — promote what the hosts already carry</h3>
+<p>Most MZ estates already encode the zone's logic in host tags, host groups or names. <em>Ingest enrichment configuration</em> (Settings &gt; Collect and capture &gt; Ingest enrichment configuration) turns that into primary tags <strong>without touching the hosts</strong>. A rule has:</p>
+<ul>
+<li><strong>A condition</strong> on input fields such as <code>dt.host_group.id</code>, <code>host.name</code>, <code>host.tags.&lt;key&gt;</code>, <code>k8s.namespace.name</code> or <code>aws.account.id</code>, using <code>matchesValue</code> (equals), <code>matchesPhrase</code> (contains, begins with, ends with), <code>isNull</code>, <code>isNotNull</code>, and <code>AND</code> / <code>OR</code> / <code>NOT</code>. <code>matchesPhrase</code> matches tokens, so for a true begins-with or contains use <code>matchesValue</code> with <code>*</code> wildcards (<code>&quot;prod-*&quot;</code>, <code>&quot;*legacy*&quot;</code>) — MZ2POL-11 §4.</li>
+<li><strong>An enrichment</strong>: a static value, or a DPL extraction from an input field. Dynatrace's example splits <code>prod-payments-eu-web-01</code> into five primary tags with one rule per part. <em>&quot;If the pattern doesn't match, no tag is applied.&quot;</em></li>
+<li><strong>A scope</strong>: environment, or host group — the host-group rule wins.</li>
+</ul>
+<p>Two limits matter for MZ translation, and MZ2POL-11 §4 works through them: regular expressions are not supported in the condition, and <em>&quot;Enriching all data from a host based on a process or service property is not supported.&quot;</em></p>
+<h3>Precedence when a key is set twice</h3>
+<table>
+<thead>
+<tr>
+<th>Wins</th>
+<th>Then</th>
+<th>Then</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Process level — <code>DT_TAGS</code></td>
+<td>Host level — installer or <code>oneagentctl</code></td>
+<td>Central ingest enrichment rule</td>
+</tr>
+</tbody>
+</table>
+<p>Host-level tags still fill any key the process did not set. Dynatrace's worked example shows a host with <code>business_unit=ecommerce</code> and <code>environment=dev</code>, and a .NET process with <code>DT_TAGS</code> setting <code>business_unit=finance</code>: the process ends up with <code>finance</code>, its own team, and the host's <code>environment=dev</code>.</p>
+<h3>Step 4 runs before routing; step 5 does not</h3>
+<p>The two Dynatrace pages now agree. The OpenPipeline page says primary Grail tag rules <em>&quot;are evaluated before ingest-preprocessing time, before routing&quot;</em>. The enrichment best-practice page (updated Oct 14, 2026) says the same — <em>&quot;OpenPipeline primary Grail tag rules derive or assign primary Grail tags from existing signal fields before pipeline routing.&quot;</em> — and adds <em>&quot;Because the tags exist at routing time, you can use them for dynamic pipeline selection and bucket assignment.&quot;</em></p>
+<p>The line that matters is between steps 4 and 5. A step-4 tag rule can pick a pipeline or a bucket. A step-5 processor cannot: <em>&quot;Routing selects the custom pipeline before its processors run, so tags derived by processors in that selected pipeline can't influence that route.&quot;</em> Earlier revisions of this notebook treated step 4 as unsettled, because the best-practice page used to say OpenPipeline ran after routing; that sentence is gone from the page.</p>
+<h3>Step 4 overwrites by default</h3>
+<p>An OpenPipeline primary Grail tag rule is the right tool for normalizing a key that arrives under different names — <code>aws.tags.team</code>, <code>azure.tags.team</code>, a Kubernetes label — into one <code>primary_tags.team</code>. But <em>&quot;Existing primary_tags.</em> values are overwritten by default.&quot;* A broad rule added as a &quot;backstop&quot; will silently replace values that were set correctly at the source. Use the documented guard — a matching condition of <code>isNull(primary_tags.&lt;key&gt;)</code> — unless overwriting is what you intend.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/tags-best-practices">Best practices for enriching primary Grail fields and tags (DT docs)</a> — <em>&quot;OpenPipeline primary Grail tag rules derive or assign primary Grail tags from existing signal fields before pipeline routing.&quot;</em> and <em>&quot;Routing selects the custom pipeline before its processors run, so tags derived by processors in that selected pipeline can't influence that route.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent">Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;When the same key is set at both scopes, the process-level value wins for that process.&quot;</em> and <em>&quot;Enriching all data from a host based on a process or service property is not supported.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/get-started/primary-grail-tags">Set primary Grail tag rules in OpenPipeline (DT docs)</a> — <em>&quot;All rules are evaluated before ingest-preprocessing time, before routing, and apply globally, to any incoming record of any type.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/migrate/upgrade-from-oneagent-tagging-classic">Upgrade OneAgent classic auto-tagging to primary Grail tags (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="tag-shapes"></a></p>
+<h2>6. Three Tag Shapes You Will Query During the Migration</h2>
+<p>During the parallel run you query the classic entity model (to see what the zones did) and Grail (to see what the tags do) side by side. The same &quot;tag&quot; looks different in each, and mixing them up produces filters that run and match nothing.</p>
+<table>
+<thead>
+<tr>
+<th>Where</th>
+<th>Shape</th>
+<th>Example access</th>
+<th>Trap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Classic entities — <code>fetch dt.entity.host</code></td>
+<td><code>tags</code> is an <strong>array of strings</strong>, <code>&quot;key:value&quot;</code>, with a context prefix for some sources</td>
+<td><code>expand tags</code> then <code>startsWith(tags, &quot;Team:&quot;)</code></td>
+<td>OneAgent host tags appear as <code>&quot;[Environment]key:value&quot;</code></td>
+</tr>
+<tr>
+<td>Smartscape nodes — <code>smartscapeNodes &quot;HOST&quot;</code></td>
+<td><code>tags</code> is a <strong>record</strong>: standard tags and <code>primary_tags.*</code> keys together</td>
+<td><code>tags[primary_tags.team]</code> (unquoted bracket)</td>
+<td><code>matchesValue(tags, …)</code> on a record is always false</td>
+</tr>
+<tr>
+<td>Signals — <code>fetch logs</code> / <code>spans</code> / <code>events</code>, <code>timeseries</code></td>
+<td><code>primary_tags.&lt;key&gt;</code> is a <strong>top-level field</strong></td>
+<td><code>filter primary_tags.team == &quot;payments&quot;</code></td>
+<td>Standard tags are simply absent</td>
+</tr>
+</tbody>
+</table>
+<p>On the validation tenant (10/13/2026) one Smartscape host record held both kinds in the same <code>tags</code> record: two standard tags (an owner and a review date) next to <code>primary_tags.av_code</code> and <code>primary_tags.stage</code>. The classic <code>dt.entity.host</code> view of the same estate showed auto-tags — <code>Team</code>, <code>Org</code>, <code>Host Group</code> — on every host, none of which appear as <code>primary_tags.*</code> on its signals. That difference is the migration in miniature: the auto-tags exist, and Grail cannot see them.</p>
+<p>MZ2POL-05 §4.5 covers the record-vs-array trap in segment variables.</p>
+<p><a id="propagation"></a></p>
+<h2>7. Propagation Without Rules</h2>
+<p>Classic propagation was explicit. An auto-tag <em>&quot;defined on a process group is propagated vertically to related host and service entities,&quot;</em> and an entity-attribute MZ rule carries its own switches. The management-zone schema has eight:</p>
+<table>
+<thead>
+<tr>
+<th>Flag in <code>builtin:management-zones</code></th>
+<th>What it did</th>
+<th>What replaces it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>serviceToHostPropagation</code></td>
+<td>Services → their hosts</td>
+<td>Built in: the host's own tag</td>
+</tr>
+<tr>
+<td><code>serviceToPGPropagation</code></td>
+<td>Services → their process groups</td>
+<td>Built in: process-level <code>DT_TAGS</code> or the host tag</td>
+</tr>
+<tr>
+<td><code>pgToHostPropagation</code></td>
+<td>Process groups → their hosts</td>
+<td>Built in — set the value at host level</td>
+</tr>
+<tr>
+<td><code>pgToServicePropagation</code></td>
+<td>Process groups → services they provide</td>
+<td>Built in: <em>&quot;a primary_tags.</em> attribute set via DT_TAGS propagates to all signals from that process and its associated services&quot;*</td>
+</tr>
+<tr>
+<td><code>hostToPGPropagation</code></td>
+<td>Hosts → processes on them</td>
+<td>Built in: host enrichment is inherited by processes, containers, disks and network interfaces</td>
+</tr>
+<tr>
+<td><code>customDeviceGroupToCustomDevicePropagation</code></td>
+<td>Custom device groups → devices</td>
+<td>Set on the producer (extension configuration, API ingest) — see FAQ-26 §5.5 and §5.8</td>
+</tr>
+<tr>
+<td><code>azureToServicePropagation</code></td>
+<td>Azure entities → services</td>
+<td>Built-in cloud fields plus central cloud enrichment</td>
+</tr>
+<tr>
+<td><code>azureToPGPropagation</code></td>
+<td>Azure entities → connected process groups</td>
+<td>Same</td>
+</tr>
+</tbody>
+</table>
+<p>The Grail model has no flags. Dynatrace: <em>&quot;With primary Grail tags, propagation is built in. A primary_tags.</em> attribute defined at the host level is automatically present in logs, metrics, spans, and events on all relevant Smartscape nodes, and in any Davis events and problems they trigger.&quot;*</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+UHJvcGFnYXRpb246IFJ1bGUgRmxhZ3MgdnMgQnVpbHQgSW48L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMi41Ij5DbGFzc2ljIE1aIHJ1bGVzIG5lZWRlZCBhIGZsYWcgZm9yIGV2ZXJ5IGhvcC4gQSBwcmltYXJ5IHRhZyBzZXQgb25jZSByZWFjaGVzIGV2ZXJ5IGhvcCBieSBpdHNlbGY8L3RleHQ+CiAgPHJlY3QgeD0iMjAiIHk9IjcyIiB3aWR0aD0iNDMwIiBoZWlnaHQ9IjQwMCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNCIvPgogIDx0ZXh0IHg9IjIzNSIgeT0iOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTIuNSIgZm9udC13ZWlnaHQ9IjcwMCI+Q0xBU1NJQyDigJQgRUlHSFQgUFJPUEFHQVRJT04gRkxBR1M8L3RleHQ+CiAgPHJlY3QgeD0iMTYwIiB5PSIxMzAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNDQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMjM1IiB5PSIxNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlcnZpY2U8L3RleHQ+CiAgPHJlY3QgeD0iMTYwIiB5PSIyNTAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNDQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMjM1IiB5PSIyNzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlByb2Nlc3MgZ3JvdXA8L3RleHQ+CiAgPHJlY3QgeD0iMTYwIiB5PSIzNzAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNDQiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iMjM1IiB5PSIzOTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkhvc3Q8L3RleHQ+CiAgPGxpbmUgeDE9IjIxNSIgeTE9IjE3NCIgeDI9IjIxNSIgeTI9IjI0OCIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItYW1iZXIpIi8+CiAgPHRleHQgeD0iMTMwIiB5PSIyMTUiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMC41Ij5zZXJ2aWNlVG9QRzwvdGV4dD4KICA8bGluZSB4MT0iMjU1IiB5MT0iMjQ4IiB4Mj0iMjU1IiB5Mj0iMTc2IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1hbWJlcikiLz4KICA8dGV4dCB4PSIyNjYiIHk9IjIwNSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwLjUiPnBnVG9TZXJ2aWNlPC90ZXh0PgogIDxsaW5lIHgxPSIyMTUiIHkxPSIyOTQiIHgyPSIyMTUiIHkyPSIzNjgiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWFtYmVyKSIvPgogIDx0ZXh0IHg9IjE0NiIgeT0iMzM1IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAuNSI+cGdUb0hvc3Q8L3RleHQ+CiAgPGxpbmUgeDE9IjI1NSIgeTE9IjM2OCIgeDI9IjI1NSIgeTI9IjI5NiIgc3Ryb2tlPSIjRkZCODAwIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItYW1iZXIpIi8+CiAgPHRleHQgeD0iMjY2IiB5PSIzMzUiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMC41Ij5ob3N0VG9QRzwvdGV4dD4KICA8cGF0aCBkPSJNIDMxMiAxNTIgQyA0MDAgMjAwLCA0MDAgMzMwLCAzMTIgMzkwIiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1hbWJlcikiLz4KICA8dGV4dCB4PSIzNzIiIHk9IjI3MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEwLjUiPnNlcnZpY2VUb0hvc3Q8L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjQzMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPisgYXp1cmVUb1NlcnZpY2UsIGF6dXJlVG9QRywgY3VzdG9tRGV2aWNlR3JvdXBUb0N1c3RvbURldmljZS48L3RleHQ+CiAgPHRleHQgeD0iMzYiIHk9IjQ0NyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPlVudGlja2VkIGZsYWcgPSB0aGUgem9uZSBzaWxlbnRseSBzdG9wcyBhdCB0aGF0IGhvcC48L3RleHQ+CiAgPHJlY3QgeD0iNDgwIiB5PSI3MiIgd2lkdGg9IjQzMCIgaGVpZ2h0PSI0MDAiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtZGFzaGFycmF5PSI1IDQiLz4KICA8dGV4dCB4PSI2OTUiIHk9Ijk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEyLjUiIGZvbnQtd2VpZ2h0PSI3MDAiPkxBVEVTVCDigJQgUFJPUEFHQVRJT04gSVMgQlVJTFQgSU48L3RleHQ+CiAgPHJlY3QgeD0iNTAwIiB5PSIxMTAiIHdpZHRoPSIzOTAiIGhlaWdodD0iNTYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTEwIiB5PSIxMjkiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+SG9zdCB0YWc6IHByaW1hcnlfdGFncy50ZWFtPXBheW1lbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjUxMCIgeT0iMTQ2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+c2V0IG9uY2Ugd2l0aCAtLXNldC1ob3N0LXRhZyBvciBvbmVhZ2VudGN0bDwvdGV4dD4KICA8bGluZSB4MT0iNjk1IiB5MT0iMTY2IiB4Mj0iNjk1IiB5Mj0iMTg0IiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmVlbikiLz4KICA8cmVjdCB4PSI1MDAiIHk9IjE4NiIgd2lkdGg9IjM5MCIgaGVpZ2h0PSI1NiIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI1MTAiIHk9IjIwNSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5FdmVyeSBTbWFydHNjYXBlIG5vZGUgb24gdGhlIGhvc3Q8L3RleHQ+CiAgPHRleHQgeD0iNTEwIiB5PSIyMjIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5wcm9jZXNzZXMsIGNvbnRhaW5lcnMsIGRpc2tzLCBuZXR3b3JrIGludGVyZmFjZXM8L3RleHQ+CiAgPGxpbmUgeDE9IjY5NSIgeTE9IjI0MiIgeDI9IjY5NSIgeTI9IjI2MCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JlZW4pIi8+CiAgPHJlY3QgeD0iNTAwIiB5PSIyNjIiIHdpZHRoPSIzOTAiIGhlaWdodD0iNTYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTEwIiB5PSIyODEiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RXZlcnkgc2lnbmFsIGZyb20gdGhlbTwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjI5OCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmxvZ3MsIG1ldHJpY3MsIHNwYW5zLCBldmVudHM8L3RleHQ+CiAgPGxpbmUgeDE9IjY5NSIgeTE9IjMxOCIgeDI9IjY5NSIgeTI9IjMzNiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JlZW4pIi8+CiAgPHJlY3QgeD0iNTAwIiB5PSIzMzgiIHdpZHRoPSIzOTAiIGhlaWdodD0iNTYiIHJ4PSI3IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNTEwIiB5PSIzNTciIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+RXZlcnl0aGluZyBkZXJpdmVkIGZyb20gdGhvc2Ugc2lnbmFsczwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjM3NCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPnNlcnZpY2UgbWV0cmljcywgRGF2aXMgZXZlbnRzLCBwcm9ibGVtczwvdGV4dD4KICA8dGV4dCB4PSI1MDAiIHk9IjQyNCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPkRUX1RBR1Mgb24gb25lIHByb2Nlc3Mgb3ZlcnJpZGVzIHRoZSBob3N0IHZhbHVlIGZvciB0aGF0PC90ZXh0PgogIDx0ZXh0IHg9IjUwMCIgeT0iNDM5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+cHJvY2VzcyBhbmQgaXRzIHNlcnZpY2VzOyBob3N0IHRhZ3MgZmlsbCB0aGUga2V5cyBpdCBsZWF2ZXMgdW5zZXQuPC90ZXh0Pgo8L3N2Zz4K" alt="Propagation: rule flags vs built in" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Classic | Latest Dynatrace |
+|---|---|
+| Service ↔ process group ↔ host, each hop a separate flag (serviceToPG, pgToService, pgToHost, hostToPG, serviceToHost) plus azureToService, azureToPG, customDeviceGroupToCustomDevice | Host tag set once (--set-host-tag / oneagentctl) |
+| An unticked flag stops the zone at that hop | → every Smartscape node on the host (processes, containers, disks, network interfaces) |
+| — | → every signal from them (logs, metrics, spans, events) |
+| — | → everything derived (service metrics, Davis events, problems) |
+| — | DT_TAGS on one process overrides the host value for that process and its services |
+For environments where SVG doesn't render
+-->
+<h3>The direction reverses</h3>
+<p>Classic propagation could run <strong>upward</strong>: a rule on a <em>service</em> could pull its host into the zone. Built-in propagation runs <strong>downward</strong> from where the value is set — host to process to signal to derived data — and Dynatrace states the limit plainly: enriching all data from a host based on a process or service property is not supported.</p>
+<p>So a zone whose rule says &quot;services named <code>payment*</code>, plus their hosts and process groups&quot; does not translate into a single tag. Set the value where it is true:</p>
+<ul>
+<li>If the <strong>whole host</strong> belongs to the team, set it on the host.</li>
+<li>If only <strong>some processes</strong> do (shared hosts), set it per process with <code>DT_TAGS</code> — and accept that the host's own metrics are not that team's.</li>
+</ul>
+<p>That is usually more accurate than the zone was. A service-to-host flag put a shared host into every zone that touched it.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/dynatrace-api/environment-api/settings/schemas/builtin-management-zones">Management zones settings schema (DT docs)</a> — the eight propagation properties of the <code>ManagementZoneAttributeRule</code> object</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic">Differences between classic auto-tagging and primary Grail tags (DT docs)</a> — <em>&quot;A tag defined on a process group is propagated vertically to related host and service entities.&quot;</em> and <em>&quot;With primary Grail tags, propagation is built in.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent">Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;Enrichments defined on a host are inherited by the processes, containers, disks, and network interfaces on that host.&quot;</em></sub></li>
+<li><sub><strong>Derived:</strong> the &quot;what replaces it&quot; column maps each flag onto the documented built-in propagation paths; the custom-device and Azure rows route to the producer-specific enrichment in FAQ-26.</sub></li>
+</ul>
+</blockquote>
+<p><a id="timing"></a></p>
+<h2>8. Timing and the Silent Limits</h2>
+<p>Tags do not fail with errors. Every limit below lets data arrive normally — without the value — so a segment comes back short or a boundary hides nothing, and nobody is told.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnItYmx1ZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMTQ5NkZGIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JlZW4iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzczQkUyOCIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLWFtYmVyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNGRkI4MDAiLz48L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyci1yZWQiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI0RFMzUwQiIvPjwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyLXB1cnBsZSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjQTc4QkZBIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItY3lhbiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjMjJEM0VFIi8+PC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnItZ3JleSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjNjQ3NDhCIi8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+VGFncyBGaXJzdDogVGhlIE1pZ3JhdGlvbiBSZWFkaW5lc3MgR2F0ZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyLjUiPkVucmljaG1lbnQgaXMgZm9yd2FyZC1vbmx5LCBzbyBpdCBoYXMgdG8gbGFuZCDigJQgYW5kIGJlIGF1ZGl0ZWQg4oCUIGJlZm9yZSBhbnl0aGluZyBpcyBidWlsdCBvbiBpdDwvdGV4dD4KICA8cmVjdCB4PSIyMCIgeT0iOTAiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTA0IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjMwIiB5PSIxMDkiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iI0JGREJGRSIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+MSDCtyBQbGFuIHRoZSBzY2hlbWE8L3RleHQ+CiAgPHRleHQgeD0iMzAiIHk9IjEyNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmtleXMgKyBhbGxvd2VkIHZhbHVlczwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMTQzIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+b25lIG93bmVyIHBlciBwcm9kdWNlcjwvdGV4dD4KICA8dGV4dCB4PSIzMCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+YmVmb3JlIGFnZW50cyBpbnN0YWxsPC90ZXh0PgogIDxyZWN0IHg9IjIwMCIgeT0iOTAiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTA0IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjIxMCIgeT0iMTA5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjIgwrcgRW5yaWNoIGF0IHNvdXJjZTwvdGV4dD4KICA8dGV4dCB4PSIyMTAiIHk9IjEyNiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmhvc3QgdGFncywgRFRfVEFHUywgSzhzPC90ZXh0PgogIDx0ZXh0IHg9IjIxMCIgeT0iMTQzIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+Y2VudHJhbCBydWxlcywgT1RlbDwvdGV4dD4KICA8dGV4dCB4PSIyMTAiIHk9IjE2MCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmV4dGVuc2lvbnMsIHN5bnRoZXRpY3MsIFJVTTwvdGV4dD4KICA8cmVjdCB4PSIzODAiIHk9IjkwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjEwNCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSIzOTAiIHk9IjEwOSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj4zIMK3IEF1ZGl0IGNvdmVyYWdlPC90ZXh0PgogIDx0ZXh0IHg9IjM5MCIgeT0iMTI2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+wqc5IHF1ZXJpZXMgcGVyIHNpZ25hbDwvdGV4dD4KICA8dGV4dCB4PSIzOTAiIHk9IjE0MyIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwLjUiPmNsYXNzaWMtdnMtcHJpbWFyeSBwYXJpdHk8L3RleHQ+CiAgPHRleHQgeD0iMzkwIiB5PSIxNjAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij52YWx1ZSBkcmlmdCwgZGVyaXZlZCBkYXRhPC90ZXh0PgogIDxyZWN0IHg9IjU2MCIgeT0iOTAiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTA0IiByeD0iNyIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjU3MCIgeT0iMTA5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPjQgwrcgQnVpbGQgb24gaXQ8L3RleHQ+CiAgPHRleHQgeD0iNTcwIiB5PSIxMjYiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5zZWdtZW50cyDCtyBwb2xpY2llcyArPC90ZXh0PgogIDx0ZXh0IHg9IjU3MCIgeT0iMTQzIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+Ym91bmRhcmllcyDCtyB3b3JrZmxvd3M8L3RleHQ+CiAgPHRleHQgeD0iNTcwIiB5PSIxNjAiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5idWNrZXQgcm91dGluZzwvdGV4dD4KICA8cmVjdCB4PSI3NDAiIHk9IjkwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjEwNCIgcng9IjciIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzIyRDNFRSIgc3Ryb2tlLXdpZHRoPSIxLjIiLz4KICA8dGV4dCB4PSI3NTAiIHk9IjEwOSIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjQTVGM0ZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj41IMK3IFBhcmFsbGVsIHJ1biwgcmV0aXJlPC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iMTI2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+TVpzIHN0YXkgZm9yIGNsYXNzaWM8L3RleHQ+CiAgPHRleHQgeD0iNzUwIiB5PSIxNDMiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMC41Ij5wYWdlcyB1bnRpbCB1bnVzZWQsPC90ZXh0PgogIDx0ZXh0IHg9Ijc1MCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAuNSI+dGhlbiBkZWxldGU8L3RleHQ+CiAgPGxpbmUgeDE9IjE5MCIgeTE9IjE0MiIgeDI9IjE5OSIgeTI9IjE0MiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8bGluZSB4MT0iMzcwIiB5MT0iMTQyIiB4Mj0iMzc5IiB5Mj0iMTQyIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS42IiBtYXJrZXItZW5kPSJ1cmwoI2Fyci1ncmV5KSIvPgogIDxsaW5lIHgxPSI1NTAiIHkxPSIxNDIiIHgyPSI1NTkiIHkyPSIxNDIiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjYiIG1hcmtlci1lbmQ9InVybCgjYXJyLWdyZXkpIi8+CiAgPGxpbmUgeDE9IjczMCIgeTE9IjE0MiIgeDI9IjczOSIgeTI9IjE0MiIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjEuNiIgbWFya2VyLWVuZD0idXJsKCNhcnItZ3JleSkiLz4KICA8cmVjdCB4PSIzODAiIHk9IjIwMiIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIzMCIgcng9IjE1IiBmaWxsPSIjREUzNTBCIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMzgwIiB5PSIyMDIiIHdpZHRoPSIxNzAiIGhlaWdodD0iMzAiIHJ4PSIxNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5HQVRFIOKAlCBubyBidWlsZCB1bnRpbCBncmVlbjwvdGV4dD4KICA8bGluZSB4MT0iNDAiIHkxPSIzMzAiIHgyPSI4OTAiIHkyPSIzMzAiIHN0cm9rZT0iIzMzNDE1NSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iNDAiIHk9IjMxMiIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzNiIgcng9IjQiIGZpbGw9IiNERTM1MEIiIG9wYWNpdHk9IjAuMTAiLz4KICA8cmVjdCB4PSI0MCIgeT0iMzEyIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjM2IiByeD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjREUzNTBCIiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDx0ZXh0IHg9IjE5MCIgeT0iMzM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNBNUE1IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5kYXRhIGluZ2VzdGVkIGJlZm9yZSBlbnJpY2htZW50OiBubyB0YWcsIGV2ZXI8L3RleHQ+CiAgPHJlY3QgeD0iMzQwIiB5PSIzMTIiIHdpZHRoPSI1NTAiIGhlaWdodD0iMzYiIHJ4PSI0IiBmaWxsPSIjNzNCRTI4IiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iMzQwIiB5PSIzMTIiIHdpZHRoPSI1NTAiIGhlaWdodD0iMzYiIHJ4PSI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM3M0JFMjgiIHN0cm9rZS13aWR0aD0iMS4yIi8+CiAgPHRleHQgeD0iNjE1IiB5PSIzMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPmRhdGEgaW5nZXN0ZWQgYWZ0ZXI6IHRhZ2dlZCBvbiBldmVyeSBzaWduYWwgYW5kIGRlcml2ZWQgZGF0YTwvdGV4dD4KICA8bGluZSB4MT0iMzQwIiB5MT0iMjk2IiB4Mj0iMzQwIiB5Mj0iMzY0IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMi40Ii8+CiAgPHRleHQgeD0iMzQwIiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPmVucmljaG1lbnQgZ29lcyBsaXZlPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIzOTIiIHRleHQtYW5jaG9yPSJzdGFydCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMS41Ij5XaHkgdGhlIGdhdGUgbWF0dGVyczogYSBzZWdtZW50LCBib3VuZGFyeSBvciB3b3JrZmxvdyBidWlsdCBvbiBhIGtleSB0aGF0IG9ubHkgaGFsZiB0aGUgcHJvZHVjZXJzIHNlbmQ8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjQxMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPnJldHVybnMgcGFydGlhbCBkYXRhIHdpdGggbm8gZXJyb3IuIEhpc3RvcmljYWwgZGF0YSBpcyBuZXZlciBiYWNrLWZpbGxlZCwgc28gYSBsYXRlIHRhZyBhbHNvIG1lYW5zIGE8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjQyOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExLjUiPmNvbXBhcmlzb24gd2luZG93IHdpdGggYSBob2xlIGluIGl0LiBOZXcga2V5cyBjYW4gdGFrZSB1cCB0byAyNCBoIHRvIGFwcGVhciBpbiBhcHAgZmlsdGVyIGRyb3Bkb3duczwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iNDQ2IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEuNSI+KERRTCBzZWVzIHRoZW0gYXQgb25jZSksIGFuZCBtb3JlIHRoYW4gMjAgcHJpbWFyeSB0YWdzIHBlciBob3N0IG9yIHByb2Nlc3MgYXJlIGRyb3BwZWQgd2l0aG91dCB3YXJuaW5nLjwvdGV4dD4KPC9zdmc+Cg==" alt="The migration readiness gate" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Phase | What happens |
+|---|---|
+| 1 · Plan the schema | Keys and allowed values; one owner per producer; before agents are installed |
+| 2 · Enrich at source | Host tags, DT_TAGS, K8s, central rules, OTel; extensions, synthetics and RUM separately |
+| 3 · Audit coverage (gate) | §9 queries per signal; classic-vs-primary parity; value drift; derived data. No build until green |
+| 4 · Build on it | Segments, policies and boundaries, workflows, bucket routing |
+| 5 · Parallel run, retire | MZs stay for classic pages until unused, then are deleted |
+| Timeline | Data ingested before enrichment goes live never carries the tag; data after it carries it on every signal and derived data |
+For environments where SVG doesn't render
+-->
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>What Dynatrace says</th>
+<th>Migration consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Forward-only</strong></td>
+<td><em>&quot;Enrichment applies only to signals ingested after the configuration is active.&quot;</em></td>
+<td>Comparisons that span the switch-over have a hole in them. Turn enrichment on early, well before the cutover window</td>
+</tr>
+<tr>
+<td><strong>Plan before install</strong></td>
+<td><em>&quot;Plan your Primary Grail Tag schema before installing OneAgent or Dynatrace Operator.&quot;</em></td>
+<td>Renaming a key later means touching every host and every segment, policy and workflow that reads it</td>
+</tr>
+<tr>
+<td><strong>20 tags per host or process</strong></td>
+<td><em>&quot;Up to 20 primary tags per host or process; excess tags are silently dropped without a warning.&quot;</em></td>
+<td>Converting every auto-tag one-for-one can overflow the cap; the 21st key simply never arrives</td>
+</tr>
+<tr>
+<td><strong>Dropdown lag</strong></td>
+<td><em>&quot;A newly enriched primary tag key can take up to 24 hours to appear in the filter dropdowns of Dynatrace apps.&quot;</em></td>
+<td>A key missing from the segment editor is not missing from the data — check with DQL before re-doing the rollout</td>
+</tr>
+<tr>
+<td><strong>Central rule refresh</strong></td>
+<td>Agents pick up a change in <em>&quot;typically one refresh cycle, around five minutes&quot;</em></td>
+<td>Wait before auditing a new rule</td>
+</tr>
+<tr>
+<td><strong>No match, no tag</strong></td>
+<td>For DPL extraction: <em>&quot;If the pattern doesn't match, no tag is applied. There is no partial output.&quot;</em></td>
+<td>Hosts outside the naming convention silently fall out of every segment built on the extracted tag</td>
+</tr>
+<tr>
+<td><strong>Version floors</strong></td>
+<td>1.333+ for enrichment; 1.337+ per the metadata best-practice page for <code>primary_tags.*</code> and <code>dt.security_context</code>; 1.343+ for central rules</td>
+<td>An older OneAgent ignores the rule and its data stays untagged</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/metadata-enrichment">Best practices for metadata enrichment (DT docs)</a> — <em>&quot;Enrichment applies only to signals ingested after the configuration is active.&quot;</em>, <em>&quot;Plan your Primary Grail Tag schema before installing OneAgent or Dynatrace Operator.&quot;</em> and <em>&quot;OneAgent version 1.337 or later is required for primary_tags.</em> and dt.security_context enrichment.&quot;*</sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent">Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)</a> — <em>&quot;Up to 20 primary tags per host or process; excess tags are silently dropped without a warning.&quot;</em>, <em>&quot;A newly enriched primary tag key can take up to 24 hours to appear in the filter dropdowns of Dynatrace apps.&quot;</em> and <em>&quot;Primary Grail field and tag enrichment requires OneAgent version 1.333+.&quot;</em></sub></li>
+</ul>
+</blockquote>
+<p><a id="auditing"></a></p>
+<h2>9. Auditing Tag Readiness with DQL</h2>
+<p>These queries answer the questions the readiness gate asks. Run them in order. Steps 1–3 read the dictionary and the topology and scan <strong>zero bytes</strong>. Steps 4–8 read one hour of logs or metrics; keep the window short on a large tenant.</p>
+<p>Replace <code>primary_tags.team</code>, the classic tag key <code>Team:</code> and the zone name with your own. Every query below was executed against the validation tenant on 10/13/2026, using that tenant's own keys in place of the placeholders. The counts quoted after each step are that tenant on that day; expect yours to differ, and expect a live tenant's counts to move between runs.</p>
+<p><strong>Step 1 — which fields can carry access control on this tenant?</strong> The dictionary changes with the platform version, so read it from your own tenant.</p>
+<pre><code class="language-dql">// Which fields can an IAM policy use, and is the primary_tags namespace one of them?
+// Reads the semantic dictionary — zero bytes scanned.
+fetch dt.semantic_dictionary.fields
+| filter in(&quot;permission&quot;, tags) or startsWith(name, &quot;primary_tags&quot;)
+// The dictionary holds one row per field per data object (thousands for dt.security_context alone),
+// so summarize per field name first, or the 1,000-record result limit cuts off the answer.
+| summarize {rows = count(), iam_rows = countIf(in(&quot;permission&quot;, tags)), stability = collectDistinct(stability)}, by:{name}
+| fieldsAdd usable_in_iam = iam_rows &gt; 0
+| fields name, usable_in_iam, stability, rows
+| sort usable_in_iam asc, name asc
+</code></pre>
+<p><strong>Step 2 — which classic tag keys does the MZ estate rely on?</strong> Each key here is a candidate for a built-in field, a primary tag, a special field, or retirement (MZ2POL-11). Classic tags exist only on the classic entity model, so this step uses it deliberately.</p>
+<pre><code class="language-dql">// Inventory of classic tag keys on hosts — the vocabulary the zones were built from.
+// Classic entity model on purpose: auto-tags live only there. Zero bytes scanned.
+fetch dt.entity.host
+| fields entity.name, tags
+| expand tags
+| parse tags, &quot;LD:tag_key ':' LD&quot;
+| fieldsAdd tag_key = coalesce(tag_key, tags)
+| summarize {hosts = countDistinctExact(entity.name)}, by:{tag_key}
+| sort hosts desc
+| limit 50
+</code></pre>
+<p>On the validation tenant (10/13/2026) this returned the auto-tag keys <code>Team</code>, <code>Org</code> and <code>Host Group</code> on all 23 hosts, plus cloud-provider keys on a handful. None of the three auto-tags was available on signals as a <code>primary_tags.*</code> field — the gap Step 4 measures.</p>
+<p><strong>Step 3 — how much of the topology carries any primary tag or security context?</strong></p>
+<pre><code class="language-dql">// Host-level readiness: standard tags vs primary tags vs security context.
+// On Smartscape nodes `tags` is a record holding both standard and primary_tags.* keys.
+// Zero bytes scanned.
+smartscapeNodes &quot;HOST&quot;
+| fieldsAdd tag_text = toString(tags)
+| fieldsAdd has_any_tag = tag_text != &quot;{}&quot;,
+    has_primary_tag = contains(tag_text, &quot;\&quot;primary_tags.&quot;),
+    has_security_context = arraySize(dt.security_context) &gt; 0
+| summarize {hosts = count(),
+    with_any_tag = countIf(has_any_tag),
+    with_primary_tag = countIf(has_primary_tag),
+    with_security_context = countIf(has_security_context)}
+</code></pre>
+<p><strong>Step 4 — parity: does each host's telemetry carry the value its classic tag implied?</strong> This is the most useful single query in the migration. It compares, per host, the classic tag the zones used with the primary tag on that host's logs — and checks the <strong>values</strong>, not only presence.</p>
+<pre><code class="language-dql">// Classic tag vs primary tag, per host, by presence AND value.
+// Replace &quot;Team:&quot; (classic key) and primary_tags.team with your own.
+fetch logs, from:-1h
+| filter isNotNull(dt.entity.host)
+| summarize {records = count(),
+    with_primary = countIf(isNotNull(primary_tags.team)),
+    primary_values = collectDistinct(primary_tags.team)},
+    by:{dt.entity.host}
+| lookup [
+    fetch dt.entity.host
+    | fields id, entity.name, tags
+    | expand tags
+    | filter startsWith(tags, &quot;Team:&quot;)
+    | fieldsAdd classic_team = substring(tags, from: 5)
+    | fields id, entity.name, classic_team
+  ], sourceField: dt.entity.host, lookupField: id, fields: {entity.name, classic_team}
+| fieldsAdd primary_pct = round(100.0 * with_primary / records, decimals: 1),
+    value_match = in(classic_team, primary_values)
+| fieldsAdd status = if(isNull(classic_team), &quot;no classic tag&quot;,
+    else: if(primary_pct &lt; 100, &quot;classic only - coverage gap&quot;,
+    else: if(not(value_match), &quot;both - values differ&quot;, else: &quot;both - values agree&quot;)))
+| summarize {hosts = count()}, by:{status}
+| sort hosts desc
+</code></pre>
+<p>Read the four outcomes:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>both - values agree</code></td>
+<td>The tag is ready on this host</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>both - values differ</code></td>
+<td>Present everywhere, but means something else</td>
+<td>Fix the source or the extraction before building on it</td>
+</tr>
+<tr>
+<td><code>classic only - coverage gap</code></td>
+<td>Some of the host's telemetry lacks the primary tag</td>
+<td>Find the producer that is not enriched (FAQ-26 §5)</td>
+</tr>
+<tr>
+<td><code>no classic tag</code></td>
+<td>The zone never relied on this key for this host</td>
+<td>Expected for hosts outside the zones</td>
+</tr>
+</tbody>
+</table>
+<p>On the validation tenant (10/13/2026) <strong>all 15 hosts read <code>both - values differ</code></strong>: every record had the primary tag, and none of the values matched the classic team. A presence-only coverage check would have passed all 15.</p>
+<p><strong>Step 5 — acceptance test for one zone: does the tag select the same hosts the zone did?</strong></p>
+<pre><code class="language-dql">// Compare one management zone's host membership with the hosts whose data carries the tag value.
+// Replace the zone name and the primary tag condition.
+fetch logs, from:-1h
+| filter isNotNull(dt.entity.host)
+| summarize {tagged = countIf(primary_tags.team == &quot;payments&quot;), records = count()},
+    by:{dt.entity.host}
+| fieldsAdd carries_tag = tagged &gt; 0
+| lookup [
+    fetch dt.entity.host
+    | fields id, entity.name, managementZones
+  ], sourceField: dt.entity.host, lookupField: id, fields: {entity.name, managementZones}
+| fieldsAdd in_zone = in(&quot;Payments - Production&quot;, managementZones)
+| fieldsAdd verdict = if(in_zone and carries_tag, &quot;match&quot;,
+    else: if(in_zone, &quot;in zone, tag missing&quot;,
+    else: if(carries_tag, &quot;tagged, not in zone&quot;, else: &quot;neither&quot;)))
+| summarize {hosts = count()}, by:{verdict}
+| sort hosts desc
+</code></pre>
+<p><code>in zone, tag missing</code> hosts would disappear from the replacement; <code>tagged, not in zone</code> hosts would appear in it for the first time. On the validation tenant (10/13/2026), the stand-in zone and tag gave <strong>4 matches and 11 hosts tagged but not in the zone</strong> — a tag broader than the zone it was meant to replace. Either can be correct, but each needs a decision before cutover, not after.</p>
+<p><strong>Step 6 — coverage by host group, including data with no host at all.</strong></p>
+<pre><code class="language-dql">// Share of logs carrying the primary tag and the security context, per host group.
+// The null host-group row is data from producers with no OneAgent host — check it separately.
+fetch logs, from:-1h
+| summarize {total = count(),
+    team = countIf(isNotNull(primary_tags.team)),
+    sec_ctx = countIf(isNotNull(dt.security_context))},
+    by:{dt.host_group.id}
+| fieldsAdd team_pct = round(100.0 * team / total, decimals: 1),
+    sec_ctx_pct = round(100.0 * sec_ctx / total, decimals: 1)
+| sort total desc
+| limit 30
+</code></pre>
+<p>On the validation tenant (10/13/2026) the largest host group was 100% tagged, while the <strong>null host-group row — about 40% of all logs — was only 55% tagged</strong>. Host-based enrichment cannot reach data that has no host: API ingest, log shippers, remote extensions, cloud logs. Those producers need their own enrichment (FAQ-26 §5).</p>
+<p><strong>Step 7 — value drift: one meaning, several spellings.</strong></p>
+<pre><code class="language-dql">// Values of one key that differ only by case or whitespace — each would be a separate segment value.
+fetch logs, from:-1h
+| filter isNotNull(primary_tags.team)
+| summarize {records = count()}, by:{value = primary_tags.team}
+| fieldsAdd normalized = lower(trim(value))
+| summarize {spellings = countDistinct(value), variants = collectDistinct(value), records = sum(records)},
+    by:{normalized}
+| sort spellings desc, records desc
+| limit 30
+</code></pre>
+<p>Any row with <code>spellings</code> above 1 is drift. Read the <code>variants</code> column as well: values that are process names, host names or pattern fragments mean the key is being fed from the wrong input (§4).</p>
+<p><strong>Step 8 — do derived service metrics carry the value?</strong> SLOs, dashboards and alert routing mostly read service metrics, not raw spans.</p>
+<pre><code class="language-dql">// Service metrics split by security context and primary tag.
+// Rows where a key column is null are the uncovered share.
+timeseries requests = sum(dt.service.request.count), from:-2h,
+    by:{dt.security_context, primary_tags.team}
+| fieldsAdd total = arraySum(requests)
+| fieldsRemove requests, timeframe, interval
+| sort total desc
+| limit 20
+</code></pre>
+<blockquote>
+<p><strong>Never trust a zero here on its own.</strong> A <code>team</code> column of 0 everywhere usually means the key name is wrong, not that nothing is tagged. Sample the keys first — <code>fetch logs, from:-30m | fieldsKeep &quot;primary_tags.*&quot; | limit 20</code> — and treat a zero <code>total</code> as no data in the window.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags/migrate/upgrade-from-oneagent-tagging-classic">Upgrade OneAgent classic auto-tagging to primary Grail tags (DT docs)</a> — <em>&quot;Spot-check a host or process that previously relied on the classic rule and confirm the equivalent primary Grail tag or field is now present on its telemetry.&quot;</em>, <a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/metadata-enrichment">Best practices for metadata enrichment (DT docs)</a>. All eight queries executed against the validation tenant on 10/13/2026.</sub></p>
+</blockquote>
+<p><a id="readiness-gate"></a></p>
+<h2>10. The Readiness Gate</h2>
+<p>Do not start building segments, boundaries or alert routing until every box is ticked. Each one corresponds to a failure that returns partial data without an error.</p>
+<p><strong>Schema</strong></p>
+<ul>
+<li>[ ] Keys chosen and written down, following the existing cloud / Kubernetes / CMDB vocabulary rather than a new one</li>
+<li>[ ] Allowed values agreed for constrained keys (environment, stage, region, classification)</li>
+<li>[ ] Each dimension that restricts access is also written to <code>dt.security_context</code> in the same step (§4)</li>
+<li>[ ] Fewer than 20 primary tags per host or process, with room to spare</li>
+<li>[ ] Classic auto-tags that only surface built-in fields marked <strong>retire, don't migrate</strong> (§2)</li>
+</ul>
+<p><strong>Enrichment</strong></p>
+<ul>
+<li>[ ] Every producer in scope has an owner and a mechanism (§5; FAQ-26 §5 for extensions, synthetics, RUM, cloud, OTel)</li>
+<li>[ ] Central rules scoped to host groups where possible</li>
+<li>[ ] Any OpenPipeline primary-tag backstop guarded with <code>isNull(primary_tags.&lt;key&gt;)</code></li>
+<li>[ ] Enrichment live long enough before cutover for the comparison windows you need</li>
+</ul>
+<p><strong>Audit (§9)</strong></p>
+<ul>
+<li>[ ] Step 4 parity: no <code>both - values differ</code> and no unexplained <code>classic only - coverage gap</code></li>
+<li>[ ] Step 5 acceptance test run for each zone being replaced, with every difference decided</li>
+<li>[ ] Step 6: the null host-group row understood and covered</li>
+<li>[ ] Step 7: no drift</li>
+<li>[ ] Step 8: service metrics carry the key</li>
+</ul>
+<p>Then continue: segments (MZ2POL-05), policies and boundaries (MZ2POL-04, MZ2POL-08), alert routing (MZ2POL-09).</p>
+<hr />
+<h2>Summary</h2>
+<ol>
+<li><strong>Tags first.</strong> Management zones were computed after ingest from entity rules; Grail records must arrive carrying their context. Every MZ replacement reads a field on the record.</li>
+<li><strong>Classic constructs don't reach Grail.</strong> Auto-tagging rules and management zones are not evaluated for Grail data. They keep working on classic pages during the parallel run.</li>
+<li><strong>Promote, don't assume.</strong> Standard tags — cloud tags, Kubernetes labels, plain host tags — live only on Smartscape nodes. Promote them to <code>primary_tags.*</code> or a special field.</li>
+<li><strong>One value, every job.</strong> Write dimensions that restrict access to both <code>primary_tags.&lt;key&gt;</code> and <code>dt.security_context</code>, at the same time, from the same source.</li>
+<li><strong>Climb the ladder from the top.</strong> Built-in fields, then source, then central rules, then OpenPipeline tag rules with an <code>isNull</code> guard. If routing depends on the value, set it at source or centrally.</li>
+<li><strong>Propagation is built in, and downward.</strong> No flags; a value set on a host reaches its processes, signals and derived data, but not the other way round.</li>
+<li><strong>Audit values, not just presence</strong>, and pass the readiness gate before building on the tags.</li>
+</ol>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>MZ2POL-11: Translating Management Zone Rules into Source Attributes</strong> — the rule-by-rule catalog: every MZ rule type, property and operator, and where its logic goes.</li>
+<li><strong>MZ2POL-05</strong> for segments, <strong>MZ2POL-04</strong> and <strong>MZ2POL-08</strong> for policies and boundaries, <strong>MZ2POL-09</strong> for alert routing — each assumes this notebook's gate has passed.</li>
+<li><strong>FAQ-26</strong> for per-producer enrichment, <strong>FAQ-02</strong> for naming, <strong>K8S-10</strong> for Kubernetes.</li>
+</ul>
+<h2>Additional Resources</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/foundations/tags-difference-classic">Differences between classic auto-tagging and primary Grail tags (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/tags/migrate/upgrade-from-oneagent-tagging-classic">Upgrade OneAgent classic auto-tagging to primary Grail tags (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/tags/tags-strategy">Plan your tagging strategy (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags">Primary Grail fields and tags (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/tags/tags-best-practices">Best practices for enriching primary Grail fields and tags (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/upgrade/best-practices/stage-02-post-ingest-enrichment/metadata-enrichment">Best practices for metadata enrichment (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/tags/primary-tags/tags-domain-oneagent">Enrich OneAgent telemetry with primary Grail fields and tags (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/tags/tags-security-context">Configure security context (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/platform/openpipeline/get-started/primary-grail-tags">Set primary Grail tag rules in OpenPipeline (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/manage/identity-access-management-classic/permission-management/management-zones/management-zone-rules">Management-zone rules (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

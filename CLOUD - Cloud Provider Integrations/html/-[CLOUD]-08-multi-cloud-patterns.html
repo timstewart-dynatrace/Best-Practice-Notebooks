@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLOUD-08: Multi-Cloud Observability Patterns</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">CLOUD — Cloud Provider Integrations</a><span class="sep">/</span><span aria-current="page">CLOUD-08</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>CLOUD-08: Multi-Cloud Observability Patterns</h1>
+<blockquote>
+<p><strong>Series:</strong> CLOUD — Cloud Provider Integrations | <strong>Notebook:</strong> 8 of 8 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook covers strategies for building unified observability across multiple cloud providers with Dynatrace. You will learn how to create cross-cloud dashboards, establish consistent naming conventions, build unified alerting, compare costs across providers, and implement governance patterns for multi-cloud environments.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#challenges">Multi-Cloud Challenges</a></li>
+<li><a href="#unified-entities">Unified Entity Model</a></li>
+<li><a href="#cross-cloud-queries">Cross-Cloud Comparison Queries</a></li>
+<li><a href="#naming-conventions">Consistent Naming Conventions</a></li>
+<li><a href="#health-dashboards">Unified Health Dashboards</a></li>
+<li><a href="#alerting">Multi-Cloud Alerting</a></li>
+<li><a href="#cost-comparison">Cost Comparison Patterns</a></li>
+<li><a href="#governance">Governance Across Providers</a></li>
+<li><a href="#summary">Summary</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:metrics:read</code>, <code>storage:entities:read</code> + <code>storage:smartscape:read</code>, <code>storage:logs:read</code>, <code>storage:buckets:read</code> (Grail IAM permissions)</td>
+</tr>
+<tr>
+<td><strong>Cloud Integrations</strong></td>
+<td>At least two cloud providers configured (AWS, Azure, or GCP)</td>
+</tr>
+<tr>
+<td><strong>Prior Knowledge</strong></td>
+<td>CLOUD-01 through CLOUD-06</td>
+</tr>
+</tbody>
+</table>
+<p><a id="challenges"></a></p>
+<h2>1. Multi-Cloud Challenges</h2>
+<p>Organizations running workloads across multiple cloud providers face these observability challenges:</p>
+<table>
+<thead>
+<tr>
+<th>Challenge</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Terminology mismatch</strong></td>
+<td>AWS &quot;instances&quot;, Azure &quot;VMs&quot;, GCP &quot;instances&quot; are all compute but named differently</td>
+</tr>
+<tr>
+<td><strong>Metric inconsistency</strong></td>
+<td>CPU metrics have different units, granularity, and collection methods</td>
+</tr>
+<tr>
+<td><strong>Entity fragmentation</strong></td>
+<td>Same application may span multiple providers with no inherent linking</td>
+</tr>
+<tr>
+<td><strong>Alert fatigue</strong></td>
+<td>Separate alerting per provider leads to duplicate or conflicting alerts</td>
+</tr>
+<tr>
+<td><strong>Cost opacity</strong></td>
+<td>Each provider has different billing models, making comparison difficult</td>
+</tr>
+<tr>
+<td><strong>Skill silos</strong></td>
+<td>Teams specialize in one provider and lack visibility into others</td>
+</tr>
+</tbody>
+</table>
+<h3>How Dynatrace Helps</h3>
+<p>Dynatrace provides a <strong>unified entity model</strong> that normalizes cloud resources across providers:</p>
+<table>
+<thead>
+<tr>
+<th>Dynatrace Concept</th>
+<th>AWS</th>
+<th>Azure</th>
+<th>GCP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.entity.host</code></td>
+<td>EC2 Instance</td>
+<td>Virtual Machine</td>
+<td>Compute Instance</td>
+</tr>
+<tr>
+<td><code>dt.entity.service</code></td>
+<td>ECS Service / Lambda</td>
+<td>App Service</td>
+<td>Cloud Run / GKE Service</td>
+</tr>
+<tr>
+<td><code>dt.entity.kubernetes_cluster</code></td>
+<td>EKS</td>
+<td>AKS</td>
+<td>GKE</td>
+</tr>
+<tr>
+<td>Tags</td>
+<td>AWS Tags</td>
+<td>Azure Tags</td>
+<td>GCP Labels</td>
+</tr>
+<tr>
+<td><code>dt.host.cpu.usage</code> (OneAgent — the same key on every provider)</td>
+<td>CloudWatch CPU is a separate key under <code>cloud.aws.*</code></td>
+<td>Azure Monitor CPU is a separate key under <code>cloud.azure.*</code></td>
+<td>Cloud Monitoring CPU is a separate key under <code>cloud.gcp.*</code></td>
+</tr>
+</tbody>
+</table>
+<p><a id="unified-entities"></a></p>
+<h2>2. Unified Entity Model</h2>
+<p>Dynatrace normalizes cloud entities into a unified model. This enables cross-cloud queries using the same DQL regardless of provider.</p>
+<h3>Cross-Cloud Entity Types</h3>
+<table>
+<thead>
+<tr>
+<th>Entity Type</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.entity.host</code></td>
+<td>EC2, Azure VM, GCE instances (with OneAgent)</td>
+</tr>
+<tr>
+<td><code>dt.entity.service</code></td>
+<td>Any auto-detected service across all providers</td>
+</tr>
+<tr>
+<td><code>dt.entity.process_group</code></td>
+<td>Processes across all hosts/containers</td>
+</tr>
+<tr>
+<td><code>dt.entity.kubernetes_cluster</code></td>
+<td>EKS, AKS, GKE clusters</td>
+</tr>
+<tr>
+<td><code>dt.entity.kubernetes_node</code></td>
+<td>Worker nodes across all K8s providers</td>
+</tr>
+</tbody>
+</table>
+<h3>Cloud-Specific Entity Types</h3>
+<p>Some entities are provider-specific and require separate queries:</p>
+<table>
+<thead>
+<tr>
+<th>AWS</th>
+<th>Azure</th>
+<th>GCP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dt.entity.ec2_instance</code></td>
+<td><code>dt.entity.azure_vm</code></td>
+<td><code>dt.entity.cloud:gcp:gce_instance</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.aws_lambda_function</code></td>
+<td><code>dt.entity.azure_web_app</code></td>
+<td><code>dt.entity.cloud_application</code></td>
+</tr>
+<tr>
+<td><code>dt.entity.relational_database_service</code></td>
+<td><code>dt.entity.azure_sql_database</code></td>
+<td><code>dt.entity.cloud:gcp:cloudsql_database</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/ingest-from/amazon-web-services">AWS integration (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/microsoft-azure-services-classic/azure-native-integration">Azure Native Dynatrace Service (DT docs)</a>, <a href="https://docs.dynatrace.com/docs/ingest-from/google-cloud-platform">Google Cloud integration (DT docs)</a> — the provider-specific entity coverage behind both tables. Every entity type in this section was confirmed present in <code>dt.semantic_dictionary.models</code> on 08/27/2026 (the two GCP compute/database types re-checked 09/24/2026). <strong>Dictionary:</strong> note the grain distinction — <code>dt.entity.kubernetes_node</code> (worker nodes, 30 on the validation tenant) is <strong>not</strong> interchangeable with <code>dt.entity.cloud_application_instance</code> (pods, 2,611 over the same window); substituting one for the other over-counts by roughly 87×.</sub></p>
+</blockquote>
+<p><a id="cross-cloud-queries"></a></p>
+<h2>3. Cross-Cloud Comparison Queries</h2>
+<h3>Compute Resource Count by Provider</h3>
+<pre><code class="language-dql">// Compare compute resource counts across cloud providers (Smartscape)
+// smartscapeNodes takes a list of node types. Without from: it returns nodes seen in the default
+// window (the last 2 hours), which is the current inventory; from:-7d also counts instances that
+// were replaced in the week (85 vs 1,439 EC2 nodes on the validation tenant, 10/02/2026).
+smartscapeNodes {&quot;AWS_EC2_INSTANCE&quot;, &quot;AWS_LAMBDA_FUNCTION&quot;,
+                 &quot;AZURE_MICROSOFT_COMPUTE_VIRTUALMACHINES&quot;, &quot;AZURE_MICROSOFT_WEB_SITES&quot;}
+| summarize {resource_count = count()}, by:{type}
+| fieldsAdd provider = if(startsWith(type, &quot;AWS_&quot;), then: &quot;AWS&quot;, else: &quot;Azure&quot;)
+| sort provider asc, resource_count desc
+
+// Classic alternative (dt.entity.* is deprecated but still functional): on Clouds-app connections
+// the classic types under-count or return nothing for the same estate (validation tenant
+// 09/24/2026: EC2 6 classic vs 25 Smartscape; Lambda 2 vs 34; Azure VM 1 vs 8; Web App 0 vs 2),
+// so use dt.entity.ec2_instance / azure_vm / aws_lambda_function / azure_web_app with from:-7d
+// only where the classic AWS/Azure integration is the source.
+</code></pre>
+<h3>Unified Host CPU Usage (All Providers)</h3>
+<pre><code class="language-dql">// Top 10 hosts by CPU usage across all cloud providers
+timeseries avgCpu = avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}
+| fieldsAdd avgCpuValue = arrayAvg(avgCpu)
+| sort avgCpuValue desc
+| limit 10
+</code></pre>
+<h3>Kubernetes Cluster Comparison</h3>
+<pre><code class="language-dql">// List all Kubernetes clusters (EKS, AKS, GKE)
+fetch dt.entity.kubernetes_cluster, from:-7d
+| fields id, entity.name, tags
+| sort entity.name asc
+
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this under-counted against the notebook default window and still looked like a valid answer.
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;K8S_CLUSTER&quot;
+//   | fieldsKeep id, name, tags
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat &quot;tags&quot; field on Smartscape (resolve via getNodeField).
+</code></pre>
+<h3>Cross-Cloud Problem Analysis</h3>
+<pre><code class="language-dql">// detected problems from the last 7 days across all infrastructure
+fetch dt.davis.problems, from:-7d
+| filter event.status == &quot;CLOSED&quot;
+| summarize {problem_count = count(), avg_duration_hours = avg(resolved_problem_duration / 1h)}, by:{event.category}
+| sort problem_count desc
+</code></pre>
+<h3>Unified Log Analysis</h3>
+<pre><code class="language-dql">// Error log count by source across all providers in the last 6 hours
+fetch logs, from:-6h
+// status == &quot;ERROR&quot; also counts SEVERE, CRITICAL and FATAL logs; loglevel == &quot;ERROR&quot; misses them
+| filter status == &quot;ERROR&quot;
+| summarize error_count = count(), by:{log.source}
+| sort error_count desc
+| limit 15
+</code></pre>
+<p><a id="naming-conventions"></a></p>
+<h2>4. Consistent Naming Conventions</h2>
+<p>A naming standard is critical for multi-cloud environments. Apply consistent conventions across all providers.</p>
+<h3>Recommended Tag Schema</h3>
+<table>
+<thead>
+<tr>
+<th>Tag Key</th>
+<th>Purpose</th>
+<th>Example Values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cloud-provider</code></td>
+<td>Identify the source provider</td>
+<td><code>aws</code>, <code>azure</code>, <code>gcp</code></td>
+</tr>
+<tr>
+<td><code>environment</code></td>
+<td>Deployment environment</td>
+<td><code>prod</code>, <code>staging</code>, <code>dev</code></td>
+</tr>
+<tr>
+<td><code>team</code></td>
+<td>Owning team</td>
+<td><code>platform</code>, <code>backend</code>, <code>data</code></td>
+</tr>
+<tr>
+<td><code>application</code></td>
+<td>Application name</td>
+<td><code>checkout</code>, <code>catalog</code>, <code>auth</code></td>
+</tr>
+<tr>
+<td><code>cost-center</code></td>
+<td>Finance allocation</td>
+<td><code>CC-1234</code>, <code>engineering</code></td>
+</tr>
+<tr>
+<td><code>region</code></td>
+<td>Normalized region name</td>
+<td><code>us-east</code>, <code>eu-west</code>, <code>ap-south</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Region Normalization</h3>
+<p>Cloud providers use different region naming:</p>
+<table>
+<thead>
+<tr>
+<th>Normalized</th>
+<th>AWS</th>
+<th>Azure</th>
+<th>GCP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>us-east</code></td>
+<td><code>us-east-1</code></td>
+<td><code>eastus</code></td>
+<td><code>us-east1</code></td>
+</tr>
+<tr>
+<td><code>us-west</code></td>
+<td><code>us-west-2</code></td>
+<td><code>westus2</code></td>
+<td><code>us-west1</code></td>
+</tr>
+<tr>
+<td><code>eu-west</code></td>
+<td><code>eu-west-1</code></td>
+<td><code>westeurope</code></td>
+<td><code>europe-west1</code></td>
+</tr>
+<tr>
+<td><code>ap-south</code></td>
+<td><code>ap-southeast-1</code></td>
+<td><code>southeastasia</code></td>
+<td><code>asia-southeast1</code></td>
+</tr>
+</tbody>
+</table>
+<p>Use a normalized <code>region</code> tag in Dynatrace to enable cross-cloud region-based queries.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/manage/tags">Tags (DT docs)</a> — the tagging model these conventions target, <a href="https://docs.dynatrace.com/docs/manage/tags/tags-central-enrichment">Central enrichment rules (DT docs)</a> — normalizing provider tags into common dimensions centrally, which is the mechanism that makes a cross-cloud schema enforceable. <strong>Derived:</strong> the specific tag keys and the region-normalization map are this entry's convention, not a Dynatrace or cloud-provider standard — adopt or replace them wholesale, but do it once.</sub></p>
+</blockquote>
+<p><a id="health-dashboards"></a></p>
+<h2>5. Unified Health Dashboards</h2>
+<p>Build dashboards that show health across all providers in a single view.</p>
+<h3>Dashboard Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Query Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Infrastructure health</strong></td>
+<td><code>timeseries avg(dt.host.cpu.usage)</code></td>
+<td>CPU/memory across all hosts</td>
+</tr>
+<tr>
+<td><strong>Active problems</strong></td>
+<td><code>fetch dt.davis.problems</code></td>
+<td>Open problems across all infrastructure</td>
+</tr>
+<tr>
+<td><strong>Service health</strong></td>
+<td><code>fetch spans</code> with error rate</td>
+<td>Service-level error rates</td>
+</tr>
+<tr>
+<td><strong>Log errors</strong></td>
+<td><code>fetch logs</code> with <code>status == &quot;ERROR&quot;</code></td>
+<td>Error log trends</td>
+</tr>
+<tr>
+<td><strong>Kubernetes health</strong></td>
+<td><code>timeseries dt.kubernetes.*</code></td>
+<td>Container metrics across K8s clusters</td>
+</tr>
+</tbody>
+</table>
+<h3>Active Problems Across All Infrastructure</h3>
+<pre><code class="language-dql">// Active problems grouped by category
+fetch dt.davis.problems, from:-24h
+| filter event.status == &quot;ACTIVE&quot;
+| summarize active_count = countDistinct(event.id), by:{event.category}
+| sort active_count desc
+</code></pre>
+<h3>Service Error Rate (Unified)</h3>
+<pre><code class="language-dql">// Service-level error rates from spans in the last hour.
+//
+// span.status_code values are LOWERCASE. The uppercase literal matches nothing:
+// on a live tenant `== &quot;ERROR&quot;` matched 0 of 733,688 spans while `== &quot;error&quot;`
+// matched 19,932 in the same window (08/27/2026). The query still returns rows,
+// so the wrong literal reports 0% error rate for every service and nothing errors.
+//
+// Group by dt.service.name (corrected 09/24/2026): service.name is the OTel resource attribute and
+// was null on 75,781 of 82,406 server spans in one hour (09/24/2026), so grouping by it put most of
+// the estate in one null bucket. dt.service.name is the detected service and was set on all of them.
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| summarize {total = count(), errors = countIf(span.status_code == &quot;error&quot;)}, by:{dt.service.name}
+| fieldsAdd error_pct = errors * 100.0 / total
+| filter total &gt; 10
+| sort error_pct desc
+| limit 15
+</code></pre>
+<p><a id="alerting"></a></p>
+<h2>6. Multi-Cloud Alerting</h2>
+<h3>Alerting Strategy</h3>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Scope</th>
+<th>Alert Type</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Platform</strong></td>
+<td>All providers</td>
+<td>Dynatrace Intelligence anomaly</td>
+<td>Unexpected CPU spike on any host</td>
+</tr>
+<tr>
+<td><strong>Provider</strong></td>
+<td>Single cloud</td>
+<td>Metric threshold</td>
+<td>AWS Lambda error rate &gt; 5%</td>
+</tr>
+<tr>
+<td><strong>Application</strong></td>
+<td>Cross-cloud</td>
+<td>Custom metric</td>
+<td>Checkout service p95 &gt; 2s</td>
+</tr>
+<tr>
+<td><strong>Compliance</strong></td>
+<td>All providers</td>
+<td>Configuration</td>
+<td>Untagged resources detected</td>
+</tr>
+</tbody>
+</table>
+<h3>Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Use Dynatrace Intelligence</strong></td>
+<td>Let Dynatrace auto-detect anomalies across all infrastructure</td>
+</tr>
+<tr>
+<td><strong>Normalize severity</strong></td>
+<td>Map provider-specific severities to a unified scale</td>
+</tr>
+<tr>
+<td><strong>Route by team, not provider</strong></td>
+<td>Alert the application team regardless of which cloud has the issue</td>
+</tr>
+<tr>
+<td><strong>Deduplicate</strong></td>
+<td>Dynatrace Intelligence automatically correlates related issues across providers</td>
+</tr>
+<tr>
+<td><strong>Define SLOs at the service level</strong></td>
+<td>SLOs should be cloud-agnostic</td>
+</tr>
+</tbody>
+</table>
+<p><a id="cost-comparison"></a></p>
+<h2>7. Cost Comparison Patterns</h2>
+<p>While Dynatrace is not a cost management tool, you can use monitoring data to inform cost decisions.</p>
+<h3>Resource Utilization Comparison</h3>
+<pre><code class="language-dql">// Host utilization over the last 24 hours - identify underutilized hosts
+timeseries avgCpu = avg(dt.host.cpu.usage), from:-24h, by:{dt.entity.host}
+| fieldsAdd avgCpuValue = arrayAvg(avgCpu)
+| filter avgCpuValue &lt; 10
+| sort avgCpuValue asc
+| limit 20
+</code></pre>
+<h3>Cost Optimization Indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>What It Means</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CPU &lt; 10% sustained</strong></td>
+<td>Overprovisioned instance</td>
+<td>Rightsize or terminate</td>
+</tr>
+<tr>
+<td><strong>Memory &lt; 20% sustained</strong></td>
+<td>Overprovisioned memory</td>
+<td>Rightsize instance type</td>
+</tr>
+<tr>
+<td><strong>Lambda avg duration near timeout</strong></td>
+<td>Function at risk</td>
+<td>Optimize code or increase timeout</td>
+</tr>
+<tr>
+<td><strong>Zero traffic services</strong></td>
+<td>Unused resources</td>
+<td>Decommission candidates</td>
+</tr>
+<tr>
+<td><strong>K8s pods with no requests/limits</strong></td>
+<td>Uncontrolled resource usage</td>
+<td>Enforce resource quotas</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dql">// Kubernetes namespaces with highest resource consumption (cost proxies)
+timeseries nsCpu = sum(dt.kubernetes.container.cpu_usage, rollup: avg), from:-24h, by:{k8s.namespace.name}
+| fieldsAdd avgCpu = arrayAvg(nsCpu)
+| sort avgCpu desc
+| limit 10
+</code></pre>
+<p><a id="governance"></a></p>
+<h2>8. Governance Across Providers</h2>
+<h3>Governance Framework</h3>
+<table>
+<thead>
+<tr>
+<th>Governance Area</th>
+<th>Dynatrace Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Access control</strong></td>
+<td>Segments by cloud provider + environment; IAM policies per team</td>
+</tr>
+<tr>
+<td><strong>Tagging compliance</strong></td>
+<td>Monitor for untagged entities; alert on non-compliance</td>
+</tr>
+<tr>
+<td><strong>Cost allocation</strong></td>
+<td>Tag-based DPS/DDU cost attribution per team/application</td>
+</tr>
+<tr>
+<td><strong>Security posture</strong></td>
+<td>Runtime vulnerability analysis across all monitored hosts</td>
+</tr>
+<tr>
+<td><strong>Change tracking</strong></td>
+<td>detected events for configuration changes across providers</td>
+</tr>
+</tbody>
+</table>
+<h3>Tagging Compliance Check</h3>
+<pre><code class="language-dql">// Find hosts with no tags (potential compliance issue)
+//
+// Corrected 08/12/2026: `tags == &quot;&quot;` compares an ARRAY to a string and is never true, so the
+// clause was dead weight — the query only ever tested isNull(tags). Use arraySize() for the
+// &quot;present but empty&quot; case. tags is an array of &quot;key:value&quot; strings; to test for a SPECIFIC tag
+// use iAny(), e.g. `filter not iAny(startsWith(tags[], &quot;Team:&quot;))`, and remember to pair it with
+// isNull(tags) because iAny() over a null array yields null, which `not` does not turn true.
+fetch dt.entity.host, from:-7d
+| fields id, entity.name, tags
+| filter isNull(tags) or arraySize(tags) == 0
+| sort entity.name asc
+| limit 20
+
+// Time range required (corrected 08/12/2026): dt.entity.* is an event-LOOKBACK view — it returns
+// only entities SEEN in the query window, not the standing inventory. Without an explicit from:
+// this under-counted against the notebook default window and still looked like a valid answer.
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;HOST&quot;
+//   | fieldsKeep id, name
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+// Note: entity tags are not a flat &quot;tags&quot; field on Smartscape (resolve via getNodeField).
+</code></pre>
+<h3>Vulnerability Overview</h3>
+<pre><code class="language-dql">// Problem breakdown by category and status over the last 7 days
+//
+// Corrected 08/12/2026: the old cell filtered `event.category == &quot;SECURITY&quot;`, a value
+// dt.davis.problems never carries — the categories are ERROR, AVAILABILITY, CUSTOM_ALERT,
+// RESOURCE_CONTENTION and SLOWDOWN. It returned zero rows on a tenant holding 3,800+ problems and
+// read as &quot;no security problems&quot;, which is a much more reassuring statement than &quot;this query can
+// never match&quot;. Application-security findings are NOT Davis problems: they live in the
+// security.events / vulnerability data objects and are covered by the APPSEC series.
+fetch dt.davis.problems, from:-7d
+| summarize problem_count = countDistinct(event.id), by:{event.category, event.status}
+| sort problem_count desc
+</code></pre>
+<h3>Multi-Cloud Governance Best Practices</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Enforce consistent tagging</strong></td>
+<td>Use automation to reject untagged resources</td>
+</tr>
+<tr>
+<td><strong>Create cloud-agnostic SLOs</strong></td>
+<td>Define SLOs based on user experience, not infrastructure</td>
+</tr>
+<tr>
+<td><strong>Centralize alert routing</strong></td>
+<td>Single Dynatrace workflow routes alerts to the right team</td>
+</tr>
+<tr>
+<td><strong>Regular utilization reviews</strong></td>
+<td>Monthly review of underutilized resources across all providers</td>
+</tr>
+<tr>
+<td><strong>Unified runbooks</strong></td>
+<td>Runbooks should reference Dynatrace queries, not provider-specific tools</td>
+</tr>
+</tbody>
+</table>
+<p><a id="summary"></a></p>
+<h2>9. Summary</h2>
+<h3>Key Takeaways</h3>
+<ul>
+<li>Dynatrace's <strong>unified entity model</strong> normalizes cloud resources across AWS, Azure, and GCP</li>
+<li><strong>Cross-cloud queries</strong> use the same DQL patterns via shared entity types like <code>dt.entity.host</code> and <code>dt.entity.service</code></li>
+<li><strong>Consistent tagging</strong> (<code>cloud-provider</code>, <code>environment</code>, <code>team</code>, <code>application</code>) is the foundation of multi-cloud governance</li>
+<li><strong>Alerting should be team-based</strong>, not provider-based — route to the application owner regardless of which cloud has the issue</li>
+<li>Use <strong>utilization data</strong> to identify cost optimization opportunities across all providers</li>
+</ul>
+<h3>Series Complete</h3>
+<p>This notebook concludes the CLOUD series. For deeper dives into specific areas, explore:</p>
+<ul>
+<li><strong>K8S series</strong> — Advanced Kubernetes monitoring patterns</li>
+<li><strong>OPLOGS series</strong> — OpenPipeline log processing</li>
+<li><strong>IAM series</strong> — Enterprise IAM administration</li>
+<li><strong>WFLOW series</strong> — Workflows and alert notifications</li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DASH-06: Variables and Filters</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DASH — Dashboard Design &amp; Building</a><span class="sep">/</span><span aria-current="page">DASH-06</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DASH-06: Variables and Filters</h1>
+<blockquote>
+<p><strong>Series:</strong> DASH — Dashboard Design &amp; Building | <strong>Notebook:</strong> 6 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 10/26/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>Variables transform a static dashboard into a dynamic, reusable tool. Instead of building separate dashboards for each service, environment, or team, a single template dashboard with variables can serve everyone. This notebook covers variable types in Dynatrace dashboards, filter propagation across tiles, variable-driven DQL queries, DQL-populated dropdowns for services and hosts, and strategies for building template dashboards that work across environments.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#variable-types">Variable Types</a></li>
+<li><a href="#entity-selector-variables">Service and Host Variables (DQL Type)</a></li>
+<li><a href="#string-variables">List and Free-Text Variables</a></li>
+<li><a href="#variable-driven-queries">Variable-Driven DQL Queries</a></li>
+<li><a href="#filter-propagation">Filter Propagation</a></li>
+<li><a href="#template-patterns">Template Dashboard Patterns</a></li>
+<li><a href="#deep-links">Building Deep Links from Variables</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Dynatrace SaaS with Grail — the Dashboards app and DQL are not available on Dynatrace Managed, which keeps classic dashboards</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:metrics:read</code>, <code>storage:spans:read</code>, <code>storage:entities:read</code></td>
+</tr>
+<tr>
+<td><strong>Dashboard Access</strong></td>
+<td><code>document:documents:write</code> for creating dashboards with variables</td>
+</tr>
+<tr>
+<td><strong>Prior Reading</strong></td>
+<td>DASH-01 through DASH-05</td>
+</tr>
+</tbody>
+</table>
+<p><a id="variable-types"></a></p>
+<h2>1. Variable Types</h2>
+<blockquote>
+<p><strong>Variables gain a separate display name and key (SaaS 1.346 — staged rollout from 08/25/2026).</strong> A variable now carries two fields: a <strong>Name</strong>, the human-readable label shown in the UI with no symbol restrictions, and a <strong>Key</strong>, the code identifier used in DQL. Keys are auto-generated from names, and <strong>existing variables migrate automatically — no manual action</strong>. The rule that matters for everything below: <strong>DQL references the key, not the name.</strong> So <code>$myVar</code> in a query continues to resolve against the key, and renaming a variable for readability no longer breaks the queries that use it — which is precisely the coupling that made variable names awkward before. Until 1.346 reaches your tenant, name and identifier remain the same single field.</p>
+</blockquote>
+<p>The Dashboards app has four variable types:</p>
+<table>
+<thead>
+<tr>
+<th>Variable Type</th>
+<th>Values come from</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DQL</strong></td>
+<td>A DQL query that runs when you define the variable</td>
+<td>Service, host and namespace lists — this is how you build the entity dropdowns that classic dashboards called entity selectors (§2)</td>
+</tr>
+<tr>
+<td><strong>List</strong></td>
+<td>A comma-separated list of values you type</td>
+<td>Fixed sets: environments, log levels</td>
+</tr>
+<tr>
+<td><strong>Free text</strong></td>
+<td>Whatever the viewer types, with an optional default</td>
+<td>Search strings, IDs</td>
+</tr>
+<tr>
+<td><strong>Code</strong></td>
+<td>A JavaScript function you enter</td>
+<td>Values from an API, or computed lists</td>
+</tr>
+</tbody>
+</table>
+<p>There is no entity-selector type and no time-range variable: the timeframe is the dashboard's own selector, not a variable.</p>
+<h3>Variable Naming Conventions</h3>
+<table>
+<thead>
+<tr>
+<th>Convention</th>
+<th>Example</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Descriptive name</td>
+<td><code>$service</code>, <code>$environment</code></td>
+<td>Immediately clear what it filters</td>
+</tr>
+<tr>
+<td>Prefix by source</td>
+<td><code>$dql_services</code>, <code>$list_env</code></td>
+<td>Useful in complex dashboards</td>
+</tr>
+<tr>
+<td>Lowercase with underscores</td>
+<td><code>$k8s_namespace</code></td>
+<td>Consistent, readable in queries</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Important:</strong> DQL references the variable's <strong>key</strong>, not its display name. Dynatrace derives the key from the name by replacing every character that is not a letter or a number with <code>_</code>. Use the same key in every tile that should respond to the variable.</p>
+</blockquote>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new/components/dashboard-component-variable">Dashboard variables (DT docs)</a> — DQL: <em>&quot;the value is returned from a query you enter when you define the variable&quot;</em>; List: <em>&quot;a comma-separated values (CSV) list of values&quot;</em>; key: <em>&quot;Dynatrace derives a key from the name by replacing any character that isn't a letter or a number with <code>_</code>.&quot;</em></sub></p>
+</blockquote>
+<blockquote>
+<p><strong>Update (April 2026): Variables can drive dynamic coloring.</strong> Dashboard variables now feed into tile coloring and threshold conditions, not just query filters. A single template can apply different color thresholds per selected environment or team — for example, a stricter &quot;red above 2%&quot; error threshold in prod versus a looser one in dev — by referencing the variable in the tile's color rules. This keeps visual rules in sync with the variable selection instead of hard-coding one threshold for all contexts.</p>
+</blockquote>
+<p><a id="entity-selector-variables"></a></p>
+<h2>2. Service and Host Variables (DQL Type)</h2>
+<p>A dropdown of services or hosts is the most common variable. In the Dashboards app it is a <strong>DQL variable</strong> whose query returns the entities — over <code>smartscapeNodes</code> or <code>dt.entity.*</code> — as the two queries below do.</p>
+<h3>Common Service and Host Variables</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Query over</th>
+<th>Dashboard Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$host</code></td>
+<td><code>dt.entity.host</code></td>
+<td>Filter infrastructure metrics to a specific host</td>
+</tr>
+<tr>
+<td><code>$service</code></td>
+<td><code>dt.entity.service</code></td>
+<td>Filter spans and service metrics</td>
+</tr>
+<tr>
+<td><code>$process_group</code></td>
+<td><code>dt.entity.process_group</code></td>
+<td>Filter process-level metrics</td>
+</tr>
+<tr>
+<td><code>$k8s_cluster</code></td>
+<td><code>dt.entity.kubernetes_cluster</code></td>
+<td>Filter K8s workloads</td>
+</tr>
+</tbody>
+</table>
+<h3>Querying Available Entities for Variable Population</h3>
+<pre><code class="language-dql">// List all services — useful for populating a service variable
+fetch dt.entity.service
+| fieldsKeep id, entity.name
+| sort entity.name asc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;SERVICE&quot;
+//   | fieldsKeep id, name
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+</code></pre>
+<h3>Querying Hosts for Variable Population</h3>
+<pre><code class="language-dql">// List all hosts — useful for populating a host variable
+fetch dt.entity.host
+| fieldsKeep id, entity.name
+| sort entity.name asc
+
+// Smartscape equivalent (dt.entity.* is deprecated but still functional):
+//   smartscapeNodes &quot;HOST&quot;
+//   | fieldsKeep id, name
+//   | sort name asc
+// Caveat: Smartscape reflects CURRENT live topology and can report fewer entities than
+// the classic entity store; for a pre-migration inventory keep the classic query above.
+</code></pre>
+<p><a id="string-variables"></a></p>
+<h2>3. List and Free-Text Variables</h2>
+<p>A <strong>List</strong> variable offers a fixed set of values you type as a comma-separated list; a <strong>Free text</strong> variable takes whatever the viewer types. Both suit attributes like environment, namespace, or log level. When the set changes often, make it a DQL variable instead, using a discovery query like the ones below.</p>
+<h3>Discovering Available Values</h3>
+<p>Before creating a List variable, query the data to discover what values exist.</p>
+<pre><code class="language-dql">// Discover Kubernetes namespaces for variable options
+fetch logs, from:-1h
+| filter isNotNull(k8s.namespace.name)
+| summarize log_count = count(), by:{k8s.namespace.name}
+| sort log_count desc
+</code></pre>
+<pre><code class="language-dql">// Discover log levels for variable options
+fetch logs, from:-1h
+| summarize log_count = count(), by:{loglevel}
+| sort log_count desc
+</code></pre>
+<h3>Discovering Available Database Systems</h3>
+<pre><code class="language-dql">// Discover database systems for variable options
+fetch spans, from:-1h
+| filter span.kind == &quot;client&quot; and isNotNull(db.system)
+| summarize query_count = count(), by:{db.system}
+| sort query_count desc
+</code></pre>
+<p><a id="variable-driven-queries"></a></p>
+<h2>4. Variable-Driven DQL Queries</h2>
+<p>Once variables are defined on a dashboard, reference them in tile DQL queries using the <code>$key</code> syntax.</p>
+<blockquote>
+<p><strong>Do not put quotes around the variable.</strong> By default the value is substituted already wrapped in double quotes — <em>&quot;the variable value is wrapped in doublequote&quot;</em> characters — so <code>== $service</code> is right and <code>== &quot;$service&quot;</code> produces <code>&quot;&quot;checkout-service&quot;&quot;</code>, which matches nothing. The variables page documents other substitution strategies for when you need the raw value.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/dashboards-and-notebooks/dashboards-new/components/dashboard-component-variable">Dashboard variables (DT docs)</a></sub></p>
+</blockquote>
+<h3>Patterns for Using Variables in DQL</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>DQL Example</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Entity filter</td>
+<td><code>filter dt.entity.host == $host</code></td>
+<td>DQL variable returning host IDs</td>
+</tr>
+<tr>
+<td>String filter</td>
+<td><code>filter k8s.namespace.name == $namespace</code></td>
+<td>List or Free-text variable</td>
+</tr>
+<tr>
+<td>Pattern match</td>
+<td><code>filter k8s.namespace.name ~ $namespace_pattern</code></td>
+<td>Wildcard string variable</td>
+</tr>
+<tr>
+<td>Multi-select</td>
+<td><code>filter in(loglevel, array($log_levels))</code></td>
+<td>Multi-select variable — the documented form wraps it in <code>array()</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Example: Service Latency Filtered by Variable</h3>
+<p>In a dashboard tile, this query would use the <code>$service</code> variable. In a notebook, we use a concrete value to demonstrate the pattern.</p>
+<pre><code class="language-dql">// Service latency filtered by entity — dashboard would use $service variable
+//
+// Corrected 08/12/2026: `makeTimeseries` takes a BARE aggregation — dividing inside it
+// (`percentile(duration, 50) / 1ms`) fails with &quot;the parameter has to be an expression-based
+// timeseries aggregation&quot;. Aggregate first, convert afterwards in `fieldsAdd`. Note the unit
+// conversion also changes: makeTimeseries yields a numeric array in NANOSECONDS, not a duration,
+// so `/ 1ms` silently yields null on the array — divide by 1000000.0 instead.
+// In a dashboard tile the filter becomes: filter dt.entity.service == $service
+fetch spans, from:-1h
+| filter span.kind == &quot;server&quot;
+| filter isNotNull(dt.entity.service)
+| makeTimeseries {p50 = percentile(duration, 50), p95 = percentile(duration, 95)}, interval:5m, by:{dt.entity.service}
+| fieldsAdd p50_ms = p50[] / 1000000.0, p95_ms = p95[] / 1000000.0
+| fieldsRemove p50, p95
+</code></pre>
+<h3>Example: Log Analysis with Namespace and Level Variables</h3>
+<pre><code class="language-dql">// Log analysis — dashboard would use $namespace and $loglevel variables
+// In a dashboard tile: filter k8s.namespace.name == $namespace and loglevel == $loglevel
+fetch logs, from:-1h
+| filter isNotNull(k8s.namespace.name)
+| filterOut loglevel == &quot;NONE&quot;
+| makeTimeseries log_count = count(), interval:5m, by:{k8s.namespace.name, loglevel}
+</code></pre>
+<h3>Example: Metrics with Host Variable</h3>
+<pre><code class="language-dql">// CPU and memory for selected host — dashboard would use $host variable
+// In a dashboard tile: filter:dt.entity.host == $host
+timeseries avg_cpu = avg(dt.host.cpu.usage), from:-2h, by:{dt.entity.host}
+| fieldsAdd avg_cpu_val = arrayAvg(avg_cpu)
+| sort avg_cpu_val desc
+| limit 5
+</code></pre>
+<p><a id="filter-propagation"></a></p>
+<h2>5. Filter Propagation</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KCiAgPHRleHQgeD0iNDY1IiB5PSIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+VmFyaWFibGUgKyBGaWx0ZXIgUHJvcGFnYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+VXNlciBzZWxlY3RzIGEgdmFsdWUg4oaSIHZhcmlhYmxlIHN1YnN0aXR1dGlvbiDihpIgdGlsZXMgcmUtZXhlY3V0ZSDihpIgb25seSByZWZlcmVuY2VkIHRpbGVzIHVwZGF0ZTwvdGV4dD4KCiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJwcm9wQXJyb3ciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTSAwIDAgTCAxMCA1IEwgMCAxMCB6IiBmaWxsPSIjQTc4QkZBIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9InByb3BBcnJvd0dyZWVuIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzczQkUyOCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJwcm9wQXJyb3dHcmF5IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzk0QTNCOCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgoKICA8IS0tID09PT09PT09PT09PSBTVEVQIDE6IFZhcmlhYmxlIGRlZmluaXRpb24gKyBkcm9wZG93biA9PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iNDAiIHk9IjgwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iI0E3OEJGQSIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjQTc4QkZBIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIxMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPuKRoCBWYXJpYWJsZSBEZWZpbml0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjE4MCIgeT0iMTIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EYXNoYm9hcmQgY29uZmlnICsgZHJvcGRvd248L3RleHQ+CgogIDxyZWN0IHg9IjU1IiB5PSIxMzgiIHdpZHRoPSIyNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgcng9IjQiLz4KICA8dGV4dCB4PSI2NSIgeT0iMTUzIiBmaWxsPSIjRERENkZFIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5WYXJpYWJsZTogJHNlcnZpY2U8L3RleHQ+CiAgPHRleHQgeD0iNjUiIHk9IjE2NyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj50eXBlOiBEUUwgwrcgbXVsdGktc2VsZWN0OiBmYWxzZTwvdGV4dD4KICA8dGV4dCB4PSI2NSIgeT0iMTgwIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPnF1ZXJ5OiBzbWFydHNjYXBlTm9kZXMgIlNFUlZJQ0UiIHwgZmllbGRzIG5hbWU8L3RleHQ+CgogIDxyZWN0IHg9IjU1IiB5PSIyMDAiIHdpZHRoPSIyNTAiIGhlaWdodD0iNDYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNjUiIHk9IjIxNiIgZmlsbD0iI0RERDZGRSIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+VXNlciBkcm9wZG93biBVSTwvdGV4dD4KICA8cmVjdCB4PSI2NSIgeT0iMjIyIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMEYxNzJBIiBzdHJva2U9IiNBNzhCRkEiIHJ4PSIyIi8+CiAgPHRleHQgeD0iNzUiIHk9IjIzNiIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+4pa8IGNoZWNrb3V0LXNlcnZpY2U8L3RleHQ+CiAgPHRleHQgeD0iMjg1IiB5PSIyMzYiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSI+4oyEPC90ZXh0PgoKICA8IS0tIEFycm93IDEg4oaSIDI6IHN1YnN0aXR1dGlvbiAtLT4KICA8bGluZSB4MT0iMzIwIiB5MT0iMTcwIiB4Mj0iMzcwIiB5Mj0iMTcwIiBzdHJva2U9IiNBNzhCRkEiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNwcm9wQXJyb3cpIi8+CiAgPHRleHQgeD0iMzQ1IiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iOSI+c3Vic3RpdHV0ZTwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gU1RFUCAyOiBEUUwgc3Vic3RpdHV0aW9uID09PT09PT09PT09PSAtLT4KICA8cmVjdCB4PSIzNzAiIHk9IjgwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iIzE0OTZGRiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNTEwIiB5PSIxMDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPuKRoSBEUUwgU3Vic3RpdHV0aW9uPC90ZXh0PgogIDx0ZXh0IHg9IjUxMCIgeT0iMTIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj4kdmFyaWFibGUg4oaSIHVzZXItc2VsZWN0ZWQgdmFsdWU8L3RleHQ+CgogIDxyZWN0IHg9IjM4NSIgeT0iMTM4IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjU1IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiMxNDk2RkYiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMzk1IiB5PSIxNTIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjcwMCI+VGlsZSBxdWVyeSAodGVtcGxhdGUpPC90ZXh0PgogIDx0ZXh0IHg9IjM5NSIgeT0iMTY4IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5mZXRjaCBzcGFucywgZnJvbTotMWg8L3RleHQ+CiAgPHRleHQgeD0iMzk1IiB5PSIxODAiIGZpbGw9IiNBNzhCRkEiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPnwgZmlsdGVyIGR0LnNlcnZpY2UubmFtZSA9PSAkc2VydmljZTwvdGV4dD4KICA8dGV4dCB4PSIzOTUiIHk9IjE5MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+fCBzdW1tYXJpemUgcDk1ID0gLi4uPC90ZXh0PgoKICA8cmVjdCB4PSIzODUiIHk9IjIwMSIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI0OCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjMTQ5NkZGIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjQiLz4KICA8dGV4dCB4PSIzOTUiIHk9IjIxNSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5IiBmb250LXdlaWdodD0iNzAwIj5SZXNvbHZlZCBxdWVyeSAoZXhlY3V0ZWQpPC90ZXh0PgogIDx0ZXh0IHg9IjM5NSIgeT0iMjMxIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj5mZXRjaCBzcGFucywgZnJvbTotMWg8L3RleHQ+CiAgPHRleHQgeD0iMzk1IiB5PSIyNDQiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOC41IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj58IGZpbHRlciBkdC5zZXJ2aWNlLm5hbWUgPT0gImNoZWNrb3V0LXNlcnZpY2UiPC90ZXh0PgoKICA8IS0tIEFycm93IDIg4oaSIDM6IHRpbGVzIC0tPgogIDxsaW5lIHgxPSI2NTAiIHkxPSIxNzAiIHgyPSI3MDAiIHkyPSIxNzAiIHN0cm9rZT0iIzE0OTZGRiIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI3Byb3BBcnJvd0dyYXkpIi8+CiAgPHRleHQgeD0iNjc1IiB5PSIxNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNCRkRCRkUiIGZvbnQtc2l6ZT0iOSI+ZXhlY3V0ZTwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gU1RFUCAzOiBUaWxlIHJlLWV4ZWN1dGlvbiA9PT09PT09PT09PT0gLS0+CiAgPHJlY3QgeD0iNzAwIiB5PSI4MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxODAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iMTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj7ikaIgVGlsZSBSZW5kZXJzPC90ZXh0PgogIDx0ZXh0IHg9IjgwMCIgeT0iMTIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5GaWx0ZXJlZCB0byBjaGVja291dDwvdGV4dD4KCiAgPHJlY3QgeD0iNzE1IiB5PSIxMzgiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTEwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iODAwIiB5PSIxNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPlA5NSBMYXRlbmN5IMK3IGNoZWNrb3V0PC90ZXh0PgogIDxwb2x5bGluZSBwb2ludHM9IjcyNSwyMTAgNzQwLDIwNSA3NTUsMjAwIDc3MCwyMDggNzg1LDE5NSA4MDAsMTkwIDgxNSwyMDAgODMwLDE5NSA4NDUsMTg4IDg2MCwxOTIgODc1LDE4NSIKICAgICAgICAgICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjODZFRkFDIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxsaW5lIHgxPSI3MjAiIHkxPSIyMjAiIHgyPSI4ODAiIHkyPSIyMjAiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIwLjUiLz4KICA8dGV4dCB4PSI4MDAiIHk9IjIzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij4yMjBtczwvdGV4dD4KCiAgPCEtLSA9PT09PT09PT09PT0gTG93ZXIgaGFsZjogd2hpY2ggdGlsZXMgdXBkYXRlIC8gZG9uJ3QgPT09PT09PT09PT09IC0tPgogIDx0ZXh0IHg9IjQ2NSIgeT0iMjkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNzAwIj5XaGljaCB0aWxlcyB1cGRhdGUgd2hlbiAkc2VydmljZSBjaGFuZ2VzPzwvdGV4dD4KCiAgPCEtLSBMRUZUOiB0aWxlcyB0aGF0IFVTRSAkc2VydmljZSAodXBkYXRlKSAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMzA1IiB3aWR0aD0iNDI1IiBoZWlnaHQ9IjE3MCIgZmlsbD0iIzczQkUyOCIgb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjNzNCRTI4IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMjUyIiB5PSIzMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI3MDAiPuKchSBUaWxlcyByZWZlcmVuY2luZyAkc2VydmljZSDigJQgVVBEQVRFPC90ZXh0PgoKICA8cmVjdCB4PSI1NSIgeT0iMzQwIiB3aWR0aD0iMTk1IiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMTUyIiB5PSIzNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPlA5NSBMYXRlbmN5IFRpbGU8L3RleHQ+CiAgPHRleHQgeD0iNjUiIHk9IjM3MiIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj58IGZpbHRlciBkdC5zZXJ2aWNlLm5hbWUgPT0gJHNlcnZpY2U8L3RleHQ+CiAgPHRleHQgeD0iMTUyIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOSI+4oaSIHJlLWV4ZWN1dGVzIOKckzwvdGV4dD4KCiAgPHJlY3QgeD0iMjYwIiB5PSIzNDAiIHdpZHRoPSIxOTUiIGhlaWdodD0iNjAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjQiLz4KICA8dGV4dCB4PSIzNTciIHk9IjM1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9IjcwMCI+RXJyb3IgUmF0ZSBUaWxlPC90ZXh0PgogIDx0ZXh0IHg9IjI3MCIgeT0iMzcyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPnwgZmlsdGVyIGR0LnNlcnZpY2UubmFtZSA9PSAkc2VydmljZTwvdGV4dD4KICA8dGV4dCB4PSIzNTciIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSI5Ij7ihpIgcmUtZXhlY3V0ZXMg4pyTPC90ZXh0PgoKICA8cmVjdCB4PSI1NSIgeT0iNDA4IiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iMjU1IiB5PSI0MjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPlRvcCBFbmRwb2ludHMgVGFibGU8L3RleHQ+CiAgPHRleHQgeD0iNjUiIHk9IjQ0MCIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIj58IGZpbHRlciBkdC5zZXJ2aWNlLm5hbWUgPT0gJHNlcnZpY2U8L3RleHQ+CiAgPHRleHQgeD0iMjU1IiB5PSI0NTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iOSI+4oaSIHJlLWV4ZWN1dGVzIOKckyAoZmlsdGVyZWQgdG8gY2hlY2tvdXQgZW5kcG9pbnRzIG9ubHkpPC90ZXh0PgoKICA8IS0tIFJJR0hUOiB0aWxlcyB0aGF0IERPTidUIHVzZSAkc2VydmljZSAoZG9uJ3QgdXBkYXRlKSAtLT4KICA8cmVjdCB4PSI0NzUiIHk9IjMwNSIgd2lkdGg9IjQxNSIgaGVpZ2h0PSIxNzAiIGZpbGw9IiM5NEEzQjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzk0QTNCOCIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgogIDx0ZXh0IHg9IjY4MiIgeT0iMzI4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRTJFOEYwIiBmb250LXNpemU9IjEzIiBmb250LXdlaWdodD0iNzAwIj7imqogVGlsZXMgbm90IHJlZmVyZW5jaW5nICRzZXJ2aWNlIOKAlCBVTkNIQU5HRUQ8L3RleHQ+CgogIDxyZWN0IHg9IjQ5MCIgeT0iMzQwIiB3aWR0aD0iMTk1IiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM5NEEzQjgiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNTg3IiB5PSIzNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNFMkU4RjAiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPlRvdGFsIEhvc3RzIFRpbGU8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSIzNzIiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+c21hcnRzY2FwZU5vZGVzICJIT1NUIiB8IGNvdW50PC90ZXh0PgogIDx0ZXh0IHg9IjU4NyIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPuKGkiBzdGF5cyBhdCAxNDIgaG9zdHM8L3RleHQ+CgogIDxyZWN0IHg9IjY5NSIgeT0iMzQwIiB3aWR0aD0iMTk1IiBoZWlnaHQ9IjYwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM5NEEzQjgiIHJ4PSI0Ii8+CiAgPHRleHQgeD0iNzkyIiB5PSIzNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNFMkU4RjAiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPkFjdGl2ZSBQcm9ibGVtcyBUaWxlPC90ZXh0PgogIDx0ZXh0IHg9IjcwNSIgeT0iMzcyIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiPmZldGNoIGR0LmRhdmlzLnByb2JsZW1zPC90ZXh0PgogIDx0ZXh0IHg9Ijc5MiIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjkiPuKGkiBzdGF5cyBhdCAzIChhbGwgcHJvYmxlbXMpPC90ZXh0PgoKICA8cmVjdCB4PSI0OTAiIHk9IjQwOCIgd2lkdGg9IjQwMCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjOTRBM0I4IiByeD0iNCIvPgogIDx0ZXh0IHg9IjY5MCIgeT0iNDI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRTJFOEYwIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj5SZWNlbnQgRGVwbG95bWVudHMgVGFibGU8L3RleHQ+CiAgPHRleHQgeD0iNTAwIiB5PSI0NDAiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iOSIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSI+ZmV0Y2ggZXZlbnRzIHwgZmlsdGVyIGV2ZW50LnR5cGUgPT0gIkNVU1RPTV9ERVBMT1lNRU5UIjwvdGV4dD4KICA8dGV4dCB4PSI2OTAiIHk9IjQ1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSI5Ij7ihpIgc2hvd3MgYWxsIHNlcnZpY2VzJyBkZXBsb3ltZW50cyAobm8gJHNlcnZpY2UgZmlsdGVyKTwvdGV4dD4KPC9zdmc+Cg==" alt="Variable + Filter Propagation" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Step | What happens |
+|------|--------------|
+| 1. Variable definition | Dashboard config defines $service with a query-based dropdown |
+| 2. User selects value | "checkout-service" picked from dropdown |
+| 3. DQL substitution | `\| filter dt.service.name == $service` becomes `\| filter dt.service.name == "checkout-service"` in tile queries (the substitution adds the quotes) |
+| 4. Tiles re-execute | Tiles referencing $service re-run; tiles not referencing it stay unchanged |
+Tiles that reference $service: P95 Latency, Error Rate, Top Endpoints (all update). Tiles that don't: Total Hosts, Active Problems, Recent Deployments (unchanged).
+For environments where SVG doesn't render
+-->
+<p>Filter propagation ensures that when a user selects a variable value, all relevant tiles update simultaneously.</p>
+<h3>How Filter Propagation Works</h3>
+<ol>
+<li>User selects a value from the variable dropdown (e.g., selects a specific service)</li>
+<li>All tiles that reference <code>$service</code> in their query re-execute with the new filter</li>
+<li>Tiles that do not reference the variable remain unchanged</li>
+</ol>
+<h3>Best Practices for Filter Propagation</h3>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Use the same variable name in all related tiles</strong></td>
+<td>Ensures consistent filtering across the dashboard</td>
+</tr>
+<tr>
+<td><strong>Document which tiles respond to which variables</strong></td>
+<td>Add a markdown tile listing variable-tile mappings</td>
+</tr>
+<tr>
+<td><strong>Provide an &quot;All&quot; option</strong></td>
+<td>Let users remove the filter to see aggregate data</td>
+</tr>
+<tr>
+<td><strong>Test with extreme values</strong></td>
+<td>Select the busiest and quietest entities to verify layout holds</td>
+</tr>
+<tr>
+<td><strong>Chain variables</strong></td>
+<td>Use one variable's value to filter another variable's options</td>
+</tr>
+</tbody>
+</table>
+<h3>Variable Chaining Pattern</h3>
+<p>For hierarchical filtering (e.g., select a cluster, then see only namespaces in that cluster), use DQL variables where the second variable's query references the first.</p>
+<pre><code class="language-dql">// Namespaces filtered by cluster — would be a DQL variable
+// In variable config: references $cluster variable
+fetch logs, from:-1h
+| filter isNotNull(k8s.namespace.name) and isNotNull(k8s.cluster.name)
+| summarize log_count = count(), by:{k8s.cluster.name, k8s.namespace.name}
+| sort k8s.cluster.name asc, log_count desc
+</code></pre>
+<p><a id="template-patterns"></a></p>
+<h2>6. Template Dashboard Patterns</h2>
+<p>Template dashboards use variables so aggressively that a single dashboard serves multiple teams or environments.</p>
+<h3>Pattern 1: Multi-Environment Dashboard</h3>
+<p>A single dashboard with an <code>$environment</code> variable (prod, staging, dev) that filters all tiles.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Values</th>
+<th>Applied To</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$environment</code></td>
+<td>prod, staging, dev</td>
+<td>Namespace filter, host group filter</td>
+</tr>
+<tr>
+<td><code>$service</code></td>
+<td>(DQL variable)</td>
+<td>Service-specific tiles</td>
+</tr>
+</tbody>
+</table>
+<p>Leave the time window to the dashboard's own timeframe selector — it is not a variable.</p>
+<h3>Pattern 2: Team-Owned Service Dashboard</h3>
+<p>Each team uses the same template but selects their services.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Source</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$team_services</code></td>
+<td>DQL: services tagged with team name</td>
+<td>Multi-select DQL variable</td>
+</tr>
+<tr>
+<td><code>$severity</code></td>
+<td>List: ERROR, WARN, INFO</td>
+<td>Log level filter</td>
+</tr>
+</tbody>
+</table>
+<h3>Discovering Tags for Team-Based Variables</h3>
+<pre><code class="language-dql">// Discover service tags — useful for building team-based variables
+fetch dt.entity.service
+| expand tags
+| summarize service_count = count(), by:{tags}
+| sort service_count desc
+| limit 20
+
+// Smartscape note (dt.entity.* is deprecated but still functional): this query analyzes entity
+// tags, which are not a flat &quot;tags&quot; field on Smartscape nodes (resolve via getNodeField). Keep
+// the classic query above for tag analysis.
+</code></pre>
+<h3>Pattern 3: Golden Signals Template</h3>
+<p>A template dashboard that displays the four golden signals (latency, traffic, errors, saturation) for any selected service.</p>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Query Pattern</th>
+<th>Chart Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Latency</strong></td>
+<td><code>percentile(duration, 95)</code> filtered by <code>$service</code></td>
+<td>Line chart</td>
+</tr>
+<tr>
+<td><strong>Traffic</strong></td>
+<td><code>count()</code> of server spans filtered by <code>$service</code></td>
+<td>Line chart</td>
+</tr>
+<tr>
+<td><strong>Errors</strong></td>
+<td><code>countIf(span.status_code == &quot;error&quot;)</code> filtered by <code>$service</code></td>
+<td>Line chart</td>
+</tr>
+<tr>
+<td><strong>Saturation</strong></td>
+<td>CPU/memory metrics for the service's host</td>
+<td>Line chart</td>
+</tr>
+</tbody>
+</table>
+<p>This pattern is especially powerful because it works for every service in the environment — engineers just change the variable.</p>
+<p><a id="deep-links"></a></p>
+<h2>7. Building Deep Links from Variables</h2>
+<p>Variable chaining (§5) exists to parameterize something. The most useful thing to parameterize is often not another query — it is a <strong>URL</strong>. A dashboard that already knows which release the reader selected can hand them a one-click jump to the issue tracker view for exactly that release, with no connector, no stored credential, and no Dynatrace-side state.</p>
+<p>This is a <strong>dashboard recipe, not an integration</strong>. Every mechanic below is a dashboard mechanic: a DQL variable query, a <code>smartscapeNodes</code> base query, <code>concat()</code> to assemble a string, and one column setting to make it clickable. Nothing authenticates to the target tool, and nothing is written anywhere.</p>
+<h3>Prerequisite: release-identifying process tags</h3>
+<p>The recipe needs three process tags carrying the release identity:</p>
+<table>
+<thead>
+<tr>
+<th>Tag</th>
+<th>Holds</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DT_RELEASE_PRODUCT</code></td>
+<td>The product / component name</td>
+<td><code>easytrade</code></td>
+</tr>
+<tr>
+<td><code>DT_RELEASE_VERSION</code></td>
+<td>The release version</td>
+<td><code>1.5.2</code></td>
+</tr>
+<tr>
+<td><code>DT_RELEASE_STAGE</code></td>
+<td>The deployment stage</td>
+<td><code>production</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Values must be slug-safe</strong> — the whole point is that they end up inside a URL. Spaces, quotes, <code>#</code>, <code>&amp;</code>, and <code>?</code> all break the link or silently truncate it. Constrain the values at the source (lowercase, hyphens, dots only) rather than repairing them in DQL.</p>
+<p>Setting these tags is process-metadata tagging, not a dashboard concern — see <strong>FAQ-02</strong> for the tagging mechanics and the sources Dynatrace reads them from. Without them, this section has nothing to parameterize and you should stop here.</p>
+<h3>Step 1: Populate the release variable</h3>
+<p>The variable dropdown should list each release <strong>once</strong>. A <code>smartscapeNodes &quot;PROCESS&quot;</code> query returns one row per process, so ten processes running <code>easytrade 1.5.2</code> would produce ten identical dropdown entries — deduplicate by product × version:</p>
+<pre><code class="language-dql">// Release variable source — one entry per product x version, deduplicated
+smartscapeNodes &quot;PROCESS&quot;
+| fieldsAdd product = tags[DT_RELEASE_PRODUCT], version = tags[DT_RELEASE_VERSION]
+| filter isNotNull(product) and isNotNull(version)
+| dedup {product, version}
+| fieldsAdd release = concat(product, &quot; &quot;, version)
+| fields release
+| sort release asc
+
+</code></pre>
+<p>Note the tag-access syntax: on a <code>smartscapeNodes</code> result, <code>tags</code> is a map, and map keys are read with <strong>unquoted</strong> bracket identifiers — <code>tags[DT_RELEASE_PRODUCT]</code>, not <code>tags[&quot;DT_RELEASE_PRODUCT&quot;]</code>. The quoted form is a parse error.</p>
+<h3>Step 2: Assemble the URL with <code>concat()</code></h3>
+<p><code>concat()</code> builds the target URL from the selected variable values. Two rules make it survive contact with real data:</p>
+<ul>
+<li><strong>Wrap any component that came from a tag in <code>encodeUrl()</code>.</strong> Even with slug-safe tag values, a query string separator (<code>=</code>, <code>&amp;</code>, a space in a JQL clause) has to be percent-encoded or the target tool receives a truncated parameter.</li>
+<li><strong>Build the query expression first, then encode it as a unit.</strong> Below, the JQL is assembled in one <code>fieldsAdd</code> and encoded in the next. Encoding piecemeal double-encodes the separators.</li>
+</ul>
+<h3>Step 3: Make it clickable with the Markdown column type</h3>
+<p><code>concat()</code> produces a <em>string</em>. A table tile renders a string as text — the reader sees the URL but cannot click it. Set the column's type to <strong>Markdown</strong> in the tile's column settings, and emit markdown link syntax (<code>[label](url)</code>) from the query. The tile then renders a live anchor.</p>
+<p>This is the mechanic that makes the whole recipe work, and it is reusable well beyond issue tracking — any query that can compute a URL can present it as a link:</p>
+<pre><code class="language-dql">// Per-release deep link into the issue tracker — Markdown column type on `issues`
+smartscapeNodes &quot;PROCESS&quot;
+| fieldsAdd stage = tags[DT_RELEASE_STAGE],
+            product = tags[DT_RELEASE_PRODUCT],
+            version = tags[DT_RELEASE_VERSION]
+| filter isNotNull(product) and isNotNull(version)
+| summarize processes = count(), by:{stage, product, version}
+| fieldsAdd jql = concat(&quot;project = &quot;, upper(product), &quot; AND fixVersion = &quot;, version)
+| fieldsAdd issues = concat(&quot;[Open issues in Jira](https://your-org.atlassian.net/issues/?jql=&quot;, encodeUrl(jql), &quot;)&quot;)
+| fields stage, product, version, processes, issues
+| sort product asc, version desc
+
+</code></pre>
+<p>Swap the URL pattern for the tool you run — the DQL shape does not change:</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>URL pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Jira Cloud / on-premises</td>
+<td><code>https://&lt;host&gt;/issues/?jql=&lt;encoded JQL&gt;</code></td>
+</tr>
+<tr>
+<td>GitHub</td>
+<td><code>https://github.com/&lt;org&gt;/&lt;repo&gt;/releases/tag/v&lt;version&gt;</code></td>
+</tr>
+<tr>
+<td>GitLab</td>
+<td><code>https://gitlab.com/&lt;group&gt;/&lt;project&gt;/-/releases/v&lt;version&gt;</code></td>
+</tr>
+<tr>
+<td>ServiceNow</td>
+<td><code>https://&lt;instance&gt;.service-now.com/change_request_list.do?sysparm_query=&lt;encoded query&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Why a Deep Link Beats a Credentialed Integration Here</h3>
+<p>For a read-only jump <em>out of</em> Dynatrace, a deep link is the better engineering choice, not merely the easier one:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Deep link</th>
+<th>Credentialed connector</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Credentials stored in Dynatrace</td>
+<td>None</td>
+<td>Token or OAuth app, with rotation</td>
+</tr>
+<tr>
+<td>Works against on-premises targets</td>
+<td>Yes — it is just a URL</td>
+<td>Often requires network egress or an EdgeConnect path</td>
+</tr>
+<tr>
+<td>Per-tool setup cost</td>
+<td>One URL pattern</td>
+<td>Connector config, auth, field mapping</td>
+</tr>
+<tr>
+<td>Breaks when the target's API version changes</td>
+<td>No</td>
+<td>Possibly</td>
+</tr>
+<tr>
+<td>Authorization model</td>
+<td>The reader's own SSO session in the target tool</td>
+<td>A service identity shared by all readers</td>
+</tr>
+</tbody>
+</table>
+<p>That last row is the substantive one: a deep link inherits the reader's own permissions in the target tool. A user with no Jira access lands on Jira's login or permission page rather than seeing data a shared service account could read.</p>
+<p><strong>Reach for a real connector when you need to <em>write</em></strong> — open a ticket, transition an issue, post a comment — <strong>or to read data <em>into</em> Dynatrace</strong> so it can be queried, alerted on, or joined. Both are jobs a URL cannot do. Anything that ends with &quot;…and then the human looks at it in the other tool&quot; is a deep link.</p>
+<h3>Guardrails</h3>
+<table>
+<thead>
+<tr>
+<th>Guardrail</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Constrain tag values to slug-safe characters</strong></td>
+<td>Spaces, quotes, and <code>&amp; ? #</code> break URLs. Fix at the tagging source; <code>encodeUrl()</code> is the second line of defence, not the first.</td>
+</tr>
+<tr>
+<td><strong>Deduplicate the base query</strong></td>
+<td>One row per process means one dropdown entry per process. Dedup by product × version so each release appears once.</td>
+</tr>
+<tr>
+<td><strong>Handle the missing-tag case explicitly</strong></td>
+<td><code>filter isNotNull(...)</code> keeps untagged processes out. Without it, rows render links with <code>null</code> spliced into the URL.</td>
+</tr>
+<tr>
+<td><strong>Author in the UI, then validate before committing</strong></td>
+<td>See below — this is the one that bites.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>On that last guardrail.</strong> Build and test this tile in the UI, clicking the link to confirm it lands where you expect. The moment you round-trip the dashboard through <code>dynatrace_document</code> or Monaco, it <em>becomes</em> an API-authored dashboard and falls under the validation gate in <strong>DASH-07 §5</strong> — and the <code>concat()</code> URL patterns are the most edit-prone part of the payload, because they are long single-line strings that reviewers skim. Since SaaS 1.344 — with stricter rules again in SaaS 1.346 — a dashboard that fails validation does not load at all (confirm which version your tenant runs), so a payload edited by hand and merged unvalidated takes the whole dashboard down, not just the link column.</p>
+<p>A tag prerequisite that is only half-populated is the other common failure: the tile renders, the dropdown looks right, and links exist for the two products someone remembered to tag. Audit tag coverage across the estate before treating the dropdown as a complete release list.</p>
+<p><a id="summary-and-next-steps"></a></p>
+<h2>8. Summary and Next Steps</h2>
+<p>In this notebook you learned:</p>
+<ul>
+<li>The four variable types available in Dynatrace dashboards</li>
+<li>How to build DQL, List and Free-text variables — including service and host dropdowns</li>
+<li>DQL patterns for referencing variables in tile queries</li>
+<li>Filter propagation mechanics and best practices</li>
+<li>Template dashboard patterns: multi-environment, team-owned, and golden signals</li>
+<li>How to turn variable values into clickable deep links with <code>concat()</code> and the Markdown column type</li>
+</ul>
+<p><strong>Next:</strong> In <strong>DASH-07: Sharing and Reporting</strong>, we cover dashboard permissions, sharing with teams, scheduled reports via Workflows, dashboard-as-code, and version control patterns.</p>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

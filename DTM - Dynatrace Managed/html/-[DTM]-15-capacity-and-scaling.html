@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTM-15: Capacity and Scaling</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">DTM — Dynatrace Managed</a><span class="sep">/</span><span aria-current="page">DTM-15</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>DTM-15: Capacity and Scaling</h1>
+<blockquote>
+<p><strong>Series:</strong> DTM — Dynatrace Managed | <strong>Reference:</strong> 15 — Capacity and Scaling | <strong>Created:</strong> September 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<blockquote>
+<p><strong>Dynatrace Classic only.</strong> This series applies to <strong>Dynatrace Managed</strong>, the self-hosted, on-premises deployment. None of it applies to Dynatrace SaaS.</p>
+</blockquote>
+<h2>Overview</h2>
+<p>A Managed cluster can have every node up, every store healthy and every link open, and still be failing its users because it can't keep up. This notebook is layer 3 of the DTM-10 health model: <strong>capacity</strong>. It covers how Dynatrace sizes a cluster, the three directions you can grow it in, how much headroom to keep for a node failure, the signals that say you've run out, and the settings that shape how much load reaches the cluster at all.</p>
+<p><strong>What you'll learn:</strong></p>
+<ul>
+<li>How node size maps to host units, user actions and storage, and why Premium HA halves it</li>
+<li>When to scale out, up, or just add disk</li>
+<li>The headroom rule, and why it exists</li>
+<li>Which capacity events can email you, and which can't</li>
+<li>The environment-level settings that cap load, and the one to change after every hardware change</li>
+</ul>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#short-answer">Short Answer</a></li>
+<li><a href="#sizing-model">The Sizing Model</a></li>
+<li><a href="#scaling">Three Ways to Scale</a></li>
+<li><a href="#headroom">Headroom for a Node Failure</a></li>
+<li><a href="#signals">Capacity Signals</a></li>
+<li><a href="#controls">Controls That Shape the Load</a></li>
+<li><a href="#add-remove">Adding and Removing Nodes — the Capacity View</a></li>
+<li><a href="#doc-gaps">What the Documentation Does Not Say</a></li>
+<li><a href="#recommendation">Recommended Approach</a></li>
+<li><a href="#summary">Summary and Next Steps</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace deployment</strong></td>
+<td>A self-hosted <strong>Dynatrace Managed</strong> cluster. Nothing in this series applies to Dynatrace SaaS.</td>
+</tr>
+<tr>
+<td><strong>Access</strong></td>
+<td>Cluster Management Console (CMC) administrator access; for the self-monitoring metrics, access to the environment where they're reported</td>
+</tr>
+<tr>
+<td><strong>Query language</strong></td>
+<td>None. Managed has no Grail, so this series has <strong>no DQL cells</strong>. Every check is a CMC view, a cluster event, a dashboard, or a classic metric</td>
+</tr>
+<tr>
+<td><strong>Read first</strong></td>
+<td>DTM-10 (health model), DTM-12 and DTM-13 (store sizing)</td>
+</tr>
+<tr>
+<td><strong>Version basis</strong></td>
+<td>Written against the Managed documentation read 09/29/2026</td>
+</tr>
+</tbody>
+</table>
+<p><a id="short-answer"></a></p>
+<h2>1. Short Answer</h2>
+<ul>
+<li><strong>Size by host units and peak user actions per node</strong>, from the hardware guide's table, and plan to grow. The docs put it plainly: <em>&quot;it's more important to be able to add capacity as your monitoring needs increase.&quot;</em></li>
+<li><strong>Premium High Availability roughly halves per-node capacity</strong>, so the same load needs about twice the nodes.</li>
+<li><strong>Keep one-third headroom:</strong> <em>&quot;Plan for a processing capacity one-third higher than typical utilization.&quot;</em> When a node fails, its traffic moves to the others.</li>
+<li><strong>Adaptive load reduction is the headline signal.</strong> Occasional episodes are fine; <em>&quot;consistent use for intervals of 15 minutes or longer&quot;</em> costs data accuracy. It can email you; cluster traffic control and heap-memory pressure can't.</li>
+<li><strong>Every hardware change needs a configuration change.</strong> <em>&quot;Update the Managed Cluster ingest limit via Cluster Management Console or REST API whenever hardware changes.&quot;</em></li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability">Single-cluster high availability (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed">Adaptive traffic management for Managed (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a>.</sub></p>
+</blockquote>
+<p><a id="sizing-model"></a></p>
+<h2>2. The Sizing Model</h2>
+<p><strong>Start from the table, and expect to be wrong.</strong> <em>&quot;Exact sizing of a Managed Cluster isn't always possible, especially in environments with growing traffic. While upfront analysis is useful, it's more important to be able to add capacity as your monitoring needs increase.&quot;</em></p>
+<table>
+<thead>
+<tr>
+<th>Node size</th>
+<th>Max host units (per node)</th>
+<th>Max Full-Stack OneAgents (per node)</th>
+<th>Peak user actions/min (per node)</th>
+<th>Min spec</th>
+<th>Disk IOPS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Micro</td>
+<td>50</td>
+<td>25</td>
+<td>1,000</td>
+<td>4 vCPUs, 32 GB RAM</td>
+<td>500</td>
+</tr>
+<tr>
+<td>Small</td>
+<td>300</td>
+<td>100</td>
+<td>10,000</td>
+<td>8 vCPUs, 64 GB RAM</td>
+<td>3,000</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>600</td>
+<td>250</td>
+<td>25,000</td>
+<td>16 vCPUs, 128 GB RAM</td>
+<td>5,000</td>
+</tr>
+<tr>
+<td>Large</td>
+<td>1,250</td>
+<td>500</td>
+<td>50,000</td>
+<td>32 vCPUs, 256 GB RAM</td>
+<td>7,500</td>
+</tr>
+<tr>
+<td>XLarge</td>
+<td>2,500</td>
+<td>800</td>
+<td>100,000</td>
+<td>64 vCPUs, 512 GB RAM</td>
+<td>10,000</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Two limits, not one.</strong> <em>&quot;Both columns are limits, so check which one your environment reaches first. Hosts with a lot of memory usually reach the host units limit first, while many small hosts usually reach the OneAgent limit first.&quot;</em></p>
+<p>Storage per node size is in DTM-12 §3 (metrics) and DTM-13 §3 (Elasticsearch). The docs give three worked examples: <em>&quot;To monitor up to 7,500 host units and up to 2,400 Full-Stack OneAgents with a peak load of 300,000 user actions per minute, you need three XLarge nodes&quot;</em>; <em>&quot;To monitor 500 host units and up to 300 Full-Stack OneAgents with a peak load of 25,000 user actions per minute, you need three Small nodes&quot;</em>; and, for many small hosts, 900 hosts of 8 GiB need 4 Medium nodes, because <em>&quot;Based on host units alone, three Small nodes would be enough, but they serve only 300 Full-Stack OneAgents.&quot;</em></p>
+<p><strong>What a host unit is.</strong> Host units are sized by memory, not by what runs on the host: <em>&quot;We use the amount of RAM on a monitored server as a measuring stick to determine the size of a host&quot;</em> For full-stack monitoring, <em>&quot;a host with 16 GB of RAM (or any portion thereof) equates to one host unit.&quot;</em></p>
+<p><strong>Premium HA sizes differently.</strong> The Premium High Availability table gives a Large node 600 host units, 350 Full-Stack OneAgents and 25,000 user actions per minute (standard: 1,250, 500 and 50,000), and an XLarge node 1,250, 700 and 50,000 (standard: 2,500, 800 and 100,000), so roughly half for host units and user actions. Its worked example needs twice the nodes for the same load: <em>&quot;you need six XLarge nodes. Place three nodes in one data center and three nodes in a second data center&quot;</em>.</p>
+<p><strong>Bigger isn't better.</strong> <em>&quot;Dynatrace Managed runs resiliently on instances with 1 TB+ RAM/128 cores (2XLarge) and lets you monitor more entities, but this setup doesn't use the hardware optimally. Instead, consider using smaller instances (Large or XLarge).&quot;</em></p>
+<p><strong>In the cloud,</strong> the docs list an instance family per provider: AWS <code>r6i</code>, Azure <code>E…as v6</code>, Google Cloud <code>n4-highmem</code>. The guidance is <em>&quot;Maintain a vCPU to random access memory ratio of 1:8 to optimize performance.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments">Manage your monitoring environments (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-cloud-requirements">Cloud requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/license/classic-licensing/application-and-infrastructure-monitoring">Application and Infrastructure Monitoring (Host Units) (DT docs)</a>. <strong>Derived:</strong> &quot;roughly half&quot; compares the standard and Premium HA rows for the Large and XLarge node sizes on the same page.</sub></p>
+</blockquote>
+<p><a id="scaling"></a></p>
+<h2>3. Three Ways to Scale</h2>
+<p>The hardware guide names three dimensions:</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>From the docs</th>
+<th>What to watch</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Out</strong></td>
+<td><em>&quot;Dynatrace Managed supports up to 42 Cluster nodes.&quot;</em> (from Managed 1.348; 30 before, and 21 / 15 per data center with Premium HA)</td>
+<td>Every node must <em>&quot;Have the same hardware configuration&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Up</strong></td>
+<td><em>&quot;Vertical scaling : Add more random access memory (RAM) or central processing unit (CPU) capacity per node.&quot;</em></td>
+<td><em>&quot;When adding CPUs or RAM, keep all nodes equally sized.&quot;</em></td>
+</tr>
+<tr>
+<td><strong>Storage</strong></td>
+<td><em>&quot;Storage scaling: Use resizable disk volumes.&quot;</em></td>
+<td><em>&quot;Use resizable disk partitions, for example with Logical Volume Manager (LVM).&quot;</em> and <em>&quot;Use the same partition size on all Cluster nodes.&quot;</em></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Which one?</strong> The docs state a preference in one case. For Log Monitoring: <em>&quot;Add more Cluster nodes rather than increasing hardware per node for a more resilient configuration.&quot;</em> Scaling out also spreads the three replicas (DTM-12 §2) and the Elasticsearch store across more machines. Storage growth alone suits a cluster whose stores are filling while CPU and memory are comfortable.</p>
+<p>Two storage rules make later growth possible: <em>&quot;Store Dynatrace binaries and the data store on separate mount points so you can resize the data store independently.&quot;</em> and <em>&quot;Don't store Dynatrace data on the root volume to avoid complexity when resizing later.&quot;</em></p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-348">Managed 1.348 (DT docs)</a> — <em>&quot;Previously, a Managed Cluster was limited to 30 nodes (15 nodes per data center with Premium High Availability).&quot;</em> <strong>Derived:</strong> &quot;scaling out spreads the replicas&quot; combines the scale-out dimension with replication across nodes (DTM-12 §2, DTM-13 §2).</sub></p>
+</blockquote>
+<p><a id="headroom"></a></p>
+<h2>4. Headroom for a Node Failure</h2>
+<p>A three-node cluster survives losing a node (DTM-10 §4), but the survivors take the load: <em>&quot;If a node fails, the NGINX load balancer automatically redirects all OneAgent traffic to the remaining working nodes.&quot;</em> If they were already near their limit, the failure turns a redundancy event into a capacity event. The docs' answer is a fixed margin: <em>&quot;Plan for a processing capacity one-third higher than typical utilization.&quot;</em></p>
+<p>Read the margin against the whole cluster's processing capacity, not one node's: a cluster whose typical load already uses most of its capacity has no room for either a failure or a spike. In community practice, the sizing table's per-node figures (§2) are the reference for &quot;capacity&quot; here — verify with your own load, since the docs don't state how the one-third is measured.</p>
+<h3>4.1 Do the arithmetic for your node count</h3>
+<p>When a node fails, its share of the load moves to the others. If every node runs at a typical utilization <em>u</em>, the survivors run at about <em>u × n ÷ (n − 1)</em> after one loss. That assumes the load spreads evenly and grows in proportion, which the docs don't promise:</p>
+<table>
+<thead>
+<tr>
+<th>Nodes</th>
+<th>Survivors after one loss, at 75% typical</th>
+<th>Highest typical load that keeps survivors at 100%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3</td>
+<td>about 113%</td>
+<td>about 67%</td>
+</tr>
+<tr>
+<td>4</td>
+<td>100%</td>
+<td>75%</td>
+</tr>
+<tr>
+<td>5</td>
+<td>about 94%</td>
+<td>80%</td>
+</tr>
+<tr>
+<td>6</td>
+<td>90%</td>
+<td>about 83%</td>
+</tr>
+</tbody>
+</table>
+<p>One-third headroom puts typical load at three-quarters of capacity (75%). That covers one lost node from four nodes up. <strong>On a three-node cluster it doesn't:</strong> the two survivors would carry half as much again as they do today. A three-node cluster needs typical load nearer two-thirds, or an accepted risk of load reduction (§5.1) until the failed node is back.</p>
+<p>The same arithmetic applies to planning for two lost nodes on five or more (DTM-10 §4). Five nodes at 75% leave three survivors at 125%, so typical load would have to stay at or below 60%.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/high-availability/single-cluster-high-availability">Single-cluster high availability (DT docs)</a>. <strong>Derived:</strong> §4.1 applies the one-third rule to a failed node's traffic moving to the survivors; the even-spread assumption is this notebook's.</sub></p>
+</blockquote>
+<p><a id="signals"></a></p>
+<h2>5. Capacity Signals</h2>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvdyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI5MzAiIGhlaWdodD0iNTAwIiBmaWxsPSIjMEYxNzJBIi8+CiAgPHRleHQgeD0iNDY1IiB5PSIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q2FwYWNpdHk6IFdoYXQgVGVsbHMgWW91LCBhbmQgV2hhdCBZb3UgQ2FuIERvPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTMiPlNldmVyYWwgY2FwYWNpdHkgZXZlbnRzIG5ldmVyIGVtYWlsIHlvdSDigJQgYW5kIGV2ZXJ5IGhhcmR3YXJlIGNoYW5nZSBuZWVkcyBhIGNvbmZpZ3VyYXRpb24gY2hhbmdlIHRvbzwvdGV4dD4KICA8dGV4dCB4PSIyMDAiIHk9IjkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE1IiBmb250LXdlaWdodD0iNzAwIj5TaWduYWxzPC90ZXh0PgogIDx0ZXh0IHg9IjQwNSIgeT0iOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPkVNQUlMRUQ8L3RleHQ+CiAgPHRleHQgeD0iNzEwIiB5PSI5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg2RUZBQyIgZm9udC1zaXplPSIxNSIgZm9udC13ZWlnaHQ9IjcwMCI+TGV2ZXJzPC90ZXh0PgoKICA8cmVjdCB4PSIzMCIgeT0iMTA0IiB3aWR0aD0iMzEwIiBoZWlnaHQ9IjQ2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGRkI4MDAiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDYiIHk9IjEyNCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+QWRhcHRpdmUgbG9hZCByZWR1Y3Rpb24gYWN0aXZhdGVkPC90ZXh0PgogIDx0ZXh0IHg9IjQ2IiB5PSIxNDEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPnRyYWNlcyBza2lwcGVkIGF0IHJhbmRvbTwvdGV4dD4KICA8dGV4dCB4PSI0MDUiIHk9IjEzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZDRDM0RCIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjcwMCI+Q29uZmlndXJhYmxlPC90ZXh0PgogIDxyZWN0IHg9IjMwIiB5PSIxNjAiIHdpZHRoPSIzMTAiIGhlaWdodD0iNDYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI0NiIgeT0iMTgwIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5DbHVzdGVyIHRyYWZmaWMgY29udHJvbDwvdGV4dD4KICA8dGV4dCB4PSI0NiIgeT0iMTk3IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5tb25pdG9yaW5nIG9mZiBvbiBuZXcgaG9zdHM8L3RleHQ+CiAgPHRleHQgeD0iNDA1IiB5PSIxODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vPC90ZXh0PgogIDxyZWN0IHg9IjMwIiB5PSIyMTYiIHdpZHRoPSIzMTAiIGhlaWdodD0iNDYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI0NiIgeT0iMjM2IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5VbmRlcnNpemVkIC8gc2NhbGUgb3V0ITwvdGV4dD4KICA8dGV4dCB4PSI0NiIgeT0iMjUzIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5ub2RlIG9yIGNsdXN0ZXIgdG9vIHNtYWxsPC90ZXh0PgogIDx0ZXh0IHg9IjQwNSIgeT0iMjQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj5Db25maWcuIC8gWWVzPC90ZXh0PgogIDxyZWN0IHg9IjMwIiB5PSIyNzIiIHdpZHRoPSIzMTAiIGhlaWdodD0iNDYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI0NiIgeT0iMjkyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5IZWFwIG1lbW9yeSBlbWVyZ2VuY3kgLyBjbGVhbnVwPC90ZXh0PgogIDx0ZXh0IHg9IjQ2IiB5PSIzMDkiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPlNlcnZlciBtZW1vcnkgcHJlc3N1cmU8L3RleHQ+CiAgPHRleHQgeD0iNDA1IiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0E1QTUiIGZvbnQtc2l6ZT0iMTEiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vPC90ZXh0PgogIDxyZWN0IHg9IjMwIiB5PSIzMjgiIHdpZHRoPSIzMTAiIGhlaWdodD0iNDYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI0NiIgeT0iMzQ4IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5DYXBhY2l0eSBpbmRpY2F0b3IgKGRhc2hib2FyZCk8L3RleHQ+CiAgPHRleHQgeD0iNDYiIHk9IjM2NSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+Q2x1c3RlciBoZWFsdGggc2VsZi1tb25pdG9yaW5nPC90ZXh0PgogIDx0ZXh0IHg9IjQwNSIgeT0iMzU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj7igJQgZGFzaGJvYXJkPC90ZXh0PgogIDxyZWN0IHg9IjMwIiB5PSIzODQiIHdpZHRoPSIzMTAiIGhlaWdodD0iNDYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0ZGQjgwMCIgcng9IjYiLz4KICA8dGV4dCB4PSI0NiIgeT0iNDA0IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5UaHJvdWdocHV0IGRyb3AgKGRzZm06c2VydmVyLiopPC90ZXh0PgogIDx0ZXh0IHg9IjQ2IiB5PSI0MjEiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPmNhbGxzLCBzcGFucywgYWN0aW9ucywgYWdlbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjQwNSIgeT0iNDEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIiBmb250LXdlaWdodD0iNzAwIj7igJQgbWV0cmljPC90ZXh0PgogIDxyZWN0IHg9IjU0MCIgeT0iMTA0IiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjQ2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTU2IiB5PSIxMjQiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNjYWxlIG91dDwvdGV4dD4KICA8dGV4dCB4PSI1NTYiIHk9IjE0MSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+NDIgbm9kZXMgbWF4IGZyb20gMS4zNDggKHdhcyAzMCk7IHNhbWUgaGFyZHdhcmU8L3RleHQ+CiAgPHJlY3QgeD0iNTQwIiB5PSIxNjAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNDYiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iIzczQkUyOCIgcng9IjYiLz4KICA8dGV4dCB4PSI1NTYiIHk9IjE4MCIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiIgZm9udC13ZWlnaHQ9IjcwMCI+U2NhbGUgdXA8L3RleHQ+CiAgPHRleHQgeD0iNTU2IiB5PSIxOTciIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPm1vcmUgQ1BVIC8gUkFNIOKAlCBrZWVwIG5vZGVzIGVxdWFsPC90ZXh0PgogIDxyZWN0IHg9IjU0MCIgeT0iMjE2IiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjQ2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTU2IiB5PSIyMzYiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPkdyb3cgc3RvcmFnZTwvdGV4dD4KICA8dGV4dCB4PSI1NTYiIHk9IjI1MyIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+cmVzaXphYmxlIHZvbHVtZXM7IHNlcGFyYXRlIG1vdW50czwvdGV4dD4KICA8cmVjdCB4PSI1NDAiIHk9IjI3MiIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI0NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9IjU1NiIgeT0iMjkyIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5VcGRhdGUgdGhlIGluZ2VzdCBsaW1pdDwvdGV4dD4KICA8dGV4dCB4PSI1NTYiIHk9IjMwOSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+YWZ0ZXIgZXZlcnkgaGFyZHdhcmUgY2hhbmdlPC90ZXh0PgogIDxyZWN0IHg9IjU0MCIgeT0iMzI4IiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjQ2IiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiM3M0JFMjgiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNTU2IiB5PSIzNDgiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNoYXBlIHRoZSBsb2FkPC90ZXh0PgogIDx0ZXh0IHg9IjU1NiIgeT0iMzY1IiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5xdW90YXMsIG92ZXJsb2FkIHByZXZlbnRpb24sIGNhcHR1cmUgY29udHJvbDwvdGV4dD4KICA8cmVjdCB4PSI1NDAiIHk9IjM4NCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI0NiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjNzNCRTI4IiByeD0iNiIvPgogIDx0ZXh0IHg9IjU1NiIgeT0iNDA0IiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5SZWR1Y2UgaW5jb21pbmcgdHJhZmZpYzwvdGV4dD4KICA8dGV4dCB4PSI1NTYiIHk9IjQyMSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+T25lQWdlbnQgc2V0dGluZ3M8L3RleHQ+CiAgPGxpbmUgeDE9IjQ0MCIgeTE9IjI3MCIgeDI9IjUzMCIgeTI9IjI3MCIgc3Ryb2tlPSIjNjQ3NDhCIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CiAgPGxpbmUgeDE9IjQwIiB5MT0iNDUyIiB4Mj0iODkwIiB5Mj0iNDUyIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMSIvPgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5IZWFkcm9vbSBydWxlOiBwbGFuIHByb2Nlc3NpbmcgY2FwYWNpdHkgb25lLXRoaXJkIGhpZ2hlciB0aGFuIHR5cGljYWwgdXRpbGl6YXRpb248L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI0OTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM2NDc0OEIiIGZvbnQtc2l6ZT0iMTAiPlNvdXJjZTogSGFyZHdhcmUgcmVxdWlyZW1lbnRzOyBBZGFwdGl2ZSB0cmFmZmljIG1hbmFnZW1lbnQ7IENsdXN0ZXIgZXZlbnQgbm90aWZpY2F0aW9uczsgTG9jYWwgc2VsZi1tb25pdG9yaW5nOyBTZWxmLW1vbml0b3JpbmcgbWV0cmljczsgU2luZ2xlLWNsdXN0ZXIgSEEgKERUIGRvY3MsIHJlYWQgMTEvMTAvMjAyNik8L3RleHQ+Cjwvc3ZnPgo=" alt="Capacity: What Tells You, and What You Can Do" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Signal | Emailed | Lever |
+|--------|---------|-------|
+| Adaptive load reduction activated | Configurable | Scale out — add nodes, up to 42 from Managed 1.348 (30 before), same hardware |
+| Cluster traffic control | No | Scale up — more CPU / RAM, keep nodes equal |
+| Cluster node undersized / cluster should be scaled out | Configurable / Yes | Grow storage — resizable volumes, separate mounts |
+| Heap memory emergency / cleanup | No | Update the ingest limit after every hardware change |
+| Capacity indicator (Cluster health self-monitoring dashboard) | — dashboard | Shape the load — quotas, overload prevention, capture control |
+| Throughput drop (dsfm:server.*) | — metric | Reduce incoming traffic — OneAgent settings |
+Headroom rule: plan processing capacity one-third higher than typical utilization.
+For environments where SVG doesn't render
+-->
+<h3>5.1 Adaptive load reduction</h3>
+<p>The main one. <em>&quot;Because Dynatrace Managed environments can process a limited number of service calls per minute (depending on the node CPU amount and memory availability)&quot;</em>, the cluster protects itself when an environment exceeds that: <em>&quot;New incoming distributed traces are skipped in a random fashion, reducing gradually the number of processed distributed traces.&quot;</em> Brief episodes are fine. <em>&quot;While occasional activation (for example, to cover spikes) will not harm the fidelity of your monitoring data, consistent use for intervals of 15 minutes or longer can impact the accuracy of your monitoring data and metrics because not all data is processed.&quot;</em></p>
+<p>The docs name the long-term fixes: <em>&quot;Adding hardware and a new Dynatrace Managed cluster node to provide your Dynatrace Managed cluster with the necessary resources to process the additional data.&quot;</em> and <em>&quot;Adjusting OneAgent settings to reduce the incoming traffic.&quot;</em></p>
+<h3>5.2 The events</h3>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Severity</th>
+<th>Emailed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>&quot;Server %d activated Adaptive Load Reduction.&quot;</em></td>
+<td>WARNING</td>
+<td>Configurable</td>
+</tr>
+<tr>
+<td><em>&quot;Your Dynatrace Managed cluster node {0} is undersized!&quot;</em></td>
+<td>SEVERE</td>
+<td>Configurable</td>
+</tr>
+<tr>
+<td><em>&quot;Your Dynatrace Managed cluster should be scaled-out!&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Cluster traffic control: OneAgent monitoring was disabled on recently connected hosts to avoid cluster overload.&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Heap memory: Server %d started memory emergency mode.&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><em>&quot;Heap memory: Server %d triggered a hard memory cleanup action.&quot;</em></td>
+<td>SEVERE</td>
+<td><strong>No</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Don't assume a <em>Configurable</em> event emails. The events page contradicts itself on the default, and its own default example sets <code>adaptiveLoadReductionActivated</code> to <code>sendEmail: false</code> (DTM-10 §6.2), so set it explicitly. The one capacity event that always emails is <em>should be scaled-out!</em>. Traffic control is the most serious, since new hosts stop being monitored, and it never emails.</p>
+<h3>5.3 The dashboard and the metrics</h3>
+<ul>
+<li><strong>Capacity indicator.</strong> The <em>Cluster health self-monitoring</em> dashboard <em>&quot;shows aggregated data for all environments in your Managed Cluster. It includes current utilization and an indicator of whether the Managed Cluster has sufficient capacity for the current load.&quot;</em> It lives in the local self-monitoring environment. Whether every cluster has one is contradicted between two pages (§8).</li>
+<li><strong>Reading the indicator.</strong> A Dynatrace blog on Managed self-monitoring (Managed 1.230) explains the scale: <em>&quot;a cluster utilization of 50% should allow you to roughly double the currently processed load before the cluster reaches its maximum capacity.&quot;</em> At the top end, <em>&quot;Red status: When utilization reaches the red area, the cluster is at maximum capacity.&quot;</em> It adds a caution: <em>&quot;cluster utilization might show healthy operation (green status) when only 80% of the service calls are captured&quot;</em>. Read utilization together with the capture rate and adaptive load reduction (§5.1).</li>
+<li><strong>The built-in dashboard (Managed 1.348).</strong> <em>&quot;Starting with Dynatrace Managed version 1.348, a preset dashboard for Managed Cluster self-monitoring is built into your local self-monitoring environment.&quot;</em> It <em>&quot;replaces the Dynatrace Self-Monitoring (Managed) extension, which is now end-of-life, and includes updated performance indicators that reflect current Managed Cluster scalability.&quot;</em> The notes advise: <em>&quot;Disable the Dynatrace Self-Monitoring (Managed) extension in your local self-monitoring environment.&quot;</em> The extension's Hub listing is already gone (it returned 404 on 11/11/2026), as the notes forecast: <em>&quot;The Dynatrace Self-Monitoring (Managed) extension will be removed from Hub in an upcoming release.&quot;</em> Until 1.348 reaches your cluster, an extension you already run remains the working path.</li>
+<li><strong>Throughput.</strong> The self-monitoring metrics <code>dsfm:server.service_calls.received</code>, <code>dsfm:server.spans.received</code>, <code>dsfm:server.rum.action_count</code> and <code>dsfm:cluster.oneagent.agent_modules</code> track what reaches the cluster. <em>&quot;A steady number of monitored hosts and modules, service calls received, and user sessions/actions per minute together indicate a healthy Dynatrace environment. A significant drop in these metrics might indicate a problem&quot;</em>.</li>
+</ul>
+<blockquote>
+<p><sub><strong>Sources:</strong></sub></p>
+<ul>
+<li><sub><a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed">Adaptive traffic management for Managed (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-event-notifications">Configure Cluster event notifications (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/cluster-event-notifications-reference">Event notification reference (DT docs)</a></sub></li>
+<li><sub><a href="https://www.dynatrace.com/news/blog/proactive-self-monitoring-ensures-seamless-operations-for-dynatrace-managed-at-scale/">Proactive self-monitoring for Dynatrace Managed (Dynatrace blog)</a>, <a href="https://docs.dynatrace.com/managed/whats-new/managed/sprint-348">Managed 1.348 release notes (DT docs)</a></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring">Local self-monitoring (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/analyze-explore-automate/metrics-classic/self-monitoring-metrics">Self-monitoring metrics (DT docs)</a></sub></li>
+</ul>
+</blockquote>
+<p><a id="controls"></a></p>
+<h2>6. Controls That Shape the Load</h2>
+<p>Capacity is also a matter of how much load you let in. Three sets of controls live on each environment's configuration page in the CMC (<strong>Environments</strong> → an environment).</p>
+<p><strong>Quotas.</strong> You can set the total as well as the monthly and annual quotas for an environment: host units, custom metrics, user sessions, synthetic monitors, log volume and storage. They're hard limits: <em>&quot;Once any one of these limits is consumed, the respective monitoring will no longer be available&quot;</em>.</p>
+<p><strong>Cluster overload prevention.</strong> Here you set the environment quota of <em>&quot;Number of newly monitored entry point traces captured per process/minute&quot;</em>. <em>&quot;The default value is 1,000, however, the environment quota can be increased to 100,000.&quot;</em> Within that, each environment's <strong>Adaptive capture control</strong> (Settings &gt; Server-side service monitoring &gt; Deep monitoring) tunes how much of the incoming traffic is captured. Raising both has a price: <em>&quot;Setting the environment quota and adaptive capture control values too high can cause resource shortages and increase hardware expenditures.&quot;</em></p>
+<p><strong>The ingest limit, after every hardware change.</strong> <em>&quot;Update the Managed Cluster ingest limit via Cluster Management Console or REST API whenever hardware changes.&quot;</em> The hardware guide places it in the same section: <em>&quot;Go to Environments, select your environment, and adjust the limit in Cluster overload prevention settings.&quot;</em> If the cluster scales out but its limits stay where they were, the new capacity sits unused.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/manage-your-monitoring-environments">Manage your monitoring environments (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed">Adaptive traffic management for Managed (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/basics/cluster-management-console">Cluster Management Console (DT docs)</a>. <strong>Derived:</strong> &quot;new capacity sits unused&quot; follows from the instruction to update the limit whenever hardware changes.</sub></p>
+</blockquote>
+<p><a id="add-remove"></a></p>
+<h2>7. Adding and Removing Nodes — the Capacity View</h2>
+<p>DTM-11 §5 covers the operations and DTM-12 §7 what they do to Cassandra. From a capacity point of view:</p>
+<p><strong>Before adding a node,</strong> every node in a multi-node cluster must <em>&quot;Have the same hardware configuration&quot;</em>, <em>&quot;Synchronize with NTP&quot;</em>, <em>&quot;Be in the same time zone&quot;</em>, <em>&quot;Communicate over a private network on the required ports&quot;</em>, <em>&quot;Have a network latency between nodes of 10 ms or less&quot;</em>, and <em>&quot;Have matching Dynatrace Managed system user and group identifiers on all nodes&quot;</em>.</p>
+<p><strong>Give the new node enough disk.</strong> The docs show the arithmetic: in a two-node cluster whose disks are 9 TB full, <em>&quot;a third node needs a minimum of 6 TB: (9 TB + 9 TB) / 3 = 6 TB. Anything below the calculated minimum is a misconfiguration.&quot;</em></p>
+<p><strong>Expect it to take time.</strong> <em>&quot;Full data synchronization can take a couple of hours.&quot;</em> <em>&quot;You can't add more Cluster nodes until synchronization completes.&quot;</em> So scaling by several nodes takes several windows, and in a capacity emergency relief arrives node by node.</p>
+<p><strong>Then finish the change:</strong></p>
+<ul>
+<li>From the 13th node (or the 7th node in a data center, on Premium HA), <em>&quot;web UI traffic is by default turned off&quot;</em> (DTM-14 §4).</li>
+<li>Update any load balancer: its target list: <em>&quot;This list needs to be updated after node join or removal.&quot;</em></li>
+<li>Update the ingest limit (§6).</li>
+</ul>
+<p><strong>Removing a node</strong> puts its load on the survivors. Check the one-third headroom against the smaller cluster first, and remember <em>&quot;Remove no more than one node at a time.&quot;</em> (DTM-11 §5).</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/add-cluster-node">Add a cluster node (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/configure-cluster-capabilities">Configure cluster capabilities (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/configuration/set-up-load-balancer">Set up load balancer (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/operation/remove-a-cluster-node">Remove a cluster node (DT docs)</a>. <strong>Derived:</strong> &quot;relief arrives node by node&quot; follows from synchronization blocking the next addition; &quot;check headroom against the smaller cluster&quot; applies §4 to a removal.</sub></p>
+</blockquote>
+<p><a id="doc-gaps"></a></p>
+<h2>8. What the Documentation Does Not Say</h2>
+<p><strong>Not found</strong>, in the Managed documentation read 09/29/2026:</p>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Working assumption in this notebook</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A numeric threshold behind the dashboard's &quot;sufficient capacity&quot; indicator, or behind adaptive load reduction</td>
+<td>The blog's utilization scale (§5.3) is the closest; treat the events and the indicator as the thresholds</td>
+</tr>
+<tr>
+<td>How the one-third headroom is measured (CPU, memory, host units, or service calls)</td>
+<td>Keep typical load at no more than three-quarters of total capacity on every dimension you can see (§4)</td>
+</tr>
+<tr>
+<td>Whether the hardware page's <em>&quot;ingest limit&quot;</em> is the same setting as the entry-point-traces quota in Cluster overload prevention</td>
+<td>Review every setting in that section after a hardware change (§6)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>One conflict.</strong> Whether every cluster has a local self-monitoring environment. The hosted self-monitoring page says <em>&quot;All Managed Clusters have a local self-monitoring environment with internal metrics.&quot;</em>; the local self-monitoring page says <em>&quot;The environment is available only for Dynatrace Managed customers using Davis data units (DDUs) licensing.&quot;</em> A Dynatrace blog (2022, updated 2024) sides with the hosted page: <em>&quot;A dedicated self-monitoring Dynatrace environment called Local self-monitoring is now enabled by default on all Dynatrace Managed Clusters.&quot;</em> DTM-10 §6.3 records both. Check your own CMC before planning around the capacity dashboard.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/hosted-self-monitoring">Hosted self-monitoring (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/self-monitoring/local-self-monitoring">Local self-monitoring (DT docs)</a>, <a href="https://docs.dynatrace.com/managed/managed-cluster/installation/managed-hardware-requirements">Hardware requirements (DT docs)</a>, <a href="https://www.dynatrace.com/news/blog/proactive-self-monitoring-ensures-seamless-operations-for-dynatrace-managed-at-scale/">Proactive self-monitoring for Dynatrace Managed (Dynatrace blog)</a>, <a href="https://docs.dynatrace.com/managed/ingest-from/dynatrace-oneagent/adaptive-traffic-management-managed">Adaptive traffic management for Managed (DT docs)</a>. <strong>Observed 09/29/2026:</strong> the three gaps were searched for across the Managed cluster, self-monitoring and adaptive-traffic-management pages; none is filled.</sub></p>
+</blockquote>
+<p><a id="recommendation"></a></p>
+<h2>9. Recommended Approach</h2>
+<ol>
+<li><strong>Size from the table, then plan the second step.</strong> Know which dimension you'll grow in first, and keep the storage layout resizable (separate mounts, LVM).</li>
+<li><strong>Keep one-third headroom</strong>, and re-check it whenever load grows and before removing a node. On three nodes, keep typical load nearer two-thirds (§4.1).</li>
+<li><strong>Treat repeated adaptive load reduction as a capacity finding</strong>, not noise. Episodes of 15 minutes or more mean scaling or reducing load.</li>
+<li><strong>Read CMC Events for traffic control and heap-memory events.</strong> Neither emails.</li>
+<li><strong>Watch the throughput metrics</strong> (<code>dsfm:server.*</code>) for steady growth, and for drops.</li>
+<li><strong>Make every hardware change a two-part change:</strong> the hardware, then the ingest limit, load balancer and DNS.</li>
+<li><strong>Keep Premium HA sizing separate.</strong> It needs roughly twice the nodes for the same load.</li>
+</ol>
+<p><a id="summary"></a></p>
+<h2>10. Summary and Next Steps</h2>
+<p>Size a Managed cluster from host units and peak user actions per node, expect to grow, and prefer growing out to growing up. Keep one-third headroom so a node failure doesn't become an overload. Adaptive load reduction is the signal that matters most: brief episodes are tolerable, sustained ones cost accuracy. Traffic control and heap pressure never email you. Environment quotas and overload-prevention settings decide how much load reaches the cluster, and have to be revisited every time the hardware changes.</p>
+<p><strong>Next in the series:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Layer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DTM-16: Backup, Upgrade, and Disaster Recovery</td>
+<td>5 — Lifecycle</td>
+</tr>
+<tr>
+<td>DTM-99: Best Practice Summary and Health-Check Checklist</td>
+<td>All layers</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official <a href="https://docs.dynatrace.com/managed">Dynatrace documentation</a>.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

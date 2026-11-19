@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APPSEC-04: Runtime Application Protection</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">APPSEC — Application Security</a><span class="sep">/</span><span aria-current="page">APPSEC-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>APPSEC-04: Runtime Application Protection</h1>
+<blockquote>
+<p><strong>Series:</strong> APPSEC — Application Security | <strong>Notebook:</strong> 4 of 10 | <strong>Created:</strong> June 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p><strong>Runtime Application Protection (RAP)</strong> sits in the OneAgent code module and watches request traffic for four documented attack classes: SQL injection and command injection on Java, .NET and Go, and JNDI injection and SSRF on Java only. Each technology's attack control is <strong>Off</strong>, <strong>Monitor</strong> (detect only), or <strong>Block</strong>, and custom monitoring rules scoped to process groups or vulnerability types override that global control. Run in Monitor first and promote to Block once detection has been tuned.</p>
+<p>RAP is unique among the AppSec pillars in that it has a <em>real-time enforcement</em> dimension. RVA and SPM tell you what's wrong; RAP can stop the request mid-flight. This power is also the reason the rollout discipline matters — blocking the wrong traffic is a customer-visible incident.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5SdW50aW1lIEFwcGxpY2F0aW9uIFByb3RlY3Rpb248L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMyI+TW9uaXRvciAtPiB0dW5lIC0+IHByb21vdGUgdG8gQmxvY2sgcGVyIHRlY2hub2xvZ3kgb3IgY3VzdG9tIHJ1bGU8L3RleHQ+CiAgPHJlY3QgeD0iNDAiIHk9Ijk1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iI0Y1OUUwQiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjRjU5RTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSIxODAiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QXR0YWNrIHBhdHRlcm48L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjE2NSIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRjU5RTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5TUUxpIC8gY21kICgrIFNTUkYgLyBKTkRJOiBKYXZhKTwvdGV4dD4KICA8cmVjdCB4PSIzMzUiIHk9Ijk1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iI0Y1OUUwQiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjRjU5RTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+TW9uaXRvciAoZGV0ZWN0IG9ubHkpPC90ZXh0PgogIDxyZWN0IHg9IjM1NSIgeT0iMTY1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGNTlFMEIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNDc1IiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPmV2ZW50IHJlY29yZGVkLCByZXF1ZXN0IHNlcnZlZDwvdGV4dD4KICA8cmVjdCB4PSI2MzAiIHk9Ijk1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iI0Y1OUUwQiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjRjU5RTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+VHVuZSBtb25pdG9yaW5nIHJ1bGVzPC90ZXh0PgogIDxyZWN0IHg9IjY1MCIgeT0iMTY1IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUUyOTNCIiBzdHJva2U9IiNGNTlFMEIiIHJ4PSI2Ii8+CiAgPHRleHQgeD0iNzcwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNDQkQ1RTEiIGZvbnQtc2l6ZT0iMTEiPnJldmlldyBmYWxzZSBwb3NpdGl2ZXM8L3RleHQ+CiAgPHJlY3QgeD0iNDAiIHk9IjI3NSIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNzAiIGZpbGw9IiNGNTlFMEIiIG9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iI0Y1OUUwQiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iMTgwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGOEZBRkMiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPlByb21vdGUgdG8gYmxvY2s8L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjM0NSIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRjU5RTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5wZXIgdGVjaG5vbG9neSAvIGN1c3RvbSBydWxlPC90ZXh0PgogIDxyZWN0IHg9IjMzNSIgeT0iMjc1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iI0Y1OUUwQiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjRjU5RTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QmxvY2sgYXQgcnVudGltZTwvdGV4dD4KICA8cmVjdCB4PSIzNTUiIHk9IjM0NSIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSIjRjU5RTBCIiByeD0iNiIvPgogIDx0ZXh0IHg9IjQ3NSIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQ0JENUUxIiBmb250LXNpemU9IjExIj5yZXF1ZXN0IHJlamVjdGVkPC90ZXh0PgogIDxyZWN0IHg9IjYzMCIgeT0iMjc1IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE3MCIgZmlsbD0iI0Y1OUUwQiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjRjU5RTBCIiBzdHJva2Utd2lkdGg9IjEuNSIgcng9IjgiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9IjcwMCI+QXVkaXQgKyB0dW5lIGxvb3A8L3RleHQ+CiAgPHJlY3QgeD0iNjUwIiB5PSIzNDUiIHdpZHRoPSIyNDAiIGhlaWdodD0iODAiIGZpbGw9IiMxRTI5M0IiIHN0cm9rZT0iI0Y1OUUwQiIgcng9IjYiLz4KICA8dGV4dCB4PSI3NzAiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0NCRDVFMSIgZm9udC1zaXplPSIxMSI+b25nb2luZzwvdGV4dD4KPC9zdmc+Cg==" alt="RAP detection-to-blocking" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Stage | Mode | Cost of FP |
+|-------|------|-------------|
+| Day 1-30 | Monitor | Dashboard noise |
+| Day 30-60 | Monitor + tune | Operator time |
+| Day 60+ | Promote to Block per custom rule, then per technology | Customer-visible 5xx |
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#how-it-works">1. How RAP Works in the OneAgent</a></li>
+<li><a href="#attack-types">2. Attack Types Covered</a></li>
+<li><a href="#detect-vs-block">3. Detection vs Blocking Modes</a></li>
+<li><a href="#dql-attacks">4. DQL: RAP Detections</a></li>
+<li><a href="#dql-attacks-per-svc">5. Attacks Per Service</a></li>
+<li><a href="#next">6. Next Steps</a></li>
+<li><a href="#references">References</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>Gen3 SaaS with Grail; AppSec entitlement enabled</td>
+</tr>
+<tr>
+<td><strong>OneAgent</strong></td>
+<td>Full-Stack mode (or code-module attached) on monitored hosts</td>
+</tr>
+<tr>
+<td><strong>Read access</strong></td>
+<td>To run the DQL: <code>storage:security.events:read</code> <strong>plus</strong> <code>storage:buckets:read</code> (a table permission alone reads nothing). The Vulnerabilities and Threats &amp; Exploits apps have their own requirements — see APPSEC-09 for the full model</td>
+</tr>
+<tr>
+<td><strong>Background</strong></td>
+<td>APPSEC-01 (fundamentals + three-pillar framing)</td>
+</tr>
+</tbody>
+</table>
+<p><a id="how-it-works"></a></p>
+<h2>1. How RAP Works in the OneAgent</h2>
+<p>RAP is part of the same code-module instrumentation that powers code-level RVA. When a request enters a monitored process:</p>
+<ol>
+<li>The code module sees the request and the application's intent (SQL it's about to execute, OS command it's about to spawn, etc.).</li>
+<li>RAP compares the request payload + intent against attack-pattern signatures.</li>
+<li>If a match fires:
+<ul>
+<li>In <strong>Monitor</strong> mode: a detection finding (<code>event.type == &quot;DETECTION_FINDING&quot;</code>, <code>product.name == &quot;Runtime Application Protection&quot;</code>) is recorded in <code>security.events</code>; the request continues.</li>
+<li>In <strong>Block</strong> mode: the request is rejected before the dangerous operation executes; a detection finding is still recorded.</li>
+</ul>
+</li>
+</ol>
+<p>Crucially, RAP makes the call <strong>after</strong> the request has been parsed but <strong>before</strong> the dangerous operation runs. This is why pattern fidelity is higher than network-layer WAF detection — RAP sees the actual SQL string, not just the HTTP body.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/application-security/application-protection">Runtime Application Protection (DT docs)</a> — <em>&quot;Dynatrace OneAgent tracks user input and analyzes how it interacts with sensitive code paths, such as SQL queries, OS commands, or JNDI lookups.&quot;</em> and <em>&quot;If attack blocking is enabled, OneAgent throws an exception to stop the malicious request before it executes.&quot;</em>; <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/detection">Detection events (DT semantic dictionary)</a> — <em>&quot;A detection finding generated by Dynatrace Runtime Application Protection, reporting a blocked SQL injection attempt against a Node.js process.&quot;</em> (both re-read 09/18/2026). <strong>Softened:</strong> the comparison with network-layer WAF fidelity is community-practice framing.</sub></p>
+</blockquote>
+<p><a id="attack-types"></a></p>
+<h2>2. Attack Types Covered</h2>
+<p>The documented attack catalog covers four classes:</p>
+<ul>
+<li><strong>SQL Injection</strong> — untrusted input reaching a SQL query</li>
+<li><strong>Command Injection</strong> — OS command spawned with untrusted input</li>
+<li><strong>SSRF (Server-Side Request Forgery)</strong> — outbound requests with untrusted target URLs (Java only; with OneAgent 1.309+, also enable <em>Java SSRF code-level vulnerability and attack evaluation</em> in OneAgent features)</li>
+<li><strong>JNDI Injection</strong> — Log4Shell-class lookups (Java only)</li>
+</ul>
+<p>Other runtime attack classes — path traversal, for example — are <strong>not</strong> in the documented catalog; do not assume RAP protects against them.</p>
+<table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Minimum OneAgent</th>
+<th>SQL injection</th>
+<th>Command injection</th>
+<th>JNDI injection</th>
+<th>SSRF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Java 8+ (Windows x86 and Linux x86 only)</td>
+<td>1.241</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>.NET (Framework 4.5, Core 3.0+, 64-bit)</td>
+<td>1.289</td>
+<td>✓</td>
+<td>✓</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Go</td>
+<td>1.311</td>
+<td>✓</td>
+<td>✓</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>The Java floor is below what SaaS accepts.</strong> From SaaS 1.347 (rollout start 09/16/2026): <em>&quot;Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier.&quot;</em> The 1.241 in the table is the documented RAP minimum, not a version a tenant on 1.347 or later still accepts. Run a supported OneAgent version.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-347">What's new in Dynatrace SaaS 1.347 (DT docs)</a> — <em>&quot;Starting with this release, Dynatrace rejects connections from OneAgent versions 1.241 and earlier.&quot;</em></sub></p>
+</blockquote>
+<p>A .NET or Go service therefore has no JNDI or SSRF protection from RAP. The catalog evolves per OneAgent release; re-check the docs rather than inferring it from a static document.</p>
+<p>Setup has a OneAgent step that is easy to miss: enable <em>code-level attack evaluation</em> for each technology under <strong>Settings &gt; Collect and capture &gt; General monitoring settings &gt; OneAgent features</strong>, then restart the processes. Detection findings are triaged in the <strong>Threats &amp; Exploits</strong> app.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/application-security/application-protection">Runtime Application Protection (DT docs)</a> — <em>&quot;Detection of SQL injection, JNDI injection, command injection, and SSRF attacks&quot;</em>, plus the page's <em>Supported technologies</em> table, which marks JNDI injection and SSRF for Java 8 or higher only (footnote: <em>&quot;Only supported on Windows x86 and Linux x86 systems.&quot;</em>); <em>&quot;Filter by code-level attack evaluation and enable the feature for the technologies you want to monitor. Select Save changes . Restart your processes.&quot;</em>; and <em>&quot;Evaluate, triage, and investigate findings with Threats &amp; Exploits&quot;</em> (re-read 10/02/2026).</sub></p>
+</blockquote>
+<p><a id="detect-vs-block"></a></p>
+<h2>3. Detection vs Blocking Modes</h2>
+<p>The transition from Monitor to Block is the most important operational decision in RAP. The cost asymmetry is large: false-positive in Monitor = noise in a dashboard; false-positive in Block = HTTP 5xx and customer-visible incident.</p>
+<p>Recommended rollout pattern:</p>
+<ol>
+<li><strong>Day 1–30: Monitor only.</strong> Let RAP observe production traffic. Build a baseline of detection volume and false-positive patterns.</li>
+<li><strong>Day 30–60: per-class and per-process-group analysis.</strong> Identify which attack classes and process groups produce only real attacks (high precision) vs which fire on legitimate traffic too. Tune or exclude the noisy ones.</li>
+<li><strong>Day 60+: promote selectively to Block.</strong> Start with high-precision rules in lower-traffic environments. Promote in production only after staging-environment data confirms zero false positives.</li>
+</ol>
+<p>Blocking is set per technology in the global attack control (<strong>Off</strong> / <strong>Monitor</strong> / <strong>Block</strong>) and can be overridden by custom monitoring rules scoped to process groups or vulnerability types. Promote through custom rules first — one process group at a time — and change the global control for a technology only once its custom rules have proven clean. Treat it as a release process, not a configuration change.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/secure/application-security/application-protection">Runtime Application Protection (DT docs)</a> — <em>&quot;Block; incoming attacks detected and blocked.&quot;</em> and <em>&quot;the custom rules override the global attack control for the selected technology&quot;</em> (re-read 09/18/2026). <strong>Softened:</strong> the day-30/60/60+ phasing and the &quot;release process not config change&quot; guidance are community practice — verify the cadence against your traffic volume.</sub></p>
+</blockquote>
+<p><a id="dql-attacks"></a></p>
+<h2>4. DQL: RAP Detections</h2>
+<p>RAP findings are <code>DETECTION_FINDING</code> records whose <code>product.name</code> is <code>Runtime Application Protection</code>; the attack class is in <code>finding.type</code> (for example <code>SQL injection</code>) and the normalized severity in <code>dt.security.risk.level</code>. There is no <code>ATTACK_EVENT</code> type and no <code>attack.*</code> fields — a query built on them is valid DQL that returns zero rows forever. Two patterns for monitoring RAP volume in dashboards.</p>
+<pre><code class="language-dql">// RAP detections by attack class and risk level, last 24h
+fetch security.events, from:-24h
+| filter event.type == &quot;DETECTION_FINDING&quot;
+| filter product.name == &quot;Runtime Application Protection&quot;
+| summarize detections = count(), by:{finding.type, dt.security.risk.level}
+| sort detections desc
+
+</code></pre>
+<p><a id="dql-attacks-per-svc"></a></p>
+<h2>5. Attacks Per Service</h2>
+<p>Which processes are being attacked most? Often the answer guides which process groups to promote to Block first. RAP records the targeted process in <code>object.name</code> (with <code>object.type == &quot;PROCESS&quot;</code>).</p>
+<pre><code class="language-dql">// RAP detections per targeted process, last 24h
+fetch security.events, from:-24h
+| filter event.type == &quot;DETECTION_FINDING&quot;
+| filter product.name == &quot;Runtime Application Protection&quot;
+| summarize detections = count(), by:{object.name, finding.type}
+| sort detections desc
+| limit 25
+
+</code></pre>
+<blockquote>
+<p><strong>Validation note:</strong> both queries were validated for syntax and field names on 09/18/2026 and execute cleanly; the validation tenant has no RAP data, so they returned 0 rows there.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/detection">Detection events (DT semantic dictionary)</a> — <code>event.type</code> <code>DETECTION_FINDING</code>, its RAP example record (<code>&quot;product.name&quot; : &quot;Runtime Application Protection&quot;</code>, <code>&quot;finding.type&quot; : &quot;SQL injection&quot;</code>, <code>&quot;object.type&quot; : &quot;PROCESS&quot;</code>), and <em>&quot;A detection finding is an alert raised by a security tool or a Dynatrace detection rule when it observes suspicious or malicious activity&quot;</em> (re-read 09/18/2026). <strong>Dictionary:</strong> no row for any <code>attack.*</code> field under <code>filter startsWith(name, &quot;attack&quot;)</code>, read 09/18/2026 (control: the same query shape on <code>&quot;vulnerability&quot;</code> → 70 rows).</sub></p>
+</blockquote>
+<p><a id="next"></a></p>
+<h2>6. Next Steps</h2>
+<ol>
+<li>Confirm RAP is producing <code>DETECTION_FINDING</code> records by running the queries above. Zero rows can mean no attacks in the window — widen it to <code>from:-30d</code> first; if it is still empty on a public-facing service, confirm RAP is enabled, <em>code-level attack evaluation</em> is on in OneAgent features for the technology, the attack control is not <strong>Off</strong>, deep monitoring is on for the process group, and the processes were restarted after each change. On .NET and Go, JNDI and SSRF findings never appear (§ 2).</li>
+<li>Build a per-class, per-process-group precision baseline before promoting anything to Block.</li>
+<li>Read <strong>APPSEC-08</strong> for the workflow patterns that route attack alerts to the SOC.</li>
+<li>Read <strong>APPSEC-09</strong> — <code>view-sensitive-request-data</code> controls whether attack payloads are visible; the SOC may need it, AppDev probably should not.</li>
+</ol>
+<p><a id="references"></a></p>
+<h2>References</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/application-security">Application Security (DT docs)</a></td>
+<td>RAP positioning</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/secure/application-security/application-protection">Runtime Application Protection (DT docs)</a></td>
+<td>Attack classes, supported technologies, global attack control and custom rules</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/semantic-dictionary/model/security-events/detection">Detection events (DT semantic dictionary)</a></td>
+<td><code>DETECTION_FINDING</code> fields and the RAP example record</td>
+</tr>
+<tr>
+<td><a href="https://docs.dynatrace.com/docs/manage/identity-access-management/permission-management/manage-user-permissions-policies/advanced/iam-policystatements">IAM policy statements reference (DT docs)</a></td>
+<td>view-sensitive-request-data scope</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><sub><strong>⚠️ DISCLAIMER</strong>: This information was AI generated and is provided &quot;as-is&quot; without warranty. It was produced as an independent, community-driven project and <strong>not supported by Dynatrace</strong>. Always refer to official <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a> for the most current information.</sub></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S2D-04: Alert Migration - Anomaly Detectors</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">S2D — Splunk to Dynatrace Migration</a><span class="sep">/</span><span aria-current="page">S2D-04</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>S2D-04: Alert Migration - Anomaly Detectors</h1>
+<blockquote>
+<p><strong>Series:</strong> S2D — Splunk to Dynatrace Migration | <strong>Notebook:</strong> 4 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/02/2026</p>
+</blockquote>
+<h2>Overview</h2>
+<p>This notebook explains how to translate Splunk alert conditions into Dynatrace Anomaly Detectors. Understanding the fundamental differences between scheduled queries and continuous monitoring is essential for successful alert migration.</p>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MDAgNDAwIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmdHcmFkUzJENCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMwZjE3MmEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWUyOTNiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJzcGx1bmtBbGVydEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzY1YTMwZCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM0ZDdjMGYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImR0QWxlcnRHcmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2ZjEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojNGY0NmU1Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGZpbHRlciBpZD0ic2hhZG93UzJENCIgeD0iLTIwJSIgeT0iLTIwJSIgd2lkdGg9IjE0MCUiIGhlaWdodD0iMTQwJSI+CiAgICAgIDxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMyIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgoKICA8IS0tIEJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNiZ0dyYWRTMkQ0KSIvPgoKICA8IS0tIFRpdGxlIC0tPgogIDx0ZXh0IHg9IjM1MCIgeT0iMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSI2MDAiPlNwbHVuayB2cyBEeW5hdHJhY2UgQWxlcnRpbmc8L3RleHQ+CgogIDwhLS0gU3BsdW5rIFNlY3Rpb24gLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjUwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE2MCIgcng9IjEwIiBmaWxsPSJ1cmwoI3NwbHVua0FsZXJ0R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3dTMkQ0KSIvPgogIDx0ZXh0IHg9IjE4MCIgeT0iNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIj5TcGx1bms6IFNjaGVkdWxlZCBRdWVyaWVzPC90ZXh0PgoKICA8IS0tIFNwbHVuayBUaW1lbGluZSAtLT4KICA8cmVjdCB4PSI1MCIgeT0iOTUiIHdpZHRoPSIyNjAiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSIjMWUyOTNiIi8+CiAgPGxpbmUgeDE9IjYwIiB5MT0iMTIwIiB4Mj0iMzAwIiB5Mj0iMTIwIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMiIvPgoKICA8IS0tIFNjaGVkdWxlZCBxdWVyeSBwb2ludHMgLS0+CiAgPGNpcmNsZSBjeD0iODAiIGN5PSIxMjAiIHI9IjYiIGZpbGw9IiNhM2U2MzUiLz4KICA8dGV4dCB4PSI4MCIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgiPjVtPC90ZXh0PgoKICA8Y2lyY2xlIGN4PSIxNDAiIGN5PSIxMjAiIHI9IjYiIGZpbGw9IiNhM2U2MzUiLz4KICA8dGV4dCB4PSIxNDAiIHk9IjE0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4Ij4xMG08L3RleHQ+CgogIDxjaXJjbGUgY3g9IjIwMCIgY3k9IjEyMCIgcj0iNiIgZmlsbD0iI2EzZTYzNSIvPgogIDx0ZXh0IHg9IjIwMCIgeT0iMTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRhM2I4IiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgiPjE1bTwvdGV4dD4KCiAgPGNpcmNsZSBjeD0iMjYwIiBjeT0iMTIwIiByPSI2IiBmaWxsPSIjZWY0NDQ0Ii8+CiAgPHRleHQgeD0iMjYwIiB5PSIxNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmY2E1YTUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iOCI+QWxlcnQhPC90ZXh0PgoKICA8IS0tIFNwbHVuayBkZXNjcmlwdGlvbiAtLT4KICA8dGV4dCB4PSIxODAiIHk9IjE3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Q5Zjk5ZCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCI+UnVucyBldmVyeSA1IG1pbiwgZXZhbHVhdGVzIDE1IG1pbiB3aW5kb3c8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNkOWY5OWQiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPlRocmVzaG9sZDogY291bnQgPiA2MCBpbiB3aW5kb3c8L3RleHQ+CgogIDwhLS0gRHluYXRyYWNlIFNlY3Rpb24gLS0+CiAgPHJlY3QgeD0iMzcwIiB5PSI1MCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxNjAiIHJ4PSIxMCIgZmlsbD0idXJsKCNkdEFsZXJ0R3JhZCkiIGZpbHRlcj0idXJsKCNzaGFkb3dTMkQ0KSIvPgogIDx0ZXh0IHg9IjUyMCIgeT0iNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIj5EeW5hdHJhY2U6IENvbnRpbnVvdXMgTW9uaXRvcmluZzwvdGV4dD4KCiAgPCEtLSBEeW5hdHJhY2UgVGltZWxpbmUgLS0+CiAgPHJlY3QgeD0iMzkwIiB5PSI5NSIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9IiMxZTI5M2IiLz4KICA8bGluZSB4MT0iNDAwIiB5MT0iMTIwIiB4Mj0iNjQwIiB5Mj0iMTIwIiBzdHJva2U9IiM0NzU1NjkiIHN0cm9rZS13aWR0aD0iMiIvPgoKICA8IS0tIEV2ZXJ5IG1pbnV0ZSBzYW1wbGVzIC0tPgogIDxjaXJjbGUgY3g9IjQxMCIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iIzgxOGNmOCIvPgogIDxjaXJjbGUgY3g9IjQyNSIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iIzgxOGNmOCIvPgogIDxjaXJjbGUgY3g9IjQ0MCIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iIzgxOGNmOCIvPgogIDxjaXJjbGUgY3g9IjQ1NSIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iIzgxOGNmOCIvPgogIDxjaXJjbGUgY3g9IjQ3MCIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iIzgxOGNmOCIvPgogIDxjaXJjbGUgY3g9IjQ4NSIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iIzgxOGNmOCIvPgogIDxjaXJjbGUgY3g9IjUwMCIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iIzgxOGNmOCIvPgogIDxjaXJjbGUgY3g9IjUxNSIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iIzgxOGNmOCIvPgogIDxjaXJjbGUgY3g9IjUzMCIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iIzgxOGNmOCIvPgogIDxjaXJjbGUgY3g9IjU0NSIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iIzgxOGNmOCIvPgogIDxjaXJjbGUgY3g9IjU2MCIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iI2VmNDQ0NCIvPgogIDxjaXJjbGUgY3g9IjU3NSIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iI2VmNDQ0NCIvPgogIDxjaXJjbGUgY3g9IjU5MCIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iI2VmNDQ0NCIvPgogIDxjaXJjbGUgY3g9IjYwNSIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iI2VmNDQ0NCIvPgogIDxjaXJjbGUgY3g9IjYyMCIgY3k9IjEyMCIgcj0iNCIgZmlsbD0iI2VmNDQ0NCIvPgoKICA8dGV4dCB4PSI1MjAiIHk9IjE0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4Ij5TbGlkaW5nIFdpbmRvdyAoMTVtKTwvdGV4dD4KCiAgPCEtLSBEeW5hdHJhY2UgZGVzY3JpcHRpb24gLS0+CiAgPHRleHQgeD0iNTIwIiB5PSIxNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjN2QyZmUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPkV2YWx1YXRlcyBldmVyeSBtaW51dGU8L3RleHQ+CiAgPHRleHQgeD0iNTIwIiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNjN2QyZmUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiPlRocmVzaG9sZDogMyB2aW9sYXRpbmcgc2FtcGxlcyBvZiAxNTwvdGV4dD4KCiAgPCEtLSBUaHJlc2hvbGQgVHJhbnNsYXRpb24gQm94IC0tPgogIDxyZWN0IHg9IjEwMCIgeT0iMjMwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjgwIiByeD0iMTAiIGZpbGw9IiMxZTNhNWYiIGZpbHRlcj0idXJsKCNzaGFkb3dTMkQ0KSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMjU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjBhNWZhIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmb250LXdlaWdodD0iNjAwIj5UaHJlc2hvbGQgVHJhbnNsYXRpb24gRm9ybXVsYTwvdGV4dD4KICA8dGV4dCB4PSIzNTAiIHk9IjI4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2Y4ZmFmYyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNCI+W1NwbHVuayBUaHJlc2hvbGRdID0gW0RUIFRocmVzaG9sZF0gw5cgW1Zpb2xhdGluZyBTYW1wbGVzXTwvdGV4dD4KCiAgPCEtLSBFeGFtcGxlIC0tPgogIDxyZWN0IHg9IjEwMCIgeT0iMzIwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjY1IiByeD0iOCIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzNTAiIHk9IjM0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0YTNiOCIgZm9udC1mYW1pbHk9InN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZm9udC13ZWlnaHQ9IjYwMCI+RXhhbXBsZTogU3BsdW5rIHRocmVzaG9sZCBvZiA2MCBvdmVyIDE1IG1pbnV0ZXM8L3RleHQ+CiAgPHRleHQgeD0iMzUwIiB5PSIzNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmOGZhZmMiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPk9wdGlvbiBBOiBEVCB0aHJlc2hvbGQgMTUgw5cgNCBzYW1wbGVzID0gNjAgfCBPcHRpb24gQjogRFQgdGhyZXNob2xkIDEwIMOXIDYgc2FtcGxlcyA9IDYwPC90ZXh0Pgo8L3N2Zz4K" alt="Splunk vs Dynatrace Alerting" /></p>
+<!-- MARKDOWN_TABLE_ALTERNATIVE
+| Aspect | Splunk (scheduled alerts) | Dynatrace |
+|---|--------|------------|
+| Execution | Scheduled | Continuous (every minute) |
+| Evaluation | Single point-in-time | Sliding window |
+| Threshold | Total over period | Per-minute with samples |
+For environments where SVG doesn't render
+-->
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#splunk-vs-dynatrace-alerting">Splunk vs Dynatrace Alerting</a></li>
+<li><a href="#the-sliding-window-concept">The Sliding Window Concept</a></li>
+<li><a href="#threshold-translation-formula">Threshold Translation Formula</a></li>
+<li><a href="#migration-strategies">Migration Strategies</a></li>
+<li><a href="#concept-mapping">Concept Mapping</a></li>
+<li><a href="#creating-a-davis-anomaly-detector">Creating an Anomaly Detector</a></li>
+<li><a href="#migration-decision-tree">Migration Decision Tree</a></li>
+<li><a href="#validation-query">Validation Query</a></li>
+</ol>
+<hr />
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dynatrace Environment</strong></td>
+<td>SaaS with Grail enabled</td>
+</tr>
+<tr>
+<td><strong>Permissions</strong></td>
+<td><code>storage:logs:read</code>, <code>storage:buckets:read</code>, <code>settings:objects:write</code></td>
+</tr>
+<tr>
+<td><strong>Knowledge</strong></td>
+<td>Understanding of source Splunk alert logic</td>
+</tr>
+</tbody>
+</table>
+<h2>Learning Objectives</h2>
+<p>By the end of this notebook, you will be able to:</p>
+<ol>
+<li>Explain the difference between Splunk scheduled alerts and Anomaly Detectors</li>
+<li>Apply the threshold translation formula</li>
+<li>Choose the appropriate migration strategy for different alert types</li>
+<li>Configure Anomaly Detector parameters correctly</li>
+</ol>
+<p><a id="splunk-vs-dynatrace-alerting"></a></p>
+<h2>Splunk vs Dynatrace Alerting</h2>
+<h3>Splunk Alerting Model</h3>
+<p><a href="https://help.splunk.com/en/splunk-enterprise/alert-and-respond/alerting-manual/10.6/choose-an-alert-type/alert-types">Alert types (Splunk docs)</a>: <em>&quot;There are two alert types, scheduled and real-time.&quot;</em> This section covers scheduled alerts, which:</p>
+<ul>
+<li>Run at defined intervals (e.g., every 5 minutes)</li>
+<li>Evaluate a query over a timeframe (e.g., last 15 minutes)</li>
+<li>Trigger when results exceed a threshold (e.g., count &gt; 10)</li>
+<li>Apply suppression to prevent repeated alerts</li>
+</ul>
+<h3>Dynatrace Alerting Model</h3>
+<p>Anomaly Detectors provide <strong>continuous monitoring</strong> that:</p>
+<ul>
+<li>Evaluate every minute (1-minute granularity)</li>
+<li>Use a sliding window approach</li>
+<li>Require multiple violating samples to trigger</li>
+<li>Require dealerting samples to close</li>
+</ul>
+<h3>Key Parameters</h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Maximum</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Threshold</strong></td>
+<td>Value triggering a violation</td>
+<td>Unlimited</td>
+</tr>
+<tr>
+<td><strong>Sliding Window</strong></td>
+<td>Time range evaluated</td>
+<td>60 minutes</td>
+</tr>
+<tr>
+<td><strong>Violating Samples</strong></td>
+<td>Minutes above threshold to alert</td>
+<td>60</td>
+</tr>
+<tr>
+<td><strong>Dealerting Samples</strong></td>
+<td>Minutes below threshold to close</td>
+<td>60</td>
+</tr>
+</tbody>
+</table>
+<p><a id="the-sliding-window-concept"></a></p>
+<h2>The Sliding Window Concept</h2>
+<p>Anomaly Detectors continuously evaluate metrics using a sliding window.</p>
+<p><strong>Example Configuration:</strong></p>
+<ul>
+<li>Metric: Error Log Count</li>
+<li>Threshold: 5 errors/minute</li>
+<li>Sliding Window: 15 minutes</li>
+<li>Violating Samples: 3</li>
+<li>Dealerting Samples: 5</li>
+</ul>
+<p><strong>Behavior:</strong></p>
+<ol>
+<li>Every minute, the detector checks if error count &gt; 5</li>
+<li>If 3 of the last 15 minutes exceed the threshold → Alert opens</li>
+<li>Alert closes once at least 5 samples in the window are back below threshold <em>and</em> the number of violating samples has fallen below 3</li>
+</ol>
+<p><a id="threshold-translation-formula"></a></p>
+<h2>Threshold Translation Formula</h2>
+<p>The key insight for translation is that both platforms should require roughly the same number of events to trigger:</p>
+<pre><code>[Splunk Threshold] = [Dynatrace Threshold] × [Dynatrace Violating Samples]
+</code></pre>
+<h3>Example Translation</h3>
+<p><strong>Splunk Alert:</strong></p>
+<ul>
+<li>Runs every 5 minutes</li>
+<li>Timeframe: last 15 minutes</li>
+<li>Threshold: 60 error logs</li>
+<li>Suppress: 15 minutes</li>
+</ul>
+<p><strong>Dynatrace Options (each needs roughly 60 errors before it can fire):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>DT Threshold</th>
+<th>Violating Samples</th>
+<th>Product</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>15</td>
+<td>4</td>
+<td>60</td>
+</tr>
+<tr>
+<td>B</td>
+<td>10</td>
+<td>6</td>
+<td>60</td>
+</tr>
+<tr>
+<td>C</td>
+<td>30</td>
+<td>2</td>
+<td>60</td>
+</tr>
+<tr>
+<td>D</td>
+<td>20</td>
+<td>3</td>
+<td>60</td>
+</tr>
+</tbody>
+</table>
+<p>The product is a floor, not a total. Each violating sample must be above the threshold on its own, so these settings fire only when the errors are concentrated in that many minutes. 60 errors spread evenly across 15 minutes (4 per minute) fire none of them, while the Splunk alert would. The options below handle that trade-off differently, and all of them use this one example: <strong>60 error logs in 15 minutes</strong>.</p>
+<p><a id="migration-strategies"></a></p>
+<h2>Migration Strategies</h2>
+<h3>Option 1: Alert Reimagined (Recommended)</h3>
+<p><strong>Strategy:</strong> Pick a threshold × violating-samples pair from the table above that most closely replicates the Splunk behavior. Here, row D: 20 × 3 = 60.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li>Threshold: 20</li>
+<li>Sliding Window: 15</li>
+<li>Violating Samples: 3 (fires when 3 of the 15 one-minute samples each exceed 20 errors, so more than 60 errors concentrated in 3 minutes)</li>
+<li>Dealerting Samples: 15</li>
+</ul>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Best balance between sensitivity and stability</li>
+<li>Closest to expected alert behavior</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Requires threshold recalculation</li>
+<li>Mindset shift for teams used to Splunk</li>
+<li>Misses errors spread thinly across the window (see the note under the formula)</li>
+</ul>
+<p><strong>Custom-alert query</strong> (paste this version into the alert; it has no <code>from:</code>/<code>to:</code>, see Step 1 below):</p>
+<pre><code class="language-dql">// Paste into the custom alert WITHOUT from:/to: — the alert supplies its own sliding window
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
+fetch logs
+| filter status == &quot;ERROR&quot;
+| filter matchesPhrase(k8s.cluster.name, &quot;production&quot;)
+| filter matchesPhrase(k8s.deployment.name, &quot;checkout-service&quot;)
+| makeTimeseries count = count(), by:{dt.entity.cloud_application}, interval:1m
+</code></pre>
+<blockquote>
+<p><strong>Query cost.</strong> A DQL custom alert runs its query every minute, and a log query is billed per GiB scanned on every run. Dynatrace's log-alerting guidance calls this method <em>&quot;not typically recommended as the primary alerting strategy&quot;</em> and marks metrics based on logs as recommended. On a validation tenant (10/23/2026), one hour of <code>filter status == &quot;ERROR&quot; | makeTimeseries count = count(), interval:1m</code> over all logs scanned 348 MB. The same per-minute counts from the built-in <code>dt.log.status_per_entity_count</code> metric scanned 0 bytes and matched the log query exactly.</p>
+<p>Where its dimensions fit, alert on the metric instead. On that tenant it carried <code>status</code>, <code>k8s.cluster.name</code>, <code>k8s.namespace.name</code>, <code>k8s.workload.name</code> and <code>dt.entity.cloud_application</code>, but not <code>k8s.deployment.name</code>, so filter on the workload:</p>
+<pre><code class="language-dql">// Metric form of the custom-alert query: no log scan on each evaluation
+timeseries count = sum(dt.log.status_per_entity_count), filter:{status == &quot;ERROR&quot; and k8s.cluster.name == &quot;production&quot; and k8s.workload.name == &quot;checkout-service&quot;}, by:{dt.entity.cloud_application}, interval:1m
+</code></pre>
+<p><strong>Compare the metric with your logs for each target before you rely on a workload filter.</strong> On that tenant on 11/02/2026, the <code>hipstershop</code> namespace had 133,369 metric records in an hour with no <code>k8s.workload.name</code> and 33 with one, while its logs carried no <code>k8s.workload.name</code> at all. An alert on a filter that matches nothing never fires, and nothing warns you. Confirm the metric exists on your tenant first (<code>metrics | filter metric.key == &quot;dt.log.status_per_entity_count&quot;</code>). For a condition it cannot express, extract your own metric at ingest (FAQ-09, OPIPE), and keep the log query only where no metric fits. The thresholds below apply to either form.</p>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/alerting-on-logs">Log alerts (DT docs)</a> — <em>&quot;Keep in mind that these queries are executed every minute, which can increase license consumption.&quot;</em>; <em>&quot;This method is not typically recommended as the primary alerting strategy.&quot;</em> <a href="https://docs.dynatrace.com/docs/license/capabilities/log-analytics/dps-log-query">Log Management &amp; Analytics - Query (DT docs)</a> — <em>&quot;It is calculated per gibibyte scanned (GiB scanned).&quot;</em></sub></p>
+</blockquote>
+<p>The cell below is the same log query with <code>from:-24h</code>, so you can preview it in a notebook.</p>
+<pre><code class="language-dql">// Option 1: Alert Reimagined - notebook PREVIEW of the custom-alert query above
+// Remove from:-24h when you paste it into the custom alert
+// Threshold: 20, Violating Samples: 3, Sliding Window: 15
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
+fetch logs, from:-24h
+| filter status == &quot;ERROR&quot;
+| filter matchesPhrase(k8s.cluster.name, &quot;production&quot;)
+| filter matchesPhrase(k8s.deployment.name, &quot;checkout-service&quot;)
+| makeTimeseries count = count(), by:{dt.entity.cloud_application}, interval:1m
+</code></pre>
+<h3>Option 2: Single-Minute Spike</h3>
+<p><strong>Strategy:</strong> Use the Splunk total as a per-minute threshold, with a single violating sample.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li>Threshold: 60 (same as the Splunk total)</li>
+<li>Sliding Window: 15</li>
+<li>Violating Samples: 1 (fires when more than 60 errors land in a single minute)</li>
+<li>Dealerting Samples: 15</li>
+</ul>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Easy to understand and explain</li>
+<li>Preserves the original threshold number</li>
+<li>Fires in the minute a burst happens</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Misses errors spread across the window, so it fires less often than Splunk: a minute above 60 always puts the 15-minute total above 60, but not the reverse</li>
+<li>One burst minute is enough to open an event</li>
+</ul>
+<p>The custom-alert query is the same as Option 1 (no <code>from:</code>/<code>to:</code>); only the detector settings change. The cell below is the notebook preview.</p>
+<pre><code class="language-dql">// Option 2: Single-minute spike - notebook PREVIEW (remove from:-24h in the custom alert)
+// Threshold: 60, Violating Samples: 1, Sliding Window: 15
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
+fetch logs, from:-24h
+| filter status == &quot;ERROR&quot;
+| filter matchesPhrase(k8s.cluster.name, &quot;production&quot;)
+| filter matchesPhrase(k8s.deployment.name, &quot;checkout-service&quot;)
+| makeTimeseries count = count(), by:{dt.entity.cloud_application}, interval:1m
+</code></pre>
+<h3>Option 3: Sustained Presence</h3>
+<p><strong>Strategy:</strong> Divide the Splunk total by the sliding window for a per-minute threshold, and require every sample to violate it.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li>Threshold: 4 (60 ÷ 15 = 4 per minute; counts are whole numbers, so each minute needs at least 5 errors to be above it)</li>
+<li>Sliding Window: 15</li>
+<li>Violating Samples: 15 (all samples must violate)</li>
+<li>Dealerting Samples: 15</li>
+</ul>
+<p>This is a sustained-presence rule, not a total. 300 errors in one minute followed by 14 quiet minutes never fires; 5 errors in every one of 15 minutes (75 in total) does.</p>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Very stable: fires only on errors that persist minute after minute</li>
+<li>Ignores brief spikes, so the fewest false positives from bursts</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Misses short bursts, however large</li>
+<li>Fires only after the full 15 minutes</li>
+</ul>
+<h3>Option 4: Data-Driven</h3>
+<p><strong>Strategy:</strong> Analyze actual data patterns to determine optimal thresholds.</p>
+<p><strong>Steps:</strong></p>
+<ol>
+<li>Query historical data at the grain the detector evaluates (1-minute samples) to understand baseline patterns</li>
+<li>Identify normal vs. problematic periods</li>
+<li>Set thresholds that would have caught past incidents</li>
+<li>Tune based on observed alert frequency</li>
+</ol>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Most accurate for the specific environment</li>
+<li>Data-backed decisions</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Requires more analysis effort</li>
+<li>Needs historical data availability</li>
+</ul>
+<pre><code class="language-dql">// Data-driven threshold: per-minute error distribution (detectors evaluate 1-minute samples)
+// Keep the window at 24h or less: over longer windows interval:1m is coarsened silently
+fetch logs, from:now()-24h
+| filter status == &quot;ERROR&quot;
+| filter matchesPhrase(k8s.deployment.name, &quot;checkout-service&quot;)
+| makeTimeseries count = count(), interval:1m
+| fieldsAdd per_min_avg = arrayAvg(count), per_min_p95 = arrayPercentile(count, 95), per_min_max = arrayMax(count)
+</code></pre>
+<p><a id="concept-mapping"></a></p>
+<h2>Concept Mapping</h2>
+<table>
+<thead>
+<tr>
+<th>Splunk Concept</th>
+<th>Dynatrace Equivalent</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Query Timeframe</td>
+<td>Sliding Window</td>
+<td>Both define evaluation period</td>
+</tr>
+<tr>
+<td>Suppress / throttle</td>
+<td>No direct equivalent</td>
+<td>An open event absorbs repeat violations until it closes (de-alerting samples); re-notification is controlled in the routing workflow</td>
+</tr>
+<tr>
+<td>Threshold</td>
+<td>Threshold × Violating Samples</td>
+<td>Must calculate product</td>
+</tr>
+<tr>
+<td>Schedule Frequency</td>
+<td>Delay (default 1 minute, up to 60)</td>
+<td>Evaluation stays per-minute; Delay only batches executions</td>
+</tr>
+</tbody>
+</table>
+<p>The configuration page says: <em>&quot;While the default delay period between custom alert executions is 1 Minute, you can configure the query execution to longer intervals&quot;</em>, and <em>&quot;the delay can't be longer than 60 Minutes.&quot;</em> On de-alerting: <em>&quot;The number of violating samples must be lower than the threshold number to raise the problem. The number of &quot;normal&quot; samples must be greater than or equal to the number of de-alerting samples. Both criteria must be met to close the event.&quot;</em></p>
+<p><a id="creating-a-davis-anomaly-detector"></a></p>
+<h2>Creating an Anomaly Detector</h2>
+<h3>Step 1: Create the DQL Query</h3>
+<p>Your query must return timeseries data with a 1-minute interval.</p>
+<p><strong>Do not include <code>from:</code> or <code>to:</code> in the query you paste into the custom alert.</strong> The DQL writing guide says: <em>&quot;Don't use from: and to: when creating a DQL query for the custom alert. Otherwise, you'll get failures whenever the custom alert tries to execute your query.&quot;</em> The alert applies its own sliding window. Keep <code>from:</code> only in the notebook preview.</p>
+<p><strong>About <code>dt.entity.cloud_application</code>.</strong> The semantic dictionary marks this field <code>deprecated</code> (<em>&quot;An entity ID of an entity of type CLOUD_APPLICATION.&quot;</em>). Its Smartscape successors are the <code>K8S_DEPLOYMENT</code>, <code>K8S_STATEFULSET</code>, <code>K8S_DAEMONSET</code>, <code>K8S_REPLICASET</code>, <code>K8S_JOB</code> and <code>K8S_CRONJOB</code> nodes (<code>dt.smartscape.k8s_deployment</code> and its siblings, <code>stable</code>), but those IDs are not on log records yet. On a validation tenant on 10/14/2026, 0 of 19.4M logs in 24 hours carried <code>dt.smartscape.k8s_deployment</code>, while 15.0M carried <code>dt.entity.cloud_application</code>. It is still the only workload entity ID on logs, so the templates keep it. Switch to the Smartscape ID once it appears on your log records. <code>k8s.workload.name</code> (<code>stable</code>) is a name, not an entity ID.</p>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> <code>dt.entity.cloud_application</code> (<code>deprecated</code>), <code>dt.smartscape.k8s_deployment</code> (<code>stable</code>), <code>k8s.workload.name</code> (<code>stable</code>); <code>dt.semantic_dictionary.models</code> maps <code>dt.entity.cloud_application</code> to the six <code>K8S_*</code> node types above; read 10/14/2026.</sub></p>
+</blockquote>
+<p><strong>Custom-alert template:</strong></p>
+<pre><code class="language-dql">// Paste into the custom alert WITHOUT from:/to:
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
+fetch logs
+| filter status == &quot;ERROR&quot;
+| filter matchesPhrase(k8s.cluster.name, &quot;your-cluster&quot;)
+| filter matchesPhrase(k8s.namespace.name, &quot;your-namespace&quot;)
+| makeTimeseries count = count(), by:{dt.entity.cloud_application}, interval:1m
+</code></pre>
+<p>Notebook preview of the same template:</p>
+<pre><code class="language-dql">// Notebook PREVIEW of the custom-alert template above
+// Remove from:-24h when you paste it into the custom alert
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
+fetch logs, from:-24h
+| filter status == &quot;ERROR&quot;
+| filter matchesPhrase(k8s.cluster.name, &quot;your-cluster&quot;)
+| filter matchesPhrase(k8s.namespace.name, &quot;your-namespace&quot;)
+| makeTimeseries count = count(), by:{dt.entity.cloud_application}, interval:1m
+</code></pre>
+<h3>Step 2: Configure Detector Settings</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Name</strong></td>
+<td><code>[AppName] High Error Count</code></td>
+<td>Clear identification</td>
+</tr>
+<tr>
+<td><strong>Threshold</strong></td>
+<td>Calculated per formula</td>
+<td>See translation formula</td>
+</tr>
+<tr>
+<td><strong>Sliding Window</strong></td>
+<td>Match Splunk timeframe</td>
+<td>Usually 15-60 minutes</td>
+</tr>
+<tr>
+<td><strong>Violating Samples</strong></td>
+<td>Depends on strategy</td>
+<td>See migration options</td>
+</tr>
+<tr>
+<td><strong>Dealerting Samples</strong></td>
+<td>How many back-to-normal samples close the event</td>
+<td>Prevents alert flapping (not the same as Splunk suppress)</td>
+</tr>
+</tbody>
+</table>
+<h3>Step 3: Configure Event Properties</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Example</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Event Name</strong></td>
+<td><code>[AppName] P2 - {dims:host.name} - High Errors</code></td>
+<td>Alert identification</td>
+</tr>
+<tr>
+<td><strong>Event Type</strong></td>
+<td><code>ERROR_EVENT</code></td>
+<td>Severity classification</td>
+</tr>
+<tr>
+<td><strong>Description</strong></td>
+<td>Dynamic with affected entity</td>
+<td>Context for responders</td>
+</tr>
+</tbody>
+</table>
+<p>Placeholders take the form <code>{dims:&lt;dimension&gt;}</code>. The configuration page says: <em>&quot;{dims} - a list of all dimensions (and their values) of the metric that violated the threshold. You can also specify a particular dimension: {dims:dt.entity.<entity>}.&quot;</em> Type <code>{</code> in the Event name field to list the placeholders available for your query (<em>&quot;To see available placeholders, type { in the input field.&quot;</em>).</p>
+<p><a id="migration-decision-tree"></a></p>
+<h2>Migration Decision Tree</h2>
+<p>Use this decision tree to choose your migration approach:</p>
+<ol>
+<li>
+<p><strong>Is the Splunk alert timeframe &gt; 1 hour?</strong></p>
+<ul>
+<li>Yes → Use Workflows (see S2D-05) or ArrayMovingSum (see S2D-06)</li>
+<li>No → Continue</li>
+</ul>
+</li>
+<li>
+<p><strong>Is the alert scheduled infrequently (&lt; 6 times/day)?</strong></p>
+<ul>
+<li>Yes → Consider Workflows (see S2D-05)</li>
+<li>No → Continue</li>
+</ul>
+</li>
+<li>
+<p><strong>Do you have historical data for analysis?</strong></p>
+<ul>
+<li>Yes → Use Option 4 (Data-Driven)</li>
+<li>No → Continue</li>
+</ul>
+</li>
+<li>
+<p><strong>What should the alert catch?</strong></p>
+<ul>
+<li>Errors that persist minute after minute, ignoring brief spikes (fewest false positives) → Use Option 3 (Sustained Presence)</li>
+<li>Sudden bursts, as early as possible → Use Option 2 (Single-Minute Spike)</li>
+<li>Otherwise → Use Option 1 (Alert Reimagined)</li>
+</ul>
+</li>
+</ol>
+<p><a id="validation-query"></a></p>
+<h2>Validation Query</h2>
+<p>Before creating an Anomaly Detector, validate your query returns expected results:</p>
+<pre><code class="language-dql">// Validate alert query returns timeseries data (notebook preview)
+// Remove from:now()-24h and the limit when you paste it into the custom alert
+// dt.entity.cloud_application is deprecated (semantic dictionary); its Smartscape successors are not on log records yet (10/2026)
+fetch logs, from:now()-24h
+| filter status == &quot;ERROR&quot;
+| filter matchesPhrase(k8s.deployment.name, &quot;checkout-service&quot;)
+| makeTimeseries count = count(), by:{dt.entity.cloud_application}, interval:1m
+| limit 100
+</code></pre>
+<h2>Next Steps</h2>
+<ul>
+<li><strong>S2D-05: Alert Migration - Workflows</strong> - For alerts that don't fit the Dynatrace Intelligence model</li>
+<li><strong>S2D-06: ArrayMovingSum</strong> - For timeframes exceeding 1 hour</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection">anomaly-detection (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection-classic/metric-events">Anomaly detection metric events (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-configuration">Anomaly detection configuration (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-best-practice">Anomaly Detection DQL writing guide (DT docs)</a></li>
+<li><a href="https://docs.dynatrace.com/docs/shortlink/alerting-profiles">Alerting profiles — classic surface (DT docs)</a></li>
+</ul>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

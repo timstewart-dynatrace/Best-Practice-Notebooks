@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M2S-99: Best Practice Summary</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../../">Best Practice Notebooks</a><span class="sep">/</span><a href="../">M2S — Managed to SaaS Migration</a><span class="sep">/</span><span aria-current="page">M2S-99</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1>M2S-99: Best Practice Summary</h1>
+<blockquote>
+<p><strong>Series:</strong> M2S — Managed to SaaS Migration | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/17/2026</p>
+</blockquote>
+<p>A definitive, actionable reference of every best practice extracted from the M2S Managed-to-SaaS Migration series (notebooks 01–09). Each practice specifies the exact setting or action, its priority, and its step. No hedging—follow these and your migration succeeds.</p>
+<h2>The 9-Step Migration Framework</h2>
+<p>The M2S series follows a structured, step-based approach to Managed-to-SaaS migration:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Name</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Discover</strong></td>
+<td>Understand SaaS Differences</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Strategize</strong></td>
+<td>Define Your Migration Approach</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Design</strong></td>
+<td>Create Target Architecture</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Prepare</strong></td>
+<td>Readiness and Pre-Migration</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Execute</strong></td>
+<td>Migrate Configuration and Agents</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Integrate</strong></td>
+<td>Reconnect Integrations</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Enable</strong></td>
+<td>User Enablement and Communication</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Expand</strong></td>
+<td>Adopt New SaaS Capabilities</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Optimize</strong></td>
+<td>Validate, Optimize, and Decommission</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>OneAgent Attribute Enrichment (1.333+):</strong> OneAgent can enrich all telemetry (metrics, spans, logs, events) with primary fields (<code>dt.security_context</code>, <code>dt.cost.costcenter</code>) and primary tags (<code>primary_tags.environment</code>, <code>primary_tags.team</code>) at the source. More efficient than auto-tags — feeds directly into OpenPipeline routing, bucket assignment, and Grail permissions. Configure via <code>oneagentctl --set-host-tag</code> or <code>--set-host-tag</code> at install time. See <a href="https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment">docs</a>.</p>
+</blockquote>
+<h2>The 11-Step Order of Operations (Upgrade Phase)</h2>
+<p>Within the upgrade phase, follow this precise execution order:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Operation</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Assess</strong></td>
+<td>Inventory current environment</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Provision</strong></td>
+<td>SaaS tenant and access (SSO)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Install</strong></td>
+<td>New ActiveGates in parallel with old ActiveGates</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Migrate</strong></td>
+<td>Configuration and integrations</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Rebuild</strong></td>
+<td>Dashboards, zones, alerts</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Redirect</strong></td>
+<td>OneAgents to SaaS</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Reconnect</strong></td>
+<td>Integrations and extensions</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>Migrate</strong></td>
+<td>Any remaining configuration and integrations</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Validate</strong></td>
+<td>Data flow and performance</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>Cutover</strong></td>
+<td>Full switch to SaaS</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Decommission</strong></td>
+<td>Managed environment</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#step-1-discover">Step 1: Discover — Understand SaaS Differences</a></li>
+<li><a href="#step-2-strategize">Step 2: Strategize — Define Your Migration Approach</a></li>
+<li><a href="#step-3-design">Step 3: Design — Create Target Architecture</a></li>
+<li><a href="#step-4-prepare">Step 4: Prepare — Readiness and Pre-Migration</a></li>
+<li><a href="#step-5-execute">Step 5: Execute — Migrate Configuration and Agents</a></li>
+<li><a href="#step-6-integrate">Step 6: Integrate — Reconnect Integrations</a></li>
+<li><a href="#step-7-enable">Step 7: Enable — User Enablement and Communication</a></li>
+<li><a href="#step-8-expand">Step 8: Expand — Adopt New SaaS Capabilities</a></li>
+<li><a href="#step-9-optimize">Step 9: Optimize — Validate, Optimize, and Decommission</a></li>
+</ol>
+<hr />
+<p><a id="step-1-discover"></a></p>
+<h2>1. Step 1: Discover — Understand SaaS Differences</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Complete entity discovery before strategy</td>
+<td>Run Entities API v2 inventory: <code>type(HOST)</code>, <code>type(SERVICE)</code>, <code>type(APPLICATION)</code>, <code>type(SYNTHETIC_TEST)</code>. Document counts in a spreadsheet before any other planning work.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Plan for historic data loss</td>
+<td>Historic metrics, logs, traces, problems, and session data <strong>cannot be migrated</strong>. Export critical reports before shutdown. Run dual environments to build SaaS baselines.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Plan tenant sizing against the host guideline</td>
+<td>Dynatrace recommends roughly <strong>25,000 hosts per environment</strong> (about 50,000 per cluster) as a sizing guideline — verify current thresholds with Dynatrace. The enforced ceiling is your licensed <strong>host-unit quota</strong>, a separate metric. Split into multiple environments when consolidating Managed clusters would exceed the recommendation.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Align Managed and SaaS versions</td>
+<td>There is <strong>no fixed minimum Managed version</strong> for the SaaS Upgrade Assistant — align the Managed cluster to the <strong>same major version</strong> as the target SaaS tenant rather than targeting a specific floor.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use SaaS Upgrade Assistant for most migrations</td>
+<td>Install the app on the target SaaS tenant. Assign <code>upgrade-assistant:environments:write</code> IAM policy to migration users. The SaaS Upgrade Assistant is the recommended tool for the majority of migrations.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Check the tool before consolidating tenants</td>
+<td>The <a href="https://docs.dynatrace.com/managed/upgrade/saas-upgrade-assistant">SaaS Upgrade Assistant (DT docs)</a> pages describe importing one Managed environment's configuration and say nothing about consolidating several, or about <strong>identical configuration names</strong> across them. In community practice, teams consolidating environments whose configurations share names prefer a tool where they control the names (Monaco or Terraform, M2S-95); if you use the Upgrade Assistant, check the failed-row list in its deploy results before committing to it.</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-2-strategize"></a></p>
+<h2>2. Step 2: Strategize — Define Your Migration Approach</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Choose migration approach by environment size</td>
+<td>&lt;500 hosts: Big Bang. 500–2,000 hosts: Phased by environment. &gt;2,000 hosts or complex integrations: Phased by region/application.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Define measurable success criteria</td>
+<td>Set targets: 100% host coverage, 100% service discovery, &lt;15 min data gaps, 100% alert delivery, 100% dashboard availability, 100% integration success.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Budget time for the manual remainder</td>
+<td>Most configuration moves through the Upgrade Assistant; the small remainder (credentials, webhooks, custom scripts) takes most of the manual effort. &quot;90/10&quot; is community shorthand, not a documented ratio — the app's review screen gives your real split.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Engage Dynatrace Professional Services early</td>
+<td>Involve account team and PS during the Strategize phase, not during execution. Early engagement prevents avoidable rework.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Choose one migration tool</td>
+<td>Pick <strong>one</strong> primary tool: SaaS Upgrade Assistant (recommended), Monaco, Terraform, or Settings API. Never mix approaches—Monaco YAML conflicts with the SaaS Upgrade Assistant. The rule is one writer per configuration schema per migration window; sequencing tools with an explicit ownership handoff is safe. For the Terraform path and the handoff pattern, see M2S-95.</td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-3-design"></a></p>
+<h2>3. Step 3: Design — Create Target Architecture</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open outbound 443 to SaaS endpoints</td>
+<td>Allow HTTPS (port <strong>443</strong>) from all monitored hosts and ActiveGates to <code>{tenant-id}.live.dynatrace.com</code> and <code>{tenant-id}.apps.dynatrace.com</code>.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use ActiveGate routing for restricted networks</td>
+<td>If hosts cannot reach the internet directly, deploy Environment ActiveGates. OneAgents connect to AG on port <strong>9999</strong>; AG connects outbound on <strong>443</strong>.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Have every network zone in SaaS before migrating</td>
+<td>The Upgrade Assistant can import network zones (its Hub listing names them); confirm they arrived, create missing ones via Settings or the Settings API (<code>builtin:networkzones.zones</code>), then assign the new ActiveGates.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Deploy minimum 2 ActiveGates per network zone</td>
+<td>Provides high availability within each zone. OneAgent auto-discovers available AGs.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Configure SAML SSO with full message signing</td>
+<td>IdP must sign the <strong>entire SAML message</strong>, not just the assertion. Microsoft Entra signs only the assertion by default — set <strong>Sign SAML response and assertion</strong> on the Dynatrace enterprise app. Failure causes authentication errors.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Confirm data residency region at provisioning</td>
+<td>Select the correct region (US, EU, APAC) during tenant provisioning. <strong>Cannot be changed</strong> after provisioning.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Enforce TLS 1.2+ for all traffic</td>
+<td>Dynatrace SaaS enforces TLS 1.2 minimum. Verify no legacy TLS 1.0/1.1 configurations on proxies or load balancers.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Ensure DNS resolves SaaS domains</td>
+<td>Verify DNS resolution for <code>{tenant-id}.live.dynatrace.com</code>, <code>{tenant-id}.apps.dynatrace.com</code>, and <code>*.dynatrace.com</code>.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Match network zones to physical topology</td>
+<td>Name zones by datacenter or region (e.g., <code>datacenter-east</code>, <code>aws-us-east-1</code>). Define alternative zones for failover.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Size ActiveGates by host count</td>
+<td>Up to 500 hosts: <strong>2 CPU / 4 GB RAM / 20 GB disk</strong>. 500–1,500: <strong>4 CPU / 8 GB / 40 GB</strong>. 1,500–5,000: <strong>8 CPU / 16 GB / 80 GB</strong>. &gt;5,000: scale horizontally with multiple AGs.</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/certificate-signing-options">Certificate signing options (Microsoft Learn)</a> — <em>&quot;Sign SAML assertion. This default option is set for most of the gallery applications.&quot;</em></sub></p>
+</blockquote>
+<p><a id="step-4-prepare"></a></p>
+<h2>4. Step 4: Prepare — Readiness and Pre-Migration</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Align the Managed version before upgrading</td>
+<td>The SaaS Upgrade Assistant has <strong>no fixed minimum Managed version</strong> — align the Managed cluster to the <strong>same major version</strong> as the target SaaS tenant rather than a specific floor. Upgrade the Managed cluster first if the versions differ.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Coordinate dual licensing</td>
+<td>Work with Dynatrace account team to arrange temporary overlap licensing for the period both Managed and SaaS run simultaneously.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Deploy new SaaS ActiveGates in parallel</td>
+<td>Install new SaaS-connected AGs alongside existing Managed AGs <strong>before</strong> migrating OneAgents. Validates connectivity without impacting monitored hosts.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Install SaaS Upgrade Assistant</td>
+<td>Install the app on the target SaaS tenant and verify connectivity to the Managed cluster. Confirm all required permissions are in place.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Announce configuration freeze</td>
+<td>Notify all teams that no configuration changes should be made to the Managed environment during the migration window. Document the freeze start and end dates.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Test rollback procedure</td>
+<td>Document the Managed server URL, environment ID and tenant token. Rollback: <code>oneagentctl --set-server=&lt;managed-url&gt; --set-tenant=&lt;managed-env-id&gt; --set-tenant-token=&lt;token&gt; --restart-service</code>. Test on one host before bulk migration.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Test connectivity before migration</td>
+<td>Run <code>curl -v https://{tenant-id}.live.dynatrace.com/api/v1/time</code> from monitored hosts and ActiveGate servers before scheduling the migration window.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Verify OneAgent versions are within support window</td>
+<td>OneAgent support window is <strong>9 months (Standard) / 12 months (Enterprise)</strong>. Check oldest deployed versions before migration. Upgrade outdated agents first. SaaS 1.347 (staged tenant rollout) <strong>rejects</strong> OneAgent 1.241 and earlier — those hosts stop reporting, not just fall out of support. Managed 1.348 rejects the same versions, so on a source cluster at 1.348 or later find them from deployment records, not from the cluster (M2S-01).</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-5-execute"></a></p>
+<h2>5. Step 5: Execute — Migrate Configuration and Agents</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Migrate configurations BEFORE redirecting OneAgents</td>
+<td>Deploy foundational settings (management zones, tags, service detection rules) to SaaS before any agents start reporting.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Follow the 4-wave deployment order</td>
+<td><strong>Wave 1:</strong> Management zones, auto-tagging rules, host groups. <strong>Wave 2:</strong> Service detection, request attributes, deep monitoring. <strong>Wave 3:</strong> Alerting profiles, anomaly detection, SLOs. <strong>Wave 4:</strong> Dashboards, remaining configs.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use <code>oneagentctl</code> to reconfigure (not reinstall)</td>
+<td>Run one call: <code>oneagentctl --set-server=&quot;https://{tenant}.live.dynatrace.com:443/communication&quot; --set-tenant={tenant} --set-tenant-token={token} --restart-service</code>. Omitting <code>--set-tenant</code> leaves the agent on its Managed environment ID. Preserves the installation and host metadata; entity IDs are re-minted.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Restart application processes after migration</td>
+<td>Full-stack monitoring requires process restarts—Java, .NET, Node.js, PHP all inject instrumentation at process startup. Without restart: host metrics flow but <strong>no distributed tracing, no service detection, no code-level visibility</strong>.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Migrate non-production first, then production</td>
+<td>Validate data flow on non-prod hosts before touching production. Apply lessons learned to each subsequent wave.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Download deploy result CSVs for audit</td>
+<td>After each wave, download the deployment result CSV from SaaS Upgrade Assistant. Archive these for compliance and troubleshooting.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Use SaaS Upgrade Assistant selective import</td>
+<td>Deploy configuration types incrementally using Smart Selective Import. Smart dependency management auto-adds required configs.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Preview all changes before deploying</td>
+<td>Use the SaaS Upgrade Assistant <strong>Preview Changes</strong> feature to verify edits. The app retains original values for rollback reference.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Manually recreate Credentials Vault entries</td>
+<td>Cannot be exported. Re-enter all credentials (cloud platform integrations, extension credentials) directly in SaaS.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Generate new API tokens in SaaS</td>
+<td>Managed tokens do not work in SaaS. Create new tokens with <strong>minimal required scopes</strong> for each use case.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Use Ansible/automation for bulk reconfiguration</td>
+<td>For large environments, use configuration management (Ansible, Puppet, Chef) to execute <code>oneagentctl</code> commands and rolling application restarts across all hosts.</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-6-integrate"></a></p>
+<h2>6. Step 6: Integrate — Reconnect Integrations</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Recreate webhooks with SaaS URLs</td>
+<td>Endpoint URLs change for SaaS. Create new Slack, Teams, PagerDuty, ServiceNow, and custom webhook integrations with SaaS URLs.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Update all API base URLs</td>
+<td>Change from <code>{managed-url}/e/{env-id}</code> to <code>{tenant}.live.dynatrace.com</code>. Update tokens in all CI/CD pipelines and automation scripts.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Test alert delivery end-to-end</td>
+<td>Trigger a test alert and confirm delivery through every notification channel (email, Slack, Teams, PagerDuty, ServiceNow).</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Recreate synthetic private locations</td>
+<td>Deploy new Synthetic ActiveGates in SaaS. Private locations are infrastructure-specific and do not transfer.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Update CI/CD pipelines</td>
+<td>Replace Managed API endpoints and tokens in all deployment pipelines, quality gates, and automated testing integrations.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Deploy dedicated AGs for Extensions 2.0</td>
+<td>Plan <strong>host-based</strong> ActiveGates for remote extensions (SQL extensions can also run on Kubernetes through the Dynatrace Operator). Deploy a separate AG group for extension execution.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Remove hardcoded entity IDs from dashboards</td>
+<td>Before importing dashboards, replace hardcoded entity IDs with entity selectors. Update management zone IDs and dashboard owners.</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-7-enable"></a></p>
+<h2>7. Step 7: Enable — User Enablement and Communication</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Communicate migration to all users</td>
+<td>Send advance notice with migration timeline, expected impacts, new login URLs, and support channels. Communicate before, during, and after each migration wave.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Deliver persona-based training</td>
+<td>Tailor training by role: SREs get DQL and alerting, developers get distributed tracing and code-level visibility, managers get dashboards and reporting.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Update all documentation</td>
+<td>Replace Managed URLs, procedures, and screenshots with SaaS equivalents in runbooks, architecture diagrams, onboarding guides, and disaster recovery plans.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Establish support channels</td>
+<td>Create dedicated Slack/Teams channels for migration questions. Designate migration champions in each application team.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Map Managed roles to SaaS IAM policies</td>
+<td>Cluster admin &gt; Account admin. Environment admin &gt; Environment admin. Monitor user &gt; Viewer + specific policies. Custom roles &gt; Custom IAM policies.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Replace LDAP with SAML</td>
+<td>Dynatrace documents SAML 2.0 federation for SaaS sign-in. Migrate LDAP users to SAML 2.0 SSO through your IdP.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Sign the entire SAML message</td>
+<td>Dynatrace rejects assertion-only signatures with <code>400 Bad Request</code>. Microsoft Entra signs only the assertion by default — set <em>Sign SAML response and assertion</em>.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Filter SAML group claims to Dynatrace groups only</td>
+<td>Azure Entra limit: <strong>150 groups</strong> per user in SAML claim. Filter to Dynatrace-related groups to stay under the limit.</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-8-expand"></a></p>
+<h2>8. Step 8: Expand — Adopt New SaaS Capabilities</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Adopt Grail for unified querying</td>
+<td>Replace ad-hoc USQL queries with Notebook-based DQL analysis. Grail provides a unified data lakehouse for logs, metrics, traces, events, and entities.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Configure OpenPipeline for log masking</td>
+<td>Configure log processing rules in OpenPipeline to redact PII (SSNs, credit card numbers, email addresses) before storage.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Enable PII masking at capture</td>
+<td>Enable masking on request attributes that capture user input, account numbers, or personal data, and configure session replay masking for RUM. OpenPipeline masking (DPL, not regex — FAQ-15) covers the other ingest channels.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Implement Workflows for automation</td>
+<td>Replace Managed problem notifications with SaaS Workflow triggers + HTTP Request actions. Recreate custom webhook logic as workflow steps.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Right-size data retention for cost optimization</td>
+<td>Configure Grail bucket retention by data type. Logs: set retention based on compliance needs. Metrics: 15 months included in Grail, extensible to 10 years at extra cost (FAQ-11). Use <code>bucket:</code> targeting in queries to limit scan scope.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Explore Dynatrace Assist for AI-assisted analysis</td>
+<td>Enable Dynatrace Assist for natural language querying and root cause analysis.</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<p><a id="step-9-optimize"></a></p>
+<h2>9. Step 9: Optimize — Validate, Optimize, and Decommission</h2>
+<table>
+<thead>
+<tr>
+<th>Practice</th>
+<th>Recommended Setting/Value</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Allow for the baseline relearn window</td>
+<td>In community practice: availability ~2–3 days, response time and error rate ~1–2 weeks, resource usage and traffic ~2–4 weeks. Measure each host's history depth with the FAQ-25 § 5 query instead of guessing. Do not disable alerting.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Tune alert thresholds after the baseline period</td>
+<td>Not during it — thresholds set against a half-learned baseline get baked in. Then: tune noisy detectors, set a Minimum duration on notifying workflows, and fix missing alerts.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Compare entity counts against inventory</td>
+<td>Run <code>fetch dt.entity.host | summarize count()</code> (and service, application, process_group, synthetic_test). Counts must match the planning-phase inventory.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Verify metrics flow with no gaps &gt;15 minutes</td>
+<td>Run <code>timeseries avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}</code> and check for nulls. Any host returning null has a data gap.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Validate log ingestion is continuous</td>
+<td>Run <code>fetch logs, from:-1h | summarize count(), by:{bin(timestamp, 5m)}</code> and confirm no 5-minute buckets with zero count.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Confirm distributed traces are flowing</td>
+<td>Run <code>fetch spans, from:-1h | summarize count(), by:{bin(start_time, 5m)}</code>. Zero spans after agent migration means application processes need restart.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Get stakeholder sign-off</td>
+<td>Obtain written approval from: Platform Team Lead, Security Team, Application Teams, Executive Sponsor.</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>Keep Managed running 2–4 weeks post-migration</td>
+<td>Maintain access for historical reference and comparison. Decommission only after full validation period.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Archive migration artifacts before decommission</td>
+<td>Save SaaS Upgrade Assistant deploy result CSVs, entity inventory spreadsheets, and configuration mapping documents before decommissioning Managed.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Validate all dashboard tiles show data</td>
+<td>Open every migrated dashboard. Tiles with &quot;No data&quot; indicate missing entity mappings or incorrect management zone IDs.</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>Set API token expiration dates</td>
+<td>Set expiration on all tokens. Store in secrets management (HashiCorp Vault, AWS Secrets Manager). Rotate regularly.</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><sub><em>This notebook was AI-generated from community-submitted and publicly available sources. This notebook series is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></sub></p>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>

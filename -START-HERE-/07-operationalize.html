@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Operationalize Module — ALERT → DASH → WFLOW → SLO → AUTOM → AIOPS → FINOPS</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --heading: #1e293b;
+  --muted: #475569;
+  --accent: #4f46e5;
+  --border: #e2e8f0;
+  --surface: #f8fafc;
+  --inline-code-bg: #f1f5f9;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --bar-bg: #f8fafc;
+  --notice: #92400e;
+  --notice-bg: #fffbeb;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --text: #e2e8f0;
+    --heading: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #a5b4fc;
+    --border: #334155;
+    --surface: #1e293b;
+    --inline-code-bg: #1e293b;
+    --code-bg: #020617;
+    --code-text: #e2e8f0;
+    --bar-bg: #111c33;
+    --notice: #fcd34d;
+    --notice-bg: #2a2110;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.site-bar { background: var(--bar-bg); border-bottom: 1px solid var(--border); }
+.site-bar-inner { max-width: 880px; margin: 0 auto; padding: 10px 16px; }
+.crumbs { font-size: .875rem; color: var(--muted); margin-bottom: 6px; }
+.crumbs a { color: var(--accent); }
+.crumbs .sep { margin: 0 .5em; opacity: .6; }
+.notice {
+  margin: 0; font-size: .8125rem; line-height: 1.5;
+  color: var(--notice); background: var(--notice-bg);
+  border-radius: 6px; padding: 6px 10px;
+}
+.notice a { color: inherit; text-decoration: underline; }
+.page { max-width: 880px; margin: 0 auto; padding: 32px 16px 80px; overflow-wrap: break-word; }
+/* Long endpoint paths and URLs in prose may break anywhere rather than push the
+   page sideways on a phone. Code blocks and tables scroll instead. */
+p code, li code, td code, p a, li a { overflow-wrap: anywhere; }
+h1, h2, h3, h4, h5, h6 { color: var(--heading); line-height: 1.3; scroll-margin-top: 16px; }
+h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .2em; margin-top: 2em; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4, h5, h6 { font-size: 1rem; color: var(--muted); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a[id]:empty { display: block; position: relative; top: -16px; }
+p:has(> a[id]:empty:only-child) { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2.5em 0; }
+code {
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: .875em;
+  background: var(--inline-code-bg);
+  padding: .15em .4em;
+  border-radius: 4px;
+}
+.code-block { position: relative; margin: 1.2em 0; }
+.code-block .lang {
+  position: absolute; top: 0; left: 0;
+  font: 600 11px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--code-text); opacity: .6; padding: 8px 12px;
+}
+.code-block .copy {
+  position: absolute; top: 6px; right: 6px;
+  font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--code-text); background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.18); border-radius: 4px;
+  padding: 6px 10px; cursor: pointer;
+}
+.code-block .copy:hover { background: rgba(255,255,255,.16); }
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 32px 16px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.55;
+}
+pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.table-wrap { overflow-x: auto; margin: 1.2em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .925rem; }
+th, td { border: 1px solid var(--border); padding: .5em .75em; text-align: left; vertical-align: top; }
+th { background: var(--surface); color: var(--heading); font-weight: 600; }
+tr:nth-child(even) td { background: var(--surface); }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 1.2em 0;
+  padding: .6em 1em;
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 0 6px 6px 0;
+}
+blockquote p { margin: .4em 0; }
+img { max-width: 100%; height: auto; }
+p > img:only-child, p > a:only-child > img:only-child {
+  display: block;
+  margin: 1.5em auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+ul, ol { padding-left: 1.5em; }
+li { margin: .25em 0; }
+sub { font-size: .8em; vertical-align: baseline; }
+@media print {
+  .site-bar .crumbs, .code-block .copy { display: none; }
+  pre { white-space: pre-wrap; }
+}
+
+</style>
+</head>
+<body>
+<header class="site-bar">
+<div class="site-bar-inner">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="../">Best Practice Notebooks</a><span class="sep">/</span><a href="./">Start here</a><span class="sep">/</span><span aria-current="page">Operationalize Module — ALERT → DASH → WFLOW → SLO → AUTOM → AIOPS → FINOPS</span></nav>
+<p class="notice">Community-built and AI-generated. Not official Dynatrace documentation and not supported by Dynatrace. Verify against the <a href="https://docs.dynatrace.com/docs">Dynatrace documentation</a>.</p>
+</div>
+</header>
+<main class="page">
+<h1 id="operationalize-module--alert--dash--wflow--slo--autom--aiops--finops">Operationalize Module — ALERT → DASH → WFLOW → SLO → AUTOM → AIOPS → FINOPS</h1>
+<blockquote>
+<p><strong>Purpose:</strong> Sequenced reading order for layering alerting strategy, dashboards, alert routing, reliability targets, configuration automation, and Davis intelligence on a working tenant. The order matters: each builds on the previous.
+<strong>Last Updated:</strong> 09/25/2026</p>
+</blockquote>
+<p><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MzAgNTAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiI+CiAgPHJlY3Qgd2lkdGg9IjkzMCIgaGVpZ2h0PSI1MDAiIGZpbGw9IiMwRjE3MkEiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRjhGQUZDIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5PcGVyYXRpb25hbGl6ZSBTZXF1ZW5jZTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEzIj5FYWNoIHN0YWdlIGJ1aWxkcyBvbiB0aGUgcHJldmlvdXMg4oCUIHJlYWQgaW4gb3JkZXI8L3RleHQ+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJvd09wIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjEwIiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0gMCAwIEwgMTAgNSBMIDAgMTAgeiIgZmlsbD0iIzY0NzQ4QiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHg9IjQwIiB5PSIxODAiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTQwIiBmaWxsPSIjMTQ5NkZGIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiMxNDk2RkYiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjEzNSIgeT0iMjA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjQkZEQkZFIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5EQVNIPC90ZXh0PgogIDx0ZXh0IHg9IjEzNSIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EYXNoYm9hcmRzPC90ZXh0PgogIDxsaW5lIHgxPSI2MCIgeTE9IjIzNSIgeDI9IjIxMCIgeTI9IjIzNSIgc3Ryb2tlPSIjMUUyOTNCIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIxMzUiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+Rmlyc3Qg4oCUIHZpc2liaWxpdHk8L3RleHQ+CiAgPHRleHQgeD0iMTM1IiB5PSIyNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkV2ZXJ5dGhpbmcgZWxzZSBuZWVkczwvdGV4dD4KICA8dGV4dCB4PSIxMzUiIHk9IjI5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+ZGFzaGJvYXJkcyB0byBiZSB2aXNpYmxlPC90ZXh0PgogIDx0ZXh0IHg9IjEzNSIgeT0iMzEzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjODZFRkFDIiBmb250LXNpemU9IjEwIiBmb250LXdlaWdodD0iNzAwIj4x4oCTMiB3ZWVrczwvdGV4dD4KICA8bGluZSB4MT0iMjMwIiB5MT0iMjUwIiB4Mj0iMjY1IiB5Mj0iMjUwIiBzdHJva2U9IiM2NDc0OEIiIHN0cm9rZS13aWR0aD0iMS41IiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93T3ApIi8+CiAgPHJlY3QgeD0iMjcwIiB5PSIxODAiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTQwIiBmaWxsPSIjRkZCODAwIiBvcGFjaXR5PSIwLjA4IiBzdHJva2U9IiNGRkI4MDAiIHN0cm9rZS13aWR0aD0iMS41IiByeD0iOCIvPgogIDx0ZXh0IHg9IjM2NSIgeT0iMjA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkNEMzREIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5XRkxPVzwvdGV4dD4KICA8dGV4dCB4PSIzNjUiIHk9IjIyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMSI+V29ya2Zsb3dzICsgQWxlcnRpbmc8L3RleHQ+CiAgPGxpbmUgeDE9IjI5MCIgeTE9IjIzNSIgeDI9IjQ0MCIgeTI9IjIzNSIgc3Ryb2tlPSIjMUUyOTNCIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSIzNjUiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+U2Vjb25kIOKAlCByZXNwb25zZTwvdGV4dD4KICA8dGV4dCB4PSIzNjUiIHk9IjI3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+QWxlcnQgcm91dGluZywgaW5jaWRlbnQ8L3RleHQ+CiAgPHRleHQgeD0iMzY1IiB5PSIyOTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPm1hbmFnZW1lbnQ8L3RleHQ+CiAgPHRleHQgeD0iMzY1IiB5PSIzMTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGQ0QzNEQiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPjLigJMzIHdlZWtzPC90ZXh0PgogIDxsaW5lIHgxPSI0NjAiIHkxPSIyNTAiIHgyPSI0OTUiIHkyPSIyNTAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dPcCkiLz4KICA8cmVjdCB4PSI1MDAiIHk9IjE4MCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIxNDAiIGZpbGw9IiM3M0JFMjgiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzczQkUyOCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iNTk1IiB5PSIyMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPkFVVE9NPC90ZXh0PgogIDx0ZXh0IHg9IjU5NSIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5Db25maWd1cmF0aW9uIGFzIENvZGU8L3RleHQ+CiAgPGxpbmUgeDE9IjUyMCIgeTE9IjIzNSIgeDI9IjY3MCIgeTI9IjIzNSIgc3Ryb2tlPSIjMUUyOTNCIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI1OTUiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+VGhpcmQg4oCUIGF1dG9tYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNTk1IiB5PSIyNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPk1vbmFjbywgVGVycmFmb3JtLDwvdGV4dD4KICA8dGV4dCB4PSI1OTUiIHk9IjI5MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk0QTNCOCIgZm9udC1zaXplPSIxMCI+Q0kvQ0QgaW50ZWdyYXRpb248L3RleHQ+CiAgPHRleHQgeD0iNTk1IiB5PSIzMTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4NkVGQUMiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPjPigJM2IHdlZWtzPC90ZXh0PgogIDxsaW5lIHgxPSI2OTAiIHkxPSIyNTAiIHgyPSI3MjUiIHkyPSIyNTAiIHN0cm9rZT0iIzY0NzQ4QiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG1hcmtlci1lbmQ9InVybCgjYXJyb3dPcCkiLz4KICA8cmVjdCB4PSI3MzAiIHk9IjE4MCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIxNDAiIGZpbGw9IiNBNzhCRkEiIG9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI0E3OEJGQSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHJ4PSI4Ii8+CiAgPHRleHQgeD0iODI1IiB5PSIyMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiPkFJT1BTPC90ZXh0PgogIDx0ZXh0IHg9IjgyNSIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj5EYXZpcyBJbnRlbGxpZ2VuY2U8L3RleHQ+CiAgPGxpbmUgeDE9Ijc1MCIgeTE9IjIzNSIgeDI9IjkwMCIgeTI9IjIzNSIgc3Ryb2tlPSIjMUUyOTNCIiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI4MjUiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0Y4RkFGQyIgZm9udC1zaXplPSIxMiI+Rm91cnRoIOKAlCBpbnRlbGxpZ2VuY2U8L3RleHQ+CiAgPHRleHQgeD0iODI1IiB5PSIyNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTAiPkRhdmlzIHByb2JsZW1zLCBhbm9tYWx5PC90ZXh0PgogIDx0ZXh0IHg9IjgyNSIgeT0iMjkzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEwIj5kZXRlY3Rpb24sIGFnZW50aWMgQUk8L3RleHQ+CiAgPHRleHQgeD0iODI1IiB5PSIzMTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNEREQ2RkUiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtd2VpZ2h0PSI3MDAiPjLigJM0IHdlZWtzPC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iMzc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iNzAwIj5SZWFzb25pbmc8L3RleHQ+CiAgPHRleHQgeD0iNDY1IiB5PSIzOTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NEEzQjgiIGZvbnQtc2l6ZT0iMTEiPllvdSBhbGVydCBhZ2FpbnN0IHdoYXQgeW91IGNhbiBzZWUgKERBU0gpOyB5b3UgYXV0b21hdGUgd2hhdCB5b3UndmUgZGVzaWduZWQgKFdGTE9XICsgREFTSCk7PC90ZXh0PgogIDx0ZXh0IHg9IjQ2NSIgeT0iNDEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTRBM0I4IiBmb250LXNpemU9IjExIj55b3UgdHJ1c3QgRGF2aXMgd2hlbiBpdHMgZmluZGluZ3MgYXJlIHZpc2libGUgc29tZXdoZXJlIChldmVyeXRoaW5nIGFib3ZlKTwvdGV4dD4KICA8dGV4dCB4PSI0NjUiIHk9IjQ1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4QiIgZm9udC1zaXplPSIxMSI+VG90YWwgdGltZTogOOKAkzE1IHdlZWtzIGZvciBmdWxsIG9wZXJhdGlvbmFsaXplIG1hdHVyaXR5PC90ZXh0Pgo8L3N2Zz4K" alt="Operationalize Sequence" /></p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#why-this-order">Why This Order</a></li>
+<li><a href="#alert--alerting-strategy-first">ALERT — Alerting Strategy (First)</a></li>
+<li><a href="#dash--dashboards-second">DASH — Dashboards (Second)</a></li>
+<li><a href="#wflow--workflows-and-alerting-third">WFLOW — Workflows and Alerting (Third)</a></li>
+<li><a href="#slo--service-level-objectives-parallel-with-wflow">SLO — Service Level Objectives (Parallel with WFLOW)</a></li>
+<li><a href="#autom--configuration-automation-fourth">AUTOM — Configuration Automation (Fourth)</a></li>
+<li><a href="#aiops--davis-intelligence-fifth">AIOPS — Davis Intelligence (Fifth)</a></li>
+<li><a href="#finops--cost-management-continuous">FINOPS — Cost Management (Continuous)</a></li>
+<li><a href="#cross-cutting-overlaps">Cross-Cutting Overlaps</a></li>
+<li><a href="#where-to-next">Where to Next</a></li>
+</ol>
+<hr />
+<h2 id="why-this-order">Why This Order</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Reading</th>
+<th>Time</th>
+<th>Why this position in the sequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a></td>
+<td>1 week</td>
+<td>Alerting strategy underpins all downstream operations. Establish detection and routing patterns first.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a></td>
+<td>1–2 weeks</td>
+<td>Everything else needs dashboards to be visible. You alert against what you see; you automate around what you can dashboard; you trust Davis when its findings are visible somewhere.</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a></td>
+<td>2–3 weeks</td>
+<td>Alert response. Needs dashboards to point at and incidents to route.</td>
+</tr>
+<tr>
+<td>4</td>
+<td><a href="../SLO%20-%20Service%20Level%20Objectives/">SLO</a></td>
+<td>1 week</td>
+<td>Reliability targets. Inform burn-rate alerting in WFLOW.</td>
+</tr>
+<tr>
+<td>5</td>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a></td>
+<td>3–6 weeks</td>
+<td>Configuration automation, GitOps. Needs dashboards and workflows as deliverables — automating their lifecycle.</td>
+</tr>
+<tr>
+<td>6</td>
+<td><a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a></td>
+<td>2–4 weeks</td>
+<td>Davis intelligence layered on top. Needs all of the above to be enriched and acted on.</td>
+</tr>
+<tr>
+<td>7</td>
+<td><a href="../FINOPS%20-%20Cost%20Management%20&amp;%20FinOps/">FINOPS</a></td>
+<td>1–2 weeks</td>
+<td>Cost optimization ongoing; informs roadmap priorities.</td>
+</tr>
+</tbody>
+</table>
+<p>You can read partially out of order, but the reasoning above is why each builds on the previous.</p>
+<hr />
+<h2 id="alert--alerting-strategy-first">ALERT — Alerting Strategy (First)</h2>
+<p>5 notebooks in <a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a>. Coverage: end-to-end alerting architecture, detection mechanism selection, alert routing and cost, ITSM integration.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>End-to-End Architecture</td>
+<td>Mandatory</td>
+</tr>
+<tr>
+<td>02</td>
+<td>Choosing &amp; Building Detection</td>
+<td>Mandatory</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Routing &amp; Destinations</td>
+<td>Mandatory</td>
+</tr>
+<tr>
+<td>04</td>
+<td>ServiceNow Integration</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>99</td>
+<td>Best Practice Summary</td>
+<td>Reference</td>
+</tr>
+</tbody>
+</table>
+<p>Dependencies: Foundational understanding of <a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a> notebook 02 (anomaly detection) is helpful but not blocking.</p>
+<hr />
+<h2 id="dash--dashboards-second">DASH — Dashboards (Second)</h2>
+<p>8 notebooks in <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a>. Coverage: hierarchy, audience-specific dashboards, variables and filters, sharing.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>Dashboard Fundamentals</td>
+<td>Mandatory</td>
+</tr>
+<tr>
+<td>02</td>
+<td>Dashboard Hierarchy</td>
+<td>Mandatory — organization across teams matters</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Executive Dashboards</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>04</td>
+<td>Operations Dashboards</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>05</td>
+<td>Engineering Dashboards</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>06</td>
+<td>Variables and Filters</td>
+<td>Mandatory — dashboards without variables don't scale</td>
+</tr>
+<tr>
+<td>07</td>
+<td>Sharing and Reporting</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>99</td>
+<td>Best Practice Summary</td>
+<td>Reference</td>
+</tr>
+</tbody>
+</table>
+<p>Dependencies: <a href="../ORGNZ%20-%20Organize%20Data:%20Buckets,%20Segments,%20Security/">ORGNZ</a> notebook 08 (segments) is helpful background before DASH-06 (variables and filters).</p>
+<hr />
+<h2 id="wflow--workflows-and-alerting-third">WFLOW — Workflows and Alerting (Third)</h2>
+<p>10 notebooks in <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a>. Coverage: triggers, notification routing, incident management, custom templates, remediation, governance.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>Fundamentals</td>
+<td>Mandatory</td>
+</tr>
+<tr>
+<td>02</td>
+<td>Triggers</td>
+<td>Mandatory</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Notification Basics</td>
+<td>Mandatory</td>
+</tr>
+<tr>
+<td>04</td>
+<td>Notification Routing</td>
+<td>Mandatory — multi-team alert routing</td>
+</tr>
+<tr>
+<td>05</td>
+<td>Incident Management</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>06</td>
+<td>Custom Templates</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>07</td>
+<td>Remediation</td>
+<td>Recommended (advanced)</td>
+</tr>
+<tr>
+<td>08</td>
+<td>JavaScript and HTTP</td>
+<td>Optional — for custom integrations</td>
+</tr>
+<tr>
+<td>09</td>
+<td>Governance</td>
+<td>Recommended for mature organizations</td>
+</tr>
+<tr>
+<td>99</td>
+<td>Best Practice Summary</td>
+<td>Reference</td>
+</tr>
+</tbody>
+</table>
+<p>Dependencies: <a href="../ALERT%20-%20Alerting%20Strategy%20and%20Design/">ALERT</a> series provides the end-to-end routing context. <a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a> notebook 02 (anomaly detection) is helpful background before WFLOW-04 (notification routing) if you'll be routing on Davis problems.</p>
+<hr />
+<h2 id="slo--service-level-objectives-parallel-with-wflow">SLO — Service Level Objectives (Parallel with WFLOW)</h2>
+<p>5 notebooks in <a href="../SLO%20-%20Service%20Level%20Objectives/">SLO</a>. Coverage: SLI definitions, error budgets, burn-rate alerting.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>Fundamentals</td>
+<td>Mandatory</td>
+</tr>
+<tr>
+<td>02</td>
+<td>Defining SLIs</td>
+<td>Mandatory</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Composition &amp; Error Budgets</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>04</td>
+<td>Burn-Rate Alerting</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>05</td>
+<td>SLOs as Code</td>
+<td>Recommended</td>
+</tr>
+</tbody>
+</table>
+<p>Timing: read in parallel with WFLOW (notebooks 01–03); their concepts are complementary. WFLOW handles alert routing; SLO handles reliability definitions that feed the alerts.</p>
+<hr />
+<h2 id="autom--configuration-automation-fourth">AUTOM — Configuration Automation (Fourth)</h2>
+<p>11 notebooks in <a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a>, including 2 hands-on labs. Coverage: Settings API, Monaco, Terraform, workflows-as-code, SDKs, CI/CD, migration automation.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>Automation Landscape</td>
+<td>Mandatory</td>
+</tr>
+<tr>
+<td>02</td>
+<td>Settings API</td>
+<td>Mandatory — the API underneath all automation</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Monaco</td>
+<td>Mandatory (or alternative to Terraform — pick based on team preference)</td>
+</tr>
+<tr>
+<td>03</td>
+<td>[LAB] Monaco</td>
+<td>Optional hands-on</td>
+</tr>
+<tr>
+<td>04</td>
+<td>Terraform</td>
+<td>Mandatory (or alternative to Monaco — pick based on team preference)</td>
+</tr>
+<tr>
+<td>04</td>
+<td>[LAB] Terraform</td>
+<td>Optional hands-on</td>
+</tr>
+<tr>
+<td>05</td>
+<td>Workflows</td>
+<td>Recommended — workflow-as-code</td>
+</tr>
+<tr>
+<td>06</td>
+<td>SDKs</td>
+<td>Optional — for custom integrations</td>
+</tr>
+<tr>
+<td>07</td>
+<td>CI/CD Integration</td>
+<td>Recommended — automating Dynatrace config in your delivery pipeline</td>
+</tr>
+<tr>
+<td>08</td>
+<td>Migration Automation</td>
+<td>Optional — specific to migration scenarios</td>
+</tr>
+<tr>
+<td>99</td>
+<td>Best Practice Summary</td>
+<td>Reference</td>
+</tr>
+</tbody>
+</table>
+<p>Decision: Monaco vs Terraform — most teams pick one. Read both 03 and 04 to make an informed choice; then go deep on the one you select.</p>
+<hr />
+<h2 id="aiops--davis-intelligence-fifth">AIOPS — Davis Intelligence (Fifth)</h2>
+<p>8 notebooks in <a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a>. Coverage: Davis problems, anomaly detection, generative AI (Davis CoPilot, Dynatrace Assist), AI models, agentic workflows.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>Dynatrace Intelligence Overview</td>
+<td>Mandatory</td>
+</tr>
+<tr>
+<td>02</td>
+<td>Anomaly Detection</td>
+<td>Mandatory — read before WFLOW-04 if possible</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Davis AI: Problems and Root Cause</td>
+<td>Mandatory</td>
+</tr>
+<tr>
+<td>04</td>
+<td>Davis CoPilot and Dynatrace Assist</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>05</td>
+<td>AI Models</td>
+<td>Optional (deep dive)</td>
+</tr>
+<tr>
+<td>06</td>
+<td>AI Integrations and Agentic Workflows</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>07</td>
+<td>Putting It Together</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>99</td>
+<td>Series Summary</td>
+<td>Reference</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="finops--cost-management-continuous">FINOPS — Cost Management (Continuous)</h2>
+<p>3+ notebooks in <a href="../FINOPS%20-%20Cost%20Management%20&amp;%20FinOps/">FINOPS</a>, growing series. Coverage: DPS consumption, forecasting, cost optimization.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>Priority</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>DPS Consumption &amp; Querying</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>02</td>
+<td>Forecasting &amp; Anomaly Detection</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Optimization Framework</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<p>Timing: read once <a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> and <a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> are in place (Month 2). Cost optimization is an ongoing discipline, not a one-time activity.</p>
+<hr />
+<h2 id="cross-cutting-overlaps">Cross-Cutting Overlaps</h2>
+<p>Some topics appear in multiple Operationalize series:</p>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Canonical</th>
+<th>Also covered in</th>
+<th>Read order</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Davis problems</td>
+<td><a href="../AIOPS%20-%20Dynatrace%20Intelligence/">AIOPS</a> — notebooks 02–03</td>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> — notebook 04 (alerting on problems)</td>
+<td>AIOPS-02, 03 first; then WFLOW-04</td>
+</tr>
+<tr>
+<td>Workflow as code</td>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> — full series for concepts</td>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a> — notebook 05 (workflows-as-code)</td>
+<td>WFLOW for concepts; AUTOM-05 for IaC delivery</td>
+</tr>
+<tr>
+<td>Dashboard automation</td>
+<td><a href="../DASH%20-%20Dashboard%20Design%20&amp;%20Building/">DASH</a> — notebook 07 (sharing and reporting)</td>
+<td><a href="../AUTOM%20-%20Dynatrace%20Automation/">AUTOM</a> — notebooks 02–04 (dashboards-as-code)</td>
+<td>DASH first; AUTOM-02..04 once dashboards stabilize</td>
+</tr>
+<tr>
+<td>Alerting on synthetics</td>
+<td><a href="../SYNTH%20-%20Synthetic%20Monitoring/">SYNTH</a> — notebook 02 (browser monitors)</td>
+<td><a href="../WFLOW%20-%20Workflows%20and%20Alert%20Notifications/">WFLOW</a> — notebook 04</td>
+<td>SYNTH for what to alert on; WFLOW for routing</td>
+</tr>
+</tbody>
+</table>
+<p>See <a href="09-overlap-map.html">Overlap Map</a> for the full overlap table across all 33 topic series.</p>
+<hr />
+<h2 id="where-to-next">Where to Next</h2>
+<ul>
+<li><a href="08-maturity.html">Maturity Module</a> — for continuous improvement framing</li>
+<li><a href="06-domain-enablement.html">Domain Enablement Module</a> — to add additional domains as adoption grows</li>
+<li>Return to your doorway (<a href="01-net-new.html">Doorway 1</a>, <a href="02-expand-consolidate.html">Doorway 2</a>, or <a href="03-deployment-migration.html">Doorway 3</a>) for next-phase guidance specific to your situation</li>
+</ul>
+<hr />
+<h2 id="maintenance-note">Maintenance Note</h2>
+<p><strong>When new Operationalize-relevant series are added to <code>topics/</code>, this module MUST be updated:</strong></p>
+<ul>
+<li>Add the series to the appropriate position in the sequence (ALERT → DASH → WFLOW → SLO → AUTOM → AIOPS → FINOPS)</li>
+<li>Update the ordered sequence if the new series changes the dependencies</li>
+<li>Add cross-references in the Overlaps section if the new series overlaps with existing ones</li>
+<li>Update series count references if the overall topic count changes (currently 32 as of July 15, 2026)</li>
+<li>Update Last Updated date to current date</li>
+</ul>
+<hr />
+<blockquote>
+<p><em>This playbook was AI-generated from community-submitted and publicly available sources. It is not officially supported by Dynatrace. Always verify information against official Dynatrace documentation.</em></p>
+</blockquote>
+
+</main>
+<script>
+
+(function () {
+  document.querySelectorAll('main table').forEach(function (t) {
+    var wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  document.querySelectorAll('pre > code').forEach(function (code) {
+    var pre = code.parentNode;
+    var block = document.createElement('div');
+    block.className = 'code-block';
+    pre.parentNode.insertBefore(block, pre);
+    block.appendChild(pre);
+    var m = /language-([\w-]+)/.exec(code.className);
+    if (m) {
+      var lang = document.createElement('span');
+      lang.className = 'lang';
+      lang.textContent = m[1];
+      block.appendChild(lang);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = code.textContent;
+      var done = function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+      }
+    });
+    block.appendChild(btn);
+  });
+})();
+
+</script>
+</body>
+</html>
