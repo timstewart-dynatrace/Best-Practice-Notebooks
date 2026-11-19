@@ -444,13 +444,14 @@ Step-by-step migration path from Sumo Logic to Dynatrace, from strategy and inve
 - [SL2DT-99: Summary & Runbook Index](SL2DT%20-%20Sumo%20Logic%20to%20Dynatrace/markdown/-%5BSL2DT%5D-99-summary-and-runbook-index.md) — Single-page index and reference card for the entire SL2DT series
 
 ### [SLO - Service Level Objectives](SLO%20-%20Service%20Level%20Objectives/README.md)
-Defining and operating Service Level Objectives in Dynatrace — SLIs, error budgets, composition, burn-rate alerting, and SLOs as code.
+Defining and operating Service Level Objectives in Dynatrace — SLIs, error budgets, composition, burn-rate alerting, SLOs as code, and upgrading Classic SLOs.
 - [SLO-01: SLO and SLI Fundamentals](SLO%20-%20Service%20Level%20Objectives/markdown/-%5BSLO%5D-01-fundamentals.md) — The three building blocks (SLI, SLO, error budget), the Dynatrace SLO model, and choosing your first SLOs
 - [SLO-02: Defining SLIs](SLO%20-%20Service%20Level%20Objectives/markdown/-%5BSLO%5D-02-defining-slis.md) — The good ÷ total ratio as DQL: availability, latency, error-rate, and custom business SLIs, validated on a live tenant
 - [SLO-03: Composition and Error Budgets](SLO%20-%20Service%20Level%20Objectives/markdown/-%5BSLO%5D-03-composition-and-error-budgets.md) — Error-budget math and burn rate, composite and weighted-global SLOs, and rolling vs calendar windows
 - [SLO-04: SLO Alerting](SLO%20-%20Service%20Level%20Objectives/markdown/-%5BSLO%5D-04-alerting.md) — Burn-rate alerting over threshold-on-SLI: fast-burn and slow-burn multiwindow alerts, surfacing, routing, and avoiding fatigue
 - [SLO-05: SLOs as Code](SLO%20-%20Service%20Level%20Objectives/markdown/-%5BSLO%5D-05-slos-as-code.md) — Promoting SLOs into version control: the `dynatrace_platform_slo` Terraform resource and SLO Service Public API for the modern app, the classic `dynatrace_slo_v2` / `builtin:monitoring.slo` path it replaces, Monaco, and the export-known-good API pattern
 - [SLO-06: Site Reliability Guardians](SLO%20-%20Service%20Level%20Objectives/markdown/-%5BSLO%5D-06-site-reliability-guardians.md) — Point-in-time deployment validation gates: guardian types, DQL objectives (reference-SLO is Classic-only and deprecated), the Pass/Warning/Fail/Error/Info result model, creating and triggering a guardian, provisioning as code (Terraform/Monaco), CI/CD pipeline integration, and how guardians complement SLOs
+- [SLO-07: Upgrading Classic SLOs](SLO%20-%20Service%20Level%20Objectives/markdown/-%5BSLO%5D-07-upgrading-classic-slos.md) — Moving SLO Classic definitions to the Service-Level Objectives app: inventory, DQL translation, proving scope, alerts and guardians, Terraform, and the parallel run
 
 ### [SPANS - Distributed Tracing and Spans](SPANS%20-%20Distributed%20Tracing%20and%20Spans/README.md)
 Guidance for working with distributed traces and spans in Dynatrace.

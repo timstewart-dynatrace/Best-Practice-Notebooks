@@ -1,6 +1,6 @@
 # SLO-05: SLOs as Code
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 5 of 6 | **Created:** June 2026 | **Last Updated:** 11/09/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 5 of 7 | **Created:** June 2026 | **Last Updated:** 11/19/2026
 
 ## Overview
 
@@ -107,7 +107,7 @@ resource "dynatrace_platform_slo" "service_availability_30d" {
 
 ### Classic — `dynatrace_slo_v2` (existing SLOs on unupgraded tenants only)
 
-> **Dynatrace Classic.** Keep this form only to manage SLOs that already exist as `builtin:monitoring.slo` objects while your tenant is still on the classic surface — the readiness scan flags that schema as blocked at upgrade (see above). Do not author new SLOs this way; move existing ones to `dynatrace_platform_slo` as part of the upgrade.
+> **Dynatrace Classic.** Keep this form only to manage SLOs that already exist as `builtin:monitoring.slo` objects while your tenant is still on the classic surface — the readiness scan flags that schema as blocked at upgrade (see above). Do not author new SLOs this way; move existing ones to `dynatrace_platform_slo` as part of the upgrade (SLO-07 §8).
 
 ```terraform
 # dynatrace_slo_v2 — schema verified at the provider registry 07/01/2026

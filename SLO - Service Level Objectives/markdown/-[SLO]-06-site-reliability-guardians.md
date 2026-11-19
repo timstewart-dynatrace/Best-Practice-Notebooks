@@ -1,6 +1,6 @@
 # SLO-06: Site Reliability Guardians
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 6 of 6 | **Created:** August 2026 | **Last Updated:** 11/09/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 6 of 7 | **Created:** August 2026 | **Last Updated:** 11/19/2026
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # SLO-03: Composition and Error Budgets
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 3 of 6 | **Created:** June 2026 | **Last Updated:** 10/14/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 3 of 7 | **Created:** June 2026 | **Last Updated:** 11/19/2026
 
 ## Overview
 

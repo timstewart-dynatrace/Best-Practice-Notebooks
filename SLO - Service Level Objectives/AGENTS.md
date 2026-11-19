@@ -3,10 +3,11 @@
 Per-series routing for AI agents. Repo-wide rules: [../AGENTS.md](../AGENTS.md).
 Humans: see [README.md](README.md).
 
-6 notebooks on defining and operating SLOs in Dynatrace: SLI/SLO/error-budget
+7 notebooks on defining and operating SLOs in Dynatrace: SLI/SLO/error-budget
 fundamentals and the modern DQL-based SLO app, the four SLI query shapes,
 composition and burn-rate math, multiwindow burn-rate alerting, SLOs as
-code, and Site Reliability Guardians for point-in-time deployment gating.
+code, Site Reliability Guardians for point-in-time deployment gating, and
+upgrading SLO Classic definitions to the SLO app.
 This series owns *reliability targets, error budgets, and change-validation
 gates* — not detector mechanics or notification routing.
 
@@ -22,6 +23,7 @@ Read only the file(s) matching the question. All paths are under `markdown/`.
 | Alerting on SLOs — why burn-rate beats threshold-on-SLI, fast-burn/slow-burn multiwindow alerts, configuring SLO alerts, routing breaches, avoiding fatigue | `-[SLO]-04-alerting.md` |
 | Provisioning SLOs from version control — the `dynatrace_platform_slo` Terraform resource and SLO Service Public API for the modern app, the classic `dynatrace_slo_v2`/`builtin:monitoring.slo` path it replaces (blocked at upgrade), Monaco (`slo-v2` for the modern app, `builtin:monitoring.slo` for classic inventory), the export-known-good API/CI-CD path | `-[SLO]-05-slos-as-code.md` |
 | Site Reliability Guardians — point-in-time deployment/change validation gates (as opposed to SLOs' continuous reliability target): guardian types (`SDLC_EVENT`/`BIZ_EVENT`), `DQL` objectives (and the deprecated, Classic-SLO-only `REFERENCE_SLO`), static/auto-adaptive thresholds, the permissions, the Pass/Warning/Fail/Error/Info result model, creating and triggering a guardian, the `dynatrace_site_reliability_guardian` Terraform resource and Monaco three-file convention, CI/CD pipeline gating, and guardian-vs-SLO decision guidance | `-[SLO]-06-site-reliability-guardians.md` |
+| Upgrading SLO Classic definitions to the Service-Level Objectives app — inventorying Classic SLOs (`/api/v2/slo`) and their metric-event alerts, translating the metric expression and entity selector to a DQL `sli`, proving the new query selects the same services (classic entity name vs `dt.service.name`), zones → segments and IAM for visibility, rebuilding status/burn-rate alerts instead of transforming them, replacing Reference-SLO guardian objectives, `dynatrace_slo_v2` → `dynatrace_platform_slo`, the one-evaluation-period parallel run and retirement order | `-[SLO]-07-upgrading-classic-slos.md` |
 
 ## Related series
 

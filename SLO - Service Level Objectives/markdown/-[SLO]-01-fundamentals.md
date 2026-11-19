@@ -1,6 +1,6 @@
 # SLO-01: SLO and SLI Fundamentals
 
-> **Series:** SLO — Service Level Objectives | **Notebook:** 1 of 6 | **Created:** June 2026 | **Last Updated:** 11/09/2026
+> **Series:** SLO — Service Level Objectives | **Notebook:** 1 of 7 | **Created:** June 2026 | **Last Updated:** 11/19/2026
 
 ## Overview
 
@@ -69,7 +69,7 @@ Dynatrace has two generations of SLO tooling:
 >
 > **Where "blocked at upgrade" comes from — and what the docs say instead (checked 08/28/2026; quote re-read 09/28/2026).** That phrase is the **tenant-side upgrade readiness scan's** classification, read 07/31/2026. It is not documentation: no Dynatrace page states it, and the published upgrade guidance ([Upgrade from Service-Level Objectives Classic (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic)) is markedly softer — *"An automated upgrade flow is under consideration; however, given the highly customized nature of SLOs, manual review is expected to yield the best results."* The two are not in conflict — a readiness scan reports what your tenant will not carry across, while the docs describe the migration you are expected to perform by hand — but they carry different urgency, so **run the readiness scan against your own tenant** rather than planning from either this notebook or the docs page alone. If your SLOs are in Terraform as `dynatrace_slo_v2`, they are on the classic path — see SLO-05 §2.
 
-New work should use the **modern SLO app** with DQL-based SLIs — it covers every data type and is the path that is actively developed. Dynatrace's own guidance is to still prefer a metric-based SLI over a DQL one where a suitable pre-aggregated metric exists, since metric queries are faster and cheaper to evaluate; use `makeTimeseries` for event/log-derived SLIs where no such metric exists (SLO-02). If you have SLO Classic definitions, Dynatrace publishes an upgrade path.
+New work should use the **modern SLO app** with DQL-based SLIs — it covers every data type and is the path that is actively developed. Dynatrace's own guidance is to still prefer a metric-based SLI over a DQL one where a suitable pre-aggregated metric exists, since metric queries are faster and cheaper to evaluate; use `makeTimeseries` for event/log-derived SLIs where no such metric exists (SLO-02). If you have SLO Classic definitions, Dynatrace publishes an upgrade path, and SLO-07 walks through it.
 
 ![Anatomy of a Dynatrace SLO](images/01-slo-anatomy_930x500.png)
 
@@ -116,6 +116,7 @@ The most common failure mode is too many SLOs, none trusted. Start narrow:
 - **SLO-04** — burn-rate alerting and routing SLO breaches.
 - **SLO-05** — provisioning SLOs as code (`dynatrace_platform_slo` with a DQL SLI, Monaco; classic `dynatrace_slo_v2` for existing SLOs only).
 - **SLO-06** — Site Reliability Guardians: point-in-time deployment validation gates that complement the ongoing reliability target defined here.
+- **SLO-07** — upgrading SLO Classic definitions to the SLO app, with their alerts, guardian objectives and Terraform.
 - **AIOPS-02** — anomaly detection; SLO breaches and anomalies are complementary detection inputs.
 - **WFLOW** — routing the burn-rate events your SLO alerts raise, or the problems they join (SLO-04 §4).
 

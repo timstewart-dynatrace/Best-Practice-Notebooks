@@ -2,7 +2,7 @@
 
 Guidance for AI agents consuming this repository. Humans: see [README.md](README.md).
 
-This is a **content-only** repository: <!-- bpn:counts -->33 series of Dynatrace best-practice notebooks (352 notebooks)<!-- /bpn:counts -->.
+This is a **content-only** repository: <!-- bpn:counts -->33 series of Dynatrace best-practice notebooks (353 notebooks)<!-- /bpn:counts -->.
 There is no build system, no tests, and no application code.
 
 ## How to navigate (important — do not crawl)
@@ -84,7 +84,7 @@ Paths are the literal directory names (they contain spaces — quote them in she
 | WFLOW | `WFLOW - Workflows and Alert Notifications` | Workflows, notification routing |
 | AIOPS | `AIOPS - Dynatrace Intelligence` | Causal, predictive, and generative AI capabilities |
 | ALERT | `ALERT - Alerting Strategy and Design` | End-to-end alerting design; orchestrates AIOPS + SLO + WFLOW |
-| SLO | `SLO - Service Level Objectives` | SLIs, error budgets, burn-rate alerting, SLOs as code, Site Reliability Guardians |
+| SLO | `SLO - Service Level Objectives` | SLIs, error budgets, burn-rate alerting, SLOs as code, Site Reliability Guardians, upgrading Classic SLOs |
 
 **Dynatrace Managed**
 

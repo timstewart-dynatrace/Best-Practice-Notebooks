@@ -1,6 +1,6 @@
 # MZ2POL-16: Migrating the Rest of Zone-Scoped Alerting
 
-> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 17 of 17 | **Created:** October 2026 | **Last Updated:** 11/15/2026
+> **Series:** MZ2POL — Management Zone Migration: Segments, Policies, Workflows | **Notebook:** 17 of 17 | **Created:** October 2026 | **Last Updated:** 11/19/2026
 
 > **Purpose:** MZ2POL-09 moves zone-scoped alerting profiles and problem notifications onto problem-triggered workflows. A zone also scopes metric events, maintenance windows and classic SLOs, and notification payloads may have printed it. Each of these has its own successor, its own upgrade guide and its own trap. This notebook migrates them, then proves the result per problem before anything classic is switched off.
 
@@ -308,7 +308,7 @@ Pausing or deleting a running window does not end it: *"Neither action stops a w
 
 The SLO upgrade guide replaces the zone with a segment. Its capability table lists *Segmenting* as *"Management zones"* in SLO Classic and *"Segments"* in the new app, and the procedure says: *"In this step, management zones become segments"*. For the selectors, *"mzId / mzName"* map to *"Use Segments."*, with a caution: *"Segments aren't related to permissions or access control."* A zone that also restricted who could see an SLO needs the access model of MZ2POL-04 and MZ2POL-12, not only a segment.
 
-There is no automated path: *"An automated upgrade flow is under consideration; however, given the highly customized nature of SLOs, manual review is expected to yield the best results."* *"If the Classic SLO used entity selectors, management zones, or SLO tags, you may have to upgrade metrics, entities, and filters separately."*
+This section covers only what the zone changes. **SLO-07** is the full upgrade procedure for any Classic SLO, zoned or not: inventory, translating the SLI to DQL, alerts and guardian objectives, Terraform, and the order to retire things in.
 
 ### Run both for one evaluation period
 
@@ -318,10 +318,10 @@ The guide's verification rule is the SLO counterpart of the parallel run for wor
 
 The *Upgrade Metric Alerting* guide lists SLO alerts among metric events created by other solutions: *"In Service-Level Objectives Classic you have the option to create a burn rate or status alerts."* — and adds *"SLO use functional metrics which behave different during transformation. We're working on a separated guide"*. A zone-scoped SLO with an alert therefore has two zone dependencies: the SLO's filter, and the metric event that alerts on it. Rebuild the SLO first, then build its burn-rate alert on the new SLO (SLO-04). Do not transform the classic SLO's metric event; until the separate guide exists, the transform's behavior for it is undocumented.
 
-The guide's example DQL uses `entityName(dt.entity.service)`. FAQ-16 covers writing the same filter on Smartscape fields. For configuration as code, SLO-05 §2 covers `dynatrace_platform_slo` and its segment argument.
+If the SLO's `filter` also selects services by name, check the new query's scope before relying on it. The classic entity name that `entityName(dt.entity.service)` returns is not always the same string as `dt.service.name`, and filtering on the wrong one measures different services (SLO-07 §4). For configuration as code, SLO-07 §8 and SLO-05 §2 cover `dynatrace_platform_slo` and its segment argument.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Upgrade from Service-Level Objectives Classic to Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic) — *"In this step, management zones become segments"*; *"Segments aren't related to permissions or access control."*; *"If the Classic SLO used entity selectors, management zones, or SLO tags, you may have to upgrade metrics, entities, and filters separately."*; *"To verify the upgraded SLO, keep both SLOs running for one evaluation period and compare the values before you remove the Classic SLO."*; *"An automated upgrade flow is under consideration; however, given the highly customized nature of SLOs, manual review is expected to yield the best results."*</sub>
+> - <sub>[Upgrade from Service-Level Objectives Classic to Service-Level Objectives (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/service-level-objective-upgrade-classic) — *"In this step, management zones become segments"*; *"Segments aren't related to permissions or access control."*; *"To verify the upgraded SLO, keep both SLOs running for one evaluation period and compare the values before you remove the Classic SLO."*</sub>
 > - <sub>[Upgrade Metric Alerting (DT docs)](https://docs.dynatrace.com/docs/platform/upgrade/keep-problems-and-alerting-working/metric-alerting) — *"In Service-Level Objectives Classic you have the option to create a burn rate or status alerts."*; *"SLO use functional metrics which behave different during transformation. We're working on a separated guide"*</sub>
 
 ---
