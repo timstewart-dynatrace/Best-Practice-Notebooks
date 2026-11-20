@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>DBMON-04: Cache and Messaging Monitoring</h1>
 <blockquote>
-<p><strong>Series:</strong> DBMON — Database Monitoring | <strong>Notebook:</strong> 4 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+<p><strong>Series:</strong> DBMON — Database Monitoring | <strong>Notebook:</strong> 4 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <h2>Overview</h2>
 <p>This notebook covers monitoring caches and message brokers with Dynatrace. Caches (Redis, Memcached) and message brokers (Kafka, RabbitMQ) are critical infrastructure components that behave differently from traditional databases. You will learn how to analyze Redis operation performance, Kafka consumer throughput, message broker queue health, and Elasticsearch query patterns using span data.</p>
@@ -367,7 +367,7 @@ fetch spans, from:-1h
 </tr>
 <tr>
 <td><code>messaging.consumer.group.name</code></td>
-<td>Consumer group ID</td>
+<td>Consumer group ID. Older OpenTelemetry instrumentations send the deprecated <code>messaging.kafka.consumer.group</code> instead</td>
 <td><code>order-processor-group</code></td>
 </tr>
 <tr>
@@ -378,7 +378,7 @@ fetch spans, from:-1h
 </tbody>
 </table>
 <blockquote>
-<p><sub><strong>Dictionary:</strong> <code>messaging.system</code>, <code>messaging.operation.type</code>, <code>messaging.destination.name</code>, <code>messaging.consumer.group.name</code>, <code>messaging.destination.partition.id</code> (all <code>stable</code>), <code>db.system</code> (<code>experimental</code>), read 10/02/2026. No messaging spans existed on the validation tenant over 7 days, so these cells were checked for syntax only.</sub></p>
+<p><sub><strong>Dictionary:</strong> <code>messaging.system</code>, <code>messaging.operation.type</code>, <code>messaging.destination.name</code>, <code>messaging.consumer.group.name</code>, <code>messaging.destination.partition.id</code> (all <code>stable</code>), <code>db.system</code> (<code>experimental</code>), read 10/02/2026. On the validation tenant, OpenTelemetry Java Kafka spans (1,287 publish / 1,285 process, 11/10–11/12/2026) carried <code>messaging.kafka.consumer.group</code> on every process span and <code>messaging.consumer.group.name</code> on none (checked 11/20/2026). <strong>Sources:</strong> <a href="https://opentelemetry.io/docs/specs/semconv/registry/attributes/messaging/">messaging attributes (opentelemetry.io)</a> — <em>&quot;Replaced by <code>messaging.consumer.group.name</code>.&quot;</em></sub></p>
 </blockquote>
 <pre><code class="language-dql">// Kafka message throughput by topic — producer and consumer activity
 fetch spans, from:-1h
@@ -402,13 +402,15 @@ fetch spans, from:-6h
 <pre><code class="language-dql">// Kafka consumer group analysis — processing latency by consumer group
 fetch spans, from:-1h
 | filter messaging.system == &quot;kafka&quot; and messaging.operation.type == &quot;process&quot;
-| filter isNotNull(messaging.consumer.group.name)
+// Older OpenTelemetry instrumentations send the deprecated messaging.kafka.consumer.group; read both
+| fieldsAdd consumer_group = coalesce(messaging.consumer.group.name, messaging.kafka.consumer.group)
+| filter isNotNull(consumer_group)
 | summarize {
     msg_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
     errors = countIf(span.status_code == &quot;error&quot;)
-}, by:{messaging.consumer.group.name, messaging.destination.name}
+}, by:{consumer_group, messaging.destination.name}
 | sort msg_count desc
 </code></pre>
 <h3>Service Messaging Metrics (<code>dt.service.messaging.*</code>)</h3>

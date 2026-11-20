@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>AUTOM-07: CI/CD Integration</h1>
 <blockquote>
-<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 7 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 7 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <p>CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.</p>
 <hr />
@@ -3199,7 +3199,7 @@ Single-SA-writer rule: humans never have prod write access. One auditable identi
 </tr>
 <tr>
 <td>Azure DevOps</td>
-<td><code>azure_devops_observability</code></td>
+<td><code>azure_devops_observability</code> (does not deploy as-is on Monaco 2.31.0 or later: its OpenPipeline config uses the removed <code>type: openpipeline</code>)</td>
 <td>--</td>
 </tr>
 <tr>
@@ -3210,6 +3210,9 @@ Single-SA-writer rule: humans never have prod write access. One auditable identi
 </tbody>
 </table>
 <p>All samples ingest SDLC events via OpenPipeline and include pre-built dashboards.</p>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.31.0">Monaco v2.31.0 release (Dynatrace GitHub)</a> — <em>&quot;Removed support for deprecated OpenPipeline configurations (type <code>openpipeline</code>)&quot;</em>.</sub></p>
+</blockquote>
 <h3>CI Validation Scripts (in <a href="https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/scripts/ci"><code>configuration-as-code/scripts/ci/</code></a>)</h3>
 <table>
 <thead>

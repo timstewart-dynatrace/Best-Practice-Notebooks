@@ -1,6 +1,6 @@
 # M2S-05: Step 5 — Execute: Migrate Configuration and Agents
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 11/10/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 5 of 9 | **Phase:** Upgrade | **Step:** Execute | **Created:** March 2026 | **Last Updated:** 11/20/2026
 
 With your SaaS environment prepared, it is time to execute the migration. This step covers deploying configurations via the SaaS Upgrade Assistant in dependency-ordered waves, redirecting OneAgents from Managed to SaaS, and validating data flow after each wave. By the end of this step, all hosts and services will be reporting to your SaaS tenant.
 
@@ -320,15 +320,17 @@ The overlap you build is therefore **across the estate, not on a single host**:
 | Requirement | What actually works |
 |-------------|---------------------|
 | **Both environments live during cutover** | Phased waves. Migrated hosts report to SaaS, unmigrated hosts keep reporting to Managed. Both tenants carry real traffic for the whole overlap — just never the same host. |
-| **Traces that cross the boundary mid-migration** | Connect the two environments and enable **cross-environment tracing**, so a call from a migrated service into an unmigrated one still stitches into a single trace. |
+| **Traces that cross the boundary mid-migration** | Connect the two environments and enable **cross-environment tracing** in Distributed Traces Classic, so a synchronous call (such as HTTP) from a migrated service into an unmigrated one links to its trace in the other environment. Asynchronous and messaging hops do not carry across, IBM z/OS and AWS Lambda are not supported, and the new Distributed Tracing app does not support cross-environment tracing yet. |
 | **One view across both tenants** | **Cross-environment dashboard tiles** surface remote-environment metrics on a local dashboard for the duration of the overlap. |
 | **Continuity on one specific signal** | Non-OneAgent sources genuinely can dual-send. Cloud integrations (AWS / Azure / GCP), OpenTelemetry collectors, and API-based log and metric ingest all accept two destinations with separate credentials. If one signal cannot tolerate any gap at all, that is where the guarantee comes from. |
 
-**Sequence waves so the boundary stays narrow.** Migrate tightly-coupled services together rather than leaving a call chain split across tenants for weeks. Cross-environment tracing covers the seam, but fewer seams is less to validate.
+**Sequence waves so the boundary stays narrow.** Migrate tightly-coupled services together rather than leaving a call chain split across tenants for weeks. Cross-environment tracing covers only the synchronous part of the seam, and fewer seams is less to validate.
 
 > **The residual gap is real — plan for it rather than engineering around it.** A reconfigured host is dark for its restart window, and its services stay incomplete until the application processes restart (above). That is the cost of the supported path. Scheduling waves inside existing maintenance windows is what holds a cutover inside a < 15-minute gap target; a second agent is not.
 
 > **Tip — OneAgent Attribute Enrichment (1.333+):** During agent redirect, consider adding primary tags and fields in the same call using `--set-host-tag` (for example `--set-host-tag="dt.cost.costcenter=12345"`). This enriches all telemetry at the source with `primary_tags.environment`, `dt.security_context`, `dt.cost.costcenter`, etc. — eliminating the need for some server-side auto-tagging rules. See [docs](https://docs.dynatrace.com/docs/ingest-from/dynatrace-oneagent/oneagent-attribute-enrichment).
+
+> <sub>**Sources:** [Cross-environment tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability-classic/distributed-traces-classic/analysis/connect-environments) — *"Cross-environment tracing is limited to traces of requests that can transfer information about response headers and trace context from the receiving environment, such as HTTP or synchronous requests."* and *"IBM z/OS (CICS, IMS, and Java) and AWS Lambda don't support cross-environment tracing."*; [Distributed Tracing (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/distributed-tracing) — *"Does the new distributed tracing experience support cross-environment tracing? Not yet."*</sub>
 
 <a id="redirecting-containerized-and-serverless-workloads"></a>
 

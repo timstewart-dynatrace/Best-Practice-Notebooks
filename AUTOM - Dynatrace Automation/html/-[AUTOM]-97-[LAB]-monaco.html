@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>AUTOM-97 LAB: Monaco Configuration as Code</h1>
 <blockquote>
-<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Reference:</strong> 97 — Monaco Hands-On LAB | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 10/24/2026</p>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Reference:</strong> 97 — Monaco Hands-On LAB | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <h2>Overview</h2>
 <p>Hands-on lab for installing Monaco CLI, downloading existing Dynatrace configuration, modifying it, validating, and deploying to a target environment. Includes CI/CD pipeline integration with GitHub Actions. Complete the lecture notebook <strong>AUTOM-03: Monaco Configuration-as-Code</strong> first, then work through these exercises step by step.</p>
@@ -1317,7 +1317,7 @@ jobs:
 </tr>
 <tr>
 <td><code>azure_devops_observability</code></td>
-<td>Azure DevOps</td>
+<td>Azure DevOps — its <code>openpipeline/config.yaml</code> still declares <code>type: openpipeline</code> (checked 11/20/2026), so it does not deploy as-is on Monaco 2.31.0 or later</td>
 </tr>
 <tr>
 <td><code>argocd_observability</code></td>
@@ -1325,6 +1325,9 @@ jobs:
 </tr>
 </tbody>
 </table>
+<blockquote>
+<p><strong>Azure DevOps sample and Monaco 2.31.0:</strong> <a href="https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.31.0">Monaco v2.31.0 release (Dynatrace GitHub)</a> — <em>&quot;Removed support for deprecated OpenPipeline configurations (type <code>openpipeline</code>)&quot;</em>.</p>
+</blockquote>
 <blockquote>
 <p><strong>Note:</strong> Monaco v1 (<code>dynatrace-oss/dynatrace-monitoring-as-code</code>) is no longer supported. Current Monaco releases have no conversion command: <em>&quot;The last Monaco version to support the convert command is Monaco version 2.19.0.&quot;</em> Either run Monaco 2.19.0's <code>convert</code> per the <a href="https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/guides/migrating-to-v2">migrating to v2 guide (DT docs)</a>, or re-run <code>monaco download</code> against the source tenant.</p>
 </blockquote>

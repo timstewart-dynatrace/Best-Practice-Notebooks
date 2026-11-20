@@ -1,6 +1,6 @@
 # ADOPT-03: Success Metrics
 
-> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 11/18/2026
+> **Series:** ADOPT — Observability Adoption & Maturity | **Notebook:** 3 of 6 | **Created:** March 2026 | **Last Updated:** 11/20/2026
 
 ## Overview
 
@@ -139,6 +139,7 @@ Different problem categories often have very different resolution times. Breakin
 fetch dt.davis.problems, from:-7d
 | filter event.status == "CLOSED"
 | filter dt.davis.is_duplicate == false
+| filter maintenance.is_under_maintenance == false
 | fieldsAdd duration_hours = resolved_problem_duration / 1h
 | summarize {
     avg_mttr = avg(duration_hours),
@@ -238,6 +239,9 @@ A problem that keeps recurring on one component is a known issue being re-report
 // The component is the root-cause entity when Dynatrace identified one, otherwise the first
 // affected entity — many problems have no root cause, and grouping on the root cause alone
 // would lump every occurrence of a type together.
+// Exception: a problem whose only affected entity is the environment itself (mostly custom
+// alerts) has no narrower entity, so every occurrence still groups under one ENVIRONMENT- ID.
+// Read those rows as one alert re-firing, not as a recurring component.
 // root_cause.smartscape_entity and smartscape.affected_entities replace the deprecated
 // root_cause_entity_name and affected_entity_ids. Read the Smartscape fields first; the classic
 // fields still work and fill problems the Smartscape fields leave empty.

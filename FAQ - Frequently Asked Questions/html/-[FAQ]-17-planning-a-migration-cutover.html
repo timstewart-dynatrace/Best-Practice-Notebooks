@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>FAQ-17: How Do I Plan a Migration Cutover?</h1>
 <blockquote>
-<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 17 — Planning a Migration Cutover | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 11/06/2026</p>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 17 — Planning a Migration Cutover | <strong>Created:</strong> July 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <h2>Overview</h2>
 <p>Every migration in this corpus — Managed → SaaS, SaaS → SaaS, Splunk, New Relic, Sumo Logic, Classic Logs → OpenPipeline, management zones → policies — ends in the same shape. Different sources, different tooling, the same eight moving parts.</p>
@@ -534,12 +534,12 @@ smartscapeNodes &quot;HOST&quot;, from:-7d
 </tr>
 </tbody>
 </table>
-<p><strong>Retention is met by keeping the old system readable, or by an archive outside Dynatrace — not by re-ingesting history.</strong> Dynatrace log ingest drops records older than its log age limit, which is measured in hours: 72 by default for environments created after SaaS 1.348, and 24 for older environments unless Dynatrace Support raises it to 72 on request. Either way it is far short of a multi-year obligation. Replaying an archive through a Collector does not get round it, because replay keeps each record's original timestamp.</p>
+<p><strong>Retention is met by keeping the old system readable, or by an archive outside Dynatrace — not by re-ingesting history.</strong> Dynatrace log ingest drops records older than its log age limit, which is measured in hours: 72 by default for environments created in SaaS 1.348 or later, and 24 for older environments unless Dynatrace Support raises it to 72 on request. Either way it is far short of a multi-year obligation. Replaying an archive through a Collector does not get round it, because replay keeps each record's original timestamp.</p>
 <p>SL2DT-09 breaks the stabilization window into weeks — stabilize, tune, hand off, retro — with metrics to track through it. That structure generalizes; the metrics will not.</p>
 <blockquote>
 <p><sub><strong>Sources:</strong></sub></p>
 <ul>
-<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log Management and Analytics default limits (DT docs)</a> — <em>&quot;The event is dropped if it contains a timestamp older than the configured log age limit.&quot;</em> <em>&quot;For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours.&quot;</em> <em>&quot;For environments created before Dynatrace version 1.348 was released, the default log age limit is 24 hours. The limit can be increased to 72 hours on request.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log Management and Analytics default limits (DT docs)</a> — <em>&quot;The event is dropped if it contains a timestamp older than the configured log age limit.&quot;</em> <em>&quot;For environments created in Dynatrace version 1.348+, the default log age limit is 72 hours.&quot;</em> <em>&quot;For environments created in Dynatrace version 1.347 and earlier, the default log age limit is 24 hours.&quot;</em> <em>&quot;The limit can be increased to 72 hours on request.&quot;</em></sub></li>
 <li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — <em>&quot;The log ingestion pipeline now accepts log records with timestamps up to 72 hours in the past,&quot;</em> and <em>&quot;Rollout start on Oct 12, 2026&quot;</em></sub></li>
 <li><sub><strong>Code read (10/29/2026):</strong> <a href="https://github.com/dynatrace/dynatrace-bindplane-otel-contrib/blob/v1.2.0/internal/blobconsume/consumer.go"><code>internal/blobconsume/consumer.go</code></a> at tag <code>v1.2.0</code>, used by the S3, Azure Blob and Google Cloud Storage rehydration receivers, unmarshals each stored OTLP payload and passes it on unchanged (lines 105–114), so replayed records keep their original timestamps</sub></li>
 </ul>

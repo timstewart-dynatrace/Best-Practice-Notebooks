@@ -1,6 +1,6 @@
 # FAQ-23: How Do I Monitor Box With Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 11/13/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 23 — Monitoring Box With Dynatrace | **Created:** August 2026 | **Last Updated:** 11/20/2026
 
 ## Overview
 
@@ -400,7 +400,7 @@ const LOG_SOURCE        = "box.events";
 const PAGE_LIMIT        = 500;
 const MAX_PAGES         = 60;      // stay clear of the 120 s ceiling
 const INGEST_BATCH      = 1000;    // well under 50,000 records / 10 MB
-const MAX_EVENT_AGE_MS  = 23 * 60 * 60 * 1000; // log ingest drops timestamps > 24 h old (§ 9.1)
+const MAX_EVENT_AGE_MS  = 23 * 60 * 60 * 1000; // stays under the 24 h log age limit; 72 h on newer environments (§ 9.1)
 
 export default async function () {
   // --- 1. Authenticate (Client Credentials Grant) -------------------------
@@ -481,7 +481,7 @@ export default async function () {
         "box.item.name": evt.source?.item_name,
         "box.ip_address": evt.ip_address,
       };
-      // Log ingest DROPS a record whose timestamp is older than 24 h. For a
+      // Log ingest DROPS a record older than the log age limit (24 h or 72 h). For a
       // backlog (first run from 0, a long outage), leave timestamp unset so the
       // record takes its ingest time, and query event time on box.created_at.
       if (Date.now() - Date.parse(evt.created_at) < MAX_EVENT_AGE_MS) {
@@ -528,7 +528,7 @@ export default async function () {
 | **`MAX_PAGES` guard** | Bounds the run below the 120 s ceiling. A backlog drains across several runs rather than timing out forever on the first |
 | **Throwing on auth failure** | An unhandled non-OK response would leave you with an empty ingest that looks identical to a quiet Box tenant |
 | **`isNotFound(e)` on the first cursor read** | The SDK's error object carries the HTTP response under `response`, not a top-level `status` — a `e.status !== 404` test is always true and makes every first run throw |
-| **No `timestamp` on events older than ~23 h** | Log ingest drops any record timestamped more than 24 h in the past (§ 9.1). Replaying a backlog with `timestamp: created_at` loses it silently; ingest-time stamping plus `box.created_at` keeps it |
+| **No `timestamp` on events older than ~23 h** | Log ingest drops any record timestamped further in the past than the log age limit, 24 h or 72 h (§ 9.1). Replaying a backlog with `timestamp: created_at` loses it silently; ingest-time stamping plus `box.created_at` keeps it |
 
 ### 7.4 Alert on the collector, not just on Box
 
@@ -599,7 +599,7 @@ DT_PLATFORM_TOKEN = os.environ["DT_PLATFORM_TOKEN"]  # scope: openpipeline:logs:
 LOG_SOURCE    = "box.events"
 PAGE_LIMIT    = 500
 INGEST_BATCH  = 1000     # well under the 50,000-record / 10 MB request limits
-MAX_EVENT_AGE = timedelta(hours=23)  # ingest drops timestamps > 24 h old (§ 9.1)
+MAX_EVENT_AGE = timedelta(hours=23)  # under the 24 h log age limit; 72 h on newer environments (§ 9.1)
 
 
 def box_client() -> BoxClient:
@@ -810,7 +810,7 @@ Whatever runs it needs monitoring of its own — see § 13.
 | Post-processing expansion | Rejected above **16 MB** | A batch inside 10 MB can still fail after processing. Halve on 413 |
 | Attributes per record | 500 | Ample for Box events |
 | Attribute value length | 32 kB | A large `additional_details` can approach this |
-| Log age | **72 h** for environments created after SaaS 1.348; **24 h** for older ones (raised to 72 h on request) | A record timestamped earlier is **dropped**; a mixed batch returns **200** with a "not ingested" message, not an error. Backfill must not stamp old events with their event time (§ 7.3, § 8.2). If you cannot confirm your environment's limit, plan for 24 h |
+| Log age | **72 h** for environments created in SaaS 1.348 or later; **24 h** for older ones (raised to 72 h on request) | A record timestamped earlier is **dropped**; a mixed batch returns **200** with a "not ingested" message, not an error. Backfill must not stamp old events with their event time (§ 7.3, § 8.2). If you cannot confirm your environment's limit, plan for 24 h |
 
 ### 9.2 Extract, then discard — in that order
 
@@ -842,7 +842,7 @@ Put Box events in a **dedicated bucket**. Two independent reasons, either suffic
 - **Access differs.** This feed names individuals and the documents they touched. It should be readable by security and compliance, not by everyone who can read application logs. A bucket is the boundary that makes that enforceable — see **ORGNZ**.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"The event is dropped if it contains a timestamp older than the configured log age limit."* *"For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours."* *"For environments created before Dynatrace version 1.348 was released, the default log age limit is 24 hours. The limit can be increased to 72 hours on request."*</sub>
+> - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"The event is dropped if it contains a timestamp older than the configured log age limit."* *"For environments created in Dynatrace version 1.348+, the default log age limit is 72 hours."* *"For environments created in Dynatrace version 1.347 and earlier, the default log age limit is 24 hours."* *"The limit can be increased to 72 hours on request."*</sub>
 > - <sub>[What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"Log ingestion now accepts log data up to 72 hours old"*; GA, rollout start 10/12/2026; re-read 10/23/2026</sub>
 > - <sub>[Processing in OpenPipeline (DT docs)](https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing)</sub>
 > - <sub>[Configure data storage and retention for logs (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment) — *"This means you can extract metrics and generate alerts from records that you won't store."*</sub>
@@ -1209,7 +1209,7 @@ The first of those is the one an auditor will ask about. See the **SLO** series 
 | 13 | **Renaming fields after extraction** | Metrics carry stale dimension names | Normalize in Processing, then extract (§ 10) |
 | 14 | **413 on ingest** | Batch inside 10 MB still rejected | Payload expands during processing; ceiling is 16 MB. Halve the batch (§ 9.1) |
 | 15 | **`interval:1d`** | Calendar-duration warning | Use `interval:24h` (§ 12.4) |
-| 16 | **Backfill stamped with event time** | Replay "succeeds"; events older than 24 h are silently dropped (Python sees a **200**, not an error) | Omit `timestamp` for old events; carry `box.created_at` (§ 9.1) |
+| 16 | **Backfill stamped with event time** | Replay "succeeds"; events older than the log age limit (24 h or 72 h) are silently dropped (Python sees a **200**, not an error) | Omit `timestamp` for old events; carry `box.created_at` (§ 9.1) |
 | 17 | **Testing `e.status` on a client-state error** | First Workflow run always throws | Use `isNotFound(e)` from `@dynatrace-sdk/client-state` (§ 7.3) |
 | 18 | **Credential missing "Allow access without app context"** | The first run fails reading the credential | Workflow tasks have no app context — turn the setting on and grant the workflow actor access (§ 7.1) |
 | 19 | **Shield alerts routed on `created_by.login`** | Every alert has an empty user | Use `additional_details.shield_alert.user` (§ 11.2) |
@@ -1225,7 +1225,7 @@ Gotchas 1, 7, and 8 share a shape worth naming: **each produces a confident, pla
 
 **Then build one collector, in a Workflow.** At 1M events/day a Workflow clears the 120-second ceiling with roughly 90% headroom, keeps secrets in the Credential Vault, and inherits scheduling and failure alerting. Poll `admin_logs_streaming` every 5 minutes, dedupe on `event_id`, persist the cursor with `stateClient` and no TTL — after confirming in a test workflow that app state is reachable from a Run JavaScript task (§ 7.1) — and write that cursor only after a successful ingest.
 
-**Write the Python backfill before you need it.** It is the only recovery path for an outage longer than two weeks, and the worst time to write it is during one. It recovers the events, not their place on the timeline: log ingest drops timestamps older than 24 h, so recovered events carry their real time in `box.created_at`.
+**Write the Python backfill before you need it.** It is the only recovery path for an outage longer than two weeks, and the worst time to write it is during one. It recovers the events, not their place on the timeline: log ingest drops timestamps older than the log age limit (24 h or 72 h), so recovered events carry their real time in `box.created_at`.
 
 **Decide retention before switching on.** At ~45 GB/month, extract-then-discard is not an optimization — it is the difference between a proportionate cost and an unpleasant surprise. Keep Shield alerts and regulated-folder activity; discard the `PREVIEW` and `DOWNLOAD` bulk once a counter has captured it.
 

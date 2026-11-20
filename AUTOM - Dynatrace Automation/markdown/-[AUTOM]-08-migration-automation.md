@@ -1,6 +1,6 @@
 # AUTOM-08: Migration Automation
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 10/22/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 8 of 9 | **Created:** January 2026 | **Last Updated:** 11/20/2026
 
 Configuration migration is the process of transferring Dynatrace settings from one environment to another. This is common in tenant consolidation, Managed-to-SaaS migration, and disaster recovery scenarios.
 
@@ -444,9 +444,14 @@ Run these DQL queries on the target tenant to verify entity counts:
 
 ```dql
 // Verify synthetic monitors — all three monitor types, Smartscape form (preferred for new queries)
-smartscapeNodes "BROWSER_MONITOR", "HTTP_MONITOR", "NETWORK_AVAILABILITY_MONITOR"
+smartscapeNodes "BROWSER_MONITOR", "HTTP_MONITOR", "NETWORK_AVAILABILITY_MONITOR", from:-7d
 | summarize total = count(), by:{type}
 
+// from:-7d matters: without it, smartscapeNodes returns only monitor nodes refreshed in the
+// default 2-hour window. On the validation tenant that was 11 of the 149 monitors seen over
+// 7 days (11/20/2026). A monitor deleted inside the window still counts, so use the same
+// window on source and target.
+//
 // Counting BROWSER_MONITOR alone misses HTTP and network-availability monitors, so a
 // migration check could pass with half the monitors missing. Compare per type.
 // A type with no monitors produces NO row (not a 0) — treat a missing row as 0 when

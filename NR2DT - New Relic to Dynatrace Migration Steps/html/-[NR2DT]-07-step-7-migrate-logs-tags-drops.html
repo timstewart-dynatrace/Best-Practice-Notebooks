@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>NR2DT-07: Step 7 — Migrate Logs, Tags &amp; Drop Rules</h1>
 <blockquote>
-<p><strong>Series:</strong> NR2DT — New Relic to Dynatrace Migration Steps | <strong>Notebook:</strong> 7 of 10 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 11/03/2026</p>
+<p><strong>Series:</strong> NR2DT — New Relic to Dynatrace Migration Steps | <strong>Notebook:</strong> 7 of 10 | <strong>Created:</strong> April 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <h2>Overview</h2>
 <p><strong>Goal of this step:</strong> complete Wave 5 — reconfigure log forwarders to ship to Dynatrace, apply OpenPipeline parsing/drop/enrichment rules, and confirm cost-optimization patterns are working.</p>
@@ -280,11 +280,14 @@ fetch logs, from:-1h
 | summarize count(), by:{environment}
 </code></pre>
 <p>Should return enriched data with the expected environment value.</p>
-<p><strong>Workload identifiers</strong> should similarly be queryable:</p>
+<p><strong>Workload identifiers</strong> — query the attribute your NR2DT-03 §5 enrichment rule writes. The example below assumes a rule that sets <code>workload.name</code>; it is not a built-in field, so a count of 0 can mean the rule is missing, not only that the workload is quiet:</p>
 <pre><code>fetch logs, from:-1h
 | filter workload.name == &quot;checkout&quot;
 | summarize count()
 </code></pre>
+<blockquote>
+<p><sub><strong>Dictionary:</strong> no <code>workload.name</code> entry in <code>dt.semantic_dictionary.fields</code> (the same filter returned <code>environment</code> (<code>experimental</code>) and <code>dt.security_context</code> (<code>stable</code>)), read 11/20/2026.</sub></p>
+</blockquote>
 <p><a id="gate"></a></p>
 <h2>5. Step Exit Criteria</h2>
 <p><strong>S7 — Logs / Tags / Drops Migrated</strong></p>

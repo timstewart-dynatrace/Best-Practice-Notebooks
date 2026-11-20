@@ -1,6 +1,6 @@
 # FAQ-27: How Do I Get Microsoft 365 Audit Logs Into Dynatrace?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 27 — Microsoft 365 Audit Logs Into Dynatrace | **Created:** October 2026 | **Last Updated:** 11/11/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 27 — Microsoft 365 Audit Logs Into Dynatrace | **Created:** October 2026 | **Last Updated:** 11/20/2026
 
 ## Overview
 
@@ -187,7 +187,7 @@ GCC, GCC High and DoD tenants use different API hosts (`manage-gcc.office.com`, 
 ![The 24-Hour Timestamp Trap](images/27-timestamp-window.png)
 
 <!-- MARKDOWN_TABLE_ALTERNATIVE
-| Age of the event at ingest | 24 h log age limit (environment created before SaaS 1.348) | 72 h log age limit (created after SaaS 1.348, or raised on request) | Microsoft |
+| Age of the event at ingest | 24 h log age limit (environment created in SaaS 1.347 or earlier) | 72 h log age limit (created in SaaS 1.348 or later, or raised on request) | Microsoft |
 |-------|--------|--------|--------|
 | 0 to 24 h | Accepted | Accepted | Fetchable |
 | 24 to 72 h | Dropped if stamped with event time | Accepted | Fetchable |
@@ -199,7 +199,7 @@ GCC, GCC High and DoD tenants use different API hosts (`manage-gcc.office.com`, 
 Two documented limits disagree by a factor of seven, and the collector sits between them:
 
 - **Microsoft keeps content for 7 days**, and delivers it late — typically an hour or so, with no guarantee.
-- **Dynatrace drops a log record whose timestamp is more than 24 hours in the past.** If some records in a request are too old, the API answers **`200`** with a count of what it did not ingest. Only if *every* record is too old does it answer `400`.
+- **Dynatrace drops a log record whose timestamp is older than the log age limit: 24 hours on older environments, 72 hours on newer ones (see the note below).** If some records in a request are too old, the API answers **`200`** with a count of what it did not ingest. Only if *every* record is too old does it answer `400`.
 
 So the natural mapping — `timestamp = CreationTime` — loses data in exactly the situations a collector exists for: catching up after it was down for more than a day, a slow workload, and the first run of a new subscription. Every one of those is a `200`, which most HTTP code treats as success.
 
@@ -208,12 +208,12 @@ So the natural mapping — `timestamp = CreationTime` — loses data in exactly 
 1. **Send the event time as its own field**, `m365.creation_time`, on every record. Set `timestamp` from it only when it is under 23 hours old; otherwise leave `timestamp` unset so the record takes its ingest time. Query event time on `m365.creation_time` — recovered records then sit at the moment they arrived on any chart built on `timestamp`, but their real time is still there.
 2. **Treat `200` from the ingest API as a failure.** It means records were dropped. Stop, and do not advance the checkpoint.
 
-> **Which limit applies depends on when your environment was created.** Environments created after SaaS 1.348 default to 72 hours; older environments default to 24 hours, and Dynatrace Support can raise them to 72 hours on request. Even at 72 hours, Microsoft's 7-day retention is longer, so the fix above still applies — change the 23-hour constant only once you have confirmed which limit your environment has. If you cannot confirm it, plan for 24 hours: assuming 72 on an environment that has 24 drops records while the API still answers `200`.
+> **Which limit applies depends on when your environment was created.** Environments created in SaaS 1.348 or later default to 72 hours; older environments default to 24 hours, and Dynatrace Support can raise them to 72 hours on request. Even at 72 hours, Microsoft's 7-day retention is longer, so the fix above still applies — change the 23-hour constant only once you have confirmed which limit your environment has. If you cannot confirm it, plan for 24 hours: assuming 72 on an environment that has 24 drops records while the API still answers `200`.
 
 `CreationTime` has no time-zone suffix (Microsoft's schema says it is UTC). Append `Z` before parsing, or a parser that assumes local time shifts every record by your UTC offset.
 
 > <sub>**Sources:**</sub>
-> - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"The event is dropped if it contains a timestamp older than the configured log age limit."* *"For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours."* *"For environments created before Dynatrace version 1.348 was released, the default log age limit is 24 hours. The limit can be increased to 72 hours on request."*</sub>
+> - <sub>[Log ingestion limits (DT docs)](https://docs.dynatrace.com/docs/shortlink/lma-limits) — *"The event is dropped if it contains a timestamp older than the configured log age limit."* *"For environments created in Dynatrace version 1.348+, the default log age limit is 72 hours."* *"For environments created in Dynatrace version 1.347 and earlier, the default log age limit is 24 hours."* *"The limit can be increased to 72 hours on request."*</sub>
 > - <sub>[POST ingest logs (DT docs)](https://docs.dynatrace.com/docs/dynatrace-api/environment-api/log-monitoring-v2/post-ingest-logs) — *"Only a part of input events were ingested due to event invalidity."*</sub>
 > - <sub>[What's new in Dynatrace SaaS 1.348 (DT docs)](https://docs.dynatrace.com/docs/whats-new/saas/sprint-348) — *"up to 72 hours in the past"*; rollout start 10/12/2026, re-read 10/27/2026</sub>
 > - <sub>[Troubleshooting the Management Activity API (Microsoft Learn)](https://learn.microsoft.com/en-us/office/office-365-management-api/troubleshooting-the-office-365-management-activity-api) — *"Content is available to fetch via the API for 7 days after the notification of the content availability."*</sub>
@@ -426,7 +426,7 @@ CONTENT_TYPES = ["Audit.Exchange", "Audit.SharePoint", "Audit.General", "DLP.All
 
 LOG_SOURCE    = "microsoft365.audit"
 INGEST_BATCH  = 1000                    # well under 50,000 records / 10 MB
-MAX_EVENT_AGE = timedelta(hours=23)     # ingest drops timestamps > 24 h old (section 5)
+MAX_EVENT_AGE = timedelta(hours=23)     # under the 24 h log age limit; 72 h on newer environments (section 5)
 MAX_LOOKBACK  = timedelta(days=7) - timedelta(minutes=10)  # content lives 7 days
 SETTLE        = timedelta(minutes=5)    # do not close a window on the last few minutes
 FEED = f"{API_ROOT}/api/v1.0/{TENANT_ID}/activity/feed"
@@ -686,7 +686,7 @@ const CONTENT_TYPES = ["Audit.Exchange", "Audit.SharePoint", "Audit.General", "D
 const LOG_SOURCE    = "microsoft365.audit";
 const TIME_BUDGET_MS = 90 * 1000;          // stop well before the 120 s ceiling
 const INGEST_BATCH  = 1000;
-const MAX_EVENT_AGE_MS = 23 * 3600 * 1000; // ingest drops timestamps > 24 h old (§ 5)
+const MAX_EVENT_AGE_MS = 23 * 3600 * 1000; // under the 24 h log age limit; 72 h on newer environments (§ 5)
 const LOOKBACK_MS   = 7 * 24 * 3600 * 1000 - 10 * 60 * 1000;
 const SETTLE_MS     = 5 * 60 * 1000;
 const DAY_MS        = 24 * 3600 * 1000;
@@ -868,7 +868,7 @@ export default async function () {
 | Payload per request | **10 MB** | Both collectors send 1,000 records per request |
 | Records per request | **50,000** | Rarely binding |
 | After processing | Rejected above **16 MB** | A batch can grow during processing; halve on `413` (the Python collector does) |
-| Log age | **72 h** (environments created after SaaS 1.348) or **24 h** (older; 72 h on request) | § 5 |
+| Log age | **72 h** (environments created in SaaS 1.348 or later) or **24 h** (older; 72 h on request) | § 5 |
 
 ### 11.2 Extract, then discard — selectively
 

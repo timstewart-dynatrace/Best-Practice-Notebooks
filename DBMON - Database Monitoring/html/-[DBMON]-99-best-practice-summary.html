@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>DBMON-99: Best Practice Summary</h1>
 <blockquote>
-<p><strong>Series:</strong> DBMON — Database Monitoring | <strong>Notebook:</strong> 7 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+<p><strong>Series:</strong> DBMON — Database Monitoring | <strong>Notebook:</strong> 7 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <h2>Overview</h2>
 <p>This notebook consolidates every actionable best practice for Dynatrace database monitoring extracted from the DBMON series (notebooks 01 through 06). It covers SQL databases, NoSQL databases, caches, message brokers, query analysis, dashboards, and alerting. Each best practice is definitive: it specifies exactly what to configure, what threshold to set, and what priority to assign.</p>
@@ -405,7 +405,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <tr>
 <td>17</td>
 <td>For Kafka, verify <code>messaging.system</code> attribute</td>
-<td>Kafka spans use <code>messaging.system</code> (not <code>db.system</code>); confirm <code>messaging.destination.name</code>, <code>messaging.operation.type</code>, and <code>messaging.consumer.group.name</code> are populated</td>
+<td>Kafka spans use <code>messaging.system</code> (not <code>db.system</code>); confirm <code>messaging.destination.name</code>, <code>messaging.operation.type</code>, and <code>messaging.consumer.group.name</code> are populated (older OpenTelemetry instrumentations send the deprecated <code>messaging.kafka.consumer.group</code> instead)</td>
 <td><strong>Critical</strong></td>
 <td>Data Quality</td>
 </tr>
@@ -673,7 +673,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <tr>
 <td>39</td>
 <td>Monitor Kafka consumer group processing latency</td>
-<td>Group by <code>messaging.consumer.group.name</code> and <code>messaging.destination.name</code>; track <code>avg_ms</code> and <code>p95_ms</code> per group</td>
+<td>Group by <code>coalesce(messaging.consumer.group.name, messaging.kafka.consumer.group)</code> and <code>messaging.destination.name</code>; track <code>avg_ms</code> and <code>p95_ms</code> per group</td>
 <td><strong>Critical</strong></td>
 <td>Kafka</td>
 </tr>

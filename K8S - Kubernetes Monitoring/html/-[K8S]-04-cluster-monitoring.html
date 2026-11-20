@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>K8S-04: Cluster Health Monitoring</h1>
 <blockquote>
-<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 4 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/15/2026</p>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 4 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <h2>Deep-Dive into Kubernetes Cluster Metrics</h2>
 <p>Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.</p>
@@ -622,7 +622,7 @@ fetch events, from:-6h
 <p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/docs/semantic-dictionary/changelog/version-1-350">Semantic Dictionary changelog 1.350 (DT docs)</a> — <em>Global field reference</em>, change type <em>Added</em>: <code>k8s.event.involved_object.kind</code>, <code>k8s.event.reason</code>, <code>k8s.event.type</code>. <strong>Dictionary:</strong> no row for <code>k8s.event</code> or <code>dt.kubernetes.event</code> under <code>filter startsWith(name, …)</code> in <code>dt.semantic_dictionary.fields</code>, read 11/11/2026 (control: the same query on <code>&quot;k8s.&quot;</code> returned rows such as <code>k8s.cluster.name</code>).</sub></p>
 </blockquote>
 <h3>Event Reasons to Monitor</h3>
-<p>Reasons observed on tenant <code>yhu28601</code> over 24 h (08/11/2026) — your distribution will differ, so run the summary query below against your own estate rather than assuming this shape:</p>
+<p>Reasons observed on a validation tenant over 24 h (08/11/2026) — your distribution will differ, so run the summary query below against your own estate rather than assuming this shape:</p>
 <table>
 <thead>
 <tr>

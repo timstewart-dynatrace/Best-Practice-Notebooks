@@ -1,6 +1,6 @@
 # ONBRD-08: Your First Queries
 
-> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 10/02/2026
+> **Series:** ONBRD — Dynatrace Onboarding | **Notebook:** 8 of 10 | **Created:** December 2025 | **Last Updated:** 11/20/2026
 
 ## Learning DQL Fundamentals
 Dynatrace Query Language (DQL) is how you access data in Grail. This notebook introduces the core concepts and patterns you'll use daily.
@@ -275,6 +275,10 @@ fetch spans, from: now() - 1h
 | sort error_rate desc
 | limit 20
 ```
+
+> **Span errors are not the service failure rate.** This example counts server spans whose `span.status_code` is `"error"`. The Dynatrace docs say *"Errors and failures are distinct: a transaction counts as failed only when failure detection marks it as such"*, and that the service request metrics *"include throughput, failure count, and response time."* To report a service's failure rate, read `dt.service.request.count` and `dt.service.request.failure_count`, as **ONBRD-10** does. On one tenant over one hour (11/20/2026) the span version read 0.41 % and the service metrics 4.11 %.
+>
+> <sub>**Sources:** [Service-related concepts (DT docs)](https://docs.dynatrace.com/docs/observe/application-observability/services/services-concepts).</sub>
 
 ### Common Aggregation Functions
 
