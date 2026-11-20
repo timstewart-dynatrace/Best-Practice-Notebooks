@@ -1,6 +1,6 @@
 # AUTOM-97 LAB: Monaco Configuration as Code
 
-> **Series:** AUTOM — Dynatrace Automation | **Reference:** 97 — Monaco Hands-On LAB | **Created:** April 2026 | **Last Updated:** 10/24/2026
+> **Series:** AUTOM — Dynatrace Automation | **Reference:** 97 — Monaco Hands-On LAB | **Created:** April 2026 | **Last Updated:** 11/20/2026
 
 ## Overview
 
@@ -971,8 +971,10 @@ Monaco configurations for ingesting CI/CD pipeline events via OpenPipeline, unde
 |-----------|---------------|
 | `github_pipeline_observability` | GitHub Actions |
 | `gitlab_pipeline_observability` | GitLab CI |
-| `azure_devops_observability` | Azure DevOps |
+| `azure_devops_observability` | Azure DevOps — its `openpipeline/config.yaml` still declares `type: openpipeline` (checked 11/20/2026), so it does not deploy as-is on Monaco 2.31.0 or later |
 | `argocd_observability` | ArgoCD |
+
+> **Azure DevOps sample and Monaco 2.31.0:** [Monaco v2.31.0 release (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.31.0) — *"Removed support for deprecated OpenPipeline configurations (type `openpipeline`)"*.
 
 > **Note:** Monaco v1 (`dynatrace-oss/dynatrace-monitoring-as-code`) is no longer supported. Current Monaco releases have no conversion command: *"The last Monaco version to support the convert command is Monaco version 2.19.0."* Either run Monaco 2.19.0's `convert` per the [migrating to v2 guide (DT docs)](https://docs.dynatrace.com/docs/deliver/configuration-as-code/monaco/guides/migrating-to-v2), or re-run `monaco download` against the source tenant.
 

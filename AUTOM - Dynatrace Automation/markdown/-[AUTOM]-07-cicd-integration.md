@@ -1,6 +1,6 @@
 # AUTOM-07: CI/CD Integration
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 11/11/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 7 of 9 | **Created:** January 2026 | **Last Updated:** 11/20/2026
 
 CI/CD integration brings software development practices to Dynatrace configuration management. By storing configs in Git and deploying via pipelines, teams gain version control, review processes, and automated deployments.
 
@@ -2668,10 +2668,12 @@ Both Monaco and Terraform variants are available for each CI/CD platform:
 |---------------|---------------|------------------|
 | GitHub Actions | `github_pipeline_observability` | `github_pipeline_observability_terraform` |
 | GitLab CI | `gitlab_pipeline_observability` | `gitlab_pipeline_observability_terraform` |
-| Azure DevOps | `azure_devops_observability` | -- |
+| Azure DevOps | `azure_devops_observability` (does not deploy as-is on Monaco 2.31.0 or later: its OpenPipeline config uses the removed `type: openpipeline`) | -- |
 | ArgoCD | `argocd_observability` | `argocd_observability_terraform` |
 
 All samples ingest SDLC events via OpenPipeline and include pre-built dashboards.
+
+> <sub>**Sources:** [Monaco v2.31.0 release (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.31.0) — *"Removed support for deprecated OpenPipeline configurations (type `openpipeline`)"*.</sub>
 
 ### CI Validation Scripts (in [`configuration-as-code/scripts/ci/`](https://github.com/Dynatrace/community-examples/tree/main/configuration-as-code/scripts/ci))
 

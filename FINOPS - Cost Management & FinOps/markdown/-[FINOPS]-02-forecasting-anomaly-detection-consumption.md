@@ -1,6 +1,6 @@
 # FINOPS-02: Forecasting and Anomaly Detection on DPS Consumption
 
-> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 02 — Forecasting and Anomaly Detection on DPS Consumption | **Created:** May 2026 | **Last Updated:** 10/14/2026
+> **Series:** FINOPS — Cost Management & FinOps | **Reference:** 02 — Forecasting and Anomaly Detection on DPS Consumption | **Created:** May 2026 | **Last Updated:** 11/20/2026
 
 ## Overview
 
@@ -311,7 +311,7 @@ In community practice, the decision rule is simple. If both projections agree th
 |------|-----------|--------|
 | 1 | Schedule trigger | Weekly, Monday 09:00 (platform-team time zone) |
 | 2 | DQL query | timeseries dt.billing.* — 28-day daily history per capability |
-| 3 | Davis analyzer | seasonal-baseline-anomaly-detector scores last 24h |
+| 3 | Davis analyzer | seasonal-baseline-anomaly-detector scores the last complete day |
 | 4 | Conditional | Anomaly score > threshold? |
 | 5 | Notify + drill-down | Slack/email with capability + link to FINOPS-01 §10 attribution query |
 Two-step diagnosis: anomaly says WHAT is up; attribution says WHO is driving it.
@@ -323,20 +323,22 @@ Two-step diagnosis: anomaly says WHAT is up; attribution says WHO is driving it.
 
 ```dql
 // Daily host-hours per host capability — 28-day baseline input
+// Aligned to midnight (from:-28d@d, to:@d) so the series holds 28 complete days: without it the last
+// point is today's partial day, which reads as a low outlier against the band on every run.
 timeseries {
   full_stack = sum(dt.billing.full_stack_monitoring.usage, rate:24h),
   infrastructure = sum(dt.billing.infrastructure_monitoring.usage, rate:24h),
   code = sum(dt.billing.code_monitoring.usage, rate:24h),
   k8s = sum(dt.billing.kubernetes_monitoring.usage, rate:24h)
   },
-  from:-28d, interval:24h
+  from:-28d@d, to:@d, interval:24h
 ```
 
-**Step 2 — Feed into the seasonal baseline anomaly detection analyzer**, checking the latest day against the confidence band learned from the preceding days.
+**Step 2 — Feed into the seasonal baseline anomaly detection analyzer**, checking the most recent complete day against the confidence band learned from the preceding days.
 
 **Step 3 — Workflow logic:**
 
-- If any capability's latest value falls outside the analyzer's confidence band (width set by `tolerance`, default 4), the workflow fires.
+- If any capability's most recent complete-day value falls outside the analyzer's confidence band (width set by `tolerance`, default 4), the workflow fires.
 - The notification includes the capability name, the magnitude of deviation, and a link to the FINOPS-01 §5 per-host (or §10 per-cost-center) attribution query for drill-down.
 
 **Step 4 — Tune the threshold:**
@@ -347,7 +349,7 @@ Start with the analyzer's default tolerance. After the first 2-4 alerts, judge w
 
 Capability-level anomaly tells you something is up; FINOPS-01 §10 (per-cost-center attribution) tells you *which* bucket or team is driving it. Dynatrace's own cost-spike tutorial runs the same two steps: identify the capability, then attribute the spike to the entity, dashboard, workflow, or detector behind it — followed by the conversation with the owning team.
 
-> <sub>**Sources:** [Trace a cost spike to its root cause (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike) — *"Identify which DPS capability is driving a cost spike"*, then *"Attribute the spike to the responsible entity, dashboard, workflow, or detector."* [Seasonal baseline (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/reference/ai-models/seasonal-baseline), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). The Step 1 input query re-executed 10/05/2026 with grouped aggregations and `24h` (29 daily points, no notifications).</sub>
+> <sub>**Sources:** [Trace a cost spike to its root cause (DT docs)](https://docs.dynatrace.com/docs/manage-your-costs/control/investigate-a-spike) — *"Identify which DPS capability is driving a cost spike"*, then *"Attribute the spike to the responsible entity, dashboard, workflow, or detector."* [Seasonal baseline (DT docs)](https://docs.dynatrace.com/docs/dynatrace-intelligence/reference/ai-models/seasonal-baseline), [Workflows (DT docs)](https://docs.dynatrace.com/docs/analyze-explore-automate/workflows). The Step 1 input query re-executed 10/05/2026 with grouped aggregations and `24h` (29 daily points, no notifications); aligned to midnight 11/20/2026 (`from:-28d@d, to:@d`: 28 complete days, no notifications).</sub>
 
 <a id="native-vs-diy"></a>
 ## 10. When to Use Native vs DIY

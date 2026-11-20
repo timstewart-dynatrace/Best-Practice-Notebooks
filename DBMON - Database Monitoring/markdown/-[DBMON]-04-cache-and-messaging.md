@@ -1,6 +1,6 @@
 # DBMON-04: Cache and Messaging Monitoring
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 11/13/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 4 of 7 | **Created:** March 2026 | **Last Updated:** 11/20/2026
 
 ## Overview
 
@@ -163,10 +163,10 @@ Apache Kafka monitoring through spans captures both producer (publish) and consu
 | `messaging.system` | Always `kafka` (canonical OTel field) | `kafka` |
 | `messaging.operation.type` | Dynatrace's dictionary lists `publish`, `receive`, `process` and `peek`; newer OpenTelemetry instrumentations send `send` for producers | `process` |
 | `messaging.destination.name` | Topic name | `orders.created` |
-| `messaging.consumer.group.name` | Consumer group ID | `order-processor-group` |
+| `messaging.consumer.group.name` | Consumer group ID. Older OpenTelemetry instrumentations send the deprecated `messaging.kafka.consumer.group` instead | `order-processor-group` |
 | `messaging.destination.partition.id` | Partition number | `3` |
 
-> <sub>**Dictionary:** `messaging.system`, `messaging.operation.type`, `messaging.destination.name`, `messaging.consumer.group.name`, `messaging.destination.partition.id` (all `stable`), `db.system` (`experimental`), read 10/02/2026. No messaging spans existed on the validation tenant over 7 days, so these cells were checked for syntax only.</sub>
+> <sub>**Dictionary:** `messaging.system`, `messaging.operation.type`, `messaging.destination.name`, `messaging.consumer.group.name`, `messaging.destination.partition.id` (all `stable`), `db.system` (`experimental`), read 10/02/2026. On the validation tenant, OpenTelemetry Java Kafka spans (1,287 publish / 1,285 process, 11/10–11/12/2026) carried `messaging.kafka.consumer.group` on every process span and `messaging.consumer.group.name` on none (checked 11/20/2026). **Sources:** [messaging attributes (opentelemetry.io)](https://opentelemetry.io/docs/specs/semconv/registry/attributes/messaging/) — *"Replaced by `messaging.consumer.group.name`."*</sub>
 
 ```dql
 // Kafka message throughput by topic — producer and consumer activity
@@ -195,13 +195,15 @@ fetch spans, from:-6h
 // Kafka consumer group analysis — processing latency by consumer group
 fetch spans, from:-1h
 | filter messaging.system == "kafka" and messaging.operation.type == "process"
-| filter isNotNull(messaging.consumer.group.name)
+// Older OpenTelemetry instrumentations send the deprecated messaging.kafka.consumer.group; read both
+| fieldsAdd consumer_group = coalesce(messaging.consumer.group.name, messaging.kafka.consumer.group)
+| filter isNotNull(consumer_group)
 | summarize {
     msg_count = count(),
     avg_ms = avg(duration) / 1ms,
     p95_ms = percentile(duration, 95) / 1ms,
     errors = countIf(span.status_code == "error")
-}, by:{messaging.consumer.group.name, messaging.destination.name}
+}, by:{consumer_group, messaging.destination.name}
 | sort msg_count desc
 ```
 

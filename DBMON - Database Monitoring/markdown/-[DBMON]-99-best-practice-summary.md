@@ -1,6 +1,6 @@
 # DBMON-99: Best Practice Summary
 
-> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 11/13/2026
+> **Series:** DBMON — Database Monitoring | **Notebook:** 7 of 7 | **Created:** March 2026 | **Last Updated:** 11/20/2026
 
 ## Overview
 
@@ -84,7 +84,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | 14 | Validate all six core DB span attributes | Every database span must carry: `db.system`, `db.query.text`, `db.operation.name`, `db.namespace`, `server.address`, `server.port` | **Critical** | Data Quality |
 | 15 | Check for NULL fields periodically | Run `filter isNotNull(db.operation.name)` — NULL can mean the instrumentation carries the command in another field (`code.function` for OneAgent MongoDB, `span.name` for OTel Redis) rather than a driver fault; check those before investigating the driver version | **Recommended** | Data Quality |
 | 16 | Verify span.kind is client for outgoing DB calls | All database spans from the calling application must have `span.kind == "client"` (lowercase) | **Recommended** | Data Quality |
-| 17 | For Kafka, verify `messaging.system` attribute | Kafka spans use `messaging.system` (not `db.system`); confirm `messaging.destination.name`, `messaging.operation.type`, and `messaging.consumer.group.name` are populated | **Critical** | Data Quality |
+| 17 | For Kafka, verify `messaging.system` attribute | Kafka spans use `messaging.system` (not `db.system`); confirm `messaging.destination.name`, `messaging.operation.type`, and `messaging.consumer.group.name` are populated (older OpenTelemetry instrumentations send the deprecated `messaging.kafka.consumer.group` instead) | **Critical** | Data Quality |
 | 18 | For RabbitMQ, verify `messaging.system` attribute | RabbitMQ spans use `messaging.system` (not `db.system`); confirm `messaging.destination.name` is populated | **Critical** | Data Quality |
 
 <a id="sql-database-monitoring"></a>
@@ -155,7 +155,7 @@ This notebook consolidates every actionable best practice for Dynatrace database
 | # | Best Practice | Recommended Setting/Value | Priority | Category |
 |---|--------------|----------------|----------|----------|
 | 38 | Track Kafka throughput by topic | Group by `messaging.destination.name` and `messaging.operation.type` (Dynatrace's dictionary: `publish`, `receive`, `process`, `peek`; newer OpenTelemetry producers send `send`) at 5m intervals | **Critical** | Kafka |
-| 39 | Monitor Kafka consumer group processing latency | Group by `messaging.consumer.group.name` and `messaging.destination.name`; track `avg_ms` and `p95_ms` per group | **Critical** | Kafka |
+| 39 | Monitor Kafka consumer group processing latency | Group by `coalesce(messaging.consumer.group.name, messaging.kafka.consumer.group)` and `messaging.destination.name`; track `avg_ms` and `p95_ms` per group | **Critical** | Kafka |
 | 40 | Detect Kafka consumer errors | Filter `span.status_code == "error"` on `messaging.operation.type == "process"` spans; any sustained errors indicate poisoned messages or deserialization failures | **Critical** | Kafka |
 | 41 | Track RabbitMQ publish/consume rate per queue | Group by `messaging.destination.name` and `messaging.operation.type`; a publish rate exceeding consume rate signals backpressure | **Critical** | RabbitMQ |
 | 42 | Monitor RabbitMQ message throughput trend | Use `makeTimeseries` at 5m intervals grouped by `messaging.operation.type` to detect throughput drops | **Recommended** | RabbitMQ |

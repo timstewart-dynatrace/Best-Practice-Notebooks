@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>OPIPE-01: OpenPipeline as a Multi-Scope Platform</h1>
 <blockquote>
-<p><strong>Series:</strong> OPIPE — OpenPipeline Beyond Logs | <strong>Notebook:</strong> 1 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+<p><strong>Series:</strong> OPIPE — OpenPipeline Beyond Logs | <strong>Notebook:</strong> 1 of 7 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <h2>Beyond Logs: Processing Spans, Metrics, and Events at Ingestion</h2>
 <p>OpenPipeline is often introduced as a log processing framework — and logs are indeed the most common entry point. But OpenPipeline operates on many <strong>configuration scopes</strong> — logs, spans, metrics, events, business events, security events and more — each with its own pipelines, routing rules, and extraction capabilities. This notebook builds intuition for how the platform works across all scopes and why pipeline design matters.</p>
@@ -726,7 +726,7 @@ fetch spans, from:-1h
 </tr>
 <tr>
 <td><code>application-logs</code></td>
-<td><code>log.source == &quot;Log file&quot;</code> AND <code>k8s.namespace.name</code> matches app namespaces</td>
+<td><code>dt.openpipeline.source == &quot;oneagent&quot;</code> AND <code>matchesValue(log.source, &quot;/var/log/app/*&quot;)</code> (your log path) AND <code>k8s.namespace.name</code> matches app namespaces</td>
 <td><code>app_logs</code></td>
 <td>35 days</td>
 </tr>
@@ -750,6 +750,7 @@ fetch spans, from:-1h
 </tr>
 </tbody>
 </table>
+<p>For OneAgent file logs, <code>log.source</code> holds the file path (for example <code>/var/log/…</code>), not a label such as <code>Log file</code>, so match the path. Run the inventory query below to see the values your environment actually has.</p>
 <h3>Principle 2: Filter Early, Extract Targeted</h3>
 <p>Each pipeline should drop noise <strong>before</strong> storage and extract <strong>only</strong> the metrics relevant to that data type:</p>
 <ul>

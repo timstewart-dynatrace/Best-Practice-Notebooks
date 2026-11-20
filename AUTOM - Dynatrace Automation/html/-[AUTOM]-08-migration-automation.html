@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>AUTOM-08: Migration Automation</h1>
 <blockquote>
-<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 8 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 10/22/2026</p>
+<p><strong>Series:</strong> AUTOM — Dynatrace Automation | <strong>Notebook:</strong> 8 of 9 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <p>Configuration migration is the process of transferring Dynatrace settings from one environment to another. This is common in tenant consolidation, Managed-to-SaaS migration, and disaster recovery scenarios.</p>
 <hr />
@@ -797,9 +797,14 @@ terraform apply
 
 </code></pre>
 <pre><code class="language-dql">// Verify synthetic monitors — all three monitor types, Smartscape form (preferred for new queries)
-smartscapeNodes &quot;BROWSER_MONITOR&quot;, &quot;HTTP_MONITOR&quot;, &quot;NETWORK_AVAILABILITY_MONITOR&quot;
+smartscapeNodes &quot;BROWSER_MONITOR&quot;, &quot;HTTP_MONITOR&quot;, &quot;NETWORK_AVAILABILITY_MONITOR&quot;, from:-7d
 | summarize total = count(), by:{type}
 
+// from:-7d matters: without it, smartscapeNodes returns only monitor nodes refreshed in the
+// default 2-hour window. On the validation tenant that was 11 of the 149 monitors seen over
+// 7 days (11/20/2026). A monitor deleted inside the window still counts, so use the same
+// window on source and target.
+//
 // Counting BROWSER_MONITOR alone misses HTTP and network-availability monitors, so a
 // migration check could pass with half the monitors missing. Compare per type.
 // A type with no monitors produces NO row (not a 0) — treat a missing row as 0 when

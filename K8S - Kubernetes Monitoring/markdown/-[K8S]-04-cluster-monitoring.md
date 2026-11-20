@@ -1,6 +1,6 @@
 # K8S-04: Cluster Health Monitoring
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 14 | **Created:** January 2026 | **Last Updated:** 11/15/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 4 of 14 | **Created:** January 2026 | **Last Updated:** 11/20/2026
 
 ## Deep-Dive into Kubernetes Cluster Metrics
 Cluster health monitoring provides visibility into the infrastructure layer of Kubernetes: nodes, control plane, and cluster-wide resources. This notebook covers key metrics, thresholds, and DQL queries for proactive cluster management.
@@ -343,7 +343,7 @@ fetch events, from:-24h
 
 ### Event Reasons to Monitor
 
-Reasons observed on tenant `yhu28601` over 24 h (08/11/2026) — your distribution will differ, so run the summary query below against your own estate rather than assuming this shape:
+Reasons observed on a validation tenant over 24 h (08/11/2026) — your distribution will differ, so run the summary query below against your own estate rather than assuming this shape:
 
 | Reason | Count (24 h) | Action |
 |--------|-------------:|--------|

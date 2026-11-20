@@ -1,6 +1,6 @@
 # M2S-99: Best Practice Summary
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/17/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 99 | **Created:** March 2026 | **Last Updated:** 11/20/2026
 
 A definitive, actionable reference of every best practice extracted from the M2S Managed-to-SaaS Migration series (notebooks 01–09). Each practice specifies the exact setting or action, its priority, and its step. No hedging—follow these and your migration succeeds.
 
@@ -174,7 +174,7 @@ Within the upgrade phase, follow this precise execution order:
 |----------|--------------------------|----------|
 | Allow for the baseline relearn window | In community practice: availability ~2–3 days, response time and error rate ~1–2 weeks, resource usage and traffic ~2–4 weeks. Measure each host's history depth with the FAQ-25 § 5 query instead of guessing. Do not disable alerting. | Critical |
 | Tune alert thresholds after the baseline period | Not during it — thresholds set against a half-learned baseline get baked in. Then: tune noisy detectors, set a Minimum duration on notifying workflows, and fix missing alerts. | Recommended |
-| Compare entity counts against inventory | Run `fetch dt.entity.host \| summarize count()` (and service, application, process_group, synthetic_test). Counts must match the planning-phase inventory. | Critical |
+| Compare entity counts against inventory | Run `fetch dt.entity.host, from:-24h \| summarize count()` (and the same window for service, application, process_group, synthetic_test). Without `from:`, only entities seen in the last 2 hours are counted. Counts must match the planning-phase inventory. | Critical |
 | Verify metrics flow with no gaps >15 minutes | Run `timeseries avg(dt.host.cpu.usage), from:-1h, by:{dt.entity.host}` and check for nulls. Any host returning null has a data gap. | Critical |
 | Validate log ingestion is continuous | Run `fetch logs, from:-1h \| summarize count(), by:{bin(timestamp, 5m)}` and confirm no 5-minute buckets with zero count. | Critical |
 | Confirm distributed traces are flowing | Run `fetch spans, from:-1h \| summarize count(), by:{bin(start_time, 5m)}`. Zero spans after agent migration means application processes need restart. | Critical |

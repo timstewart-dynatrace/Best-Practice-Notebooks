@@ -1,6 +1,6 @@
 # AUTOM-03: Monaco Configuration-as-Code
 
-> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 10/29/2026
+> **Series:** AUTOM — Dynatrace Automation | **Notebook:** 3 of 9 | **Created:** January 2026 | **Last Updated:** 11/20/2026
 
 Monaco (Monitoring as Code) is Dynatrace's official CLI tool for configuration management. It uses YAML files to define configurations and supports version control, CI/CD integration, and multi-environment deployments.
 
@@ -734,8 +734,10 @@ Monaco configurations for ingesting CI/CD pipeline events via OpenPipeline:
 |-----------|---------------|
 | `github_pipeline_observability` | GitHub Actions |
 | `gitlab_pipeline_observability` | GitLab CI |
-| `azure_devops_observability` | Azure DevOps |
+| `azure_devops_observability` | Azure DevOps — its `openpipeline/config.yaml` still declares `type: openpipeline` (checked 11/20/2026), so it does not deploy as-is on Monaco 2.31.0 or later |
 | `argocd_observability` | ArgoCD |
+
+> **Azure DevOps sample and Monaco 2.31.0:** [Monaco v2.31.0 release (Dynatrace GitHub)](https://github.com/Dynatrace/dynatrace-configuration-as-code/releases/tag/v2.31.0) — *"Removed support for deprecated OpenPipeline configurations (type `openpipeline`)"*.
 
 ### Training & Exercises
 

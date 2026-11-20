@@ -1,6 +1,6 @@
 # K8S-08: DQL Queries for Kubernetes
 
-> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 14 | **Created:** January 2026 | **Last Updated:** 11/11/2026
+> **Series:** K8S — Kubernetes Monitoring | **Notebook:** 8 of 14 | **Created:** January 2026 | **Last Updated:** 11/20/2026
 
 ## Advanced Query Patterns for Kubernetes Data
 This notebook provides a comprehensive reference of DQL queries for Kubernetes monitoring. From basic entity queries to complex performance analysis, these patterns help you extract insights from your Kubernetes data.
@@ -113,7 +113,7 @@ smartscapeNodes "K8S_NODE"
 ## 2. Metric Queries
 ### Common Kubernetes Metrics
 
-The table below lists keys verified present on a live tenant (`yhu28601`, 08/11/2026). Enumerate your own before writing a query — this is what exists there, not a guarantee for every estate:
+The table below lists keys verified present on a live tenant (08/11/2026). Enumerate your own before writing a query — this is what exists there, not a guarantee for every estate:
 
 ```dql
 metrics

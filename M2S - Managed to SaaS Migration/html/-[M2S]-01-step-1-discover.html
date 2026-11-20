@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>M2S-01: Step 1 — Discover: Understand SaaS Differences</h1>
 <blockquote>
-<p><strong>Series:</strong> M2S — Managed to SaaS Migration | <strong>Notebook:</strong> 1 of 9 | <strong>Phase:</strong> Plan | <strong>Step:</strong> Discover | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/17/2026</p>
+<p><strong>Series:</strong> M2S — Managed to SaaS Migration | <strong>Notebook:</strong> 1 of 9 | <strong>Phase:</strong> Plan | <strong>Step:</strong> Discover | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <p>The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.</p>
 <blockquote>
@@ -232,7 +232,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 </tbody>
 </table>
 <blockquote>
-<p><strong>Tip:</strong> Consider environment clean-up during discovery. Excessive or legacy configuration items can be left behind. Configuration items such as tagging rules and management zones are generally carried by the SaaS Upgrade Assistant, but its documentation publishes no per-type list — treat the app's review screen as the authority, and migrate dashboards selectively.</p>
+<p><strong>Tip:</strong> Consider environment clean-up during discovery. Excessive or legacy configuration items can be left behind. Configuration items such as tagging rules and management zones are generally carried by the SaaS Upgrade Assistant. Its documentation lists the settings it does not carry, which you migrate by hand (<em>Settings that require manual migration</em>, including credential vault, access tokens, merged services, key requests, request naming order and tags manually applied to entities). Confirm everything else in the app's review screen, and migrate dashboards selectively.</p>
 </blockquote>
 <h2>Prerequisites</h2>
 <table>
@@ -744,7 +744,7 @@ smartscapeNodes &quot;ACTIVEGATE&quot;
 </blockquote>
 <p><a id="what-migrates-and-what-doesnt"></a></p>
 <h2>5. What Migrates and What Doesn't</h2>
-<p>Understanding portability constraints upfront prevents surprises during execution. The SaaS Upgrade Assistant imports environment configuration and can update dashboard owners and adjust entity IDs, but its documentation publishes no per-type support list. The tables below reflect what migration teams commonly report — confirm each type in the app's review screen before you rely on it. FAQ-25 explains the underlying rule: configuration moves, platform-minted identity is re-minted, and accumulated state (history, baselines, secrets) does not move at all.</p>
+<p>Understanding portability constraints upfront prevents surprises during execution. The SaaS Upgrade Assistant imports environment configuration and can update dashboard owners and adjust entity IDs, and its documentation lists the settings it does not carry: the assistant <em>&quot;does not support all of the settings that you may use&quot;</em>, so you <em>&quot;check and manually migrate the additional settings listed below&quot;</em> on that page. There is no matching list of what it does carry. The tables below reflect what migration teams commonly report — check the documented manual list first, then confirm each type in the app's review screen before you rely on it. FAQ-25 explains the underlying rule: configuration moves, platform-minted identity is re-minted, and accumulated state (history, baselines, secrets) does not move at all.</p>
 <h3>Commonly Carried by the SaaS Upgrade Assistant</h3>
 <table>
 <thead>
@@ -776,7 +776,7 @@ smartscapeNodes &quot;ACTIVEGATE&quot;
 </tr>
 <tr>
 <td>Service detection rules</td>
-<td>Custom service naming and merging</td>
+<td>Custom service naming. <em>Merged services</em> and <em>Custom service rules order</em> are on the documented manual-migration list</td>
 </tr>
 <tr>
 <td>Request attributes</td>
@@ -877,6 +877,9 @@ smartscapeNodes &quot;ACTIVEGATE&quot;
 </tr>
 </tbody>
 </table>
+<blockquote>
+<p><sub><strong>Sources:</strong> <a href="https://docs.dynatrace.com/managed/shortlink/up-migrate-cfg#settings-that-require-manual-migration">Settings that require manual migration (DT docs)</a> — <em>&quot;The SaaS Upgrade Assistant is based on the Dynatrace Configuration as Code implementation, which does not support all of the settings that you may use.&quot;</em></sub></p>
+</blockquote>
 <p><a id="product-safeguards-and-security-review"></a></p>
 <h2>6. Product Safeguards, Limits &amp; SaaS Security Review</h2>
 <p>During discovery, inventory the product safeguards and platform limits that behave differently on SaaS, and complete a short security and privacy review so nothing surprises you during execution. Several of these settings are <strong>not</strong> carried over automatically by the SaaS Upgrade Assistant and must be re-established manually.</p>

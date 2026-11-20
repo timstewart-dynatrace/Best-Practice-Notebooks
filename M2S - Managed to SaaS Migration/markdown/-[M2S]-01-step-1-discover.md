@@ -1,6 +1,6 @@
 # M2S-01: Step 1 — Discover: Understand SaaS Differences
 
-> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 11/17/2026
+> **Series:** M2S — Managed to SaaS Migration | **Notebook:** 1 of 9 | **Phase:** Plan | **Step:** Discover | **Created:** March 2026 | **Last Updated:** 11/20/2026
 
 The first step in any Managed-to-SaaS migration is understanding what you are moving to and why. This notebook helps you document the benefits of Dynatrace SaaS for your organization, take inventory of your current Managed environment, and confirm your use cases and goals for the upgrade.
 
@@ -50,7 +50,7 @@ A complete discovery must cover ALL of these categories — missing any one will
 | **Monitoring components** | OneAgent instances (hosts, PaaS, K8s/OpenShift), ActiveGate instances (routing, extensions, synthetic, zRemote) | Manual — reconfigure each OneAgent (`oneagentctl`) or redeploy it; install new ActiveGates (M2S-04/05) |
 | **Dashboards** | All dashboards, their owners, and management zone filters | SaaS Upgrade Assistant — it can update dashboard owners automatically |
 
-> **Tip:** Consider environment clean-up during discovery. Excessive or legacy configuration items can be left behind. Configuration items such as tagging rules and management zones are generally carried by the SaaS Upgrade Assistant, but its documentation publishes no per-type list — treat the app's review screen as the authority, and migrate dashboards selectively.
+> **Tip:** Consider environment clean-up during discovery. Excessive or legacy configuration items can be left behind. Configuration items such as tagging rules and management zones are generally carried by the SaaS Upgrade Assistant. Its documentation lists the settings it does not carry, which you migrate by hand (*Settings that require manual migration*, including credential vault, access tokens, merged services, key requests, request naming order and tags manually applied to entities). Confirm everything else in the app's review screen, and migrate dashboards selectively.
 
 ## Prerequisites
 
@@ -386,7 +386,7 @@ The **[SaaS Upgrade Assistant](https://docs.dynatrace.com/managed/upgrade/saas-u
 
 ## 5. What Migrates and What Doesn't
 
-Understanding portability constraints upfront prevents surprises during execution. The SaaS Upgrade Assistant imports environment configuration and can update dashboard owners and adjust entity IDs, but its documentation publishes no per-type support list. The tables below reflect what migration teams commonly report — confirm each type in the app's review screen before you rely on it. FAQ-25 explains the underlying rule: configuration moves, platform-minted identity is re-minted, and accumulated state (history, baselines, secrets) does not move at all.
+Understanding portability constraints upfront prevents surprises during execution. The SaaS Upgrade Assistant imports environment configuration and can update dashboard owners and adjust entity IDs, and its documentation lists the settings it does not carry: the assistant *"does not support all of the settings that you may use"*, so you *"check and manually migrate the additional settings listed below"* on that page. There is no matching list of what it does carry. The tables below reflect what migration teams commonly report — check the documented manual list first, then confirm each type in the app's review screen before you rely on it. FAQ-25 explains the underlying rule: configuration moves, platform-minted identity is re-minted, and accumulated state (history, baselines, secrets) does not move at all.
 
 ### Commonly Carried by the SaaS Upgrade Assistant
 
@@ -397,7 +397,7 @@ Understanding portability constraints upfront prevents surprises during executio
 | Auto-tagging rules | Tag definitions and conditions |
 | Alerting profiles | Alert filtering and notification routing |
 | Classic dashboards | Migrate automatically; rebuild as modern dashboards recommended |
-| Service detection rules | Custom service naming and merging |
+| Service detection rules | Custom service naming. *Merged services* and *Custom service rules order* are on the documented manual-migration list |
 | Request attributes | Capture rules for request metadata |
 | Calculated metrics | Service, log, and RUM calculated metrics |
 | Maintenance windows | Scheduled suppression windows |
@@ -426,6 +426,8 @@ Understanding portability constraints upfront prevents surprises during executio
 | User sessions | RUM session data not transferred |
 | Problems | detected problem history stays in Managed |
 | Deployment events | Release tracking starts fresh |
+
+> <sub>**Sources:** [Settings that require manual migration (DT docs)](https://docs.dynatrace.com/managed/shortlink/up-migrate-cfg#settings-that-require-manual-migration) — *"The SaaS Upgrade Assistant is based on the Dynatrace Configuration as Code implementation, which does not support all of the settings that you may use."*</sub>
 
 <a id="product-safeguards-and-security-review"></a>
 

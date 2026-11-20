@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>FAQ-23: How Do I Monitor Box With Dynatrace?</h1>
 <blockquote>
-<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 23 — Monitoring Box With Dynatrace | <strong>Created:</strong> August 2026 | <strong>Last Updated:</strong> 11/13/2026</p>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 23 — Monitoring Box With Dynatrace | <strong>Created:</strong> August 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <h2>Overview</h2>
 <p>Box holds the documents. That is the whole reason this integration comes up: the audit trail of who opened, downloaded, shared, and deleted them is a compliance artifact, and it lives in a system nobody in the observability team administers. The request usually arrives phrased as a logging problem — &quot;we need Box logs in Dynatrace&quot; — and is answered as though the only open question were which ingestion endpoint to point at.</p>
@@ -798,7 +798,7 @@ const LOG_SOURCE        = &quot;box.events&quot;;
 const PAGE_LIMIT        = 500;
 const MAX_PAGES         = 60;      // stay clear of the 120 s ceiling
 const INGEST_BATCH      = 1000;    // well under 50,000 records / 10 MB
-const MAX_EVENT_AGE_MS  = 23 * 60 * 60 * 1000; // log ingest drops timestamps &gt; 24 h old (§ 9.1)
+const MAX_EVENT_AGE_MS  = 23 * 60 * 60 * 1000; // stays under the 24 h log age limit; 72 h on newer environments (§ 9.1)
 
 export default async function () {
   // --- 1. Authenticate (Client Credentials Grant) -------------------------
@@ -879,7 +879,7 @@ export default async function () {
         &quot;box.item.name&quot;: evt.source?.item_name,
         &quot;box.ip_address&quot;: evt.ip_address,
       };
-      // Log ingest DROPS a record whose timestamp is older than 24 h. For a
+      // Log ingest DROPS a record older than the log age limit (24 h or 72 h). For a
       // backlog (first run from 0, a long outage), leave timestamp unset so the
       // record takes its ingest time, and query event time on box.created_at.
       if (Date.now() - Date.parse(evt.created_at) &lt; MAX_EVENT_AGE_MS) {
@@ -947,7 +947,7 @@ export default async function () {
 </tr>
 <tr>
 <td><strong>No <code>timestamp</code> on events older than ~23 h</strong></td>
-<td>Log ingest drops any record timestamped more than 24 h in the past (§ 9.1). Replaying a backlog with <code>timestamp: created_at</code> loses it silently; ingest-time stamping plus <code>box.created_at</code> keeps it</td>
+<td>Log ingest drops any record timestamped further in the past than the log age limit, 24 h or 72 h (§ 9.1). Replaying a backlog with <code>timestamp: created_at</code> loses it silently; ingest-time stamping plus <code>box.created_at</code> keeps it</td>
 </tr>
 </tbody>
 </table>
@@ -1009,7 +1009,7 @@ DT_PLATFORM_TOKEN = os.environ[&quot;DT_PLATFORM_TOKEN&quot;]  # scope: openpipe
 LOG_SOURCE    = &quot;box.events&quot;
 PAGE_LIMIT    = 500
 INGEST_BATCH  = 1000     # well under the 50,000-record / 10 MB request limits
-MAX_EVENT_AGE = timedelta(hours=23)  # ingest drops timestamps &gt; 24 h old (§ 9.1)
+MAX_EVENT_AGE = timedelta(hours=23)  # under the 24 h log age limit; 72 h on newer environments (§ 9.1)
 
 
 def box_client() -&gt; BoxClient:
@@ -1278,7 +1278,7 @@ if __name__ == &quot;__main__&quot;:
 </tr>
 <tr>
 <td>Log age</td>
-<td><strong>72 h</strong> for environments created after SaaS 1.348; <strong>24 h</strong> for older ones (raised to 72 h on request)</td>
+<td><strong>72 h</strong> for environments created in SaaS 1.348 or later; <strong>24 h</strong> for older ones (raised to 72 h on request)</td>
 <td>A record timestamped earlier is <strong>dropped</strong>; a mixed batch returns <strong>200</strong> with a &quot;not ingested&quot; message, not an error. Backfill must not stamp old events with their event time (§ 7.3, § 8.2). If you cannot confirm your environment's limit, plan for 24 h</td>
 </tr>
 </tbody>
@@ -1355,7 +1355,7 @@ if __name__ == &quot;__main__&quot;:
 <blockquote>
 <p><sub><strong>Sources:</strong></sub></p>
 <ul>
-<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log ingestion limits (DT docs)</a> — <em>&quot;The event is dropped if it contains a timestamp older than the configured log age limit.&quot;</em> <em>&quot;For environments created after Dynatrace version 1.348 was released, the default log age limit is 72 hours.&quot;</em> <em>&quot;For environments created before Dynatrace version 1.348 was released, the default log age limit is 24 hours. The limit can be increased to 72 hours on request.&quot;</em></sub></li>
+<li><sub><a href="https://docs.dynatrace.com/docs/shortlink/lma-limits">Log ingestion limits (DT docs)</a> — <em>&quot;The event is dropped if it contains a timestamp older than the configured log age limit.&quot;</em> <em>&quot;For environments created in Dynatrace version 1.348+, the default log age limit is 72 hours.&quot;</em> <em>&quot;For environments created in Dynatrace version 1.347 and earlier, the default log age limit is 24 hours.&quot;</em> <em>&quot;The limit can be increased to 72 hours on request.&quot;</em></sub></li>
 <li><sub><a href="https://docs.dynatrace.com/docs/whats-new/saas/sprint-348">What's new in Dynatrace SaaS 1.348 (DT docs)</a> — <em>&quot;Log ingestion now accepts log data up to 72 hours old&quot;</em>; GA, rollout start 10/12/2026; re-read 10/23/2026</sub></li>
 <li><sub><a href="https://docs.dynatrace.com/docs/platform/openpipeline/concepts/processing">Processing in OpenPipeline (DT docs)</a></sub></li>
 <li><sub><a href="https://docs.dynatrace.com/docs/analyze-explore-automate/logs/lma-bucket-assignment">Configure data storage and retention for logs (DT docs)</a> — <em>&quot;This means you can extract metrics and generate alerts from records that you won't store.&quot;</em></sub></li>
@@ -2026,7 +2026,7 @@ fetch logs, from:-24h
 <tr>
 <td>16</td>
 <td><strong>Backfill stamped with event time</strong></td>
-<td>Replay &quot;succeeds&quot;; events older than 24 h are silently dropped (Python sees a <strong>200</strong>, not an error)</td>
+<td>Replay &quot;succeeds&quot;; events older than the log age limit (24 h or 72 h) are silently dropped (Python sees a <strong>200</strong>, not an error)</td>
 <td>Omit <code>timestamp</code> for old events; carry <code>box.created_at</code> (§ 9.1)</td>
 </tr>
 <tr>
@@ -2055,7 +2055,7 @@ fetch logs, from:-24h
 <h2>18. Recommended Approach</h2>
 <p><strong>Query your own spans first.</strong> If your services call Box, that data exists now and costs nothing (§ 3.1). It may answer the question that prompted the project.</p>
 <p><strong>Then build one collector, in a Workflow.</strong> At 1M events/day a Workflow clears the 120-second ceiling with roughly 90% headroom, keeps secrets in the Credential Vault, and inherits scheduling and failure alerting. Poll <code>admin_logs_streaming</code> every 5 minutes, dedupe on <code>event_id</code>, persist the cursor with <code>stateClient</code> and no TTL — after confirming in a test workflow that app state is reachable from a Run JavaScript task (§ 7.1) — and write that cursor only after a successful ingest.</p>
-<p><strong>Write the Python backfill before you need it.</strong> It is the only recovery path for an outage longer than two weeks, and the worst time to write it is during one. It recovers the events, not their place on the timeline: log ingest drops timestamps older than 24 h, so recovered events carry their real time in <code>box.created_at</code>.</p>
+<p><strong>Write the Python backfill before you need it.</strong> It is the only recovery path for an outage longer than two weeks, and the worst time to write it is during one. It recovers the events, not their place on the timeline: log ingest drops timestamps older than the log age limit (24 h or 72 h), so recovered events carry their real time in <code>box.created_at</code>.</p>
 <p><strong>Decide retention before switching on.</strong> At ~45 GB/month, extract-then-discard is not an optimization — it is the difference between a proportionate cost and an unpleasant surprise. Keep Shield alerts and regulated-folder activity; discard the <code>PREVIEW</code> and <code>DOWNLOAD</code> bulk once a counter has captured it.</p>
 <p><strong>Alert on the collector, and prove the alert works by stopping it.</strong> Everything else in this entry protects data you have. This is the only control that protects data you have not collected yet — and Box's two-week streaming window means an unnoticed outage becomes permanent.</p>
 <p><strong>What &quot;done&quot; looks like:</strong> Shield alerts routed to security with a working console link; a security dashboard whose freshness you can vouch for; audit records in a bucket with retention and access someone signed; and a staleness alert that has been tested by breaking it on purpose.</p>

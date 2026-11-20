@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>AIOPS-03: Davis AI — Problems and Root Cause Analysis</h1>
 <blockquote>
-<p><strong>Series:</strong> AIOPS — Dynatrace Intelligence | <strong>Notebook:</strong> 3 of 8 | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+<p><strong>Series:</strong> AIOPS — Dynatrace Intelligence | <strong>Notebook:</strong> 3 of 8 | <strong>Created:</strong> May 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <h2>Overview</h2>
 <p>Davis is the Causal AI engine. It watches the constant stream of anomaly signals (the raw <code>dt.davis.events</code>), groups related signals using Smartscape topology, and produces <strong>problems</strong> with a ranked root cause.</p>
@@ -419,7 +419,9 @@ fetch dt.davis.problems, from:-2h
 fetch dt.davis.problems, from:-2h
 | filter event.status == &quot;ACTIVE&quot;
 | expand host_id = dt.entity.host
-| lookup [smartscapeNodes &quot;HOST&quot; | fields host_id = id_classic, host_group = dt.host_group.id],
+// from:-30d on the lookup: hosts that stopped reporting (often the problem itself) are missing
+// from the default 2-hour node window, and their problems would drop out of the result.
+| lookup [smartscapeNodes &quot;HOST&quot;, from:-30d | fields host_id = id_classic, host_group = dt.host_group.id],
     sourceField:host_id, lookupField:host_id, fields:{host_group}
 | filter host_group == &quot;my-host-group&quot;
 | dedup event.id

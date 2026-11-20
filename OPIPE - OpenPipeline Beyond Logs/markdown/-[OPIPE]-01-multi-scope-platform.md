@@ -1,6 +1,6 @@
 # OPIPE-01: OpenPipeline as a Multi-Scope Platform
 
-> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 11/13/2026
+> **Series:** OPIPE — OpenPipeline Beyond Logs | **Notebook:** 1 of 7 | **Created:** March 2026 | **Last Updated:** 11/20/2026
 
 ## Beyond Logs: Processing Spans, Metrics, and Events at Ingestion
 
@@ -326,10 +326,12 @@ Create separate pipelines based on the nature of the data, not the team that own
 | Pipeline | Routing Condition | Target Bucket | Retention |
 |----------|-------------------|---------------|-----------|
 | `kubernetes-infra` | `k8s.namespace.name` exists AND `log.source == "Container Output"` | `k8s_infra_logs` | 14 days |
-| `application-logs` | `log.source == "Log file"` AND `k8s.namespace.name` matches app namespaces | `app_logs` | 35 days |
+| `application-logs` | `dt.openpipeline.source == "oneagent"` AND `matchesValue(log.source, "/var/log/app/*")` (your log path) AND `k8s.namespace.name` matches app namespaces | `app_logs` | 35 days |
 | `security-audit` | `matchesValue(log.source, "*audit*")` or another source-identifying field (`AUDIT` is not a log level) | `security_audit` | 365 days |
 | `api-ingestion` | `dt.openpipeline.source == "/api/v2/logs/ingest"` | `external_logs` | 35 days |
 | Default route | Everything else (catch-all) — for logs, the Classic pipeline where it is available | `default_logs` | 35 days (built-in bucket) |
+
+For OneAgent file logs, `log.source` holds the file path (for example `/var/log/…`), not a label such as `Log file`, so match the path. Run the inventory query below to see the values your environment actually has.
 
 ### Principle 2: Filter Early, Extract Targeted
 

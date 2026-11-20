@@ -1,6 +1,6 @@
 # FAQ-26: What Metadata Should We Set, Where, and Why?
 
-> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 11/16/2026
+> **Series:** FAQ — Frequently Asked Questions | **Reference:** 26 — Metadata Strategy | **Created:** October 2026 | **Last Updated:** 11/20/2026
 
 ## Overview
 
@@ -177,6 +177,8 @@ Three surfaces, from broadest to narrowest: **central ingest enrichment rules** 
 
 > **OneAgent 1.349 (rollout from 11/09/2026) — breaking change for the Host/Process property route.** The [OneAgent 1.349 release notes (DT docs)](https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349) say: *"In the Host/process property rules dropdown, the aws.tags and azure.tags based rules will temporarily no longer work as sources or in conditions for injected processes. Full cloud tags support, which brings that functionality back, is planned for a future release."* OneAgent updates roll out over weeks, so check the version your hosts run before relying on this route for data from injected processes; on OneAgent versions before 1.349 the route described above remains the working path.
 
+> **OneAgent 1.349 also changes host properties used as primary tags.** The same release notes list a second breaking change: *"Code modules now drop any primary Grail tag attribute that is set via `oneagentctl --set-host-property`."* *"Previously, host properties that were set this way were included as primary Grail tags"*. Their action plan: *"Make sure your primary tags originate only from explicit tag sources, such as `DT_TAGS`, `oneagentctl --set-host-tag`, or `hostautotag.conf`."* OneAgent updates roll out over weeks, so check the version your hosts run; before 1.349, tags set this way still arrive as primary tags.
+
 The OneAgent enrichment page (updated 09/14/2026) still says *"Cloud tags are not yet available as input fields for OneAgent."* The AWS enrichment page (09/17/2026) and the AWS end-to-end example (10/06/2026) both document the route above, so follow them, and check one host's data before rolling it out (§7).
 
 **Scope precedence.** *"When rules at several scopes target the same field, the narrower-scope rule takes precedence."* A host-group rule overrides an environment-wide default for that host group.
@@ -326,6 +328,10 @@ fetch dt.semantic_dictionary.fields
 | fields name, stability,
     primary_field = in("primary-field", tags),
     usable_in_iam = in("permission", tags)
+// One row per field: the dictionary repeats a field once per model (10,347 rows for 23 fields
+// on the validation tenant, 11/20/2026), which hits the 1,000-record result limit. Keep the most
+// stable entry, since a few fields are stable in most models and experimental in others.
+| dedup name, sort:{stability desc}
 | sort usable_in_iam desc, name asc
 ```
 

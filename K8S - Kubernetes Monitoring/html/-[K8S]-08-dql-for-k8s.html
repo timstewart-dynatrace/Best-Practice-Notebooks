@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>K8S-08: DQL Queries for Kubernetes</h1>
 <blockquote>
-<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 8 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/11/2026</p>
+<p><strong>Series:</strong> K8S — Kubernetes Monitoring | <strong>Notebook:</strong> 8 of 14 | <strong>Created:</strong> January 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <h2>Advanced Query Patterns for Kubernetes Data</h2>
 <p>This notebook provides a comprehensive reference of DQL queries for Kubernetes monitoring. From basic entity queries to complex performance analysis, these patterns help you extract insights from your Kubernetes data.</p>
@@ -301,7 +301,7 @@ smartscapeNodes &quot;K8S_NODE&quot;
 <p><a id="metric-queries"></a></p>
 <h2>2. Metric Queries</h2>
 <h3>Common Kubernetes Metrics</h3>
-<p>The table below lists keys verified present on a live tenant (<code>yhu28601</code>, 08/11/2026). Enumerate your own before writing a query — this is what exists there, not a guarantee for every estate:</p>
+<p>The table below lists keys verified present on a live tenant (08/11/2026). Enumerate your own before writing a query — this is what exists there, not a guarantee for every estate:</p>
 <pre><code class="language-dql">metrics
 | filter startsWith(metric.key, &quot;dt.kubernetes&quot;)
 | summarize n = count(), by:{metric.key}

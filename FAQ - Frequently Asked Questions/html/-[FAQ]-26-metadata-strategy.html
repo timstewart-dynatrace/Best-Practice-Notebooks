@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>FAQ-26: What Metadata Should We Set, Where, and Why?</h1>
 <blockquote>
-<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 26 — Metadata Strategy | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/16/2026</p>
+<p><strong>Series:</strong> FAQ — Frequently Asked Questions | <strong>Reference:</strong> 26 — Metadata Strategy | <strong>Created:</strong> October 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <h2>Overview</h2>
 <p>Every Dynatrace rollout reaches the same meeting: <em>&quot;what metadata do we need?&quot;</em> It usually gets answered as a list of tag names — <code>team</code>, <code>env</code>, <code>app</code>, <code>cost-center</code> — and the list is rarely the problem. What goes wrong is everything around it: a value is set on the host and never reaches the extension metrics, a team tag appears in logs but not on the RUM data, a cost center is populated while its product partner is not, or a tag that everyone treats as an access boundary turns out not to be usable in a policy at all.</p>
@@ -417,6 +417,9 @@ For environments where SVG doesn't render
 <blockquote>
 <p><strong>OneAgent 1.349 (rollout from 11/09/2026) — breaking change for the Host/Process property route.</strong> The <a href="https://docs.dynatrace.com/docs/whats-new/oneagent/sprint-349">OneAgent 1.349 release notes (DT docs)</a> say: <em>&quot;In the Host/process property rules dropdown, the aws.tags and azure.tags based rules will temporarily no longer work as sources or in conditions for injected processes. Full cloud tags support, which brings that functionality back, is planned for a future release.&quot;</em> OneAgent updates roll out over weeks, so check the version your hosts run before relying on this route for data from injected processes; on OneAgent versions before 1.349 the route described above remains the working path.</p>
 </blockquote>
+<blockquote>
+<p><strong>OneAgent 1.349 also changes host properties used as primary tags.</strong> The same release notes list a second breaking change: <em>&quot;Code modules now drop any primary Grail tag attribute that is set via <code>oneagentctl --set-host-property</code>.&quot;</em> <em>&quot;Previously, host properties that were set this way were included as primary Grail tags&quot;</em>. Their action plan: <em>&quot;Make sure your primary tags originate only from explicit tag sources, such as <code>DT_TAGS</code>, <code>oneagentctl --set-host-tag</code>, or <code>hostautotag.conf</code>.&quot;</em> OneAgent updates roll out over weeks, so check the version your hosts run; before 1.349, tags set this way still arrive as primary tags.</p>
+</blockquote>
 <p>The OneAgent enrichment page (updated 09/14/2026) still says <em>&quot;Cloud tags are not yet available as input fields for OneAgent.&quot;</em> The AWS enrichment page (09/17/2026) and the AWS end-to-end example (10/06/2026) both document the route above, so follow them, and check one host's data before rolling it out (§7).</p>
 <p><strong>Scope precedence.</strong> <em>&quot;When rules at several scopes target the same field, the narrower-scope rule takes precedence.&quot;</em> A host-group rule overrides an environment-wide default for that host group.</p>
 <blockquote>
@@ -636,6 +639,10 @@ fetch dt.semantic_dictionary.fields
 | fields name, stability,
     primary_field = in(&quot;primary-field&quot;, tags),
     usable_in_iam = in(&quot;permission&quot;, tags)
+// One row per field: the dictionary repeats a field once per model (10,347 rows for 23 fields
+// on the validation tenant, 11/20/2026), which hits the 1,000-record result limit. Keep the most
+// stable entry, since a few fields are stable in most models and experimental in others.
+| dedup name, sort:{stability desc}
 | sort usable_in_iam desc, name asc
 </code></pre>
 <p>On the validation tenant (10/06/2026) this returned ten primary fields — host group, Kubernetes cluster and namespace, and seven cloud account, region and resource-group fields. Fifteen fields carried the <code>permission</code> tag, among them <code>dt.security_context</code> and <code>frontend.name</code>. No <code>primary_tags.*</code> field was permission-tagged.</p>

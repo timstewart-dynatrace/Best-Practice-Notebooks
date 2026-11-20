@@ -1,6 +1,6 @@
 # NR2DT-07: Step 7 — Migrate Logs, Tags & Drop Rules
 
-> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 7 of 10 | **Created:** April 2026 | **Last Updated:** 11/03/2026
+> **Series:** NR2DT — New Relic to Dynatrace Migration Steps | **Notebook:** 7 of 10 | **Created:** April 2026 | **Last Updated:** 11/20/2026
 
 ## Overview
 
@@ -121,13 +121,15 @@ fetch logs, from:-1h
 
 Should return enriched data with the expected environment value.
 
-**Workload identifiers** should similarly be queryable:
+**Workload identifiers** — query the attribute your NR2DT-03 §5 enrichment rule writes. The example below assumes a rule that sets `workload.name`; it is not a built-in field, so a count of 0 can mean the rule is missing, not only that the workload is quiet:
 
 ```
 fetch logs, from:-1h
 | filter workload.name == "checkout"
 | summarize count()
 ```
+
+> <sub>**Dictionary:** no `workload.name` entry in `dt.semantic_dictionary.fields` (the same filter returned `environment` (`experimental`) and `dt.security_context` (`stable`)), read 11/20/2026.</sub>
 
 <a id="gate"></a>
 ## 5. Step Exit Criteria

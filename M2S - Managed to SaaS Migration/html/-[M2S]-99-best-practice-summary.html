@@ -148,7 +148,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 <main class="page">
 <h1>M2S-99: Best Practice Summary</h1>
 <blockquote>
-<p><strong>Series:</strong> M2S — Managed to SaaS Migration | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/17/2026</p>
+<p><strong>Series:</strong> M2S — Managed to SaaS Migration | <strong>Notebook:</strong> 99 | <strong>Created:</strong> March 2026 | <strong>Last Updated:</strong> 11/20/2026</p>
 </blockquote>
 <p>A definitive, actionable reference of every best practice extracted from the M2S Managed-to-SaaS Migration series (notebooks 01–09). Each practice specifies the exact setting or action, its priority, and its step. No hedging—follow these and your migration succeeds.</p>
 <h2>The 9-Step Migration Framework</h2>
@@ -729,7 +729,7 @@ sub { font-size: .8em; vertical-align: baseline; }
 </tr>
 <tr>
 <td>Compare entity counts against inventory</td>
-<td>Run <code>fetch dt.entity.host | summarize count()</code> (and service, application, process_group, synthetic_test). Counts must match the planning-phase inventory.</td>
+<td>Run <code>fetch dt.entity.host, from:-24h | summarize count()</code> (and the same window for service, application, process_group, synthetic_test). Without <code>from:</code>, only entities seen in the last 2 hours are counted. Counts must match the planning-phase inventory.</td>
 <td>Critical</td>
 </tr>
 <tr>

@@ -1,6 +1,6 @@
 # AIOPS-03: Davis AI — Problems and Root Cause Analysis
 
-> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 11/11/2026
+> **Series:** AIOPS — Dynatrace Intelligence | **Notebook:** 3 of 8 | **Created:** May 2026 | **Last Updated:** 11/20/2026
 
 ## Overview
 
@@ -192,7 +192,9 @@ fetch dt.davis.problems, from:-2h
 fetch dt.davis.problems, from:-2h
 | filter event.status == "ACTIVE"
 | expand host_id = dt.entity.host
-| lookup [smartscapeNodes "HOST" | fields host_id = id_classic, host_group = dt.host_group.id],
+// from:-30d on the lookup: hosts that stopped reporting (often the problem itself) are missing
+// from the default 2-hour node window, and their problems would drop out of the result.
+| lookup [smartscapeNodes "HOST", from:-30d | fields host_id = id_classic, host_group = dt.host_group.id],
     sourceField:host_id, lookupField:host_id, fields:{host_group}
 | filter host_group == "my-host-group"
 | dedup event.id

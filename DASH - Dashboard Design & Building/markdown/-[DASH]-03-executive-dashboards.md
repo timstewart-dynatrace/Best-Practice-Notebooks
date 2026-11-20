@@ -1,6 +1,6 @@
 # DASH-03: Executive Dashboards
 
-> **Series:** DASH — Dashboard Design & Building | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 11/11/2026
+> **Series:** DASH — Dashboard Design & Building | **Notebook:** 3 of 7 | **Created:** March 2026 | **Last Updated:** 11/20/2026
 
 ## Overview
 
@@ -115,7 +115,7 @@ Calculate availability as the percentage of successful server-side requests.
 > | `countIf(otel.status_code != "ERROR")` | **0** — the field does not exist at all (no row in `dt.semantic_dictionary.fields`; the real field is `span.status_code`) |
 > | `countIf(span.status_code != "ERROR")` | **0** — right field, wrong case. Grail values are lowercase `"error"` |
 > | `countIf(span.status_code != "error")` | **≈0** — right field, right case, wrong logic. `span.status_code` is **null on successful spans**, and `!=` against null yields null, not true |
-> | **`total - countIf(span.status_code == "error")`** | **99.598%** — the correct figure for the same 24 h window, tenant `yhu28601`, 08/11/2026 |
+> | **`total - countIf(span.status_code == "error")`** | **99.598%** — the correct figure for the same 24 h window, on a validation tenant, 08/11/2026 |
 >
 > All three wrong forms put **0% availability** in front of an executive audience while the platform is running normally — the fastest possible way to destroy trust in the dashboard, and precisely the outcome the storytelling warning in §7 is about.
 
